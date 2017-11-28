@@ -22,6 +22,8 @@
 
 #include <multipass/path.h>
 
+#include <vector>
+
 namespace multipass
 {
 class VMImage
@@ -31,6 +33,7 @@ public:
     Path kernel_path;
     Path initrd_path;
     std::string id;
+    std::vector<std::string> aliases;
 };
 }
 #endif // MULTIPASS_VIRTUAL_MACHINE_IMAGE_H

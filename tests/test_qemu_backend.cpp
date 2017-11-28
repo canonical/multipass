@@ -71,7 +71,7 @@ struct QemuBackend : public testing::Test
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mp::VirtualMachineDescription default_description{
-        2, "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", ""}, dummy_cloud_init_iso.name()};
+        2, "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", "", {}}, dummy_cloud_init_iso.name()};
     QTemporaryDir data_dir;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
     std::string old_path;

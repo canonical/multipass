@@ -41,6 +41,8 @@ public:
     virtual void remove(const std::string& name) = 0;
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;
+    virtual void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
+                               const ProgressMonitor& monitor) = 0;
 
 protected:
     VMImageVault() = default;

@@ -53,8 +53,9 @@ constexpr auto instance_db_name = "multipassd-vm-instances.json";
 
 mp::Query query_from(const mp::CreateRequest* request, const std::string& name)
 {
+    std::string image = request->image().empty() ? "default" : request->image();
     // TODO: persistence should be specified by the rpc as well
-    return {name, request->image(), false};
+    return {name, image, false};
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone)
@@ -329,10 +330,46 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     config->vault->prune_expired_images();
 
-    // Fire timer every hour to clean up any expired images
-    connect(&prune_expired_images_task, &QTimer::timeout, [this]() { config->vault->prune_expired_images(); });
-    const std::chrono::milliseconds ms = std::chrono::hours(1);
-    prune_expired_images_task.start(ms.count());
+    // Fire timer every six hours to perform maintenance on source images such as
+    // pruning expired images and updating to newly released images.
+    connect(&source_images_maintenance_task, &QTimer::timeout, [this]() {
+        config->vault->prune_expired_images();
+
+        auto prepare_action = [this](const VMImage& source_image) -> VMImage {
+            return config->factory->prepare_source_image(source_image);
+        };
+
+        auto download_monitor = [this](int download_type, int percentage) {
+            static bool done_once = false;
+            if (percentage % 10 == 0)
+            {
+                if (!done_once)
+                {
+                    config->cout << std::to_string(percentage) << "%";
+                    done_once = true;
+                    if (percentage == 100)
+                        config->cout << std::endl;
+                    else
+                        config->cout << "..." << std::flush;
+                }
+            }
+            else
+            {
+                done_once = false;
+            }
+            return true;
+        };
+        try
+        {
+            config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
+        }
+        catch (const std::exception& e)
+        {
+            config->cerr << "Error updating images: " << e.what() << std::endl;
+        }
+    });
+    const std::chrono::milliseconds ms = std::chrono::hours(6);
+    source_images_maintenance_task.start(ms.count());
 }
 
 grpc::Status mp::Daemon::create(grpc::ServerContext* context, const CreateRequest* request,

@@ -50,7 +50,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             url_downloader.get(), std::chrono::minutes{5});
     if (vault == nullptr)
         vault = std::make_unique<DefaultVMImageVault>(image_host.get(), url_downloader.get(), cache_directory,
-                                                      data_directory, days_to_expire);
+                                                      data_directory, days_to_expire, *cout);
     if (name_generator == nullptr)
         name_generator = mp::make_default_name_generator();
     if (server_address.empty())

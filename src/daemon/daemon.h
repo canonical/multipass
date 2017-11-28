@@ -115,7 +115,7 @@ private:
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instance_trash;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
     DaemonRunner runner;
-    QTimer prune_expired_images_task;
+    QTimer source_images_maintenance_task;
 
     Daemon(const Daemon&) = delete;
     Daemon& operator=(const Daemon&) = delete;
