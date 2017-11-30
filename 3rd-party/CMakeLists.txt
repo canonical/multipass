@@ -79,6 +79,55 @@ target_include_directories(yaml INTERFACE
 target_link_libraries(yaml INTERFACE
   yaml-cpp)
 
+if (APPLE)
+  # Hyperkit - MacOS virtualization (via xhyve)
+  # Warning! Hyperkit happily builds with QCow2 support disabled if it is not available, need to avoid this
+  execute_process(
+    COMMAND opam list qcow
+    RESULT_VARIABLE QCOW_SUPPORT_FOUND
+    OUTPUT_QUIET
+    )
+
+  if (NOT QCOW_SUPPORT_FOUND EQUAL 0)
+    message(FATAL_ERROR "The 'qcow' package of the OPAM OCaml system is required. Check the README\nThe command 'opam list qcow' returned: ${QCOW_SUPPORT_FOUND}")
+  endif ()
+
+  if(NOT DEFINED ENV{OCAML_TOPLEVEL_PATH})
+    message(FATAL_ERROR "The OCaml OPAM environment has not been set. Run 'eval `opam config env`' or check the README")
+  endif()
+
+  include(ExternalProject)
+  ExternalProject_Add(hyperkit
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND make
+    BUILD_IN_SOURCE 1
+    INSTALL_COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit/build/hyperkit" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+    TEST_COMMAND "" # make test is available, but quite heavy-weight (download a VM & needs root)
+    )
+
+  install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit/build/hyperkit"
+    DESTINATION bin
+    COMPONENT multipassd
+    )
+
+
+  # Qemu-img - Fetch binary and libraries needed
+  set(QEMU_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/qemu-img-osx)
+  set(QEMU_BINARY_DIR ${CMAKE_BINARY_DIR}/3rd-party/qemu-img-osx)
+  add_custom_command(
+    OUTPUT ${QEMU_BINARY_DIR}/bin/qemu-img
+    COMMAND bash ${QEMU_SOURCE_DIR}/qemu-img-fetcher.sh ${QEMU_SOURCE_DIR} ${QEMU_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${QEMU_BINARY_DIR}/bin/qemu-img ${CMAKE_BINARY_DIR}/bin/qemu-img # convenience for testing only
+    )
+  add_custom_target(qemu-img ALL DEPENDS ${QEMU_BINARY_DIR}/bin/qemu-img)
+  install(DIRECTORY ${QEMU_BINARY_DIR}/
+    DESTINATION .
+    USE_SOURCE_PERMISSIONS
+    COMPONENT multipassd
+    )
+endif (APPLE)
+
 # Qt Base - Text Wrapper lib taken from QCommandLineParser
 add_subdirectory(qtbase EXCLUDE_FROM_ALL)
 

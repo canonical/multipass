@@ -1,0 +1,95 @@
+Build instructions for Mac OS
+=============================
+
+Environment Setup
+-----------------
+### XCode
+Can be installed via the App Store. Once this is done, you may need to install the command line tooling too, to do this run:
+
+    xcode-select --install
+
+Ensure you have development Frameworks for at least OS X 10.8 installed, with the typical compiler toolchain and "git". Avoid the version of cmake supplied, we need a newer one (see later).
+
+### Qt5
+Install the latest stable version of Qt5.9 (5.9.1 at the moment): <http://www.qt.io/download-open-source/>.
+
+Add Qt5 to your PATH environment variable, adding to your `.bash_profile` file the following line:
+
+    export PATH=$PATH:~/Qt/5.9/clang_64/bin
+
+Adjust accordingly if you customized the Qt install directory.
+
+***Note:*** Qt5.8.0 has a known networking bug and should be avoided.
+
+### Cmake/Go
+Building a Multipass package requires cmake 3.9 or greater. Go is also necessary at build time. The most convenient means to obtain these dependencies is with Homebrew <https://brew.sh/>.
+
+    brew install cmake go
+
+And again need to adjust the $PATH:
+
+    export PATH=$PATH:/usr/local/go/bin
+
+### Hyperkit dependencies
+Hyperkit is a core utility used by Multipass. To build it we need more dependencies:
+
+    brew install wget opam dylibbundler libffi pkg-config
+
+Hyperkit's QCow support is implemented in an OCaml module, which we need to fetch using the OPAM packaging system. Initialize :
+
+    opam init
+    opam update
+
+Set up the environment to use the OCaml modules:
+
+    eval `opam config env`
+
+Install the required modules (these may change, check the packages listed in `grep "HAVE_OCAML_QCOW :="  3rd-party/hyperkit/Makefile` for the current required modules):
+
+    opam install qcow prometheus-app uri logs mirage-unix
+
+***Note:*** at any time you attempt to build Hyperkit, ensure ``eval `opam config env` `` has been called. It is convenience to add the command to your `.bash_profile` file.
+
+Building
+---------------------------------------
+    cd <multipass>
+    git submodule update --init --recursive
+    mkdir build
+    cd build
+    cmake ../ -DCMAKE_PREFIX_PATH=~/Qt/5.9.1/clang_64
+    make
+
+Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about missing Qt5.
+
+Building in QtCreator
+---------------------
+QtCreator will be missing all the environment adjustments made above. To get cmake to successfully configure, open the project and adjust the Build Environment (click the "Projects" icon of the left pane, scroll down). Then add the entries to the $PATH as above, and add the variables reported by `opem config env`. CMake should now succeed, and QtCreator allow you to edit the project files.
+
+
+Creating a Package
+------------------
+This is as simple as running
+
+    make package
+
+or
+
+    cpack
+
+Once it is complete, you will have a Multipass.pkg file in the build directory.
+
+
+Tips and Tricks for development on OSX
+======================================
+
+Getting console output
+----------------------
+To get console output from Multipass while installed, from one shell run:
+
+    sudo launchctl debug system/com.canonical.multipassd --stdout --stderr
+
+and then from another shell, restart the multipassd daemon with
+
+    sudo launchctl kickstart -k system/com.canonical.multipassd
+
+The console output from multipassd will appear on the former shell.

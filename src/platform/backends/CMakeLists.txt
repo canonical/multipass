@@ -16,6 +16,8 @@
 
 if(MSVC)
   add_subdirectory(hyperv)
+elseif(APPLE)
+  add_subdirectory(hyperkit)
 else()
   add_subdirectory(qemu)
 endif()

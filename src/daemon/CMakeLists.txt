@@ -42,6 +42,16 @@ add_executable(multipassd daemon_main.cpp)
 target_link_libraries(multipassd
   daemon)
 
+if(APPLE)
+  set_target_properties( multipassd PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
+
+  # Copy any framework depenencies into the install directory for packaging
+  install(CODE "
+    include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipassd\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
+    " COMPONENT multipassd)
+endif(APPLE)
+
 install(TARGETS multipassd
   DESTINATION bin
   COMPONENT multipassd)

@@ -11,19 +11,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(platform STATIC
-  platform.cpp)
+set(CMAKE_AUTOMOC ON)
 
-if(MSVC)
-  target_link_libraries(platform hyperv_backend)
-elseif(APPLE)
-  target_link_libraries(platform hyperkit_backend)
-else()
-  target_link_libraries(platform qemu_backend)
-endif()
+add_library(hyperkit_backend STATIC
+  hyperkit_virtual_machine_factory.cpp
+  hyperkit_virtual_machine.cpp
+  ptyreader.cpp
+  vmprocess.cpp)
 
-add_subdirectory(backends)
-add_subdirectory(console)
+target_link_libraries(hyperkit_backend
+  Qt5::Core
+  ssh)

@@ -16,6 +16,8 @@
 
 cmake_minimum_required(VERSION 3.1)
 
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10") # needs to be set before "project"
+
 project(Multipass)
 
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
@@ -44,6 +46,9 @@ if(MSVC)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
+elseif(APPLE)
+  add_compile_options(-Werror -Wall -pedantic -fPIC)
+  add_definitions(-DMULTIPASS_PLATFORM_APPLE)
 else()
   add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wcast-align -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wno-expansion-to-defined -fPIC)
   add_definitions(-DMULTIPASS_PLATFORM_LINUX)
@@ -61,3 +66,5 @@ add_subdirectory(src)
 if(MULTIPASS_ENABLE_TESTS)
   add_subdirectory(tests)
 endif()
+
+include(packaging/cpack.cmake)

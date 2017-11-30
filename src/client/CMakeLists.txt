@@ -31,6 +31,10 @@ add_executable(multipass
 target_link_libraries(multipass
   client)
 
+if(APPLE)
+  set_target_properties( multipass PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
+endif(APPLE)
+
 install(TARGETS multipass
   DESTINATION bin
   COMPONENT multipass)

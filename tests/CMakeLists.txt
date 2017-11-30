@@ -17,6 +17,8 @@
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
   list(APPEND BACKEND_TESTS test_hyperv_backend.cpp)
+elseif(APPLE)
+  list(APPEND BACKEND_TESTS test_hyperkit_backend.cpp)
 else()
   list(APPEND BACKEND_TESTS test_qemu_backend.cpp)
 

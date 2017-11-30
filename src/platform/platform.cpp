@@ -22,6 +22,8 @@
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#elif MULTIPASS_PLATFORM_APPLE
+#include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 #else
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #endif
@@ -39,6 +41,8 @@ mp::VirtualMachineFactory::UPtr mp::Platform::vm_backend(const mp::Path& data_di
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
+#elif MULTIPASS_PLATFORM_APPLE
+    return std::make_unique<HyperkitVirtualMachineFactory>();
 #else
     return std::make_unique<QemuVirtualMachineFactory>(data_dir);
 #endif

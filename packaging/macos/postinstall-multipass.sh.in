@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+# Set up symlink
+ln -fsv "$3@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass" "$3/usr/local/bin/multipass"
+
+echo 0
