@@ -30,3 +30,20 @@ Connect to running VM
 ---------------------
 
     <multipass>/build/bin/multipass connect foo
+
+Running the Electron app
+---------------------------------------
+
+    cd <multipass>/electron-app
+    npm install
+    npm start
+
+
+Building a snap of the Electron app
+---------------------------------------
+
+    cd <multipass>/electron-app
+    npm install
+    npm run dist
+
+The snap will end up in <multipass>/electron-app/dist/

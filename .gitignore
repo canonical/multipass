@@ -1,3 +1,6 @@
+/electron-app/app/node_modules
+/electron-app/dist
+/electron-app/node_modules
 .idea
 cmake-build-debug
 .DS_Store
