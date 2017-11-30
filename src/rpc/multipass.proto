@@ -44,6 +44,7 @@ message CreateRequest {
     string disk_space = 6; // units?
     string time_zone = 7;
     string cloud_init_user_data = 8;
+    string remote_name = 9;
 }
 
 message CreateError {
@@ -92,6 +93,7 @@ message ExecReply {
 
 message FindRequest {
     string search_string = 1;
+    string remote_name = 2;
 }
 
 message FindReply {

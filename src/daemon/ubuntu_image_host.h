@@ -27,26 +27,33 @@
 
 #include <chrono>
 #include <string>
+#include <unordered_map>
 
 namespace multipass
 {
+constexpr auto release_remote = "release";
+constexpr auto daily_remote = "daily";
+
 class URLDownloader;
 class UbuntuVMImageHost final : public VMImageHost
 {
 public:
-    UbuntuVMImageHost(QStringList host_urls, URLDownloader* downloader, std::chrono::seconds manifest_time_to_live);
+    UbuntuVMImageHost(std::unordered_map<std::string, std::string> remotes, URLDownloader* downloader,
+                      std::chrono::seconds manifest_time_to_live);
     VMImageInfo info_for(const Query& query) override;
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
+    VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     void for_each_entry_do(const Action& action) override;
 
 private:
     void update_manifest();
-    void match_alias(const QString& key, const VMImageInfo** info, std::string& host_url);
+    std::unique_ptr<SimpleStreamsManifest>& manifest_from(const std::string& remote);
+    void match_alias(const QString& key, const VMImageInfo** info, const SimpleStreamsManifest& manifest);
     std::chrono::seconds manifest_time_to_live;
     std::chrono::steady_clock::time_point last_update;
-    std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
+    std::unordered_map<std::string, std::unique_ptr<SimpleStreamsManifest>> manifests;
     URLDownloader* const url_downloader;
-    QStringList host_urls;
+    std::unordered_map<std::string, std::string> remotes;
     QString index_path;
 };
 }

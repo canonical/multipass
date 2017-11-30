@@ -53,9 +53,12 @@ constexpr auto instance_db_name = "multipassd-vm-instances.json";
 
 mp::Query query_from(const mp::CreateRequest* request, const std::string& name)
 {
+    if (!request->remote_name().empty() && request->image().empty())
+        throw std::runtime_error("Must specify an image when specifying a remote");
+
     std::string image = request->image().empty() ? "default" : request->image();
     // TODO: persistence should be specified by the rpc as well
-    return {name, image, false};
+    return {name, image, false, request->remote_name()};
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone)
@@ -525,7 +528,8 @@ try // clang-format on
 {
     if (!request->search_string().empty())
     {
-        auto vm_images_info = config->image_host->all_info_for({"", request->search_string(), false});
+        auto vm_images_info =
+            config->image_host->all_info_for({"", request->search_string(), false, request->remote_name()});
 
         for (const auto& info : vm_images_info)
         {
@@ -542,13 +546,13 @@ try // clang-format on
 
             auto entry = response->add_images_info();
             entry->set_release(info.release_title.toStdString());
-            entry->add_aliases(name);
+            entry->add_aliases(request->remote_name().empty() ? name : request->remote_name() + ":" + name);
         }
     }
     else
     {
         std::unordered_map<std::string, bool> image_found;
-        auto action = [&response, &image_found](const mp::VMImageInfo& info) {
+        auto action = [&response, &image_found](const std::string& remote, const mp::VMImageInfo& info) {
             if (info.supported)
             {
                 if (image_found.find(info.release_title.toStdString()) == image_found.end())
@@ -561,7 +565,7 @@ try // clang-format on
 
                         for (const auto& alias : info.aliases)
                         {
-                            entry->add_aliases(alias.toStdString());
+                            entry->add_aliases(remote + ":" + alias.toStdString());
                         }
                     }
                 }
@@ -618,7 +622,7 @@ try // clang-format on
             info->set_status(status_for(vm->current_state()));
         }
 
-        auto vm_image_info = config->image_host->info_for({"", vm_image.id, false});
+        auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
         info->set_release(vm_image_info.release_title.toStdString());
         info->set_id(vm_image.id);
 

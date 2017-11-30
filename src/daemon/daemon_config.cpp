@@ -46,7 +46,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         factory = Platform::vm_backend(data_directory);
     if (image_host == nullptr)
         image_host = std::make_unique<mp::UbuntuVMImageHost>(
-            QStringList{"http://cloud-images.ubuntu.com/releases/", "http://cloud-images.ubuntu.com/daily/"},
+            std::unordered_map<std::string, std::string>{
+                {mp::release_remote, "http://cloud-images.ubuntu.com/releases/"},
+                {mp::daily_remote, "http://cloud-images.ubuntu.com/daily/"}},
             url_downloader.get(), std::chrono::minutes{5});
     if (vault == nullptr)
         vault = std::make_unique<DefaultVMImageVault>(image_host.get(), url_downloader.get(), cache_directory,

@@ -23,6 +23,7 @@
 #include <multipass/vm_image_info.h>
 
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace multipass
@@ -32,11 +33,12 @@ class VMImage;
 class VMImageHost
 {
 public:
-    using Action = std::function<void(const VMImageInfo&)>;
+    using Action = std::function<void(const std::string&, const VMImageInfo&)>;
 
     virtual ~VMImageHost() = default;
     virtual VMImageInfo info_for(const Query& query) = 0;
     virtual std::vector<VMImageInfo> all_info_for(const Query& query) = 0;
+    virtual VMImageInfo info_for_full_hash(const std::string& full_hash) = 0;
     virtual void for_each_entry_do(const Action& action) = 0;
 
 protected:

@@ -91,7 +91,7 @@ QString cmd::Find::description() const
 
 mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("string", "Optionally find images matching this string", "<string>");
+    parser->addPositionalArgument("string", "Optionally find images matching this string", "[<remote:>]<string>");
 
     auto status = parser->commandParse(this);
 
@@ -107,7 +107,23 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     }
     else if (parser->positionalArguments().count() == 1)
     {
-        request.set_search_string(parser->positionalArguments().first().toStdString());
+        auto search_string = parser->positionalArguments().first();
+        auto colon_count = search_string.count(':');
+
+        if (colon_count > 1)
+        {
+            cerr << "Invalid remote and search string supplied" << std::endl;
+            return ParseCode::CommandLineError;
+        }
+        else if (colon_count == 1)
+        {
+            request.set_remote_name(search_string.section(':', 0, 0).toStdString());
+            request.set_search_string(search_string.section(':', 1).toStdString());
+        }
+        else
+        {
+            request.set_search_string(search_string.toStdString());
+        }
     }
 
     return status;

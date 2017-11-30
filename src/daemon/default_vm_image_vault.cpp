@@ -51,6 +51,7 @@ auto query_to_json(const mp::Query& query)
     QJsonObject json;
     json.insert("release", QString::fromStdString(query.release));
     json.insert("persistent", query.persistent);
+    json.insert("remote_name", QString::fromStdString(query.remote_name));
     return json;
 }
 
@@ -143,6 +144,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         auto persistent = query["persistent"];
         if (!persistent.isBool())
             return {};
+        auto remote_name = query["remote_name"].toString();
 
         std::chrono::system_clock::time_point last_accessed;
         auto last_accessed_count = static_cast<qint64>(record["last_accessed"].toDouble());
@@ -157,7 +159,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         }
 
         reconstructed_records[key] = {{image_path, kernel_path, initrd_path, image_id, aliases},
-                                      {"", release.toStdString(), persistent.toBool()},
+                                      {"", release.toStdString(), persistent.toBool(), remote_name.toStdString()},
                                       last_accessed};
     }
     return reconstructed_records;
