@@ -1,0 +1,270 @@
+/*
+ * Copyright (C) 2017 Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <multipass/cli/argparser.h>
+#include <wrap_text.h>
+
+#include <QRegExp>
+
+/*
+ * ArgParser - a wrapping of a QCommandLineParser where the concept of a "command"
+ * is central. It chooses which Command is requested (if any) and allows that Command
+ * to continue the parsing of the arguments.
+ *
+ * This class also manages both the global and Command-specific help text, by massaging
+ * the natural output of QCommandLineParser::helpText.
+ */
+
+namespace mp = multipass;
+namespace cmd = multipass::cmd;
+
+mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Command::UPtr>& commands,
+                         std::ostream& cout, std::ostream& cerr)
+    : arguments(arguments), commands(commands), chosen_command(nullptr), help_requested(false), cout(cout), cerr(cerr)
+{
+}
+
+mp::ParseCode mp::ArgParser::parse()
+{
+    QCommandLineOption help_option = parser.addHelpOption();
+    QCommandLineOption verbose_option({"v", "verbose"},
+                                      "Increase logging verbosity, repeat up to three times for more detail");
+    QCommandLineOption version_option({"V", "version"}, "Show version details");
+    version_option.setHidden(true);
+    parser.addOption(verbose_option);
+    parser.addOption(version_option);
+
+    // Register "command" as the first positional argument, will need to be removed from all help text later
+    parser.addPositionalArgument("command", "The command to execute", "<command>");
+
+    // First pass parse - only interested in determining the requested command, help or verbosity.
+    const bool parser_result = parser.parse(arguments);
+
+    if (parser.isSet(verbose_option))
+    {
+        // Need to manually count number of times it is set, QCommandLineParser doesn't do that
+        int count = 0;
+        for (const QString& arg : arguments)
+        {
+            if (arg == QStringLiteral("-v") || arg == QStringLiteral("--verbose"))
+            {
+                count++;
+            }
+        }
+        qDebug("Verbose level: %i", count); // TODO: use this how?
+    }
+
+    help_requested = parser.isSet(help_option);
+
+    if (parser.positionalArguments().isEmpty() && !parser.isSet(version_option))
+    {
+        if (!parser_result)
+        {
+            cerr << qPrintable(parser.errorText());
+        }
+        cout << qPrintable(generalHelpText());
+        return (help_requested) ? ParseCode::HelpRequested : ParseCode::CommandLineError;
+    }
+
+    const QString requested_command =
+        parser.isSet(version_option) ? QStringLiteral("version") : parser.positionalArguments().first();
+
+    chosen_command = findCommand(requested_command);
+
+    if (chosen_command)
+    {
+        return ParseCode::Ok;
+    }
+
+    if (help_requested)
+    {
+        cout << qPrintable(generalHelpText());
+        return ParseCode::HelpRequested;
+    }
+
+    // Fall through
+    cout << "Error: Unkown Command: '" << qPrintable(requested_command) << "', see \"";
+    cout << qPrintable(arguments.at(0)) << " --help\"\n";
+    return ParseCode::CommandLineError;
+}
+
+// Parse the command line again, this time with a particular Command in mind
+mp::ParseCode mp::ArgParser::commandParse(cmd::Command* command)
+{
+    const bool parsedOk = parser.parse(arguments);
+    if (!parsedOk)
+    {
+        cerr << qPrintable(parser.errorText()) << '\n';
+        return ParseCode::CommandLineError;
+    }
+
+    if (help_requested)
+    {
+        cout << qPrintable(helpText(command));
+        return ParseCode::HelpRequested;
+    }
+    return ParseCode::Ok;
+}
+
+mp::ReturnCode mp::ArgParser::returnCodeFrom(ParseCode parse_code) const
+{
+    if (parse_code == ParseCode::CommandLineError)
+        return ReturnCode::CommandLineError;
+
+    return ReturnCode::Ok;
+}
+
+// This forces help to be printed using "help <command>"
+void mp::ArgParser::forceCommandHelp()
+{
+    parser.clearPositionalArguments();
+
+    // Need to add this back so helpText() can add the correct command for usage
+    parser.addPositionalArgument("command", "The command to execute", "<command>");
+    help_requested = true;
+}
+
+void mp::ArgParser::forceGeneralHelp()
+{
+    cout << qPrintable(generalHelpText());
+}
+
+// Prints generic help
+QString mp::ArgParser::generalHelpText()
+{
+    const QLatin1Char nl('\n');
+    // The help text generated by QCommandLineParser needs some minor editing:
+    //  1. Change "Displays this help." to "Display this help".
+    //  2. remove the useless "Arguments" section listing just "command" (by clearing positional elements)
+    //  3. compensate by editing the "usage" line to add "command" option back
+    //  4. append a list of commands and their help text.
+    parser.clearPositionalArguments();
+
+    QString text = parser.helpText();
+    text = text.replace(QCommandLineParser::tr("Displays this help."), QCommandLineParser::tr("Display this help"));
+
+    const int first_line_break_pos = text.indexOf('\n');
+    text.insert(first_line_break_pos, " <command>");
+
+    int longest_command_string_length = 0;
+    for (const auto& c : commands)
+        longest_command_string_length = qMax(longest_command_string_length, static_cast<int>(c->name().length()));
+    longest_command_string_length++;
+
+    text += nl + QCommandLineParser::tr("Available commands:") + nl;
+    for (const auto& c : commands)
+        text += wrapText(QString::fromStdString(c->name()), longest_command_string_length, c->short_help());
+
+    return text;
+}
+
+// Print command-specific help
+QString mp::ArgParser::helpText(cmd::Command* command)
+{
+    parser.setApplicationDescription(command->description());
+    QString text = parser.helpText();
+
+    const QLatin1Char nl('\n');
+    // The help text generated by QCommandLineParser needs some minor editing:
+    //  1. Change "Displays this help." to "Display this help".
+    //  2. replace <command> with the command, and swap with the [options] entry
+    //  3. from the "Arguments" section, remove the "command" entry. Remove the entire
+    //     section if it is empty afterwards.
+    text = text.replace(QCommandLineParser::tr("Displays this help."), QCommandLineParser::tr("Display this help"));
+    text = text.replace(QCommandLineParser::tr("[options]") + " <command>",
+                        QString::fromStdString(command->name()) + " " + QCommandLineParser::tr("[options]"));
+
+    int start = text.indexOf(QRegExp("  command\\s*The command to execute"));
+    int end = text.indexOf(nl, start);
+    text = text.replace(start, end - start + 1, "");
+
+    if (text.endsWith(QCommandLineParser::tr("Arguments:") + nl))
+    {
+        text = text.replace(nl + QCommandLineParser::tr("Arguments:") + nl, "");
+    }
+
+    return text;
+}
+
+/* Pass-through methods to the underlying QCommandLineParser */
+void mp::ArgParser::setApplicationDescription(const QString& description)
+{
+    parser.setApplicationDescription(description);
+}
+
+bool mp::ArgParser::addOption(const QCommandLineOption& command_line_option)
+{
+    return parser.addOption(command_line_option);
+}
+
+bool mp::ArgParser::addOptions(const QList<QCommandLineOption>& options)
+{
+    return parser.addOptions(options);
+}
+
+void mp::ArgParser::addPositionalArgument(const QString& name, const QString& description, const QString& syntax)
+{
+    parser.addPositionalArgument(name, description, syntax);
+}
+
+cmd::Command* mp::ArgParser::chosenCommand() const
+{
+    return chosen_command;
+}
+
+cmd::Command* mp::ArgParser::findCommand(const QString& command) const
+{
+    for (const auto& c : commands)
+    {
+        for (const auto& alias : c->aliases())
+        {
+            if (command.toStdString() == alias)
+            {
+                return c.get();
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+bool mp::ArgParser::isSet(const QCommandLineOption& option) const
+{
+    return parser.isSet(option);
+}
+
+QString mp::ArgParser::value(const QCommandLineOption& option) const
+{
+    return parser.value(option);
+}
+
+QStringList mp::ArgParser::values(const QCommandLineOption& option) const
+{
+    return parser.values(option);
+}
+
+QStringList mp::ArgParser::positionalArguments() const
+{
+    // Remove the first "command" positional argument, if there, so calling Command sees just the
+    // positional arguments it is interested in
+    auto positionalArguments = parser.positionalArguments();
+    if (positionalArguments.count() > 0)
+    {
+        positionalArguments.pop_front();
+    }
+    return positionalArguments;
+}

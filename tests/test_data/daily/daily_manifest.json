@@ -1,0 +1,48 @@
+{
+  "content_id": "com.ubuntu.cloud:daily:download",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "http://www.canonical.com/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud.daily:server:17.10:amd64": {
+      "aliases": "17.10,a,artful,devel",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "artful",
+      "release_codename": "Artful Aardvark",
+      "release_title": "17.10",
+      "support_eol": "2018-07-19",
+      "supported": true,
+      "version": "17.10",
+      "versions": {
+        "20170701": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "08b44bc9ce17bcac5e7e931a175874be",
+              "path": "oldest-artful.img",
+              "sha256": "84abe3cdb379b8d466b70463303c749b22a19023b18dac49ceedc200dfa0e005",
+              "size": 350158848
+            }
+          },
+          "label": "daily",
+          "pubname": "ubuntu-artful-daily-amd64-server-20170701"
+        },
+        "20170702": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "66a9c4432df5434abd1cf57d44c032d5",
+              "path": "newest-artful.img",
+              "sha256": "c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a",
+              "size": 350486528
+            }
+          },
+          "label": "daily",
+          "pubname": "ubuntu-artful-daily-amd64-server-20170702"
+        }
+      }
+    }
+  },
+  "updated": "Wed, 18 Oct 2017 12:14:50 +0000"
+}

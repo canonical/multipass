@@ -1,0 +1,23 @@
+---
+# We'll use defaults from the LLVM style, but with 4 columns indentation.
+BasedOnStyle: LLVM
+---
+Language: Cpp
+IndentWidth: 4
+BreakBeforeBraces: Allman
+AccessModifierOffset: -4
+Cpp11BracedListStyle: true
+Standard: Cpp11
+DerivePointerAlignment: false
+PointerAlignment: Left
+AlwaysBreakTemplateDeclarations: true
+ColumnLimit: 120
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+---
+Language: Proto
+DisableFormat: true
+...

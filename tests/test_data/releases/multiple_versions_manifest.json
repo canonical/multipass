@@ -1,0 +1,111 @@
+{
+  "content_id": "com.ubuntu.cloud:released:download",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "http://www.canonical.com/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud:server:16.04:amd64": {
+      "aliases": "16.04,default,lts,x,xenial",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "support_eol": "2021-04-21",
+      "supported": true,
+      "version": "16.04",
+      "versions": {
+        "20170516": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "7388b8e7e0e114b941a04aca591e2d64",
+              "path": "test_image.img",
+              "sha256": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+              "size": 287440896
+            },
+            "lxd.tar.xz": {
+              "combined_rootxz_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_squashfs_sha256": "8fa08537ae51c880966626561987153e72d073cbe19dfe5abc062713d929254d",
+              "ftype": "lxd.tar.xz",
+              "md5": "c63c6c383e656348a2db25ad31f1bda9",
+              "path": "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "0f95800385b5e6ab5fec7d3ca88a6a070cd0da1130c9219713980c365ea82613",
+              "size": 840
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-xenial-16.04-amd64-server-20170516"
+        },
+        "20170619.1": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "d242cdf7b3857befd3b0271f5189ce76",
+              "path": "newest_image.img",
+              "sha256": "8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f",
+              "size": 287506432
+            }
+          }
+        }
+      }
+    },
+    "com.ubuntu.cloud:server:17.04:amd64": {
+      "aliases": "17.04,z,zesty",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "zesty",
+      "release_codename": "Zesty Zapus",
+      "release_title": "17.04",
+      "support_eol": "2018-01-25",
+      "supported": true,
+      "version": "17.04",
+      "versions": {
+        "20170615": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "09c2956086ac88c73be7d9bb232b6137",
+              "path": "server/releases/zesty/release-20170615/ubuntu-17.04-server-cloudimg-amd64.img",
+              "sha256": "1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4",
+              "size": 346423296
+            },
+            "lxd.tar.xz": {
+              "combined_squashfs_sha256": "55a10140362cd682ea21b5093209c480916bea18eef53598f62d05c41f61121b",
+              "ftype": "lxd.tar.xz",
+              "md5": "3fbdb62ade9b4271eadccee0297cc399",
+              "path": "server/releases/zesty/release-20170615/ubuntu-17.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "d201d07d85eb84371d598cb74a34ab4664bec60f6a3b3467bf81d520448124a5",
+              "size": 844
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-zesty-17.04-amd64-server-20170615"
+        },
+        "20170619.1": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "cc2bc360fec3086edcd4e69d7d8113fc",
+              "path": "zesty_newest.img",
+              "sha256": "ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c",
+              "size": 346882048
+            },
+            "lxd.tar.xz": {
+              "combined_squashfs_sha256": "f50337be60f7fce4ddd71397285490115e208aeb37565b8d77529cb352cdad05",
+              "ftype": "lxd.tar.xz",
+              "md5": "21a945923eff127e1553d581c8872bb6",
+              "path": "server/releases/zesty/release-20170619.1/ubuntu-17.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "c258ec70a733b5ea22c7b8a608d2b2e95fb1cf6ec01e0ffba367bd46baf1f8e1",
+              "size": 848
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-zesty-17.04-amd64-server-20170619.1"
+        }
+      }
+    }
+  },
+  "updated": "Thu, 18 May 2017 09:18:01 +0000"
+}

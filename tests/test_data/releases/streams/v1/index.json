@@ -1,0 +1,15 @@
+{
+  "index": {
+    "com.ubuntu.cloud:released:download": {
+      "datatype": "image-downloads",
+      "path": "multiple_versions_manifest.json",
+      "updated": "Thu, 18 May 2017 09:18:01 +0000",
+      "products": [
+        "com.ubuntu.cloud:server:16.04:amd64"
+      ],
+      "format": "products:1.0"
+    },
+    "updated": "Thu, 18 May 2017 12:08:59 +0000",
+    "format": "index:1.0"
+  }
+}

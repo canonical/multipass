@@ -1,0 +1,26 @@
+{
+  "content_id": "com.ubuntu.cloud:released:download",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "http://www.canonical.com/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud:server:16.04:amd64": {
+      "aliases": "16.04,default,lts,x,xenial",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "support_eol": "2021-04-21",
+      "supported": true,
+      "version": "16.04",
+      "versions": {
+        "20170516": {
+          "label": "release",
+          "pubname": "ubuntu-xenial-16.04-amd64-server-20170516"
+        }
+      }
+    }
+  },
+  "updated": "Thu, 18 May 2017 09:18:01 +0000"
+}

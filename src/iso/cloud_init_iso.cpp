@@ -1,0 +1,486 @@
+/*
+ * Copyright (C) 2017 Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ *
+ */
+
+#include <multipass/cloud_init_iso.h>
+
+#include <QFile>
+
+#include <array>
+#include <cctype>
+
+namespace mp = multipass;
+
+// ISO9660 + Joliet Extension format
+// ---------------------------------
+// 32KB Reserved
+// ---------------------------------
+// Primary Volume Descriptor
+// ---------------------------------
+// Supplemental Volume Descriptor (Joliet extension)
+// ---------------------------------
+// Volume Descriptor Set Terminator
+// ---------------------------------
+// Path Tables pointing to dir records
+// ---------------------------------
+// "ISO9660 records"
+// root directory record
+// root parent directory record
+// file record 1
+// ...
+// file record N
+// ---------------------------------
+// "Joliet" version of the same records but with UCS-2 character names for dirs/files
+// root directory record
+// root parent directory record
+// file record 1
+// ...
+// file record N
+// ---------------------------------
+// data blocks
+// ---------------------------------
+
+namespace
+{
+constexpr auto logical_block_size = 2048u;
+
+constexpr std::uint16_t operator"" _u16(unsigned long long v)
+{
+    return static_cast<std::uint16_t>(v);
+}
+
+std::array<uint8_t, 8> to_lsb_msb(uint32_t value)
+{
+    std::array<uint8_t, 8> d;
+    d[0] = (value & 0x000000FF) >> 0;
+    d[1] = (value & 0x0000FF00) >> 8;
+    d[2] = (value & 0x00FF0000) >> 16;
+    d[3] = (value & 0xFF000000) >> 24;
+    d[4] = (value & 0xFF000000) >> 24;
+    d[5] = (value & 0x00FF0000) >> 16;
+    d[6] = (value & 0x0000FF00) >> 8;
+    d[7] = (value & 0x000000FF) >> 0;
+    return d;
+}
+
+std::array<uint8_t, 4> to_lsb_msb(uint16_t value)
+{
+    std::array<uint8_t, 4> d;
+    d[0] = (value & 0x00FF) >> 0;
+    d[1] = (value & 0xFF00) >> 8;
+    d[2] = (value & 0xFF00) >> 8;
+    d[3] = (value & 0x00FF) >> 0;
+    return d;
+}
+
+std::array<uint8_t, 4> to_lsb(uint32_t value)
+{
+    std::array<uint8_t, 4> d;
+    d[0] = (value & 0x000000FF) >> 0;
+    d[1] = (value & 0x0000FF00) >> 8;
+    d[2] = (value & 0x00FF0000) >> 16;
+    d[3] = (value & 0xFF000000) >> 24;
+    return d;
+}
+
+template <typename T, typename SizeType, typename V>
+void set_at(T& t, SizeType offset, const V& value)
+{
+    std::copy(std::begin(value), std::end(value), t.begin() + offset);
+}
+
+template <typename T>
+void write(const T& t, QFile& f)
+{
+    f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
+}
+
+template <size_t size>
+struct PaddedString
+{
+    PaddedString() : data(size, ' ')
+    {
+    }
+
+    explicit PaddedString(const std::string& value) : PaddedString()
+    {
+        data.replace(0, value.size(), value);
+    }
+
+    auto begin() const
+    {
+        return data.begin();
+    }
+    auto end() const
+    {
+        return data.end();
+    }
+
+    std::string data;
+};
+
+template <size_t size>
+struct U16PaddedString
+{
+    U16PaddedString() : data(size, '\0')
+    {
+        for (size_t i = 1; i < size; i += 2)
+        {
+            data.at(i) = ' ';
+        }
+    }
+
+    explicit U16PaddedString(const std::string& value) : U16PaddedString()
+    {
+        auto it = value.begin();
+        for (size_t i = 1; i < size; i += 2)
+        {
+            if (it == value.end())
+                break;
+            data.at(i) = *it;
+            ++it;
+        }
+    }
+
+    auto begin() const
+    {
+        return data.begin();
+    }
+    auto end() const
+    {
+        return data.end();
+    }
+
+    std::string data;
+};
+
+struct DecDateTime
+{
+    DecDateTime() : data{}
+    {
+        std::fill_n(data.begin(), 16, '0');
+    }
+
+    std::array<uint8_t, 17> data;
+};
+
+struct RootDirRecord
+{
+    enum class Type
+    {
+        root,
+        root_parent
+    };
+
+    RootDirRecord(Type type, uint32_t location) : data{}
+    {
+        data[0] = data.size();
+        set_at(data, 2, to_lsb_msb(location));
+
+        uint32_t block_size = logical_block_size;
+        set_at(data, 10, to_lsb_msb(block_size));    // size of entry (limited to one block)
+        data[25] = 0x02;                             // record is a directory entry
+        set_at(data, 28, to_lsb_msb(1_u16));         // vol seq #
+        data[32] = 1;                                // id_len length
+        data[33] = type == Type::root ? 0x00 : 0x01; // directory id
+    }
+
+    std::array<uint8_t, 34> data;
+};
+
+struct VolumeDescriptor
+{
+    VolumeDescriptor() : data{}
+    {
+        set_at(data, 1, std::string("CD001")); // identifier
+        data[6] = 0x01;                        // volume descriptor version
+    }
+
+    void set_volume_size(uint32_t num_blocks)
+    {
+        set_at(data, 80, to_lsb_msb(num_blocks));
+    }
+
+    void set_root_dir_record(const RootDirRecord& record)
+    {
+        set_at(data, 156, record.data);
+    }
+
+    void set_path_table_info(uint32_t size, uint32_t location)
+    {
+        set_at(data, 132, to_lsb_msb(size));
+        set_at(data, 140, to_lsb(location));
+    }
+
+    void set_common_fields()
+    {
+        uint16_t block_size = logical_block_size;
+        set_at(data, 120, to_lsb_msb(1_u16));      // number of disks
+        set_at(data, 124, to_lsb_msb(1_u16));      // disk number
+        set_at(data, 128, to_lsb_msb(block_size)); // logical block size
+
+        DecDateTime no_date;
+        set_at(data, 813, no_date.data); // vol creation date-time
+        set_at(data, 830, no_date.data); // vol modification date-time
+        set_at(data, 847, no_date.data); // vol expiration date-time
+        set_at(data, 864, no_date.data); // vol effective date-time
+
+        data[881] = 0x01; // file structure version
+    }
+
+    std::array<uint8_t, logical_block_size> data;
+};
+
+struct VolumeDescriptorSetTerminator : VolumeDescriptor
+{
+    VolumeDescriptorSetTerminator()
+    {
+        data[0] = 0xFF; // Terminator Type
+    }
+};
+
+struct PrimaryVolumeDescriptor : VolumeDescriptor
+{
+    PrimaryVolumeDescriptor()
+    {
+        data[0] = 0x01; // primary volume descriptor type
+
+        set_at(data, 8, PaddedString<32>());          // System identifier
+        set_at(data, 40, PaddedString<32>("cidata")); // volume identifier
+        set_at(data, 190, PaddedString<623>());       // various ascii identifiers
+
+        set_common_fields();
+    }
+};
+
+struct JolietVolumeDescriptor : VolumeDescriptor
+{
+    JolietVolumeDescriptor()
+    {
+        data[0] = 0x02; // supplementary volume descriptor type
+
+        set_at(data, 8, U16PaddedString<32>());          // System identifier
+        set_at(data, 40, U16PaddedString<32>("cidata")); // volume identifier
+        set_at(data, 190, U16PaddedString<623>());       // various UCS-2 identifiers
+
+        set_at(data, 88, std::array<uint8_t, 3>{{0x25, 0x2f, 0x45}}); // Joliet UCS-2 escape sequence
+
+        set_common_fields();
+    }
+};
+
+bool is_even(size_t size)
+{
+    return (size % 2) == 0;
+}
+
+struct FileRecord
+{
+    FileRecord() : data(33, 0u)
+    {
+    }
+
+    void set_fields(const std::string& name, uint32_t content_location, uint32_t size)
+    {
+        set_at(data, 2, to_lsb_msb(content_location)); // content block location
+        set_at(data, 10, to_lsb_msb(size));            // size of extent
+        data[25] = 0x00;                               // record is a file entry
+        set_at(data, 28, to_lsb_msb(1_u16));           // vol seq #
+
+        auto id_len = name.length();
+        data[32] = id_len;
+        auto pad_length = is_even(id_len) ? 1u : 0u;
+        data.resize(data.size() + id_len + pad_length);
+        set_at(data, 33, name);
+
+        data[0] = static_cast<uint8_t>(data.size());
+    }
+
+    std::vector<uint8_t> data;
+};
+
+auto make_iso_name(const std::string& name)
+{
+    std::string iso_name{name};
+    std::transform(iso_name.begin(), iso_name.end(), iso_name.begin(),
+                   [](unsigned char c) -> unsigned char { return std::toupper(c); });
+    std::transform(iso_name.begin(), iso_name.end(), iso_name.begin(),
+                   [](unsigned char c) -> unsigned char { return std::isalnum(c) ? c : '_'; });
+    if (iso_name.size() > 8)
+        iso_name = iso_name.substr(0, 8);
+    iso_name.append(".;1");
+    return iso_name;
+}
+
+struct ISOFileRecord : FileRecord
+{
+    ISOFileRecord(const std::string& name, uint32_t content_location, uint32_t size)
+    {
+        set_fields(make_iso_name(name), content_location, size);
+    }
+};
+
+auto make_u16_name(const std::string& name)
+{
+    std::string u16_name(name.size() * 2u, '\0');
+    const auto size = u16_name.size();
+    auto it = name.begin();
+    for (size_t i = 1; i < size; i += 2)
+    {
+        u16_name.at(i) = *it;
+        ++it;
+    }
+    return u16_name;
+}
+
+struct JolietFileRecord : FileRecord
+{
+    JolietFileRecord(const std::string& name, uint32_t content_location, uint32_t size)
+    {
+        set_fields(make_u16_name(name), content_location, size);
+    }
+};
+
+struct RootPathTable
+{
+    explicit RootPathTable(uint32_t dir_record_location) : data{}
+    {
+        data[0] = 0x1; // dir id len (root id len is 1)
+        set_at(data, 2, to_lsb(dir_record_location));
+        data[6] = 0x01; // dir # of parent dir
+        data[8] = 0x00; // dir id (0x00 = root)
+    }
+    std::array<uint8_t, 10> data;
+};
+
+template <typename Size>
+Size num_blocks(Size num_bytes)
+{
+    return ((num_bytes + logical_block_size - 1) / logical_block_size);
+}
+
+void seek_to_next_block(QFile& f)
+{
+    const auto next_block_pos = num_blocks(f.pos()) * logical_block_size;
+    f.seek(next_block_pos);
+}
+
+void pad_to_end(QFile& f)
+{
+    seek_to_next_block(f);
+    f.seek(f.pos() - 1);
+    char end = 0;
+    f.write(&end, 1);
+}
+}
+
+void mp::CloudInitIso::add_file(const std::string& name, const std::string& data)
+{
+    files.push_back(FileEntry{name, data});
+}
+
+void mp::CloudInitIso::write_to(const Path& path)
+{
+    QFile f{path};
+    if (!f.open(QIODevice::WriteOnly))
+        throw std::runtime_error{"failed to open file for writing during cloud-init generation"};
+
+    const uint32_t num_reserved_bytes = 32768u;
+    const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);
+    f.seek(num_reserved_bytes);
+
+    PrimaryVolumeDescriptor prim_desc;
+    JolietVolumeDescriptor joliet_desc;
+
+    const uint32_t num_blocks_for_descriptors = 3u;
+    const uint32_t num_blocks_for_path_table = 2u;
+    const uint32_t num_blocks_for_dir_records = 2u;
+
+    auto volume_size =
+        num_reserved_blocks + num_blocks_for_descriptors + num_blocks_for_path_table + num_blocks_for_dir_records;
+    for (const auto& entry : files)
+    {
+        volume_size += num_blocks(entry.data.size());
+    }
+
+    prim_desc.set_volume_size(volume_size);
+    joliet_desc.set_volume_size(volume_size);
+
+    uint32_t current_block_index = num_reserved_blocks + num_blocks_for_descriptors;
+
+    // The following records are simply to specify that a root filesystem exists
+    RootPathTable root_path{current_block_index + num_blocks_for_path_table};
+    prim_desc.set_path_table_info(root_path.data.size(), current_block_index);
+    ++current_block_index;
+
+    RootPathTable joliet_root_path{current_block_index + num_blocks_for_path_table};
+    joliet_desc.set_path_table_info(joliet_root_path.data.size(), current_block_index);
+    ++current_block_index;
+
+    RootDirRecord root_record{RootDirRecord::Type::root, current_block_index};
+    RootDirRecord root_parent_record{RootDirRecord::Type::root_parent, current_block_index};
+    prim_desc.set_root_dir_record(root_record);
+    ++current_block_index;
+
+    RootDirRecord joliet_root_record{RootDirRecord::Type::root, current_block_index};
+    RootDirRecord joliet_root_parent_record{RootDirRecord::Type::root_parent, current_block_index};
+    joliet_desc.set_root_dir_record(joliet_root_record);
+    ++current_block_index;
+
+    std::vector<ISOFileRecord> iso_file_records;
+    std::vector<JolietFileRecord> joliet_file_records;
+
+    for (const auto& entry : files)
+    {
+        iso_file_records.emplace_back(entry.name, current_block_index, entry.data.size());
+        joliet_file_records.emplace_back(entry.name, current_block_index, entry.data.size());
+        current_block_index += num_blocks(entry.data.size());
+    }
+
+    write(prim_desc, f);
+    write(joliet_desc, f);
+    write(VolumeDescriptorSetTerminator(), f);
+
+    write(root_path, f);
+    seek_to_next_block(f);
+    write(joliet_root_path, f);
+    seek_to_next_block(f);
+
+    write(root_record, f);
+    write(root_parent_record, f);
+    for (const auto& iso_record : iso_file_records)
+    {
+        write(iso_record, f);
+    }
+    seek_to_next_block(f);
+
+    write(joliet_root_record, f);
+    write(joliet_root_parent_record, f);
+    for (const auto& joliet_record : joliet_file_records)
+    {
+        write(joliet_record, f);
+    }
+    seek_to_next_block(f);
+
+    for (const auto& entry : files)
+    {
+        f.write(entry.data.data(), entry.data.size());
+        seek_to_next_block(f);
+    }
+    pad_to_end(f);
+}

@@ -1,0 +1,241 @@
+// Copyright © 2017 Canonical Ltd.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 3 as
+// published by the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+
+syntax = "proto3";
+package multipass;
+
+service Rpc {
+    rpc create (CreateRequest) returns (stream CreateReply);
+    rpc empty_trash (EmptyTrashRequest) returns (EmptyTrashReply);
+    rpc exec (ExecRequest) returns (ExecReply);
+    rpc find (FindRequest) returns (FindReply);
+    rpc info (InfoRequest) returns (InfoReply);
+    rpc list (ListRequest) returns (ListReply);
+    rpc mount (MountRequest) returns (MountReply);
+    rpc ping (PingRequest) returns (PingReply);
+    rpc recover (RecoverRequest) returns (RecoverReply);
+    rpc ssh_info (SSHInfoRequest) returns (SSHInfoReply);
+    rpc start (StartRequest) returns (StartReply);
+    rpc stop (StopRequest) returns (StopReply);
+    rpc trash (TrashRequest) returns (TrashReply);
+    rpc umount (UmountRequest) returns (UmountReply);
+    rpc version (VersionRequest) returns (VersionReply);
+}
+
+message CreateRequest {
+    string instance_name = 1;
+    string image = 2;
+    string kernel_name = 3;
+    int32 num_cores = 4;
+    string mem_size = 5; // units?
+    string disk_space = 6; // units?
+    string time_zone = 7;
+    string cloud_init_user_data = 8;
+}
+
+message CreateError {
+    enum ErrorCodes {
+        OK = 0;
+        INSTANCE_EXISTS = 1;
+        INVALID_MEM_SIZE = 2;
+        INVALID_DISK_SIZE = 3;
+        INVALID_HOSTNAME = 4;
+    }
+    repeated ErrorCodes error_codes = 1;
+}
+
+message DownloadProgress {
+    enum DownloadTypes {
+        IMAGE = 0;
+        KERNEL = 1;
+        INITRD = 2;
+    }
+    DownloadTypes type = 1;
+    string percent_complete = 2;
+}
+
+message CreateReply {
+    oneof create_oneof {
+        string vm_instance_name = 1;
+        DownloadProgress download_progress = 2;
+        string create_message = 3;
+    }
+}
+
+message EmptyTrashRequest {
+}
+
+message EmptyTrashReply {
+}
+
+message ExecRequest {
+    string instance_name = 1;
+    repeated string command_line_args = 2;
+}
+
+message ExecReply {
+    repeated string exec_line = 1;
+}
+
+message FindRequest {
+    string search_string = 1;
+}
+
+message FindReply {
+    message ImageInfo {
+        string release = 1;
+        repeated string aliases = 2;
+    }
+    repeated ImageInfo images_info = 1;
+}
+
+message InfoRequest {
+    repeated string instance_name = 1;
+}
+
+
+message MountInfo {
+    message MountPaths {
+        string source_path = 1;
+        string target_path = 2;
+    }
+    uint32 longest_path_len = 1;
+    repeated MountPaths mount_paths = 2;
+}
+
+message InfoReply {
+    enum Status {
+        RUNNING = 0;
+        STOPPED = 1;
+        TRASHED = 2;
+    }
+    message Info {
+        string name = 1;
+        Status status = 2;
+        string release = 3;
+        string id = 4;
+        float load = 5;
+        int32 memory_usage = 6;
+        int32 disk_usage = 7;
+        string ipv4 = 8;
+        string ipv6 = 9;
+        MountInfo mount_info = 10;
+    }
+    repeated Info info = 1;
+}
+
+message ListRequest {
+}
+
+message ListVMInstance {
+    string name = 1;
+    enum Status {
+        RUNNING = 0;
+        STOPPED = 1;
+        TRASHED = 2;
+    }
+    Status status = 2;
+    string ipv4 = 3;
+    string ipv6 = 4;
+}
+
+message ListReply {
+    repeated ListVMInstance instances = 1;
+}
+
+message TargetPathInfo {
+    string instance_name = 1;
+    string target_path = 2;
+}
+
+message MountUidMap {
+    int32 host_uid = 1;
+    int32 instance_uid = 2;
+}
+
+message MountGidMap {
+    int32 host_gid = 1;
+    int32 instance_gid = 2;
+}
+
+message MountRequest {
+    string source_path = 1;
+    repeated TargetPathInfo target_paths = 2;
+    repeated MountUidMap uid_maps = 3;
+    repeated MountGidMap gid_maps = 4;
+}
+
+message MountReply {
+}
+
+message PingRequest {
+}
+
+message PingReply {
+}
+
+message RecoverRequest {
+    repeated string instance_name = 1;
+}
+
+message RecoverReply {
+}
+
+message SSHInfoRequest {
+    string instance_name = 1;
+}
+
+message SSHInfoReply {
+    int32 port = 1;
+    string priv_key_base64 = 2;
+    string host = 3;
+}
+
+message StartRequest {
+    repeated string instance_name = 1;
+}
+
+message StartReply {
+}
+
+message StopRequest {
+    repeated string instance_name = 1;
+}
+
+message StopReply {
+}
+
+message TrashRequest {
+    repeated string instance_name = 1;
+    bool purge = 2;
+}
+
+message TrashReply {
+}
+
+message UmountRequest {
+    repeated TargetPathInfo target_paths = 1;
+}
+
+message UmountReply {
+}
+
+message VersionRequest {
+}
+
+message VersionReply {
+    string version = 1;
+}

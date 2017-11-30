@@ -1,0 +1,100 @@
+name: multipass
+version: '2017.0.0'
+version-script: |
+  git describe --tags
+summary: Ubuntu at your fingertips
+description: |
+  Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch` and
+  it'll do all the setup for you.
+
+grade: devel
+confinement: devmode
+
+apps:
+  multipassd:
+    command: bin/multipassd
+    environment:
+      XDG_DATA_HOME: $SNAP_COMMON/data
+      XDG_CACHE_HOME: $SNAP_COMMON/cache
+    daemon: simple
+    plugs: [kvm, network, network-bind]
+  multipass:
+    command: bin/multipass
+    plugs: [network]
+
+parts:
+  qtbase5-dev:
+    after: [qt5-qmake]
+    plugin: dump
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source-type: deb
+    source-checksum: sha256/4f67aa5757b710ca616f044c6438f31f0ad963710056d292b06078c6cf43f61b
+    prime: [-*]
+
+  qtbase5-dev-tools:
+    plugin: dump
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source-type: deb
+    source-checksum: sha256/9de518fa3e91c0f0a97006dac2be5de0a78334333ad25a7417904018f3646e02
+    prime: [-*]
+
+  qt5-qmake:
+    plugin: dump
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source-type: deb
+    source-checksum: sha256/e1b14b3ac4d68addab438999a84460ed0db88cbf9ce7df9511c09f4ff39d9076
+    prime: [-*]
+
+  libqt5core5a:
+    after: [libicu57]
+    plugin: dump
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source-type: deb
+    source-checksum: sha256/9f3991ebd3a1a2ea4359ca9f0c631bbd843bf460ca3b5ced7a21c03932078c5c
+    stage-packages:
+    - libpcre16-3
+
+  libqt5network5:
+    plugin: dump
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source-type: deb
+    source-checksum: sha256/7ac5bddaa4b37a81e38fca9224ea4139c3163a677a0ee9c6381f877e54ab4610
+    stage-packages:
+    - libproxy1v5
+
+  libicu57:
+    plugin: dump
+    source: http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu57_57.1-4ubuntu0.2_amd64.deb
+    source-type: deb
+    source-checksum: sha256/39888b21ce69f6c70c485f21921b3714cdc78d2a3a6020fdfb049c018d8513f8
+
+  multipass:
+    after:
+    - qtbase5-dev
+    - qtbase5-dev-tools
+    - libqt5core5a
+    - libqt5network5
+    plugin: cmake
+    build-packages:
+    - build-essential
+    - cmake-extras
+    - golang
+    source: .
+    source-type: git
+    configflags:
+    - -DCMAKE_INSTALL_PREFIX=/
+    - -DMULTIPASS_ENABLE_TESTS=off
+    stage-packages:
+    - openssh-client
+
+  qemu:
+    plugin: nil
+    stage-packages:
+    - qemu-system-x86
+    - qemu-utils
+    organize:
+      usr/lib/x86_64-linux-gnu/pulseaudio/libpulsecommon-8.0.so: usr/lib/x86_64-linux-gnu/libpulsecommon-8.0.so
+      usr/share/seabios/bios-256k.bin: qemu/bios-256k.bin
+      usr/share/seabios/vgabios-stdvga.bin: qemu/vgabios-stdvga.bin
+      usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
+      usr/lib/ipxe/qemu/efi-virtio.rom: qemu/efi-virtio.rom

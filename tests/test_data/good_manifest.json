@@ -1,0 +1,45 @@
+{
+  "content_id": "com.ubuntu.cloud:released:download",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "http://www.canonical.com/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud:server:16.04:amd64": {
+      "aliases": "16.04,default,lts,x,xenial",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "support_eol": "2021-04-21",
+      "supported": true,
+      "version": "16.04",
+      "versions": {
+        "20170516": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "7388b8e7e0e114b941a04aca591e2d64",
+              "path": "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-amd64-disk1.img",
+              "sha256": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+              "size": 287440896
+            },
+            "lxd.tar.xz": {
+              "combined_rootxz_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_squashfs_sha256": "8fa08537ae51c880966626561987153e72d073cbe19dfe5abc062713d929254d",
+              "ftype": "lxd.tar.xz",
+              "md5": "c63c6c383e656348a2db25ad31f1bda9",
+              "path": "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "0f95800385b5e6ab5fec7d3ca88a6a070cd0da1130c9219713980c365ea82613",
+              "size": 840
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-xenial-16.04-amd64-server-20170516"
+        }
+      }
+    }
+  },
+  "updated": "Thu, 18 May 2017 09:18:01 +0000"
+}

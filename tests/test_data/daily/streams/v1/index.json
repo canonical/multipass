@@ -1,0 +1,15 @@
+{
+  "index": {
+    "com.ubuntu.cloud:daily:download": {
+      "datatype": "image-downloads",
+      "path": "daily_manifest.json",
+      "updated": "Wed, 18 Oct 2017 12:14:50 +0000",
+      "products": [
+        "com.ubuntu.cloud.daily:server:17.10:amd64"
+      ],
+      "format": "products:1.0"
+    },
+    "updated": "Wed, 18 Oct 2017 12:14:55 +0000",
+    "format": "index:1.0"
+  }
+}
