@@ -38,8 +38,16 @@ execute_process(COMMAND git describe --tags
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 set(CMAKE_CXX_STANDARD 14)
-add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wcast-align -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wno-expansion-to-defined -fPIC)
-add_definitions(-DMULTIPASS_PLATFORM_LINUX)
+if(MSVC)
+  # Build with multiple processes
+  add_definitions(/MP)
+  add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
+  add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
+  add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
+else()
+  add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wcast-align -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wno-expansion-to-defined -fPIC)
+  add_definitions(-DMULTIPASS_PLATFORM_LINUX)
+endif()
 
 set(MULTIPASS_GENERATED_SOURCE_DIR ${CMAKE_BINARY_DIR}/gen)
 file(MAKE_DIRECTORY ${MULTIPASS_GENERATED_SOURCE_DIR})

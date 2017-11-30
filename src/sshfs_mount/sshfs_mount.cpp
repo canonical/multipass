@@ -21,7 +21,11 @@
 
 #include <libssh/sftp.h>
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include <sys/utime.h>
+#else
 #include <utime.h>
+#endif
 
 #include <QDateTime>
 #include <QDir>
@@ -305,24 +309,40 @@ private:
 
         attr.size = file_info.size();
 
-        auto map = uid_map.find(file_info.ownerId());
-        if (map != uid_map.end())
+        // Windows
+        if (file_info.ownerId() == (uint)-2)
         {
-            attr.uid = map->second;
+            attr.uid = vm_user_pair.first;
         }
         else
         {
-            attr.uid = file_info.ownerId();
+            auto map = uid_map.find(file_info.ownerId());
+            if (map != uid_map.end())
+            {
+                attr.uid = map->second;
+            }
+            else
+            {
+                attr.uid = file_info.ownerId();
+            }
         }
 
-        auto gmap = gid_map.find(file_info.groupId());
-        if (gmap != gid_map.end())
+        // Windows
+        if (file_info.groupId() == (uint)-2)
         {
-            attr.gid = gmap->second;
+            attr.gid = vm_user_pair.second;
         }
         else
         {
-            attr.gid = file_info.groupId();
+            auto map = gid_map.find(file_info.groupId());
+            if (map != gid_map.end())
+            {
+                attr.gid = map->second;
+            }
+            else
+            {
+                attr.gid = file_info.groupId();
+            }
         }
 
         attr.permissions = QString::number(file_info.permissions() & 07777, 16).toUInt(nullptr, 8);
@@ -396,9 +416,11 @@ private:
             return;
         }
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS
         QFileInfo current_dir(msg->filename);
         QFileInfo parent_dir(current_dir.path());
         chown(msg->filename, parent_dir.ownerId(), parent_dir.groupId());
+#endif
 
         sftp_reply_status(msg, SSH_FX_OK, NULL);
     }
@@ -445,7 +467,9 @@ private:
 
         auto file = std::make_unique<QFile>(msg->filename);
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS
         auto exists = file->exists();
+#endif
 
         if (!file->open(mode))
         {
@@ -453,12 +477,14 @@ private:
             return;
         }
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS
         if (!exists)
         {
             QFileInfo current_file(msg->filename);
             QFileInfo current_dir(current_file.path());
             chown(msg->filename, current_dir.ownerId(), current_dir.groupId());
         }
+#endif
 
         auto hdl = std::make_unique<SftpHandleInfo>(SSH_FILEXFER_TYPE_REGULAR, std::move(file));
 
@@ -642,18 +668,28 @@ private:
 
         if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
         {
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+            struct _utimbuf timebuf;
+
+            timebuf.actime = msg->attr->atime;
+            timebuf.modtime = msg->attr->mtime;
+
+            if (_utime(filename.toStdString().c_str(), &timebuf) < 0)
+#else
             struct utimbuf timebuf;
 
             timebuf.actime = msg->attr->atime;
             timebuf.modtime = msg->attr->mtime;
 
             if (utime(filename.toStdString().c_str(), &timebuf) < 0)
+#endif
             {
                 reply_status(msg);
                 return;
             }
         }
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS
         if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
         {
             if (chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
@@ -662,6 +698,7 @@ private:
                 return;
             }
         }
+#endif
 
         sftp_reply_status(msg, SSH_FX_OK, NULL);
     }

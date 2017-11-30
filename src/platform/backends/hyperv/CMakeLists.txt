@@ -11,20 +11,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-set(CMAKE_AUTOMOC ON)
+add_library(hyperv_backend STATIC
+  hyperv_virtual_machine.cpp
+  hyperv_virtual_machine_factory.cpp
+  powershell.cpp )
 
-add_definitions(-DWITH_SERVER)
-
-# Needed to workaround extraneous ';' in sftp.h
-if(NOT MSVC)
-set_source_files_properties(sshfs_mount.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-endif()
-
-add_library(sshfs_mount STATIC
-  sshfs_mount.cpp
-  ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount.h)
-
-target_link_libraries(sshfs_mount
+target_link_libraries(hyperv_backend
+  Qt5::Core
+  ip_address_pool
   ssh
-  Qt5::Core)
+  yaml)

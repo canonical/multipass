@@ -14,16 +14,21 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-list(APPEND BACKEND_TESTS test_qemu_backend.cpp)
+if(MSVC)
+  add_definitions(-DGTEST_LANG_CXX11=1)
+  list(APPEND BACKEND_TESTS test_hyperv_backend.cpp)
+else()
+  list(APPEND BACKEND_TESTS test_qemu_backend.cpp)
 
-add_executable(qemu-system-x86_64
-        mock_qemu_system.cpp)
+  add_executable(qemu-system-x86_64
+          mock_qemu_system.cpp)
 
-set_target_properties(qemu-system-x86_64
-        PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+  set_target_properties(qemu-system-x86_64
+          PROPERTIES
+          RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+          RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+          RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+endif()
 
 set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googlemock)
 set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googletest)

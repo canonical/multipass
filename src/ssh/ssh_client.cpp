@@ -25,6 +25,10 @@
 
 #include <sstream>
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include <thread>
+#endif
+
 namespace mp = multipass;
 
 namespace
@@ -76,6 +80,7 @@ int mp::SSHClient::exec(const std::vector<std::string>& args)
 
 void mp::SSHClient::handle_ssh_events()
 {
+#ifndef MULTIPASS_PLATFORM_WINDOWS
     std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};
 
     // stdin
@@ -107,6 +112,38 @@ void mp::SSHClient::handle_ssh_events()
     ssh_event_remove_connector(event.get(), connector_in.get());
     ssh_event_remove_connector(event.get(), connector_out.get());
     ssh_event_remove_connector(event.get(), connector_err.get());
+#else
+    auto stdout_thread = std::thread([this]() {
+        std::array<char, 512> buffer;
+        int num_bytes{0};
+
+        while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
+        {
+            num_bytes = ssh_channel_read(channel.get(), buffer.data(), buffer.size(), 0);
+
+            if (console->is_window_size_changed())
+                change_ssh_pty_size(console->get_window_geometry());
+
+            console->write_console(buffer.data(), num_bytes);
+        }
+        console->signal_console();
+    });
+
+    std::array<char, 512> buffer;
+    int bytes_read{0};
+
+    while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
+    {
+        bytes_read = console->read_console(buffer);
+
+        if (bytes_read == -1)
+            break;
+
+        ssh_channel_write(channel.get(), buffer.data(), bytes_read);
+    }
+
+    stdout_thread.join();
+#endif
 }
 
 void mp::SSHClient::change_ssh_pty_size(mp::Console::WindowGeometry window_geometry)

@@ -17,7 +17,11 @@
 add_library(platform STATIC
   platform.cpp)
 
-target_link_libraries(platform qemu_backend)
+if(MSVC)
+  target_link_libraries(platform hyperv_backend)
+else()
+  target_link_libraries(platform qemu_backend)
+endif()
 
 add_subdirectory(backends)
 add_subdirectory(console)

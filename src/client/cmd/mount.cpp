@@ -100,13 +100,20 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         QString source_path;
         auto colon_count = source.count(':');
 
-        if (colon_count > 1)
+        if (colon_count > 2)
         {
             cerr << "Invalid source path given" << std::endl;
             return ParseCode::CommandLineError;
         }
-        else if (colon_count == 1)
+        else if (colon_count == 2)
         {
+            // Check to see if we are Windows
+            if (source.section(':', 1, 1).size() != 1)
+            {
+                cerr << "Invalid source path given" << std::endl;
+                return ParseCode::CommandLineError;
+            }
+
             // TODO: If [<name>:] is specified, make sure it's "remote".
             // Change this when we support instance to instance mounts.
             if (!source.startsWith("remote"))
@@ -116,6 +123,26 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
             }
 
             source_path = source.section(':', 1);
+        }
+        else if (colon_count == 1)
+        {
+            // Check to see if we are not Windows
+            if (source.section(':', 0, 0).size() != 1)
+            {
+                // TODO: If [<name>:] is specified, make sure it's "remote".
+                // Change this when we support instance to instance mounts.
+                if (!source.startsWith("remote"))
+                {
+                    cerr << "Source path needs to start with \"remote:\"" << std::endl;
+                    return ParseCode::CommandLineError;
+                }
+
+                source_path = source.section(':', 1);
+            }
+            else
+            {
+                source_path = source;
+            }
         }
         else
         {

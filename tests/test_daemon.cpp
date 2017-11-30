@@ -149,7 +149,11 @@ struct Daemon : public Test
         t.join();
     }
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    std::string server_address{"localhost:50051"};
+#else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
+#endif
     QEventLoop loop; // needed as cross-thread signal/slots used internally by mp::Daemon
     QTemporaryDir cache_dir;
     mp::DaemonConfigBuilder config_builder;
@@ -162,7 +166,12 @@ TEST_F(Daemon, receives_commands)
 
     EXPECT_CALL(daemon, create(_, _, _));
     EXPECT_CALL(daemon, empty_trash(_, _, _));
+// Expect this is called twice due to the connect and exec commands using the same call
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    EXPECT_CALL(daemon, exec(_, _, _)).Times(2);
+#else
     EXPECT_CALL(daemon, ssh_info(_, _, _)).Times(2);
+#endif
     EXPECT_CALL(daemon, info(_, _, _));
     EXPECT_CALL(daemon, list(_, _, _));
     EXPECT_CALL(daemon, recover(_, _, _));

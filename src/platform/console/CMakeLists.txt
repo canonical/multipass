@@ -13,9 +13,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if(MSVC)
+add_library(console STATIC
+    console.cpp
+    windows_console.cpp)
+else()
 add_library(console STATIC
     console.cpp
     unix_console.cpp)
+endif()
 
 target_link_libraries(console
   libssh)

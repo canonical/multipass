@@ -1,8 +1,10 @@
-# Workaround for zlib placing its generated zconf.h file in the build dir,
-# and protobuf not knowing so finding the system version instead
-include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
-
 # Add the subdir here to avoid polluting their cmake scope
+if (NOT MSVC)
+  # Workaround for zlib placing its generated zconf.h file in the build dir,
+  # and protobuf not knowing so finding the system version instead
+  include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
+endif ()
+
 add_subdirectory(grpc EXCLUDE_FROM_ALL)
 
 # Generates gRPC and protobuf C++ sources and headers from the given .proto files
@@ -45,7 +47,9 @@ function(generate_grpc_cpp SRCS DEST)
   set_source_files_properties(${${SRCS}} ${HDRS} PROPERTIES GENERATED TRUE)
   # Also protobuf uses a compiler extension (namely extended-offsetof), which -Wall can warn about
   # See https://github.com/google/protobuf/issues/1947
-  set_source_files_properties(${${SRCS}} PROPERTIES COMPILE_FLAGS "-Wno-extended-offsetof")
+  if (NOT MSVC)
+    set_source_files_properties(${${SRCS}} PROPERTIES COMPILE_FLAGS "-Wno-extended-offsetof")
+  endif()
   set(${SRCS} ${${SRCS}} PARENT_SCOPE)
 endfunction()
 

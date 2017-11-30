@@ -20,7 +20,11 @@
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_factory.h>
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#else
 #include "backends/qemu/qemu_virtual_machine_factory.h"
+#endif
 
 namespace mp = multipass;
 
@@ -33,5 +37,9 @@ std::string mp::Platform::default_server_address()
 
 mp::VirtualMachineFactory::UPtr mp::Platform::vm_backend(const mp::Path& data_dir)
 {
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
+#else
     return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+#endif
 }

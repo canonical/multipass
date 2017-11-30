@@ -292,6 +292,19 @@ TEST_F(Client, mount_cmd_fails_malformed_source_path)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+TEST_F(Client, mount_cmd_fail_windows_invalid_drive_letter)
+{
+    EXPECT_THAT(send_command({"mount", "foo:\\Windows", "test-vm:test"}), Eq(mp::ReturnCode::CommandLineError));
+}
+#else
+TEST_F(Client, mount_cmd_fails_2_colons_not_windows)
+{
+    EXPECT_THAT(send_command({"mount", "remote:foo:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+#endif
+
 // recover cli tests
 TEST_F(Client, recover_cmd_fails_no_args)
 {

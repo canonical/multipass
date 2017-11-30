@@ -3,7 +3,7 @@ What is multipass?
 
 Multipassd is a daemon that orchestrates the creation, management and
 maintenance of virtual machine and associated ubuntu images to simplify
-development
+development on various platforms such as Windows 10
 
 Build Dependencies
 ------------------

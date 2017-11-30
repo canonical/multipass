@@ -29,11 +29,31 @@
 
 #include <QCoreApplication>
 
-#include <signal.h>
-#include <vector>
+#if defined(MULTIPASS_PLATFORM_WINDOWS)
+#include <windows.h>
+#endif
 
 namespace
 {
+#if defined(MULTIPASS_PLATFORM_WINDOWS)
+BOOL WINAPI windows_console_ctrl_handler(_In_ DWORD dwCtrlType)
+{
+    switch (dwCtrlType)
+    {
+        case CTRL_C_EVENT:
+        case CTRL_CLOSE_EVENT:
+        {
+            auto app = QCoreApplication::instance();
+            app->quit();
+            return TRUE;
+        }
+        default:
+            return FALSE;
+    }
+}
+#else
+    #include <signal.h>
+#include <vector>
 
 sigset_t make_and_block_signals(std::vector<int> sigs)
 {
@@ -73,13 +93,18 @@ public:
 private:
     multipass::AutoJoinThread signal_handling_thread;
 };
+#endif
 }
 
 int main(int argc, char* argv[])
 try
 {
     QCoreApplication app(argc, argv);
+#if defined(MULTIPASS_PLATFORM_WINDOWS)
+    SetConsoleCtrlHandler(windows_console_ctrl_handler, TRUE);
+#else
     UnixSignalHandler handler(app);
+#endif
     multipass::Daemon daemon(multipass::DaemonConfigBuilder{}.build());
 
     app.exec();

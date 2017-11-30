@@ -13,23 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ *
  */
 
-#include <multipass/console.h>
+#ifndef MULTIPASS_POWERSHELL_H
+#define MULTIPASS_POWERSHELL_H
 
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-#include "windows_console.h"
-#else
-#include "unix_console.h"
-#endif
+#include <QStringList>
 
-namespace mp = multipass;
-
-mp::Console::UPtr mp::Console::make_console()
+namespace multipass
 {
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-    return std::make_unique<WindowsConsole>();
-#else
-    return std::make_unique<UnixConsole>();
-#endif
+bool powershell_run(QStringList args);
 }
+
+#endif // MULTIPASS_POWERSHELL_H
