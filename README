@@ -1,0 +1,32 @@
+What is multipass?
+------------------
+
+Multipassd is a daemon that orchestrates the creation, management and
+maintenance of virtual machine and associated ubuntu images to simplify
+development
+
+Build Dependencies
+------------------
+    apt install devscripts equivs
+    mk-build-deps -s sudo -i
+
+Building
+--------
+    cd <multipass>
+    git submodule update --init --recursive
+    mkdir build
+    cd build
+    cmake ../
+    make multipassd ubuntu
+
+Running multipass daemon and client
+-----------------------------------
+
+   <multipass>/build/bin/multipassd &
+
+   <multipass>/build/bin/multipass launch --name foo
+
+Connect to running VM
+---------------------
+
+    <multipass>/build/bin/multipass connect foo
