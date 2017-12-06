@@ -635,7 +635,7 @@ try // clang-format on
         }
 
         auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
-        info->set_release(vm_image_info.release_title.toStdString());
+        info->set_image_release(vm_image_info.release_title.toStdString());
         info->set_id(vm_image.id);
 
         auto vm_specs = vm_instance_specs[name];
@@ -657,8 +657,33 @@ try // clang-format on
         }
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
+        {
+            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider};
+
+            auto ssh_process = session.exec({"cat /proc/loadavg | cut -d ' ' -f1-3"}, mp::utils::QuoteType::no_quotes);
+            auto output = ssh_process.get_output_streams()[0];
+            // Remove trailing newline
+            output.pop_back();
+            info->set_load(output);
+
+            ssh_process = session.exec({"free -h | grep Mem | awk '{printf \"%s out of %s\", $3, $2}'"},
+                                       mp::utils::QuoteType::no_quotes);
+            output = ssh_process.get_output_streams()[0];
+            info->set_memory_usage(output);
+
+            ssh_process = session.exec({"df -h | grep -w /dev/sda1 | awk '{printf \"%s out of %s\", $3, $2}'"},
+                                       mp::utils::QuoteType::no_quotes);
+            output = ssh_process.get_output_streams()[0];
+            info->set_disk_usage(output);
+
+            ssh_process = session.exec({"lsb_release -ds"}, mp::utils::QuoteType::no_quotes);
+            output = ssh_process.get_output_streams()[0];
+            // Remove trailing newline
+            output.pop_back();
+            info->set_current_release(output);
+
             info->set_ipv4(vm->ipv4());
-        // TODO: fill memory usage, load, disk_usage
+        }
     }
     if (!error_messages.empty())
     {
