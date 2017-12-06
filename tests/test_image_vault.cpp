@@ -57,8 +57,18 @@ struct ImageHost : public mp::VMImageHost
         return {};
     }
 
+    mp::VMImageInfo info_for_full_hash(const std::string& full_hash) override
+    {
+        return {};
+    }
+
     void for_each_entry_do(const Action& action) override
     {
+    }
+
+    std::string get_default_remote() override
+    {
+        return {};
     }
 
     mpt::TempFile image;
@@ -95,7 +105,7 @@ struct ImageVault : public testing::Test
     QTemporaryDir cache_dir;
     QTemporaryDir data_dir;
     std::string instance_name{"valley-pied-piper"};
-    mp::Query default_query{instance_name, "xenial", false};
+    mp::Query default_query{instance_name, "xenial", false, ""};
     std::stringstream null_stream;
 };
 }

@@ -66,43 +66,38 @@ auto key_from(const std::string& search_string)
 }
 }
 
-mp::UbuntuVMImageHost::UbuntuVMImageHost(QStringList host_urls, URLDownloader* downloader,
-                                         std::chrono::seconds manifest_time_to_live)
-    : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, host_urls{host_urls}
+mp::UbuntuVMImageHost::UbuntuVMImageHost(std::unordered_map<std::string, std::string> remotes,
+                                         URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
+    : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{remotes}
 {
 }
 
 mp::VMImageInfo mp::UbuntuVMImageHost::info_for(const Query& query)
 {
     auto key = key_from(query.release);
+    const auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
+    auto& manifest = manifest_from(remote_name);
 
     const VMImageInfo* info{nullptr};
-    std::string host_url;
 
-    match_alias(key, &info, host_url);
+    match_alias(key, &info, *manifest);
 
     if (!info)
     {
         int num_matches = 0;
-        std::unordered_set<std::string> found_hashes;
 
-        for (const auto& manifest : manifests)
-        {
-            auto predicate = [&](const VMImageInfo& entry) {
-                auto partial_match = false;
-                if (entry.id.startsWith(key) && found_hashes.find(entry.id.toStdString()) == found_hashes.end())
-                {
-                    info = &entry;
-                    host_url = manifest.first;
-                    partial_match = true;
-                    found_hashes.insert(entry.id.toStdString());
-                }
-                return partial_match;
-            };
-            num_matches += std::count_if(manifest.second->products.begin(), manifest.second->products.end(), predicate);
-            if (num_matches > 1)
-                throw std::runtime_error("Too many images matching \"" + query.release + "\"");
-        }
+        auto predicate = [&](const VMImageInfo& entry) {
+            auto partial_match = false;
+            if (entry.id.startsWith(key))
+            {
+                info = &entry;
+                partial_match = true;
+            }
+            return partial_match;
+        };
+        num_matches += std::count_if(manifest->products.begin(), manifest->products.end(), predicate);
+        if (num_matches > 1)
+            throw std::runtime_error("Too many images matching \"" + query.release + "\"");
     }
 
     if (info)
@@ -110,7 +105,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for(const Query& query)
         if (!info->supported)
             throw std::runtime_error("The " + query.release + " release is no longer supported.");
 
-        return with_location_fully_resolved(QString::fromStdString(host_url), *info);
+        return with_location_fully_resolved(QString::fromStdString(remotes[remote_name]), *info);
     }
     else
         throw std::runtime_error("Unable to find an image matching \"" + query.release + "\"");
@@ -124,11 +119,12 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     std::vector<mp::VMImageInfo> images;
 
     auto key = key_from(query.release);
+    const auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
+    auto& manifest = manifest_from(remote_name);
 
     const VMImageInfo* info{nullptr};
-    std::string host_url;
 
-    match_alias(key, &info, host_url);
+    match_alias(key, &info, *manifest);
 
     if (info)
     {
@@ -141,16 +137,13 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     {
         std::unordered_set<std::string> found_hashes;
 
-        for (const auto& manifest : manifests)
+        for (const auto& entry : manifest->products)
         {
-            for (const auto& entry : manifest.second->products)
+            if (entry.id.startsWith(key) && entry.supported &&
+                found_hashes.find(entry.id.toStdString()) == found_hashes.end())
             {
-                if (entry.id.startsWith(key) && entry.supported &&
-                    found_hashes.find(entry.id.toStdString()) == found_hashes.end())
-                {
-                    images.push_back(with_location_fully_resolved(QString::fromStdString(manifest.first), entry));
-                    found_hashes.insert(entry.id.toStdString());
-                }
+                images.push_back(with_location_fully_resolved(QString::fromStdString(remotes[remote_name]), entry));
+                found_hashes.insert(entry.id.toStdString());
             }
         }
     }
@@ -158,6 +151,26 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     if (images.empty())
         throw std::runtime_error("Unable to find an image matching \"" + query.release + "\"");
     return images;
+}
+
+mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash(const std::string& full_hash)
+{
+    update_manifest();
+
+    for (const auto& manifest : manifests)
+    {
+        for (const auto& product : manifest.second->products)
+        {
+            if (product.id.toStdString() == full_hash)
+            {
+                return with_location_fully_resolved(QString::fromStdString(remotes[manifest.first]), product);
+            }
+        }
+    }
+
+    throw std::runtime_error("Unable to find an image matching hash \"" + full_hash + "\"");
+
+    return mp::VMImageInfo{};
 }
 
 void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
@@ -168,9 +181,15 @@ void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
     {
         for (const auto& product : manifest.second->products)
         {
-            action(with_location_fully_resolved(QString::fromStdString(manifest.first), product));
+            action(manifest.first,
+                   with_location_fully_resolved(QString::fromStdString(remotes[manifest.first]), product));
         }
     }
+}
+
+std::string mp::UbuntuVMImageHost::get_default_remote()
+{
+    return release_remote;
 }
 
 void mp::UbuntuVMImageHost::update_manifest()
@@ -180,27 +199,30 @@ void mp::UbuntuVMImageHost::update_manifest()
     {
         manifests.clear();
 
-        for (const auto& host_url : host_urls)
+        for (const auto& remote : remotes)
         {
-            manifests.emplace_back(host_url.toStdString(), download_manifest(host_url, url_downloader));
+            manifests[remote.first] = download_manifest(QString::fromStdString(remote.second), url_downloader);
         }
         last_update = now;
     }
 }
 
-void mp::UbuntuVMImageHost::match_alias(const QString& key, const VMImageInfo** info, std::string& host_url)
+std::unique_ptr<mp::SimpleStreamsManifest>& mp::UbuntuVMImageHost::manifest_from(const std::string& remote)
 {
+    if (remotes.find(remote) == remotes.end())
+        throw std::runtime_error("Remote \"" + remote + "\" is unknown.");
+
     update_manifest();
 
-    // Check all manifests for alias match first
-    for (const auto& manifest : manifests)
+    return manifests[remote];
+}
+
+void mp::UbuntuVMImageHost::match_alias(const QString& key, const VMImageInfo** info,
+                                        const mp::SimpleStreamsManifest& manifest)
+{
+    auto it = manifest.image_records.find(key);
+    if (it != manifest.image_records.end())
     {
-        auto it = manifest.second->image_records.find(key);
-        if (it != manifest.second->image_records.end())
-        {
-            *info = it.value();
-            host_url = manifest.first;
-            break;
-        }
+        *info = it.value();
     }
 }

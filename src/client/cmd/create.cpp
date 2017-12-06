@@ -122,7 +122,7 @@ QString cmd::Create::description() const
 
 mp::ParseCode cmd::Create::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("image", "Ubuntu image to start", "<image>");
+    parser->addPositionalArgument("image", "Ubuntu image to start", "[<remote:>]<image>");
     QCommandLineOption cpusOption({"c", "cpus"}, "Number of CPUs to allocate", "cpus", "1");
     QCommandLineOption diskOption({"d", "disk"}, "Disk space to allocate in bytes, or with K, M, G suffix", "disk",
                                   "default");
@@ -147,7 +147,23 @@ mp::ParseCode cmd::Create::parse_args(mp::ArgParser* parser)
 
     if (!parser->positionalArguments().isEmpty())
     {
-        request.set_image(parser->positionalArguments().first().toStdString());
+        auto remote_image_name = parser->positionalArguments().first();
+        auto colon_count = remote_image_name.count(':');
+
+        if (colon_count > 1)
+        {
+            cerr << "Invalid remote and source image name supplied" << std::endl;
+            return ParseCode::CommandLineError;
+        }
+        else if (colon_count == 1)
+        {
+            request.set_remote_name(remote_image_name.section(':', 0, 0).toStdString());
+            request.set_image(remote_image_name.section(':', 1).toStdString());
+        }
+        else
+        {
+            request.set_image(remote_image_name.toStdString());
+        }
     }
 
     if (parser->isSet(nameOption))

@@ -30,6 +30,7 @@ public:
     std::string name;
     std::string release;
     bool persistent;
+    std::string remote_name;
 };
 }
 #endif // MULTIPASS_QUERY_H

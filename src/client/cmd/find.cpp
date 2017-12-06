@@ -28,15 +28,17 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
+std::ostream& operator<<(std::ostream& out, const multipass::FindReply::AliasInfo& alias_info)
+{
+    auto alias = (!alias_info.remote_name().empty() ? alias_info.remote_name() + ":" : "") + alias_info.alias();
+    out << std::setw(21) << std::left << alias;
+
+    return out;
+}
+
 std::ostream& operator<<(std::ostream& out, const multipass::FindReply::ImageInfo& image_info)
 {
-    bool first = false;
-
-    for (const auto& alias : image_info.aliases())
-    {
-        out << std::setw(21) << std::left << alias << (!first ? "Ubuntu " + image_info.release() : "\"") << "\n";
-        first = true;
-    }
+    out << std::setw(24) << std::left << "Ubuntu " + image_info.release() << image_info.version() << "\n";
 
     return out;
 }
@@ -53,12 +55,43 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
     auto on_success = [this](mp::FindReply& reply) {
         std::stringstream out;
 
-        out << "multipass launch …   Creates an instance of\n";
-        out << "-------------------------------------------\n";
+        out << "multipass launch …   Starts an instance of   Image version\n";
+        out << "----------------------------------------------------------\n";
 
         for (const auto& info : reply.images_info())
         {
-            out << info;
+            for (auto alias_info = info.aliases_info().cbegin(); alias_info != info.aliases_info().cend(); ++alias_info)
+            {
+                if (request.search_string().empty())
+                {
+                    if (alias_info == info.aliases_info().cbegin())
+                    {
+                        out << *alias_info;
+                        out << info;
+                    }
+                    else
+                    {
+                        if (alias_info == info.aliases_info().cbegin() + 1)
+                        {
+                            out << "   (or: ";
+                        }
+
+                        if (alias_info == info.aliases_info().cend() - 1)
+                        {
+                            out << alias_info->alias() << ")\n";
+                        }
+                        else
+                        {
+                            out << alias_info->alias() << ", ";
+                        }
+                    }
+                }
+                else
+                {
+                    out << *alias_info;
+                    out << info;
+                }
+            }
         }
         cout << out.str();
 
@@ -91,7 +124,7 @@ QString cmd::Find::description() const
 
 mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("string", "Optionally find images matching this string", "<string>");
+    parser->addPositionalArgument("string", "Optionally find images matching this string", "[<remote:>]<string>");
 
     auto status = parser->commandParse(this);
 
@@ -107,7 +140,23 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     }
     else if (parser->positionalArguments().count() == 1)
     {
-        request.set_search_string(parser->positionalArguments().first().toStdString());
+        auto search_string = parser->positionalArguments().first();
+        auto colon_count = search_string.count(':');
+
+        if (colon_count > 1)
+        {
+            cerr << "Invalid remote and search string supplied" << std::endl;
+            return ParseCode::CommandLineError;
+        }
+        else if (colon_count == 1)
+        {
+            request.set_remote_name(search_string.section(':', 0, 0).toStdString());
+            request.set_search_string(search_string.section(':', 1).toStdString());
+        }
+        else
+        {
+            request.set_search_string(search_string.toStdString());
+        }
     }
 
     return status;
