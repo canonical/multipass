@@ -44,6 +44,7 @@ public:
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
     VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     void for_each_entry_do(const Action& action) override;
+    std::string get_default_remote() override;
 
 private:
     void update_manifest();

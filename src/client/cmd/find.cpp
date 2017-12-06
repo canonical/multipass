@@ -28,15 +28,17 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
+std::ostream& operator<<(std::ostream& out, const multipass::FindReply::AliasInfo& alias_info)
+{
+    auto alias = (!alias_info.remote_name().empty() ? alias_info.remote_name() + ":" : "") + alias_info.alias();
+    out << std::setw(21) << std::left << alias;
+
+    return out;
+}
+
 std::ostream& operator<<(std::ostream& out, const multipass::FindReply::ImageInfo& image_info)
 {
-    bool first = false;
-
-    for (const auto& alias : image_info.aliases())
-    {
-        out << std::setw(21) << std::left << alias << (!first ? "Ubuntu " + image_info.release() : "\"") << "\n";
-        first = true;
-    }
+    out << std::setw(24) << std::left << "Ubuntu " + image_info.release() << image_info.version() << "\n";
 
     return out;
 }
@@ -53,12 +55,43 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
     auto on_success = [this](mp::FindReply& reply) {
         std::stringstream out;
 
-        out << "multipass launch …   Creates an instance of\n";
-        out << "-------------------------------------------\n";
+        out << "multipass launch …   Starts an instance of   Image version\n";
+        out << "----------------------------------------------------------\n";
 
         for (const auto& info : reply.images_info())
         {
-            out << info;
+            for (auto alias_info = info.aliases_info().cbegin(); alias_info != info.aliases_info().cend(); ++alias_info)
+            {
+                if (request.search_string().empty())
+                {
+                    if (alias_info == info.aliases_info().cbegin())
+                    {
+                        out << *alias_info;
+                        out << info;
+                    }
+                    else
+                    {
+                        if (alias_info == info.aliases_info().cbegin() + 1)
+                        {
+                            out << "   (or: ";
+                        }
+
+                        if (alias_info == info.aliases_info().cend() - 1)
+                        {
+                            out << alias_info->alias() << ")\n";
+                        }
+                        else
+                        {
+                            out << alias_info->alias() << ", ";
+                        }
+                    }
+                }
+                else
+                {
+                    out << *alias_info;
+                    out << info;
+                }
+            }
         }
         cout << out.str();
 

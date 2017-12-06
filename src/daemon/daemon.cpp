@@ -546,13 +546,22 @@ try // clang-format on
 
             auto entry = response->add_images_info();
             entry->set_release(info.release_title.toStdString());
-            entry->add_aliases(request->remote_name().empty() ? name : request->remote_name() + ":" + name);
+            entry->set_version(info.version.toStdString());
+            auto alias_entry = entry->add_aliases_info();
+            alias_entry->set_remote_name(request->remote_name());
+            alias_entry->set_alias(name);
         }
     }
     else
     {
         std::unordered_map<std::string, bool> image_found;
-        auto action = [&response, &image_found](const std::string& remote, const mp::VMImageInfo& info) {
+        const auto remote_name{request->remote_name()};
+        const auto default_remote{config->image_host->get_default_remote()};
+        auto action = [&response, &image_found, remote_name, default_remote](const std::string& remote,
+                                                                             const mp::VMImageInfo& info) {
+            if (!remote_name.empty() && remote_name != remote)
+                return;
+
             if (info.supported)
             {
                 if (image_found.find(info.release_title.toStdString()) == image_found.end())
@@ -562,10 +571,13 @@ try // clang-format on
                         image_found[info.release_title.toStdString()] = true;
                         auto entry = response->add_images_info();
                         entry->set_release(info.release_title.toStdString());
+                        entry->set_version(info.version.toStdString());
 
                         for (const auto& alias : info.aliases)
                         {
-                            entry->add_aliases(remote + ":" + alias.toStdString());
+                            auto alias_entry = entry->add_aliases_info();
+                            alias_entry->set_remote_name((remote == default_remote) ? "" : remote);
+                            alias_entry->set_alias(alias.toStdString());
                         }
                     }
                 }

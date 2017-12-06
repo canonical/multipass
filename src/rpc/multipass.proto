@@ -97,9 +97,14 @@ message FindRequest {
 }
 
 message FindReply {
+    message AliasInfo {
+        string remote_name = 1;
+        string alias = 2;
+    }
     message ImageInfo {
         string release = 1;
-        repeated string aliases = 2;
+        string version = 2;
+        repeated AliasInfo aliases_info = 3;
     }
     repeated ImageInfo images_info = 1;
 }

@@ -66,6 +66,11 @@ struct ImageHost : public mp::VMImageHost
     {
     }
 
+    std::string get_default_remote() override
+    {
+        return {};
+    }
+
     mpt::TempFile image;
     mpt::TempFile kernel;
     mpt::TempFile initrd;

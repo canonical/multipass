@@ -187,6 +187,11 @@ void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
     }
 }
 
+std::string mp::UbuntuVMImageHost::get_default_remote()
+{
+    return release_remote;
+}
+
 void mp::UbuntuVMImageHost::update_manifest()
 {
     const auto now = std::chrono::steady_clock::now();
