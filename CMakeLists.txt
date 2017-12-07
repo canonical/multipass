@@ -32,7 +32,7 @@ add_subdirectory(3rd-party)
 find_package(Qt5Core)
 find_package(Qt5Network)
 
-execute_process(COMMAND git describe --tags
+execute_process(COMMAND git describe
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                 OUTPUT_VARIABLE MULTIPASS_VERSION
                 OUTPUT_STRIP_TRAILING_WHITESPACE)

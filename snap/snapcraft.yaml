@@ -1,7 +1,7 @@
 name: multipass
 version: '2017.0.0'
 version-script: |
-  git describe --tags
+  git describe
 summary: Ubuntu at your fingertips
 description: |
   Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch`
