@@ -55,8 +55,6 @@ std::ostream& operator<<(std::ostream& out, const multipass::InfoReply::Info& in
     std::string ipv6{info.ipv6()};
     if (ipv4.empty())
         ipv4.append("--");
-    if (ipv6.empty())
-        ipv6.append("--");
     out << std::setw(16) << std::left << "Name:";
     out << info.name() << "\n";
 
@@ -66,23 +64,26 @@ std::ostream& operator<<(std::ostream& out, const multipass::InfoReply::Info& in
     out << std::setw(16) << std::left << "IPv4:";
     out << ipv4 << "\n";
 
-    out << std::setw(16) << std::left << "IPV6:";
-    out << ipv6 << "\n";
+    if (!ipv6.empty())
+    {
+        out << std::setw(16) << std::left << "IPV6:";
+        out << ipv6 << "\n";
+    }
 
     out << std::setw(16) << std::left << "Release:";
-    out << "Ubuntu " << info.release() << "\n";
+    out << (info.current_release().empty() ? "--" : info.current_release()) << "\n";
 
     out << std::setw(16) << std::left << "Image hash:";
-    out << info.id().substr(0, 12) << "\n";
+    out << info.id().substr(0, 12) << " (Ubuntu " << info.image_release() << ")\n";
 
     out << std::setw(16) << std::left << "Load:";
-    out << info.load() << "\n";
+    out << (info.load().empty() ? "--" : info.load()) << "\n";
 
     out << std::setw(16) << std::left << "Disk usage:";
-    out << info.disk_usage() << "%\n";
+    out << (info.disk_usage().empty() ? "--" : info.disk_usage()) << "\n";
 
     out << std::setw(16) << std::left << "Memory usage:";
-    out << info.memory_usage() << "%\n";
+    out << (info.memory_usage().empty() ? "--" : info.memory_usage()) << "\n";
 
     auto mount_paths = info.mount_info().mount_paths();
     for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
@@ -108,7 +109,6 @@ mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
         for (const auto& info : reply.info())
         {
             out << info;
-            out << "\n";
         }
         cout << out.str();
         return ReturnCode::Ok;

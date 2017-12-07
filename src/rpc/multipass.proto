@@ -132,14 +132,15 @@ message InfoReply {
     message Info {
         string name = 1;
         Status status = 2;
-        string release = 3;
-        string id = 4;
-        float load = 5;
-        int32 memory_usage = 6;
-        int32 disk_usage = 7;
-        string ipv4 = 8;
-        string ipv6 = 9;
-        MountInfo mount_info = 10;
+        string image_release = 3;
+        string current_release = 4;
+        string id = 5;
+        string load = 6;
+        string memory_usage = 7;
+        string disk_usage = 8;
+        string ipv4 = 9;
+        string ipv6 = 10;
+        MountInfo mount_info = 11;
     }
     repeated Info info = 1;
 }
