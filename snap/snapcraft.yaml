@@ -9,7 +9,7 @@ description: |
   of available images. More details you can find under `multipass help`.
 
 grade: devel
-confinement: devmode
+confinement: classic
 
 apps:
   multipassd:
@@ -18,10 +18,8 @@ apps:
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
-    plugs: [kvm, network, network-bind]
   multipass:
     command: bin/multipass
-    plugs: [network]
 
 parts:
   qtbase5-dev:
