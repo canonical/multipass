@@ -62,6 +62,9 @@ mp::Client::Client(const ClientConfig& config)
     add_command<cmd::Trash>();
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
+
+    auto name_sort = [](cmd::Command::UPtr& a, cmd::Command::UPtr& b) { return a->name() < b->name(); };
+    std::sort(commands.begin(), commands.end(), name_sort);
 }
 
 template <typename T>
