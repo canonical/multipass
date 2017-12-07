@@ -71,10 +71,10 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
         {
             std::stringstream out;
 
-            out << std::setw(36) << std::left << "Name";
-            out << std::setw(12) << std::left << "State";
-            out << std::setw(19) << std::left << "IPv4";
-            out << std::left << "IPv6";
+            out << std::setw(24) << std::left << "Name";
+            out << std::setw(9) << std::left << "State";
+            out << std::setw(17) << std::left << "IPv4";
+            out << std::left << "Release";
             out << "\n";
 
             for (int i = 0; i < size; i++)
@@ -86,10 +86,10 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
                     ipv4.append("--");
                 if (ipv6.empty())
                     ipv6.append("--");
-                out << std::setw(36) << std::left << instance.name();
-                out << std::setw(12) << std::left << instance.status();
-                out << std::setw(19) << std::left << ipv4;
-                out << std::left << ipv6;
+                out << std::setw(24) << std::left << instance.name();
+                out << std::setw(9) << std::left << instance.status();
+                out << std::setw(17) << std::left << ipv4;
+                out << instance.current_release();
                 out << "\n";
             }
             cout << out.str();
