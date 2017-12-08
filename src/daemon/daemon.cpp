@@ -720,6 +720,12 @@ try // clang-format on
         auto entry = response->add_instances();
         entry->set_name(name);
         entry->set_status(status_for(vm->current_state()));
+
+        // FIXME: Set the release to the cached current version when supported
+        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
+        entry->set_current_release("Ubuntu " + vm_image_info.release_title.toStdString());
+
         if (vm->current_state() == mp::VirtualMachine::State::running)
             entry->set_ipv4(vm->ipv4());
     }

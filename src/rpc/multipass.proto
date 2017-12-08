@@ -158,6 +158,7 @@ message ListVMInstance {
     Status status = 2;
     string ipv4 = 3;
     string ipv6 = 4;
+    string current_release = 5;
 }
 
 message ListReply {
