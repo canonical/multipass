@@ -20,6 +20,7 @@ apps:
     daemon: simple
   multipass:
     command: bin/multipass
+    completer: etc/bash_completion.d/snap.multipass
 
 parts:
   qtbase5-dev:
@@ -85,6 +86,11 @@ parts:
     - -DMULTIPASS_ENABLE_TESTS=off
     stage-packages:
     - openssh-client
+    install: |-
+      set -ex
+      mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
+      echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
+      cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
 
   qemu:
     plugin: nil
