@@ -15,10 +15,17 @@ apps:
   multipassd:
     command: bin/multipassd
     environment:
+      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu::$SNAP/lib:$SNAP/usr/lib:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      QT_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
   multipass:
+    environment:
+      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu::$SNAP/lib:$SNAP/usr/lib:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      QT_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
 
@@ -53,6 +60,12 @@ parts:
     source-checksum: sha256/9f3991ebd3a1a2ea4359ca9f0c631bbd843bf460ca3b5ced7a21c03932078c5c
     stage-packages:
     - libpcre16-3
+
+  libqt5dbus5:
+    plugin: dump
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source-type: deb
+    source-checksum: sha256/38ef2ce1013cfbde62468b6646def8ebb9a27f3694d21ec51df8d8fe10cd912d
 
   libqt5network5:
     plugin: dump
