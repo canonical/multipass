@@ -74,10 +74,11 @@ if(APPLE)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh" @ONLY)
   install(FILES "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" DESTINATION Resources COMPONENT multipassd)
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions" DESTINATION Resources COMPONENT multipass)
 
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
-  set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT     "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
+  set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
 endif()
 
 # must be last
