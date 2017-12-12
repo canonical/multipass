@@ -1,14 +1,15 @@
 name: multipass
 version: '2017.0.0'
 version-script: |
-  git describe --tags
+  git describe
 summary: Ubuntu at your fingertips
 description: |
-  Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch` and
-  it'll do all the setup for you.
+  Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch`
+  and it'll do all the setup for you. Check out `multipass find` for a list
+  of available images. More details you can find under `multipass help`.
 
 grade: devel
-confinement: devmode
+confinement: classic
 
 apps:
   multipassd:
@@ -17,10 +18,9 @@ apps:
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
-    plugs: [kvm, network, network-bind]
   multipass:
     command: bin/multipass
-    plugs: [network]
+    completer: etc/bash_completion.d/snap.multipass
 
 parts:
   qtbase5-dev:
@@ -86,6 +86,11 @@ parts:
     - -DMULTIPASS_ENABLE_TESTS=off
     stage-packages:
     - openssh-client
+    install: |-
+      set -ex
+      mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
+      echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
+      cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
 
   qemu:
     plugin: nil

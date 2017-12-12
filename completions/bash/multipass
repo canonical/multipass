@@ -1,0 +1,83 @@
+# Copyright © 2017 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+_multipass_complete()
+{
+    _multipass_instances()
+    {
+        local state=$1
+
+        local cmd="multipass list"
+        [ -n "$state" ] && cmd="$cmd | grep -E '$state'"
+
+        opts=$( eval $cmd | grep -Ev '(\+--|Name)' | awk '{print $1}' )
+    }
+
+    local cur cmd opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    cmd="${COMP_WORDS[1]}"
+    multipass_cmds="connect delete exec find help info launch list mount purge \
+                    recover start stop umount version"
+
+
+    if [[ ${cur} == -* ]]; then
+        case "${cmd}" in
+            "connect"|"exec"|"find"|"help"|"info"|"list"|"purge"|"umount"|"version")
+                opts="--help --verbose"
+            ;;
+            "delete")
+                opts="--help --verbose --all --purge"
+            ;;
+            "launch")
+                opts="--help --verbose --cpus --disk --mem --name --cloud-init"
+            ;;
+            "mount")
+                opts="--help --verbose --gid-map --uid-map"
+            ;;
+            "recover"|"start"|"stop")
+                opts="--help --verbose --all"
+            ;;
+            *)
+                opts="--help --verbose"
+            ;;
+        esac
+    else
+        case "${cmd}" in
+            "connect"|"exec"|"stop")
+                _multipass_instances "RUNNING"
+            ;;
+            "start")
+                _multipass_instances "STOPPED"
+            ;;
+            "info"|"mount"|"umount")
+                _multipass_instances
+            ;;
+            "help")
+                opts=$multipass_cmds
+            ;;
+        esac
+    fi
+
+    if [[ -z ${opts} && ${COMP_CWORD} -eq 1 ]]; then
+        opts=$multipass_cmds
+    fi
+
+    if [[ -n "${opts}" ]]; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    fi
+
+    return 0
+}
+complete -F _multipass_complete multipass
