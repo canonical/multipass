@@ -39,6 +39,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD1(prepare_source_image, VMImage(const VMImage&));
     MOCK_METHOD2(prepare_instance_image, void(const VMImage&, const VirtualMachineDescription&));
     MOCK_METHOD3(configure, void(const std::string&, YAML::Node&, YAML::Node&));
+    MOCK_METHOD0(check_hypervisor_support, void());
 };
 }
 }
