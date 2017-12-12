@@ -390,6 +390,8 @@ try // clang-format on
                             create_error.SerializeAsString());
     }
 
+    config->factory->check_hypervisor_support();
+
     auto option_errors = validate_create_arguments(request);
 
     if (!option_errors.error_codes().empty())
