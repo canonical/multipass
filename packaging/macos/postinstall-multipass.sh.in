@@ -1,7 +1,34 @@
 #!/bin/bash
 set -e
 
-# Set up symlink
-ln -fsv "$3@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass" "$3/usr/local/bin/multipass"
+### Remove old "ubuntu" binary
+if [ -e "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/ubuntu" ]; then
+    rm -v "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/ubuntu"
+fi
+if [ -e "${3}usr/local/bin/ubuntu" ]; then
+    rm -v "${3}usr/local/bin/ubuntu"
+fi
+
+### Set up symlink to new multipass binary
+ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass" "${3}usr/local/bin/multipass"
+
+### Set up symlink for bash competions
+# If HomeBrew installed (only looking for default path)
+if [ -d "${3}usr/local/etc/bash_completion.d" ]; then
+    ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/bash/multipass" \
+            "${3}usr/local/etc/bash_completion.d/multipass"
+    echo "Installed Bash completion file for HomeBrew"
+else
+    echo "HomeBrew is not installed"
+fi
+
+# If MacPorts installed
+if [ -d "${3}opt/local/share/bash-completion/completions/" ]; then
+    ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/bash/multipass" \
+            "${3}opt/local/share/bash-completion/completions/multipass"
+    echo "Installed Bash completion for MacPorts"
+else
+    echo "MacPorts is not installed"
+fi
 
 echo 0
