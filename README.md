@@ -1,7 +1,7 @@
 # What is multipass?
 
 It's a system that orchestrates the creation, management and maintenance
-of virtual machine and associated ubuntu images to simplify development.
+of virtual machines and associated ubuntu images to simplify development.
 
 # Getting it
 
