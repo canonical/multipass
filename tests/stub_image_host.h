@@ -40,7 +40,7 @@ struct StubVMImageHost final : public multipass::VMImageHost
 
     multipass::VMImageInfo info_for_full_hash(const std::string& full_hash) override
     {
-        return {};
+        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
     };
 
     void for_each_entry_do(const Action&) override

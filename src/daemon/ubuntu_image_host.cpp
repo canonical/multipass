@@ -170,7 +170,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash(const std::string& ful
 
     throw std::runtime_error("Unable to find an image matching hash \"" + full_hash + "\"");
 
-    return mp::VMImageInfo{};
+    return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
 }
 
 void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
