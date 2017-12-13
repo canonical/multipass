@@ -129,3 +129,7 @@ void mp::HyperVVirtualMachineFactory::configure(const std::string& name, YAML::N
 
     meta_config["network-interfaces"] = netconfig.str();
 }
+
+void mp::HyperVVirtualMachineFactory::check_hypervisor_support()
+{
+}

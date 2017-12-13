@@ -111,3 +111,7 @@ void mp::HyperkitVirtualMachineFactory::configure(const std::string& name, YAML:
                                                   YAML::Node& user_config)
 {
 }
+
+void mp::HyperkitVirtualMachineFactory::check_hypervisor_support()
+{
+}
