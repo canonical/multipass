@@ -45,8 +45,16 @@ mp::ReturnCode cmd::Connect::run(mp::ArgParser* parser)
             return ReturnCode::Ok;
 
         auto priv_key_blob = reply.priv_key_base64();
-        mp::SSHClient ssh_client{host, port, priv_key_blob};
-        ssh_client.connect();
+        try
+        {
+            mp::SSHClient ssh_client{host, port, priv_key_blob};
+            ssh_client.connect();
+        }
+        catch (const std::exception& e)
+        {
+            cerr << "connect failed: " << e.what() << std::endl;
+            return ReturnCode::CommandFail;
+        }
         return ReturnCode::Ok;
     };
 

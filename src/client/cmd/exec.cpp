@@ -48,8 +48,16 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         for (int i = 1; i < parser->positionalArguments().size(); ++i)
             args.push_back(parser->positionalArguments().at(i).toStdString());
 
-        mp::SSHClient ssh_client{host, port, priv_key_blob};
-        return static_cast<mp::ReturnCode>(ssh_client.exec(args));
+        try
+        {
+            mp::SSHClient ssh_client{host, port, priv_key_blob};
+            return static_cast<mp::ReturnCode>(ssh_client.exec(args));
+        }
+        catch (const std::exception& e)
+        {
+            cerr << "exec failed: " << e.what() << std::endl;
+            return ReturnCode::CommandFail;
+        }
     };
 
     auto on_failure = [this](grpc::Status& status) {
