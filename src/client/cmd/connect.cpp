@@ -34,7 +34,7 @@ mp::ReturnCode cmd::Connect::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::SSHInfoReply& reply) {
+    auto on_success = [this](mp::SSHInfoReply& reply) {
         //TODO: this should setup a reader that continously prints out
         //streaming replies from the server corresponding to stdout/stderr streams
         auto host = reply.host();

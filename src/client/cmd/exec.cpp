@@ -34,7 +34,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [&parser](mp::SSHInfoReply& reply) {
+    auto on_success = [this, &parser](mp::SSHInfoReply& reply) {
         auto host = reply.host();
         auto port = reply.port();
 
