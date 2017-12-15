@@ -422,8 +422,14 @@ private:
 
         QFileInfo current_dir(sanitize_path_name(QString(msg->filename)));
         QFileInfo parent_dir(current_dir.path());
-        chown(msg->filename, parent_dir.ownerId(), parent_dir.groupId());
-
+        auto ret = chown(msg->filename, parent_dir.ownerId(), parent_dir.groupId());
+        if (ret < 0)
+        {
+            cout << "failed to chown " << msg->filename;
+            cout << " to owner: " << parent_dir.ownerId();
+            cout << " and group: " << parent_dir.groupId();
+            cout << "\n";
+        }
         sftp_reply_status(msg, SSH_FX_OK, NULL);
     }
 
@@ -481,7 +487,14 @@ private:
         {
             QFileInfo current_file(sanitize_path_name(QString(msg->filename)));
             QFileInfo current_dir(current_file.path());
-            chown(msg->filename, current_dir.ownerId(), current_dir.groupId());
+            auto ret = chown(msg->filename, current_dir.ownerId(), current_dir.groupId());
+            if (ret < 0)
+            {
+                cout << "failed to chown " << msg->filename;
+                cout << " to owner: " << current_dir.ownerId();
+                cout << " and group: " << current_dir.groupId();
+                cout << "\n";
+            }
         }
 
         auto hdl = std::make_unique<SftpHandleInfo>(SSH_FILEXFER_TYPE_REGULAR, std::move(file));
