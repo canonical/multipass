@@ -1,0 +1,17 @@
+--- a/snap/snapcraft.yaml
++++ b/snap/snapcraft.yaml
+@@ -92,12 +92,12 @@ parts:
+     - build-essential
+     - cmake-extras
+     - golang
++    - lcov
+     source: .
+     source-type: git
+     configflags:
+-    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
++    - -DCMAKE_BUILD_TYPE=Coverage
+     - -DCMAKE_INSTALL_PREFIX=/
+-    - -DMULTIPASS_ENABLE_TESTS=off
+     stage-packages:
+     - openssh-client
+     install: |-
