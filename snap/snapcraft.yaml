@@ -95,6 +95,7 @@ parts:
     source: .
     source-type: git
     configflags:
+    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     stage-packages:
