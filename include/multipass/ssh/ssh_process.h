@@ -45,7 +45,7 @@ private:
     };
 
     std::string read_stream(StreamType type, int timeout = -1);
-    ssh_channel get_ssh_channel_ptr();
+    ssh_channel release_channel();
 
     ChannelUPtr channel;
 

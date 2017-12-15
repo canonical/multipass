@@ -763,7 +763,7 @@ void mp::SshfsMount::run()
         std::unique_ptr<ssh_session_struct, decltype(ssh_free)*> session_sftp{ssh_new(), ssh_free};
 
         std::unique_ptr<sftp_session_struct, decltype(sftp_free)*> sftp_server_session{
-            sftp_server_new(session_sftp.get(), sshfs_process.get_ssh_channel_ptr()), sftp_free};
+            sftp_server_new(session_sftp.get(), sshfs_process.release_channel()), sftp_free};
 
         SSH::throw_on_error(sftp_server_init, sftp_server_session);
 
