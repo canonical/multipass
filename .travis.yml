@@ -19,9 +19,29 @@ install:
 - sg lxd -c '/snap/bin/lxc network create lxdbr0'
 - sg lxd -c '/snap/bin/lxc network attach-profile lxdbr0 default eth0'
 
-script:
-- sed -i 's/CMAKE_BUILD_TYPE=.*/CMAKE_BUILD_TYPE=Debug/' snap/snapcraft.yaml
-- sed -i '/MULTIPASS_ENABLE_TESTS=off/d' snap/snapcraft.yaml
-- sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
-- sudo snap install --dangerous --classic multipass_*.snap
-- snap run --shell multipass -c parts/multipass/build/bin/multipass_tests
+before_script:
+- "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
+
+jobs:
+  include:
+    - env: BUILD_TYPE=RelWithDebInfo
+      script:
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+
+    - env: BUILD_TYPE=Debug
+      script:
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+      - sudo snap install --dangerous --classic multipass_*.snap
+      - snap run --shell multipass -c parts/multipass/build/bin/multipass_tests
+
+    - env: BUILD_TYPE=Coverage
+      script:
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
+      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+      - sg lxd -c
+          '/snap/bin/lxc exec snapcraft-multipass --
+             env CTEST_OUTPUT_ON_FAILURE=1
+                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/
+                 cmake --build /root/build_multipass/parts/multipass/build --target covreport'
+      after_success:
+      - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
