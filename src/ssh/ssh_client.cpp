@@ -96,7 +96,7 @@ void mp::SSHClient::handle_ssh_events()
     ssh_connector_set_in_channel(connector_err.get(), channel.get(), SSH_CONNECTOR_STDERR);
     ssh_event_add_connector(event.get(), connector_err.get());
 
-    while (ssh_channel_is_open(channel.get()))
+    while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
     {
         if (console->is_window_size_changed())
             change_ssh_pty_size(console->get_window_geometry());
