@@ -14,6 +14,11 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
+if(cmake_build_type_lower MATCHES "coverage")
+  add_compile_options(-ftest-coverage -fprofile-arcs)
+  link_libraries(gcov)
+endif()
+
 configure_file(
   version.h.in
   ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/version.h
