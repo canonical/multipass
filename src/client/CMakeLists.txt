@@ -22,7 +22,6 @@ target_link_libraries(client
   commands
   platform
   rpc
-  wraptext
   Qt5::Core)
 
 add_executable(multipass

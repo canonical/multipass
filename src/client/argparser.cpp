@@ -16,9 +16,12 @@
  */
 
 #include <multipass/cli/argparser.h>
-#include <wrap_text.h>
 
 #include <QRegExp>
+
+#include <algorithm>
+#include <iomanip>
+#include <sstream>
 
 /*
  * ArgParser - a wrapping of a QCommandLineParser where the concept of a "command"
@@ -32,6 +35,48 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+
+auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
+{
+    auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b)
+    {
+        return a->name().length() < b->name().length();
+    };
+    const auto& max_elem = *std::max_element(commands.begin(), commands.end(), string_len_compare);
+    return max_elem->name().length();
+}
+
+auto format_into_column(const std::string& name, std::string::size_type column_size, int padding)
+{
+    std::stringstream out;
+
+    if (padding > 0)
+        out << std::setw(padding) << " ";
+
+    out << std::setw(column_size) << std::left << name;
+
+    if (padding > 0)
+        out << std::setw(padding) << " ";
+
+    return out.str();
+}
+
+QString format_short_help_for(const std::vector<cmd::Command::UPtr>& commands)
+{
+    const auto column_size = max_command_string_length(commands);
+    const auto column_pad = 2;
+    QString output;
+    for (const auto& c : commands)
+    {
+        output += QString::fromStdString(format_into_column(c->name(), column_size, column_pad));
+        output += c->short_help() + "\n";
+    }
+    return output;
+}
+
+}
 mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Command::UPtr>& commands,
                          std::ostream& cout, std::ostream& cerr)
     : arguments(arguments), commands(commands), chosen_command(nullptr), help_requested(false), cout(cout), cerr(cerr)
@@ -160,14 +205,8 @@ QString mp::ArgParser::generalHelpText()
     const int first_line_break_pos = text.indexOf('\n');
     text.insert(first_line_break_pos, " <command>");
 
-    int longest_command_string_length = 0;
-    for (const auto& c : commands)
-        longest_command_string_length = qMax(longest_command_string_length, static_cast<int>(c->name().length()));
-    longest_command_string_length++;
-
     text += nl + QCommandLineParser::tr("Available commands:") + nl;
-    for (const auto& c : commands)
-        text += wrapText(QString::fromStdString(c->name()), longest_command_string_length, c->short_help());
+    text += format_short_help_for(commands);
 
     return text;
 }
