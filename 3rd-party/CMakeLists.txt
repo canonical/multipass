@@ -128,8 +128,5 @@ if (APPLE)
     )
 endif (APPLE)
 
-# Qt Base - Text Wrapper lib taken from QCommandLineParser
-add_subdirectory(qtbase EXCLUDE_FROM_ALL)
-
 # libssh config
 add_subdirectory(libssh EXCLUDE_FROM_ALL)

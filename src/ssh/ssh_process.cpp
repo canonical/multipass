@@ -63,7 +63,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     return output.str();
 }
 
-ssh_channel mp::SSHProcess::get_ssh_channel_ptr()
+ssh_channel mp::SSHProcess::release_channel()
 {
-    return channel.get();
+    return channel.release();
 }
