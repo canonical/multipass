@@ -120,3 +120,8 @@ parts:
     plugin: nil
     stage-packages:
     - dnsmasq
+
+  kvm-support:
+    plugin: nil
+    stage-packages:
+    - msr-tools

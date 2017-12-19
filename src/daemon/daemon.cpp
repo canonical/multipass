@@ -950,6 +950,8 @@ grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest*
                                StartReply* response) // clang-format off
 try // clang-format on
 {
+    config->factory->check_hypervisor_support();
+
     std::string error_messages;
     std::vector<decltype(vm_instances)::key_type> vms;
     for (const auto& name : request->instance_name())

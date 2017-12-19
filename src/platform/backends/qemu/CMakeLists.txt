@@ -25,3 +25,6 @@ target_link_libraries(qemu_backend
   ip_address_pool
   ssh
   yaml)
+
+install(PROGRAMS check_kvm_support
+  DESTINATION bin)
