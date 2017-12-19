@@ -253,19 +253,12 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Nod
 
 void mp::QemuVirtualMachineFactory::check_hypervisor_support()
 {
-    QProcess cmd;
-    cmd.start("bash",
-              QStringList() << "-c"
-                            << "egrep -m1 -w '^flags[[:blank:]]*:' /proc/cpuinfo | egrep -wo '(vmx|svm)'");
-    cmd.waitForFinished();
-    auto virt_type = cmd.readAll().trimmed();
+    QProcess check_kvm;
+    check_kvm.start("check_kvm_support");
+    check_kvm.waitForFinished();
 
-    if (virt_type.isEmpty())
-        throw std::runtime_error("CPU does not support KVM extensions");
-
-    if (!QFile::exists("/dev/kvm"))
+    if (check_kvm.exitCode() == 1)
     {
-        std::string kvm_module = (virt_type == "vmx") ? "kvm_intel" : "kvm_amd";
-        throw std::runtime_error("/dev/kvm does not exist. Try 'sudo modprobe " + kvm_module + "'.");
+        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
     }
 }

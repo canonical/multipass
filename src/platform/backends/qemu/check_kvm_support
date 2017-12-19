@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# Copyright © 2017 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+set -e
+
+check_kvm_module() {
+    if [ -e /dev/kvm ]; then
+        exit 0
+    fi
+}
+
+check_kvm_module
+
+virt=$(egrep -m1 -w '^flags[[:blank:]]*:' /proc/cpuinfo | egrep -wo '(vmx|svm)') || true
+[ "$virt" = "vmx" ] && kvm_mod="kvm_intel"
+[ "$virt" = "svm" ] && kvm_mod="kvm_amd"
+
+if [ -z "$virt" ]; then
+    echo "CPU does not support KVM extensions."
+    exit 1
+fi
+
+disabled=0
+if [ "$(id -u)" != "0" ]; then
+    echo "Must be root to check BIOS for KVM extensions support."
+else
+    msr="/dev/cpu/0/msr"
+    if [ ! -r "$msr" ]; then
+        modprobe msr
+    fi
+
+    if [ "$virt" = "vmx" ]; then
+        BIT=$(rdmsr --bitfield 0:0 0x3a 2>/dev/null || true)
+        if [ "$BIT" = "1" ]; then
+            BIT=$(rdmsr --bitfield 2:2 0x3a 2>/dev/null || true)
+            if [ "$BIT" = "0" ]; then
+                disabled=1
+            fi
+        fi
+    elif [ "$virt" = "svm" ]; then
+        BIT=$(rdmsr --bitfield 4:4 0xc0010114 2>/dev/null || true)
+        if [ "$BIT" = "1" ]; then
+            disabled=1
+        fi
+    fi
+fi
+
+if [ "$disabled" -eq 1 ]; then
+    echo "KVM ($virt) is disabled by your BIOS."
+    echo "Enter your BIOS setup and enable Virtualization Technology (VT)."
+    exit 1
+fi
+
+modprobe $kvm_mod
+
+check_kvm_module
+
+echo "Unable to load '$kvm_mod'."
+exit 1
