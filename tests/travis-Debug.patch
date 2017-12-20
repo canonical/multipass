@@ -1,13 +1,13 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -95,9 +95,8 @@ parts:
+@@ -94,9 +94,8 @@ parts:
+     - golang
      source: .
-     source-type: git
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
 +    - -DCMAKE_BUILD_TYPE=Debug
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
-     stage-packages:
-     - openssh-client
      install: |-
+       set -ex
+       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
