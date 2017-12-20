@@ -11,7 +11,9 @@ Can be installed via the App Store. Once this is done, you may need to install t
 Ensure you have development Frameworks for at least OS X 10.8 installed, with the typical compiler toolchain and "git". Avoid the version of cmake supplied, we need a newer one (see later).
 
 ### Qt5
-Install the latest stable version of Qt5.9 (5.9.1 at the moment): <http://www.qt.io/download-open-source/>.
+Install the latest stable version of Qt5.9 (5.9.3 at the moment): <http://www.qt.io/download-open-source/>.
+
+If it tells you that XCode 5.0.0 needs to be installed, go to XCode > Preferences > Locations and make a selection in the _Command Line Tools_ box.
 
 Add Qt5 to your PATH environment variable, adding to your `.bash_profile` file the following line:
 
@@ -35,29 +37,23 @@ Hyperkit is a core utility used by Multipass. To build it we need more dependenc
 
     brew install wget opam dylibbundler libffi pkg-config
 
-Hyperkit's QCow support is implemented in an OCaml module, which we need to fetch using the OPAM packaging system. Initialize :
+Answer `yes` when it asks to modify your `.bash_profile`, or otherwise ensure ```eval `opam config env```` runs in your shell.
+
+Hyperkit's QCow support is implemented in an OCaml module, which we need to fetch using the OPAM packaging system. Initialize:
 
     opam init
     opam update
-
-Set up the environment to use the OCaml modules:
-
-    eval `opam config env`
 
 Install the required modules (these may change, check the packages listed in `grep "HAVE_OCAML_QCOW :="  3rd-party/hyperkit/Makefile` for the current required modules):
 
     opam install qcow prometheus-app uri logs mirage-unix
 
-***Note:*** at any time you attempt to build Hyperkit, ensure ``eval `opam config env` `` has been called. It is convenience to add the command to your `.bash_profile` file.
-
 Building
 ---------------------------------------
     cd <multipass>
     git submodule update --init --recursive
-    mkdir build
-    cd build
-    cmake ../ -DCMAKE_PREFIX_PATH=~/Qt/5.9.1/clang_64
-    make
+    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=~/Qt/5.9.3/clang_64
+    cmake --build build
 
 Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about missing Qt5.
 
