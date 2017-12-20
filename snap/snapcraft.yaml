@@ -93,7 +93,6 @@ parts:
     - cmake-extras
     - golang
     source: .
-    source-type: git
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/

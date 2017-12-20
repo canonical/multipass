@@ -1,12 +1,11 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -92,12 +92,12 @@ parts:
+@@ -92,11 +92,11 @@ parts:
      - build-essential
      - cmake-extras
      - golang
 +    - lcov
      source: .
-     source-type: git
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
 +    - -DCMAKE_BUILD_TYPE=Coverage
