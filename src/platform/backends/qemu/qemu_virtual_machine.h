@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ class QemuVirtualMachine final : public VirtualMachine
 {
 public:
     QemuVirtualMachine(const VirtualMachineDescription& desc, const IPAddress& address,
-                       const std::string& tap_device_name, VMStatusMonitor& monitor);
+                       const std::string& tap_device_name, const std::string& mac_addr, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -56,6 +56,7 @@ private:
     VirtualMachine::State state;
     const IPAddress ip;
     const std::string tap_device_name;
+    const std::string mac_addr;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
     std::string saved_error_msg;
