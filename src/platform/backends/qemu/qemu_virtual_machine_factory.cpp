@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ auto generate_mac_address()
         mac_addr << ":" << std::setw(2) << std::hex << distribution(generator);
     }
 
-    return QString::fromStdString(mac_addr.str());
+    return mac_addr.str();
 }
 
 // An interface name can only be 15 characters, so this generates a hash of the
@@ -86,7 +86,9 @@ void create_virtual_switch()
 {
     if (!run_network_cmd("ip", {"addr", "show", "mpbr0"}))
     {
-        run_network_cmd("ip", {"link", "add", "mpbr0-dummy", "address", generate_mac_address(), "type", "dummy"});
+        run_network_cmd(
+            "ip",
+            {"link", "add", "mpbr0-dummy", "address", QString::fromStdString(generate_mac_address()), "type", "dummy"});
         run_network_cmd("ip", {"link", "add", "mpbr0", "type", "bridge"});
         run_network_cmd("ip", {"link", "set", "mpbr0-dummy", "master", "mpbr0"});
         run_network_cmd("ip", {"address", "add", "10.122.122.1/24", "dev", "mpbr0", "broadcast", "10.122.122.255"});
@@ -204,7 +206,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     set_nat_iptables();
 
     return std::make_unique<mp::QemuVirtualMachine>(desc, ip_pool.obtain_ip_for(desc.vm_name), tap_device_name,
-                                                    monitor);
+                                                    generate_mac_address(), monitor);
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
