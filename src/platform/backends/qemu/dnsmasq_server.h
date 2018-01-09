@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,43 +13,36 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_IP_ADDRESS_POOL_H
-#define MULTIPASS_IP_ADDRESS_POOL_H
+#ifndef MULTIPASS_DNSMASQ_SERVER_H
+#define MULTIPASS_DNSMASQ_SERVER_H
 
-#include "ip_address.h"
-
+#include <multipass/ip_address.h>
 #include <multipass/path.h>
 
 #include <QDir>
+#include <QProcess>
 
 #include <experimental/optional>
-#include <set>
+#include <memory>
 #include <string>
-#include <unordered_map>
 
 namespace multipass
 {
-class IPAddressPool
+class DNSMasqServer
 {
 public:
-    IPAddressPool(const Path& data_dir, const IPAddress& start, const IPAddress& end);
-    IPAddress obtain_ip_for(const std::string& name);
-    std::experimental::optional<IPAddress> check_ip_for(const std::string& name);
-    IPAddress first_free_ip();
-    void remove_ip_for(const std::string& name);
+    DNSMasqServer(const Path& path, const IPAddress& start, const IPAddress& end);
+    virtual ~DNSMasqServer();
+
+    std::experimental::optional<IPAddress> get_ip_for(const std::string& hw_addr);
 
 private:
-    IPAddress obtain_free_ip();
-    void persist_ips();
     const IPAddress start_ip;
     const IPAddress end_ip;
     const QDir data_dir;
-    std::unordered_map<std::string, IPAddress> ip_map;
-    std::set<IPAddress> ips_in_use;
+    std::unique_ptr<QProcess> dnsmasq_cmd;
 };
 }
-#endif // MULTIPASS_IP_ADDRESS_POOL_H
+#endif // MULTIPASS_DNSMASQ_SERVER_H

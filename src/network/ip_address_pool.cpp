@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -110,6 +110,25 @@ mp::IPAddress mp::IPAddressPool::obtain_ip_for(const std::string& name)
         return ip;
     }
     return it->second;
+}
+
+std::experimental::optional<mp::IPAddress> mp::IPAddressPool::check_ip_for(const std::string& name)
+{
+    const auto it = ip_map.find(name);
+    if (it == ip_map.end())
+    {
+        return {};
+    }
+
+    return std::experimental::optional<mp::IPAddress>{it->second};
+}
+
+mp::IPAddress mp::IPAddressPool::first_free_ip()
+{
+    if (ips_in_use.empty())
+        return start_ip;
+
+    return *ips_in_use.crbegin() + 1;
 }
 
 void mp::IPAddressPool::remove_ip_for(const std::string& name)

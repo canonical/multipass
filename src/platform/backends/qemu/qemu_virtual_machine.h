@@ -20,8 +20,12 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 
+#include "dnsmasq_server.h"
+
 #include <multipass/ip_address.h>
 #include <multipass/virtual_machine.h>
+
+#include <experimental/optional>
 
 class QProcess;
 class QFile;
@@ -35,8 +39,9 @@ class VirtualMachineDescription;
 class QemuVirtualMachine final : public VirtualMachine
 {
 public:
-    QemuVirtualMachine(const VirtualMachineDescription& desc, const IPAddress& address,
-                       const std::string& tap_device_name, const std::string& mac_addr, VMStatusMonitor& monitor);
+    QemuVirtualMachine(const VirtualMachineDescription& desc, std::experimental::optional<IPAddress> address,
+                       const std::string& tap_device_name, const std::string& mac_addr, DNSMasqServer& dnsmasq_server,
+                       VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -54,9 +59,10 @@ private:
     void on_error();
     void on_shutdown();
     VirtualMachine::State state;
-    const IPAddress ip;
+    std::experimental::optional<IPAddress> ip;
     const std::string tap_device_name;
     const std::string mac_addr;
+    DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
     std::string saved_error_msg;

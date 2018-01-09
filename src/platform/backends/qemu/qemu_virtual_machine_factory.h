@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
  */
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
+
+#include "dnsmasq_server.h"
 
 #include <multipass/ip_address_pool.h>
 #include <multipass/virtual_machine_factory.h>
@@ -39,6 +41,7 @@ public:
 
 private:
     IPAddressPool ip_pool;
+    DNSMasqServer dnsmasq_server;
 };
 }
 
