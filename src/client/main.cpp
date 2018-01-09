@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ namespace mp = multipass;
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    app.setApplicationName("ubuntu");
+    app.setApplicationName("multipass");
 
     mp::ClientConfig config{mp::Platform::default_server_address(), std::cout, std::cerr};
     mp::Client client{config};
