@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -15,6 +15,7 @@
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 add_library(qemu_backend STATIC
+  dnsmasq_server.cpp
   qemu_virtual_machine_factory.cpp
   qemu_virtual_machine.cpp)
 

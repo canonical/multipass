@@ -115,3 +115,8 @@ parts:
       usr/share/seabios/vgabios-stdvga.bin: qemu/vgabios-stdvga.bin
       usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
       usr/lib/ipxe/qemu/efi-virtio.rom: qemu/efi-virtio.rom
+
+  dnsmasq:
+    plugin: nil
+    stage-packages:
+    - dnsmasq

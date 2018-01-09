@@ -18,6 +18,7 @@
  */
 
 #include "qemu_virtual_machine.h"
+#include "dnsmasq_server.h"
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -32,6 +33,8 @@
 #include <QProcessEnvironment>
 #include <QString>
 #include <QStringList>
+
+#include <thread>
 
 namespace mp = multipass;
 
@@ -93,13 +96,15 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
 }
 }
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const IPAddress& address,
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
+                                           std::experimental::optional<mp::IPAddress> address,
                                            const std::string& tap_device_name, const std::string& mac_addr,
-                                           VMStatusMonitor& monitor)
+                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : state{State::off},
       ip{address},
       tap_device_name{tap_device_name},
       mac_addr{mac_addr},
+      dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
 {
@@ -194,12 +199,35 @@ void mp::QemuVirtualMachine::on_shutdown()
 
 std::string mp::QemuVirtualMachine::ssh_hostname()
 {
-    return ip.as_string();
+    return ipv4();
 }
 
 std::string mp::QemuVirtualMachine::ipv4()
 {
-    return ip.as_string();
+    if (!ip)
+    {
+        using namespace std::literals::chrono_literals;
+
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::minutes(2);
+
+        while (std::chrono::steady_clock::now() < deadline)
+        {
+            QCoreApplication::processEvents();
+            auto result = dnsmasq_server->get_ip_for(mac_addr);
+
+            if (result)
+            {
+                ip.emplace(result.value());
+                return ip.value().as_string();
+            }
+
+            std::this_thread::sleep_for(1s);
+        }
+
+        throw std::runtime_error("failed to determine IP address");
+    }
+    else
+        return ip.value().as_string();
 }
 
 std::string mp::QemuVirtualMachine::ipv6()
