@@ -60,7 +60,7 @@ mp::DNSMasqServer::~DNSMasqServer()
     dnsmasq_cmd->waitForFinished();
 }
 
-std::experimental::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
+mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
 {
     QProcess cmd;
 
@@ -77,5 +77,5 @@ std::experimental::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const s
     if (ip_addr.isEmpty())
         return {};
     else
-        return std::experimental::optional<mp::IPAddress>{mp::IPAddress{ip_addr.toStdString()}};
+        return mp::optional<mp::IPAddress>{mp::IPAddress{ip_addr.toStdString()}};
 }
