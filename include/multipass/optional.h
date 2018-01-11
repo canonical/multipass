@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,22 +17,27 @@
  *
  */
 
-#include "client.h"
+#ifndef MULTIPASS_OPTIONAL_H
+#define MULTIPASS_OPTIONAL_H
 
-#include <multipass/cli/cli.h>
-#include <multipass/platform.h>
+#if __has_include(<optional>) && __cplusplus > 201402L
 
-#include <QCoreApplication>
-
-namespace mp = multipass;
-
-int main(int argc, char* argv[])
+#include <optional>
+namespace multipass
 {
-    QCoreApplication app(argc, argv);
-    app.setApplicationName("multipass");
-
-    mp::ClientConfig config{mp::Platform::default_server_address(), std::cout, std::cerr};
-    mp::Client client{config};
-
-    return client.run(app.arguments());
+using std::optional;
 }
+
+#elif __has_include(<experimental/optional>)
+
+#include <experimental/optional>
+namespace multipass
+{
+using std::experimental::optional;
+}
+
+#else
+#error "no optional implementation found!"
+#endif
+
+#endif // MULTIPASS_OPTIONAL_H

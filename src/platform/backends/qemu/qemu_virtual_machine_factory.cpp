@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ auto generate_mac_address()
         mac_addr << ":" << std::setw(2) << std::hex << distribution(generator);
     }
 
-    return QString::fromStdString(mac_addr.str());
+    return mac_addr.str();
 }
 
 // An interface name can only be 15 characters, so this generates a hash of the
@@ -86,7 +86,9 @@ void create_virtual_switch()
 {
     if (!run_network_cmd("ip", {"addr", "show", "mpbr0"}))
     {
-        run_network_cmd("ip", {"link", "add", "mpbr0-dummy", "address", generate_mac_address(), "type", "dummy"});
+        run_network_cmd(
+            "ip",
+            {"link", "add", "mpbr0-dummy", "address", QString::fromStdString(generate_mac_address()), "type", "dummy"});
         run_network_cmd("ip", {"link", "add", "mpbr0", "type", "bridge"});
         run_network_cmd("ip", {"link", "set", "mpbr0-dummy", "master", "mpbr0"});
         run_network_cmd("ip", {"address", "add", "10.122.122.1/24", "dev", "mpbr0", "broadcast", "10.122.122.255"});
@@ -188,7 +190,8 @@ void set_nat_iptables()
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}}
+    : ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}},
+      dnsmasq_server{data_dir, ip_pool.first_free_ip(), mp::IPAddress{"10.122.122.254"}}
 {
 }
 
@@ -203,8 +206,8 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     set_ip_forward();
     set_nat_iptables();
 
-    return std::make_unique<mp::QemuVirtualMachine>(desc, ip_pool.obtain_ip_for(desc.vm_name), tap_device_name,
-                                                    monitor);
+    return std::make_unique<mp::QemuVirtualMachine>(desc, ip_pool.check_ip_for(desc.vm_name), tap_device_name,
+                                                    generate_mac_address(), dnsmasq_server, monitor);
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
@@ -241,22 +244,6 @@ void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& in
 
 void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)
 {
-    meta_config["dsmode"] = "local";
-
-    auto ip = ip_pool.obtain_ip_for(name);
-    std::stringstream netconfig;
-
-    netconfig << "|\n"
-              << "    auto ens3\n"
-              << "    iface ens3 inet static\n"
-              << "    address " << ip.as_string() << "\n"
-              << "    network 10.122.122.0\n"
-              << "    netmask 255.255.255.0\n"
-              << "    broadcast 10.122.122.255\n"
-              << "    gateway 10.122.122.1\n"
-              << "    dns-nameservers 8.8.8.8\n"; // TODO: Use a DNS proxy instead
-
-    meta_config["network-interfaces"] = netconfig.str();
 }
 
 void mp::QemuVirtualMachineFactory::check_hypervisor_support()

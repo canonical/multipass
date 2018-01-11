@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,10 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 
+#include "dnsmasq_server.h"
+
 #include <multipass/ip_address.h>
+#include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 
 class QProcess;
@@ -35,8 +38,9 @@ class VirtualMachineDescription;
 class QemuVirtualMachine final : public VirtualMachine
 {
 public:
-    QemuVirtualMachine(const VirtualMachineDescription& desc, const IPAddress& address,
-                       const std::string& tap_device_name, VMStatusMonitor& monitor);
+    QemuVirtualMachine(const VirtualMachineDescription& desc, optional<IPAddress> address,
+                       const std::string& tap_device_name, const std::string& mac_addr, DNSMasqServer& dnsmasq_server,
+                       VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -54,8 +58,10 @@ private:
     void on_error();
     void on_shutdown();
     VirtualMachine::State state;
-    const IPAddress ip;
+    optional<IPAddress> ip;
     const std::string tap_device_name;
+    const std::string mac_addr;
+    DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
     std::string saved_error_msg;

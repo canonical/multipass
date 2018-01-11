@@ -1,0 +1,16 @@
+--- a/snap/snapcraft.yaml
++++ b/snap/snapcraft.yaml
+@@ -92,11 +92,11 @@ parts:
+     - build-essential
+     - cmake-extras
+     - golang
++    - lcov
+     source: .
+     configflags:
+-    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
++    - -DCMAKE_BUILD_TYPE=Coverage
+     - -DCMAKE_INSTALL_PREFIX=/
+-    - -DMULTIPASS_ENABLE_TESTS=off
+     install: |-
+       set -ex
+       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/

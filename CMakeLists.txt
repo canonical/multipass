@@ -54,6 +54,39 @@ else()
   add_definitions(-DMULTIPASS_PLATFORM_LINUX)
 endif()
 
+string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
+
+if(cmake_build_type_lower MATCHES "coverage")
+  find_program(GCOV gcov)
+  find_program(LCOV lcov)
+  find_program(GENHTML genhtml)
+
+  if(NOT (GCOV AND LCOV AND GENHTML))
+    message(AUTHOR_WARNING
+      "gcov, lcov and genhtml required for coverage reports. Disabling."
+    )
+  else()
+    message(STATUS
+      "Coverage enabled, use the 'covreport' target."
+    )
+    add_custom_target(covreport
+      DEPENDS multipass_tests
+      WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+      COMMAND ${LCOV} --directory . --zerocounters
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
+      COMMAND ${LCOV} --directory . --capture --output-file coverage.info
+      COMMAND ${LCOV}
+        --remove coverage.info
+        '/usr/*'
+        ${CMAKE_SOURCE_DIR}'/3rd-party/*'
+        ${CMAKE_BINARY_DIR}
+        --output-file coverage.cleaned
+      COMMAND ${CMAKE_COMMAND} -E remove coverage.info
+      COMMAND ${GENHTML} -o coverage coverage.cleaned
+    )
+  endif()
+endif()
+
 set(MULTIPASS_GENERATED_SOURCE_DIR ${CMAKE_BINARY_DIR}/gen)
 file(MAKE_DIRECTORY ${MULTIPASS_GENERATED_SOURCE_DIR})
 
@@ -64,6 +97,7 @@ include_directories(
 add_subdirectory(src)
 
 if(MULTIPASS_ENABLE_TESTS)
+  enable_testing()
   add_subdirectory(tests)
 endif()
 

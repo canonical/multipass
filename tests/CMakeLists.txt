@@ -77,6 +77,8 @@ target_link_libraries(multipass_tests
   yaml
 )
 
-add_test(multipass_tests ${EXECUTABLE_OUTPUT_PATH}/multipass_tests)
+add_test(NAME multipass_tests
+  COMMAND multipass_tests
+)
 
 file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

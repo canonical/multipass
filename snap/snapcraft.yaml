@@ -93,12 +93,10 @@ parts:
     - cmake-extras
     - golang
     source: .
-    source-type: git
     configflags:
+    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
-    stage-packages:
-    - openssh-client
     install: |-
       set -ex
       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
@@ -110,9 +108,15 @@ parts:
     stage-packages:
     - qemu-system-x86
     - qemu-utils
+    - libslang2
     organize:
       usr/lib/x86_64-linux-gnu/pulseaudio/libpulsecommon-8.0.so: usr/lib/x86_64-linux-gnu/libpulsecommon-8.0.so
       usr/share/seabios/bios-256k.bin: qemu/bios-256k.bin
       usr/share/seabios/vgabios-stdvga.bin: qemu/vgabios-stdvga.bin
       usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
       usr/lib/ipxe/qemu/efi-virtio.rom: qemu/efi-virtio.rom
+
+  dnsmasq:
+    plugin: nil
+    stage-packages:
+    - dnsmasq
