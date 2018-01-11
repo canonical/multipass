@@ -20,7 +20,7 @@
 #ifndef MULTIPASS_OPTIONAL_H
 #define MULTIPASS_OPTIONAL_H
 
-#if __has_include(<optional>) && __cplusplus > 201402L
+#if __has_include(<optional>) && ((__cplusplus > 201402L) || (_MSVC_LANG > 201402L))
 
 #include <optional>
 namespace multipass
