@@ -112,7 +112,7 @@ mp::IPAddress mp::IPAddressPool::obtain_ip_for(const std::string& name)
     return it->second;
 }
 
-std::experimental::optional<mp::IPAddress> mp::IPAddressPool::check_ip_for(const std::string& name)
+mp::optional<mp::IPAddress> mp::IPAddressPool::check_ip_for(const std::string& name)
 {
     const auto it = ip_map.find(name);
     if (it == ip_map.end())
@@ -120,7 +120,7 @@ std::experimental::optional<mp::IPAddress> mp::IPAddressPool::check_ip_for(const
         return {};
     }
 
-    return std::experimental::optional<mp::IPAddress>{it->second};
+    return mp::optional<mp::IPAddress>{it->second};
 }
 
 mp::IPAddress mp::IPAddressPool::first_free_ip()

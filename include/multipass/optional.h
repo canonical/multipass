@@ -13,36 +13,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ *
  */
 
-#ifndef MULTIPASS_DNSMASQ_SERVER_H
-#define MULTIPASS_DNSMASQ_SERVER_H
+#ifndef MULTIPASS_OPTIONAL_H
+#define MULTIPASS_OPTIONAL_H
 
-#include <multipass/ip_address.h>
-#include <multipass/optional.h>
-#include <multipass/path.h>
+#if __has_include(<optional>) && __cplusplus > 201402L
 
-#include <QDir>
-#include <QProcess>
-
-#include <memory>
-#include <string>
-
+#include <optional>
 namespace multipass
 {
-class DNSMasqServer
-{
-public:
-    DNSMasqServer(const Path& path, const IPAddress& start, const IPAddress& end);
-    virtual ~DNSMasqServer();
-
-    optional<IPAddress> get_ip_for(const std::string& hw_addr);
-
-private:
-    const IPAddress start_ip;
-    const IPAddress end_ip;
-    const QDir data_dir;
-    std::unique_ptr<QProcess> dnsmasq_cmd;
-};
+using std::optional;
 }
-#endif // MULTIPASS_DNSMASQ_SERVER_H
+
+#elif __has_include(<experimental/optional>)
+
+#include <experimental/optional>
+namespace multipass
+{
+using std::experimental::optional;
+}
+
+#else
+#error "no optional implementation found!"
+#endif
+
+#endif // MULTIPASS_OPTIONAL_H

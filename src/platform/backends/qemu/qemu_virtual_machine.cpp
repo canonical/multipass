@@ -96,8 +96,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
 }
 }
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
-                                           std::experimental::optional<mp::IPAddress> address,
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, optional<mp::IPAddress> address,
                                            const std::string& tap_device_name, const std::string& mac_addr,
                                            DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : state{State::off},
