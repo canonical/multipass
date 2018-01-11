@@ -34,7 +34,8 @@ class DNSMasqServer
 {
 public:
     DNSMasqServer(const Path& path, const IPAddress& start, const IPAddress& end);
-    virtual ~DNSMasqServer();
+    DNSMasqServer(DNSMasqServer&& other);
+    ~DNSMasqServer();
 
     optional<IPAddress> get_ip_for(const std::string& hw_addr);
 
