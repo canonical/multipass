@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,31 +34,11 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this, &parser](mp::SSHInfoReply& reply) {
-        auto host = reply.host();
-        auto port = reply.port();
+    std::vector<std::string> args;
+    for (int i = 1; i < parser->positionalArguments().size(); ++i)
+        args.push_back(parser->positionalArguments().at(i).toStdString());
 
-        // TODO: mainly for testing - need a better way to test parsing
-        if (port == 0)
-            return ReturnCode::Ok;
-
-        auto priv_key_blob = reply.priv_key_base64();
-
-        std::vector<std::string> args;
-        for (int i = 1; i < parser->positionalArguments().size(); ++i)
-            args.push_back(parser->positionalArguments().at(i).toStdString());
-
-        try
-        {
-            mp::SSHClient ssh_client{host, port, priv_key_blob};
-            return static_cast<mp::ReturnCode>(ssh_client.exec(args));
-        }
-        catch (const std::exception& e)
-        {
-            cerr << "exec failed: " << e.what() << std::endl;
-            return ReturnCode::CommandFail;
-        }
-    };
+    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return exec_success(reply, args, cerr); };
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "exec failed: " << status.error_message() << "\n";
@@ -81,6 +61,30 @@ QString cmd::Exec::short_help() const
 QString cmd::Exec::description() const
 {
     return QStringLiteral("Run a command on an instance");
+}
+
+mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std::vector<std::string>& args,
+                                       std::ostream& cerr)
+{
+    auto host = reply.host();
+    auto port = reply.port();
+
+    // TODO: mainly for testing - need a better way to test parsing
+    if (port == 0)
+        return ReturnCode::Ok;
+
+    auto priv_key_blob = reply.priv_key_base64();
+
+    try
+    {
+        mp::SSHClient ssh_client{host, port, priv_key_blob};
+        return static_cast<mp::ReturnCode>(ssh_client.exec(args));
+    }
+    catch (const std::exception& e)
+    {
+        cerr << "exec failed: " << e.what() << std::endl;
+        return ReturnCode::CommandFail;
+    }
 }
 
 mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)

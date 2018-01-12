@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -257,6 +257,19 @@ auto validate_create_arguments(const mp::CreateRequest* request)
     }
 
     return create_error;
+}
+
+auto handle_mount_error(const int error_code, const std::string& instance_name)
+{
+    mp::MountError mount_error;
+    if (error_code == 127)
+        mount_error.set_error_code(mp::MountError::SSHFS_MISSING);
+    else
+        mount_error.set_error_code(mp::MountError::OTHER);
+
+    mount_error.set_instance_name(instance_name);
+
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Mount failed", mount_error.SerializeAsString());
 }
 }
 
@@ -848,6 +861,10 @@ try // clang-format on
         return grpc::Status::OK;
     }
 }
+catch (std::pair<int, std::string>& e)
+{
+    return handle_mount_error(e.first, e.second);
+}
 catch (const std::exception& e)
 {
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
@@ -1023,6 +1040,10 @@ try // clang-format on
     }
 
     return grpc::Status::OK;
+}
+catch (std::pair<int, std::string>& e)
+{
+    return handle_mount_error(e.first, e.second);
 }
 catch (const std::exception& e)
 {
@@ -1324,6 +1345,10 @@ std::string mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::s
         });
 
         mount_threads[name][target_path] = std::move(sshfs_mount);
+    }
+    catch (int n)
+    {
+        throw std::make_pair(n, name);
     }
     catch (const std::exception& e)
     {
