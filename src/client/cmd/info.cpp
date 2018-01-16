@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 
 #include <multipass/cli/argparser.h>
 
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include <iomanip>
 #include <sstream>
 
@@ -30,25 +34,28 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
-std::ostream& operator<<(std::ostream& out, const multipass::InfoReply_Status& status)
+std::string status_string(const multipass::InfoReply_Status& status)
 {
+    std::string status_val;
+
     switch(status)
     {
     case mp::InfoReply::RUNNING:
-        out << "RUNNING";
+        status_val = "RUNNING";
         break;
     case mp::InfoReply::STOPPED:
-        out << "STOPPED";
+        status_val = "STOPPED";
         break;
     case mp::InfoReply::TRASHED:
-        out << "IN TRASH";
+        status_val = "DELETED";
         break;
     default:
-        out << "UNKOWN";
+        status_val = "UNKOWN";
         break;
     }
-    return out;
+    return status_val;
 }
+
 std::ostream& operator<<(std::ostream& out, const multipass::InfoReply::Info& info)
 {
     std::string ipv4{info.ipv4()};
@@ -59,7 +66,7 @@ std::ostream& operator<<(std::ostream& out, const multipass::InfoReply::Info& in
     out << info.name() << "\n";
 
     out << std::setw(16) << std::left << "State:";
-    out << info.status() << "\n";
+    out << status_string(info.status()) << "\n";
 
     out << std::setw(16) << std::left << "IPv4:";
     out << ipv4 << "\n";
@@ -94,6 +101,43 @@ std::ostream& operator<<(std::ostream& out, const multipass::InfoReply::Info& in
     }
     return out;
 }
+
+QString toJson(mp::InfoReply& reply)
+{
+    QJsonObject info_json;
+    QJsonObject info_obj;
+
+    info_json.insert("errors", QJsonArray());
+
+    for (const auto& info : reply.info())
+    {
+        QJsonObject instance_info;
+        instance_info.insert("state", QString::fromStdString(status_string(info.status())));
+        instance_info.insert("image_hash", QString::fromStdString(info.id().substr(0, 12)));
+
+        QJsonArray ipv4_addrs;
+        if (!info.ipv4().empty())
+            ipv4_addrs.append(QString::fromStdString(info.ipv4()));
+        instance_info.insert("ipv4", ipv4_addrs);
+
+        QJsonObject mounts;
+        for (const auto& mount : info.mount_info().mount_paths())
+        {
+            QJsonObject entry;
+            entry.insert("gid_mappings", QJsonArray());
+            entry.insert("uid_mappings", QJsonArray());
+            entry.insert("source_path", QString::fromStdString(mount.source_path()));
+
+            mounts.insert(QString::fromStdString(mount.target_path()), entry);
+        }
+        instance_info.insert("mounts", mounts);
+
+        info_obj.insert(QString::fromStdString(info.name()), instance_info);
+    }
+    info_json.insert("info", info_obj);
+
+    return QString(QJsonDocument(info_json).toJson());
+}
 }
 
 mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
@@ -105,12 +149,22 @@ mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
     }
 
     auto on_success = [this](mp::InfoReply& reply) {
-        std::stringstream out;
-        for (const auto& info : reply.info())
+        if (format_type == "json")
         {
-            out << info;
+            cout << toJson(reply).toStdString();
         }
-        cout << out.str();
+        else
+        {
+            std::stringstream out;
+            for (const auto& info : reply.info())
+            {
+                out << info << "\n";
+            }
+            auto output = out.str();
+            if (!reply.info().empty())
+                output.pop_back();
+            cout << output;
+        }
         return ReturnCode::Ok;
     };
 
@@ -138,6 +192,12 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to display information about", "<name> [<name> ...]");
 
+    QCommandLineOption formatOption("format",
+                                    "Output info in the requested format.\nValid formats are: table (default) and json",
+                                    "format", "table");
+
+    parser->addOption(formatOption);
+
     auto status = parser->commandParse(this);
 
     if (status != ParseCode::Ok)
@@ -157,6 +217,20 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
             auto entry = request.add_instance_name();
             entry->append(arg.toStdString());
         }
+    }
+
+    if (parser->isSet(formatOption))
+    {
+        QString format_value{parser->value(formatOption)};
+        QStringList valid_formats{"table", "json"};
+
+        if (!valid_formats.contains(format_value))
+        {
+            cerr << "Invalid format type given." << std::endl;
+            status = ParseCode::CommandLineError;
+        }
+        else
+            format_type = format_value;
     }
 
     return status;
