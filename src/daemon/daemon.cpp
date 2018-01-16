@@ -271,6 +271,31 @@ auto handle_mount_error(const int error_code, const std::string& instance_name)
 
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Mount failed", mount_error.SerializeAsString());
 }
+
+void wait_until_cloud_init_finished(const std::string& host, int port, const mp::SSHKeyProvider& key_provider,
+                                    std::chrono::milliseconds timeout)
+{
+    using namespace std::literals::chrono_literals;
+    auto deadline = std::chrono::steady_clock::now() + timeout;
+    bool cloud_init_finished{false};
+
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        mp::SSHSession session{host, port, key_provider};
+        auto ssh_process =
+            session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"}, mp::utils::QuoteType::no_quotes);
+        if (ssh_process.exit_code() == 0)
+        {
+            cloud_init_finished = true;
+            break;
+        }
+
+        std::this_thread::sleep_for(1s);
+    }
+
+    if (!cloud_init_finished)
+        throw std::runtime_error("Timed out waiting for cloud-init to complete");
+}
 }
 
 mp::DaemonRunner::DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daemon* daemon)
@@ -457,6 +482,11 @@ try // clang-format on
     auto& vm = vm_instances[name];
     vm->start();
     vm->wait_until_ssh_up(std::chrono::minutes(5));
+
+    reply.set_create_message("Waiting for cloud-init to complete");
+    server->Write(reply);
+    wait_until_cloud_init_finished(vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider,
+                                   std::chrono::minutes(5));
 
     reply.set_vm_instance_name(name);
     server->Write(reply);
