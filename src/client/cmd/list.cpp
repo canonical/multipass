@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 
 #include <multipass/cli/argparser.h>
 
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -31,24 +35,66 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
-std::ostream& operator<<(std::ostream& out, const multipass::ListVMInstance_Status& status)
+std::string status_string(const multipass::ListVMInstance_Status& status)
 {
+    std::string status_val;
+
     switch (status)
     {
-    case mp::ListVMInstance::RUNNING:
-        out << "RUNNING";
+    case mp::InfoReply::RUNNING:
+        status_val = "RUNNING";
         break;
-    case mp::ListVMInstance::STOPPED:
-        out << "STOPPED";
+    case mp::InfoReply::STOPPED:
+        status_val = "STOPPED";
         break;
-    case mp::ListVMInstance::TRASHED:
-        out << "DELETED";
+    case mp::InfoReply::TRASHED:
+        status_val = "DELETED";
         break;
     default:
-        out << "UNKNOWN";
+        status_val = "UNKOWN";
         break;
     }
+    return status_val;
+}
+
+std::ostream& operator<<(std::ostream& out, const multipass::ListVMInstance& instance)
+{
+    std::string ipv4{instance.ipv4()};
+    std::string ipv6{instance.ipv6()};
+    if (ipv4.empty())
+        ipv4.append("--");
+    if (ipv6.empty())
+        ipv6.append("--");
+    out << std::setw(24) << std::left << instance.name();
+    out << std::setw(9) << std::left << status_string(instance.status());
+    out << std::setw(17) << std::left << ipv4;
+    out << instance.current_release();
+
     return out;
+}
+
+QString toJson(mp::ListReply& reply)
+{
+    QJsonObject list_json;
+    QJsonArray instances;
+
+    for (const auto& instance : reply.instances())
+    {
+        QJsonObject instance_obj;
+        instance_obj.insert("name", QString::fromStdString(instance.name()));
+        instance_obj.insert("state", QString::fromStdString(status_string(instance.status())));
+
+        QJsonArray ipv4_addrs;
+        if (!instance.ipv4().empty())
+            ipv4_addrs.append(QString::fromStdString(instance.ipv4()));
+        instance_obj.insert("ipv4", ipv4_addrs);
+
+        instances.append(instance_obj);
+    }
+
+    list_json.insert("list", instances);
+
+    return QString(QJsonDocument(list_json).toJson());
 }
 }
 
@@ -61,38 +107,34 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
     }
 
     auto on_success = [this](ListReply& reply) {
-        const auto size = reply.instances_size();
-        if (size < 1)
+        if (format_type == "json")
         {
-            cout << "No instances found."
-                 << "\n";
+            cout << toJson(reply).toStdString();
         }
         else
         {
-            std::stringstream out;
-
-            out << std::setw(24) << std::left << "Name";
-            out << std::setw(9) << std::left << "State";
-            out << std::setw(17) << std::left << "IPv4";
-            out << std::left << "Release";
-            out << "\n";
-
-            for (int i = 0; i < size; i++)
+            const auto size = reply.instances_size();
+            if (size < 1)
             {
-                const auto& instance = reply.instances(i);
-                std::string ipv4{instance.ipv4()};
-                std::string ipv6{instance.ipv6()};
-                if (ipv4.empty())
-                    ipv4.append("--");
-                if (ipv6.empty())
-                    ipv6.append("--");
-                out << std::setw(24) << std::left << instance.name();
-                out << std::setw(9) << std::left << instance.status();
-                out << std::setw(17) << std::left << ipv4;
-                out << instance.current_release();
-                out << "\n";
+                cout << "No instances found."
+                     << "\n";
             }
-            cout << out.str();
+            else
+            {
+                std::stringstream out;
+
+                out << std::setw(24) << std::left << "Name";
+                out << std::setw(9) << std::left << "State";
+                out << std::setw(17) << std::left << "IPv4";
+                out << std::left << "Release";
+                out << "\n";
+
+                for (const auto& instance : reply.instances())
+                {
+                    out << instance << "\n";
+                }
+                cout << out.str();
+            }
         }
         return ReturnCode::Ok;
     };
@@ -128,6 +170,12 @@ QString cmd::List::description() const
 
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
+    QCommandLineOption formatOption("format",
+                                    "Output list in the requested format.\nValid formats are: table (default) and json",
+                                    "format", "table");
+
+    parser->addOption(formatOption);
+
     auto status = parser->commandParse(this);
 
     if (status != ParseCode::Ok)
@@ -139,6 +187,20 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
     {
         cerr << "This command takes no arguments" << std::endl;
         return ParseCode::CommandLineError;
+    }
+
+    if (parser->isSet(formatOption))
+    {
+        QString format_value{parser->value(formatOption)};
+        QStringList valid_formats{"table", "json"};
+
+        if (!valid_formats.contains(format_value))
+        {
+            cerr << "Invalid format type given." << std::endl;
+            status = ParseCode::CommandLineError;
+        }
+        else
+            format_type = format_value;
     }
 
     return status;
