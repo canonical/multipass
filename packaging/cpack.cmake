@@ -79,6 +79,11 @@ if(APPLE)
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
+
+  # CPack doesn't support a direct way to customise the Distribution.dist file, but the template
+  # CPack.distribution.dist.in is searched for in the CMAKE_MODULE_PATH before CMAKE_ROOT, so as a hack,
+  # point it to a local directory with our custom template
+  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/packaging/macos")
 endif()
 
 # must be last
