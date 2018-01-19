@@ -31,55 +31,64 @@ apps:
 
 parts:
   qtbase5-dev:
-    after: [qt5-qmake]
+    after: [qt5-qmake-bin]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.3+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/4f67aa5757b710ca616f044c6438f31f0ad963710056d292b06078c6cf43f61b
+    source-checksum: sha256/f3df1b823cc0c96305442671b595544f1e21d8fa63ede3c685ffd73447ff19cb
     prime: [-*]
 
   qtbase5-dev-tools:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.3+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/9de518fa3e91c0f0a97006dac2be5de0a78334333ad25a7417904018f3646e02
+    source-checksum: sha256/949021e04ef908a1c23354b46e06a58701bd7a0185a96e1180cab0a822dc6739
     prime: [-*]
 
   qt5-qmake:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.3+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/e1b14b3ac4d68addab438999a84460ed0db88cbf9ce7df9511c09f4ff39d9076
+    source-checksum: sha256/22719164c2374dd55f560ec4b4d03660e9df6ee5a6d58d212cf48e75fcd255d3
+    prime: [-*]
+
+  qt5-qmake-bin:
+    after: [qt5-qmake]
+    plugin: dump
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.3+dfsg-0ubuntu1_amd64.deb
+    source-type: deb
+    source-checksum: sha256/9ff4332f6376e4ae19a2c5db2c459905e067b31710e65f5377da2e64c219ff25
     prime: [-*]
 
   libqt5core5a:
-    after: [libicu57]
+    after: [libicu]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.3+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/9f3991ebd3a1a2ea4359ca9f0c631bbd843bf460ca3b5ced7a21c03932078c5c
+    source-checksum: sha256/99e0d91d74df53b66db643bc65ebeba5b8318d78da28bbab603cb5e3d8cff2fd
     stage-packages:
+    - libdouble-conversion1v5
     - libpcre16-3
 
   libqt5dbus5:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.3+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/38ef2ce1013cfbde62468b6646def8ebb9a27f3694d21ec51df8d8fe10cd912d
+    source-checksum: sha256/d97102016742d09319d892f462a312fda5f859610dbabcc22a83173979f3bd4e
 
   libqt5network5:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.6.1+dfsg-3ubuntu6~4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.3+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/7ac5bddaa4b37a81e38fca9224ea4139c3163a677a0ee9c6381f877e54ab4610
+    source-checksum: sha256/7cfc6548963ba4facbd05f4a223b0ebf0d3ee30c421cd0af056d5a69e405645d
     stage-packages:
     - libproxy1v5
 
-  libicu57:
+  libicu:
     plugin: dump
-    source: http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu57_57.1-4ubuntu0.2_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-1ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/39888b21ce69f6c70c485f21921b3714cdc78d2a3a6020fdfb049c018d8513f8
+    source-checksum: sha256/0ef7f85757b576a38a04fd768bcc00df55eb7590fbb4e996104985e1ea47b153
 
   multipass:
     after:
