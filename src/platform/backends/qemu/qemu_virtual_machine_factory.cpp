@@ -20,6 +20,8 @@
 #include "qemu_virtual_machine_factory.h"
 #include "qemu_virtual_machine.h"
 
+#include <multipass/optional.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <yaml-cpp/yaml.h>
@@ -31,7 +33,6 @@
 #include <random>
 #include <sstream>
 
-#include <QProcess>
 #include <QTcpSocket>
 
 namespace mp = multipass;
@@ -70,39 +71,66 @@ auto generate_tap_device_name(const std::string& vm_name)
     return hash_str;
 }
 
-bool run_network_cmd(QString cmd, QStringList args)
+auto generate_random_subnet()
 {
-    QProcess network_cmd;
-    network_cmd.setProgram(cmd);
-    network_cmd.setArguments(args);
+    std::stringstream subnet;
 
-    network_cmd.start();
-    network_cmd.waitForFinished();
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator(seed);
+    std::uniform_int_distribution<int> distribution(0, 255);
 
-    return network_cmd.exitStatus() == QProcess::NormalExit && network_cmd.exitCode() == 0;
+    int count = 0;
+    while (++count < 100)
+    {
+        subnet = std::stringstream();
+        subnet << "10." << distribution(generator) << "." << distribution(generator);
+
+        // Check if used locally
+        if (mp::utils::run_cmd(
+                "bash", {"-c", QString("ip -4 route show | grep -q %1").arg(QString::fromStdString(subnet.str()))}))
+            continue;
+
+        // Attempt to see if used behind the gateway
+        if (mp::utils::run_cmd(
+                "ping", {"-n", "-q", QString("%1.1").arg(QString::fromStdString(subnet.str())), "-c", "-1", "-W", "1"}))
+            continue;
+
+        if (mp::utils::run_cmd(
+                "ping",
+                {"-n", "-q", QString("%1.254").arg(QString::fromStdString(subnet.str())), "-c", "-1", "-W", "1"}))
+            continue;
+
+        // Subnet not found, so break out of the loop
+        break;
+    }
+
+    if (count == 100)
+        throw std::runtime_error("Could not determine a subnet for networking.");
+
+    return subnet.str();
 }
 
-void create_virtual_switch()
+void create_virtual_switch(const QString& subnet)
 {
-    if (!run_network_cmd("ip", {"addr", "show", "mpbr0"}))
+    if (!mp::utils::run_cmd("ip", {"addr", "show", "mpbr0"}))
     {
-        run_network_cmd(
+        mp::utils::run_cmd(
             "ip",
             {"link", "add", "mpbr0-dummy", "address", QString::fromStdString(generate_mac_address()), "type", "dummy"});
-        run_network_cmd("ip", {"link", "add", "mpbr0", "type", "bridge"});
-        run_network_cmd("ip", {"link", "set", "mpbr0-dummy", "master", "mpbr0"});
-        run_network_cmd("ip", {"address", "add", "10.122.122.1/24", "dev", "mpbr0", "broadcast", "10.122.122.255"});
-        run_network_cmd("ip", {"link", "set", "mpbr0", "up"});
+        mp::utils::run_cmd("ip", {"link", "add", "mpbr0", "type", "bridge"});
+        mp::utils::run_cmd("ip", {"link", "set", "mpbr0-dummy", "master", "mpbr0"});
+        mp::utils::run_cmd("ip", {"address", "add", subnet + ".1/24", "dev", "mpbr0", "broadcast", subnet + ".255"});
+        mp::utils::run_cmd("ip", {"link", "set", "mpbr0", "up"});
     }
 }
 
 void create_tap_device(const QString& tap_name)
 {
-    if (!run_network_cmd("ip", {"addr", "show", tap_name}))
+    if (!mp::utils::run_cmd("ip", {"addr", "show", tap_name}))
     {
-        run_network_cmd("ip", {"tuntap", "add", tap_name, "mode", "tap"});
-        run_network_cmd("ip", {"link", "set", tap_name, "master", "mpbr0"});
-        run_network_cmd("ip", {"link", "set", tap_name, "up"});
+        mp::utils::run_cmd("ip", {"tuntap", "add", tap_name, "mode", "tap"});
+        mp::utils::run_cmd("ip", {"link", "set", tap_name, "master", "mpbr0"});
+        mp::utils::run_cmd("ip", {"link", "set", tap_name, "up"});
     }
 }
 
@@ -110,95 +138,120 @@ void remove_tap_device(const std::string& name)
 {
     auto tap_device_name = QString::fromStdString(generate_tap_device_name(name));
 
-    if (run_network_cmd("ip", {"addr", "show", tap_device_name}))
+    if (mp::utils::run_cmd("ip", {"addr", "show", tap_device_name}))
     {
-        run_network_cmd("ip", {"link", "delete", tap_device_name});
+        mp::utils::run_cmd("ip", {"link", "delete", tap_device_name});
     }
 }
 
 void set_ip_forward()
 {
-    run_network_cmd("sysctl", {"-w", "net.ipv4.ip_forward=1"});
+    mp::utils::run_cmd("sysctl", {"-w", "net.ipv4.ip_forward=1"});
 }
 
-void set_nat_iptables()
+void set_nat_iptables(const QString& subnet)
 {
     // Do not masquerade to these reserved address blocks.
-    if (!run_network_cmd(
+    if (!mp::utils::run_cmd(
             "iptables",
-            {"-t", "nat", "-C", "POSTROUTING", "-s", "10.122.122.0/24", "-d", "224.0.0.0/24", "-j", "RETURN"}))
-        run_network_cmd(
+            {"-t", "nat", "-C", "POSTROUTING", "-s", subnet + ".0/24", "-d", "224.0.0.0/24", "-j", "RETURN"}))
+        mp::utils::run_cmd(
             "iptables",
-            {"-t", "nat", "-I", "POSTROUTING", "-s", "10.122.122.0/24", "-d", "224.0.0.0/24", "-j", "RETURN"});
+            {"-t", "nat", "-I", "POSTROUTING", "-s", subnet + ".0/24", "-d", "224.0.0.0/24", "-j", "RETURN"});
 
-    if (!run_network_cmd(
+    if (!mp::utils::run_cmd(
             "iptables",
-            {"-t", "nat", "-C", "POSTROUTING", "-s", "10.122.122.0/24", "-d", "255.255.255.255/32", "-j", "RETURN"}))
-        run_network_cmd(
+            {"-t", "nat", "-C", "POSTROUTING", "-s", subnet + ".0/24", "-d", "255.255.255.255/32", "-j", "RETURN"}))
+        mp::utils::run_cmd(
             "iptables",
-            {"-t", "nat", "-I", "POSTROUTING", "-s", "10.122.122.0/24", "-d", "255.255.255.255/32", "-j", "RETURN"});
+            {"-t", "nat", "-I", "POSTROUTING", "-s", subnet + ".0/24", "-d", "255.255.255.255/32", "-j", "RETURN"});
 
     // Masquerade all packets going from VMs to the LAN/Internet
-    if (!run_network_cmd("iptables",
-                         {"-t", "nat", "-C", "POSTROUTING", "-s", "10.122.122.0/24", "!", "-d", "10.122.122.0/24", "-p",
-                          "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
-        run_network_cmd("iptables",
-                        {"-t", "nat", "-I", "POSTROUTING", "-s", "10.122.122.0/24", "!", "-d", "10.122.122.0/24", "-p",
-                         "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
+    if (!mp::utils::run_cmd("iptables",
+                            {"-t", "nat", "-C", "POSTROUTING", "-s", subnet + ".0/24", "!", "-d", subnet + ".0/24",
+                             "-p", "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
+        mp::utils::run_cmd("iptables",
+                           {"-t", "nat", "-I", "POSTROUTING", "-s", subnet + ".0/24", "!", "-d", subnet + ".0/24", "-p",
+                            "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
 
-    if (!run_network_cmd("iptables",
-                         {"-t", "nat", "-C", "POSTROUTING", "-s", "10.122.122.0/24", "!", "-d", "10.122.122.0/24", "-p",
-                          "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
-        run_network_cmd("iptables",
-                        {"-t", "nat", "-I", "POSTROUTING", "-s", "10.122.122.0/24", "!", "-d", "10.122.122.0/24", "-p",
-                         "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
+    if (!mp::utils::run_cmd("iptables",
+                            {"-t", "nat", "-C", "POSTROUTING", "-s", subnet + ".0/24", "!", "-d", subnet + ".0/24",
+                             "-p", "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
+        mp::utils::run_cmd("iptables",
+                           {"-t", "nat", "-I", "POSTROUTING", "-s", subnet + ".0/24", "!", "-d", subnet + ".0/24", "-p",
+                            "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
 
-    if (!run_network_cmd("iptables",
-                         {"-t", "nat", "-C", "POSTROUTING", "-s", "10.122.122.0/24", "!", "-d", "10.122.122.0/24", "-j",
-                          "MASQUERADE"}))
-        run_network_cmd("iptables",
-                        {"-t", "nat", "-I", "POSTROUTING", "-s", "10.122.122.0/24", "!", "-d", "10.122.122.0/24", "-j",
-                         "MASQUERADE"});
+    if (!mp::utils::run_cmd("iptables",
+                            {"-t", "nat", "-C", "POSTROUTING", "-s", subnet + ".0/24", "!", "-d", subnet + ".0/24",
+                             "-j", "MASQUERADE"}))
+        mp::utils::run_cmd("iptables",
+                           {"-t", "nat", "-I", "POSTROUTING", "-s", subnet + ".0/24", "!", "-d", subnet + ".0/24", "-j",
+                            "MASQUERADE"});
 
     // Allow established traffic to the private subnet
-    if (!run_network_cmd("iptables",
-                         {"-C", "FORWARD", "-d", "10.122.122.0/24", "-o", "mpbr0", "-m", "conntrack", "--ctstate",
-                          "RELATED,ESTABLISHED", "-j", "ACCEPT"}))
-        run_network_cmd("iptables",
-                        {"-I", "FORWARD", "-d", "10.122.122.0/24", "-o", "mpbr0", "-m", "conntrack", "--ctstate",
-                         "RELATED,ESTABLISHED", "-j", "ACCEPT"});
+    if (!mp::utils::run_cmd("iptables",
+                            {"-C", "FORWARD", "-d", subnet + ".0/24", "-o", "mpbr0", "-m", "conntrack", "--ctstate",
+                             "RELATED,ESTABLISHED", "-j", "ACCEPT"}))
+        mp::utils::run_cmd("iptables",
+                           {"-I", "FORWARD", "-d", subnet + ".0/24", "-o", "mpbr0", "-m", "conntrack", "--ctstate",
+                            "RELATED,ESTABLISHED", "-j", "ACCEPT"});
 
     // Allow outbound traffic from the private subnet
-    if (!run_network_cmd("iptables", {"-C", "FORWARD", "-s", "10.122.122.0/24", "-i", "mpbr0", "-j", "ACCEPT"}))
-        run_network_cmd("iptables", {"-I", "FORWARD", "-s", "10.122.122.0/24", "-i", "mpbr0", "-j", "ACCEPT"});
+    if (!mp::utils::run_cmd("iptables", {"-C", "FORWARD", "-s", subnet + ".0/24", "-i", "mpbr0", "-j", "ACCEPT"}))
+        mp::utils::run_cmd("iptables", {"-I", "FORWARD", "-s", subnet + ".0/24", "-i", "mpbr0", "-j", "ACCEPT"});
 
     // Allow traffic between virtual machines
-    if (!run_network_cmd("iptables", {"-C", "FORWARD", "-i", "mpbr0", "-o", "mpbr0", "-j", "ACCEPT"}))
-        run_network_cmd("iptables", {"-I", "FORWARD", "-i", "mpbr0", "-o", "mpbr0", "-j", "ACCEPT"});
+    if (!mp::utils::run_cmd("iptables", {"-C", "FORWARD", "-i", "mpbr0", "-o", "mpbr0", "-j", "ACCEPT"}))
+        mp::utils::run_cmd("iptables", {"-I", "FORWARD", "-i", "mpbr0", "-o", "mpbr0", "-j", "ACCEPT"});
 
     // Reject everything else
-    if (!run_network_cmd("iptables",
-                         {"-C", "FORWARD", "-i", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
-        run_network_cmd("iptables",
-                        {"-I", "FORWARD", "-i", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"});
+    if (!mp::utils::run_cmd("iptables",
+                            {"-C", "FORWARD", "-i", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
+        mp::utils::run_cmd("iptables",
+                           {"-I", "FORWARD", "-i", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 
-    if (!run_network_cmd("iptables",
-                         {"-C", "FORWARD", "-o", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
-        run_network_cmd("iptables",
-                        {"-I", "FORWARD", "-o", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"});
+    if (!mp::utils::run_cmd("iptables",
+                            {"-C", "FORWARD", "-o", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
+        mp::utils::run_cmd("iptables",
+                           {"-I", "FORWARD", "-o", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const mp::IPAddress& first_ip)
+mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, mp::optional<mp::IPAddress> first_ip)
 {
-    create_virtual_switch();
+    std::string subnet;
+    QFile subnet_file{data_dir + "/vm-ips/multipass_subnet"};
 
-    return {data_dir, first_ip, mp::IPAddress{"10.122.122.254"}};
+    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
+
+    if (subnet_file.size() > 0)
+    {
+        subnet = subnet_file.readAll().trimmed().toStdString();
+    }
+    else
+    {
+        // Indicates legacy subnet is in use
+        if (first_ip)
+            subnet = "10.122.122";
+        else
+            subnet = generate_random_subnet();
+
+        subnet_file.write(QByteArray::fromStdString(subnet + '\n'));
+    }
+
+    subnet_file.close();
+
+    create_virtual_switch(QString::fromStdString(subnet));
+    set_ip_forward();
+    set_nat_iptables(QString::fromStdString(subnet));
+
+    return {data_dir, mp::IPAddress{subnet + ".1"}, first_ip.value_or(mp::IPAddress{subnet + ".2"}),
+            mp::IPAddress{subnet + ".254"}};
 }
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}},
-      dnsmasq_server{create_dnsmasq_server(data_dir, ip_pool.first_free_ip())}
+    : legacy_ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}},
+      dnsmasq_server{create_dnsmasq_server(data_dir, legacy_ip_pool.first_free_ip())}
 {
 }
 
@@ -208,16 +261,13 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name));
 
-    set_ip_forward();
-    set_nat_iptables();
-
-    return std::make_unique<mp::QemuVirtualMachine>(desc, ip_pool.check_ip_for(desc.vm_name), tap_device_name,
+    return std::make_unique<mp::QemuVirtualMachine>(desc, legacy_ip_pool.check_ip_for(desc.vm_name), tap_device_name,
                                                     generate_mac_address(), dnsmasq_server, monitor);
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    ip_pool.remove_ip_for(name);
+    legacy_ip_pool.remove_ip_for(name);
 
     remove_tap_device(name);
 }
@@ -246,12 +296,8 @@ void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& in
             disk_size.chop(1);
     }
 
-    QProcess resize_image;
-
-    QStringList resize_image_args({QStringLiteral("resize"), instance_image.image_path, disk_size});
-
-    resize_image.start("qemu-img", resize_image_args);
-    resize_image.waitForFinished();
+    mp::utils::run_cmd(
+        "qemu-img", {QStringLiteral("resize"), instance_image.image_path, disk_size});
 }
 
 void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)

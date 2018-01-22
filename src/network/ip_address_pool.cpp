@@ -123,12 +123,12 @@ mp::optional<mp::IPAddress> mp::IPAddressPool::check_ip_for(const std::string& n
     return mp::optional<mp::IPAddress>{it->second};
 }
 
-mp::IPAddress mp::IPAddressPool::first_free_ip()
+mp::optional<mp::IPAddress> mp::IPAddressPool::first_free_ip()
 {
     if (ips_in_use.empty())
-        return start_ip;
+        return {};
 
-    return *ips_in_use.crbegin() + 1;
+    return mp::optional<mp::IPAddress>{*ips_in_use.crbegin() + 1};
 }
 
 void mp::IPAddressPool::remove_ip_for(const std::string& name)

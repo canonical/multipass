@@ -23,6 +23,7 @@
 
 #include <QDir>
 #include <QString>
+#include <QStringList>
 
 namespace multipass
 {
@@ -39,6 +40,7 @@ bool valid_memory_value(const QString& mem_string);
 bool valid_hostname(const QString& name_string);
 bool invalid_target_path(const QString& target_path);
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
+bool run_cmd(QString cmd, QStringList args);
 }
 }
 #endif // MULTIPASS_UTILS_H
