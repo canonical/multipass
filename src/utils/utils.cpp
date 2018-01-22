@@ -21,6 +21,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QProcess>
 
 namespace mp = multipass;
 
@@ -76,4 +77,16 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
         }
     }
     return cmd.str();
+}
+
+bool mp::utils::run_cmd(QString cmd, QStringList args)
+{
+    QProcess proc;
+    proc.setProgram(cmd);
+    proc.setArguments(args);
+
+    proc.start();
+    proc.waitForFinished();
+
+    return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }

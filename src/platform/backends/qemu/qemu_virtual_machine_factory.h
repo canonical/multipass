@@ -40,7 +40,7 @@ public:
     void check_hypervisor_support() override;
 
 private:
-    IPAddressPool ip_pool;
+    IPAddressPool legacy_ip_pool;
     DNSMasqServer dnsmasq_server;
 };
 }

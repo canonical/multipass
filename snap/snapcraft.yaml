@@ -135,6 +135,12 @@ parts:
     stage-packages:
     - msr-tools
 
+  network-utils:
+    plugin: nil
+    stage-packages:
+    - iproute2
+    - iputils-ping
+
   glue:
     plugin: dump
     source: snap

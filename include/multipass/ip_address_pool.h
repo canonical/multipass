@@ -39,7 +39,7 @@ public:
     IPAddressPool(const Path& data_dir, const IPAddress& start, const IPAddress& end);
     IPAddress obtain_ip_for(const std::string& name);
     optional<IPAddress> check_ip_for(const std::string& name);
-    IPAddress first_free_ip();
+    optional<IPAddress> first_free_ip();
     void remove_ip_for(const std::string& name);
 
 private:
