@@ -21,7 +21,7 @@ _multipass_complete()
         local cmd="multipass list"
         [ -n "$state" ] && cmd="$cmd | \grep -E '$state'"
 
-        opts=$( eval $cmd | \grep -Ev '(\+--|Name)' | awk '{print $1}' )
+        opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \awk '{print $1}' )
     }
 
     local cur cmd opts
