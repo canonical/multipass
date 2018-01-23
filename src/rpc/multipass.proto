@@ -222,6 +222,17 @@ message SSHInfoReply {
     string host = 3;
 }
 
+message StartError {
+    enum ErrorCode {
+        OK = 0;
+        DOES_NOT_EXIST = 1;
+        INSTANCE_DELETED = 2;
+        OTHER = 3;
+    }
+    string instance_name = 1;
+    ErrorCode error_code = 2;
+}
+
 message StartRequest {
     repeated string instance_name = 1;
 }

@@ -991,9 +991,21 @@ try // clang-format on
         {
             it = vm_instance_trash.find(name);
             if (it == vm_instance_trash.end())
-                error_messages.append("instance \"" + name + "\" does not exist\n");
+            {
+                mp::StartError start_error;
+                start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
+                start_error.set_instance_name(name);
+                return grpc::Status(grpc::StatusCode::ABORTED, "instance \"" + name + "\" does not exist",
+                                    start_error.SerializeAsString());
+            }
             else
-                error_messages.append("instance \"" + name + "\" is deleted\n");
+            {
+                mp::StartError start_error;
+                start_error.set_error_code(mp::StartError::INSTANCE_DELETED);
+                start_error.set_instance_name(name);
+                return grpc::Status(grpc::StatusCode::ABORTED, "instance \"" + name + "\" is deleted",
+                                    start_error.SerializeAsString());
+            }
             continue;
         }
 
