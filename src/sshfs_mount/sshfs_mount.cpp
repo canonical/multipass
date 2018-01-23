@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -822,7 +822,12 @@ mp::SshfsMount::SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_
       cout{cout}
 {
     if (sshfs_pid.isEmpty())
-        throw std::runtime_error(sshfs_process.get_output_streams()[1]);
+    {
+        if (sshfs_process.exit_code() == 127)
+            throw sshfs_process.exit_code();
+        else
+            throw std::runtime_error(sshfs_process.get_output_streams()[1]);
+    }
 }
 
 mp::SshfsMount::~SshfsMount()

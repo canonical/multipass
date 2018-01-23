@@ -187,19 +187,24 @@ void set_nat_iptables()
         run_network_cmd("iptables",
                         {"-I", "FORWARD", "-o", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
+
+mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const mp::IPAddress& first_ip)
+{
+    create_virtual_switch();
+
+    return {data_dir, first_ip, mp::IPAddress{"10.122.122.254"}};
+}
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
     : ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}},
-      dnsmasq_server{data_dir, ip_pool.first_free_ip(), mp::IPAddress{"10.122.122.254"}}
+      dnsmasq_server{create_dnsmasq_server(data_dir, ip_pool.first_free_ip())}
 {
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                VMStatusMonitor& monitor)
 {
-    create_virtual_switch();
-
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name));
 
@@ -248,19 +253,12 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Nod
 
 void mp::QemuVirtualMachineFactory::check_hypervisor_support()
 {
-    QProcess cmd;
-    cmd.start("bash",
-              QStringList() << "-c"
-                            << "egrep -m1 -w '^flags[[:blank:]]*:' /proc/cpuinfo | egrep -wo '(vmx|svm)'");
-    cmd.waitForFinished();
-    auto virt_type = cmd.readAll().trimmed();
+    QProcess check_kvm;
+    check_kvm.start("check_kvm_support");
+    check_kvm.waitForFinished();
 
-    if (virt_type.isEmpty())
-        throw std::runtime_error("CPU does not support KVM extensions");
-
-    if (!QFile::exists("/dev/kvm"))
+    if (check_kvm.exitCode() == 1)
     {
-        std::string kvm_module = (virt_type == "vmx") ? "kvm_intel" : "kvm_amd";
-        throw std::runtime_error("/dev/kvm does not exist. Try 'sudo modprobe " + kvm_module + "'.");
+        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
     }
 }

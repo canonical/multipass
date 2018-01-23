@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include "mount.h"
+#include "exec.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -40,6 +41,21 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "mount failed: " << status.error_message() << "\n";
+
+        if (!status.error_details().empty())
+        {
+            mp::MountError mount_error;
+            mount_error.ParseFromString(status.error_details());
+
+            if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
+            {
+                cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing..."
+                     << std::endl;
+
+                if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
+                    cerr << "\n***Please re-run the mount command." << std::endl;
+            }
+        }
         return ReturnCode::CommandFail;
     };
 
@@ -233,4 +249,21 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     }
 
     return status;
+}
+
+mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name)
+{
+    SSHInfoRequest request;
+    request.set_instance_name(instance_name);
+
+    std::vector<std::string> args{"sudo", "bash", "-c", "apt update && apt install -y sshfs"};
+
+    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return cmd::Exec::exec_success(reply, args, cerr); };
+
+    auto on_failure = [this](grpc::Status& status) {
+        cerr << "exec failed: " << status.error_message() << "\n";
+        return ReturnCode::CommandFail;
+    };
+
+    return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,8 @@ public:
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
+
+    static ReturnCode exec_success(const SSHInfoReply& reply, const std::vector<std::string>& args, std::ostream& cerr);
 
 private:
     SSHInfoRequest request;

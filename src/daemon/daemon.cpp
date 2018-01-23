@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -258,6 +258,44 @@ auto validate_create_arguments(const mp::CreateRequest* request)
 
     return create_error;
 }
+
+auto handle_mount_error(const int error_code, const std::string& instance_name)
+{
+    mp::MountError mount_error;
+    if (error_code == 127)
+        mount_error.set_error_code(mp::MountError::SSHFS_MISSING);
+    else
+        mount_error.set_error_code(mp::MountError::OTHER);
+
+    mount_error.set_instance_name(instance_name);
+
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Mount failed", mount_error.SerializeAsString());
+}
+
+void wait_until_cloud_init_finished(const std::string& host, int port, const mp::SSHKeyProvider& key_provider,
+                                    std::chrono::milliseconds timeout)
+{
+    using namespace std::literals::chrono_literals;
+    auto deadline = std::chrono::steady_clock::now() + timeout;
+    bool cloud_init_finished{false};
+
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        mp::SSHSession session{host, port, key_provider};
+        auto ssh_process =
+            session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"}, mp::utils::QuoteType::no_quotes);
+        if (ssh_process.exit_code() == 0)
+        {
+            cloud_init_finished = true;
+            break;
+        }
+
+        std::this_thread::sleep_for(1s);
+    }
+
+    if (!cloud_init_finished)
+        throw std::runtime_error("Timed out waiting for cloud-init to complete");
+}
 }
 
 mp::DaemonRunner::DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daemon* daemon)
@@ -444,6 +482,11 @@ try // clang-format on
     auto& vm = vm_instances[name];
     vm->start();
     vm->wait_until_ssh_up(std::chrono::minutes(5));
+
+    reply.set_create_message("Waiting for cloud-init to complete");
+    server->Write(reply);
+    wait_until_cloud_init_finished(vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider,
+                                   std::chrono::minutes(5));
 
     reply.set_vm_instance_name(name);
     server->Write(reply);
@@ -848,6 +891,10 @@ try // clang-format on
         return grpc::Status::OK;
     }
 }
+catch (std::pair<int, std::string>& e)
+{
+    return handle_mount_error(e.first, e.second);
+}
 catch (const std::exception& e)
 {
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
@@ -933,6 +980,8 @@ grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest*
                                StartReply* response) // clang-format off
 try // clang-format on
 {
+    config->factory->check_hypervisor_support();
+
     std::string error_messages;
     std::vector<decltype(vm_instances)::key_type> vms;
     for (const auto& name : request->instance_name())
@@ -1023,6 +1072,10 @@ try // clang-format on
     }
 
     return grpc::Status::OK;
+}
+catch (std::pair<int, std::string>& e)
+{
+    return handle_mount_error(e.first, e.second);
 }
 catch (const std::exception& e)
 {
@@ -1324,6 +1377,10 @@ std::string mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::s
         });
 
         mount_threads[name][target_path] = std::move(sshfs_mount);
+    }
+    catch (int n)
+    {
+        throw std::make_pair(n, name);
     }
     catch (const std::exception& e)
     {
