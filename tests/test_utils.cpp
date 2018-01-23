@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -100,4 +100,72 @@ TEST(Utils, hostname_contains_underscore_is_invalid)
 TEST(Utils, hostname_contains_special_character_is_invalid)
 {
     EXPECT_FALSE(mp::utils::valid_hostname(QString("foo!")));
+}
+
+TEST(Utils, path_root_invalid)
+{
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//")));
+}
+
+TEST(Utils, path_root_foo_valid)
+{
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/foo")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/foo/")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("//foo")));
+}
+
+TEST(Utils, path_dev_invalid)
+{
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//dev/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//dev//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev/foo")));
+}
+
+TEST(Utils, path_devpath_valid)
+{
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath/")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath/foo")));
+}
+
+TEST(Utils, path_proc_invalid)
+{
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//proc/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//proc//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc/foo")));
+}
+
+TEST(Utils, path_sys_invalid)
+{
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//sys/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//sys//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/foo")));
+}
+
+TEST(Utils, path_home_ubuntu_invalid)
+{
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home/ubuntu/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home//ubuntu/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home//ubuntu//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/..")));
+}
+
+TEST(Utils, path_home_ubuntu_foo_valid)
+{
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/ubuntu/foo")));
 }

@@ -842,6 +842,13 @@ try // clang-format on
 
         auto target_path = path_entry.target_path();
 
+        if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
+        {
+            error_string.append("Unable to mount to \"" + target_path + "\".\n");
+            failures = true;
+            continue;
+        }
+
         auto entry = mount_threads.find(name);
 
         if (entry != mount_threads.end() && entry->second.find(target_path) != entry->second.end())

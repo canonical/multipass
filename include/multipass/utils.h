@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ enum class QuoteType
 QDir base_dir(const QString& path);
 bool valid_memory_value(const QString& mem_string);
 bool valid_hostname(const QString& name_string);
+bool invalid_target_path(const QString& target_path);
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
 }
 }
