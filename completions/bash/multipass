@@ -19,9 +19,9 @@ _multipass_complete()
         local state=$1
 
         local cmd="multipass list"
-        [ -n "$state" ] && cmd="$cmd | grep -E '$state'"
+        [ -n "$state" ] && cmd="$cmd | \grep -E '$state'"
 
-        opts=$( eval $cmd | grep -Ev '(\+--|Name)' | awk '{print $1}' )
+        opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \awk '{print $1}' )
     }
 
     local cur cmd opts
@@ -61,8 +61,30 @@ _multipass_complete()
             "start")
                 _multipass_instances "STOPPED"
             ;;
-            "info"|"mount"|"umount")
+            "info"|"umount")
                 _multipass_instances
+            ;;
+            "mount")
+                local source_set=0
+                local prev
+                _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
+                # Scan through the current command line to detect if the source
+                # positional arg has been set.
+                for ((i=2; i<CWORD; i++)); do
+                    if [[ "${WORDS[i]}" != -* ]] && \
+                       ([[ "${WORDS[i-1]}" != -* ]] || [[ "${WORDS[i-1]}" == *=* ]]); then
+                            source_set=1
+                            break
+                    fi
+                done
+
+                if [ ${source_set} == 0 ] ; then
+                    if [[ ${prev} != -* ]] || ([[ ${prev} == -* ]] && [[ ${prev} == *=* ]]); then
+                        COMPREPLY=( $(compgen -o plusdirs -- ${cur}) )
+                    fi
+                elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
+                    _multipass_instances
+                fi
             ;;
             "help")
                 opts=$multipass_cmds
