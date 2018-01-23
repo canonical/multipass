@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 
 #include <sstream>
 
+#include <QDir>
 #include <QFileInfo>
 
 namespace mp = multipass;
@@ -49,6 +50,14 @@ bool mp::utils::valid_hostname(const QString& name_string)
     QRegExp matcher("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
 
     return matcher.exactMatch(name_string);
+}
+
+bool mp::utils::invalid_target_path(const QString& target_path)
+{
+    QString sanitized_path{QDir::cleanPath(target_path)};
+    QRegExp matcher("/|/(dev|proc|sys)(/.*)*|/home/ubuntu/*");
+
+    return matcher.exactMatch(sanitized_path);
 }
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
