@@ -165,7 +165,7 @@ auto handle_from_msg(sftp_client_message& msg)
 
 auto sshfs_cmd_from(const QString& source, const QString& target)
 {
-    return QString("sshfs -o slave -o nonempty -o transform_symlinks -o reconnect :%1 \"%2\"")
+    return QString("sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other -o reconnect :%1 \"%2\"")
         .arg(format_path(source))
         .arg(target);
 }
@@ -237,7 +237,7 @@ auto sshfs_pid_from(mp::SSHSession* session, const QString& source, const QStrin
 
 void stop_sshfs_process(mp::SSHSession* session, const QString& sshfs_pid)
 {
-    QString kill_cmd(QString("kill %1").arg(sshfs_pid));
+    QString kill_cmd(QString("sudo kill %1").arg(sshfs_pid));
     session->exec({kill_cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
 }
 
