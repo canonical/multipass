@@ -241,6 +241,9 @@ void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& in
     if (!desc.disk_space.empty())
     {
         disk_size = QString::fromStdString(desc.disk_space);
+
+        if (disk_size.endsWith("B"))
+            disk_size.chop(1);
     }
 
     QProcess resize_image;
