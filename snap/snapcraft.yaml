@@ -13,7 +13,7 @@ confinement: classic
 
 apps:
   multipassd:
-    command: bin/multipassd
+    command: bin/launch-multipassd
     environment:
       LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu::$SNAP/lib:$SNAP/usr/lib:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
@@ -134,3 +134,7 @@ parts:
     plugin: nil
     stage-packages:
     - msr-tools
+
+  glue:
+    plugin: dump
+    source: snap

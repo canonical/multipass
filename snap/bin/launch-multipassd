@@ -1,0 +1,6 @@
+#!/bin/sh -e
+
+export http_proxy="$(snapctl get proxy.http)"
+export https_proxy="$(snapctl get proxy.https)"
+
+exec $SNAP/bin/multipassd
