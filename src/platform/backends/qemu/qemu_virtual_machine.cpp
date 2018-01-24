@@ -20,6 +20,7 @@
 #include "qemu_virtual_machine.h"
 #include "dnsmasq_server.h"
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/start_exception.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -103,6 +104,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       ip{address},
       tap_device_name{tap_device_name},
       mac_addr{mac_addr},
+      vm_name{desc.vm_name},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
@@ -212,6 +214,10 @@ std::string mp::QemuVirtualMachine::ipv4()
         while (std::chrono::steady_clock::now() < deadline)
         {
             QCoreApplication::processEvents();
+
+            if (vm_process->state() == QProcess::NotRunning)
+                throw mp::StartException(vm_name, saved_error_msg);
+
             auto result = dnsmasq_server->get_ip_for(mac_addr);
 
             if (result)
@@ -239,7 +245,7 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     auto precondition_check = [this]() {
         QCoreApplication::processEvents();
         if (vm_process->state() == QProcess::NotRunning)
-            throw std::runtime_error(saved_error_msg);
+            throw mp::StartException(vm_name, saved_error_msg);
     };
 
     SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, precondition_check);

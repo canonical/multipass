@@ -61,6 +61,7 @@ private:
     optional<IPAddress> ip;
     const std::string tap_device_name;
     const std::string mac_addr;
+    const std::string vm_name;
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;

@@ -25,6 +25,7 @@
 #include <multipass/name_generator.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/start_exception.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -492,6 +493,18 @@ try // clang-format on
     server->Write(reply);
 
     return grpc::Status::OK;
+}
+catch (const mp::StartException& e)
+{
+    auto name = e.name();
+
+    config->factory->remove_resources_for(name);
+    config->vault->remove(name);
+    vm_instance_specs.erase(name);
+    vm_instances.erase(name);
+    persist_instances();
+
+    return grpc::Status(grpc::StatusCode::ABORTED, e.what(), "");
 }
 catch (const std::exception& e)
 {
