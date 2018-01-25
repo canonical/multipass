@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,9 @@
 
 #include <QCoreApplication>
 
+#include <grp.h>
 #include <signal.h>
+#include <sys/stat.h>
 #include <vector>
 
 namespace
@@ -45,6 +47,25 @@ sigset_t make_and_block_signals(std::vector<int> sigs)
     }
     sigprocmask(SIG_BLOCK, &sigset, nullptr);
     return sigset;
+}
+
+void set_server_permissions(const std::string& server_address)
+{
+    QString address = QString::fromStdString(server_address);
+
+    if (!address.startsWith("unix:"))
+        return;
+
+    auto group = getgrnam("adm");
+    if (!group)
+        throw std::runtime_error("Could not determine group id for 'adm'.");
+
+    auto socket_path = address.section("unix:", 1, 1).toStdString();
+    if (chown(socket_path.c_str(), 0, group->gr_gid) == -1)
+        throw std::runtime_error("Could not set ownership of the multipass socket.");
+
+    if (chmod(socket_path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) == -1)
+        throw std::runtime_error("Could not set permissions for the multipass socket.");
 }
 
 class UnixSignalHandler
@@ -80,7 +101,11 @@ try
 {
     QCoreApplication app(argc, argv);
     UnixSignalHandler handler(app);
-    multipass::Daemon daemon(multipass::DaemonConfigBuilder{}.build());
+    auto config = multipass::DaemonConfigBuilder{}.build();
+    auto server_address = config->server_address;
+    multipass::Daemon daemon(std::move(config));
+
+    set_server_permissions(server_address);
 
     app.exec();
 
