@@ -84,6 +84,9 @@ if(APPLE)
   # CPack.distribution.dist.in is searched for in the CMAKE_MODULE_PATH before CMAKE_ROOT, so as a hack,
   # point it to a local directory with our custom template
   set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/packaging/macos")
+  
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/uninstall.sh" 
+          DESTINATION . COMPONENT multipassd)
 endif()
 
 # must be last
