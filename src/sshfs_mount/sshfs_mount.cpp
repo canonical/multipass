@@ -632,6 +632,15 @@ private:
 
     void handle_rename(sftp_client_message msg)
     {
+        if (QFile::exists(ssh_string_get_char(msg->data)))
+        {
+            if (!QFile::remove(ssh_string_get_char(msg->data)))
+            {
+                reply_status(msg);
+                return;
+            }
+        }
+
         if (!QFile::rename(sanitize_path_name(QString(msg->filename)), ssh_string_get_char(msg->data)))
         {
             reply_status(msg);
