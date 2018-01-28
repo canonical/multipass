@@ -71,17 +71,15 @@ QString cmd::Mount::short_help() const
 
 QString cmd::Mount::description() const
 {
-    return QStringLiteral("Mount a local directory inside the instance. If the instance is\n"
-                          "not currently running, the directory will be mounted\n"
-                          "automatically on instance boot.");
+    return QStringLiteral("Mount a local directory from host running multipassd to a directory \n"
+                          "inside the instance. If the instance is not currently running,\n"
+                          "the directory will be mounted automatically on instance boot.");
 }
 
 mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("source", "Path of the directory to mount, in [<name>:]<path> format, "
-                                            "where <name> can be either an instance name, or the string "
-                                            "\"remote\", meaning that the directory being mounted resides "
-                                            "on the host running multipassd", "<source>");
+    parser->addPositionalArgument("source", "Path of the host directory to mount, in <path> format. "
+                                            "This directory resides on the host running multipassd", "<source>");
     parser->addPositionalArgument("target", "Target mount points, in <name>[:<path>] format, where <name> "
                                             "is an instance name, and optional <path> is the mount point. "
                                             "If omitted, the mount point will be the same as the source's "
@@ -116,22 +114,10 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         QString source_path;
         auto colon_count = source.count(':');
 
-        if (colon_count > 1)
+        if (colon_count > 0)
         {
             cerr << "Invalid source path given" << std::endl;
             return ParseCode::CommandLineError;
-        }
-        else if (colon_count == 1)
-        {
-            // TODO: If [<name>:] is specified, make sure it's "remote".
-            // Change this when we support instance to instance mounts.
-            if (!source.startsWith("remote"))
-            {
-                cerr << "Source path needs to start with \"remote:\"" << std::endl;
-                return ParseCode::CommandLineError;
-            }
-
-            source_path = source.section(':', 1);
         }
         else
         {
