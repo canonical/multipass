@@ -21,6 +21,11 @@
             <string>stream</string>
         </dict>
     </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Library/Logs/Multipass/multipassd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Library/Logs/Multipass/multipassd.log</string>
 </dict>
 
 </plist>

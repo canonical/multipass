@@ -245,8 +245,6 @@ void multipass::VMProcess::pty_available(const QString& dir)
 
 void multipass::VMProcess::console_output(const QByteArray& line)
 {
-    qDebug() << line;
-
     if (!network_configured)
     {
         // Need to use Regex to parse VM output to find the IP address - happens to be the first
