@@ -158,6 +158,12 @@ QString longname_from(const QFileInfo& file_info)
     return buff;
 }
 
+// Convert passed in octal to same hex digits for Qt Permissions flags
+auto convert_permissions(int perms)
+{
+    return (QFileDevice::Permissions)(QString::number(perms & 07777, 8).toUInt(nullptr, 16));
+}
+
 auto handle_from_msg(sftp_client_message& msg)
 {
     return reinterpret_cast<SftpHandleInfo*>(sftp_handle(msg->sftp, msg->handle));
@@ -420,6 +426,12 @@ private:
             return;
         }
 
+        if (!QFile::setPermissions(msg->filename, convert_permissions(msg->attr->permissions)))
+        {
+            reply_status(msg);
+            return;
+        }
+
         QFileInfo current_dir(sanitize_path_name(QString(msg->filename)));
         QFileInfo parent_dir(current_dir.path());
         auto ret = chown(msg->filename, parent_dir.ownerId(), parent_dir.groupId());
@@ -485,6 +497,12 @@ private:
 
         if (!exists)
         {
+            if (!file->setPermissions(convert_permissions(msg->attr->permissions)))
+            {
+                reply_status(msg);
+                return;
+            }
+
             QFileInfo current_file(sanitize_path_name(QString(msg->filename)));
             QFileInfo current_dir(current_file.path());
             auto ret = chown(msg->filename, current_dir.ownerId(), current_dir.groupId());
@@ -675,11 +693,7 @@ private:
 
         if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
         {
-            // Convert passed in octal to same hex digits for Qt Permissions flags
-            auto perms =
-                (QFileDevice::Permissions)(QString::number(msg->attr->permissions & 07777, 8).toUInt(nullptr, 16));
-
-            if (!QFile::setPermissions(filename, perms))
+            if (!QFile::setPermissions(filename, convert_permissions(msg->attr->permissions)))
             {
                 reply_status(msg);
                 return;
