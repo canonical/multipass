@@ -123,7 +123,6 @@ void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::c
     using namespace std::literals::chrono_literals;
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
-    bool ssh_up{false};
     while (std::chrono::steady_clock::now() < deadline)
     {
         precondition_check();
@@ -131,8 +130,7 @@ void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::c
         try
         {
             mp::SSHSession session{host, port};
-            ssh_up = true;
-            break;
+            return;
         }
         catch (const std::exception&)
         {
@@ -140,8 +138,7 @@ void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::c
         }
     }
 
-    if (!ssh_up)
-        throw std::runtime_error("timed out waiting for ssh service to start");
+    throw std::runtime_error("timed out waiting for ssh service to start");
 }
 
 ssh_session mp::SSHSession::get_ssh_session_ptr()
