@@ -54,8 +54,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
                 if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
                 {
                     cerr << "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                            "instance."
-                         << std::endl;
+                            "instance.\n";
                 }
             }
             else
@@ -65,11 +64,11 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
                 if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
                 {
-                    cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing..."
-                         << std::endl;
+                    cerr << "The sshfs package is missing in \"" << mount_error.instance_name()
+                         << "\". Installing...\n";
 
                     if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
-                        cerr << "\n***Please restart the instance to enable mount(s)." << std::endl;
+                        cerr << "\n***Please restart the instance to enable mount(s).\n";
                 }
             }
         }

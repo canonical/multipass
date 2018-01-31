@@ -185,7 +185,7 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() > 0)
     {
-        cerr << "This command takes no arguments" << std::endl;
+        cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
 
@@ -196,7 +196,7 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 
         if (!valid_formats.contains(format_value))
         {
-            cerr << "Invalid format type given." << std::endl;
+            cerr << "Invalid format type given.\n";
             status = ParseCode::CommandLineError;
         }
         else

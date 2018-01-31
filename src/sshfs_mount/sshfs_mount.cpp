@@ -475,7 +475,7 @@ private:
             if (msg->flags == SSH_FXF_WRITE)
             {
                 mode |= QIODevice::Append;
-                cout << "Adding sshfs O_APPEND workaround." << std::endl;
+                cout << "Adding sshfs O_APPEND workaround.\n";
             }
         }
 
@@ -851,7 +851,7 @@ void mp::SshfsMount::stop()
     }
     catch (const std::exception& e)
     {
-        cout << e.what() << std::endl;
+        cout << e.what() << "\n";
     }
 
     if (mount_thread.joinable())

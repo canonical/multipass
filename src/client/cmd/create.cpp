@@ -51,7 +51,7 @@ mp::ReturnCode cmd::Create::run(mp::ArgParser* parser)
 
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        cerr << "failed to launch: " << status.error_message() << std::endl;
+        cerr << "failed to launch: " << status.error_message() << "\n";
 
         CreateError create_error;
         create_error.ParseFromString(status.error_details());
@@ -141,7 +141,7 @@ mp::ParseCode cmd::Create::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() > 1)
     {
-        cerr << "Too many arguments supplied" << std::endl;
+        cerr << "Too many arguments supplied\n";
         return ParseCode::CommandLineError;
     }
 
@@ -152,7 +152,7 @@ mp::ParseCode cmd::Create::parse_args(mp::ArgParser* parser)
 
         if (colon_count > 1)
         {
-            cerr << "Invalid remote and source image name supplied" << std::endl;
+            cerr << "Invalid remote and source image name supplied\n";
             return ParseCode::CommandLineError;
         }
         else if (colon_count == 1)

@@ -33,11 +33,11 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    cout << "multipass  " << multipass::version_string << std::endl;
+    cout << "multipass  " << multipass::version_string << "\n";
 
     auto on_success = [this](mp::VersionReply& reply) {
         cout << "multipassd " << reply.version();
-        cout << std::endl;
+        cout << "\n";
         return ReturnCode::Ok;
     };
 

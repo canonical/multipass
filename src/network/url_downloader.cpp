@@ -78,7 +78,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
         auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
         if (file.write(reply->readAll()) < 0)
         {
-            cerr << "Error writing image: " << file.errorString().toStdString() << std::endl;
+            cerr << "Error writing image: " << file.errorString().toStdString() << "\n";
             reply->abort();
         }
         if (!monitor(download_type, progress))

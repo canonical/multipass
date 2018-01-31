@@ -82,7 +82,7 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
     }
     catch (const std::exception& e)
     {
-        cerr << "exec failed: " << e.what() << std::endl;
+        cerr << "exec failed: " << e.what() << "\n";
         return ReturnCode::CommandFail;
     }
 }
@@ -101,7 +101,7 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() < 2)
     {
-        cerr << "Wrong number of arguments" << std::endl;
+        cerr << "Wrong number of arguments\n";
         status = ParseCode::CommandLineError;
     }
     else

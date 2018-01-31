@@ -49,11 +49,10 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
             if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
             {
-                cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing..."
-                     << std::endl;
+                cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing...\n";
 
                 if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
-                    cerr << "\n***Please re-run the mount command." << std::endl;
+                    cerr << "\n***Please re-run the mount command.\n";
             }
         }
         return ReturnCode::CommandFail;
@@ -106,7 +105,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() < 2)
     {
-        cerr << "Not enough arguments given" << std::endl;
+        cerr << "Not enough arguments given\n";
         status = ParseCode::CommandLineError;
     }
     else
@@ -118,7 +117,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
         if (colon_count > 1)
         {
-            cerr << "Invalid source path given" << std::endl;
+            cerr << "Invalid source path given\n";
             return ParseCode::CommandLineError;
         }
         else if (colon_count == 1)
@@ -127,7 +126,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
             // Change this when we support instance to instance mounts.
             if (!source.startsWith("remote"))
             {
-                cerr << "Source path needs to start with \"remote:\"" << std::endl;
+                cerr << "Source path needs to start with \"remote:\"\n";
                 return ParseCode::CommandLineError;
             }
 
@@ -142,19 +141,19 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         QFileInfo source_dir(source_path);
         if (!source_dir.exists())
         {
-            cerr << "Source path \"" << source_path.toStdString() << "\" does not exist" << std::endl;
+            cerr << "Source path \"" << source_path.toStdString() << "\" does not exist\n";
             return ParseCode::CommandLineError;
         }
 
         if (!source_dir.isDir())
         {
-            cerr << "Source path \"" << source_path.toStdString() << "\" is not a directory" << std::endl;
+            cerr << "Source path \"" << source_path.toStdString() << "\" is not a directory\n";
             return ParseCode::CommandLineError;
         }
 
         if (!source_dir.isReadable())
         {
-            cerr << "Source path \"" << source_path.toStdString() << "\" is not readable" << std::endl;
+            cerr << "Source path \"" << source_path.toStdString() << "\" is not readable\n";
             return ParseCode::CommandLineError;
         }
 
@@ -189,7 +188,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         {
             if (!map_matcher.exactMatch(map))
             {
-                cerr << "Invalid UID map given: " << map.toStdString() << std::endl;
+                cerr << "Invalid UID map given: " << map.toStdString() << "\n";
                 return ParseCode::CommandLineError;
             }
 
@@ -209,7 +208,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         {
             if (!map_matcher.exactMatch(map))
             {
-                cerr << "Invalid GID map given: " << map.toStdString() << std::endl;
+                cerr << "Invalid GID map given: " << map.toStdString() << "\n";
                 return ParseCode::CommandLineError;
             }
 

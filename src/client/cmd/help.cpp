@@ -74,7 +74,7 @@ mp::ParseCode cmd::Help::parse_args(mp::ArgParser* parser)
     }
     else if (parser->positionalArguments().count() > 1)
     {
-        cerr << "Too many arguments given" << std::endl;
+        cerr << "Too many arguments given\n";
         status = ParseCode::CommandLineError;
     }
     else

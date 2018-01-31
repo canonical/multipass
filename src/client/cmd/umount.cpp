@@ -76,7 +76,7 @@ mp::ParseCode cmd::Umount::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() < 1)
     {
-        cerr << "Not enough arguments given" << std::endl;
+        cerr << "Not enough arguments given\n";
         status = ParseCode::CommandLineError;
     }
     else
