@@ -24,14 +24,22 @@
 
 namespace mp = multipass;
 
-mp::SSHProcess::SSHProcess(ssh_session ssh_session) : channel{ssh_channel_new(ssh_session), ssh_channel_free}
+namespace
 {
-    SSH::throw_on_error(ssh_channel_open_session, channel);
+auto make_channel(ssh_session ssh_session, const std::string& cmd)
+{
+    if (!ssh_is_connected(ssh_session))
+        throw std::runtime_error("SSH session is not connected");
+
+    mp::SSHProcess::ChannelUPtr channel{ssh_channel_new(ssh_session), ssh_channel_free};
+    mp::SSH::throw_on_error(ssh_channel_open_session, channel);
+    mp::SSH::throw_on_error(ssh_channel_request_exec, channel, cmd.c_str());
+    return channel;
+}
 }
 
-void mp::SSHProcess::exec(const std::string& cmd)
+mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd) : channel{make_channel(session, cmd)}
 {
-    SSH::throw_on_error(ssh_channel_request_exec, channel, cmd.c_str());
 }
 
 int mp::SSHProcess::exit_code()

@@ -114,12 +114,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host,
 
 mp::SSHProcess mp::SSHSession::exec(const std::vector<std::string>& args)
 {
-    if (!ssh_is_connected(session.get()))
-        throw std::runtime_error("SSH session is not connected");
-
-    SSHProcess ssh_process{session.get()};
-    ssh_process.exec(utils::to_cmd(args, utils::QuoteType::no_quotes));
-    return ssh_process;
+    return {session.get(), utils::to_cmd(args, utils::QuoteType::no_quotes)};
 }
 
 void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
