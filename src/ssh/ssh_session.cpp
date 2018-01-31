@@ -18,9 +18,10 @@
  */
 
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/ssh/throw_on_error.h>
 
+#include <multipass/ssh/throw_on_error.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/utils.h>
 
 #include <libssh/callbacks.h>
 
@@ -31,6 +32,7 @@
 #include <thread>
 
 namespace mp = multipass;
+namespace utils = multipass::utils;
 
 namespace
 {
@@ -110,13 +112,13 @@ mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host,
 {
 }
 
-mp::SSHProcess mp::SSHSession::exec(const std::vector<std::string>& args, const mp::utils::QuoteType quote_type)
+mp::SSHProcess mp::SSHSession::exec(const std::vector<std::string>& args)
 {
     if (!ssh_is_connected(session.get()))
         throw std::runtime_error("SSH session is not connected");
 
     SSHProcess ssh_process{session.get()};
-    ssh_process.exec(to_cmd(args, quote_type));
+    ssh_process.exec(utils::to_cmd(args, utils::QuoteType::no_quotes));
     return ssh_process;
 }
 
