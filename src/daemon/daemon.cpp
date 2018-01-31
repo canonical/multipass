@@ -284,7 +284,7 @@ void wait_until_cloud_init_finished(const std::string& host, int port, const mp:
     {
         mp::SSHSession session{host, port, key_provider};
         auto ssh_process =
-            session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"}, mp::utils::QuoteType::no_quotes);
+            session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
         if (ssh_process.exit_code() == 0)
         {
             cloud_init_finished = true;
@@ -675,23 +675,21 @@ try // clang-format on
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider};
 
-            auto ssh_process = session.exec({"cat /proc/loadavg | cut -d ' ' -f1-3"}, mp::utils::QuoteType::no_quotes);
+            auto ssh_process = session.exec({"cat /proc/loadavg | cut -d ' ' -f1-3"});
             auto output = ssh_process.read_std_output();
             // Remove trailing newline
             output.pop_back();
             info->set_load(output);
 
-            ssh_process = session.exec({"free -h | grep Mem | awk '{printf \"%s out of %s\", $3, $2}'"},
-                                       mp::utils::QuoteType::no_quotes);
+            ssh_process = session.exec({"free -h | grep Mem | awk '{printf \"%s out of %s\", $3, $2}'"});
             output = ssh_process.read_std_output();
             info->set_memory_usage(output);
 
-            ssh_process = session.exec({"df -h | grep -w /dev/sda1 | awk '{printf \"%s out of %s\", $3, $2}'"},
-                                       mp::utils::QuoteType::no_quotes);
+            ssh_process = session.exec({"df -h | grep -w /dev/sda1 | awk '{printf \"%s out of %s\", $3, $2}'"});
             output = ssh_process.read_std_output();
             info->set_disk_usage(output);
 
-            ssh_process = session.exec({"lsb_release -ds"}, mp::utils::QuoteType::no_quotes);
+            ssh_process = session.exec({"lsb_release -ds"});
             output = ssh_process.read_std_output();
             // Remove trailing newline
             output.pop_back();
