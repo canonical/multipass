@@ -39,7 +39,7 @@ auto create_ssh_session(const std::string& host, int port, const std::string& pr
 
 mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& priv_key_blob)
     : ssh_session{create_ssh_session(host, port, priv_key_blob)},
-      channel{ssh_channel_new(ssh_session->get_ssh_session_ptr()), ssh_channel_free},
+      channel{ssh_channel_new(*ssh_session), ssh_channel_free},
       console{Console::make_console()}
 {
     SSH::throw_on_error(ssh_channel_open_session, channel);
@@ -79,19 +79,19 @@ void mp::SSHClient::handle_ssh_events()
     std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};
 
     // stdin
-    ConnectorUPtr connector_in{ssh_connector_new(ssh_session->get_ssh_session_ptr()), ssh_connector_free};
+    ConnectorUPtr connector_in{ssh_connector_new(*ssh_session), ssh_connector_free};
     ssh_connector_set_out_channel(connector_in.get(), channel.get(), SSH_CONNECTOR_STDOUT);
     ssh_connector_set_in_fd(connector_in.get(), fileno(stdin));
     ssh_event_add_connector(event.get(), connector_in.get());
 
     // stdout
-    ConnectorUPtr connector_out{ssh_connector_new(ssh_session->get_ssh_session_ptr()), ssh_connector_free};
+    ConnectorUPtr connector_out{ssh_connector_new(*ssh_session), ssh_connector_free};
     ssh_connector_set_out_fd(connector_out.get(), fileno(stdout));
     ssh_connector_set_in_channel(connector_out.get(), channel.get(), SSH_CONNECTOR_STDOUT);
     ssh_event_add_connector(event.get(), connector_out.get());
 
     // stderr
-    ConnectorUPtr connector_err{ssh_connector_new(ssh_session->get_ssh_session_ptr()), ssh_connector_free};
+    ConnectorUPtr connector_err{ssh_connector_new(*ssh_session), ssh_connector_free};
     ssh_connector_set_out_fd(connector_err.get(), fileno(stderr));
     ssh_connector_set_in_channel(connector_err.get(), channel.get(), SSH_CONNECTOR_STDERR);
     ssh_event_add_connector(event.get(), connector_err.get());
