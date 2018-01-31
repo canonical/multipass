@@ -207,7 +207,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() == 0)
     {
-        cerr << "Name argument is required" << std::endl;
+        cerr << "Name argument is required\n";
         status = ParseCode::CommandLineError;
     }
     else
@@ -226,7 +226,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 
         if (!valid_formats.contains(format_value))
         {
-            cerr << "Invalid format type given." << std::endl;
+            cerr << "Invalid format type given.\n";
             status = ParseCode::CommandLineError;
         }
         else

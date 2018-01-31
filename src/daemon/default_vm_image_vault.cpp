@@ -380,7 +380,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     for (const auto& key : keys_to_update)
     {
         const auto& record = prepared_image_records[key];
-        cout << "Updating " << record.query.release << " source image to latest:" << std::endl;
+        cout << "Updating " << record.query.release << " source image to latest:\n";
         fetch_image(fetch_type, record.query, prepare, monitor);
     }
 }

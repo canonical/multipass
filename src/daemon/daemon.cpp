@@ -355,7 +355,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << "Removing instance " << name << ": " << e.what() << std::endl;
+            config->cerr << "Removing instance " << name << ": " << e.what() << "\n";
             invalid_specs.push_back(name);
             config->vault->remove(name);
         }
@@ -389,7 +389,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     config->cout << std::to_string(percentage) << "%";
                     done_once = true;
                     if (percentage == 100)
-                        config->cout << std::endl;
+                        config->cout << "\n";
                     else
                         config->cout << "..." << std::flush;
                 }
@@ -406,7 +406,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << "Error updating images: " << e.what() << std::endl;
+            config->cerr << "Error updating images: " << e.what() << "\n";
         }
     });
     const std::chrono::milliseconds ms = std::chrono::hours(6);

@@ -69,7 +69,7 @@ mp::ParseCode cmd::EmptyTrash::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() > 0)
     {
-        cerr << "This command takes no arguments" << std::endl;
+        cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
 

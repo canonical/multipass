@@ -52,7 +52,7 @@ mp::ReturnCode cmd::Connect::run(mp::ArgParser* parser)
         }
         catch (const std::exception& e)
         {
-            cerr << "connect failed: " << e.what() << std::endl;
+            cerr << "connect failed: " << e.what() << "\n";
             return ReturnCode::CommandFail;
         }
         return ReturnCode::Ok;
@@ -91,12 +91,12 @@ mp::ParseCode cmd::Connect::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() == 0)
     {
-        cerr << "Name argument is required" << std::endl;
+        cerr << "Name argument is required\n";
         status = ParseCode::CommandLineError;
     }
     else if (parser->positionalArguments().count() > 1)
     {
-        cerr << "Too many arguments given" << std::endl;
+        cerr << "Too many arguments given\n";
         status = ParseCode::CommandLineError;
     }
     else
