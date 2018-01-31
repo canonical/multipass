@@ -80,8 +80,6 @@ public slots:
     grpc::Status empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
                              EmptyTrashReply* response) override;
 
-    grpc::Status exec(grpc::ServerContext* context, const ExecRequest* request, ExecReply* response) override;
-
     grpc::Status find(grpc::ServerContext* context, const FindRequest* request, FindReply* response) override;
 
     grpc::Status info(grpc::ServerContext* context, const InfoRequest* request, InfoReply* response) override;

@@ -85,11 +85,6 @@ grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateReq
     return emit on_create(context, request, reply); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::exec(grpc::ServerContext* context, const ExecRequest* request, ExecReply* response)
-{
-    return emit on_exec(context, request, response); // must block until slot returns
-}
-
 grpc::Status mp::DaemonRpc::empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
                                         EmptyTrashReply* response)
 {

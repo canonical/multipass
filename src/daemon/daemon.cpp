@@ -304,7 +304,6 @@ mp::DaemonRunner::DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daem
           QObject::connect(&daemon_rpc, &DaemonRpc::on_create, daemon, &Daemon::create, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_empty_trash, daemon, &Daemon::empty_trash,
                            Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_exec, daemon, &Daemon::exec, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_find, daemon, &Daemon::find, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_info, daemon, &Daemon::info, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_list, daemon, &Daemon::list, Qt::BlockingQueuedConnection);
@@ -531,48 +530,6 @@ try // clang-format on
     }
 
     persist_instances();
-    return grpc::Status::OK;
-}
-catch (const std::exception& e)
-{
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
-}
-
-grpc::Status mp::Daemon::exec(grpc::ServerContext* context, const ExecRequest* request,
-                              ExecReply* response) // clang-format off
-try // clang-format on
-{
-    const auto name = request->instance_name();
-    auto it = vm_instances.find(name);
-    if (it == vm_instances.end())
-    {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "instance \"" + name + "\" does not exist", "");
-    }
-
-    if (it->second->current_state() != mp::VirtualMachine::State::running)
-    {
-        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "instance \"" + name + "\" is not running", "");
-    }
-
-    auto host = it->second->ssh_hostname();
-    auto port = it->second->ssh_port();
-
-    if (request->command_line_args_size() == 0)
-        return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "", "");
-
-    std::vector<std::string> cmd_line;
-    for (const auto& arg : request->command_line_args())
-    {
-        cmd_line.push_back(arg);
-    }
-
-    mp::SSHSession session{host, port, *config->ssh_key_provider};
-    auto ssh_process = session.exec(cmd_line);
-    for (auto& arg : ssh_process.get_output_streams())
-    {
-        response->add_exec_line(std::move(arg));
-    }
-
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
