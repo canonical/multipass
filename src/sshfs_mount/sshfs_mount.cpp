@@ -182,11 +182,11 @@ auto get_vm_user_and_group_names(mp::SSHSession* session)
 
     QString cmd = "id -nu";
     auto ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_group.first = ssh_process.get_output_streams()[0];
+    vm_user_group.first = ssh_process.read_std_output();
 
     cmd = "id -ng";
     ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_group.second = ssh_process.get_output_streams()[0];
+    vm_user_group.second = ssh_process.read_std_output();
 
     return vm_user_group;
 }
@@ -197,7 +197,7 @@ auto create_sshfs_process(mp::SSHSession* session, const QString& target, const 
     auto ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
     if (ssh_process.exit_code() != 0)
     {
-        throw std::runtime_error(ssh_process.get_output_streams()[1]);
+        throw std::runtime_error(ssh_process.read_std_error());
     }
 
     auto vm_user_group_names = get_vm_user_and_group_names(session);
@@ -208,7 +208,7 @@ auto create_sshfs_process(mp::SSHSession* session, const QString& target, const 
     ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
     if (ssh_process.exit_code() != 0)
     {
-        throw std::runtime_error(ssh_process.get_output_streams()[1]);
+        throw std::runtime_error(ssh_process.read_std_error());
     }
 
     return session->exec({sshfs_cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
@@ -220,11 +220,11 @@ auto get_vm_user_pair(mp::SSHSession* session)
 
     QString cmd = "id -u";
     auto ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_pair.first = std::stoi(ssh_process.get_output_streams()[0]);
+    vm_user_pair.first = std::stoi(ssh_process.read_std_output());
 
     cmd = "id -g";
     ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_pair.second = std::stoi(ssh_process.get_output_streams()[0]);
+    vm_user_pair.second = std::stoi(ssh_process.read_std_output());
 
     return vm_user_pair;
 }
@@ -238,7 +238,7 @@ auto sshfs_pid_from(mp::SSHSession* session, const QString& source, const QStrin
     QString pgrep_cmd(QString("pgrep -fx \"sshfs.*%1.*%2\"").arg(source).arg(target));
     auto ssh_process = session->exec({pgrep_cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
 
-    return QString::fromStdString(ssh_process.get_output_streams()[0]);
+    return QString::fromStdString(ssh_process.read_std_output());
 }
 
 void stop_sshfs_process(mp::SSHSession* session, const QString& sshfs_pid)
@@ -811,7 +811,7 @@ mp::SshfsMount::SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_
         if (sshfs_process.exit_code() == 127)
             throw sshfs_process.exit_code();
         else
-            throw std::runtime_error(sshfs_process.get_output_streams()[1]);
+            throw std::runtime_error(sshfs_process.read_std_error());
     }
 }
 
