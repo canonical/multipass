@@ -274,10 +274,10 @@ TEST_F(Client, mount_cmd_fails_invalid_source_path)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_good_remote_name_source_path)
+TEST_F(Client, mount_cmd_fails_remote_name_source_path)
 {
     EXPECT_THAT(send_command({"mount", "remote:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::Ok));
+                Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, mount_cmd_fails_invalid_remote_source_path)
