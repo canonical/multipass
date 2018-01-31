@@ -40,9 +40,14 @@ int mp::SSHProcess::exit_code()
     return ssh_channel_get_exit_status(channel.get());
 }
 
-std::vector<std::string> mp::SSHProcess::get_output_streams()
+std::string mp::SSHProcess::read_std_output()
 {
-    return {read_stream(StreamType::out), read_stream(StreamType::err)};
+    return read_stream(StreamType::out);
+}
+
+std::string mp::SSHProcess::read_std_error()
+{
+    return read_stream(StreamType::err);
 }
 
 std::string mp::SSHProcess::read_stream(StreamType type, int timeout)

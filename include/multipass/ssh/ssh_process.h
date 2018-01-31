@@ -35,7 +35,8 @@ public:
 
     void exec(const std::string& cmd);
     int exit_code();
-    std::vector<std::string> get_output_streams();
+    std::string read_std_output();
+    std::string read_std_error();
 
 private:
     enum class StreamType
