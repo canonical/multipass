@@ -45,7 +45,7 @@ public:
     SSHProcess exec(const std::vector<std::string>& args);
 
 private:
-    ssh_session get_ssh_session_ptr();
+    operator ssh_session() const;
 
     SSHSession(const std::string& host, int port, const SSHKeyProvider* key_provider);
     std::unique_ptr<ssh_session_struct, void(*)(ssh_session)> session;

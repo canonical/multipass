@@ -141,7 +141,8 @@ void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::c
     throw std::runtime_error("timed out waiting for ssh service to start");
 }
 
-ssh_session mp::SSHSession::get_ssh_session_ptr()
+mp::SSHSession::operator ssh_session() const
 {
     return session.get();
 }
+
