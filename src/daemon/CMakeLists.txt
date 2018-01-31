@@ -37,7 +37,11 @@ target_link_libraries(daemon
   Qt5::Network
   yaml)
 
-add_executable(multipassd daemon_main.cpp)
+if(MSVC)
+  add_executable(multipassd daemon_main_win.cpp)
+else()
+  add_executable(multipassd daemon_main.cpp)
+endif()
 
 target_link_libraries(multipassd
   daemon)

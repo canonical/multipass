@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,32 +15,29 @@
  *
  */
 
-#ifndef MULTIPASS_UTILS_H
-#define MULTIPASS_UTILS_H
+#ifndef MULTIPASS_START_EXCEPTION_H
+#define MULTIPASS_START_EXCEPTION_H
 
+#include <stdexcept>
 #include <string>
-#include <vector>
-
-#include <QDir>
-#include <QString>
-#include <QStringList>
 
 namespace multipass
 {
-namespace utils
+class StartException : public std::runtime_error
 {
-enum class QuoteType
-{
-    no_quotes,
-    quote_every_arg
-};
+public:
+    StartException(const std::string& instance_name, const std::string& what)
+        : runtime_error(what), instance_name(instance_name)
+    {
+    }
 
-QDir base_dir(const QString& path);
-bool valid_memory_value(const QString& mem_string);
-bool valid_hostname(const QString& name_string);
-bool invalid_target_path(const QString& target_path);
-std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
-bool run_cmd(QString cmd, QStringList args);
+    std::string name() const
+    {
+        return instance_name;
+    }
+
+private:
+    const std::string instance_name;
+};
 }
-}
-#endif // MULTIPASS_UTILS_H
+#endif // MULTIPASS_START_EXCEPTION_H

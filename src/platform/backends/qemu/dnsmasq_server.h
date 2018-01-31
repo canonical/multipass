@@ -33,7 +33,7 @@ namespace multipass
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const Path& path, const IPAddress& start, const IPAddress& end);
+    DNSMasqServer(const Path& path, const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other);
     ~DNSMasqServer();
 

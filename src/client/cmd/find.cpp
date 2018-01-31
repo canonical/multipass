@@ -135,7 +135,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() > 1)
     {
-        cerr << "Wrong number of arguments" << std::endl;
+        cerr << "Wrong number of arguments\n";
         status = ParseCode::CommandLineError;
     }
     else if (parser->positionalArguments().count() == 1)
@@ -145,7 +145,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 
         if (colon_count > 1)
         {
-            cerr << "Invalid remote and search string supplied" << std::endl;
+            cerr << "Invalid remote and search string supplied\n";
             return ParseCode::CommandLineError;
         }
         else if (colon_count == 1)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,8 @@ public:
 
 private:
     ParseCode parse_args(ArgParser *parser) override;
+
+    QString format_type{"table"};
 };
 }
 }

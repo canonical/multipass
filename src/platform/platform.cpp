@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,11 @@ namespace mp = multipass;
 
 std::string mp::Platform::default_server_address()
 {
+#ifdef MULTIPASS_PLATFORM_LINUX
+    return {"unix:/run/multipass_socket"};
+#else
     return {"localhost:50051"};
+#endif
 }
 
 mp::VirtualMachineFactory::UPtr mp::Platform::vm_backend(const mp::Path& data_dir)

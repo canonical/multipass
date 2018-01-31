@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+# Just a placeholder, however validation of the proxy.{http,https}
+# configuration could be made here

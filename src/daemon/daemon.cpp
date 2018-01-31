@@ -25,6 +25,7 @@
 #include <multipass/name_generator.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/start_exception.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -303,7 +304,6 @@ mp::DaemonRunner::DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daem
           QObject::connect(&daemon_rpc, &DaemonRpc::on_create, daemon, &Daemon::create, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_empty_trash, daemon, &Daemon::empty_trash,
                            Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_exec, daemon, &Daemon::exec, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_find, daemon, &Daemon::find, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_info, daemon, &Daemon::info, Qt::BlockingQueuedConnection);
           QObject::connect(&daemon_rpc, &DaemonRpc::on_list, daemon, &Daemon::list, Qt::BlockingQueuedConnection);
@@ -355,7 +355,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << "Removing instance " << name << ": " << e.what() << std::endl;
+            config->cerr << "Removing instance " << name << ": " << e.what() << "\n";
             invalid_specs.push_back(name);
             config->vault->remove(name);
         }
@@ -389,7 +389,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     config->cout << std::to_string(percentage) << "%";
                     done_once = true;
                     if (percentage == 100)
-                        config->cout << std::endl;
+                        config->cout << "\n";
                     else
                         config->cout << "..." << std::flush;
                 }
@@ -406,7 +406,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << "Error updating images: " << e.what() << std::endl;
+            config->cerr << "Error updating images: " << e.what() << "\n";
         }
     });
     const std::chrono::milliseconds ms = std::chrono::hours(6);
@@ -493,6 +493,18 @@ try // clang-format on
 
     return grpc::Status::OK;
 }
+catch (const mp::StartException& e)
+{
+    auto name = e.name();
+
+    config->factory->remove_resources_for(name);
+    config->vault->remove(name);
+    vm_instance_specs.erase(name);
+    vm_instances.erase(name);
+    persist_instances();
+
+    return grpc::Status(grpc::StatusCode::ABORTED, e.what(), "");
+}
 catch (const std::exception& e)
 {
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
@@ -518,48 +530,6 @@ try // clang-format on
     }
 
     persist_instances();
-    return grpc::Status::OK;
-}
-catch (const std::exception& e)
-{
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
-}
-
-grpc::Status mp::Daemon::exec(grpc::ServerContext* context, const ExecRequest* request,
-                              ExecReply* response) // clang-format off
-try // clang-format on
-{
-    const auto name = request->instance_name();
-    auto it = vm_instances.find(name);
-    if (it == vm_instances.end())
-    {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "instance \"" + name + "\" does not exist", "");
-    }
-
-    if (it->second->current_state() != mp::VirtualMachine::State::running)
-    {
-        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "instance \"" + name + "\" is not running", "");
-    }
-
-    auto host = it->second->ssh_hostname();
-    auto port = it->second->ssh_port();
-
-    if (request->command_line_args_size() == 0)
-        return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "", "");
-
-    std::vector<std::string> cmd_line;
-    for (const auto& arg : request->command_line_args())
-    {
-        cmd_line.push_back(arg);
-    }
-
-    mp::SSHSession session{host, port, *config->ssh_key_provider};
-    auto ssh_process = session.exec(cmd_line);
-    for (auto& arg : ssh_process.get_output_streams())
-    {
-        response->add_exec_line(std::move(arg));
-    }
-
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -842,6 +812,13 @@ try // clang-format on
 
         auto target_path = path_entry.target_path();
 
+        if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
+        {
+            error_string.append("Unable to mount to \"" + target_path + "\".\n");
+            failures = true;
+            continue;
+        }
+
         auto entry = mount_threads.find(name);
 
         if (entry != mount_threads.end() && entry->second.find(target_path) != entry->second.end())
@@ -991,9 +968,21 @@ try // clang-format on
         {
             it = vm_instance_trash.find(name);
             if (it == vm_instance_trash.end())
-                error_messages.append("instance \"" + name + "\" does not exist\n");
+            {
+                mp::StartError start_error;
+                start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
+                start_error.set_instance_name(name);
+                return grpc::Status(grpc::StatusCode::ABORTED, "instance \"" + name + "\" does not exist",
+                                    start_error.SerializeAsString());
+            }
             else
-                error_messages.append("instance \"" + name + "\" is deleted\n");
+            {
+                mp::StartError start_error;
+                start_error.set_error_code(mp::StartError::INSTANCE_DELETED);
+                start_error.set_instance_name(name);
+                return grpc::Status(grpc::StatusCode::ABORTED, "instance \"" + name + "\" is deleted",
+                                    start_error.SerializeAsString());
+            }
             continue;
         }
 

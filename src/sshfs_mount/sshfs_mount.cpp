@@ -162,6 +162,12 @@ QString longname_from(const QFileInfo& file_info)
     return buff;
 }
 
+// Convert passed in octal to same hex digits for Qt Permissions flags
+auto convert_permissions(int perms)
+{
+    return (QFileDevice::Permissions)(QString::number(perms & 07777, 8).toUInt(nullptr, 16));
+}
+
 auto handle_from_msg(sftp_client_message& msg)
 {
     return reinterpret_cast<SftpHandleInfo*>(sftp_handle(msg->sftp, msg->handle));
@@ -169,7 +175,7 @@ auto handle_from_msg(sftp_client_message& msg)
 
 auto sshfs_cmd_from(const QString& source, const QString& target)
 {
-    return QString("sshfs -o slave -o nonempty -o transform_symlinks -o reconnect :%1 \"%2\"")
+    return QString("sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other -o reconnect :%1 \"%2\"")
         .arg(format_path(source))
         .arg(target);
 }
@@ -241,7 +247,7 @@ auto sshfs_pid_from(mp::SSHSession* session, const QString& source, const QStrin
 
 void stop_sshfs_process(mp::SSHSession* session, const QString& sshfs_pid)
 {
-    QString kill_cmd(QString("kill %1").arg(sshfs_pid));
+    QString kill_cmd(QString("sudo kill %1").arg(sshfs_pid));
     session->exec({kill_cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
 }
 
@@ -440,6 +446,12 @@ private:
             return;
         }
 
+        if (!QFile::setPermissions(msg->filename, convert_permissions(msg->attr->permissions)))
+        {
+            reply_status(msg);
+            return;
+        }
+
 #ifndef MULTIPASS_PLATFORM_WINDOWS
         QFileInfo current_dir(sanitize_path_name(QString(msg->filename)));
         QFileInfo parent_dir(current_dir.path());
@@ -486,7 +498,7 @@ private:
             if (msg->flags == SSH_FXF_WRITE)
             {
                 mode |= QIODevice::Append;
-                cout << "Adding sshfs O_APPEND workaround." << std::endl;
+                cout << "Adding sshfs O_APPEND workaround.\n";
             }
         }
 
@@ -511,6 +523,12 @@ private:
 #ifndef MULTIPASS_PLATFORM_WINDOWS
         if (!exists)
         {
+            if (!file->setPermissions(convert_permissions(msg->attr->permissions)))
+            {
+                reply_status(msg);
+                return;
+            }
+
             QFileInfo current_file(sanitize_path_name(QString(msg->filename)));
             QFileInfo current_dir(current_file.path());
             auto ret = chown(msg->filename, current_dir.ownerId(), current_dir.groupId());
@@ -659,6 +677,15 @@ private:
 
     void handle_rename(sftp_client_message msg)
     {
+        if (QFile::exists(ssh_string_get_char(msg->data)))
+        {
+            if (!QFile::remove(ssh_string_get_char(msg->data)))
+            {
+                reply_status(msg);
+                return;
+            }
+        }
+
         if (!QFile::rename(sanitize_path_name(QString(msg->filename)), ssh_string_get_char(msg->data)))
         {
             reply_status(msg);
@@ -693,11 +720,7 @@ private:
 
         if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
         {
-            // Convert passed in octal to same hex digits for Qt Permissions flags
-            auto perms =
-                (QFileDevice::Permissions)(QString::number(msg->attr->permissions & 07777, 8).toUInt(nullptr, 16));
-
-            if (!QFile::setPermissions(filename, perms))
+            if (!QFile::setPermissions(filename, convert_permissions(msg->attr->permissions)))
             {
                 reply_status(msg);
                 return;
@@ -866,7 +889,7 @@ void mp::SshfsMount::stop()
     }
     catch (const std::exception& e)
     {
-        cout << e.what() << std::endl;
+        cout << e.what() << "\n";
     }
 
     if (mount_thread.joinable())

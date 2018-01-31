@@ -46,16 +46,30 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         cerr << "start failed: " << status.error_message() << "\n";
         if (!status.error_details().empty())
         {
-            mp::MountError mount_error;
-            mount_error.ParseFromString(status.error_details());
-
-            if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
+            if (status.error_code() == grpc::StatusCode::ABORTED)
             {
-                cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing..."
-                     << std::endl;
+                mp::StartError start_error;
+                start_error.ParseFromString(status.error_details());
 
-                if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
-                    cerr << "\n***Please restart the instance to enable mount(s)." << std::endl;
+                if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
+                {
+                    cerr << "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
+                            "instance.\n";
+                }
+            }
+            else
+            {
+                mp::MountError mount_error;
+                mount_error.ParseFromString(status.error_details());
+
+                if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
+                {
+                    cerr << "The sshfs package is missing in \"" << mount_error.instance_name()
+                         << "\". Installing...\n";
+
+                    if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
+                        cerr << "\n***Please restart the instance to enable mount(s).\n";
+                }
             }
         }
         return ReturnCode::CommandFail;
