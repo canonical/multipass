@@ -268,68 +268,66 @@ public:
 
         while (true)
         {
-            MsgUPtr msg{sftp_get_client_message(sftp_server), sftp_client_message_free};
-
-            if (!msg)
-            {
+            MsgUPtr client_msg{sftp_get_client_message(sftp_server), sftp_client_message_free};
+            auto msg = client_msg.get();
+            if (msg == nullptr)
                 break;
-            }
 
             switch (msg->type)
             {
             case SFTP_REALPATH:
-                handle_realpath(msg.get());
+                handle_realpath(msg);
                 break;
             case SFTP_OPENDIR:
-                handle_opendir(msg.get());
+                handle_opendir(msg);
                 break;
             case SFTP_MKDIR:
-                handle_mkdir(msg.get());
+                handle_mkdir(msg);
                 break;
             case SFTP_RMDIR:
-                handle_rmdir(msg.get());
+                handle_rmdir(msg);
                 break;
             case SFTP_LSTAT:
             case SFTP_STAT:
-                handle_stat(msg.get(), msg->type == SFTP_STAT);
+                handle_stat(msg, msg->type == SFTP_STAT);
                 break;
             case SFTP_FSTAT:
-                handle_fstat(msg.get());
+                handle_fstat(msg);
                 break;
             case SFTP_READDIR:
-                handle_readdir(msg.get());
+                handle_readdir(msg);
                 break;
             case SFTP_CLOSE:
-                handle_close(msg.get());
+                handle_close(msg);
                 break;
             case SFTP_OPEN:
-                handle_open(msg.get());
+                handle_open(msg);
                 break;
             case SFTP_READ:
-                handle_read(msg.get());
+                handle_read(msg);
                 break;
             case SFTP_WRITE:
-                handle_write(msg.get());
+                handle_write(msg);
                 break;
             case SFTP_RENAME:
-                handle_rename(msg.get());
+                handle_rename(msg);
                 break;
             case SFTP_REMOVE:
-                handle_remove(msg.get());
+                handle_remove(msg);
                 break;
             case SFTP_SETSTAT:
             case SFTP_FSETSTAT:
-                handle_setstat(msg.get(), msg->type == SFTP_FSETSTAT);
+                handle_setstat(msg, msg->type == SFTP_FSETSTAT);
                 break;
             case SFTP_READLINK:
-                handle_readlink(msg.get());
+                handle_readlink(msg);
                 break;
             case SFTP_SYMLINK:
-                handle_symlink(msg.get());
+                handle_symlink(msg);
                 break;
             default:
                 cout << "Unknown message: " << (int)msg->type << "\n";
-                sftp_reply_status(msg.get(), SSH_FX_OP_UNSUPPORTED, "Unsupported message");
+                sftp_reply_status(msg, SSH_FX_OP_UNSUPPORTED, "Unsupported message");
             }
         }
     }
