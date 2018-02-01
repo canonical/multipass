@@ -582,14 +582,11 @@ private:
             return;
         }
 
-        auto len = msg->len;
-        if (len > (2 << 15))
-        {
-            /* 32000 */
-            len = 2 << 15;
-        }
+        const auto max_packet_size = 65536u;
+        const auto len = std::min(msg->len, max_packet_size);
 
-        QByteArray data(len, '\0');
+        std::vector<char> data;
+        data.reserve(len);
 
         handle->file->seek(msg->offset);
         auto r = handle->file->read(data.data(), len);
@@ -605,7 +602,7 @@ private:
         }
         else
         {
-            sftp_reply_data(msg, data.constData(), r);
+            sftp_reply_data(msg, data.data(), r);
         }
     }
 
