@@ -776,6 +776,8 @@ private:
                 return;
             }
 
+            handle->file->flush();
+
             data_ptr += r;
             len -= r;
         } while (len > 0);
