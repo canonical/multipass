@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
@@ -193,8 +194,13 @@ auto get_vm_user_and_group_names(mp::SSHSession* session)
 
 auto create_sshfs_process(mp::SSHSession* session, const QString& target, const QString& sshfs_cmd)
 {
-    QString cmd(QString("sudo mkdir -p \"%1\"").arg(target));
+    QString cmd("which sshfs");
     auto ssh_process = session->exec({cmd.toStdString()});
+    if (ssh_process.exit_code() != 0)
+        throw mp::SSHFSMissingError();
+
+    cmd = QString("sudo mkdir -p \"%1\"").arg(target);
+    ssh_process = session->exec({cmd.toStdString()});
     if (ssh_process.exit_code() != 0)
     {
         throw std::runtime_error(ssh_process.read_std_error());
@@ -571,13 +577,19 @@ private:
         handle->file->seek(msg->offset);
         auto r = handle->file->read(data.data(), len);
 
-        if (r <= 0 && (len > 0))
+        if (r < 0)
+        {
+            sftp_reply_status(msg, SSH_FX_FAILURE, handle->file->errorString().toStdString().c_str());
+        }
+        else if (r == 0)
         {
             sftp_reply_status(msg, SSH_FX_EOF, "End of file");
             return;
         }
-
-        sftp_reply_data(msg, data.constData(), r);
+        else
+        {
+            sftp_reply_data(msg, data.constData(), r);
+        }
     }
 
     void handle_readdir(sftp_client_message msg)
@@ -769,7 +781,6 @@ private:
         do
         {
             auto r = handle->file->write(data_ptr, len);
-
             if (r < 0)
             {
                 reply_status(msg);
@@ -810,10 +821,7 @@ mp::SshfsMount::SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_
 {
     if (sshfs_pid.isEmpty())
     {
-        if (sshfs_process.exit_code() == 127)
-            throw sshfs_process.exit_code();
-        else
-            throw std::runtime_error(sshfs_process.read_std_error());
+        throw std::runtime_error(sshfs_process.read_std_error());
     }
 }
 
