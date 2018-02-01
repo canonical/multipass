@@ -616,27 +616,26 @@ private:
             return;
         }
 
-        auto count{0};
+        if (handle->entry_list.isEmpty())
+        {
+            sftp_reply_status(msg, SSH_FX_EOF, nullptr);
+            return;
+        }
 
-        // Send at most 50 directory entries to avoid ssh packet size overflow
-        while (!handle->entry_list.isEmpty() && count < 50)
+        auto& dir_entries = handle->entry_list;
+
+        const auto max_num_entries_per_packet = 50;
+        const auto num_entries = std::min(dir_entries.size(), max_num_entries_per_packet);
+
+        for (int i = 0; i < num_entries; i++)
         {
             auto entry = handle->entry_list.takeFirst();
             auto attr = attr_from(entry);
             auto longname = longname_from(entry);
             sftp_reply_names_add(msg, entry.fileName().toStdString().c_str(), longname.toStdString().c_str(), &attr);
-
-            ++count;
         }
 
-        if (count > 0)
-        {
-            sftp_reply_names(msg);
-        }
-        else
-        {
-            sftp_reply_status(msg, SSH_FX_EOF, nullptr);
-        }
+        sftp_reply_names(msg);
     }
 
     void handle_readlink(sftp_client_message msg)
