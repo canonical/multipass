@@ -36,9 +36,9 @@ class SshfsMount : public QObject
     Q_OBJECT
 
 public:
-    SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_factory, const QString& source,
-               const QString& target, const std::unordered_map<int, int>& gid_map,
-               const std::unordered_map<int, int>& uid_map, std::ostream& cout);
+    SshfsMount(std::function<SSHSession()> session_factory, const QString& source, const QString& target,
+               const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
+               std::ostream& cout);
     virtual ~SshfsMount();
 
     void run();
@@ -48,8 +48,8 @@ signals:
     void finished();
 
 private:
-    std::function<std::unique_ptr<SSHSession>()> session_factory;
-    std::unique_ptr<SSHSession> ssh_session;
+    std::function<SSHSession()> make_session;
+    SSHSession ssh_session;
     SSHProcess sshfs_process;
     const QString sshfs_pid;
     const std::unordered_map<int, int> gid_map;

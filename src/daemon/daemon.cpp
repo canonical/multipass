@@ -1345,9 +1345,8 @@ std::string mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::s
     try
     {
         auto& key_provider = *config->ssh_key_provider;
-        auto session_factory = [&vm, &key_provider]() -> std::unique_ptr<SSHSession>
-        {
-            return std::make_unique<mp::SSHSession>(vm->ssh_hostname(), vm->ssh_port(), key_provider);
+        auto session_factory = [&vm, &key_provider]() -> SSHSession {
+            return {vm->ssh_hostname(), vm->ssh_port(), key_provider};
         };
 
         auto sshfs_mount =
