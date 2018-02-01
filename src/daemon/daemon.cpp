@@ -22,10 +22,11 @@
 #include "json_writer.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/name_generator.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/start_exception.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -260,14 +261,10 @@ auto validate_create_arguments(const mp::CreateRequest* request)
     return create_error;
 }
 
-auto handle_mount_error(const int error_code, const std::string& instance_name)
+auto handle_mount_error(const std::string& instance_name)
 {
     mp::MountError mount_error;
-    if (error_code == 127)
-        mount_error.set_error_code(mp::MountError::SSHFS_MISSING);
-    else
-        mount_error.set_error_code(mp::MountError::OTHER);
-
+    mount_error.set_error_code(mp::MountError::SSHFS_MISSING);
     mount_error.set_instance_name(instance_name);
 
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Mount failed", mount_error.SerializeAsString());
@@ -866,9 +863,9 @@ try // clang-format on
         return grpc::Status::OK;
     }
 }
-catch (std::pair<int, std::string>& e)
+catch (const mp::SSHFSMissingError& e)
 {
-    return handle_mount_error(e.first, e.second);
+    return handle_mount_error(e.name());
 }
 catch (const std::exception& e)
 {
@@ -1060,9 +1057,9 @@ try // clang-format on
 
     return grpc::Status::OK;
 }
-catch (std::pair<int, std::string>& e)
+catch (const mp::SSHFSMissingError& e)
 {
-    return handle_mount_error(e.first, e.second);
+    return handle_mount_error(e.name());
 }
 catch (const std::exception& e)
 {
@@ -1365,9 +1362,9 @@ std::string mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::s
 
         mount_threads[name][target_path] = std::move(sshfs_mount);
     }
-    catch (int n)
+    catch (const mp::SSHFSMissingError& e)
     {
-        throw std::make_pair(n, name);
+        throw mp::SSHFSMissingError(name);
     }
     catch (const std::exception& e)
     {
