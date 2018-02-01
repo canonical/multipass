@@ -50,9 +50,6 @@ signals:
 private:
     std::function<std::unique_ptr<SSHSession>()> session_factory;
     std::unique_ptr<SSHSession> ssh_session;
-    const QString source;
-    const QString target;
-    const QString sshfs_cmd;
     SSHProcess sshfs_process;
     const QString sshfs_pid;
     const std::unordered_map<int, int> gid_map;
