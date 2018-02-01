@@ -826,12 +826,9 @@ mp::SshfsMount::SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_
                            const QString& target, const std::unordered_map<int, int>& gid_map,
                            const std::unordered_map<int, int>& uid_map, std::ostream& cout)
     : session_factory{session_factory},
-      ssh_session{this->session_factory()},
-      source{source},
-      target{target},
-      sshfs_cmd{sshfs_cmd_from(source, target)},
-      sshfs_process{create_sshfs_process(this->ssh_session.get(), target, sshfs_cmd)},
-      sshfs_pid{sshfs_pid_from(this->ssh_session.get(), source, target)},
+      ssh_session{session_factory()},
+      sshfs_process{create_sshfs_process(ssh_session.get(), target, sshfs_cmd_from(source, target))},
+      sshfs_pid{sshfs_pid_from(ssh_session.get(), source, target)},
       gid_map{gid_map},
       uid_map{uid_map},
       cout{cout}
