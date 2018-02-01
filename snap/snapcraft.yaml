@@ -86,9 +86,9 @@ parts:
 
   libicu:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-1ubuntu1_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/0ef7f85757b576a38a04fd768bcc00df55eb7590fbb4e996104985e1ea47b153
+    source-checksum: sha256/3bd30b5935b2a91f10e532da52ffe4011695f69dc264e531a0a094fac284e89a
 
   multipass:
     after:
