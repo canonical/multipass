@@ -83,7 +83,7 @@ int reply_status(sftp_client_message& msg, const int error = 0)
     case ENOTDIR:
         return sftp_reply_status(msg, SSH_FX_FAILURE, "not a directory");
     default:
-        return sftp_reply_status(msg, SSH_FX_FAILURE, NULL);
+        return sftp_reply_status(msg, SSH_FX_FAILURE, nullptr);
     }
 }
 
@@ -418,7 +418,7 @@ private:
         }
 
         handle_map.erase(handle);
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_fstat(sftp_client_message msg)
@@ -463,7 +463,7 @@ private:
             cout << " and group: " << parent_dir.groupId();
             cout << "\n";
         }
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_rmdir(sftp_client_message msg)
@@ -476,7 +476,7 @@ private:
             return;
         }
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_open(sftp_client_message msg)
@@ -636,7 +636,7 @@ private:
         }
         else
         {
-            sftp_reply_status(msg, SSH_FX_EOF, NULL);
+            sftp_reply_status(msg, SSH_FX_EOF, nullptr);
         }
     }
 
@@ -661,7 +661,7 @@ private:
     {
         auto realpath = QFileInfo(sanitize_path_name(QString(msg->filename))).absoluteFilePath();
 
-        sftp_reply_name(msg, realpath.toStdString().c_str(), NULL);
+        sftp_reply_name(msg, realpath.toStdString().c_str(), nullptr);
     }
 
     void handle_remove(sftp_client_message msg)
@@ -672,7 +672,7 @@ private:
             return;
         }
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_rename(sftp_client_message msg)
@@ -692,7 +692,7 @@ private:
             return;
         }
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_setstat(sftp_client_message msg, bool get_handle)
@@ -750,7 +750,7 @@ private:
             }
         }
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_stat(sftp_client_message msg, const bool follow)
@@ -776,7 +776,7 @@ private:
             return;
         }
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_write(sftp_client_message msg)
