@@ -177,30 +177,30 @@ auto sshfs_cmd_from(const QString& source, const QString& target)
         .arg(target);
 }
 
-auto get_vm_user_and_group_names(mp::SSHSession* session)
+auto get_vm_user_and_group_names(mp::SSHSession& session)
 {
     std::pair<std::string, std::string> vm_user_group;
 
     QString cmd = "id -nu";
-    auto ssh_process = session->exec({cmd.toStdString()});
+    auto ssh_process = session.exec({cmd.toStdString()});
     vm_user_group.first = ssh_process.read_std_output();
 
     cmd = "id -ng";
-    ssh_process = session->exec({cmd.toStdString()});
+    ssh_process = session.exec({cmd.toStdString()});
     vm_user_group.second = ssh_process.read_std_output();
 
     return vm_user_group;
 }
 
-auto create_sshfs_process(mp::SSHSession* session, const QString& target, const QString& sshfs_cmd)
+auto create_sshfs_process(mp::SSHSession& session, const QString& target, const QString& sshfs_cmd)
 {
     QString cmd("which sshfs");
-    auto ssh_process = session->exec({cmd.toStdString()});
+    auto ssh_process = session.exec({cmd.toStdString()});
     if (ssh_process.exit_code() != 0)
         throw mp::SSHFSMissingError();
 
     cmd = QString("sudo mkdir -p \"%1\"").arg(target);
-    ssh_process = session->exec({cmd.toStdString()});
+    ssh_process = session.exec({cmd.toStdString()});
     if (ssh_process.exit_code() != 0)
     {
         throw std::runtime_error(ssh_process.read_std_error());
@@ -211,46 +211,46 @@ auto create_sshfs_process(mp::SSHSession* session, const QString& target, const 
               .arg(QString::fromStdString(vm_user_group_names.first).simplified())
               .arg(QString::fromStdString(vm_user_group_names.second).simplified())
               .arg(target);
-    ssh_process = session->exec({cmd.toStdString()});
+    ssh_process = session.exec({cmd.toStdString()});
     if (ssh_process.exit_code() != 0)
     {
         throw std::runtime_error(ssh_process.read_std_error());
     }
 
-    return session->exec({sshfs_cmd.toStdString()});
+    return session.exec({sshfs_cmd.toStdString()});
 }
 
-auto get_vm_user_pair(mp::SSHSession* session)
+auto get_vm_user_pair(mp::SSHSession& session)
 {
     std::pair<int, int> vm_user_pair;
 
     QString cmd = "id -u";
-    auto ssh_process = session->exec({cmd.toStdString()});
+    auto ssh_process = session.exec({cmd.toStdString()});
     vm_user_pair.first = std::stoi(ssh_process.read_std_output());
 
     cmd = "id -g";
-    ssh_process = session->exec({cmd.toStdString()});
+    ssh_process = session.exec({cmd.toStdString()});
     vm_user_pair.second = std::stoi(ssh_process.read_std_output());
 
     return vm_user_pair;
 }
 
-auto sshfs_pid_from(mp::SSHSession* session, const QString& source, const QString& target)
+auto sshfs_pid_from(mp::SSHSession& session, const QString& source, const QString& target)
 {
     using namespace std::literals::chrono_literals;
 
     // Make sure sshfs actually runs
     std::this_thread::sleep_for(250ms);
     QString pgrep_cmd(QString("pgrep -fx \"sshfs.*%1.*%2\"").arg(source).arg(target));
-    auto ssh_process = session->exec({pgrep_cmd.toStdString()});
+    auto ssh_process = session.exec({pgrep_cmd.toStdString()});
 
     return QString::fromStdString(ssh_process.read_std_output());
 }
 
-void stop_sshfs_process(mp::SSHSession* session, const QString& sshfs_pid)
+void stop_sshfs_process(mp::SSHSession& session, const QString& sshfs_pid)
 {
     QString kill_cmd(QString("sudo kill %1").arg(sshfs_pid));
-    session->exec({kill_cmd.toStdString()});
+    session.exec({kill_cmd.toStdString()});
 }
 
 class SftpServer
@@ -822,13 +822,13 @@ private:
 };
 } // namespace anonymous
 
-mp::SshfsMount::SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_factory, const QString& source,
-                           const QString& target, const std::unordered_map<int, int>& gid_map,
-                           const std::unordered_map<int, int>& uid_map, std::ostream& cout)
-    : session_factory{session_factory},
-      ssh_session{session_factory()},
-      sshfs_process{create_sshfs_process(ssh_session.get(), target, sshfs_cmd_from(source, target))},
-      sshfs_pid{sshfs_pid_from(ssh_session.get(), source, target)},
+mp::SshfsMount::SshfsMount(std::function<SSHSession()> session_factory, const QString& source, const QString& target,
+                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
+                           std::ostream& cout)
+    : make_session{session_factory},
+      ssh_session{make_session()},
+      sshfs_process{create_sshfs_process(ssh_session, target, sshfs_cmd_from(source, target))},
+      sshfs_pid{sshfs_pid_from(ssh_session, source, target)},
       gid_map{gid_map},
       uid_map{uid_map},
       cout{cout}
@@ -846,7 +846,7 @@ mp::SshfsMount::~SshfsMount()
 
 void mp::SshfsMount::run()
 {
-    auto vm_user_pair = get_vm_user_pair(ssh_session.get());
+    auto vm_user_pair = get_vm_user_pair(ssh_session);
 
     auto t = std::thread([this, vm_user_pair]() mutable {
         std::unique_ptr<ssh_session_struct, decltype(ssh_free)*> session_sftp{ssh_new(), ssh_free};
@@ -869,9 +869,8 @@ void mp::SshfsMount::stop()
 {
     try
     {
-        auto session = session_factory();
-
-        stop_sshfs_process(session.get(), sshfs_pid);
+        auto session = make_session();
+        stop_sshfs_process(session, sshfs_pid);
     }
     catch (const std::exception& e)
     {
