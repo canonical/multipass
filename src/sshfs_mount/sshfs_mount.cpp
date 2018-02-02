@@ -15,9 +15,10 @@
  *
  */
 
+#include <multipass/sshfs_mount/sshfs_mount.h>
+
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/ssh/throw_on_error.h>
-#include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
 
 #include <libssh/sftp.h>
@@ -32,24 +33,6 @@ namespace mp = multipass;
 
 namespace
 {
-struct SftpHandleInfo
-{
-    SftpHandleInfo(int type, QFileInfoList entry_list) : type{type}, entry_list{entry_list}
-    {
-    }
-
-    SftpHandleInfo(int type, std::unique_ptr<QFile> file) : type{type}, file{std::move(file)}
-    {
-    }
-
-    int type;
-    QFileInfoList entry_list;
-    std::unique_ptr<QFile> file;
-};
-
-using SftpHandleMap = std::unordered_map<SftpHandleInfo*, std::unique_ptr<SftpHandleInfo>>;
-using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
-
 QString sanitize_path_name(const QString& path_name)
 {
     if (path_name.contains(" "))
@@ -165,9 +148,14 @@ auto convert_permissions(int perms)
     return (QFileDevice::Permissions)(QString::number(perms & 07777, 8).toUInt(nullptr, 16));
 }
 
-auto handle_from_msg(sftp_client_message& msg)
+template <typename T>
+auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::unique_ptr<T>>& handles) -> T*
 {
-    return reinterpret_cast<SftpHandleInfo*>(sftp_handle(msg->sftp, msg->handle));
+    const auto id = sftp_handle(msg->sftp, msg->handle);
+    auto entry = handles.find(id);
+    if (entry != handles.end())
+        return entry->second.get();
+    return nullptr;
 }
 
 auto sshfs_cmd_from(const QString& source, const QString& target)
@@ -334,6 +322,8 @@ public:
     }
 
 private:
+    using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
+
     sftp_attributes_struct attr_from(const QFileInfo& file_info)
     {
         sftp_attributes_struct attr{};
@@ -401,30 +391,31 @@ private:
 
     void handle_close(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
-        if (!handle)
+        const auto id = sftp_handle(msg->sftp, msg->handle);
+
+        auto erased = open_file_handles.erase(id);
+        erased += open_dir_handles.erase(id);
+
+        if (erased == 0)
         {
             sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "close: invalid handle");
             return;
         }
 
-        sftp_handle_remove(sftp_server, handle);
-
-        handle_map.erase(handle);
+        sftp_handle_remove(sftp_server, id);
         sftp_reply_status(msg, SSH_FX_OK, nullptr);
     }
 
     void handle_fstat(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
-
-        if (!handle)
+        auto file = handle_from(msg, open_file_handles);
+        if (file == nullptr)
         {
             sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "fstat: invalid handle");
             return;
         }
 
-        QFileInfo file_info(*handle->file);
+        QFileInfo file_info(*file);
         auto attr = attr_from(file_info);
 
         sftp_reply_attr(msg, &attr);
@@ -532,12 +523,10 @@ private:
             }
         }
 
-        auto hdl = std::make_unique<SftpHandleInfo>(SSH_FILEXFER_TYPE_REGULAR, std::move(file));
+        SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server, file.get()), ssh_string_free};
+        open_file_handles.emplace(file.get(), std::move(file));
 
-        SftpHandleUPtr handle{sftp_handle_alloc(sftp_server, hdl.get()), ssh_string_free};
-        sftp_reply_handle(msg, handle.get());
-
-        handle_map[hdl.get()] = std::move(hdl);
+        sftp_reply_handle(msg, sftp_handle.get());
     }
 
     void handle_opendir(sftp_client_message msg)
@@ -556,21 +545,19 @@ private:
             return;
         }
 
-        auto entry_list = dir.entryInfoList(QDir::AllEntries | QDir::System | QDir::Hidden);
+        auto entry_list =
+            std::make_unique<QFileInfoList>(dir.entryInfoList(QDir::AllEntries | QDir::System | QDir::Hidden));
 
-        auto hdl = std::make_unique<SftpHandleInfo>(SSH_FILEXFER_TYPE_DIRECTORY, entry_list);
+        SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server, entry_list.get()), ssh_string_free};
+        open_dir_handles.emplace(entry_list.get(), std::move(entry_list));
 
-        SftpHandleUPtr handle{sftp_handle_alloc(sftp_server, hdl.get()), ssh_string_free};
-        sftp_reply_handle(msg, handle.get());
-
-        handle_map[hdl.get()] = std::move(hdl);
+        sftp_reply_handle(msg, sftp_handle.get());
     }
 
     void handle_read(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
-
-        if (!handle || handle->type != SSH_FILEXFER_TYPE_REGULAR)
+        auto file = handle_from(msg, open_file_handles);
+        if (file == nullptr)
         {
             sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "read: invalid handle");
             return;
@@ -582,12 +569,12 @@ private:
         std::vector<char> data;
         data.reserve(len);
 
-        handle->file->seek(msg->offset);
-        auto r = handle->file->read(data.data(), len);
+        file->seek(msg->offset);
+        auto r = file->read(data.data(), len);
 
         if (r < 0)
         {
-            sftp_reply_status(msg, SSH_FX_FAILURE, handle->file->errorString().toStdString().c_str());
+            sftp_reply_status(msg, SSH_FX_FAILURE, file->errorString().toStdString().c_str());
         }
         else if (r == 0)
         {
@@ -602,28 +589,25 @@ private:
 
     void handle_readdir(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
-
-        if (!handle || handle->type != SSH_FILEXFER_TYPE_DIRECTORY)
+        auto dir_entries = handle_from(msg, open_dir_handles);
+        if (dir_entries == nullptr)
         {
             sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "readdir: invalid handle");
             return;
         }
 
-        if (handle->entry_list.isEmpty())
+        if (dir_entries->isEmpty())
         {
             sftp_reply_status(msg, SSH_FX_EOF, nullptr);
             return;
         }
 
-        auto& dir_entries = handle->entry_list;
-
         const auto max_num_entries_per_packet = 50;
-        const auto num_entries = std::min(dir_entries.size(), max_num_entries_per_packet);
+        const auto num_entries = std::min(dir_entries->size(), max_num_entries_per_packet);
 
         for (int i = 0; i < num_entries; i++)
         {
-            auto entry = handle->entry_list.takeFirst();
+            auto entry = dir_entries->takeFirst();
             auto attr = attr_from(entry);
             auto longname = longname_from(entry);
             sftp_reply_names_add(msg, entry.fileName().toStdString().c_str(), longname.toStdString().c_str(), &attr);
@@ -695,8 +679,8 @@ private:
 
         if (get_handle)
         {
-            auto handle = handle_from_msg(msg);
-            filename = handle->file->fileName();
+            auto file = handle_from(msg, open_file_handles);
+            filename = file->fileName();
         }
         else
         {
@@ -777,9 +761,8 @@ private:
 
     void handle_write(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
-
-        if (!handle || handle->type != SSH_FILEXFER_TYPE_REGULAR)
+        auto file = handle_from(msg, open_file_handles);
+        if (file == nullptr)
         {
             sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "write: invalid handle");
             return;
@@ -787,18 +770,18 @@ private:
 
         auto len = ssh_string_len(msg->data);
         auto data_ptr = ssh_string_get_char(msg->data);
-        handle->file->seek(msg->offset);
+        file->seek(msg->offset);
 
         do
         {
-            auto r = handle->file->write(data_ptr, len);
+            auto r = file->write(data_ptr, len);
             if (r < 0)
             {
                 reply_status(msg);
                 return;
             }
 
-            handle->file->flush();
+            file->flush();
 
             data_ptr += r;
             len -= r;
@@ -807,7 +790,8 @@ private:
         sftp_reply_status(msg, SSH_FX_OK, "");
     }
 
-    SftpHandleMap handle_map;
+    std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
+    std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
     const sftp_session sftp_server;
     const std::unordered_map<int, int> gid_map;
     const std::unordered_map<int, int> uid_map;
