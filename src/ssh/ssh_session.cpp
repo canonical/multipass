@@ -24,6 +24,7 @@
 #include <multipass/utils.h>
 
 #include <libssh/callbacks.h>
+#include <libssh/socket.h>
 
 #include <array>
 #include <mutex>
@@ -115,6 +116,14 @@ mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host,
 mp::SSHProcess mp::SSHSession::exec(const std::vector<std::string>& args)
 {
     return {session.get(), utils::to_cmd(args, utils::QuoteType::no_quotes)};
+}
+
+void mp::SSHSession::force_shutdown()
+{
+    auto socket = ssh_get_fd(session.get());
+
+    const int shutdown_read_and_writes = 2;
+    shutdown(socket, shutdown_read_and_writes);
 }
 
 void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
