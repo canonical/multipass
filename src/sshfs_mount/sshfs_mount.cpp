@@ -341,24 +341,39 @@ private:
 
         attr.size = file_info.size();
 
-        auto map = uid_map.find(file_info.ownerId());
-        if (map != uid_map.end())
+        const auto no_id_info_available = static_cast<uint>(-2);
+        if (file_info.ownerId() == no_id_info_available)
         {
-            attr.uid = map->second;
+            attr.uid = vm_user_pair.first;
         }
         else
         {
-            attr.uid = file_info.ownerId();
+            auto map = uid_map.find(file_info.ownerId());
+            if (map != uid_map.end())
+            {
+                attr.uid = map->second;
+            }
+            else
+            {
+                attr.uid = file_info.ownerId();
+            }
         }
 
-        auto gmap = gid_map.find(file_info.groupId());
-        if (gmap != gid_map.end())
+        if (file_info.groupId() == no_id_info_available)
         {
-            attr.gid = gmap->second;
+            attr.gid = vm_user_pair.second;
         }
         else
         {
-            attr.gid = file_info.groupId();
+            auto map = gid_map.find(file_info.groupId());
+            if (map != gid_map.end())
+            {
+                attr.gid = map->second;
+            }
+            else
+            {
+                attr.gid = file_info.groupId();
+            }
         }
 
         attr.permissions = QString::number(file_info.permissions() & 07777, 16).toUInt(nullptr, 8);
