@@ -19,8 +19,8 @@
 
 #include "qemu_virtual_machine.h"
 #include "dnsmasq_server.h"
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/start_exception.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 

@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
@@ -185,23 +186,28 @@ auto get_vm_user_and_group_names(mp::SSHSession* session)
     std::pair<std::string, std::string> vm_user_group;
 
     QString cmd = "id -nu";
-    auto ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_group.first = ssh_process.get_output_streams()[0];
+    auto ssh_process = session->exec({cmd.toStdString()});
+    vm_user_group.first = ssh_process.read_std_output();
 
     cmd = "id -ng";
-    ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_group.second = ssh_process.get_output_streams()[0];
+    ssh_process = session->exec({cmd.toStdString()});
+    vm_user_group.second = ssh_process.read_std_output();
 
     return vm_user_group;
 }
 
 auto create_sshfs_process(mp::SSHSession* session, const QString& target, const QString& sshfs_cmd)
 {
-    QString cmd(QString("sudo mkdir -p \"%1\"").arg(target));
-    auto ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
+    QString cmd("which sshfs");
+    auto ssh_process = session->exec({cmd.toStdString()});
+    if (ssh_process.exit_code() != 0)
+        throw mp::SSHFSMissingError();
+
+    cmd = QString("sudo mkdir -p \"%1\"").arg(target);
+    ssh_process = session->exec({cmd.toStdString()});
     if (ssh_process.exit_code() != 0)
     {
-        throw std::runtime_error(ssh_process.get_output_streams()[1]);
+        throw std::runtime_error(ssh_process.read_std_error());
     }
 
     auto vm_user_group_names = get_vm_user_and_group_names(session);
@@ -209,13 +215,13 @@ auto create_sshfs_process(mp::SSHSession* session, const QString& target, const 
               .arg(QString::fromStdString(vm_user_group_names.first).simplified())
               .arg(QString::fromStdString(vm_user_group_names.second).simplified())
               .arg(target);
-    ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
+    ssh_process = session->exec({cmd.toStdString()});
     if (ssh_process.exit_code() != 0)
     {
-        throw std::runtime_error(ssh_process.get_output_streams()[1]);
+        throw std::runtime_error(ssh_process.read_std_error());
     }
 
-    return session->exec({sshfs_cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
+    return session->exec({sshfs_cmd.toStdString()});
 }
 
 auto get_vm_user_pair(mp::SSHSession* session)
@@ -223,12 +229,12 @@ auto get_vm_user_pair(mp::SSHSession* session)
     std::pair<int, int> vm_user_pair;
 
     QString cmd = "id -u";
-    auto ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_pair.first = std::stoi(ssh_process.get_output_streams()[0]);
+    auto ssh_process = session->exec({cmd.toStdString()});
+    vm_user_pair.first = std::stoi(ssh_process.read_std_output());
 
     cmd = "id -g";
-    ssh_process = session->exec({cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
-    vm_user_pair.second = std::stoi(ssh_process.get_output_streams()[0]);
+    ssh_process = session->exec({cmd.toStdString()});
+    vm_user_pair.second = std::stoi(ssh_process.read_std_output());
 
     return vm_user_pair;
 }
@@ -240,15 +246,15 @@ auto sshfs_pid_from(mp::SSHSession* session, const QString& source, const QStrin
     // Make sure sshfs actually runs
     std::this_thread::sleep_for(250ms);
     QString pgrep_cmd(QString("pgrep -fx \"sshfs.*%1.*%2\"").arg(source).arg(target));
-    auto ssh_process = session->exec({pgrep_cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
+    auto ssh_process = session->exec({pgrep_cmd.toStdString()});
 
-    return QString::fromStdString(ssh_process.get_output_streams()[0]);
+    return QString::fromStdString(ssh_process.read_std_output());
 }
 
 void stop_sshfs_process(mp::SSHSession* session, const QString& sshfs_pid)
 {
     QString kill_cmd(QString("sudo kill %1").arg(sshfs_pid));
-    session->exec({kill_cmd.toStdString()}, mp::utils::QuoteType::no_quotes);
+    session->exec({kill_cmd.toStdString()});
 }
 
 class SftpServer
@@ -598,13 +604,19 @@ private:
         handle->file->seek(msg->offset);
         auto r = handle->file->read(data.data(), len);
 
-        if (r <= 0 && (len > 0))
+        if (r < 0)
+        {
+            sftp_reply_status(msg, SSH_FX_FAILURE, handle->file->errorString().toStdString().c_str());
+        }
+        else if (r == 0)
         {
             sftp_reply_status(msg, SSH_FX_EOF, "End of file");
             return;
         }
-
-        sftp_reply_data(msg, data.constData(), r);
+        else
+        {
+            sftp_reply_data(msg, data.constData(), r);
+        }
     }
 
     void handle_readdir(sftp_client_message msg)
@@ -807,12 +819,13 @@ private:
         do
         {
             auto r = handle->file->write(data_ptr, len);
-
             if (r < 0)
             {
                 reply_status(msg);
                 return;
             }
+
+            handle->file->flush();
 
             data_ptr += r;
             len -= r;
@@ -846,10 +859,7 @@ mp::SshfsMount::SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_
 {
     if (sshfs_pid.isEmpty())
     {
-        if (sshfs_process.exit_code() == 127)
-            throw sshfs_process.exit_code();
-        else
-            throw std::runtime_error(sshfs_process.get_output_streams()[1]);
+        throw std::runtime_error(sshfs_process.read_std_error());
     }
 }
 

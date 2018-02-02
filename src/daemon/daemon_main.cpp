@@ -36,6 +36,7 @@
 
 namespace
 {
+
 sigset_t make_and_block_signals(std::vector<int> sigs)
 {
     sigset_t sigset;
@@ -100,7 +101,6 @@ try
 {
     QCoreApplication app(argc, argv);
     UnixSignalHandler handler(app);
-
     auto config = multipass::DaemonConfigBuilder{}.build();
     auto server_address = config->server_address;
     multipass::Daemon daemon(std::move(config));

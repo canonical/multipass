@@ -18,9 +18,10 @@
  */
 
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/ssh/throw_on_error.h>
 
+#include <multipass/ssh/throw_on_error.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/utils.h>
 
 #include <libssh/callbacks.h>
 
@@ -31,6 +32,7 @@
 #include <thread>
 
 namespace mp = multipass;
+namespace utils = multipass::utils;
 
 namespace
 {
@@ -110,14 +112,9 @@ mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host,
 {
 }
 
-mp::SSHProcess mp::SSHSession::exec(const std::vector<std::string>& args, const mp::utils::QuoteType quote_type)
+mp::SSHProcess mp::SSHSession::exec(const std::vector<std::string>& args)
 {
-    if (!ssh_is_connected(session.get()))
-        throw std::runtime_error("SSH session is not connected");
-
-    SSHProcess ssh_process{session.get()};
-    ssh_process.exec(to_cmd(args, quote_type));
-    return ssh_process;
+    return {session.get(), utils::to_cmd(args, utils::QuoteType::no_quotes)};
 }
 
 void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
@@ -126,7 +123,6 @@ void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::c
     using namespace std::literals::chrono_literals;
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
-    bool ssh_up{false};
     while (std::chrono::steady_clock::now() < deadline)
     {
         precondition_check();
@@ -134,8 +130,7 @@ void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::c
         try
         {
             mp::SSHSession session{host, port};
-            ssh_up = true;
-            break;
+            return;
         }
         catch (const std::exception&)
         {
@@ -143,11 +138,11 @@ void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::c
         }
     }
 
-    if (!ssh_up)
-        throw std::runtime_error("timed out waiting for ssh service to start");
+    throw std::runtime_error("timed out waiting for ssh service to start");
 }
 
-ssh_session mp::SSHSession::get_ssh_session_ptr()
+mp::SSHSession::operator ssh_session() const
 {
     return session.get();
 }
+

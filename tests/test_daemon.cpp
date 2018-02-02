@@ -165,7 +165,6 @@ TEST_F(Daemon, receives_commands)
 
     EXPECT_CALL(daemon, create(_, _, _));
     EXPECT_CALL(daemon, empty_trash(_, _, _));
-// Expect this is called twice due to the connect and exec commands using the same call
     EXPECT_CALL(daemon, ssh_info(_, _, _)).Times(2);
     EXPECT_CALL(daemon, info(_, _, _));
     EXPECT_CALL(daemon, list(_, _, _));

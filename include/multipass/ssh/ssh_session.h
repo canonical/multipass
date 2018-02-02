@@ -21,7 +21,6 @@
 #define MULTIPASS_SSH_H
 
 #include <multipass/ssh/ssh_process.h>
-#include <multipass/utils.h>
 
 #include <libssh/libssh.h>
 
@@ -43,11 +42,10 @@ public:
     static void wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
                                   std::function<void()> precondition_check);
 
-    SSHProcess exec(const std::vector<std::string>& args,
-                    const utils::QuoteType quote_type = utils::QuoteType::no_quotes);
+    SSHProcess exec(const std::vector<std::string>& args);
 
 private:
-    ssh_session get_ssh_session_ptr();
+    operator ssh_session() const;
 
     SSHSession(const std::string& host, int port, const SSHKeyProvider* key_provider);
     std::unique_ptr<ssh_session_struct, void(*)(ssh_session)> session;
