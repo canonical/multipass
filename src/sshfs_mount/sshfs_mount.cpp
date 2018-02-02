@@ -402,7 +402,6 @@ private:
     void handle_close(sftp_client_message msg)
     {
         auto handle = handle_from_msg(msg);
-
         if (!handle)
         {
             sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "close: invalid handle");
@@ -410,11 +409,6 @@ private:
         }
 
         sftp_handle_remove(sftp_server, handle);
-
-        if (handle->type == SSH_FILEXFER_TYPE_REGULAR)
-        {
-            handle->file->close();
-        }
 
         handle_map.erase(handle);
         sftp_reply_status(msg, SSH_FX_OK, nullptr);
