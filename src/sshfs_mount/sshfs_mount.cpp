@@ -157,7 +157,7 @@ QString longname_from(const QFileInfo& file_info)
 
 auto to_qt_permissions(int perms)
 {
-    QFileDevice::Permissions out;
+    QFile::Permissions out;
 
     if (perms & Permissions::read_user)
         out |= QFileDevice::ReadUser;
@@ -177,6 +177,32 @@ auto to_qt_permissions(int perms)
         out |= QFileDevice::WriteOther;
     if (perms & Permissions::exec_other)
         out |= QFileDevice::ExeOther;
+
+    return out;
+}
+
+auto to_unix_permissions(QFile::Permissions perms)
+{
+    int out = 0;
+
+    if (perms & QFileDevice::ReadUser)
+        out |= Permissions::read_user;
+    if (perms & QFileDevice::WriteUser)
+        out |= Permissions::write_user;
+    if (perms & QFileDevice::ExeUser)
+        out |= Permissions::exec_user;
+    if (perms & QFileDevice::ReadGroup)
+        out |= Permissions::read_group;
+    if (perms & QFileDevice::WriteGroup)
+        out |= Permissions::write_group;
+    if (perms & QFileDevice::ExeGroup)
+        out |= Permissions::exec_group;
+    if (perms & QFileDevice::ReadOther)
+        out |= Permissions::read_other;
+    if (perms & QFileDevice::WriteOther)
+        out |= Permissions::write_other;
+    if (perms & QFileDevice::ExeOther)
+        out |= Permissions::exec_other;
 
     return out;
 }
@@ -398,7 +424,7 @@ private:
             }
         }
 
-        attr.permissions = QString::number(file_info.permissions() & 07777, 16).toUInt(nullptr, 8);
+        attr.permissions = to_unix_permissions(file_info.permissions());
         attr.atime = file_info.lastRead().toUTC().toMSecsSinceEpoch() / 1000;
         attr.mtime = file_info.lastModified().toUTC().toMSecsSinceEpoch() / 1000;
         attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
