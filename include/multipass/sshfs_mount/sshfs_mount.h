@@ -48,10 +48,8 @@ signals:
     void finished();
 
 private:
-    std::function<SSHSession()> make_session;
     SSHSession ssh_session;
     SSHProcess sshfs_process;
-    const QString sshfs_pid;
     const std::unordered_map<int, int> gid_map;
     const std::unordered_map<int, int> uid_map;
     std::thread mount_thread;

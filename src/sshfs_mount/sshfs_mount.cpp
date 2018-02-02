@@ -219,7 +219,7 @@ auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::u
 
 auto sshfs_cmd_from(const QString& source, const QString& target)
 {
-    return QString("sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other -o reconnect :%1 \"%2\"")
+    return QString("sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :%1 \"%2\"")
         .arg(format_path(source))
         .arg(target);
 }
@@ -239,7 +239,21 @@ auto get_vm_user_and_group_names(mp::SSHSession& session)
     return vm_user_group;
 }
 
-auto create_sshfs_process(mp::SSHSession& session, const QString& target, const QString& sshfs_cmd)
+void check_sshfs_is_running(mp::SSHSession& session, mp::SSHProcess& sshfs_process, const QString& source,
+                            const QString& target)
+{
+    using namespace std::literals::chrono_literals;
+
+    // Make sure sshfs actually runs
+    std::this_thread::sleep_for(250ms);
+    QString pgrep_cmd(QString("pgrep -fx \"sshfs.*%1.*%2\"").arg(source).arg(target));
+    auto ssh_process = session.exec({pgrep_cmd.toStdString()});
+
+    if (ssh_process.read_std_output().empty())
+        throw std::runtime_error(sshfs_process.read_std_error());
+}
+
+auto create_sshfs_process(mp::SSHSession& session, const QString& source, const QString& target)
 {
     QString cmd("which sshfs");
     auto ssh_process = session.exec({cmd.toStdString()});
@@ -264,7 +278,12 @@ auto create_sshfs_process(mp::SSHSession& session, const QString& target, const 
         throw std::runtime_error(ssh_process.read_std_error());
     }
 
-    return session.exec({sshfs_cmd.toStdString()});
+    auto sshfs_cmd = sshfs_cmd_from(source, target);
+    ssh_process = session.exec({sshfs_cmd.toStdString()});
+
+    check_sshfs_is_running(session, ssh_process, source, target);
+
+    return ssh_process;
 }
 
 auto get_vm_user_pair(mp::SSHSession& session)
@@ -280,24 +299,6 @@ auto get_vm_user_pair(mp::SSHSession& session)
     vm_user_pair.second = std::stoi(ssh_process.read_std_output());
 
     return vm_user_pair;
-}
-
-auto sshfs_pid_from(mp::SSHSession& session, const QString& source, const QString& target)
-{
-    using namespace std::literals::chrono_literals;
-
-    // Make sure sshfs actually runs
-    std::this_thread::sleep_for(250ms);
-    QString pgrep_cmd(QString("pgrep -fx \"sshfs.*%1.*%2\"").arg(source).arg(target));
-    auto ssh_process = session.exec({pgrep_cmd.toStdString()});
-
-    return QString::fromStdString(ssh_process.read_std_output());
-}
-
-void stop_sshfs_process(mp::SSHSession& session, const QString& sshfs_pid)
-{
-    QString kill_cmd(QString("sudo kill %1").arg(sshfs_pid));
-    session.exec({kill_cmd.toStdString()});
 }
 
 class SftpServer
@@ -859,21 +860,15 @@ private:
 };
 } // namespace anonymous
 
-mp::SshfsMount::SshfsMount(std::function<SSHSession()> session_factory, const QString& source, const QString& target,
+mp::SshfsMount::SshfsMount(std::function<SSHSession()> make_session, const QString& source, const QString& target,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
                            std::ostream& cout)
-    : make_session{session_factory},
-      ssh_session{make_session()},
-      sshfs_process{create_sshfs_process(ssh_session, target, sshfs_cmd_from(source, target))},
-      sshfs_pid{sshfs_pid_from(ssh_session, source, target)},
+    : ssh_session{make_session()},
+      sshfs_process{create_sshfs_process(ssh_session, source, target)},
       gid_map{gid_map},
       uid_map{uid_map},
       cout{cout}
 {
-    if (sshfs_pid.isEmpty())
-    {
-        throw std::runtime_error(sshfs_process.read_std_error());
-    }
 }
 
 mp::SshfsMount::~SshfsMount()
@@ -904,18 +899,7 @@ void mp::SshfsMount::run()
 
 void mp::SshfsMount::stop()
 {
-    try
-    {
-        auto session = make_session();
-        stop_sshfs_process(session, sshfs_pid);
-    }
-    catch (const std::exception& e)
-    {
-        cout << e.what() << "\n";
-    }
-
+    ssh_session.force_shutdown();
     if (mount_thread.joinable())
-    {
         mount_thread.join();
-    }
 }

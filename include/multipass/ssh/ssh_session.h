@@ -43,6 +43,7 @@ public:
                                   std::function<void()> precondition_check);
 
     SSHProcess exec(const std::vector<std::string>& args);
+    void force_shutdown();
 
 private:
     operator ssh_session() const;
