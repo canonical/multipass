@@ -33,6 +33,19 @@ namespace mp = multipass;
 
 namespace
 {
+enum Permissions
+{
+    read_user = 0400,
+    write_user = 0200,
+    exec_user = 0100,
+    read_group = 040,
+    write_group = 020,
+    exec_group = 010,
+    read_other = 04,
+    write_other = 02,
+    exec_other = 01
+};
+
 QString sanitize_path_name(const QString& path_name)
 {
     if (path_name.contains(" "))
@@ -142,10 +155,30 @@ QString longname_from(const QFileInfo& file_info)
     return buff;
 }
 
-// Convert passed in octal to same hex digits for Qt Permissions flags
-auto convert_permissions(int perms)
+auto to_qt_permissions(int perms)
 {
-    return (QFileDevice::Permissions)(QString::number(perms & 07777, 8).toUInt(nullptr, 16));
+    QFileDevice::Permissions out;
+
+    if (perms & Permissions::read_user)
+        out |= QFileDevice::ReadUser;
+    if (perms & Permissions::write_user)
+        out |= QFileDevice::WriteUser;
+    if (perms & Permissions::exec_user)
+        out |= QFileDevice::ExeUser;
+    if (perms & Permissions::read_group)
+        out |= QFileDevice::ReadGroup;
+    if (perms & Permissions::write_group)
+        out |= QFileDevice::WriteGroup;
+    if (perms & Permissions::exec_group)
+        out |= QFileDevice::ExeGroup;
+    if (perms & Permissions::read_other)
+        out |= QFileDevice::ReadOther;
+    if (perms & Permissions::write_other)
+        out |= QFileDevice::WriteOther;
+    if (perms & Permissions::exec_other)
+        out |= QFileDevice::ExeOther;
+
+    return out;
 }
 
 template <typename T>
@@ -432,7 +465,7 @@ private:
             return;
         }
 
-        if (!QFile::setPermissions(filename, convert_permissions(msg->attr->permissions)))
+        if (!QFile::setPermissions(filename, to_qt_permissions(msg->attr->permissions)))
         {
             reply_status(msg);
             return;
@@ -505,7 +538,7 @@ private:
 
         if (!exists)
         {
-            if (!file->setPermissions(convert_permissions(msg->attr->permissions)))
+            if (!file->setPermissions(to_qt_permissions(msg->attr->permissions)))
             {
                 reply_status(msg);
                 return;
@@ -698,7 +731,7 @@ private:
 
         if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
         {
-            if (!QFile::setPermissions(filename, convert_permissions(msg->attr->permissions)))
+            if (!QFile::setPermissions(filename, to_qt_permissions(msg->attr->permissions)))
             {
                 reply_status(msg);
                 return;
