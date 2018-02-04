@@ -45,7 +45,10 @@ function(generate_grpc_cpp SRCS DEST)
   set_source_files_properties(${${SRCS}} ${HDRS} PROPERTIES GENERATED TRUE)
   # Also protobuf uses a compiler extension (namely extended-offsetof), which -Wall can warn about
   # See https://github.com/google/protobuf/issues/1947
-  set_source_files_properties(${${SRCS}} PROPERTIES COMPILE_FLAGS "-Wno-extended-offsetof")
+  CHECK_CXX_COMPILER_FLAG("-Wno-extended-offsetof" COMPILER_SUPPORTS_NO_EXT_OFFSETOF)
+  if(COMPILER_SUPPORTS_NO_EXT_OFFSETOF)
+    set_source_files_properties(${${SRCS}} PROPERTIES COMPILE_FLAGS "-Wno-extended-offsetof")
+  endif()
   set(${SRCS} ${${SRCS}} PARENT_SCOPE)
 endfunction()
 
