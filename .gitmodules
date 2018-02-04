@@ -8,4 +8,4 @@
 	ignore = dirty
 [submodule "3rd-party/libssh/libssh"]
 	path = 3rd-party/libssh/libssh
-	url = git://git.libssh.org/projects/libssh.git
+	url = https://github.com/albaguirre/libssh.git
