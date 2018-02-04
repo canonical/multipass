@@ -64,6 +64,7 @@ target_link_libraries(gRPC INTERFACE
 # Disable tests here to avoid double-including gtest
 option(YAML_CPP_BUILD_TOOLS OFF)
 option(YAML_CPP_BUILD_CONTRIB OFF)
+option(YAML_CPP_BUILD_TESTS OFF)
 
 add_subdirectory(yaml-cpp EXCLUDE_FROM_ALL)
 
