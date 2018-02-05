@@ -17,12 +17,12 @@
 
 #include <multipass/cli/argparser.h>
 
+#include <fmt/format.h>
+
 #include <QFileInfo>
 #include <QRegExp>
 
 #include <algorithm>
-#include <iomanip>
-#include <sstream>
 
 /*
  * ArgParser - a wrapping of a QCommandLineParser where the concept of a "command"
@@ -48,29 +48,18 @@ auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
     return max_elem->name().length();
 }
 
-auto format_into_column(const std::string& name, std::string::size_type column_size, int padding)
+auto format_into_column(const std::string& name, std::string::size_type column_size)
 {
-    std::stringstream out;
-
-    if (padding > 0)
-        out << std::setw(padding) << " ";
-
-    out << std::setw(column_size) << std::left << name;
-
-    if (padding > 0)
-        out << std::setw(padding) << " ";
-
-    return out.str();
+    return fmt::format("  {:<{}}  ", name, column_size);
 }
 
 QString format_short_help_for(const std::vector<cmd::Command::UPtr>& commands)
 {
     const auto column_size = max_command_string_length(commands);
-    const auto column_pad = 2;
     QString output;
     for (const auto& c : commands)
     {
-        output += QString::fromStdString(format_into_column(c->name(), column_size, column_pad));
+        output += QString::fromStdString(format_into_column(c->name(), column_size));
         output += c->short_help() + "\n";
     }
     return output;
