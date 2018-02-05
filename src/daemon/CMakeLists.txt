@@ -41,6 +41,7 @@ target_link_libraries(daemon
 add_executable(multipassd daemon_main.cpp)
 
 target_link_libraries(multipassd
+  fmt
   daemon)
 
 install(TARGETS multipassd
