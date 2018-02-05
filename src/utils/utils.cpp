@@ -17,7 +17,7 @@
 
 #include <multipass/utils.h>
 
-#include <sstream>
+#include <fmt/format.h>
 
 #include <QDir>
 #include <QFileInfo>
@@ -27,9 +27,11 @@ namespace mp = multipass;
 
 namespace
 {
-auto quote_for(const std::string& arg)
+auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
 {
-    return arg.find('\'') == std::string::npos ? '\'' : '"';
+    if (quote_type == mp::utils::QuoteType::no_quotes)
+        return "";
+    return arg.find('\'') == std::string::npos ? "'" : "\"";
 }
 }
 
@@ -63,20 +65,16 @@ bool mp::utils::invalid_target_path(const QString& target_path)
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
 {
-    std::stringstream cmd;
+    fmt::MemoryWriter out;
     for (auto const& arg : args)
     {
-        if (quote_type == QuoteType::no_quotes)
-        {
-            cmd << arg << " ";
-        }
-        else
-        {
-            const auto quote = quote_for(arg);
-            cmd << quote << arg << quote << " ";
-        }
+        out.write("{0}{1}{0} ", quote_for(arg, quote_type), arg);
     }
-    return cmd.str();
+
+    // Remove the last space inserted
+    auto cmd = out.str();
+    cmd.pop_back();
+    return cmd;
 }
 
 bool mp::utils::run_cmd(QString cmd, QStringList args)
