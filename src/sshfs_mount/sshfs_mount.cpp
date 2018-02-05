@@ -431,19 +431,17 @@ private:
         attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
                      SSH_FILEXFER_ATTR_ACMODTIME;
 
-        if (file_info.isDir())
+        if (file_info.isSymLink())
+        {
+            attr.permissions = attr.permissions | SSH_S_IFLNK | 0777;
+        }
+        else if (file_info.isDir())
         {
             attr.permissions = attr.permissions | SSH_S_IFDIR;
         }
-
-        if (file_info.isFile())
+        else if (file_info.isFile())
         {
             attr.permissions = attr.permissions | SSH_S_IFREG;
-        }
-
-        if (file_info.isSymLink())
-        {
-            attr.permissions = attr.permissions | SSH_S_IFLNK;
         }
 
         return attr;
@@ -476,6 +474,10 @@ private:
         }
 
         QFileInfo file_info(*file);
+
+        if (file_info.isSymLink())
+            file_info = QFileInfo(file_info.symLinkTarget());
+
         auto attr = attr_from(file_info);
 
         sftp_reply_attr(msg, &attr);
@@ -800,6 +802,9 @@ private:
             reply_status(msg, ENOENT);
             return;
         }
+
+        if (follow && file_info.isSymLink())
+            file_info = QFileInfo(file_info.symLinkTarget());
 
         auto attr = attr_from(file_info);
 
