@@ -81,3 +81,9 @@ target_link_libraries(yaml INTERFACE
 
 # libssh config
 add_subdirectory(libssh EXCLUDE_FROM_ALL)
+
+# fmt header only library
+add_library(fmt INTERFACE)
+target_compile_definitions(fmt INTERFACE FMT_HEADER_ONLY=1)
+target_include_directories(fmt INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/fmt)
