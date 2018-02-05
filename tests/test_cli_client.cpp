@@ -240,6 +240,16 @@ TEST_F(Client, info_cmd_help_ok)
     EXPECT_THAT(send_command({"info", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, info_cmd_succeeds_with_all)
+{
+    EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, info_cmd_fails_with_names_and_all)
+{
+    EXPECT_THAT(send_command({"info", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 // list cli tests
 TEST_F(Client, list_cmd_ok_no_args)
 {

@@ -609,7 +609,20 @@ grpc::Status mp::Daemon::info(grpc::ServerContext* context, const InfoRequest* r
 try // clang-format on
 {
     std::string error_messages;
-    for (const auto& name : request->instance_name())
+    std::vector<decltype(vm_instances)::key_type> instances_for_info;
+
+    if (request->instance_name().empty())
+    {
+        for (auto& pair : vm_instances)
+            instances_for_info.push_back(pair.first);
+    }
+    else
+    {
+        for (const auto& name : request->instance_name())
+            instances_for_info.push_back(name);
+    }
+
+    for (const auto& name : instances_for_info)
     {
         auto it = vm_instances.find(name);
         bool in_trash{false};
