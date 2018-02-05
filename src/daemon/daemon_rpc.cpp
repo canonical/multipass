@@ -23,6 +23,8 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 
+#include <fmt/format.h>
+
 #include <chrono>
 #include <stdexcept>
 
@@ -44,7 +46,7 @@ void throw_if_server_exists(const std::string& address)
     auto status = stub->ping(&context, request, &reply);
 
     if (status.error_code() == grpc::StatusCode::OK)
-        throw std::runtime_error("a multipass daemon already exists at " + address);
+        throw std::runtime_error(fmt::format("a multipass daemon already exists at {}", address));
 }
 
 auto make_server(const std::string& server_address, multipass::Rpc::Service* service)
@@ -57,7 +59,7 @@ auto make_server(const std::string& server_address, multipass::Rpc::Service* ser
 
     std::unique_ptr<grpc::Server> server{builder.BuildAndStart()};
     if (server == nullptr)
-        throw std::runtime_error("Failed to start multipass gRPC service at " + server_address);
+        throw std::runtime_error(fmt::format("Failed to start multipass gRPC service at {}", server_address));
 
     return server;
 }
@@ -70,7 +72,7 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, std::ostream& cout, 
 
 void mp::DaemonRpc::run()
 {
-    cout << "gRPC listening on " << server_address << "\n";
+    cout << fmt::format("gRPC listening on {}\n", server_address);
     server->Wait();
 }
 
