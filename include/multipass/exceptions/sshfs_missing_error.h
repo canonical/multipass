@@ -19,28 +19,16 @@
 #define MULTIPASS_SSHFS_MISSING_ERROR_H
 
 #include <stdexcept>
-#include <string>
 
 namespace multipass
 {
 class SSHFSMissingError : public std::runtime_error
 {
 public:
-    SSHFSMissingError(const std::string& instance_name) : runtime_error{""}, instance_name{instance_name}
+    SSHFSMissingError() : runtime_error{"sshfs missing"}
     {
     }
 
-    SSHFSMissingError() : runtime_error{""}
-    {
-    }
-
-    std::string name() const
-    {
-        return instance_name;
-    }
-
-private:
-    const std::string instance_name;
 };
 }
 #endif // MULTIPASS_SSHFS_MISSING_ERROR_H
