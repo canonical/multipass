@@ -26,6 +26,8 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 
+#include <fmt/format.h>
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -198,9 +200,8 @@ QDir make_dir(const QString& name, const QDir& cache_dir)
 {
     if (!cache_dir.mkpath(name))
     {
-        qDebug() << "make_dir: name: " << name;
         QString dir{cache_dir.filePath(name)};
-        throw std::runtime_error("unable to create directory \'" + dir.toStdString() + "\'");
+        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir.toStdString()));
     }
 
     QDir new_dir{cache_dir};
@@ -380,7 +381,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     for (const auto& key : keys_to_update)
     {
         const auto& record = prepared_image_records[key];
-        cout << "Updating " << record.query.release << " source image to latest:\n";
+        cout << fmt::format("Updating {} source image to latest:\n", record.query.release);
         fetch_image(fetch_type, record.query, prepare, monitor);
     }
 }
