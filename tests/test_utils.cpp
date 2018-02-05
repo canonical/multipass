@@ -17,6 +17,7 @@
 
 #include <multipass/utils.h>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 namespace mp = multipass;
@@ -168,4 +169,32 @@ TEST(Utils, path_home_ubuntu_foo_valid)
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/ubuntu/foo")));
+}
+
+TEST(Utils, to_cmd_output_has_no_quotes)
+{
+    std::vector<std::string> args{"hello", "world"};
+    auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::no_quotes);
+    EXPECT_THAT(output, ::testing::StrEq("hello world"));
+}
+
+TEST(Utils, to_cmd_arguments_are_single_quoted)
+{
+    std::vector<std::string> args{"hello", "world"};
+    auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
+    EXPECT_THAT(output, ::testing::StrEq("'hello' 'world'"));
+}
+
+TEST(Utils, to_cmd_arguments_are_double_quoted_when_needed)
+{
+    std::vector<std::string> args{"it's", "me"};
+    auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
+    EXPECT_THAT(output, ::testing::StrEq("\"it's\" 'me'"));
+}
+
+TEST(Utils, to_cmd_arguments_are_single_quoted_when_needed)
+{
+    std::vector<std::string> args{"they", "said", "\"please\""};
+    auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
+    EXPECT_THAT(output, ::testing::StrEq("'they' 'said' '\"please\"'"));
 }
