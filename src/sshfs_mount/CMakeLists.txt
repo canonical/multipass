@@ -23,5 +23,7 @@ add_library(sshfs_mount STATIC
   ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount.h)
 
 target_link_libraries(sshfs_mount
+  fmt
   ssh
+  utils
   Qt5::Core)

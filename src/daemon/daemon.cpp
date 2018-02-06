@@ -1309,8 +1309,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
     };
 
     auto sshfs_mount =
-        std::make_unique<mp::SshfsMount>(session_factory, QString::fromStdString(source_path),
-                                         QString::fromStdString(target_path), gid_map, uid_map, config->cout);
+        std::make_unique<mp::SshfsMount>(session_factory, source_path, target_path, gid_map, uid_map, config->cout);
 
     sshfs_mount->run();
 
