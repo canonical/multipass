@@ -198,3 +198,11 @@ TEST(Utils, to_cmd_arguments_are_single_quoted_when_needed)
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
     EXPECT_THAT(output, ::testing::StrEq("'they' 'said' '\"please\"'"));
 }
+
+TEST(Utils, trim_end_actually_trims_end)
+{
+    std::string s{"I'm a great\n\t string \n \f \n \r \t   \v"};
+    mp::utils::trim_end(s);
+
+    EXPECT_THAT(s, ::testing::StrEq("I'm a great\n\t string"));
+}
