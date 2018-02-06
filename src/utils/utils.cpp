@@ -88,3 +88,10 @@ bool mp::utils::run_cmd(QString cmd, QStringList args)
 
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
+
+std::string& mp::utils::trim_end(std::string& s)
+{
+    auto rev_it = std::find_if(s.rbegin(), s.rend(), [](char ch) { return !std::isspace(ch); });
+    s.erase(rev_it.base(), s.end());
+    return s;
+}
