@@ -21,19 +21,16 @@
 
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/ssh/ssh_key_provider.h>
-#include <multipass/utils.h>
 
 #include <libssh/callbacks.h>
 #include <libssh/socket.h>
 
-#include <array>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
 
 namespace mp = multipass;
-namespace utils = multipass::utils;
 
 namespace
 {
@@ -113,9 +110,9 @@ mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host,
 {
 }
 
-mp::SSHProcess mp::SSHSession::exec(const std::vector<std::string>& args)
+mp::SSHProcess mp::SSHSession::exec(const std::string& cmd)
 {
-    return {session.get(), utils::to_cmd(args, utils::QuoteType::no_quotes)};
+    return {session.get(), cmd};
 }
 
 void mp::SSHSession::force_shutdown()
