@@ -23,6 +23,8 @@
 #include <QFileInfo>
 #include <QProcess>
 
+#include <regex>
+
 namespace mp = multipass;
 
 namespace
@@ -94,4 +96,9 @@ std::string& mp::utils::trim_end(std::string& s)
     auto rev_it = std::find_if(s.rbegin(), s.rend(), [](char ch) { return !std::isspace(ch); });
     s.erase(rev_it.base(), s.end());
     return s;
+}
+
+std::string mp::utils::escape_char(const std::string& in, char c)
+{
+    return std::regex_replace(in, std::regex({c}), fmt::format("\\{}", c));
 }

@@ -206,3 +206,10 @@ TEST(Utils, trim_end_actually_trims_end)
 
     EXPECT_THAT(s, ::testing::StrEq("I'm a great\n\t string"));
 }
+
+TEST(Utils, escape_char_actually_escapes)
+{
+    std::string s{"I've got \"quotes\""};
+    auto res = mp::utils::escape_char(s, '"');
+    EXPECT_THAT(res, ::testing::StrEq("I've got \\\"quotes\\\""));
+}
