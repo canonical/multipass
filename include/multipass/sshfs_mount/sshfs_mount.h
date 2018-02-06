@@ -36,7 +36,7 @@ class SshfsMount : public QObject
     Q_OBJECT
 
 public:
-    SshfsMount(std::function<SSHSession()> session_factory, const QString& source, const QString& target,
+    SshfsMount(std::function<SSHSession()> session_factory, const std::string& source, const std::string& target,
                const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
                std::ostream& cout);
     virtual ~SshfsMount();
