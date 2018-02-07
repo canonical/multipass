@@ -112,15 +112,19 @@ message MountInfo {
     repeated MountPaths mount_paths = 2;
 }
 
-message InfoReply {
+message InstanceStatus {
     enum Status {
         RUNNING = 0;
         STOPPED = 1;
         TRASHED = 2;
     }
+    Status status = 1;
+}
+
+message InfoReply {
     message Info {
         string name = 1;
-        Status status = 2;
+        InstanceStatus instance_status = 2;
         string image_release = 3;
         string current_release = 4;
         string id = 5;
@@ -139,12 +143,7 @@ message ListRequest {
 
 message ListVMInstance {
     string name = 1;
-    enum Status {
-        RUNNING = 0;
-        STOPPED = 1;
-        TRASHED = 2;
-    }
-    Status status = 2;
+    InstanceStatus instance_status = 2;
     string ipv4 = 3;
     string ipv6 = 4;
     string current_release = 5;
