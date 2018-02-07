@@ -3,6 +3,9 @@ sudo: required
 
 language: cpp
 
+git:
+  depth: false
+
 branches:
   only:
   - staging
