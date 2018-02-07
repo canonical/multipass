@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
     QCoreApplication app(argc, argv);
     app.setApplicationName("multipass");
 
-    mp::ClientConfig config{mp::Platform::default_server_address(), std::cout, std::cerr};
+    mp::ClientConfig config{mp::platform::default_server_address(), std::cout, std::cerr};
     mp::Client client{config};
 
     return client.run(app.arguments());
