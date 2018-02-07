@@ -27,6 +27,8 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
+#include <fmt/format.h>
+
 #include <QCoreApplication>
 
 #include <grp.h>
@@ -87,7 +89,7 @@ public:
         int sig = -1;
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
-            std::cout << "Received signal: " << sig << "\n";
+            fmt::print("Received signal: {}\n", sig);
         app.quit();
     }
 
@@ -109,10 +111,11 @@ try
 
     app.exec();
 
-    std::cout << "Goodbye!\n";
+    fmt::print("Goodbye!\n");
     return EXIT_SUCCESS;
 }
 catch (const std::exception& e)
 {
-    std::cerr << "Error: " << e.what() << "\n";
+    fmt::print(stderr, "Error: {}\n", e.what());
+    return EXIT_FAILURE;
 }

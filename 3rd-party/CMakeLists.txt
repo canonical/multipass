@@ -1,10 +1,8 @@
-# Add the subdir here to avoid polluting their cmake scope
-if (NOT MSVC)
-  # Workaround for zlib placing its generated zconf.h file in the build dir,
-  # and protobuf not knowing so finding the system version instead
-  include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
-endif ()
+# Workaround for zlib placing its generated zconf.h file in the build dir,
+# and protobuf not knowing so finding the system version instead
+include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
 
+# Add the subdir here to avoid polluting their cmake scope
 add_subdirectory(grpc EXCLUDE_FROM_ALL)
 
 # Generates gRPC and protobuf C++ sources and headers from the given .proto files
@@ -47,7 +45,8 @@ function(generate_grpc_cpp SRCS DEST)
   set_source_files_properties(${${SRCS}} ${HDRS} PROPERTIES GENERATED TRUE)
   # Also protobuf uses a compiler extension (namely extended-offsetof), which -Wall can warn about
   # See https://github.com/google/protobuf/issues/1947
-  if (NOT MSVC)
+  CHECK_CXX_COMPILER_FLAG("-Wno-extended-offsetof" COMPILER_SUPPORTS_NO_EXT_OFFSETOF)
+  if(COMPILER_SUPPORTS_NO_EXT_OFFSETOF)
     set_source_files_properties(${${SRCS}} PROPERTIES COMPILE_FLAGS "-Wno-extended-offsetof")
   endif()
   set(${SRCS} ${${SRCS}} PARENT_SCOPE)
@@ -68,6 +67,7 @@ target_link_libraries(gRPC INTERFACE
 # Disable tests here to avoid double-including gtest
 option(YAML_CPP_BUILD_TOOLS OFF)
 option(YAML_CPP_BUILD_CONTRIB OFF)
+option(YAML_CPP_BUILD_TESTS OFF)
 
 add_subdirectory(yaml-cpp EXCLUDE_FROM_ALL)
 
@@ -130,3 +130,9 @@ endif (APPLE)
 
 # libssh config
 add_subdirectory(libssh EXCLUDE_FROM_ALL)
+
+# fmt header only library
+add_library(fmt INTERFACE)
+target_compile_definitions(fmt INTERFACE FMT_HEADER_ONLY=1)
+target_include_directories(fmt INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/fmt)

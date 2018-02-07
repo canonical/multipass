@@ -41,13 +41,13 @@ std::string status_string(const multipass::ListVMInstance_Status& status)
 
     switch (status)
     {
-    case mp::InfoReply::RUNNING:
+    case mp::ListVMInstance_Status_RUNNING:
         status_val = "RUNNING";
         break;
-    case mp::InfoReply::STOPPED:
+    case mp::ListVMInstance_Status_STOPPED:
         status_val = "STOPPED";
         break;
-    case mp::InfoReply::TRASHED:
+    case mp::ListVMInstance_Status_TRASHED:
         status_val = "DELETED";
         break;
     default:

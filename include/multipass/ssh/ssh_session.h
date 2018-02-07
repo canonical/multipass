@@ -28,7 +28,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace multipass
 {
@@ -42,7 +41,9 @@ public:
     static void wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
                                   std::function<void()> precondition_check);
 
-    SSHProcess exec(const std::vector<std::string>& args);
+    SSHProcess exec(const std::string& cmd);
+
+    void force_shutdown();
 
 private:
     operator ssh_session() const;

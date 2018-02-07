@@ -36,6 +36,7 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
+#include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
@@ -44,7 +45,6 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 
-#include <sstream>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -65,13 +65,10 @@ mp::Query query_from(const mp::CreateRequest* request, const std::string& name)
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone)
 {
-    auto config = YAML::Load(mp::base_cloud_init_config);
-    std::stringstream ssh_key_line;
-    ssh_key_line << "ssh-rsa"
-                 << " " << key_provider.public_key_as_base64() << " "
-                 << "multipass@localhost";
-    config["ssh_authorized_keys"].push_back(ssh_key_line.str());
+    auto ssh_key_line = fmt::format("ssh-rsa {} multipass@localhost", key_provider.public_key_as_base64());
 
+    auto config = YAML::Load(mp::base_cloud_init_config);
+    config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = time_zone;
 
     return config;
@@ -89,18 +86,14 @@ auto make_cloud_init_meta_config(const std::string& name)
 
 auto emit_yaml(YAML::Node& node, const std::string& node_name)
 {
-    using namespace std::string_literals;
     YAML::Emitter emitter;
     emitter.SetIndent(4);
     emitter << node;
     if (!emitter.good())
-    {
-        throw std::runtime_error{"Failed to emit "s + node_name + " cloud-init config: "s + emitter.GetLastError()};
-    }
+        throw std::runtime_error{
+            fmt::format("Failed to emit {} cloud-init config: {}", node_name, emitter.GetLastError())};
 
-    std::stringstream stream;
-    stream << "#cloud-config\n" << emitter.c_str() << "\n";
-    return stream.str();
+    return fmt::format("#cloud-config\n{}\n", emitter.c_str());
 }
 
 auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
@@ -261,13 +254,23 @@ auto validate_create_arguments(const mp::CreateRequest* request)
     return create_error;
 }
 
-auto handle_mount_error(const std::string& instance_name)
+auto grpc_status_for_mount_error(const std::string& instance_name)
 {
     mp::MountError mount_error;
     mount_error.set_error_code(mp::MountError::SSHFS_MISSING);
     mount_error.set_instance_name(instance_name);
 
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Mount failed", mount_error.SerializeAsString());
+}
+
+auto grpc_status_for(fmt::MemoryWriter& errors)
+{
+    // Remove trailing newline due to grpc adding one of it's own
+    auto error_string = errors.str();
+    error_string.pop_back();
+
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        fmt::format("The following errors occured:\n{}", error_string), "");
 }
 
 void wait_until_cloud_init_finished(const std::string& host, int port, const mp::SSHKeyProvider& key_provider,
@@ -352,7 +355,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << "Removing instance " << name << ": " << e.what() << "\n";
+            config->cerr << fmt::format("Removing instance {}: {}\n", name, e.what());
             invalid_specs.push_back(name);
             config->vault->remove(name);
         }
@@ -383,7 +386,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             {
                 if (!done_once)
                 {
-                    config->cout << std::to_string(percentage) << "%";
+                    config->cout << fmt::format("{}%", percentage);
                     done_once = true;
                     if (percentage == 100)
                         config->cout << "\n";
@@ -403,7 +406,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << "Error updating images: " << e.what() << "\n";
+            config->cerr << fmt::format("Error updating images: {}\n", e.what());
         }
     });
     const std::chrono::milliseconds ms = std::chrono::hours(6);
@@ -421,7 +424,7 @@ try // clang-format on
         CreateError create_error;
         create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
 
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "instance \"" + name + "\" already exists",
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" already exists", name),
                             create_error.SerializeAsString());
     }
 
@@ -608,8 +611,21 @@ grpc::Status mp::Daemon::info(grpc::ServerContext* context, const InfoRequest* r
                               InfoReply* response) // clang-format off
 try // clang-format on
 {
-    std::string error_messages;
-    for (const auto& name : request->instance_name())
+    fmt::MemoryWriter errors;
+    std::vector<decltype(vm_instances)::key_type> instances_for_info;
+
+    if (request->instance_name().empty())
+    {
+        for (auto& pair : vm_instances)
+            instances_for_info.push_back(pair.first);
+    }
+    else
+    {
+        for (const auto& name : request->instance_name())
+            instances_for_info.push_back(name);
+    }
+
+    for (const auto& name : instances_for_info)
     {
         auto it = vm_instances.find(name);
         bool in_trash{false};
@@ -618,7 +634,7 @@ try // clang-format on
             it = vm_instance_trash.find(name);
             if (it == vm_instance_trash.end())
             {
-                error_messages.append("instance \"" + name + "\" does not exist\n");
+                errors.write("instance \"{}\" does not exist\n", name);
                 continue;
             }
             in_trash = true;
@@ -695,13 +711,9 @@ try // clang-format on
             info->set_ipv4(vm->ipv4());
         }
     }
-    if (!error_messages.empty())
-    {
-        // Remove the last trailing new line.
-        error_messages.pop_back();
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "The following errors occurred:\n" + error_messages,
-                            "");
-    }
+
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -759,26 +771,23 @@ grpc::Status mp::Daemon::mount(grpc::ServerContext* context, const MountRequest*
                                MountReply* response) // clang-format off
 try // clang-format on
 {
-    std::string error_string{"The following errors occured:\n"};
-    bool failures = false;
-
     QFileInfo source_dir(QString::fromStdString(request->source_path()));
     if (!source_dir.exists())
     {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                            "source \"" + request->source_path() + "\" does not exist", "");
+                            fmt::format("source \"{}\" does not exist", request->source_path()), "");
     }
 
     if (!source_dir.isDir())
     {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                            "source \"" + request->source_path() + "\" is not a directory", "");
+                            fmt::format("source \"{}\" is not a directory", request->source_path()), "");
     }
 
     if (!source_dir.isReadable())
     {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                            "source \"" + request->source_path() + "\" is not readable", "");
+                            fmt::format("source \"{}\" is not readable", request->source_path()), "");
     }
 
     std::unordered_map<int, int> gid_map;
@@ -794,32 +803,28 @@ try // clang-format on
         uid_map[map.host_uid()] = map.instance_uid();
     }
 
+    fmt::MemoryWriter errors;
     for (const auto& path_entry : request->target_paths())
     {
         const auto name = path_entry.instance_name();
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            error_string.append("instance \"" + name + "\" does not exist\n");
-            failures = true;
+            errors.write("instance \"{}\" does not exist\n", name);
             continue;
         }
 
         auto target_path = path_entry.target_path();
-
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
-            error_string.append("Unable to mount to \"" + target_path + "\".\n");
-            failures = true;
+            errors.write("Unable to mount to \"{}\"\n", target_path);
             continue;
         }
 
         auto entry = mount_threads.find(name);
-
         if (entry != mount_threads.end() && entry->second.find(target_path) != entry->second.end())
         {
-            error_string.append("\"" + name + ":" + target_path + "\" is already mounted.\n");
-            failures = true;
+            errors.write("\"{}:{}\" is already mounted\n", name, target_path);
             continue;
         }
 
@@ -827,12 +832,17 @@ try // clang-format on
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
-            auto status = start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
-
-            if (!status.empty())
+            try
             {
-                error_string.append(status);
-                failures = true;
+                start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
+            }
+            catch (const mp::SSHFSMissingError&)
+            {
+                return grpc_status_for_mount_error(name);
+            }
+            catch (const std::exception& e)
+            {
+                errors.write("error mounting \"{}\": {}", target_path, e.what());
                 continue;
             }
         }
@@ -840,8 +850,7 @@ try // clang-format on
         auto& vm_specs = vm_instance_specs[name];
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
-            error_string.append("There is already a mount defined for \"" + name + ":" + target_path + "\".\n");
-            failures = true;
+            errors.write("There is already a mount defined for \"{}:{}\"\n", name, target_path);
             continue;
         }
 
@@ -851,21 +860,10 @@ try // clang-format on
 
     persist_instances();
 
-    if (failures)
-    {
-        // Remove trailing newline due to grpc adding one of it's own
-        error_string.pop_back();
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
 
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_string, "");
-    }
-    else
-    {
-        return grpc::Status::OK;
-    }
-}
-catch (const mp::SSHFSMissingError& e)
-{
-    return handle_mount_error(e.name());
+    return grpc::Status::OK;
 }
 catch (const std::exception& e)
 {
@@ -876,7 +874,7 @@ grpc::Status mp::Daemon::recover(grpc::ServerContext* context, const RecoverRequ
                                  RecoverReply* response) // clang-format off
 try // clang-format on
 {
-    std::string error_messages;
+    fmt::MemoryWriter errors;
     std::vector<decltype(vm_instance_trash)::key_type> instances_to_recover;
     for (const auto& name : request->instance_name())
     {
@@ -885,21 +883,16 @@ try // clang-format on
         {
             it = vm_instances.find(name);
             if (it == vm_instances.end())
-                error_messages.append("instance \"" + name + "\" does not exist\n");
+                errors.write("instance \"{}\" does not exist\n", name);
             else
-                error_messages.append("instance \"" + name + "\" has not been deleted\n");
+                errors.write("instance \"{}\" has not been deleted\n", name);
             continue;
         }
         instances_to_recover.push_back(name);
     }
 
-    if (!error_messages.empty())
-    {
-        // Remove the last trailing new line.
-        error_messages.pop_back();
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "The following errors occurred:\n" + error_messages,
-                            "");
-    }
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
 
     if (instances_to_recover.empty())
     {
@@ -930,12 +923,14 @@ try // clang-format on
     auto it = vm_instances.find(name);
     if (it == vm_instances.end())
     {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "instance \"" + name + "\" does not exist", "");
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" does not exist", name),
+                            "");
     }
 
     if (it->second->current_state() != mp::VirtualMachine::State::running)
     {
-        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "instance \"" + name + "\" is not running", "");
+        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format("instance \"{}\" is not running", name),
+                            "");
     }
 
     response->set_host(it->second->ssh_hostname());
@@ -954,7 +949,6 @@ try // clang-format on
 {
     config->factory->check_hypervisor_support();
 
-    std::string error_messages;
     std::vector<decltype(vm_instances)::key_type> vms;
     for (const auto& name : request->instance_name())
     {
@@ -967,7 +961,7 @@ try // clang-format on
                 mp::StartError start_error;
                 start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
                 start_error.set_instance_name(name);
-                return grpc::Status(grpc::StatusCode::ABORTED, "instance \"" + name + "\" does not exist",
+                return grpc::Status(grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" does not exist", name),
                                     start_error.SerializeAsString());
             }
             else
@@ -975,7 +969,7 @@ try // clang-format on
                 mp::StartError start_error;
                 start_error.set_error_code(mp::StartError::INSTANCE_DELETED);
                 start_error.set_instance_name(name);
-                return grpc::Status(grpc::StatusCode::ABORTED, "instance \"" + name + "\" is deleted",
+                return grpc::Status(grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is deleted", name),
                                     start_error.SerializeAsString());
             }
             continue;
@@ -985,14 +979,6 @@ try // clang-format on
             continue;
 
         vms.push_back(name);
-    }
-
-    if (!error_messages.empty())
-    {
-        // Remove the last trailing new line.
-        error_messages.pop_back();
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "The following errors occurred:\n" + error_messages,
-                            "");
     }
 
     if (vms.empty())
@@ -1013,7 +999,7 @@ try // clang-format on
     }
 
     bool update_instance_db{false};
-    std::string mount_error_messages;
+    fmt::MemoryWriter errors;
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
@@ -1030,11 +1016,17 @@ try // clang-format on
             auto& uid_map = mount_entry.second.uid_map;
             auto& gid_map = mount_entry.second.gid_map;
 
-            auto status = start_mount(vm, name, source_path, target_path, gid_map, uid_map);
-
-            if (!status.empty())
+            try
             {
-                mount_error_messages.append("Removing \"" + target_path + "\": " + status);
+                start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+            }
+            catch (const mp::SSHFSMissingError&)
+            {
+                return grpc_status_for_mount_error(name);
+            }
+            catch (const std::exception& e)
+            {
+                errors.write("Removing \"{}\": {}", target_path, e.what());
                 invalid_mounts.push_back(target_path);
             }
         }
@@ -1047,19 +1039,10 @@ try // clang-format on
     if (update_instance_db)
         persist_instances();
 
-    if (!mount_error_messages.empty())
-    {
-        // Remove the last trailing new line.
-        mount_error_messages.pop_back();
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                            "The following errors occurred:\n" + mount_error_messages, "");
-    }
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
 
     return grpc::Status::OK;
-}
-catch (const mp::SSHFSMissingError& e)
-{
-    return handle_mount_error(e.name());
 }
 catch (const std::exception& e)
 {
@@ -1070,7 +1053,7 @@ grpc::Status mp::Daemon::stop(grpc::ServerContext* context, const StopRequest* r
                               StopReply* response) // clang-format off
 try // clang-format on
 {
-    std::string error_messages;
+    fmt::MemoryWriter errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_stop;
     for (const auto& name : request->instance_name())
     {
@@ -1079,21 +1062,16 @@ try // clang-format on
         {
             it = vm_instance_trash.find(name);
             if (it == vm_instance_trash.end())
-                error_messages.append("instance \"" + name + "\" does not exist\n");
+                errors.write("instance \"{}\" does not exist\n", name);
             else
-                error_messages.append("instance \"" + name + "\" is deleted\n");
+                errors.write("instance \"{}\" is deleted\n", name);
             continue;
         }
         instances_to_stop.push_back(name);
     }
 
-    if (!error_messages.empty())
-    {
-        // Remove the last trailing new line.
-        error_messages.pop_back();
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "The following errors occurred:\n" + error_messages,
-                            "");
-    }
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
 
     if (instances_to_stop.empty())
     {
@@ -1118,26 +1096,21 @@ grpc::Status mp::Daemon::trash(grpc::ServerContext* context, const TrashRequest*
                                TrashReply* response) // clang-format off
 try // clang-format on
 {
-    std::string error_messages;
+    fmt::MemoryWriter errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_trash;
     for (const auto& name : request->instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            error_messages.append("instance \"" + name + "\" does not exist\n");
+            errors.write("instance \"{}\" does not exist\n", name);
             continue;
         }
         instances_to_trash.push_back(name);
     }
 
-    if (!error_messages.empty())
-    {
-        // Remove the last trailing new line.
-        error_messages.pop_back();
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "The following errors occurred:\n" + error_messages,
-                            "");
-    }
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
 
     if (instances_to_trash.empty())
     {
@@ -1177,17 +1150,14 @@ grpc::Status mp::Daemon::umount(grpc::ServerContext* context, const UmountReques
                                 UmountReply* response) // clang-format off
 try // clang-format on
 {
-    std::string error_string{"The following errors occurred:\n"};
-    bool failures = false;
-
+    fmt::MemoryWriter errors;
     for (const auto& path_entry : request->target_paths())
     {
         const auto name = path_entry.instance_name();
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            error_string.append("instance \"" + name + "\" does not exist\n");
-            failures = true;
+            errors.write("instance \"{}\" does not exist\n", name);
             continue;
         }
 
@@ -1234,32 +1204,23 @@ try // clang-format on
                 auto found = stop_sshfs_for(target_path);
                 if (!found)
                 {
-                    error_string.append("\"" + target_path + "\" is not mounted\n");
-                    failures = true;
+                    errors.write("\"{}\" is not mounted\n", target_path);
                 }
             }
 
             auto erased = mounts.erase(target_path);
             if (!erased)
             {
-                error_string.append("\"" + target_path + "\" not found in database\n");
+                errors.write("\"{}\" not found in database\n", target_path);
             }
         }
     }
 
     persist_instances();
 
-    if (failures)
-    {
-        // Remove trailing newline due to grpc adding one of it's own
-        error_string.pop_back();
-
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_string, "");
-    }
-    else
-    {
-        return grpc::Status::OK;
-    }
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
+    return grpc::Status::OK;
 }
 catch (const std::exception& e)
 {
@@ -1338,38 +1299,22 @@ void mp::Daemon::persist_instances()
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
-std::string mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
-                                    const std::string& target_path, const std::unordered_map<int, int>& gid_map,
-                                    const std::unordered_map<int, int>& uid_map)
+void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
+                             const std::string& target_path, const std::unordered_map<int, int>& gid_map,
+                             const std::unordered_map<int, int>& uid_map)
 {
-    try
-    {
-        auto& key_provider = *config->ssh_key_provider;
-        auto session_factory = [&vm, &key_provider]() -> std::unique_ptr<SSHSession>
-        {
-            return std::make_unique<mp::SSHSession>(vm->ssh_hostname(), vm->ssh_port(), key_provider);
-        };
+    auto& key_provider = *config->ssh_key_provider;
+    auto session_factory = [&vm, &key_provider]() -> SSHSession {
+        return {vm->ssh_hostname(), vm->ssh_port(), key_provider};
+    };
 
-        auto sshfs_mount =
-            std::make_unique<mp::SshfsMount>(session_factory, QString::fromStdString(source_path),
-                                             QString::fromStdString(target_path), gid_map, uid_map, config->cout);
+    auto sshfs_mount =
+        std::make_unique<mp::SshfsMount>(session_factory, source_path, target_path, gid_map, uid_map, config->cout);
 
-        sshfs_mount->run();
+    sshfs_mount->run();
 
-        QObject::connect(sshfs_mount.get(), &SshfsMount::finished, this, [this, name, target_path]() {
-            mount_threads[name].erase(target_path);
-        });
+    QObject::connect(sshfs_mount.get(), &SshfsMount::finished, this,
+                     [this, name, target_path]() { mount_threads[name].erase(target_path); });
 
-        mount_threads[name][target_path] = std::move(sshfs_mount);
-    }
-    catch (const mp::SSHFSMissingError& e)
-    {
-        throw mp::SSHFSMissingError(name);
-    }
-    catch (const std::exception& e)
-    {
-        return e.what();
-    }
-
-    return {};
+    mount_threads[name][target_path] = std::move(sshfs_mount);
 }

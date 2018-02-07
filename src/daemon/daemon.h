@@ -104,9 +104,9 @@ public slots:
 
 private:
     void persist_instances();
-    std::string start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
-                            const std::string& target_path, const std::unordered_map<int, int>& gid_map,
-                            const std::unordered_map<int, int>& uid_map);
+    void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
+                     const std::string& target_path, const std::unordered_map<int, int>& gid_map,
+                     const std::unordered_map<int, int>& uid_map);
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;

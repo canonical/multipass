@@ -192,10 +192,12 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to display information about", "<name> [<name> ...]");
 
+    QCommandLineOption all_option("all", "Display info for all instances");
+    parser->addOption(all_option);
+
     QCommandLineOption formatOption("format",
                                     "Output info in the requested format.\nValid formats are: table (default) and json",
                                     "format", "table");
-
     parser->addOption(formatOption);
 
     auto status = parser->commandParse(this);
@@ -205,18 +207,26 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (parser->positionalArguments().count() == 0)
+    auto num_names = parser->positionalArguments().count();
+    if (num_names == 0 && !parser->isSet(all_option))
     {
-        cerr << "Name argument is required\n";
-        status = ParseCode::CommandLineError;
+        cerr << "Name argument or --all is required\n";
+        return ParseCode::CommandLineError;
     }
-    else
+
+    if (num_names > 0 && parser->isSet(all_option))
     {
-        for (const auto& arg : parser->positionalArguments())
-        {
-            auto entry = request.add_instance_name();
-            entry->append(arg.toStdString());
-        }
+        cerr << "Cannot specify name";
+        if (num_names > 1)
+            cerr << "s";
+        cerr << " when --all option set\n";
+        return ParseCode::CommandLineError;
+    }
+
+    for (const auto& arg : parser->positionalArguments())
+    {
+        auto entry = request.add_instance_name();
+        entry->append(arg.toStdString());
     }
 
     if (parser->isSet(formatOption))

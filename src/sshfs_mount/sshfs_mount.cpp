@@ -15,13 +15,15 @@
  *
  */
 
+#include <multipass/sshfs_mount/sshfs_mount.h>
+
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/ssh/throw_on_error.h>
-#include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
 
 #include <libssh/sftp.h>
 
+#include <fmt/format.h>
 #ifdef MULTIPASS_PLATFORM_WINDOWS
 #include <sys/utime.h>
 #else
@@ -36,233 +38,247 @@ namespace mp = multipass;
 
 namespace
 {
-struct SftpHandleInfo
+enum Permissions
 {
-    SftpHandleInfo(int type, QFileInfoList entry_list) : type{type}, entry_list{entry_list}
-    {
-    }
-
-    SftpHandleInfo(int type, std::unique_ptr<QFile> file) : type{type}, file{std::move(file)}
-    {
-    }
-
-    int type;
-    QFileInfoList entry_list;
-    std::unique_ptr<QFile> file;
+    read_user = 0400,
+    write_user = 0200,
+    exec_user = 0100,
+    read_group = 040,
+    write_group = 020,
+    exec_group = 010,
+    read_other = 04,
+    write_other = 02,
+    exec_other = 01
 };
 
-using SftpHandleMap = std::unordered_map<SftpHandleInfo*, std::unique_ptr<SftpHandleInfo>>;
-using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
-
-QString sanitize_path_name(const QString& path_name)
+int reply_ok(sftp_client_message msg)
 {
-    if (path_name.contains(" "))
-    {
-        QString sanitized_path(path_name);
-        sanitized_path.remove("\"");
-        return sanitized_path;
-    }
-
-    return path_name;
+    return sftp_reply_status(msg, SSH_FX_OK, nullptr);
 }
 
-QString format_path(const QString& path)
+int reply_failure(sftp_client_message msg)
 {
-    if (path.contains(" "))
-    {
-        return QString("\'\"%1\"\'").arg(path);
-    }
-
-    return path;
+    return sftp_reply_status(msg, SSH_FX_FAILURE, nullptr);
 }
 
-int reply_status(sftp_client_message& msg, const int error = 0)
+int reply_perm_denied(sftp_client_message msg)
 {
-    switch (error)
-    {
-    case EACCES:
-        return sftp_reply_status(msg, SSH_FX_PERMISSION_DENIED, "permission denied");
-    case ENOENT:
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file or directory");
-    case ENOTDIR:
-        return sftp_reply_status(msg, SSH_FX_FAILURE, "not a directory");
-    default:
-        return sftp_reply_status(msg, SSH_FX_FAILURE, NULL);
-    }
+    return sftp_reply_status(msg, SSH_FX_PERMISSION_DENIED, "permission denied");
 }
 
-QString longname_from(const QFileInfo& file_info)
+int reply_bad_handle(sftp_client_message msg, const char* type)
 {
-    QString buff;
+    return sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, fmt::format("{}: invalid handle", type).c_str());
+}
+
+auto longname_from(const QFileInfo& file_info, const std::string& filename)
+{
+    fmt::MemoryWriter out;
     auto mode = file_info.permissions();
 
     if (file_info.isSymLink())
-        buff.append("l");
+        out << "l";
     else if (file_info.isDir())
-        buff.append("d");
+        out << "d";
     else
-        buff.append("-");
+        out << "-";
 
     /* user */
     if (mode & QFileDevice::ReadUser)
-        buff.append("r");
+        out << "r";
     else
-        buff.append("-");
+        out << "-";
 
     if (mode & QFileDevice::WriteUser)
-        buff.append("w");
+        out << "w";
     else
-        buff.append("-");
+        out << "-";
 
     if (mode & QFileDevice::ExeUser)
     {
-        buff.append("x");
+        out << "x";
     }
     else
     {
-        buff.append("-");
+        out << "-";
     }
 
     /*group*/
     if (mode & QFileDevice::ReadGroup)
-        buff.append("r");
+        out << "r";
     else
-        buff.append("-");
+        out << "-";
 
     if (mode & QFileDevice::WriteGroup)
-        buff.append("w");
+        out << "w";
     else
-        buff.append("-");
+        out << "-";
 
     if (mode & QFileDevice::ExeGroup)
-        buff.append("x");
+        out << "x";
     else
-        buff.append("-");
+        out << "-";
 
     /* other */
     if (mode & QFileDevice::ReadOther)
-        buff.append("r");
+        out << "r";
     else
-        buff.append("-");
+        out << "-";
 
     if (mode & QFileDevice::WriteOther)
-        buff.append("w");
+        out << "w";
     else
-        buff.append("-");
+        out << "-";
 
     if (mode & QFileDevice::ExeOther)
-        buff.append("x");
+        out << "x";
     else
-        buff.append("-");
+        out << "-";
 
-    buff.append(QString(" 1 %1 %2 %3").arg(file_info.ownerId()).arg(file_info.groupId()).arg(file_info.size()));
+    out.write(" 1 {} {} {}", file_info.ownerId(), file_info.groupId(), file_info.size());
 
-    buff.append(
-        QString(" %1 %2").arg(file_info.lastModified().toString("MMM d hh:mm:ss yyyy")).arg(file_info.fileName()));
+    const auto timestamp = file_info.lastModified().toString("MMM d hh:mm:ss yyyy").toStdString();
+    out.write(" {} {}", timestamp, filename);
 
-    return buff;
+    return out;
 }
 
-// Convert passed in octal to same hex digits for Qt Permissions flags
-auto convert_permissions(int perms)
+auto to_qt_permissions(int perms)
 {
-    return (QFileDevice::Permissions)(QString::number(perms & 07777, 8).toUInt(nullptr, 16));
+    QFile::Permissions out;
+
+    if (perms & Permissions::read_user)
+        out |= QFileDevice::ReadUser;
+    if (perms & Permissions::write_user)
+        out |= QFileDevice::WriteUser;
+    if (perms & Permissions::exec_user)
+        out |= QFileDevice::ExeUser;
+    if (perms & Permissions::read_group)
+        out |= QFileDevice::ReadGroup;
+    if (perms & Permissions::write_group)
+        out |= QFileDevice::WriteGroup;
+    if (perms & Permissions::exec_group)
+        out |= QFileDevice::ExeGroup;
+    if (perms & Permissions::read_other)
+        out |= QFileDevice::ReadOther;
+    if (perms & Permissions::write_other)
+        out |= QFileDevice::WriteOther;
+    if (perms & Permissions::exec_other)
+        out |= QFileDevice::ExeOther;
+
+    return out;
 }
 
-auto handle_from_msg(sftp_client_message& msg)
+auto to_unix_permissions(QFile::Permissions perms)
 {
-    return reinterpret_cast<SftpHandleInfo*>(sftp_handle(msg->sftp, msg->handle));
+    int out = 0;
+
+    if (perms & QFileDevice::ReadUser)
+        out |= Permissions::read_user;
+    if (perms & QFileDevice::WriteUser)
+        out |= Permissions::write_user;
+    if (perms & QFileDevice::ExeUser)
+        out |= Permissions::exec_user;
+    if (perms & QFileDevice::ReadGroup)
+        out |= Permissions::read_group;
+    if (perms & QFileDevice::WriteGroup)
+        out |= Permissions::write_group;
+    if (perms & QFileDevice::ExeGroup)
+        out |= Permissions::exec_group;
+    if (perms & QFileDevice::ReadOther)
+        out |= Permissions::read_other;
+    if (perms & QFileDevice::WriteOther)
+        out |= Permissions::write_other;
+    if (perms & QFileDevice::ExeOther)
+        out |= Permissions::exec_other;
+
+    return out;
 }
 
-auto sshfs_cmd_from(const QString& source, const QString& target)
+template <typename T>
+auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::unique_ptr<T>>& handles) -> T*
 {
-    return QString("sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other -o reconnect :%1 \"%2\"")
-        .arg(format_path(source))
-        .arg(target);
+    const auto id = sftp_handle(msg->sftp, msg->handle);
+    auto entry = handles.find(id);
+    if (entry != handles.end())
+        return entry->second.get();
+    return nullptr;
 }
 
-auto get_vm_user_and_group_names(mp::SSHSession* session)
+template <typename Callable>
+auto run_cmd(mp::SSHSession& session, std::string&& cmd, Callable&& error_handler)
 {
-    std::pair<std::string, std::string> vm_user_group;
-
-    QString cmd = "id -nu";
-    auto ssh_process = session->exec({cmd.toStdString()});
-    vm_user_group.first = ssh_process.read_std_output();
-
-    cmd = "id -ng";
-    ssh_process = session->exec({cmd.toStdString()});
-    vm_user_group.second = ssh_process.read_std_output();
-
-    return vm_user_group;
-}
-
-auto create_sshfs_process(mp::SSHSession* session, const QString& target, const QString& sshfs_cmd)
-{
-    QString cmd("which sshfs");
-    auto ssh_process = session->exec({cmd.toStdString()});
+    auto ssh_process = session.exec(cmd);
     if (ssh_process.exit_code() != 0)
-        throw mp::SSHFSMissingError();
-
-    cmd = QString("sudo mkdir -p \"%1\"").arg(target);
-    ssh_process = session->exec({cmd.toStdString()});
-    if (ssh_process.exit_code() != 0)
-    {
-        throw std::runtime_error(ssh_process.read_std_error());
-    }
-
-    auto vm_user_group_names = get_vm_user_and_group_names(session);
-    cmd = QString("sudo chown %1:%2 \"%3\"")
-              .arg(QString::fromStdString(vm_user_group_names.first).simplified())
-              .arg(QString::fromStdString(vm_user_group_names.second).simplified())
-              .arg(target);
-    ssh_process = session->exec({cmd.toStdString()});
-    if (ssh_process.exit_code() != 0)
-    {
-        throw std::runtime_error(ssh_process.read_std_error());
-    }
-
-    return session->exec({sshfs_cmd.toStdString()});
+        error_handler(ssh_process);
+    return ssh_process.read_std_output();
 }
 
-auto get_vm_user_pair(mp::SSHSession* session)
+auto run_cmd(mp::SSHSession& session, std::string&& cmd)
 {
-    std::pair<int, int> vm_user_pair;
-
-    QString cmd = "id -u";
-    auto ssh_process = session->exec({cmd.toStdString()});
-    vm_user_pair.first = std::stoi(ssh_process.read_std_output());
-
-    cmd = "id -g";
-    ssh_process = session->exec({cmd.toStdString()});
-    vm_user_pair.second = std::stoi(ssh_process.read_std_output());
-
-    return vm_user_pair;
+    auto error_handler = [](mp::SSHProcess& proc) { throw std::runtime_error(proc.read_std_error()); };
+    return run_cmd(session, std::forward<std::string>(cmd), error_handler);
 }
 
-auto sshfs_pid_from(mp::SSHSession* session, const QString& source, const QString& target)
+void check_sshfs_is_running(mp::SSHSession& session, mp::SSHProcess& sshfs_process, const std::string& source,
+                            const std::string& target)
 {
     using namespace std::literals::chrono_literals;
 
     // Make sure sshfs actually runs
     std::this_thread::sleep_for(250ms);
-    QString pgrep_cmd(QString("pgrep -fx \"sshfs.*%1.*%2\"").arg(source).arg(target));
-    auto ssh_process = session->exec({pgrep_cmd.toStdString()});
-
-    return QString::fromStdString(ssh_process.read_std_output());
+    auto error_handler = [&sshfs_process](mp::SSHProcess&) {
+        throw std::runtime_error(sshfs_process.read_std_error());
+    };
+    run_cmd(session, fmt::format("pgrep -fx \"sshfs.*{}.*{}\"", source, target), error_handler);
 }
 
-void stop_sshfs_process(mp::SSHSession* session, const QString& sshfs_pid)
+void check_sshfs_exists(mp::SSHSession& session)
 {
-    QString kill_cmd(QString("sudo kill %1").arg(sshfs_pid));
-    session->exec({kill_cmd.toStdString()});
+    auto error_handler = [](mp::SSHProcess&) { throw mp::SSHFSMissingError(); };
+    run_cmd(session, "which sshfs", error_handler);
+}
+
+void make_target_dir(mp::SSHSession& session, const std::string& target)
+{
+    run_cmd(session, fmt::format("sudo mkdir -p \"{}\"", target));
+}
+
+void set_owner_for(mp::SSHSession& session, const std::string& target)
+{
+    auto vm_user = run_cmd(session, "id -nu");
+    auto vm_group = run_cmd(session, "id -ng");
+    mp::utils::trim_end(vm_user);
+    mp::utils::trim_end(vm_group);
+
+    run_cmd(session, fmt::format("sudo chown {}:{} \"{}\"", vm_user, vm_group, target));
+}
+
+auto create_sshfs_process(mp::SSHSession& session, const std::string& source, const std::string& target)
+{
+    check_sshfs_exists(session);
+    make_target_dir(session, target);
+    set_owner_for(session, target);
+
+    auto sshfs_process = session.exec(fmt::format(
+        "sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :\"{}\" \"{}\"", source, target));
+
+    check_sshfs_is_running(session, sshfs_process, source, target);
+
+    return sshfs_process;
 }
 
 class SftpServer
 {
 public:
     SftpServer(const sftp_session& sftp_server_session, const std::unordered_map<int, int>& gid_map,
-               const std::unordered_map<int, int>& uid_map, const std::pair<int, int>& vm_user_pair, std::ostream& cout)
-        : sftp_server{sftp_server_session}, gid_map{gid_map}, uid_map{uid_map}, vm_user_pair{vm_user_pair}, cout{cout}
+               const std::unordered_map<int, int>& uid_map, int default_uid, int default_gid, std::ostream& cout)
+        : sftp_server{sftp_server_session},
+          gid_map{gid_map},
+          uid_map{uid_map},
+          default_uid{default_uid},
+          default_gid{default_gid},
+          cout{cout}
     {
     }
 
@@ -272,83 +288,87 @@ public:
 
         while (true)
         {
-            MsgUPtr msg{sftp_get_client_message(sftp_server), sftp_client_message_free};
-
-            if (!msg)
-            {
+            MsgUPtr client_msg{sftp_get_client_message(sftp_server), sftp_client_message_free};
+            auto msg = client_msg.get();
+            if (msg == nullptr)
                 break;
-            }
 
-            switch (msg->type)
+            int ret = 0;
+            const auto type = sftp_client_message_get_type(msg);
+            switch (type)
             {
             case SFTP_REALPATH:
-                handle_realpath(msg.get());
+                ret = handle_realpath(msg);
                 break;
             case SFTP_OPENDIR:
-                handle_opendir(msg.get());
+                ret = handle_opendir(msg);
                 break;
             case SFTP_MKDIR:
-                handle_mkdir(msg.get());
+                ret = handle_mkdir(msg);
                 break;
             case SFTP_RMDIR:
-                handle_rmdir(msg.get());
+                ret = handle_rmdir(msg);
                 break;
             case SFTP_LSTAT:
             case SFTP_STAT:
-                handle_stat(msg.get(), msg->type == SFTP_STAT);
+                ret = handle_stat(msg, type == SFTP_STAT);
                 break;
             case SFTP_FSTAT:
-                handle_fstat(msg.get());
+                ret = handle_fstat(msg);
                 break;
             case SFTP_READDIR:
-                handle_readdir(msg.get());
+                ret = handle_readdir(msg);
                 break;
             case SFTP_CLOSE:
-                handle_close(msg.get());
+                ret = handle_close(msg);
                 break;
             case SFTP_OPEN:
-                handle_open(msg.get());
+                ret = handle_open(msg);
                 break;
             case SFTP_READ:
-                handle_read(msg.get());
+                ret = handle_read(msg);
                 break;
             case SFTP_WRITE:
-                handle_write(msg.get());
+                ret = handle_write(msg);
                 break;
             case SFTP_RENAME:
-                handle_rename(msg.get());
+                ret = handle_rename(msg);
                 break;
             case SFTP_REMOVE:
-                handle_remove(msg.get());
+                ret = handle_remove(msg);
                 break;
             case SFTP_SETSTAT:
             case SFTP_FSETSTAT:
-                handle_setstat(msg.get(), msg->type == SFTP_FSETSTAT);
+                ret = handle_setstat(msg, type == SFTP_FSETSTAT);
                 break;
             case SFTP_READLINK:
-                handle_readlink(msg.get());
+                ret = handle_readlink(msg);
                 break;
             case SFTP_SYMLINK:
-                handle_symlink(msg.get());
+                ret = handle_symlink(msg);
                 break;
             default:
-                cout << "Unknown message: " << (int)msg->type << "\n";
-                sftp_reply_status(msg.get(), SSH_FX_OP_UNSUPPORTED, "Unsupported message");
+                cout << "[sftp server] Unknown message: " << static_cast<int>(type) << "\n";
+                ret = sftp_reply_status(msg, SSH_FX_OP_UNSUPPORTED, "Unsupported message");
             }
+            if (ret != 0)
+                cout << "[sftp server] error occurred when replying to client\n";
         }
     }
 
 private:
+    using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
+
     sftp_attributes_struct attr_from(const QFileInfo& file_info)
     {
         sftp_attributes_struct attr{};
 
         attr.size = file_info.size();
 
-        // Windows
-        if (file_info.ownerId() == (uint)-2)
+        const auto no_id_info_available = static_cast<uint>(-2);
+        if (file_info.ownerId() == no_id_info_available)
         {
-            attr.uid = vm_user_pair.first;
+            attr.uid = default_uid;
         }
         else
         {
@@ -363,10 +383,9 @@ private:
             }
         }
 
-        // Windows
-        if (file_info.groupId() == (uint)-2)
+        if (file_info.groupId() == no_id_info_available)
         {
-            attr.gid = vm_user_pair.second;
+            attr.gid = default_gid;
         }
         else
         {
@@ -381,486 +400,365 @@ private:
             }
         }
 
-        attr.permissions = QString::number(file_info.permissions() & 07777, 16).toUInt(nullptr, 8);
+        attr.permissions = to_unix_permissions(file_info.permissions());
         attr.atime = file_info.lastRead().toUTC().toMSecsSinceEpoch() / 1000;
         attr.mtime = file_info.lastModified().toUTC().toMSecsSinceEpoch() / 1000;
         attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
                      SSH_FILEXFER_ATTR_ACMODTIME;
 
-        if (file_info.isDir())
-        {
-            attr.permissions = attr.permissions | SSH_S_IFDIR;
-        }
-
-        if (file_info.isFile())
-        {
-            attr.permissions = attr.permissions | SSH_S_IFREG;
-        }
-
         if (file_info.isSymLink())
-        {
-            attr.permissions = attr.permissions | SSH_S_IFLNK;
-        }
+            attr.permissions |= SSH_S_IFLNK | 0777;
+        else if (file_info.isDir())
+            attr.permissions |= SSH_S_IFDIR;
+        else if (file_info.isFile())
+            attr.permissions |= SSH_S_IFREG;
 
         return attr;
     }
 
-    void handle_close(sftp_client_message msg)
+    int handle_close(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
+        const auto id = sftp_handle(msg->sftp, msg->handle);
 
-        if (!handle)
-        {
-            sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "close: invalid handle");
-            return;
-        }
+        auto erased = open_file_handles.erase(id);
+        erased += open_dir_handles.erase(id);
+        if (erased == 0)
+            return reply_bad_handle(msg, "close");
 
-        sftp_handle_remove(msg->sftp, handle);
-
-        if (handle->type == SSH_FILEXFER_TYPE_REGULAR)
-        {
-            handle->file->close();
-        }
-
-        handle_map.erase(handle);
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        sftp_handle_remove(sftp_server, id);
+        return reply_ok(msg);
     }
 
-    void handle_fstat(sftp_client_message msg)
+    int handle_fstat(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
+        auto file = handle_from(msg, open_file_handles);
+        if (file == nullptr)
+            return reply_bad_handle(msg, "fstat");
 
-        if (!handle)
-        {
-            sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "fstat: invalid handle");
-            return;
-        }
+        QFileInfo file_info(*file);
 
-        QFileInfo file_info(*handle->file);
+        if (file_info.isSymLink())
+            file_info = QFileInfo(file_info.symLinkTarget());
+
         auto attr = attr_from(file_info);
-
-        sftp_reply_attr(msg, &attr);
+        return sftp_reply_attr(msg, &attr);
     }
 
-    void handle_mkdir(sftp_client_message msg)
+    int handle_mkdir(sftp_client_message msg)
     {
-        QDir dir(sanitize_path_name(QString(msg->filename)));
+        const auto filename = sftp_client_message_get_filename(msg);
+        QDir dir(filename);
+        if (!dir.mkdir(filename))
+            return reply_failure(msg);
 
-        if (!dir.mkdir(msg->filename))
-        {
-            reply_status(msg);
-            return;
-        }
-
-        if (!QFile::setPermissions(msg->filename, convert_permissions(msg->attr->permissions)))
-        {
-            reply_status(msg);
-            return;
-        }
+        if (!QFile::setPermissions(filename, to_qt_permissions(msg->attr->permissions)))
+            return reply_failure(msg);
 
 #ifndef MULTIPASS_PLATFORM_WINDOWS
-        QFileInfo current_dir(sanitize_path_name(QString(msg->filename)));
+        QFileInfo current_dir(filename);
         QFileInfo parent_dir(current_dir.path());
-        auto ret = chown(msg->filename, parent_dir.ownerId(), parent_dir.groupId());
+        auto ret = chown(filename, parent_dir.ownerId(), parent_dir.groupId());
         if (ret < 0)
         {
-            cout << "failed to chown " << msg->filename;
-            cout << " to owner: " << parent_dir.ownerId();
-            cout << " and group: " << parent_dir.groupId();
-            cout << "\n";
+            cout << fmt::format("[sftp server] failed to chown '{}' to owner:{} and group:{}\n", filename,
+                                parent_dir.ownerId(), parent_dir.groupId());
         }
 #endif
-
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        return reply_ok(msg);
     }
 
-    void handle_rmdir(sftp_client_message msg)
+    int handle_rmdir(sftp_client_message msg)
     {
-        QDir dir(sanitize_path_name(QString(msg->filename)));
+        const auto filename = sftp_client_message_get_filename(msg);
+        QDir dir(filename);
+        if (!dir.rmdir(filename))
+            return reply_failure(msg);
 
-        if (!dir.rmdir(sanitize_path_name(QString(msg->filename))))
-        {
-            reply_status(msg);
-            return;
-        }
-
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        return reply_ok(msg);
     }
 
-    void handle_open(sftp_client_message msg)
+    int handle_open(sftp_client_message msg)
     {
         QIODevice::OpenMode mode = 0;
-
-        if (msg->flags & SSH_FXF_READ)
+        const auto flags = sftp_client_message_get_flags(msg);
+        if (flags & SSH_FXF_READ)
             mode |= QIODevice::ReadOnly;
 
-        if (msg->flags & SSH_FXF_WRITE)
+        if (flags & SSH_FXF_WRITE)
         {
             mode |= QIODevice::WriteOnly;
 
             // This is needed to workaround an issue where sshfs does not pass through
             // O_APPEND.  This is fixed in sshfs v. 3.2.
             // Note: This goes against the default behavior of open().
-            if (msg->flags == SSH_FXF_WRITE)
+            if (flags == SSH_FXF_WRITE)
             {
                 mode |= QIODevice::Append;
-                cout << "Adding sshfs O_APPEND workaround.\n";
+                cout << "[sftp server] Adding sshfs O_APPEND workaround.\n";
             }
         }
 
-        if (msg->flags & SSH_FXF_APPEND)
+        if (flags & SSH_FXF_APPEND)
             mode |= QIODevice::Append;
 
-        if (msg->flags & SSH_FXF_TRUNC)
+        if (flags & SSH_FXF_TRUNC)
             mode |= QIODevice::Truncate;
 
-        auto file = std::make_unique<QFile>(sanitize_path_name(QString(msg->filename)));
+        const auto filename = sftp_client_message_get_filename(msg);
+        auto file = std::make_unique<QFile>(filename);
 
-#ifndef MULTIPASS_PLATFORM_WINDOWS
         auto exists = file->exists();
-#endif
 
         if (!file->open(mode))
-        {
-            reply_status(msg);
-            return;
-        }
+            return reply_failure(msg);
 
-#ifndef MULTIPASS_PLATFORM_WINDOWS
         if (!exists)
         {
-            if (!file->setPermissions(convert_permissions(msg->attr->permissions)))
-            {
-                reply_status(msg);
-                return;
-            }
+            if (!file->setPermissions(to_qt_permissions(msg->attr->permissions)))
+                return reply_failure(msg);
 
-            QFileInfo current_file(sanitize_path_name(QString(msg->filename)));
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+            QFileInfo current_file(filename);
             QFileInfo current_dir(current_file.path());
-            auto ret = chown(msg->filename, current_dir.ownerId(), current_dir.groupId());
+            auto ret = chown(filename, current_dir.ownerId(), current_dir.groupId());
             if (ret < 0)
             {
-                cout << "failed to chown " << msg->filename;
-                cout << " to owner: " << current_dir.ownerId();
-                cout << " and group: " << current_dir.groupId();
-                cout << "\n";
+                fmt::format("[sftp server] failed to chown '{}' to owner:{} and group:{}\n", filename,
+                            current_dir.ownerId(), current_dir.groupId());
             }
-        }
 #endif
+        }
 
-        auto hdl = std::make_unique<SftpHandleInfo>(SSH_FILEXFER_TYPE_REGULAR, std::move(file));
+        SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server, file.get()), ssh_string_free};
+        open_file_handles.emplace(file.get(), std::move(file));
 
-        SftpHandleUPtr handle{sftp_handle_alloc(msg->sftp, hdl.get()), ssh_string_free};
-        sftp_reply_handle(msg, handle.get());
-
-        handle_map[hdl.get()] = std::move(hdl);
+        return sftp_reply_handle(msg, sftp_handle.get());
     }
 
-    void handle_opendir(sftp_client_message msg)
+    int handle_opendir(sftp_client_message msg)
     {
-        QDir dir(sanitize_path_name(QString(msg->filename)));
-
+        QDir dir(sftp_client_message_get_filename(msg));
         if (!dir.exists())
-        {
-            reply_status(msg, ENOENT);
-            return;
-        }
+            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
 
         if (!dir.isReadable())
-        {
-            reply_status(msg, EACCES);
-            return;
-        }
+            return reply_perm_denied(msg);
 
-        auto entry_list = dir.entryInfoList(QDir::AllEntries | QDir::System | QDir::Hidden);
+        auto entry_list =
+            std::make_unique<QFileInfoList>(dir.entryInfoList(QDir::AllEntries | QDir::System | QDir::Hidden));
 
-        auto hdl = std::make_unique<SftpHandleInfo>(SSH_FILEXFER_TYPE_DIRECTORY, entry_list);
+        SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server, entry_list.get()), ssh_string_free};
+        open_dir_handles.emplace(entry_list.get(), std::move(entry_list));
 
-        SftpHandleUPtr handle{sftp_handle_alloc(msg->sftp, hdl.get()), ssh_string_free};
-        sftp_reply_handle(msg, handle.get());
-
-        handle_map[hdl.get()] = std::move(hdl);
+        return sftp_reply_handle(msg, sftp_handle.get());
     }
 
-    void handle_read(sftp_client_message msg)
+    int handle_read(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
+        auto file = handle_from(msg, open_file_handles);
+        if (file == nullptr)
+            return reply_bad_handle(msg, "read");
 
-        if (!handle || handle->type != SSH_FILEXFER_TYPE_REGULAR)
-        {
-            sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "read: invalid handle");
-            return;
-        }
+        const auto max_packet_size = 65536u;
+        const auto len = std::min(msg->len, max_packet_size);
 
-        auto len = msg->len;
-        if (len > (2 << 15))
-        {
-            /* 32000 */
-            len = 2 << 15;
-        }
+        std::vector<char> data;
+        data.reserve(len);
 
-        QByteArray data(len, '\0');
-
-        handle->file->seek(msg->offset);
-        auto r = handle->file->read(data.data(), len);
-
+        file->seek(msg->offset);
+        auto r = file->read(data.data(), len);
         if (r < 0)
-        {
-            sftp_reply_status(msg, SSH_FX_FAILURE, handle->file->errorString().toStdString().c_str());
-        }
+            return sftp_reply_status(msg, SSH_FX_FAILURE, file->errorString().toStdString().c_str());
         else if (r == 0)
-        {
-            sftp_reply_status(msg, SSH_FX_EOF, "End of file");
-            return;
-        }
-        else
-        {
-            sftp_reply_data(msg, data.constData(), r);
-        }
+            return sftp_reply_status(msg, SSH_FX_EOF, "End of file");
+
+        return sftp_reply_data(msg, data.data(), r);
     }
 
-    void handle_readdir(sftp_client_message msg)
+    int handle_readdir(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
+        auto dir_entries = handle_from(msg, open_dir_handles);
+        if (dir_entries == nullptr)
+            return reply_bad_handle(msg, "readdir");
 
-        if (!handle || handle->type != SSH_FILEXFER_TYPE_DIRECTORY)
+        if (dir_entries->isEmpty())
+            return sftp_reply_status(msg, SSH_FX_EOF, nullptr);
+
+        const auto max_num_entries_per_packet = 50;
+        const auto num_entries = std::min(dir_entries->size(), max_num_entries_per_packet);
+
+        for (int i = 0; i < num_entries; i++)
         {
-            sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "readdir: invalid handle");
-            return;
-        }
-
-        auto count{0};
-
-        // Send at most 50 directory entries to avoid ssh packet size overflow
-        while (!handle->entry_list.isEmpty() && count < 50)
-        {
-            auto entry = handle->entry_list.takeFirst();
+            auto entry = dir_entries->takeFirst();
             auto attr = attr_from(entry);
-            auto longname = longname_from(entry);
-            sftp_reply_names_add(msg, entry.fileName().toStdString().c_str(), longname.toStdString().c_str(), &attr);
-
-            ++count;
+            const auto filename = entry.fileName().toStdString();
+            const auto longname = longname_from(entry, filename);
+            sftp_reply_names_add(msg, filename.c_str(), longname.c_str(), &attr);
         }
 
-        if (count > 0)
-        {
-            sftp_reply_names(msg);
-        }
-        else
-        {
-            sftp_reply_status(msg, SSH_FX_EOF, NULL);
-        }
+        return sftp_reply_names(msg);
     }
 
-    void handle_readlink(sftp_client_message msg)
+    int handle_readlink(sftp_client_message msg)
     {
-        auto link = QFile::symLinkTarget(sanitize_path_name(QString(msg->filename)));
-
+        auto link = QFile::symLinkTarget(sftp_client_message_get_filename(msg));
         if (link.isEmpty())
-        {
-            sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
-            return;
-        }
+            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
 
         sftp_attributes_struct attr{};
-
         sftp_reply_names_add(msg, link.toStdString().c_str(), link.toStdString().c_str(), &attr);
-
-        sftp_reply_names(msg);
+        return sftp_reply_names(msg);
     }
 
-    void handle_realpath(sftp_client_message msg)
+    int handle_realpath(sftp_client_message msg)
     {
-        auto realpath = QFileInfo(sanitize_path_name(QString(msg->filename))).absoluteFilePath();
-
-        sftp_reply_name(msg, realpath.toStdString().c_str(), NULL);
+        auto realpath = QFileInfo(sftp_client_message_get_filename(msg)).absoluteFilePath();
+        return sftp_reply_name(msg, realpath.toStdString().c_str(), nullptr);
     }
 
-    void handle_remove(sftp_client_message msg)
+    int handle_remove(sftp_client_message msg)
     {
-        if (!QFile::remove(sanitize_path_name(QString(msg->filename))))
+        if (!QFile::remove(sftp_client_message_get_filename(msg)))
+            return reply_failure(msg);
+        return reply_ok(msg);
+    }
+
+    int handle_rename(sftp_client_message msg)
+    {
+        const auto target = sftp_client_message_get_data(msg);
+        const auto source = sftp_client_message_get_filename(msg);
+        if (QFile::exists(target))
         {
-            reply_status(msg);
-            return;
+            if (!QFile::remove(target))
+                return reply_failure(msg);
         }
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        if (!QFile::rename(source, target))
+            return reply_failure(msg);
+
+        return reply_ok(msg);
     }
 
-    void handle_rename(sftp_client_message msg)
-    {
-        if (QFile::exists(ssh_string_get_char(msg->data)))
-        {
-            if (!QFile::remove(ssh_string_get_char(msg->data)))
-            {
-                reply_status(msg);
-                return;
-            }
-        }
-
-        if (!QFile::rename(sanitize_path_name(QString(msg->filename)), ssh_string_get_char(msg->data)))
-        {
-            reply_status(msg);
-            return;
-        }
-
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
-    }
-
-    void handle_setstat(sftp_client_message msg, bool get_handle)
+    int handle_setstat(sftp_client_message msg, bool get_handle)
     {
         QString filename;
 
         if (get_handle)
         {
-            auto handle = handle_from_msg(msg);
-            filename = handle->file->fileName();
+            auto handle = handle_from(msg, open_file_handles);
+            if (handle == nullptr)
+                return reply_bad_handle(msg, "setstat");
+            filename = handle->fileName();
         }
         else
         {
-            filename = sanitize_path_name(QString(msg->filename));
+            filename = sftp_client_message_get_filename(msg);
         }
 
         if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
         {
             if (!QFile::resize(filename, msg->attr->size))
-            {
-                reply_status(msg);
-                return;
-            }
+                return reply_failure(msg);
         }
 
         if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
         {
-            if (!QFile::setPermissions(filename, convert_permissions(msg->attr->permissions)))
-            {
-                reply_status(msg);
-                return;
-            }
+            if (!QFile::setPermissions(filename, to_qt_permissions(msg->attr->permissions)))
+                return reply_failure(msg);
         }
 
         if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
         {
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-            struct _utimbuf timebuf;
-
-            timebuf.actime = msg->attr->atime;
-            timebuf.modtime = msg->attr->mtime;
-
-            if (_utime(filename.toStdString().c_str(), &timebuf) < 0)
-#else
             struct utimbuf timebuf;
 
             timebuf.actime = msg->attr->atime;
             timebuf.modtime = msg->attr->mtime;
 
             if (utime(filename.toStdString().c_str(), &timebuf) < 0)
-#endif
-            {
-                reply_status(msg);
-                return;
-            }
+                return reply_failure(msg);
         }
 
 #ifndef MULTIPASS_PLATFORM_WINDOWS
         if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
         {
             if (chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
-            {
-                reply_status(msg);
-                return;
-            }
+                return reply_failure(msg);
         }
 #endif
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        return reply_ok(msg);
     }
 
-    void handle_stat(sftp_client_message msg, const bool follow)
+    int handle_stat(sftp_client_message msg, const bool follow)
     {
-        QFileInfo file_info(sanitize_path_name(QString(msg->filename)));
-
+        QFileInfo file_info(sftp_client_message_get_filename(msg));
         if (!file_info.exists())
-        {
-            reply_status(msg, ENOENT);
-            return;
-        }
+            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+
+        if (follow && file_info.isSymLink())
+            file_info = QFileInfo(file_info.symLinkTarget());
 
         auto attr = attr_from(file_info);
-
-        sftp_reply_attr(msg, &attr);
+        return sftp_reply_attr(msg, &attr);
     }
 
-    void handle_symlink(sftp_client_message msg)
+    int handle_symlink(sftp_client_message msg)
     {
-        if (!QFile::link(sanitize_path_name(QString(msg->filename)), ssh_string_get_char(msg->data)))
-        {
-            reply_status(msg);
-            return;
-        }
+        const auto old_name = sftp_client_message_get_filename(msg);
+        const auto new_name = sftp_client_message_get_data(msg);
+        if (!QFile::link(old_name, new_name))
+            return reply_failure(msg);
 
-        sftp_reply_status(msg, SSH_FX_OK, NULL);
+        return reply_ok(msg);
     }
 
-    void handle_write(sftp_client_message msg)
+    int handle_write(sftp_client_message msg)
     {
-        auto handle = handle_from_msg(msg);
-
-        if (!handle || handle->type != SSH_FILEXFER_TYPE_REGULAR)
-        {
-            sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "write: invalid handle");
-            return;
-        }
+        auto file = handle_from(msg, open_file_handles);
+        if (file == nullptr)
+            return reply_bad_handle(msg, "write");
 
         auto len = ssh_string_len(msg->data);
         auto data_ptr = ssh_string_get_char(msg->data);
-        handle->file->seek(msg->offset);
+        if (!file->seek(msg->offset))
+            return reply_failure(msg);
 
         do
         {
-            auto r = handle->file->write(data_ptr, len);
+            auto r = file->write(data_ptr, len);
             if (r < 0)
-            {
-                reply_status(msg);
-                return;
-            }
+                return reply_failure(msg);
 
-            handle->file->flush();
+            file->flush();
 
             data_ptr += r;
             len -= r;
         } while (len > 0);
 
-        sftp_reply_status(msg, SSH_FX_OK, "");
+        return reply_ok(msg);
     }
 
-    SftpHandleMap handle_map;
+    std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
+    std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
     const sftp_session sftp_server;
     const std::unordered_map<int, int> gid_map;
     const std::unordered_map<int, int> uid_map;
-    const std::pair<int, int> vm_user_pair;
+    const int default_uid;
+    const int default_gid;
     std::ostream& cout;
 };
 } // namespace anonymous
 
-mp::SshfsMount::SshfsMount(std::function<std::unique_ptr<SSHSession>()> session_factory, const QString& source,
-                           const QString& target, const std::unordered_map<int, int>& gid_map,
+mp::SshfsMount::SshfsMount(std::function<SSHSession()> make_session, const std::string& source,
+                           const std::string& target, const std::unordered_map<int, int>& gid_map,
                            const std::unordered_map<int, int>& uid_map, std::ostream& cout)
-    : session_factory{session_factory},
-      ssh_session{this->session_factory()},
-      source{source},
-      target{target},
-      sshfs_cmd{sshfs_cmd_from(source, target)},
-      sshfs_process{create_sshfs_process(this->ssh_session.get(), target, sshfs_cmd)},
-      sshfs_pid{sshfs_pid_from(this->ssh_session.get(), source, target)},
+    : ssh_session{make_session()},
+      sshfs_process{
+          create_sshfs_process(ssh_session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'))},
       gid_map{gid_map},
       uid_map{uid_map},
       cout{cout}
 {
-    if (sshfs_pid.isEmpty())
-    {
-        throw std::runtime_error(sshfs_process.read_std_error());
-    }
 }
 
 mp::SshfsMount::~SshfsMount()
@@ -870,9 +768,10 @@ mp::SshfsMount::~SshfsMount()
 
 void mp::SshfsMount::run()
 {
-    auto vm_user_pair = get_vm_user_pair(ssh_session.get());
+    auto uid = std::stoi(run_cmd(ssh_session, "id -u"));
+    auto gid = std::stoi(run_cmd(ssh_session, "id -g"));
 
-    auto t = std::thread([this, vm_user_pair]() mutable {
+    auto t = std::thread([this, uid, gid]() mutable {
         std::unique_ptr<ssh_session_struct, decltype(ssh_free)*> session_sftp{ssh_new(), ssh_free};
 
         std::unique_ptr<sftp_session_struct, decltype(sftp_free)*> sftp_server_session{
@@ -880,7 +779,7 @@ void mp::SshfsMount::run()
 
         SSH::throw_on_error(sftp_server_init, sftp_server_session);
 
-        SftpServer sftp_server(sftp_server_session.get(), gid_map, uid_map, vm_user_pair, cout);
+        SftpServer sftp_server(sftp_server_session.get(), gid_map, uid_map, uid, gid, cout);
         sftp_server.process_sftp();
 
         emit finished();
@@ -891,19 +790,7 @@ void mp::SshfsMount::run()
 
 void mp::SshfsMount::stop()
 {
-    try
-    {
-        auto session = session_factory();
-
-        stop_sshfs_process(session.get(), sshfs_pid);
-    }
-    catch (const std::exception& e)
-    {
-        cout << e.what() << "\n";
-    }
-
+    ssh_session.force_shutdown();
     if (mount_thread.joinable())
-    {
         mount_thread.join();
-    }
 }

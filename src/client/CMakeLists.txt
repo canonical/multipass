@@ -20,6 +20,7 @@ add_library(client STATIC
 
 target_link_libraries(client
   commands
+  fmt
   platform
   rpc
   Qt5::Core)
