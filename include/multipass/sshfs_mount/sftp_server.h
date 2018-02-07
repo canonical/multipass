@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_SFTP_SERVER_H
 #define MULTIPASS_SFTP_SERVER_H
 
+#include <multipass/ssh/ssh_session.h>
+
 #include <libssh/sftp.h>
 
 #include <memory>
@@ -32,7 +34,7 @@ class SSHSession;
 class SftpServer
 {
 public:
-    SftpServer(SSHSession& ssh_session, ssh_channel channel, const std::unordered_map<int, int>& gid_map,
+    SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc, const std::unordered_map<int, int>& gid_map,
                const std::unordered_map<int, int>& uid_map, int default_uid, int default_gid, std::ostream& cout);
 
     void run();
@@ -62,7 +64,7 @@ private:
     int handle_symlink(sftp_client_message msg);
     int handle_write(sftp_client_message msg);
 
-    SSHSession& ssh_session;
+    SSHSession ssh_session;
     const SSHSessionUptr sftp_ssh_session;
     const SftpSessionUptr sftp_server_session;
     std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;

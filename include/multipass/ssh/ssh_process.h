@@ -49,7 +49,7 @@ private:
 
     ChannelUPtr channel;
 
-    friend class SshfsMount;
+    friend class SftpServer;
 };
 }
 #endif // MULTIPASS_SSH_PROCESS_H

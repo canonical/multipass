@@ -212,12 +212,12 @@ auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::u
 }
 } // namespace
 
-mp::SftpServer::SftpServer(SSHSession& ssh_session, ssh_channel channel, const std::unordered_map<int, int>& gid_map,
-                           const std::unordered_map<int, int>& uid_map, int default_uid, int default_gid,
-                           std::ostream& cout)
-    : ssh_session{ssh_session},
+mp::SftpServer::SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc,
+                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
+                           int default_uid, int default_gid, std::ostream& cout)
+    : ssh_session{std::move(ssh_session)},
       sftp_ssh_session{make_ssh_session()},
-      sftp_server_session{make_sftp_session(sftp_ssh_session.get(), channel)},
+      sftp_server_session{make_sftp_session(sftp_ssh_session.get(), sshfs_proc.release_channel())},
       gid_map{gid_map},
       uid_map{uid_map},
       default_uid{default_uid},
