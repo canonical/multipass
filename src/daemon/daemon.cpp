@@ -674,9 +674,9 @@ try // clang-format on
 
         for (const auto& mount : vm_specs.mounts)
         {
-            if (mount.first.size() > mount_info->longest_path_len())
+            if (mount.second.source_path.size() > mount_info->longest_path_len())
             {
-                mount_info->set_longest_path_len(mount.first.size());
+                mount_info->set_longest_path_len(mount.second.source_path.size());
             }
 
             auto entry = mount_info->add_mount_paths();

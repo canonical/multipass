@@ -26,7 +26,7 @@ namespace multipass
 {
 namespace format
 {
-std::string status_string(const InstanceStatus& status);
+std::string status_string_for(const InstanceStatus& status);
 }
 }
 #endif // MULTIPASS_FORMAT_UTILS_H

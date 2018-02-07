@@ -15,86 +15,41 @@
  *
  */
 
-#include <multipass/cli/format.h>
+#include <multipass/cli/format_utils.h>
 #include <multipass/cli/table_output.h>
 
-#include <iomanip>
-#include <iostream>
-#include <sstream>
+#include <fmt/format.h>
 
 namespace mp = multipass;
 
-namespace
-{
-std::ostream& operator<<(std::ostream& out, const mp::InfoReply::Info& info)
-{
-    std::string ipv4{info.ipv4()};
-    std::string ipv6{info.ipv6()};
-    if (ipv4.empty())
-        ipv4.append("--");
-    out << std::setw(16) << std::left << "Name:";
-    out << info.name() << "\n";
-
-    out << std::setw(16) << std::left << "State:";
-    out << mp::format::status_string(info.instance_status()) << "\n";
-
-    out << std::setw(16) << std::left << "IPv4:";
-    out << ipv4 << "\n";
-
-    if (!ipv6.empty())
-    {
-        out << std::setw(16) << std::left << "IPV6:";
-        out << ipv6 << "\n";
-    }
-
-    out << std::setw(16) << std::left << "Release:";
-    out << (info.current_release().empty() ? "--" : info.current_release()) << "\n";
-
-    out << std::setw(16) << std::left << "Image hash:";
-    out << info.id().substr(0, 12) << " (Ubuntu " << info.image_release() << ")\n";
-
-    out << std::setw(16) << std::left << "Load:";
-    out << (info.load().empty() ? "--" : info.load()) << "\n";
-
-    out << std::setw(16) << std::left << "Disk usage:";
-    out << (info.disk_usage().empty() ? "--" : info.disk_usage()) << "\n";
-
-    out << std::setw(16) << std::left << "Memory usage:";
-    out << (info.memory_usage().empty() ? "--" : info.memory_usage()) << "\n";
-
-    auto mount_paths = info.mount_info().mount_paths();
-    for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
-    {
-        out << std::setw(16) << std::left << ((mount == mount_paths.cbegin()) ? "Mounts:" : " ")
-            << std::setw(info.mount_info().longest_path_len()) << mount->source_path() << "  => "
-            << mount->target_path() << "\n";
-    }
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const mp::ListVMInstance& instance)
-{
-    std::string ipv4{instance.ipv4()};
-    std::string ipv6{instance.ipv6()};
-    if (ipv4.empty())
-        ipv4.append("--");
-    if (ipv6.empty())
-        ipv6.append("--");
-    out << std::setw(24) << std::left << instance.name();
-    out << std::setw(9) << std::left << mp::format::status_string(instance.instance_status());
-    out << std::setw(17) << std::left << ipv4;
-    out << instance.current_release();
-
-    return out;
-}
-}
-
 std::string mp::TableOutput::process_info(InfoReply& reply) const
 {
-    std::stringstream out;
+    fmt::MemoryWriter out;
     for (const auto& info : reply.info())
     {
-        out << info << "\n";
+        out.write("{:<16}{}\n", "Name:", info.name());
+        out.write("{:<16}{}\n", "State:", mp::format::status_string_for(info.instance_status()));
+        out.write("{:<16}{}\n", "IPv4:", info.ipv4().empty() ? "--" : info.ipv4());
+
+        if (!info.ipv6().empty())
+        {
+            out.write("{:<16}{}\n", "IPv6:", info.ipv6());
+        }
+
+        out.write("{:<16}{}\n", "Release:", info.current_release().empty() ? "--" : info.current_release());
+        out.write("{:<16}{} (Ubuntu {})\n", "Image hash:", info.id().substr(0, 12), info.image_release());
+        out.write("{:<16}{}\n", "Load:", info.load().empty() ? "--" : info.load());
+        out.write("{:<16}{}\n", "Disk usage:", info.disk_usage().empty() ? "--" : info.disk_usage());
+        out.write("{:<16}{}\n", "Memory usage:", info.memory_usage().empty() ? "--" : info.memory_usage());
+
+        auto mount_paths = info.mount_info().mount_paths();
+        for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
+        {
+            out.write("{:<16}{:{}} => {}\n", (mount == mount_paths.cbegin()) ? "Mounts:" : " ", mount->source_path(),
+                      info.mount_info().longest_path_len(), mount->target_path());
+        }
+
+        out.write("\n");
     }
     auto output = out.str();
     if (!reply.info().empty())
@@ -105,17 +60,14 @@ std::string mp::TableOutput::process_info(InfoReply& reply) const
 
 std::string mp::TableOutput::process_list(ListReply& reply) const
 {
-    std::stringstream out;
+    fmt::MemoryWriter out;
 
-    out << std::setw(24) << std::left << "Name";
-    out << std::setw(9) << std::left << "State";
-    out << std::setw(17) << std::left << "IPv4";
-    out << std::left << "Release";
-    out << "\n";
+    out.write("{:<24}{:<9}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
 
     for (const auto& instance : reply.instances())
     {
-        out << instance << "\n";
+        out.write("{:<24}{:<9}{:<17}{:<}\n", instance.name(), mp::format::status_string_for(instance.instance_status()),
+                  instance.ipv4().empty() ? "--" : instance.ipv4(), instance.current_release());
     }
 
     return out.str();
