@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/cli/format.h>
+#include <multipass/cli/format_utils.h>
 #include <multipass/cli/json_output.h>
 
 #include <QJsonArray>
@@ -34,7 +34,7 @@ std::string mp::JsonOutput::process_info(InfoReply& reply) const
     for (const auto& info : reply.info())
     {
         QJsonObject instance_info;
-        instance_info.insert("state", QString::fromStdString(mp::format::status_string(info.instance_status())));
+        instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(info.instance_status())));
         instance_info.insert("image_hash", QString::fromStdString(info.id().substr(0, 12)));
 
         QJsonArray ipv4_addrs;
@@ -70,7 +70,7 @@ std::string mp::JsonOutput::process_list(ListReply& reply) const
     {
         QJsonObject instance_obj;
         instance_obj.insert("name", QString::fromStdString(instance.name()));
-        instance_obj.insert("state", QString::fromStdString(mp::format::status_string(instance.instance_status())));
+        instance_obj.insert("state", QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
 
         QJsonArray ipv4_addrs;
         if (!instance.ipv4().empty())

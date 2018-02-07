@@ -18,5 +18,6 @@ add_library(formatted_output
   table_output.cpp)
 
 target_link_libraries(formatted_output
+  fmt
   rpc
   Qt5::Core)

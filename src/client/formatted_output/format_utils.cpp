@@ -15,11 +15,11 @@
  *
  */
 
-#include <multipass/cli/format.h>
+#include <multipass/cli/format_utils.h>
 
 namespace mp = multipass;
 
-std::string mp::format::status_string(const mp::InstanceStatus& status)
+std::string mp::format::status_string_for(const mp::InstanceStatus& status)
 {
     std::string status_val;
 
