@@ -830,7 +830,8 @@ mp::SshfsMount::SshfsMount(std::function<SSHSession()> make_session, const std::
                            const std::string& target, const std::unordered_map<int, int>& gid_map,
                            const std::unordered_map<int, int>& uid_map, std::ostream& cout)
     : ssh_session{make_session()},
-      sshfs_process{create_sshfs_process(ssh_session, mp::utils::escape_char(source, '"'), target)},
+      sshfs_process{
+          create_sshfs_process(ssh_session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'))},
       gid_map{gid_map},
       uid_map{uid_map},
       cout{cout}
