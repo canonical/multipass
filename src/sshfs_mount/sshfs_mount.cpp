@@ -18,6 +18,7 @@
 #include <multipass/sshfs_mount/sshfs_mount.h>
 
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 #include <multipass/utils.h>
 
@@ -104,10 +105,10 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 
 } // namespace anonymous
 
-mp::SshfsMount::SshfsMount(std::function<SSHSession()> make_session, const std::string& source,
-                           const std::string& target, const std::unordered_map<int, int>& gid_map,
-                           const std::unordered_map<int, int>& uid_map, std::ostream& cout)
-    : sftp_server{make_sftp_server(make_session(), source, target, gid_map, uid_map, cout)}, sftp_thread{[this] {
+mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
+                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
+                           std::ostream& cout)
+    : sftp_server{make_sftp_server(std::move(session), source, target, gid_map, uid_map, cout)}, sftp_thread{[this] {
           sftp_server->run();
           emit finished();
       }}

@@ -1304,12 +1304,11 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                              const std::unordered_map<int, int>& uid_map)
 {
     auto& key_provider = *config->ssh_key_provider;
-    auto session_factory = [&vm, &key_provider]() -> SSHSession {
-        return {vm->ssh_hostname(), vm->ssh_port(), key_provider};
-    };
+
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), key_provider};
 
     auto sshfs_mount =
-        std::make_unique<mp::SshfsMount>(session_factory, source_path, target_path, gid_map, uid_map, config->cout);
+        std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map, config->cout);
 
     QObject::connect(sshfs_mount.get(), &SshfsMount::finished, this,
                      [this, name, target_path]() { mount_threads[name].erase(target_path); });
