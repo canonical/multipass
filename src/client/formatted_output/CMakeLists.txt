@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,30 +11,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(client STATIC
-  argparser.cpp
-  client.cpp)
+add_library(formatted_output
+  format_utils.cpp
+  json_output.cpp
+  table_output.cpp)
 
-target_link_libraries(client
-  commands
-  fmt
-  formatted_output
-  platform
+target_link_libraries(formatted_output
   rpc
   Qt5::Core)
-
-add_executable(multipass
-  main.cpp)
-
-target_link_libraries(multipass
-  client)
-
-install(TARGETS multipass
-  DESTINATION bin
-  COMPONENT multipass)
-
-add_subdirectory(cmd)
-add_subdirectory(formatted_output)
