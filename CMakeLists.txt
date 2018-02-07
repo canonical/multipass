@@ -44,6 +44,7 @@ if(MSVC)
   # Build with multiple processes
   add_definitions(/MP)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
+  add_definitions(-DNOMINMAX) # otherwise windows defines macros which interfere with std::min, std::max
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
 elseif(APPLE)
