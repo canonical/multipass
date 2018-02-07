@@ -20,19 +20,19 @@
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_factory.h>
 
-#include "backends/qemu/qemu_virtual_machine_factory.h"
+#include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 #include <unistd.h>
 
 namespace mp = multipass;
 
 std::string mp::platform::default_server_address()
 {
-    return {"unix:/run/multipass_socket"};
+    return {"localhost:50051"};
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+    return std::make_unique<HyperkitVirtualMachineFactory>();
 }
 
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)

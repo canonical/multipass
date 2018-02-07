@@ -14,14 +14,14 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(platform STATIC
-  platform.cpp)
-
 if(MSVC)
+  add_library(platform STATIC platform_win.cpp)
   target_link_libraries(platform hyperv_backend)
 elseif(APPLE)
+  add_library(platform STATIC platform_osx.cpp)
   target_link_libraries(platform hyperkit_backend)
 else()
+  add_library(platform STATIC platform.cpp)
   target_link_libraries(platform qemu_backend)
 endif()
 
