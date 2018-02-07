@@ -22,15 +22,16 @@
 #include <multipass/virtual_machine.h>
 
 #include <functional>
-#include <iostream>
+#include <memory>
+#include <ostream>
 #include <thread>
 #include <unordered_map>
 
 #include <QObject>
-#include <QString>
 
 namespace multipass
 {
+class SftpServer;
 class SshfsMount : public QObject
 {
     Q_OBJECT
@@ -41,7 +42,6 @@ public:
                std::ostream& cout);
     virtual ~SshfsMount();
 
-    void run();
     void stop();
 
 signals:
@@ -50,10 +50,10 @@ signals:
 private:
     SSHSession ssh_session;
     SSHProcess sshfs_process;
-    const std::unordered_map<int, int> gid_map;
-    const std::unordered_map<int, int> uid_map;
-    std::thread mount_thread;
-    std::ostream& cout;
+    // sftp_server Doesn't need to be a pointer, but done for now to avoid bringing sftp.h
+    // which has an error with -pedantic.
+    std::unique_ptr<SftpServer> sftp_server;
+    std::thread sftp_thread;
 };
 }
 #endif // MULTIPASS_SSHFS_MOUNT
