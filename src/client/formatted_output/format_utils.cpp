@@ -35,7 +35,7 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
         status_val = "DELETED";
         break;
     default:
-        status_val = "UNKOWN";
+        status_val = "UNKNOWN";
         break;
     }
     return status_val;

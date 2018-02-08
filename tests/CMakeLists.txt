@@ -37,6 +37,8 @@ add_executable(multipass_tests
   temp_file.cpp
   test_cli_client.cpp
   test_daemon.cpp
+  test_format_utils.cpp
+  test_formatted_output.cpp
   test_image_vault.cpp
   test_ip_address_pool.cpp
   test_petname.cpp
