@@ -79,7 +79,7 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     return cmd;
 }
 
-bool mp::utils::run_cmd(QString cmd, QStringList args)
+bool mp::utils::run_cmd_for_status(const QString& cmd, const QStringList& args)
 {
     QProcess proc;
     proc.setProgram(cmd);
@@ -89,6 +89,18 @@ bool mp::utils::run_cmd(QString cmd, QStringList args)
     proc.waitForFinished();
 
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
+}
+
+std::string mp::utils::run_cmd_for_output(const QString& cmd, const QStringList& args)
+{
+    QProcess proc;
+    proc.setProgram(cmd);
+    proc.setArguments(args);
+
+    proc.start();
+    proc.waitForFinished();
+
+    return proc.readAllStandardOutput().trimmed().toStdString();
 }
 
 std::string& mp::utils::trim_end(std::string& s)
