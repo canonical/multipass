@@ -43,7 +43,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, *cerr);
     if (factory == nullptr)
-        factory = Platform::vm_backend(data_directory);
+        factory = platform::vm_backend(data_directory);
     if (image_host == nullptr)
         image_host = std::make_unique<mp::UbuntuVMImageHost>(
             std::unordered_map<std::string, std::string>{
@@ -56,7 +56,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (name_generator == nullptr)
         name_generator = mp::make_default_name_generator();
     if (server_address.empty())
-        server_address = Platform::default_server_address();
+        server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory, cache_directory);
 

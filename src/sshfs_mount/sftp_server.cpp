@@ -17,6 +17,7 @@
 
 #include <multipass/sshfs_mount/sftp_server.h>
 
+#include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utime.h>
@@ -408,11 +409,12 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 #ifndef MULTIPASS_PLATFORM_WINDOWS
     QFileInfo current_dir(filename);
     QFileInfo parent_dir(current_dir.path());
-    auto ret = chown(filename, parent_dir.ownerId(), parent_dir.groupId());
+    auto ret = mp::platform::chown(filename, parent_dir.ownerId(), parent_dir.groupId());
     if (ret < 0)
     {
         cout << fmt::format("[sftp server] failed to chown '{}' to owner:{} and group:{}\n", filename,
                             parent_dir.ownerId(), parent_dir.groupId());
+        return reply_failure(msg);
     }
 #endif
     return reply_ok(msg);
@@ -470,11 +472,12 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 #ifndef MULTIPASS_PLATFORM_WINDOWS
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
-        auto ret = chown(filename, current_dir.ownerId(), current_dir.groupId());
+        auto ret = mp::platform::chown(filename, current_dir.ownerId(), current_dir.groupId());
         if (ret < 0)
         {
             fmt::format("[sftp server] failed to chown '{}' to owner:{} and group:{}\n", filename,
                         current_dir.ownerId(), current_dir.groupId());
+            return reply_failure(msg);
         }
 #endif
     }
@@ -631,7 +634,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 #ifndef MULTIPASS_PLATFORM_WINDOWS
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        if (chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
+        if (mp::platform::chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
             return reply_failure(msg);
     }
 #endif

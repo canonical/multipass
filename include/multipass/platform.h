@@ -26,11 +26,11 @@
 
 namespace multipass
 {
-class Platform
+namespace platform
 {
-public:
-    static std::string default_server_address();
-    static VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
-};
+std::string default_server_address();
+VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
+int chown(const char* path, unsigned int uid, unsigned int gid);
+} // namespace platform
 }
 #endif // MULTIPASS_PLATFORM_H

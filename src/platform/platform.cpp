@@ -28,11 +28,11 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #endif
 
+#include <unistd.h>
+
 namespace mp = multipass;
 
-// TODO: runtime platform checks?
-
-std::string mp::Platform::default_server_address()
+std::string mp::platform::default_server_address()
 {
 #ifdef MULTIPASS_PLATFORM_LINUX
     return {"unix:/run/multipass_socket"};
@@ -41,7 +41,7 @@ std::string mp::Platform::default_server_address()
 #endif
 }
 
-mp::VirtualMachineFactory::UPtr mp::Platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
@@ -50,4 +50,9 @@ mp::VirtualMachineFactory::UPtr mp::Platform::vm_backend(const mp::Path& data_di
 #else
     return std::make_unique<QemuVirtualMachineFactory>(data_dir);
 #endif
+}
+
+int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
+{
+    return ::chown(path, uid, gid);
 }
