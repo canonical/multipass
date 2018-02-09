@@ -406,7 +406,6 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     if (!QFile::setPermissions(filename, to_qt_permissions(msg->attr->permissions)))
         return reply_failure(msg);
 
-#ifndef MULTIPASS_PLATFORM_WINDOWS
     QFileInfo current_dir(filename);
     QFileInfo parent_dir(current_dir.path());
     auto ret = mp::platform::chown(filename, parent_dir.ownerId(), parent_dir.groupId());
@@ -416,7 +415,6 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
                             parent_dir.ownerId(), parent_dir.groupId());
         return reply_failure(msg);
     }
-#endif
     return reply_ok(msg);
 }
 
@@ -469,7 +467,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     {
         if (!file->setPermissions(to_qt_permissions(msg->attr->permissions)))
             return reply_failure(msg);
-#ifndef MULTIPASS_PLATFORM_WINDOWS
+
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
         auto ret = mp::platform::chown(filename, current_dir.ownerId(), current_dir.groupId());
@@ -479,7 +477,6 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
                         current_dir.ownerId(), current_dir.groupId());
             return reply_failure(msg);
         }
-#endif
     }
 
     SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), file.get()), ssh_string_free};
@@ -631,13 +628,11 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             return reply_failure(msg);
     }
 
-#ifndef MULTIPASS_PLATFORM_WINDOWS
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
         if (mp::platform::chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
             return reply_failure(msg);
     }
-#endif
 
     return reply_ok(msg);
 }
