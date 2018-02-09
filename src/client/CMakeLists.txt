@@ -21,7 +21,7 @@ add_library(client STATIC
 target_link_libraries(client
   commands
   fmt
-  formatted_output
+  formatter
   platform
   rpc
   Qt5::Core)
@@ -37,4 +37,4 @@ install(TARGETS multipass
   COMPONENT multipass)
 
 add_subdirectory(cmd)
-add_subdirectory(formatted_output)
+add_subdirectory(formatter)

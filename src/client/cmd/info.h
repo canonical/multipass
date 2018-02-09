@@ -38,7 +38,7 @@ public:
 
 private:
     InfoRequest request;
-    QString format_type{"table"};
+    Formatter* chosen_formatter;
 
     ParseCode parse_args(ArgParser *parser) override;
 };

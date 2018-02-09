@@ -40,7 +40,7 @@ public:
 private:
     ParseCode parse_args(ArgParser *parser) override;
 
-    QString format_type{"table"};
+    Formatter* chosen_formatter;
 };
 }
 }

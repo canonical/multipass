@@ -15,18 +15,18 @@
  *
  */
 
-#ifndef MULTIPASS_TABLE_OUTPUT
-#define MULTIPASS_TABLE_OUTPUT
+#ifndef MULTIPASS_JSON_FORMATTER
+#define MULTIPASS_JSON_FORMATTER
 
-#include <multipass/cli/formatted_output.h>
+#include <multipass/cli/formatter.h>
 
 namespace multipass
 {
-class TableOutput final : public FormattedOutput
+class JsonFormatter final : public Formatter
 {
 public:
-    std::string process_info(InfoReply& info) const override;
-    std::string process_list(ListReply& list) const override;
+    std::string format(const InfoReply& info) const override;
+    std::string format(const ListReply& list) const override;
 };
 }
-#endif // MULTIPASS_TABLE_OUTPUT
+#endif // MULTIPASS_JSON_FORMATTER

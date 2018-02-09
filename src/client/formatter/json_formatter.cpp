@@ -16,7 +16,7 @@
  */
 
 #include <multipass/cli/format_utils.h>
-#include <multipass/cli/json_output.h>
+#include <multipass/cli/json_formatter.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -24,7 +24,7 @@
 
 namespace mp = multipass;
 
-std::string mp::JsonOutput::process_info(InfoReply& reply) const
+std::string mp::JsonFormatter::format(const InfoReply& reply) const
 {
     QJsonObject info_json;
     QJsonObject info_obj;
@@ -61,7 +61,7 @@ std::string mp::JsonOutput::process_info(InfoReply& reply) const
     return QString(QJsonDocument(info_json).toJson()).toStdString();
 }
 
-std::string mp::JsonOutput::process_list(ListReply& reply) const
+std::string mp::JsonFormatter::format(const ListReply& reply) const
 {
     QJsonObject list_json;
     QJsonArray instances;
