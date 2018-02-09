@@ -15,18 +15,26 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_OUTPUT
-#define MULTIPASS_JSON_OUTPUT
+#ifndef MULTIPASS_FORMATTER_H
+#define MULTIPASS_FORMATTER_H
 
-#include <multipass/cli/formatted_output.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
+
+#include <string>
 
 namespace multipass
 {
-class JsonOutput final : public FormattedOutput
+class Formatter
 {
 public:
-    std::string process_info(InfoReply& info) const override;
-    std::string process_list(ListReply& list) const override;
+    virtual ~Formatter() = default;
+    virtual std::string format(const InfoReply& reply) const = 0;
+    virtual std::string format(const ListReply& reply) const = 0;
+
+protected:
+    Formatter() = default;
+    Formatter(const Formatter&) = delete;
+    Formatter& operator=(const Formatter&) = delete;
 };
 }
-#endif // MULTIPASS_JSON_OUTPUT
+#endif // MULTIPASS_FORMATTER_H

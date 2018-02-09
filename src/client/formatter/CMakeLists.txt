@@ -12,12 +12,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_library(formatted_output
+add_library(formatter
   format_utils.cpp
-  json_output.cpp
-  table_output.cpp)
+  json_formatter.cpp
+  table_formatter.cpp)
 
-target_link_libraries(formatted_output
+target_link_libraries(formatter
   fmt
   rpc
   Qt5::Core)

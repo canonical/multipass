@@ -15,8 +15,8 @@
  *
  */
 
-#include <multipass/cli/json_output.h>
-#include <multipass/cli/table_output.h>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <gmock/gmock.h>
@@ -120,20 +120,20 @@ auto construct_multiple_instances_info_reply()
 }
 }
 
-TEST(TableOutput, single_instance_list_output)
+TEST(TableFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
     auto expected_table_output = "Name                    State    IPv4             Release\n"
                                  "foo                     RUNNING  10.168.32.2      Ubuntu 16.04 LTS\n";
 
-    mp::TableOutput table_output;
-    auto output = table_output.process_list(list_reply);
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableOutput, multiple_instance_list_output)
+TEST(TableFormatter, multiple_instance_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
@@ -141,13 +141,25 @@ TEST(TableOutput, multiple_instance_list_output)
                                  "bogus-instance          RUNNING  10.21.124.56     Ubuntu 16.04 LTS\n"
                                  "bombastic               STOPPED  --               Ubuntu 18.04 LTS\n";
 
-    mp::TableOutput table_output;
-    auto output = table_output.process_list(list_reply);
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableOutput, single_instance_info_output)
+TEST(TableFormatter, no_instances_list_output)
+{
+    mp::ListReply list_reply;
+
+    auto expected_table_output = "No instances found.\n";
+
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(list_reply);
+
+    EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST(TableFormatter, single_instance_info_output)
 {
     auto info_reply = construct_single_instance_info_reply();
 
@@ -162,13 +174,13 @@ TEST(TableOutput, single_instance_info_output)
                                  "Mounts:         /home/user/foo      => foo\n"
                                  "                /home/user/test_dir => test_dir\n";
 
-    mp::TableOutput table_output;
-    auto output = table_output.process_info(info_reply);
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableOutput, multiple_instances_info_output)
+TEST(TableFormatter, multiple_instances_info_output)
 {
     auto info_reply = construct_multiple_instances_info_reply();
 
@@ -190,13 +202,25 @@ TEST(TableOutput, multiple_instances_info_output)
                                  "Disk usage:     --\n"
                                  "Memory usage:   --\n";
 
-    mp::TableOutput table_output;
-    auto output = table_output.process_info(info_reply);
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(JsonOutput, single_instance_list_output)
+TEST(TableFormatter, no_instances_info_output)
+{
+    mp::InfoReply info_reply;
+
+    auto expected_table_output = "\n";
+
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(info_reply);
+
+    EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST(JsonFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
@@ -212,13 +236,13 @@ TEST(JsonOutput, single_instance_list_output)
                                 "    ]\n"
                                 "}\n";
 
-    mp::JsonOutput json_output;
-    auto output = json_output.process_list(list_reply);
+    mp::JsonFormatter json_formatter;
+    auto output = json_formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonOutput, multiple_instances_list_output)
+TEST(JsonFormatter, multiple_instances_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
@@ -240,13 +264,28 @@ TEST(JsonOutput, multiple_instances_list_output)
                                 "    ]\n"
                                 "}\n";
 
-    mp::JsonOutput json_output;
-    auto output = json_output.process_list(list_reply);
+    mp::JsonFormatter json_formatter;
+    auto output = json_formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonOutput, single_instance_info_output)
+TEST(JsonFormatter, no_instances_list_output)
+{
+    mp::ListReply list_reply;
+
+    auto expected_json_output = "{\n"
+                                "    \"list\": [\n"
+                                "    ]\n"
+                                "}\n";
+
+    mp::JsonFormatter json_formatter;
+    auto output = json_formatter.format(list_reply);
+
+    EXPECT_THAT(output, Eq(expected_json_output));
+}
+
+TEST(JsonFormatter, single_instance_info_output)
 {
     auto info_reply = construct_single_instance_info_reply();
 
@@ -280,13 +319,13 @@ TEST(JsonOutput, single_instance_info_output)
                                 "    }\n"
                                 "}\n";
 
-    mp::JsonOutput json_output;
-    auto output = json_output.process_info(info_reply);
+    mp::JsonFormatter json_formatter;
+    auto output = json_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonOutput, multiple_instances_info_output)
+TEST(JsonFormatter, multiple_instances_info_output)
 {
     auto info_reply = construct_multiple_instances_info_reply();
 
@@ -321,8 +360,25 @@ TEST(JsonOutput, multiple_instances_info_output)
                                 "    }\n"
                                 "}\n";
 
-    mp::JsonOutput json_output;
-    auto output = json_output.process_info(info_reply);
+    mp::JsonFormatter json_formatter;
+    auto output = json_formatter.format(info_reply);
+
+    EXPECT_THAT(output, Eq(expected_json_output));
+}
+
+TEST(JsonFormatter, no_instances_info_output)
+{
+    mp::InfoReply info_reply;
+
+    auto expected_json_output = "{\n"
+                                "    \"errors\": [\n"
+                                "    ],\n"
+                                "    \"info\": {\n"
+                                "    }\n"
+                                "}\n";
+
+    mp::JsonFormatter json_formatter;
+    auto output = json_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_json_output));
 }

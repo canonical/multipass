@@ -15,26 +15,18 @@
  *
  */
 
-#ifndef MULTIPASS_FORMATTED_OUTPUT_H
-#define MULTIPASS_FORMATTED_OUTPUT_H
+#ifndef MULTIPASS_TABLE_FORMATTER
+#define MULTIPASS_TABLE_FORMATTER
 
-#include <multipass/rpc/multipass.grpc.pb.h>
-
-#include <string>
+#include <multipass/cli/formatter.h>
 
 namespace multipass
 {
-class FormattedOutput
+class TableFormatter final : public Formatter
 {
 public:
-    virtual ~FormattedOutput() = default;
-    virtual std::string process_info(InfoReply& reply) const = 0;
-    virtual std::string process_list(ListReply& reply) const = 0;
-
-protected:
-    FormattedOutput() = default;
-    FormattedOutput(const FormattedOutput&) = delete;
-    FormattedOutput& operator=(const FormattedOutput&) = delete;
+    std::string format(const InfoReply& info) const override;
+    std::string format(const ListReply& list) const override;
 };
 }
-#endif // MULTIPASS_FORMATTED_OUTPUT_H
+#endif // MULTIPASS_TABLE_FORMATTER

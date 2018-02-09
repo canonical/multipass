@@ -20,8 +20,8 @@
 #include "list.h"
 
 #include <multipass/cli/argparser.h>
-#include <multipass/cli/json_output.h>
-#include <multipass/cli/table_output.h>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -36,29 +36,8 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
     }
 
     auto on_success = [this](ListReply& reply) {
-        std::string output;
+        cout << chosen_formatter->format(reply);
 
-        if (format_type == "json")
-        {
-            JsonOutput json_output;
-            output = json_output.process_list(reply);
-        }
-        else
-        {
-            const auto size = reply.instances_size();
-            if (size < 1)
-            {
-                output = "No instances found.\n";
-            }
-            else
-            {
-                TableOutput table_output;
-
-                output = table_output.process_list(reply);
-            }
-        }
-
-        cout << output;
         return ReturnCode::Ok;
     };
 
@@ -112,18 +91,13 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    if (parser->isSet(formatOption))
-    {
-        QString format_value{parser->value(formatOption)};
-        QStringList valid_formats{"table", "json"};
+    QString format_value{parser->value(formatOption)};
+    chosen_formatter = formatter_for(format_value.toStdString());
 
-        if (!valid_formats.contains(format_value))
-        {
-            cerr << "Invalid format type given.\n";
-            status = ParseCode::CommandLineError;
-        }
-        else
-            format_type = format_value;
+    if (chosen_formatter == nullptr)
+    {
+        cerr << "Invalid format type given.\n";
+        status = ParseCode::CommandLineError;
     }
 
     return status;

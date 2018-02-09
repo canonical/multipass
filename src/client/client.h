@@ -20,10 +20,12 @@
 #ifndef MULTIPASS_CLIENT_H
 #define MULTIPASS_CLIENT_H
 
-#include <multipass/cli/command.h>
 #include <multipass/cli/cli.h>
+#include <multipass/cli/command.h>
+#include <multipass/cli/formatter.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <map>
 #include <memory>
 #include <unordered_map>
 
@@ -47,6 +49,7 @@ private:
     void add_command();
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
+    std::map<std::string, std::unique_ptr<multipass::Formatter>> formatters;
 
     std::vector<cmd::Command::UPtr> commands;
 

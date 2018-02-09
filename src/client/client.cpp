@@ -38,12 +38,33 @@
 #include <algorithm>
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
 
 namespace mp = multipass;
+
+namespace
+{
+template <typename T>
+std::unique_ptr<mp::Formatter> make_entry()
+{
+    return std::make_unique<T>();
+}
+
+auto make_map()
+{
+    std::map<std::string, std::unique_ptr<mp::Formatter>> map;
+    map.emplace("table", make_entry<mp::TableFormatter>());
+    map.emplace("json", make_entry<mp::JsonFormatter>());
+
+    return map;
+}
+}
 
 mp::Client::Client(const ClientConfig& config)
     : rpc_channel{grpc::CreateChannel(config.server_address, grpc::InsecureChannelCredentials())},
       stub{mp::Rpc::NewStub(rpc_channel)},
+      formatters{make_map()},
       cout{config.cout},
       cerr{config.cerr}
 {
@@ -70,7 +91,7 @@ mp::Client::Client(const ClientConfig& config)
 template <typename T>
 void mp::Client::add_command()
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, cout, cerr);
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, &formatters, cout, cerr);
     commands.push_back(std::move(cmd));
 }
 

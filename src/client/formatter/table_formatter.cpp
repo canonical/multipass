@@ -16,15 +16,16 @@
  */
 
 #include <multipass/cli/format_utils.h>
-#include <multipass/cli/table_output.h>
+#include <multipass/cli/table_formatter.h>
 
 #include <fmt/format.h>
 
 namespace mp = multipass;
 
-std::string mp::TableOutput::process_info(InfoReply& reply) const
+std::string mp::TableFormatter::format(const InfoReply& reply) const
 {
     fmt::MemoryWriter out;
+
     for (const auto& info : reply.info())
     {
         out.write("{:<16}{}\n", "Name:", info.name());
@@ -54,13 +55,18 @@ std::string mp::TableOutput::process_info(InfoReply& reply) const
     auto output = out.str();
     if (!reply.info().empty())
         output.pop_back();
+    else
+        output = "\n";
 
     return output;
 }
 
-std::string mp::TableOutput::process_list(ListReply& reply) const
+std::string mp::TableFormatter::format(const ListReply& reply) const
 {
     fmt::MemoryWriter out;
+
+    if (reply.instances().empty())
+        return "No instances found.\n";
 
     out.write("{:<24}{:<9}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
 
