@@ -67,11 +67,10 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     do
     {
         num_bytes = ssh_channel_read_timeout(channel.get(), buffer.data(), buffer.size(), is_std_err, timeout);
+        if (num_bytes < 0)
+            throw std::runtime_error("error reading ssh channel");
         output.write(buffer.data(), num_bytes);
     } while (num_bytes > 0);
-
-    if (num_bytes < 0)
-        throw std::runtime_error("error reading ssh channel");
 
     return output.str();
 }

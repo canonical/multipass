@@ -31,6 +31,8 @@ set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletes
 add_executable(multipass_tests
   file_reader.cpp
   main.cpp
+  mock_sftpserver.cpp
+  mock_ssh.cpp
   path.cpp
   temp_file.cpp
   test_cli_client.cpp
@@ -40,7 +42,10 @@ add_executable(multipass_tests
   test_petname.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
+  test_sftpserver.cpp
   test_ssh_key_provider.cpp
+  test_ssh_process.cpp
+  test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
 
@@ -50,6 +55,9 @@ add_executable(multipass_tests
   ${MULTIPASS_GTEST_DIR}/src/gtest-all.cc
 )
 
+set_source_files_properties(test_sftpserver.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
+set_source_files_properties(mock_sftpserver.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
+
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${MULTIPASS_GTEST_DIR}
@@ -58,15 +66,23 @@ target_include_directories(multipass_tests
   PRIVATE ${MULTIPASS_GMOCK_DIR}/include
 )
 
+include(c_mock_defines.cmake)
+target_compile_definitions(ssh_test PRIVATE
+  ${c_mock_defines})
+target_compile_definitions(sshfs_mount_test PRIVATE
+  ${c_mock_defines})
+
 target_link_libraries(multipass_tests
   client
   daemon
   ip_address_pool
   petname
   simplestreams
-  ssh
+  ssh_test
+  sshfs_mount_test
   utils
   # 3rd-party
+  premock
   yaml
 )
 
