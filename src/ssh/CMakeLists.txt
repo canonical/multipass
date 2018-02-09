@@ -14,19 +14,26 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(ssh STATIC
-  openssh_key_provider.cpp
-  ssh_process.cpp
-  ssh_session.cpp)
+function(add_ssh_target TARGET_NAME)
+  add_library(${TARGET_NAME} STATIC
+    openssh_key_provider.cpp
+    ssh_process.cpp
+    ssh_session.cpp)
+
+  target_link_libraries(${TARGET_NAME}
+    libssh
+    Qt5::Core)
+endfunction()
+
+add_ssh_target(ssh)
+if(MULTIPASS_ENABLE_TESTS)
+  add_ssh_target(ssh_test)
+endif()
 
 add_library(ssh_client STATIC
   ssh_client.cpp
   ssh_client_key_provider.cpp
   ssh_session.cpp)
-
-target_link_libraries(ssh
-  libssh
-  Qt5::Core)
 
 target_link_libraries(ssh_client
   console
