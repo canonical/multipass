@@ -45,6 +45,7 @@ add_executable(multipass_tests
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_sftpserver.cpp
+  test_sshfsmount.cpp
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
   test_ssh_session.cpp
@@ -58,6 +59,7 @@ add_executable(multipass_tests
 )
 
 set_source_files_properties(test_sftpserver.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
+set_source_files_properties(test_sshfsmount.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
 set_source_files_properties(mock_sftpserver.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
 
 target_include_directories(multipass_tests

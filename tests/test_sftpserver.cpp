@@ -15,8 +15,7 @@
  *
  */
 
-#include "mock_sftpserver.h"
-#include "mock_ssh.h"
+#include "sftp_server_test_fixture.h"
 
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
@@ -30,26 +29,11 @@ using namespace testing;
 
 namespace
 {
-struct SftpServer : public Test
+struct SftpServer : public mp::test::SftpServerTest
 {
-    SftpServer()
-    {
-        connect.returnValue(SSH_OK);
-        is_connected.returnValue(true);
-        open_session.returnValue(SSH_OK);
-        request_exec.returnValue(SSH_OK);
-        init_sftp.returnValue(SSH_OK);
-        reply_status.returnValue(SSH_OK);
-    }
-
-    mp::SSHSession make_session()
-    {
-        return {"a", 42};
-    }
-
     mp::SftpServer make_sftpserver()
     {
-        auto session = make_session();
+        mp::SSHSession session{"a", 42};
         auto proc = session.exec("sshfs");
         return {std::move(session), std::move(proc), default_map, default_map, default_id, default_id, nullstream};
     }
@@ -73,15 +57,6 @@ struct SftpServer : public Test
         };
         return msg_handler;
     }
-
-    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
-    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
-    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
-    decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
-    decltype(MOCK(sftp_server_init)) init_sftp{MOCK(sftp_server_init)};
-    decltype(MOCK(sftp_free)) free_sftp{MOCK(sftp_free)};
-    decltype(MOCK(sftp_reply_status)) reply_status{MOCK(sftp_reply_status)};
-    decltype(MOCK(sftp_client_message_free)) msg_free{MOCK(sftp_client_message_free)};
 
     std::queue<sftp_client_message> messages;
     std::unordered_map<int, int> default_map;
