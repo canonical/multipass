@@ -16,9 +16,6 @@ set(CMAKE_AUTOMOC ON)
 function(add_sshfs_mount_target TARGET_NAME)
   add_definitions(-DWITH_SERVER)
 
-  set_source_files_properties(sshfs_mount.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-  set_source_files_properties(sftp_server.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-
   add_library(${TARGET_NAME} STATIC
     sshfs_mount.cpp
     sftp_server.cpp
