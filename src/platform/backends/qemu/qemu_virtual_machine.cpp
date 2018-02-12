@@ -21,6 +21,7 @@
 #include "dnsmasq_server.h"
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -95,6 +96,14 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
 
     return process;
 }
+
+void remove_tap_device(const QString& tap_device_name)
+{
+    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", tap_device_name}))
+    {
+        mp::utils::run_cmd_for_status("ip", {"link", "delete", tap_device_name});
+    }
+}
 }
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, optional<mp::IPAddress> address,
@@ -142,6 +151,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
 {
+    remove_tap_device(QString::fromStdString(tap_device_name));
+
     shutdown();
 }
 

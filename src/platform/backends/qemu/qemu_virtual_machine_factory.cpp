@@ -112,6 +112,15 @@ void create_virtual_switch(const std::string& subnet)
     }
 }
 
+void delete_virtual_switch()
+{
+    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", "mpbr0"}))
+    {
+        mp::utils::run_cmd_for_status("ip", {"link", "delete", "mpbr0"});
+        mp::utils::run_cmd_for_status("ip", {"link", "delete", "mpbr0-dummy"});
+    }
+}
+
 void create_tap_device(const QString& tap_name)
 {
     if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", tap_name}))
@@ -119,16 +128,6 @@ void create_tap_device(const QString& tap_name)
         mp::utils::run_cmd_for_status("ip", {"tuntap", "add", tap_name, "mode", "tap"});
         mp::utils::run_cmd_for_status("ip", {"link", "set", tap_name, "master", "mpbr0"});
         mp::utils::run_cmd_for_status("ip", {"link", "set", tap_name, "up"});
-    }
-}
-
-void remove_tap_device(const std::string& name)
-{
-    auto tap_device_name = QString::fromStdString(generate_tap_device_name(name));
-
-    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", tap_device_name}))
-    {
-        mp::utils::run_cmd_for_status("ip", {"link", "delete", tap_device_name});
     }
 }
 
@@ -245,6 +244,11 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_di
 {
 }
 
+mp::QemuVirtualMachineFactory::~QemuVirtualMachineFactory()
+{
+    delete_virtual_switch();
+}
+
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                VMStatusMonitor& monitor)
 {
@@ -258,8 +262,6 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
     legacy_ip_pool.remove_ip_for(name);
-
-    remove_tap_device(name);
 }
 
 mp::FetchType mp::QemuVirtualMachineFactory::fetch_type()
