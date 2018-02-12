@@ -58,10 +58,6 @@ add_executable(multipass_tests
   ${MULTIPASS_GTEST_DIR}/src/gtest-all.cc
 )
 
-set_source_files_properties(test_sftpserver.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-set_source_files_properties(test_sshfsmount.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-set_source_files_properties(mock_sftpserver.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${MULTIPASS_GTEST_DIR}
