@@ -19,6 +19,7 @@ set(WITH_STATIC_LIB TRUE)
 set(WITH_EXAMPLES FALSE)
 set(WITH_SERVER TRUE)
 set(WITH_SFTP TRUE)
+set(WITH_CHACHAPOLY TRUE)
 
 # We'll link with the boringssl implementation in grpc
 set(OPENSSL_FOUND TRUE)
