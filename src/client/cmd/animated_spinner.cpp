@@ -64,8 +64,8 @@ void mp::AnimatedSpinner::stop()
         lock.unlock();
         if (t.joinable())
             t.join();
-        clear_line(cout);
     }
+    clear_line(cout);
 }
 
 void mp::AnimatedSpinner::draw()
