@@ -89,12 +89,13 @@ struct SshfsMount : public mp::test::SftpServerTest
 
     auto make_channel_read_return(std::string output, std::string::size_type& remaining, bool& prereq_invoked)
     {
-        auto channel_read = [&output, &remaining, &prereq_invoked](ssh_channel, void* dest, uint32_t count,
-                                                                   int is_stderr, int) {
+        auto channel_read = [output, &remaining, &prereq_invoked](ssh_channel, void* dest, uint32_t count,
+                                                                  int is_stderr, int) {
             if (!prereq_invoked)
                 return 0u;
             const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
-            std::copy_n(output.begin(), num_to_copy, reinterpret_cast<char*>(dest));
+            const auto begin = output.begin() + output.size() - remaining;
+            std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
             remaining -= num_to_copy;
             return num_to_copy;
         };
