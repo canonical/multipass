@@ -37,6 +37,7 @@ public:
     SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
                const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
                std::ostream& cout);
+    SshfsMount(SshfsMount&& other);
     virtual ~SshfsMount();
 
     void stop();

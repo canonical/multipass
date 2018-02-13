@@ -20,125 +20,12 @@
 #include "info.h"
 
 #include <multipass/cli/argparser.h>
-
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-
-#include <iomanip>
-#include <sstream>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
-
-namespace
-{
-std::string status_string(const multipass::InfoReply_Status& status)
-{
-    std::string status_val;
-
-    switch(status)
-    {
-    case mp::InfoReply::RUNNING:
-        status_val = "RUNNING";
-        break;
-    case mp::InfoReply::STOPPED:
-        status_val = "STOPPED";
-        break;
-    case mp::InfoReply::TRASHED:
-        status_val = "DELETED";
-        break;
-    default:
-        status_val = "UNKOWN";
-        break;
-    }
-    return status_val;
-}
-
-std::ostream& operator<<(std::ostream& out, const multipass::InfoReply::Info& info)
-{
-    std::string ipv4{info.ipv4()};
-    std::string ipv6{info.ipv6()};
-    if (ipv4.empty())
-        ipv4.append("--");
-    out << std::setw(16) << std::left << "Name:";
-    out << info.name() << "\n";
-
-    out << std::setw(16) << std::left << "State:";
-    out << status_string(info.status()) << "\n";
-
-    out << std::setw(16) << std::left << "IPv4:";
-    out << ipv4 << "\n";
-
-    if (!ipv6.empty())
-    {
-        out << std::setw(16) << std::left << "IPV6:";
-        out << ipv6 << "\n";
-    }
-
-    out << std::setw(16) << std::left << "Release:";
-    out << (info.current_release().empty() ? "--" : info.current_release()) << "\n";
-
-    out << std::setw(16) << std::left << "Image hash:";
-    out << info.id().substr(0, 12) << " (Ubuntu " << info.image_release() << ")\n";
-
-    out << std::setw(16) << std::left << "Load:";
-    out << (info.load().empty() ? "--" : info.load()) << "\n";
-
-    out << std::setw(16) << std::left << "Disk usage:";
-    out << (info.disk_usage().empty() ? "--" : info.disk_usage()) << "\n";
-
-    out << std::setw(16) << std::left << "Memory usage:";
-    out << (info.memory_usage().empty() ? "--" : info.memory_usage()) << "\n";
-
-    auto mount_paths = info.mount_info().mount_paths();
-    for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
-    {
-        out << std::setw(16) << std::left << ((mount == mount_paths.cbegin()) ? "Mounts:" : " ")
-            << std::setw(info.mount_info().longest_path_len()) << mount->source_path() << "  => "
-            << mount->target_path() << "\n";
-    }
-    return out;
-}
-
-QString toJson(mp::InfoReply& reply)
-{
-    QJsonObject info_json;
-    QJsonObject info_obj;
-
-    info_json.insert("errors", QJsonArray());
-
-    for (const auto& info : reply.info())
-    {
-        QJsonObject instance_info;
-        instance_info.insert("state", QString::fromStdString(status_string(info.status())));
-        instance_info.insert("image_hash", QString::fromStdString(info.id().substr(0, 12)));
-
-        QJsonArray ipv4_addrs;
-        if (!info.ipv4().empty())
-            ipv4_addrs.append(QString::fromStdString(info.ipv4()));
-        instance_info.insert("ipv4", ipv4_addrs);
-
-        QJsonObject mounts;
-        for (const auto& mount : info.mount_info().mount_paths())
-        {
-            QJsonObject entry;
-            entry.insert("gid_mappings", QJsonArray());
-            entry.insert("uid_mappings", QJsonArray());
-            entry.insert("source_path", QString::fromStdString(mount.source_path()));
-
-            mounts.insert(QString::fromStdString(mount.target_path()), entry);
-        }
-        instance_info.insert("mounts", mounts);
-
-        info_obj.insert(QString::fromStdString(info.name()), instance_info);
-    }
-    info_json.insert("info", info_obj);
-
-    return QString(QJsonDocument(info_json).toJson());
-}
-}
 
 mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
 {
@@ -149,22 +36,8 @@ mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
     }
 
     auto on_success = [this](mp::InfoReply& reply) {
-        if (format_type == "json")
-        {
-            cout << toJson(reply).toStdString();
-        }
-        else
-        {
-            std::stringstream out;
-            for (const auto& info : reply.info())
-            {
-                out << info << "\n";
-            }
-            auto output = out.str();
-            if (!reply.info().empty())
-                output.pop_back();
-            cout << output;
-        }
+        cout << chosen_formatter->format(reply);
+
         return ReturnCode::Ok;
     };
 
@@ -229,18 +102,13 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         entry->append(arg.toStdString());
     }
 
-    if (parser->isSet(formatOption))
-    {
-        QString format_value{parser->value(formatOption)};
-        QStringList valid_formats{"table", "json"};
+    QString format_value{parser->value(formatOption)};
+    chosen_formatter = formatter_for(format_value.toStdString());
 
-        if (!valid_formats.contains(format_value))
-        {
-            cerr << "Invalid format type given.\n";
-            status = ParseCode::CommandLineError;
-        }
-        else
-            format_type = format_value;
+    if (chosen_formatter == nullptr)
+    {
+        cerr << "Invalid format type given.\n";
+        status = ParseCode::CommandLineError;
     }
 
     return status;

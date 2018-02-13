@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,34 +11,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(client STATIC
-  argparser.cpp
-  client.cpp)
+add_library(formatter
+  format_utils.cpp
+  json_formatter.cpp
+  table_formatter.cpp)
 
-target_link_libraries(client
-  commands
+target_link_libraries(formatter
   fmt
-  formatter
-  platform
   rpc
   Qt5::Core)
-
-add_executable(multipass
-  main.cpp)
-
-target_link_libraries(multipass
-  client)
-
-if(APPLE)
-  set_target_properties( multipass PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
-endif(APPLE)
-
-install(TARGETS multipass
-  DESTINATION bin
-  COMPONENT multipass)
-
-add_subdirectory(cmd)
-add_subdirectory(formatter)

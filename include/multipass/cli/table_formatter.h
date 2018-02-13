@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,35 +13,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_INFO_H
-#define MULTIPASS_INFO_H
+#ifndef MULTIPASS_TABLE_FORMATTER
+#define MULTIPASS_TABLE_FORMATTER
 
-#include <multipass/cli/command.h>
+#include <multipass/cli/formatter.h>
 
 namespace multipass
 {
-namespace cmd
-{
-class Info final : public Command
+class TableFormatter final : public Formatter
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
-
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
-
-private:
-    InfoRequest request;
-    Formatter* chosen_formatter;
-
-    ParseCode parse_args(ArgParser *parser) override;
+    std::string format(const InfoReply& info) const override;
+    std::string format(const ListReply& list) const override;
 };
 }
-}
-#endif // MULTIPASS_INFO_H
+#endif // MULTIPASS_TABLE_FORMATTER

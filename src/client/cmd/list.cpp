@@ -20,83 +20,12 @@
 #include "list.h"
 
 #include <multipass/cli/argparser.h>
-
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-
-#include <iomanip>
-#include <iostream>
-#include <sstream>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
-
-namespace
-{
-std::string status_string(const multipass::ListVMInstance_Status& status)
-{
-    std::string status_val;
-
-    switch (status)
-    {
-    case mp::ListVMInstance_Status_RUNNING:
-        status_val = "RUNNING";
-        break;
-    case mp::ListVMInstance_Status_STOPPED:
-        status_val = "STOPPED";
-        break;
-    case mp::ListVMInstance_Status_TRASHED:
-        status_val = "DELETED";
-        break;
-    default:
-        status_val = "UNKOWN";
-        break;
-    }
-    return status_val;
-}
-
-std::ostream& operator<<(std::ostream& out, const multipass::ListVMInstance& instance)
-{
-    std::string ipv4{instance.ipv4()};
-    std::string ipv6{instance.ipv6()};
-    if (ipv4.empty())
-        ipv4.append("--");
-    if (ipv6.empty())
-        ipv6.append("--");
-    out << std::setw(24) << std::left << instance.name();
-    out << std::setw(9) << std::left << status_string(instance.status());
-    out << std::setw(17) << std::left << ipv4;
-    out << instance.current_release();
-
-    return out;
-}
-
-QString toJson(mp::ListReply& reply)
-{
-    QJsonObject list_json;
-    QJsonArray instances;
-
-    for (const auto& instance : reply.instances())
-    {
-        QJsonObject instance_obj;
-        instance_obj.insert("name", QString::fromStdString(instance.name()));
-        instance_obj.insert("state", QString::fromStdString(status_string(instance.status())));
-
-        QJsonArray ipv4_addrs;
-        if (!instance.ipv4().empty())
-            ipv4_addrs.append(QString::fromStdString(instance.ipv4()));
-        instance_obj.insert("ipv4", ipv4_addrs);
-
-        instances.append(instance_obj);
-    }
-
-    list_json.insert("list", instances);
-
-    return QString(QJsonDocument(list_json).toJson());
-}
-}
 
 mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
 {
@@ -107,35 +36,8 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
     }
 
     auto on_success = [this](ListReply& reply) {
-        if (format_type == "json")
-        {
-            cout << toJson(reply).toStdString();
-        }
-        else
-        {
-            const auto size = reply.instances_size();
-            if (size < 1)
-            {
-                cout << "No instances found."
-                     << "\n";
-            }
-            else
-            {
-                std::stringstream out;
+        cout << chosen_formatter->format(reply);
 
-                out << std::setw(24) << std::left << "Name";
-                out << std::setw(9) << std::left << "State";
-                out << std::setw(17) << std::left << "IPv4";
-                out << std::left << "Release";
-                out << "\n";
-
-                for (const auto& instance : reply.instances())
-                {
-                    out << instance << "\n";
-                }
-                cout << out.str();
-            }
-        }
         return ReturnCode::Ok;
     };
 
@@ -189,18 +91,13 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    if (parser->isSet(formatOption))
-    {
-        QString format_value{parser->value(formatOption)};
-        QStringList valid_formats{"table", "json"};
+    QString format_value{parser->value(formatOption)};
+    chosen_formatter = formatter_for(format_value.toStdString());
 
-        if (!valid_formats.contains(format_value))
-        {
-            cerr << "Invalid format type given.\n";
-            status = ParseCode::CommandLineError;
-        }
-        else
-            format_type = format_value;
+    if (chosen_formatter == nullptr)
+    {
+        cerr << "Invalid format type given.\n";
+        status = ParseCode::CommandLineError;
     }
 
     return status;

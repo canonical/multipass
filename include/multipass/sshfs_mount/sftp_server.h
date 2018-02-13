@@ -36,6 +36,7 @@ class SftpServer
 public:
     SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc, const std::unordered_map<int, int>& gid_map,
                const std::unordered_map<int, int>& uid_map, int default_uid, int default_gid, std::ostream& cout);
+    SftpServer(SftpServer&& other);
 
     void run();
     void stop();

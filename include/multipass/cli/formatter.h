@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,35 +13,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_INFO_H
-#define MULTIPASS_INFO_H
+#ifndef MULTIPASS_FORMATTER_H
+#define MULTIPASS_FORMATTER_H
 
-#include <multipass/cli/command.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
+
+#include <string>
 
 namespace multipass
 {
-namespace cmd
-{
-class Info final : public Command
+class Formatter
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    virtual ~Formatter() = default;
+    virtual std::string format(const InfoReply& reply) const = 0;
+    virtual std::string format(const ListReply& reply) const = 0;
 
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
-
-private:
-    InfoRequest request;
-    Formatter* chosen_formatter;
-
-    ParseCode parse_args(ArgParser *parser) override;
+protected:
+    Formatter() = default;
+    Formatter(const Formatter&) = delete;
+    Formatter& operator=(const Formatter&) = delete;
 };
 }
-}
-#endif // MULTIPASS_INFO_H
+#endif // MULTIPASS_FORMATTER_H

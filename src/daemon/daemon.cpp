@@ -646,7 +646,7 @@ try // clang-format on
         info->set_name(name);
         if (in_trash)
         {
-            info->set_status(InfoReply::TRASHED);
+            info->mutable_instance_status()->set_status(mp::InstanceStatus::TRASHED);
         }
         else
         {
@@ -654,12 +654,12 @@ try // clang-format on
                 switch (state)
                 {
                 case mp::VirtualMachine::State::running:
-                    return InfoReply::RUNNING;
+                    return mp::InstanceStatus::RUNNING;
                 default:
-                    return InfoReply::STOPPED;
+                    return mp::InstanceStatus::STOPPED;
                 }
             };
-            info->set_status(status_for(vm->current_state()));
+            info->mutable_instance_status()->set_status(status_for(vm->current_state()));
         }
 
         auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
@@ -674,9 +674,9 @@ try // clang-format on
 
         for (const auto& mount : vm_specs.mounts)
         {
-            if (mount.first.size() > mount_info->longest_path_len())
+            if (mount.second.source_path.size() > mount_info->longest_path_len())
             {
-                mount_info->set_longest_path_len(mount.first.size());
+                mount_info->set_longest_path_len(mount.second.source_path.size());
             }
 
             auto entry = mount_info->add_mount_paths();
@@ -729,9 +729,9 @@ try // clang-format on
         switch (state)
         {
         case mp::VirtualMachine::State::running:
-            return mp::ListVMInstance::RUNNING;
+            return mp::InstanceStatus::RUNNING;
         default:
-            return mp::ListVMInstance::STOPPED;
+            return mp::InstanceStatus::STOPPED;
         }
     };
 
@@ -741,7 +741,7 @@ try // clang-format on
         const auto& vm = instance.second;
         auto entry = response->add_instances();
         entry->set_name(name);
-        entry->set_status(status_for(vm->current_state()));
+        entry->mutable_instance_status()->set_status(status_for(vm->current_state()));
 
         // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -757,7 +757,7 @@ try // clang-format on
         const auto& name = instance.first;
         auto entry = response->add_instances();
         entry->set_name(name);
-        entry->set_status(mp::ListVMInstance::TRASHED);
+        entry->mutable_instance_status()->set_status(mp::InstanceStatus::TRASHED);
     }
 
     return grpc::Status::OK;

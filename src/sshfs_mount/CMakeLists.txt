@@ -13,22 +13,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 set(CMAKE_AUTOMOC ON)
+function(add_sshfs_mount_target TARGET_NAME)
+  add_definitions(-DWITH_SERVER)
 
-add_definitions(-DWITH_SERVER)
+  add_library(${TARGET_NAME} STATIC
+    sshfs_mount.cpp
+    sftp_server.cpp
+    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount.h)
 
-# Needed to workaround extraneous ';' in sftp.h
-if(NOT MSVC)
-set_source_files_properties(sshfs_mount.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-set_source_files_properties(sftp_server.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
+  target_link_libraries(${TARGET_NAME}
+    fmt
+    ssh
+    utils
+    Qt5::Core)
+endfunction()
+
+add_sshfs_mount_target(sshfs_mount)
+if(MULTIPASS_ENABLE_TESTS)
+  add_sshfs_mount_target(sshfs_mount_test)
 endif()
-
-add_library(sshfs_mount STATIC
-  sshfs_mount.cpp
-  sftp_server.cpp
-  ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount.h)
-
-target_link_libraries(sshfs_mount
-  fmt
-  ssh
-  utils
-  Qt5::Core)
