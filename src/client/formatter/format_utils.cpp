@@ -34,6 +34,9 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     case mp::InstanceStatus::TRASHED:
         status_val = "DELETED";
         break;
+    case mp::InstanceStatus::STARTING:
+        status_val = "STARTING";
+        break;
     default:
         status_val = "UNKNOWN";
         break;
