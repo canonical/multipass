@@ -194,7 +194,7 @@ int mp::QemuVirtualMachine::ssh_port()
 
 void mp::QemuVirtualMachine::on_started()
 {
-    state = State::running;
+    state = State::starting;
     monitor->on_resume();
 }
 
@@ -210,11 +210,6 @@ void mp::QemuVirtualMachine::on_shutdown()
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname()
-{
-    return ipv4();
-}
-
-std::string mp::QemuVirtualMachine::ipv4()
 {
     if (!ip)
     {
@@ -246,6 +241,26 @@ std::string mp::QemuVirtualMachine::ipv4()
         return ip.value().as_string();
 }
 
+std::string mp::QemuVirtualMachine::ipv4()
+{
+    if (!ip)
+    {
+        auto result = dnsmasq_server->get_ip_for(mac_addr);
+
+        if (result)
+        {
+            ip.emplace(result.value());
+            return ip.value().as_string();
+        }
+        else
+        {
+            return "UNKNOWN";
+        }
+    }
+    else
+        return ip.value().as_string();
+}
+
 std::string mp::QemuVirtualMachine::ipv6()
 {
     return {};
@@ -259,5 +274,16 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
             throw mp::StartException(vm_name, saved_error_msg);
     };
 
-    SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, precondition_check);
+    try
+    {
+        SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, precondition_check);
+
+        state = State::running;
+    }
+    catch (const std::exception& e)
+    {
+        state = State::unknown;
+
+        throw e;
+    }
 }

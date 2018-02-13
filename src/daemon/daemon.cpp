@@ -653,8 +653,12 @@ try // clang-format on
             auto status_for = [](mp::VirtualMachine::State state) {
                 switch (state)
                 {
+                case mp::VirtualMachine::State::starting:
+                    return mp::InstanceStatus::STARTING;
                 case mp::VirtualMachine::State::running:
                     return mp::InstanceStatus::RUNNING;
+                case mp::VirtualMachine::State::unknown:
+                    return mp::InstanceStatus::UNKNOWN;
                 default:
                     return mp::InstanceStatus::STOPPED;
                 }
@@ -728,8 +732,12 @@ try // clang-format on
     auto status_for = [](mp::VirtualMachine::State state) {
         switch (state)
         {
+        case mp::VirtualMachine::State::starting:
+            return mp::InstanceStatus::STARTING;
         case mp::VirtualMachine::State::running:
             return mp::InstanceStatus::RUNNING;
+        case mp::VirtualMachine::State::unknown:
+            return mp::InstanceStatus::UNKNOWN;
         default:
             return mp::InstanceStatus::STOPPED;
         }

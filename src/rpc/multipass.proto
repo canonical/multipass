@@ -115,8 +115,10 @@ message MountInfo {
 message InstanceStatus {
     enum Status {
         RUNNING = 0;
-        STOPPED = 1;
-        TRASHED = 2;
+        STARTING = 1;
+        STOPPED = 2;
+        TRASHED = 3;
+        UNKNOWN = 4;
     }
     Status status = 1;
 }
