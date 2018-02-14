@@ -42,10 +42,17 @@ add_c_mocks(
   sftp_free
   sftp_server_init
   sftp_reply_status
-  sftp_reply_name
   sftp_reply_attr
   sftp_reply_data
+  sftp_reply_name
+  sftp_reply_names
   sftp_reply_names_add
+  sftp_reply_handle
   sftp_get_client_message
   sftp_client_message_free
+  sftp_client_message_get_data
+  sftp_client_message_get_filename
+  sftp_handle
+  sftp_handle_alloc
+  sftp_handle_remove
 )
