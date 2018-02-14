@@ -38,6 +38,7 @@ struct SftpServerTest : public testing::Test
         init_sftp.returnValue(SSH_OK);
         reply_status.returnValue(SSH_OK);
         get_client_msg.returnValue(nullptr);
+        handle_sftp.returnValue(nullptr);
     }
 
     decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
@@ -49,6 +50,7 @@ struct SftpServerTest : public testing::Test
     decltype(MOCK(sftp_reply_status)) reply_status{MOCK(sftp_reply_status)};
     decltype(MOCK(sftp_get_client_message)) get_client_msg{MOCK(sftp_get_client_message)};
     decltype(MOCK(sftp_client_message_free)) msg_free{MOCK(sftp_client_message_free)};
+    decltype(MOCK(sftp_handle)) handle_sftp{MOCK(sftp_handle)};
 };
 } // namespace test
 } // namespace multipass
