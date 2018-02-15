@@ -655,6 +655,8 @@ try // clang-format on
                 {
                 case mp::VirtualMachine::State::starting:
                     return mp::InstanceStatus::STARTING;
+                case mp::VirtualMachine::State::restarting:
+                    return mp::InstanceStatus::RESTARTING;
                 case mp::VirtualMachine::State::running:
                     return mp::InstanceStatus::RUNNING;
                 case mp::VirtualMachine::State::unknown:
@@ -734,6 +736,8 @@ try // clang-format on
         {
         case mp::VirtualMachine::State::starting:
             return mp::InstanceStatus::STARTING;
+        case mp::VirtualMachine::State::restarting:
+            return mp::InstanceStatus::RESTARTING;
         case mp::VirtualMachine::State::running:
             return mp::InstanceStatus::RUNNING;
         case mp::VirtualMachine::State::unknown:
@@ -1251,6 +1255,40 @@ void mp::Daemon::on_resume()
 
 void mp::Daemon::on_stop()
 {
+}
+
+void mp::Daemon::on_restart(const std::string& name)
+{
+    auto& vm = vm_instances[name];
+    vm->wait_until_ssh_up(std::chrono::minutes(5));
+
+    auto& mounts = vm_instance_specs[name].mounts;
+    std::vector<std::string> invalid_mounts;
+
+    for (const auto& mount_entry : mounts)
+    {
+        auto& target_path = mount_entry.first;
+        auto& source_path = mount_entry.second.source_path;
+        auto& uid_map = mount_entry.second.uid_map;
+        auto& gid_map = mount_entry.second.gid_map;
+
+        try
+        {
+            start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+        }
+        catch (const std::exception& e)
+        {
+            config->cerr << fmt::format("Mount error detected during instance reboot. Removing \"{}\": {}", target_path,
+                                        e.what());
+            invalid_mounts.push_back(target_path);
+        }
+    }
+
+    for (const auto& invalid_mount : invalid_mounts)
+        mounts.erase(invalid_mount);
+
+    if (!invalid_mounts.empty())
+        persist_instances();
 }
 
 void mp::Daemon::persist_instances()

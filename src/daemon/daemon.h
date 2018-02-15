@@ -72,6 +72,7 @@ protected:
     void on_resume() override;
     void on_stop() override;
     void on_shutdown() override;
+    void on_restart(const std::string& name) override;
 
 public slots:
     grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,

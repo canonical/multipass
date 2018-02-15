@@ -57,8 +57,10 @@ private:
     void on_started();
     void on_error();
     void on_shutdown();
+    void on_restart();
     VirtualMachine::State state;
     optional<IPAddress> ip;
+    bool is_legacy_ip;
     const std::string tap_device_name;
     const std::string mac_addr;
     const std::string vm_name;

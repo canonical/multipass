@@ -34,6 +34,7 @@ public:
         off,
         stopped,
         starting,
+        restarting,
         running,
         unknown
     };
