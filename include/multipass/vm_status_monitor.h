@@ -19,6 +19,9 @@
 
 #ifndef MULTIPASS_VM_STATUS_MONITOR_H
 #define MULTIPASS_VM_STATUS_MONITOR_H
+
+#include <string>
+
 namespace multipass
 {
 class VMStatusMonitor
@@ -28,6 +31,7 @@ public:
     virtual void on_resume() = 0;
     virtual void on_stop() = 0;
     virtual void on_shutdown() = 0;
+    virtual void on_restart(const std::string& name) = 0;
 
 protected:
     VMStatusMonitor() = default;

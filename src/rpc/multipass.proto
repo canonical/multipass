@@ -116,9 +116,10 @@ message InstanceStatus {
     enum Status {
         RUNNING = 0;
         STARTING = 1;
-        STOPPED = 2;
-        TRASHED = 3;
-        UNKNOWN = 4;
+        RESTARTING = 2;
+        STOPPED = 3;
+        TRASHED = 4;
+        UNKNOWN = 5;
     }
     Status status = 1;
 }

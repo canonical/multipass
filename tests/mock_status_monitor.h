@@ -32,6 +32,7 @@ struct MockVMStatusMonitor : public VMStatusMonitor
     MOCK_METHOD0(on_resume, void());
     MOCK_METHOD0(on_stop, void());
     MOCK_METHOD0(on_shutdown, void());
+    MOCK_METHOD1(on_restart, void(const std::string&));
 };
 }
 }

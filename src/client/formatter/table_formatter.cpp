@@ -68,11 +68,12 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     if (reply.instances().empty())
         return "No instances found.\n";
 
-    out.write("{:<24}{:<9}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
+    out.write("{:<24}{:<12}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
 
     for (const auto& instance : reply.instances())
     {
-        out.write("{:<24}{:<9}{:<17}{:<}\n", instance.name(), mp::format::status_string_for(instance.instance_status()),
+        out.write("{:<24}{:<12}{:<17}{:<}\n", instance.name(),
+                  mp::format::status_string_for(instance.instance_status()),
                   instance.ipv4().empty() ? "--" : instance.ipv4(), instance.current_release());
     }
 
