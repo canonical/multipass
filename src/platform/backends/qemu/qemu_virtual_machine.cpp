@@ -322,6 +322,6 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     {
         state = State::unknown;
 
-        throw e;
+        throw;
     }
 }
