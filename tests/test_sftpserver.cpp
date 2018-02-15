@@ -22,6 +22,7 @@
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 
@@ -338,7 +339,8 @@ TEST_F(SftpServer, handles_readlink)
     auto link_name = temp_dir.path() + "/test-link";
     make_file_with_content(file_name);
 
-    ASSERT_TRUE(QFile::link(file_name, link_name));
+    ASSERT_TRUE(mp::platform::symlink(file_name.toStdString().c_str(), link_name.toStdString().c_str(),
+                                      QFileInfo(file_name).isDir()));
     ASSERT_TRUE(QFile::exists(link_name));
     ASSERT_TRUE(QFile::exists(file_name));
 
@@ -809,7 +811,8 @@ TEST_P(Stat, handles)
 
     auto msg_type = GetParam();
 
-    ASSERT_TRUE(QFile::link(file_name, link_name));
+    ASSERT_TRUE(mp::platform::symlink(file_name.toStdString().c_str(), link_name.toStdString().c_str(),
+                                      QFileInfo(file_name).isDir()));
     ASSERT_TRUE(QFile::exists(link_name));
     ASSERT_TRUE(QFile::exists(file_name));
 

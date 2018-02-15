@@ -656,7 +656,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
     const auto old_name = sftp_client_message_get_filename(msg);
     const auto new_name = sftp_client_message_get_data(msg);
-    if (!QFile::link(old_name, new_name))
+    if (!mp::platform::symlink(old_name, new_name, QFileInfo(old_name).isDir()))
         return reply_failure(msg);
 
     return reply_ok(msg);
