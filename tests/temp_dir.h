@@ -13,34 +13,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_CONNECT_H
-#define MULTIPASS_CONNECT_H
+#ifndef MULTIPASS_TEMP_DIR_H
+#define MULTIPASS_TEMP_DIR_H
 
-#include <multipass/cli/command.h>
+#include <QString>
+#include <QTemporaryDir>
 
 namespace multipass
 {
-namespace cmd
+namespace test
 {
-class Connect final : public Command
+class TempDir
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
-
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
+    TempDir();
+    QString path() const
+    {
+        return the_path;
+    }
 
 private:
-    SSHInfoRequest request;
-
-    ParseCode parse_args(ArgParser *parser) override;
+    QTemporaryDir dir;
+    QString the_path;
 };
-}
-}
-#endif // MULTIPASS_CONNECT_H
+} // namespace test
+} // namespace multipass
+
+#endif // MULTIPASS_TEMP_DIR_H

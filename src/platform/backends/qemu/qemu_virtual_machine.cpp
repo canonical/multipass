@@ -27,12 +27,11 @@
 
 #include <QCoreApplication>
 #include <QDebug>
-#include <QDir>
 #include <QFile>
-#include <QHostAddress>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QObject>
 #include <QProcess>
-#include <QProcessEnvironment>
 #include <QString>
 #include <QStringList>
 
@@ -71,7 +70,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
     args << "-netdev";
     args << QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(QString::fromStdString(tap_device_name));
     // Control interface
-    args << "-monitor"
+    args << "-qmp"
          << "stdio";
     // No console
     args << "-chardev"
@@ -104,6 +103,13 @@ void remove_tap_device(const QString& tap_device_name)
         mp::utils::run_cmd_for_status("ip", {"link", "delete", tap_device_name});
     }
 }
+
+auto qmp_execute_json(const QString& cmd)
+{
+    QJsonObject qmp;
+    qmp.insert("execute", cmd);
+    return QJsonDocument(qmp).toJson();
+}
 }
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, optional<mp::IPAddress> address,
@@ -111,6 +117,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : state{State::off},
       ip{address},
+      is_legacy_ip{ip ? true : false},
       tap_device_name{tap_device_name},
       mac_addr{mac_addr},
       vm_name{desc.vm_name},
@@ -122,8 +129,27 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         qDebug() << "QProcess::started";
         on_started();
     });
-    QObject::connect(vm_process.get(), &QProcess::readyReadStandardOutput,
-                     [this]() { qDebug("qemu.out: %s", vm_process->readAllStandardOutput().data()); });
+    QObject::connect(vm_process.get(), &QProcess::readyReadStandardOutput, [this]() {
+        auto qmp_output = QJsonDocument::fromJson(vm_process->readAllStandardOutput()).object();
+        auto event = qmp_output["event"];
+
+        if (!event.isNull())
+        {
+            if (event.toString() == "RESET" && state != State::restarting)
+            {
+                qDebug() << "monitor: Instance" << QString::fromStdString(vm_name) << "restarting";
+                on_restart();
+            }
+            else if (event.toString() == "POWERDOWN")
+            {
+                qDebug() << "monitor: Instance" << QString::fromStdString(vm_name) << "powering down";
+            }
+            else if (event.toString() == "SHUTDOWN")
+            {
+                qDebug() << "monitor: Instance" << QString::fromStdString(vm_name) << "shut down";
+            }
+        }
+    });
 
     QObject::connect(vm_process.get(), &QProcess::readyReadStandardError, [this]() {
         saved_error_msg = vm_process->readAllStandardError().data();
@@ -166,6 +192,8 @@ void mp::QemuVirtualMachine::start()
 
     if (!started)
         throw std::runtime_error("failed to start qemu instance");
+
+    vm_process->write(qmp_execute_json("qmp_capabilities"));
 }
 
 void mp::QemuVirtualMachine::stop()
@@ -177,7 +205,7 @@ void mp::QemuVirtualMachine::shutdown()
 {
     if (state == State::running && vm_process->processId() > 0)
     {
-        vm_process->write("system_powerdown\n");
+        vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();
     }
 }
@@ -194,7 +222,7 @@ int mp::QemuVirtualMachine::ssh_port()
 
 void mp::QemuVirtualMachine::on_started()
 {
-    state = State::running;
+    state = State::starting;
     monitor->on_resume();
 }
 
@@ -209,12 +237,17 @@ void mp::QemuVirtualMachine::on_shutdown()
     monitor->on_shutdown();
 }
 
-std::string mp::QemuVirtualMachine::ssh_hostname()
+void mp::QemuVirtualMachine::on_restart()
 {
-    return ipv4();
+    state = State::restarting;
+
+    if (!is_legacy_ip)
+        ip = nullopt;
+
+    monitor->on_restart(vm_name);
 }
 
-std::string mp::QemuVirtualMachine::ipv4()
+std::string mp::QemuVirtualMachine::ssh_hostname()
 {
     if (!ip)
     {
@@ -246,6 +279,26 @@ std::string mp::QemuVirtualMachine::ipv4()
         return ip.value().as_string();
 }
 
+std::string mp::QemuVirtualMachine::ipv4()
+{
+    if (!ip)
+    {
+        auto result = dnsmasq_server->get_ip_for(mac_addr);
+
+        if (result)
+        {
+            ip.emplace(result.value());
+            return ip.value().as_string();
+        }
+        else
+        {
+            return "UNKNOWN";
+        }
+    }
+    else
+        return ip.value().as_string();
+}
+
 std::string mp::QemuVirtualMachine::ipv6()
 {
     return {};
@@ -259,5 +312,16 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
             throw mp::StartException(vm_name, saved_error_msg);
     };
 
-    SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, precondition_check);
+    try
+    {
+        SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, precondition_check);
+
+        state = State::running;
+    }
+    catch (const std::exception& e)
+    {
+        state = State::unknown;
+
+        throw;
+    }
 }

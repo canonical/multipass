@@ -93,9 +93,12 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const SSHKeyProvid
     if (session == nullptr)
         throw std::runtime_error("Could not allocate ssh session");
 
+    const auto timeout = 1;
+
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_HOST, host.c_str());
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_PORT, &port);
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_USER, "ubuntu");
+    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_TIMEOUT, &timeout);
     SSH::throw_on_error(ssh_connect, session);
     if (key_provider)
         SSH::throw_on_error(ssh_userauth_publickey, session, nullptr, key_provider->private_key());

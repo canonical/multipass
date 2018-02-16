@@ -26,6 +26,7 @@
 namespace multipass
 {
 using std::optional;
+using std::nullopt;
 }
 
 #elif __has_include(<experimental/optional>)
@@ -34,6 +35,7 @@ using std::optional;
 namespace multipass
 {
 using std::experimental::optional;
+using std::experimental::nullopt;
 }
 
 #else

@@ -39,3 +39,8 @@ int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
 {
     return ::chown(path, uid, gid);
 }
+
+bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
+{
+    return ::symlink(target, link) == 0;
+}

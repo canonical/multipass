@@ -41,6 +41,7 @@ add_executable(multipass_tests
   mock_sftpserver.cpp
   mock_ssh.cpp
   path.cpp
+  temp_dir.cpp
   temp_file.cpp
   test_cli_client.cpp
   test_daemon.cpp

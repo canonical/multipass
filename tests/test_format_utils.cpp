@@ -53,7 +53,7 @@ TEST(InstanceStatusString, deleted_status_returns_DELETED)
 TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
 {
     mp::InstanceStatus status;
-    status.set_status(static_cast<mp::InstanceStatus_Status>(4));
+    status.set_status(static_cast<mp::InstanceStatus_Status>(10));
     auto status_string = mp::format::status_string_for(status);
 
     EXPECT_THAT(status_string, Eq("UNKNOWN"));

@@ -17,26 +17,31 @@
  *
  */
 
-#ifndef MULTIPASS_VM_STATUS_MONITOR_H
-#define MULTIPASS_VM_STATUS_MONITOR_H
+#ifndef MULTIPASS_CONNECT_H
+#define MULTIPASS_CONNECT_H
 
-#include <string>
+#include <multipass/cli/command.h>
 
 namespace multipass
 {
-class VMStatusMonitor
+namespace cmd
+{
+class Shell final : public Command
 {
 public:
-    virtual ~VMStatusMonitor() = default;
-    virtual void on_resume() = 0;
-    virtual void on_stop() = 0;
-    virtual void on_shutdown() = 0;
-    virtual void on_restart(const std::string& name) = 0;
+    using Command::Command;
+    ReturnCode run(ArgParser *parser) override;
 
-protected:
-    VMStatusMonitor() = default;
-    VMStatusMonitor(const VMStatusMonitor&) = delete;
-    VMStatusMonitor& operator=(const VMStatusMonitor&) = delete;
+    std::string name() const override;
+    std::vector<std::string> aliases() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    SSHInfoRequest request;
+
+    ParseCode parse_args(ArgParser *parser) override;
 };
 }
-#endif // MULTIPASS_VM_STATUS_MONITOR_H
+}
+#endif // MULTIPASS_CONNECT_H

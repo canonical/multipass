@@ -33,7 +33,10 @@ public:
     {
         off,
         stopped,
-        running
+        starting,
+        restarting,
+        running,
+        unknown
     };
 
     using UPtr = std::unique_ptr<VirtualMachine>;

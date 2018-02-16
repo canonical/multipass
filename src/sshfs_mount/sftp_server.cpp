@@ -603,6 +603,8 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     else
     {
         filename = sftp_client_message_get_filename(msg);
+        if (!QFile::exists(filename))
+            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
@@ -654,7 +656,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
     const auto old_name = sftp_client_message_get_filename(msg);
     const auto new_name = sftp_client_message_get_data(msg);
-    if (!QFile::link(old_name, new_name))
+    if (!mp::platform::symlink(old_name, new_name, QFileInfo(old_name).isDir()))
         return reply_failure(msg);
 
     return reply_ok(msg);

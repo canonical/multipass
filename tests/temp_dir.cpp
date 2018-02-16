@@ -13,30 +13,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_VM_STATUS_MONITOR_H
-#define MULTIPASS_VM_STATUS_MONITOR_H
+#include "temp_dir.h"
 
-#include <string>
+#include <stdexcept>
 
-namespace multipass
+namespace mpt = multipass::test;
+
+mpt::TempDir::TempDir() : the_path{dir.path()}
 {
-class VMStatusMonitor
-{
-public:
-    virtual ~VMStatusMonitor() = default;
-    virtual void on_resume() = 0;
-    virtual void on_stop() = 0;
-    virtual void on_shutdown() = 0;
-    virtual void on_restart(const std::string& name) = 0;
-
-protected:
-    VMStatusMonitor() = default;
-    VMStatusMonitor(const VMStatusMonitor&) = delete;
-    VMStatusMonitor& operator=(const VMStatusMonitor&) = delete;
-};
+    if (the_path.isEmpty())
+        throw std::runtime_error("test failed to create temporary directory");
 }
-#endif // MULTIPASS_VM_STATUS_MONITOR_H

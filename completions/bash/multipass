@@ -28,13 +28,13 @@ _multipass_complete()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     cmd="${COMP_WORDS[1]}"
-    multipass_cmds="connect delete exec find help info launch list mount purge \
+    multipass_cmds="shell delete exec find help info launch list mount purge \
                     recover start stop umount version"
 
 
     if [[ ${cur} == -* ]]; then
         case "${cmd}" in
-            "connect"|"exec"|"find"|"help"|"info"|"list"|"purge"|"umount"|"version")
+            "shell"|"exec"|"find"|"help"|"info"|"list"|"purge"|"umount"|"version")
                 opts="--help --verbose"
             ;;
             "delete")
@@ -55,7 +55,7 @@ _multipass_complete()
         esac
     else
         case "${cmd}" in
-            "connect"|"exec"|"stop")
+            "shell"|"exec"|"stop")
                 _multipass_instances "RUNNING"
             ;;
             "start")

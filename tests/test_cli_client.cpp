@@ -84,15 +84,15 @@ TEST_F(Client, no_command_help_ok)
     EXPECT_THAT(send_command({"-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-// connect cli test
-TEST_F(Client, connect_cmd_good_arguments)
+// shell cli test
+TEST_F(Client, shell_cmd_good_arguments)
 {
-    EXPECT_THAT(send_command({"connect", "foo"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"shell", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, connect_cmd_help_ok)
+TEST_F(Client, shell_cmd_help_ok)
 {
-    EXPECT_THAT(send_command({"connect", "-h"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
 // create cli tests

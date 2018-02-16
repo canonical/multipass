@@ -17,7 +17,7 @@
  *
  */
 
-#include "connect.h"
+#include "shell.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/ssh/ssh_client.h>
@@ -26,7 +26,7 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Connect::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -52,35 +52,40 @@ mp::ReturnCode cmd::Connect::run(mp::ArgParser* parser)
         }
         catch (const std::exception& e)
         {
-            cerr << "connect failed: " << e.what() << "\n";
+            cerr << "shell failed: " << e.what() << "\n";
             return ReturnCode::CommandFail;
         }
         return ReturnCode::Ok;
     };
 
     auto on_failure = [this](grpc::Status& status) {
-        cerr << "connect failed: " << status.error_message() << "\n";
+        cerr << "shell failed: " << status.error_message() << "\n";
         return ReturnCode::CommandFail;
     };
 
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }
 
-std::string cmd::Connect::name() const { return "connect"; }
+std::string cmd::Shell::name() const { return "shell"; }
 
-QString cmd::Connect::short_help() const
+std::vector<std::string> cmd::Shell::aliases() const
 {
-    return QStringLiteral("Connect to a running instance");
+    return {name(), "sh", "connect"};
 }
 
-QString cmd::Connect::description() const
+QString cmd::Shell::short_help() const
 {
-    return QStringLiteral("Open a prompt on the instance.");
+    return QStringLiteral("Open a shell on a running instance");
 }
 
-mp::ParseCode cmd::Connect::parse_args(mp::ArgParser* parser)
+QString cmd::Shell::description() const
 {
-    parser->addPositionalArgument("name", "Name of instance to connect to", "<name>");
+    return QStringLiteral("Open a shell prompt on the instance.");
+}
+
+mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
+{
+    parser->addPositionalArgument("name", "Name of the instance to open a shell on", "<name>");
 
     auto status = parser->commandParse(this);
 

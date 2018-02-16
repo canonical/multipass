@@ -66,5 +66,5 @@ sudo <multipass>/build/bin/multipassd &
 ## Connect to a running instance
 
 ```
-<multipass>/build/bin/multipass connect foo
+<multipass>/build/bin/multipass shell foo
 ```
