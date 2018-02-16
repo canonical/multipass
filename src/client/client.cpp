@@ -17,7 +17,6 @@
  *
  */
 #include "client.h"
-#include "cmd/connect.h"
 #include "cmd/create.h"
 #include "cmd/empty_trash.h"
 #include "cmd/exec.h"
@@ -27,6 +26,7 @@
 #include "cmd/list.h"
 #include "cmd/mount.h"
 #include "cmd/recover.h"
+#include "cmd/shell.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
 #include "cmd/trash.h"
@@ -68,7 +68,6 @@ mp::Client::Client(const ClientConfig& config)
       cout{config.cout},
       cerr{config.cerr}
 {
-    add_command<cmd::Connect>();
     add_command<cmd::Create>();
     add_command<cmd::EmptyTrash>();
     add_command<cmd::Exec>();
@@ -78,6 +77,7 @@ mp::Client::Client(const ClientConfig& config)
     add_command<cmd::List>();
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
+    add_command<cmd::Shell>();
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
     add_command<cmd::Trash>();
