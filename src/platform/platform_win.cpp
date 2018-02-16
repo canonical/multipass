@@ -22,6 +22,8 @@
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 
+#include <windows.h>
+
 namespace mp = multipass;
 
 std::string mp::platform::default_server_address()
@@ -37,4 +39,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
 {
     return 0;
+}
+
+bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
+{
+    DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 |
+	          SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    return CreateSymbolicLink(link, target, flags);
 }
