@@ -26,13 +26,14 @@ namespace multipass
 {
 namespace cmd
 {
-class Connect final : public Command
+class Shell final : public Command
 {
 public:
     using Command::Command;
     ReturnCode run(ArgParser *parser) override;
 
     std::string name() const override;
+    std::vector<std::string> aliases() const override;
     QString short_help() const override;
     QString description() const override;
 

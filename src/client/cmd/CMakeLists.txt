@@ -16,7 +16,6 @@
 
 add_library(commands STATIC
   animated_spinner.cpp
-  connect.cpp
   create.cpp
   empty_trash.cpp
   exec.cpp
@@ -26,6 +25,7 @@ add_library(commands STATIC
   list.cpp
   mount.cpp
   recover.cpp
+  shell.cpp
   start.cpp
   stop.cpp
   trash.cpp
