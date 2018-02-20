@@ -20,7 +20,6 @@
 #ifndef MULTIPASS_DAEMON_H
 #define MULTIPASS_DAEMON_H
 
-#include "auto_join_thread.h"
 #include "daemon_config.h"
 #include "daemon_rpc.h"
 #include <multipass/virtual_machine.h>
@@ -47,18 +46,6 @@ struct VMSpecs
     std::string mem_size;
     std::string disk_space;
     std::unordered_map<std::string, VMMount> mounts;
-};
-
-class Daemon;
-class DaemonRunner
-{
-public:
-    DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daemon* daemon);
-    ~DaemonRunner();
-
-private:
-    DaemonRpc daemon_rpc;
-    AutoJoinThread daemon_thread;
 };
 
 struct DaemonConfig;
@@ -113,7 +100,7 @@ private:
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instance_trash;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
-    DaemonRunner runner;
+    DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
 
     Daemon(const Daemon&) = delete;

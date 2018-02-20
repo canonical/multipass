@@ -68,17 +68,7 @@ auto make_server(const std::string& server_address, multipass::Rpc::Service* ser
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, std::ostream& cout, std::ostream& cerr)
     : server_address{server_address}, server{make_server(server_address, this)}, cout{cout}, cerr{cerr}
 {
-}
-
-void mp::DaemonRpc::run()
-{
     cout << fmt::format("gRPC listening on {}\n", server_address);
-    server->Wait();
-}
-
-void mp::DaemonRpc::shutdown()
-{
-    server->Shutdown();
 }
 
 grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateRequest* request,
