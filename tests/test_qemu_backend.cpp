@@ -21,6 +21,7 @@
 
 #include "mock_status_monitor.h"
 #include "path.h"
+#include "stub_ssh_key_provider.h"
 #include "stub_status_monitor.h"
 #include "temp_file.h"
 
@@ -70,8 +71,10 @@ struct QemuBackend : public testing::Test
 
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
+    mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{
-        2, "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", "", {}}, dummy_cloud_init_iso.name()};
+        2,           "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", "", {}}, dummy_cloud_init_iso.name(),
+        key_provider};
     QTemporaryDir data_dir;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
     std::string old_path;

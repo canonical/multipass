@@ -68,6 +68,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     void wait_until_ssh_up(std::chrono::milliseconds) override
     {
     }
+
+    void wait_for_cloud_init(std::chrono::milliseconds) override
+    {
+    }
 };
 }
 }
