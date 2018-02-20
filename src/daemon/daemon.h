@@ -62,8 +62,8 @@ protected:
     void on_restart(const std::string& name) override;
 
 public slots:
-    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
-                        grpc::ServerWriter<CreateReply>* reply) override;
+    grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
+                        grpc::ServerWriter<LaunchReply>* reply) override;
 
     grpc::Status empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
                              EmptyTrashReply* response) override;

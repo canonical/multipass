@@ -54,8 +54,8 @@ namespace
 struct MockDaemon : public mp::Daemon
 {
     using mp::Daemon::Daemon;
-    MOCK_METHOD3(create,
-                 grpc::Status(grpc::ServerContext*, const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*));
+    MOCK_METHOD3(launch,
+                 grpc::Status(grpc::ServerContext*, const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*));
     MOCK_METHOD3(empty_trash, grpc::Status(grpc::ServerContext*, const mp::EmptyTrashRequest*, mp::EmptyTrashReply*));
     MOCK_METHOD3(info, grpc::Status(grpc::ServerContext*, const mp::InfoRequest*, mp::InfoReply*));
     MOCK_METHOD3(list, grpc::Status(grpc::ServerContext*, const mp::ListRequest*, mp::ListReply*));
@@ -159,9 +159,9 @@ TEST_F(Daemon, receives_commands)
 {
     MockDaemon daemon{config_builder.build()};
 
-    EXPECT_CALL(daemon, create(_, _, _));
+    EXPECT_CALL(daemon, launch(_, _, _));
     EXPECT_CALL(daemon, empty_trash(_, _, _));
-    EXPECT_CALL(daemon, ssh_info(_, _, _)).Times(2);
+    EXPECT_CALL(daemon, ssh_info(_, _, _));
     EXPECT_CALL(daemon, info(_, _, _));
     EXPECT_CALL(daemon, list(_, _, _));
     EXPECT_CALL(daemon, recover(_, _, _));
@@ -170,11 +170,10 @@ TEST_F(Daemon, receives_commands)
     EXPECT_CALL(daemon, trash(_, _, _));
     EXPECT_CALL(daemon, version(_, _, _));
 
-    send_commands({{"connect", "foo"},
-                   {"delete", "foo"},   // name argument is required
+    send_commands({{"launch", "foo"},
+                   {"delete", "foo"}, // name argument is required
                    {"exec", "foo", "--", "cmd"},
                    {"info", "foo"}, // name argument is required
-                   {"launch"},
                    {"list"},
                    {"purge"},
                    {"recover", "foo"}, // name argument is required
