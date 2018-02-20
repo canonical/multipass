@@ -32,6 +32,7 @@ std::string default_server_address();
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);
+bool link(const char* target, const char* link);
 } // namespace platform
 }
 #endif // MULTIPASS_PLATFORM_H
