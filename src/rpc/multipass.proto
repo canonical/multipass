@@ -19,7 +19,7 @@ package multipass;
 
 service Rpc {
     rpc launch (LaunchRequest) returns (stream LaunchReply);
-    rpc empty_trash (EmptyTrashRequest) returns (EmptyTrashReply);
+    rpc purge (PurgeRequest) returns (PurgeReply);
     rpc find (FindRequest) returns (FindReply);
     rpc info (InfoRequest) returns (InfoReply);
     rpc list (ListRequest) returns (ListReply);
@@ -75,10 +75,10 @@ message LaunchReply {
     }
 }
 
-message EmptyTrashRequest {
+message PurgeRequest {
 }
 
-message EmptyTrashReply {
+message PurgeReply {
 }
 
 message FindRequest {
