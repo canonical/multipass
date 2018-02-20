@@ -53,7 +53,7 @@ namespace
 {
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 
-mp::Query query_from(const mp::CreateRequest* request, const std::string& name)
+mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
     if (!request->remote_name().empty() && request->image().empty())
         throw std::runtime_error("Must specify an image when specifying a remote");
@@ -123,7 +123,7 @@ void prepare_user_data(YAML::Node& user_data_config)
         packages.push_back("sshfs");
 }
 
-mp::VirtualMachineDescription to_machine_desc(const mp::CreateRequest* request, const std::string& name,
+mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
                                               YAML::Node& user_data_config, YAML::Node& vendor_data_config,
                                               const mp::SSHKeyProvider& key_provider)
@@ -138,7 +138,7 @@ mp::VirtualMachineDescription to_machine_desc(const mp::CreateRequest* request, 
 }
 
 template <typename T>
-auto name_from(const mp::CreateRequest* request, mp::NameGenerator& name_gen, const T& currently_used_names)
+auto name_from(const mp::LaunchRequest* request, mp::NameGenerator& name_gen, const T& currently_used_names)
 {
     auto requested_name = request->instance_name();
     if (requested_name.empty())
@@ -232,27 +232,27 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
 
-auto validate_create_arguments(const mp::CreateRequest* request)
+auto validate_create_arguments(const mp::LaunchRequest* request)
 {
-    mp::CreateError create_error;
+    mp::LaunchError launch_error;
 
     if (!request->disk_space().empty() && !mp::utils::valid_memory_value(QString::fromStdString(request->disk_space())))
     {
-        create_error.add_error_codes(mp::CreateError::INVALID_DISK_SIZE);
+        launch_error.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
     }
 
     if (!request->mem_size().empty() && !mp::utils::valid_memory_value(QString::fromStdString(request->mem_size())))
     {
-        create_error.add_error_codes(mp::CreateError::INVALID_MEM_SIZE);
+        launch_error.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
     }
 
     if (!request->instance_name().empty() &&
         !mp::utils::valid_hostname(QString::fromStdString(request->instance_name())))
     {
-        create_error.add_error_codes(mp::CreateError::INVALID_HOSTNAME);
+        launch_error.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
     }
 
-    return create_error;
+    return launch_error;
 }
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
@@ -276,7 +276,7 @@ auto grpc_status_for(fmt::MemoryWriter& errors)
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
-    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_empty_trash, &daemon, &mp::Daemon::empty_trash,
                      Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find, Qt::BlockingQueuedConnection);
@@ -381,16 +381,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(ms.count());
 }
 
-grpc::Status mp::Daemon::create(grpc::ServerContext* context, const CreateRequest* request,
-                                grpc::ServerWriter<CreateReply>* server) // clang-format off
+grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
+                                grpc::ServerWriter<LaunchReply>* server) // clang-format off
 try // clang-format on
 {
     auto name = name_from(request, *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || vm_instance_trash.find(name) != vm_instance_trash.end())
     {
-        CreateError create_error;
-        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
+        LaunchError create_error;
+        create_error.add_error_codes(LaunchError::INSTANCE_EXISTS);
 
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" already exists", name),
                             create_error.SerializeAsString());
@@ -408,14 +408,14 @@ try // clang-format on
 
     auto query = query_from(request, name);
     auto download_monitor = [server](int download_type, int percentage) {
-        CreateReply create_reply;
+        LaunchReply create_reply;
         create_reply.mutable_download_progress()->set_percent_complete(std::to_string(percentage));
         create_reply.mutable_download_progress()->set_type((DownloadProgress::DownloadTypes)download_type);
         return server->Write(create_reply);
     };
 
     auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
-        CreateReply reply;
+        LaunchReply reply;
         reply.set_create_message("Preparing image for " + name);
         server->Write(reply);
         return config->factory->prepare_source_image(source_image);
@@ -423,7 +423,7 @@ try // clang-format on
 
     auto fetch_type = config->factory->fetch_type();
 
-    CreateReply reply;
+    LaunchReply reply;
     reply.set_create_message("Creating " + name);
     server->Write(reply);
     auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, download_monitor);

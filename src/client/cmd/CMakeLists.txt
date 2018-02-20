@@ -16,7 +16,7 @@
 
 add_library(commands STATIC
   animated_spinner.cpp
-  create.cpp
+  launch.cpp
   empty_trash.cpp
   exec.cpp
   find.cpp

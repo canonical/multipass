@@ -17,12 +17,12 @@
  *
  */
 #include "client.h"
-#include "cmd/create.h"
 #include "cmd/empty_trash.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/help.h"
 #include "cmd/info.h"
+#include "cmd/launch.h"
 #include "cmd/list.h"
 #include "cmd/mount.h"
 #include "cmd/recover.h"
@@ -68,7 +68,7 @@ mp::Client::Client(const ClientConfig& config)
       cout{config.cout},
       cerr{config.cerr}
 {
-    add_command<cmd::Create>();
+    add_command<cmd::Launch>();
     add_command<cmd::EmptyTrash>();
     add_command<cmd::Exec>();
     add_command<cmd::Find>();

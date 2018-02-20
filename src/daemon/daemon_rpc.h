@@ -39,8 +39,8 @@ public:
 
 signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
-    grpc::Status on_create(grpc::ServerContext* context, const CreateRequest* request,
-                           grpc::ServerWriter<CreateReply>* reply);
+    grpc::Status on_launch(grpc::ServerContext* context, const LaunchRequest* request,
+                           grpc::ServerWriter<LaunchReply>* reply);
     grpc::Status on_empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
                                 EmptyTrashReply* response);
     grpc::Status on_find(grpc::ServerContext* context, const FindRequest* request, FindReply* response);
@@ -62,8 +62,8 @@ private:
     std::ostream& cerr;
 
 protected:
-    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
-                        grpc::ServerWriter<CreateReply>* reply) override;
+    grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
+                        grpc::ServerWriter<LaunchReply>* reply) override;
     grpc::Status empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
                              EmptyTrashReply* response) override;
     grpc::Status find(grpc::ServerContext* context, const FindRequest* request, FindReply* response) override;

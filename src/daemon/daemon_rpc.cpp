@@ -71,10 +71,10 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, std::ostream& cout, 
     cout << fmt::format("gRPC listening on {}\n", server_address);
 }
 
-grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateRequest* request,
-                                   grpc::ServerWriter<CreateReply>* reply)
+grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,
+                                   grpc::ServerWriter<LaunchReply>* reply)
 {
-    return emit on_create(context, request, reply); // must block until slot returns
+    return emit on_launch(context, request, reply); // must block until slot returns
 }
 
 grpc::Status mp::DaemonRpc::empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,

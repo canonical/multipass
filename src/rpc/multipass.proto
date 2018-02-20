@@ -18,7 +18,7 @@ syntax = "proto3";
 package multipass;
 
 service Rpc {
-    rpc create (CreateRequest) returns (stream CreateReply);
+    rpc launch (LaunchRequest) returns (stream LaunchReply);
     rpc empty_trash (EmptyTrashRequest) returns (EmptyTrashReply);
     rpc find (FindRequest) returns (FindReply);
     rpc info (InfoRequest) returns (InfoReply);
@@ -34,7 +34,7 @@ service Rpc {
     rpc version (VersionRequest) returns (VersionReply);
 }
 
-message CreateRequest {
+message LaunchRequest {
     string instance_name = 1;
     string image = 2;
     string kernel_name = 3;
@@ -46,7 +46,7 @@ message CreateRequest {
     string remote_name = 9;
 }
 
-message CreateError {
+message LaunchError {
     enum ErrorCodes {
         OK = 0;
         INSTANCE_EXISTS = 1;
@@ -67,7 +67,7 @@ message DownloadProgress {
     string percent_complete = 2;
 }
 
-message CreateReply {
+message LaunchReply {
     oneof create_oneof {
         string vm_instance_name = 1;
         DownloadProgress download_progress = 2;
