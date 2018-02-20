@@ -29,7 +29,7 @@ service Rpc {
     rpc ssh_info (SSHInfoRequest) returns (SSHInfoReply);
     rpc start (StartRequest) returns (StartReply);
     rpc stop (StopRequest) returns (StopReply);
-    rpc trash (TrashRequest) returns (TrashReply);
+    rpc delet (DeleteRequest) returns (DeleteReply);
     rpc umount (UmountRequest) returns (UmountReply);
     rpc version (VersionRequest) returns (VersionReply);
 }
@@ -118,7 +118,7 @@ message InstanceStatus {
         STARTING = 1;
         RESTARTING = 2;
         STOPPED = 3;
-        TRASHED = 4;
+        DELETED = 4;
         UNKNOWN = 5;
     }
     Status status = 1;
@@ -239,12 +239,12 @@ message StopRequest {
 message StopReply {
 }
 
-message TrashRequest {
+message DeleteRequest {
     repeated string instance_name = 1;
     bool purge = 2;
 }
 
-message TrashReply {
+message DeleteReply {
 }
 
 message UmountRequest {

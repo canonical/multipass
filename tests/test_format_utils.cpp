@@ -44,7 +44,7 @@ TEST(InstanceStatusString, stopped_status_returns_STOPPED)
 TEST(InstanceStatusString, deleted_status_returns_DELETED)
 {
     mp::InstanceStatus status;
-    status.set_status(mp::InstanceStatus::TRASHED);
+    status.set_status(mp::InstanceStatus::DELETED);
     auto status_string = mp::format::status_string_for(status);
 
     EXPECT_THAT(status_string, Eq("DELETED"));

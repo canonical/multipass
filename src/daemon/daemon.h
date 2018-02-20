@@ -83,7 +83,7 @@ public slots:
 
     grpc::Status stop(grpc::ServerContext* context, const StopRequest* request, StopReply* response) override;
 
-    grpc::Status trash(grpc::ServerContext* context, const TrashRequest* request, TrashReply* response) override;
+    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response) override;
 
     grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response) override;
 
@@ -97,7 +97,7 @@ private:
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
-    std::unordered_map<std::string, VirtualMachine::UPtr> vm_instance_trash;
+    std::unordered_map<std::string, VirtualMachine::UPtr> deleted_instances;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;

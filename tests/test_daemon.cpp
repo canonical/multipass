@@ -63,7 +63,7 @@ struct MockDaemon : public mp::Daemon
     MOCK_METHOD3(ssh_info, grpc::Status(grpc::ServerContext*, const mp::SSHInfoRequest*, mp::SSHInfoReply*));
     MOCK_METHOD3(start, grpc::Status(grpc::ServerContext*, const mp::StartRequest*, mp::StartReply*));
     MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext*, const mp::StopRequest*, mp::StopReply*));
-    MOCK_METHOD3(trash, grpc::Status(grpc::ServerContext*, const mp::TrashRequest*, mp::TrashReply*));
+    MOCK_METHOD3(delet, grpc::Status(grpc::ServerContext*, const mp::DeleteRequest*, mp::DeleteReply*));
     MOCK_METHOD3(version, grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, mp::VersionReply*));
 };
 
@@ -167,7 +167,7 @@ TEST_F(Daemon, receives_commands)
     EXPECT_CALL(daemon, recover(_, _, _));
     EXPECT_CALL(daemon, start(_, _, _));
     EXPECT_CALL(daemon, stop(_, _, _));
-    EXPECT_CALL(daemon, trash(_, _, _));
+    EXPECT_CALL(daemon, delet(_, _, _));
     EXPECT_CALL(daemon, version(_, _, _));
 
     send_commands({{"launch", "foo"},

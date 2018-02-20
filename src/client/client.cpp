@@ -17,6 +17,7 @@
  *
  */
 #include "client.h"
+#include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/help.h"
@@ -29,7 +30,6 @@
 #include "cmd/shell.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
-#include "cmd/trash.h"
 #include "cmd/umount.h"
 #include "cmd/version.h"
 
@@ -80,7 +80,7 @@ mp::Client::Client(const ClientConfig& config)
     add_command<cmd::Shell>();
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
-    add_command<cmd::Trash>();
+    add_command<cmd::Delete>();
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,11 +13,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#include "trash.h"
+#include "delete.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -25,7 +23,7 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Trash::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -33,32 +31,33 @@ mp::ReturnCode cmd::Trash::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::TrashReply& reply) {
-        return mp::ReturnCode::Ok;
-    };
+    auto on_success = [](mp::DeleteReply& reply) { return mp::ReturnCode::Ok; };
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "delete failed: " << status.error_message() << "\n";
         return mp::ReturnCode::CommandFail;
     };
 
-    return dispatch(&RpcMethod::trash, request, on_success, on_failure);
+    return dispatch(&RpcMethod::delet, request, on_success, on_failure);
 }
 
-std::string cmd::Trash::name() const { return "delete"; }
+std::string cmd::Delete::name() const
+{
+    return "delete";
+}
 
-QString cmd::Trash::short_help() const
+QString cmd::Delete::short_help() const
 {
     return QStringLiteral("Delete instances");
 }
 
-QString cmd::Trash::description() const
+QString cmd::Delete::description() const
 {
     return QStringLiteral("Delete instances, to be purged with the \"purge\" command,\n"
                           "or recovered with the \"recover\" command.");
 }
 
-mp::ParseCode cmd::Trash::parse_args(mp::ArgParser* parser)
+mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to delete", "<name> [<name> ...]");
 

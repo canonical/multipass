@@ -123,9 +123,9 @@ grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context, const StopRequest
     return emit on_stop(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::trash(grpc::ServerContext* context, const TrashRequest* request, TrashReply* response)
+grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response)
 {
-    return emit on_trash(context, request, response); // must block until slot returns
+    return emit on_delete(context, request, response); // must block until slot returns
 }
 
 grpc::Status mp::DaemonRpc::umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response)
