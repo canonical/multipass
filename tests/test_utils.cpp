@@ -213,3 +213,29 @@ TEST(Utils, escape_char_actually_escapes)
     auto res = mp::utils::escape_char(s, '"');
     EXPECT_THAT(res, ::testing::StrEq("I've got \\\"quotes\\\""));
 }
+
+TEST(Utils, try_action_actually_times_out)
+{
+    bool on_timeout_called{false};
+    auto on_timeout = [&on_timeout_called] { on_timeout_called = true; };
+    auto retry_action = [] { return mp::utils::TimeoutAction::retry; };
+    mp::utils::try_action_for(on_timeout, std::chrono::milliseconds(1), retry_action);
+
+    EXPECT_TRUE(on_timeout_called);
+}
+
+TEST(Utils, try_action_does_not_timeout)
+{
+    bool on_timeout_called{false};
+    auto on_timeout = [&on_timeout_called] { on_timeout_called = true; };
+
+    bool action_called{false};
+    auto successful_action = [&action_called] {
+        action_called = true;
+        return mp::utils::TimeoutAction::done;
+    };
+    mp::utils::try_action_for(on_timeout, std::chrono::seconds(1), successful_action);
+
+    EXPECT_FALSE(on_timeout_called);
+    EXPECT_TRUE(action_called);
+}

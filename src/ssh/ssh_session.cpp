@@ -126,32 +126,7 @@ void mp::SSHSession::force_shutdown()
     shutdown(socket, shutdown_read_and_writes);
 }
 
-void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
-                                       std::function<void()> precondition_check)
-{
-    using namespace std::literals::chrono_literals;
-
-    auto deadline = std::chrono::steady_clock::now() + timeout;
-    while (std::chrono::steady_clock::now() < deadline)
-    {
-        precondition_check();
-
-        try
-        {
-            mp::SSHSession session{host, port};
-            return;
-        }
-        catch (const std::exception&)
-        {
-            std::this_thread::sleep_for(1s);
-        }
-    }
-
-    throw std::runtime_error("timed out waiting for ssh service to start");
-}
-
 mp::SSHSession::operator ssh_session() const
 {
     return session.get();
 }
-

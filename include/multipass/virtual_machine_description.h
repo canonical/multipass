@@ -25,6 +25,7 @@
 
 namespace multipass
 {
+class SSHKeyProvider;
 class VirtualMachineDescription
 {
 public:
@@ -36,6 +37,7 @@ public:
     std::string vm_name;
     VMImage image;
     Path cloud_init_iso;
+    const SSHKeyProvider& key_provider;
 };
 }
 #endif // MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H

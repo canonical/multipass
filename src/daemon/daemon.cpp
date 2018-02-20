@@ -125,7 +125,8 @@ void prepare_user_data(YAML::Node& user_data_config)
 
 mp::VirtualMachineDescription to_machine_desc(const mp::CreateRequest* request, const std::string& name,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
-                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config)
+                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                                              const mp::SSHKeyProvider& key_provider)
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
     const auto mem_size = request->mem_size().empty() ? "1G" : request->mem_size();
@@ -133,7 +134,7 @@ mp::VirtualMachineDescription to_machine_desc(const mp::CreateRequest* request, 
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_size, name, image, cloud_init_iso};
+    return {num_cores, mem_size, disk_size, name, image, cloud_init_iso, key_provider};
 }
 
 template <typename T>
@@ -272,31 +273,6 @@ auto grpc_status_for(fmt::MemoryWriter& errors)
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         fmt::format("The following errors occured:\n{}", error_string), "");
 }
-
-void wait_until_cloud_init_finished(const std::string& host, int port, const mp::SSHKeyProvider& key_provider,
-                                    std::chrono::milliseconds timeout)
-{
-    using namespace std::literals::chrono_literals;
-    auto deadline = std::chrono::steady_clock::now() + timeout;
-    bool cloud_init_finished{false};
-
-    while (std::chrono::steady_clock::now() < deadline)
-    {
-        mp::SSHSession session{host, port, key_provider};
-        auto ssh_process =
-            session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-        if (ssh_process.exit_code() == 0)
-        {
-            cloud_init_finished = true;
-            break;
-        }
-
-        std::this_thread::sleep_for(1s);
-    }
-
-    if (!cloud_init_finished)
-        throw std::runtime_error("Timed out waiting for cloud-init to complete");
-}
 }
 
 mp::DaemonRunner::DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daemon* daemon)
@@ -346,8 +322,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size, spec.disk_space,
-                                              name,           vm_image,      cloud_init_iso};
+        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,          name,
+                                              vm_image,       cloud_init_iso, *config->ssh_key_provider};
 
         try
         {
@@ -468,7 +444,7 @@ try // clang-format on
     prepare_user_data(user_data_cloud_init_config);
     config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
     auto vm_desc = to_machine_desc(request, name, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
-                                   vendor_data_cloud_init_config);
+                                   vendor_data_cloud_init_config, *config->ssh_key_provider);
 
     config->factory->prepare_instance_image(vm_image, vm_desc);
 
@@ -485,8 +461,7 @@ try // clang-format on
 
     reply.set_create_message("Waiting for cloud-init to complete");
     server->Write(reply);
-    wait_until_cloud_init_finished(vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider,
-                                   std::chrono::minutes(5));
+    vm->wait_for_cloud_init(std::chrono::minutes(5));
 
     reply.set_vm_instance_name(name);
     server->Write(reply);
