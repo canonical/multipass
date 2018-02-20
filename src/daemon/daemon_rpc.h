@@ -41,8 +41,7 @@ signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
     grpc::Status on_launch(grpc::ServerContext* context, const LaunchRequest* request,
                            grpc::ServerWriter<LaunchReply>* reply);
-    grpc::Status on_empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                                EmptyTrashReply* response);
+    grpc::Status on_purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response);
     grpc::Status on_find(grpc::ServerContext* context, const FindRequest* request, FindReply* response);
     grpc::Status on_info(grpc::ServerContext* context, const InfoRequest* request, InfoReply* response);
     grpc::Status on_list(grpc::ServerContext* context, const ListRequest* request, ListReply* response);
@@ -64,8 +63,7 @@ private:
 protected:
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
                         grpc::ServerWriter<LaunchReply>* reply) override;
-    grpc::Status empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                             EmptyTrashReply* response) override;
+    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response) override;
     grpc::Status find(grpc::ServerContext* context, const FindRequest* request, FindReply* response) override;
     grpc::Status info(grpc::ServerContext* context, const InfoRequest* request, InfoReply* response) override;
     grpc::Status list(grpc::ServerContext* context, const ListRequest* request, ListReply* response) override;

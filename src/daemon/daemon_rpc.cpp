@@ -77,10 +77,9 @@ grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchReq
     return emit on_launch(context, request, reply); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                                        EmptyTrashReply* response)
+grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response)
 {
-    return emit on_empty_trash(context, request, response); // must block until slot returns
+    return emit on_purge(context, request, response); // must block until slot returns
 }
 
 grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context, const FindRequest* request, FindReply* response)

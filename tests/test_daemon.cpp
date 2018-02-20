@@ -56,7 +56,7 @@ struct MockDaemon : public mp::Daemon
     using mp::Daemon::Daemon;
     MOCK_METHOD3(launch,
                  grpc::Status(grpc::ServerContext*, const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*));
-    MOCK_METHOD3(empty_trash, grpc::Status(grpc::ServerContext*, const mp::EmptyTrashRequest*, mp::EmptyTrashReply*));
+    MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext*, const mp::PurgeRequest*, mp::PurgeReply*));
     MOCK_METHOD3(info, grpc::Status(grpc::ServerContext*, const mp::InfoRequest*, mp::InfoReply*));
     MOCK_METHOD3(list, grpc::Status(grpc::ServerContext*, const mp::ListRequest*, mp::ListReply*));
     MOCK_METHOD3(recover, grpc::Status(grpc::ServerContext*, const mp::RecoverRequest*, mp::RecoverReply*));
@@ -160,7 +160,7 @@ TEST_F(Daemon, receives_commands)
     MockDaemon daemon{config_builder.build()};
 
     EXPECT_CALL(daemon, launch(_, _, _));
-    EXPECT_CALL(daemon, empty_trash(_, _, _));
+    EXPECT_CALL(daemon, purge(_, _, _));
     EXPECT_CALL(daemon, ssh_info(_, _, _));
     EXPECT_CALL(daemon, info(_, _, _));
     EXPECT_CALL(daemon, list(_, _, _));

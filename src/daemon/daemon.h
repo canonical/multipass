@@ -65,8 +65,7 @@ public slots:
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
                         grpc::ServerWriter<LaunchReply>* reply) override;
 
-    grpc::Status empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                             EmptyTrashReply* response) override;
+    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response) override;
 
     grpc::Status find(grpc::ServerContext* context, const FindRequest* request, FindReply* response) override;
 

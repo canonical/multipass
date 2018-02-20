@@ -277,8 +277,7 @@ auto grpc_status_for(fmt::MemoryWriter& errors)
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_empty_trash, &daemon, &mp::Daemon::empty_trash,
-                     Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list, Qt::BlockingQueuedConnection);
@@ -477,8 +476,8 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-grpc::Status mp::Daemon::empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                                     EmptyTrashReply* response) // clang-format off
+grpc::Status mp::Daemon::purge(grpc::ServerContext* context, const PurgeRequest* request,
+                               PurgeReply* response) // clang-format off
 try // clang-format on
 {
     std::vector<decltype(vm_instance_trash)::key_type> keys_to_delete;

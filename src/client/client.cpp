@@ -17,7 +17,6 @@
  *
  */
 #include "client.h"
-#include "cmd/empty_trash.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/help.h"
@@ -25,6 +24,7 @@
 #include "cmd/launch.h"
 #include "cmd/list.h"
 #include "cmd/mount.h"
+#include "cmd/purge.h"
 #include "cmd/recover.h"
 #include "cmd/shell.h"
 #include "cmd/start.h"
@@ -69,7 +69,7 @@ mp::Client::Client(const ClientConfig& config)
       cerr{config.cerr}
 {
     add_command<cmd::Launch>();
-    add_command<cmd::EmptyTrash>();
+    add_command<cmd::Purge>();
     add_command<cmd::Exec>();
     add_command<cmd::Find>();
     add_command<cmd::Help>();
