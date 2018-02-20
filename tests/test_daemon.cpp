@@ -18,6 +18,7 @@
  */
 
 #include <src/client/client.h>
+#include <src/daemon/auto_join_thread.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 
@@ -129,7 +130,7 @@ struct Daemon : public Test
     {
         // Commands need to be sent from a thread different from that the QEventLoop is on.
         // Event loop is started/stopped to ensure all signals are delivered
-        std::thread t([this, &commands, &cout]() {
+        mp::AutoJoinThread t([this, &commands, &cout] {
             mp::ClientConfig client_config{server_address, cout, std::cerr};
             mp::Client client{client_config};
             for (const auto& command : commands)
@@ -145,11 +146,10 @@ struct Daemon : public Test
             loop.quit();
         });
         loop.exec();
-        t.join();
     }
 
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
-    QEventLoop loop; // needed as cross-thread signal/slots used internally by mp::Daemon
+    QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
     QTemporaryDir cache_dir;
     mp::DaemonConfigBuilder config_builder;
     std::stringstream null_stream;

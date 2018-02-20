@@ -36,8 +36,6 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service
     Q_OBJECT
 public:
     DaemonRpc(const std::string& server_address, std::ostream& cout, std::ostream& cerr);
-    void run();
-    void shutdown();
 
 signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
