@@ -28,7 +28,7 @@ add_library(commands STATIC
   shell.cpp
   start.cpp
   stop.cpp
-  trash.cpp
+  delete.cpp
   umount.cpp
   version.cpp
 

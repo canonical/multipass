@@ -31,7 +31,7 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     case mp::InstanceStatus::STOPPED:
         status_val = "STOPPED";
         break;
-    case mp::InstanceStatus::TRASHED:
+    case mp::InstanceStatus::DELETED:
         status_val = "DELETED";
         break;
     case mp::InstanceStatus::STARTING:

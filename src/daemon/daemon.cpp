@@ -286,7 +286,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop, Qt::BlockingQueuedConnection);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_trash, &daemon, &mp::Daemon::trash, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
@@ -386,7 +386,7 @@ try // clang-format on
 {
     auto name = name_from(request, *config->name_generator, vm_instances);
 
-    if (vm_instances.find(name) != vm_instances.end() || vm_instance_trash.find(name) != vm_instance_trash.end())
+    if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
         LaunchError create_error;
         create_error.add_error_codes(LaunchError::INSTANCE_EXISTS);
@@ -480,10 +480,10 @@ grpc::Status mp::Daemon::purge(grpc::ServerContext* context, const PurgeRequest*
                                PurgeReply* response) // clang-format off
 try // clang-format on
 {
-    std::vector<decltype(vm_instance_trash)::key_type> keys_to_delete;
-    for (auto& trash : vm_instance_trash)
+    std::vector<decltype(deleted_instances)::key_type> keys_to_delete;
+    for (auto& del : deleted_instances)
     {
-        const auto& name = trash.first;
+        const auto& name = del.first;
         config->factory->remove_resources_for(name);
         config->vault->remove(name);
         keys_to_delete.push_back(name);
@@ -491,7 +491,7 @@ try // clang-format on
 
     for (auto const& key : keys_to_delete)
     {
-        vm_instance_trash.erase(key);
+        deleted_instances.erase(key);
         vm_instance_specs.erase(key);
     }
 
@@ -594,25 +594,25 @@ try // clang-format on
     for (const auto& name : instances_for_info)
     {
         auto it = vm_instances.find(name);
-        bool in_trash{false};
+        bool deleted{false};
         if (it == vm_instances.end())
         {
-            it = vm_instance_trash.find(name);
-            if (it == vm_instance_trash.end())
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
             {
                 errors.write("instance \"{}\" does not exist\n", name);
                 continue;
             }
-            in_trash = true;
+            deleted = true;
         }
 
         auto info = response->add_info();
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         auto& vm = it->second;
         info->set_name(name);
-        if (in_trash)
+        if (deleted)
         {
-            info->mutable_instance_status()->set_status(mp::InstanceStatus::TRASHED);
+            info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         }
         else
         {
@@ -730,12 +730,12 @@ try // clang-format on
             entry->set_ipv4(vm->ipv4());
     }
 
-    for (const auto& instance : vm_instance_trash)
+    for (const auto& instance : deleted_instances)
     {
         const auto& name = instance.first;
         auto entry = response->add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(mp::InstanceStatus::TRASHED);
+        entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     }
 
     return grpc::Status::OK;
@@ -853,11 +853,11 @@ grpc::Status mp::Daemon::recover(grpc::ServerContext* context, const RecoverRequ
 try // clang-format on
 {
     fmt::MemoryWriter errors;
-    std::vector<decltype(vm_instance_trash)::key_type> instances_to_recover;
+    std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
     for (const auto& name : request->instance_name())
     {
-        auto it = vm_instance_trash.find(name);
-        if (it == vm_instance_trash.end())
+        auto it = deleted_instances.find(name);
+        if (it == deleted_instances.end())
         {
             it = vm_instances.find(name);
             if (it == vm_instances.end())
@@ -874,16 +874,16 @@ try // clang-format on
 
     if (instances_to_recover.empty())
     {
-        for (auto& pair : vm_instance_trash)
+        for (auto& pair : deleted_instances)
             instances_to_recover.push_back(pair.first);
     }
 
     for (const auto& name : instances_to_recover)
     {
-        auto it = vm_instance_trash.find(name);
+        auto it = deleted_instances.find(name);
         it->second->shutdown();
         vm_instances[name] = std::move(it->second);
-        vm_instance_trash.erase(name);
+        deleted_instances.erase(name);
     }
 
     return grpc::Status::OK;
@@ -933,8 +933,8 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            it = vm_instance_trash.find(name);
-            if (it == vm_instance_trash.end())
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
             {
                 mp::StartError start_error;
                 start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
@@ -1038,8 +1038,8 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            it = vm_instance_trash.find(name);
-            if (it == vm_instance_trash.end())
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
                 errors.write("instance \"{}\" does not exist\n", name);
             else
                 errors.write("instance \"{}\" is deleted\n", name);
@@ -1070,12 +1070,12 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-grpc::Status mp::Daemon::trash(grpc::ServerContext* context, const TrashRequest* request,
-                               TrashReply* response) // clang-format off
+grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
+                               DeleteReply* response) // clang-format off
 try // clang-format on
 {
     fmt::MemoryWriter errors;
-    std::vector<decltype(vm_instances)::key_type> instances_to_trash;
+    std::vector<decltype(vm_instances)::key_type> instances_to_delete;
     for (const auto& name : request->instance_name())
     {
         auto it = vm_instances.find(name);
@@ -1084,20 +1084,20 @@ try // clang-format on
             errors.write("instance \"{}\" does not exist\n", name);
             continue;
         }
-        instances_to_trash.push_back(name);
+        instances_to_delete.push_back(name);
     }
 
     if (errors.size() > 0)
         return grpc_status_for(errors);
 
-    if (instances_to_trash.empty())
+    if (instances_to_delete.empty())
     {
         for (auto& pair : vm_instances)
-            instances_to_trash.push_back(pair.first);
+            instances_to_delete.push_back(pair.first);
     }
 
     const bool purge = request->purge();
-    for (const auto& name : instances_to_trash)
+    for (const auto& name : instances_to_delete)
     {
         auto it = vm_instances.find(name);
         it->second->shutdown();
@@ -1109,7 +1109,7 @@ try // clang-format on
         }
         else
         {
-            vm_instance_trash[name] = std::move(it->second);
+            deleted_instances[name] = std::move(it->second);
         }
         vm_instances.erase(name);
     }
