@@ -45,3 +45,8 @@ bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
 {
     return ::symlink(target, link) == 0;
 }
+
+bool mp::platform::link(const char* target, const char* link)
+{
+    return ::link(target, link) == 0;
+}

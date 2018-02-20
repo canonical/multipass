@@ -64,6 +64,7 @@ private:
     int handle_stat(sftp_client_message msg, bool follow);
     int handle_symlink(sftp_client_message msg);
     int handle_write(sftp_client_message msg);
+    int handle_extended(sftp_client_message msg);
 
     SSHSession ssh_session;
     const SSHSessionUptr sftp_ssh_session;
