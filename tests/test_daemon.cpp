@@ -57,13 +57,19 @@ struct MockDaemon : public mp::Daemon
     MOCK_METHOD3(launch,
                  grpc::Status(grpc::ServerContext*, const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*));
     MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext*, const mp::PurgeRequest*, mp::PurgeReply*));
+    MOCK_METHOD3(find,
+                 grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request, mp::FindReply* response));
     MOCK_METHOD3(info, grpc::Status(grpc::ServerContext*, const mp::InfoRequest*, mp::InfoReply*));
     MOCK_METHOD3(list, grpc::Status(grpc::ServerContext*, const mp::ListRequest*, mp::ListReply*));
+    MOCK_METHOD3(mount,
+                 grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request, mp::MountReply* response));
     MOCK_METHOD3(recover, grpc::Status(grpc::ServerContext*, const mp::RecoverRequest*, mp::RecoverReply*));
     MOCK_METHOD3(ssh_info, grpc::Status(grpc::ServerContext*, const mp::SSHInfoRequest*, mp::SSHInfoReply*));
     MOCK_METHOD3(start, grpc::Status(grpc::ServerContext*, const mp::StartRequest*, mp::StartReply*));
     MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext*, const mp::StopRequest*, mp::StopReply*));
     MOCK_METHOD3(delet, grpc::Status(grpc::ServerContext*, const mp::DeleteRequest*, mp::DeleteReply*));
+    MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
+                                      mp::UmountReply* response));
     MOCK_METHOD3(version, grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, mp::VersionReply*));
 };
 
@@ -161,6 +167,7 @@ TEST_F(Daemon, receives_commands)
 
     EXPECT_CALL(daemon, launch(_, _, _));
     EXPECT_CALL(daemon, purge(_, _, _));
+    EXPECT_CALL(daemon, find(_, _, _));
     EXPECT_CALL(daemon, ssh_info(_, _, _));
     EXPECT_CALL(daemon, info(_, _, _));
     EXPECT_CALL(daemon, list(_, _, _));
@@ -169,17 +176,22 @@ TEST_F(Daemon, receives_commands)
     EXPECT_CALL(daemon, stop(_, _, _));
     EXPECT_CALL(daemon, delet(_, _, _));
     EXPECT_CALL(daemon, version(_, _, _));
+    EXPECT_CALL(daemon, mount(_, _, _));
+    EXPECT_CALL(daemon, umount(_, _, _));
 
     send_commands({{"launch", "foo"},
-                   {"delete", "foo"}, // name argument is required
+                   {"delete", "foo"},
                    {"exec", "foo", "--", "cmd"},
-                   {"info", "foo"}, // name argument is required
+                   {"info", "foo"},
                    {"list"},
                    {"purge"},
-                   {"recover", "foo"}, // name argument is required
-                   {"start", "foo"},   // name argument is required
-                   {"stop", "foo"},    // name argument is required
-                   {"version"}});
+                   {"recover", "foo"},
+                   {"start", "foo"},
+                   {"stop", "foo"},
+                   {"version"},
+                   {"find", "something"},
+                   {"mount", ".", "target"},
+                   {"umount", "instance"}});
 }
 
 TEST_F(Daemon, creates_virtual_machines)
