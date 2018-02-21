@@ -93,7 +93,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const SSHKeyProvid
     if (session == nullptr)
         throw std::runtime_error("Could not allocate ssh session");
 
-    const auto timeout = 1;
+    const long timeout = 1;
 
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_HOST, host.c_str());
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_PORT, &port);
