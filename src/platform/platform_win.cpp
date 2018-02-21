@@ -47,3 +47,8 @@ bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
 	          SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     return CreateSymbolicLink(link, target, flags);
 }
+
+bool mp::platform::link(const char* target, const char* link)
+{
+    return CreateHardLink(link, target, nullptr);
+}
