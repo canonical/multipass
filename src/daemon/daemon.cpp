@@ -268,7 +268,8 @@ auto grpc_status_for(fmt::MemoryWriter& errors)
 {
     // Remove trailing newline due to grpc adding one of it's own
     auto error_string = errors.str();
-    error_string.pop_back();
+    if (error_string.back() == '\n')
+        error_string.pop_back();
 
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         fmt::format("The following errors occured:\n{}", error_string), "");
