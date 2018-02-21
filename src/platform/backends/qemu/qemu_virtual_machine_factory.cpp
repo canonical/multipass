@@ -139,6 +139,45 @@ void set_ip_forward()
 void set_nat_iptables(const std::string& subnet)
 {
     const auto cidr = QString::fromStdString(fmt::format("{}.0/24", subnet));
+
+    // Setup basic iptables overrides for DHCP/DNS
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-C", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "67", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "67", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-C", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "53", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-C", "INPUT", "-i", "mpbr0", "-p", "tcp", "--dport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "INPUT", "-i", "mpbr0", "-p", "tcp", "--dport", "53", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-C", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "67", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "67", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-C", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "53", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-C", "OUTPUT", "-o", "mpbr0", "-p", "tcp", "--sport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "OUTPUT", "-o", "mpbr0", "-p", "tcp", "--sport", "53", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-t", "mangle", "-C", "POSTROUTING", "-o", "mpbr0", "-p", "udp", "--dport",
+                                        "68", "-j", "CHECKSUM", "--checksum-fill"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-t", "mangle", "-I", "POSTROUTING", "-o", "mpbr0", "-p", "udp", "--dport", "68",
+                                       "-j", "CHECKSUM", "--checksum-fill"});
+
     // Do not masquerade to these reserved address blocks.
     if (!mp::utils::run_cmd_for_status(
             "iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "-d", "224.0.0.0/24", "-j", "RETURN"}))
