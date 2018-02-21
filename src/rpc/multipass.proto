@@ -18,8 +18,8 @@ syntax = "proto3";
 package multipass;
 
 service Rpc {
-    rpc create (CreateRequest) returns (stream CreateReply);
-    rpc empty_trash (EmptyTrashRequest) returns (EmptyTrashReply);
+    rpc launch (LaunchRequest) returns (stream LaunchReply);
+    rpc purge (PurgeRequest) returns (PurgeReply);
     rpc find (FindRequest) returns (FindReply);
     rpc info (InfoRequest) returns (InfoReply);
     rpc list (ListRequest) returns (ListReply);
@@ -29,12 +29,12 @@ service Rpc {
     rpc ssh_info (SSHInfoRequest) returns (SSHInfoReply);
     rpc start (StartRequest) returns (StartReply);
     rpc stop (StopRequest) returns (StopReply);
-    rpc trash (TrashRequest) returns (TrashReply);
+    rpc delet (DeleteRequest) returns (DeleteReply);
     rpc umount (UmountRequest) returns (UmountReply);
     rpc version (VersionRequest) returns (VersionReply);
 }
 
-message CreateRequest {
+message LaunchRequest {
     string instance_name = 1;
     string image = 2;
     string kernel_name = 3;
@@ -46,7 +46,7 @@ message CreateRequest {
     string remote_name = 9;
 }
 
-message CreateError {
+message LaunchError {
     enum ErrorCodes {
         OK = 0;
         INSTANCE_EXISTS = 1;
@@ -67,7 +67,7 @@ message DownloadProgress {
     string percent_complete = 2;
 }
 
-message CreateReply {
+message LaunchReply {
     oneof create_oneof {
         string vm_instance_name = 1;
         DownloadProgress download_progress = 2;
@@ -75,10 +75,10 @@ message CreateReply {
     }
 }
 
-message EmptyTrashRequest {
+message PurgeRequest {
 }
 
-message EmptyTrashReply {
+message PurgeReply {
 }
 
 message FindRequest {
@@ -118,7 +118,7 @@ message InstanceStatus {
         STARTING = 1;
         RESTARTING = 2;
         STOPPED = 3;
-        TRASHED = 4;
+        DELETED = 4;
         UNKNOWN = 5;
     }
     Status status = 1;
@@ -239,12 +239,12 @@ message StopRequest {
 message StopReply {
 }
 
-message TrashRequest {
+message DeleteRequest {
     repeated string instance_name = 1;
     bool purge = 2;
 }
 
-message TrashReply {
+message DeleteReply {
 }
 
 message UmountRequest {

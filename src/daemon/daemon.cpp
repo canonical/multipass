@@ -53,7 +53,7 @@ namespace
 {
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 
-mp::Query query_from(const mp::CreateRequest* request, const std::string& name)
+mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
     if (!request->remote_name().empty() && request->image().empty())
         throw std::runtime_error("Must specify an image when specifying a remote");
@@ -123,21 +123,22 @@ void prepare_user_data(YAML::Node& user_data_config)
         packages.push_back("sshfs");
 }
 
-mp::VirtualMachineDescription to_machine_desc(const mp::CreateRequest* request, const std::string& name,
+mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
-                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config)
+                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                                              const mp::SSHKeyProvider& key_provider)
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
     const auto mem_size = request->mem_size().empty() ? "1G" : request->mem_size();
-    const auto disk_size = request->disk_space();
+    const auto disk_size = request->disk_space().empty() ? "5G" : request->disk_space();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_size, name, image, cloud_init_iso};
+    return {num_cores, mem_size, disk_size, name, image, cloud_init_iso, key_provider};
 }
 
 template <typename T>
-auto name_from(const mp::CreateRequest* request, mp::NameGenerator& name_gen, const T& currently_used_names)
+auto name_from(const mp::LaunchRequest* request, mp::NameGenerator& name_gen, const T& currently_used_names)
 {
     auto requested_name = request->instance_name();
     if (requested_name.empty())
@@ -231,27 +232,27 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
 
-auto validate_create_arguments(const mp::CreateRequest* request)
+auto validate_create_arguments(const mp::LaunchRequest* request)
 {
-    mp::CreateError create_error;
+    mp::LaunchError launch_error;
 
     if (!request->disk_space().empty() && !mp::utils::valid_memory_value(QString::fromStdString(request->disk_space())))
     {
-        create_error.add_error_codes(mp::CreateError::INVALID_DISK_SIZE);
+        launch_error.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
     }
 
     if (!request->mem_size().empty() && !mp::utils::valid_memory_value(QString::fromStdString(request->mem_size())))
     {
-        create_error.add_error_codes(mp::CreateError::INVALID_MEM_SIZE);
+        launch_error.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
     }
 
     if (!request->instance_name().empty() &&
         !mp::utils::valid_hostname(QString::fromStdString(request->instance_name())))
     {
-        create_error.add_error_codes(mp::CreateError::INVALID_HOSTNAME);
+        launch_error.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
     }
 
-    return create_error;
+    return launch_error;
 }
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
@@ -273,64 +274,30 @@ auto grpc_status_for(fmt::MemoryWriter& errors)
                         fmt::format("The following errors occured:\n{}", error_string), "");
 }
 
-void wait_until_cloud_init_finished(const std::string& host, int port, const mp::SSHKeyProvider& key_provider,
-                                    std::chrono::milliseconds timeout)
+auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
-    using namespace std::literals::chrono_literals;
-    auto deadline = std::chrono::steady_clock::now() + timeout;
-    bool cloud_init_finished{false};
-
-    while (std::chrono::steady_clock::now() < deadline)
-    {
-        mp::SSHSession session{host, port, key_provider};
-        auto ssh_process =
-            session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-        if (ssh_process.exit_code() == 0)
-        {
-            cloud_init_finished = true;
-            break;
-        }
-
-        std::this_thread::sleep_for(1s);
-    }
-
-    if (!cloud_init_finished)
-        throw std::runtime_error("Timed out waiting for cloud-init to complete");
+    QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
-}
-
-mp::DaemonRunner::DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daemon* daemon)
-    : daemon_rpc{config->server_address, config->cout, config->cerr}, daemon_thread{[this, daemon] {
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_create, daemon, &Daemon::create, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_empty_trash, daemon, &Daemon::empty_trash,
-                           Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_find, daemon, &Daemon::find, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_info, daemon, &Daemon::info, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_list, daemon, &Daemon::list, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_mount, daemon, &Daemon::mount, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_recover, daemon, &Daemon::recover, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_ssh_info, daemon, &Daemon::ssh_info,
-                           Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_start, daemon, &Daemon::start, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_stop, daemon, &Daemon::stop, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_trash, daemon, &Daemon::trash, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_umount, daemon, &Daemon::umount, Qt::BlockingQueuedConnection);
-          QObject::connect(&daemon_rpc, &DaemonRpc::on_version, daemon, &Daemon::version, Qt::BlockingQueuedConnection);
-          daemon_rpc.run();
-      }}
-{
-}
-
-mp::DaemonRunner::~DaemonRunner()
-{
-    daemon_rpc.shutdown();
 }
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
-      runner(config, this)
+      daemon_rpc{config->server_address, config->cout, config->cerr}
 {
+    connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
     for (auto const& entry : vm_instance_specs)
     {
@@ -346,8 +313,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size, spec.disk_space,
-                                              name,           vm_image,      cloud_init_iso};
+        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,          name,
+                                              vm_image,       cloud_init_iso, *config->ssh_key_provider};
 
         try
         {
@@ -413,16 +380,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(ms.count());
 }
 
-grpc::Status mp::Daemon::create(grpc::ServerContext* context, const CreateRequest* request,
-                                grpc::ServerWriter<CreateReply>* server) // clang-format off
+grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
+                                grpc::ServerWriter<LaunchReply>* server) // clang-format off
 try // clang-format on
 {
     auto name = name_from(request, *config->name_generator, vm_instances);
 
-    if (vm_instances.find(name) != vm_instances.end() || vm_instance_trash.find(name) != vm_instance_trash.end())
+    if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
-        CreateError create_error;
-        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
+        LaunchError create_error;
+        create_error.add_error_codes(LaunchError::INSTANCE_EXISTS);
 
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" already exists", name),
                             create_error.SerializeAsString());
@@ -440,14 +407,14 @@ try // clang-format on
 
     auto query = query_from(request, name);
     auto download_monitor = [server](int download_type, int percentage) {
-        CreateReply create_reply;
+        LaunchReply create_reply;
         create_reply.mutable_download_progress()->set_percent_complete(std::to_string(percentage));
         create_reply.mutable_download_progress()->set_type((DownloadProgress::DownloadTypes)download_type);
         return server->Write(create_reply);
     };
 
     auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
-        CreateReply reply;
+        LaunchReply reply;
         reply.set_create_message("Preparing image for " + name);
         server->Write(reply);
         return config->factory->prepare_source_image(source_image);
@@ -455,7 +422,7 @@ try // clang-format on
 
     auto fetch_type = config->factory->fetch_type();
 
-    CreateReply reply;
+    LaunchReply reply;
     reply.set_create_message("Creating " + name);
     server->Write(reply);
     auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, download_monitor);
@@ -468,7 +435,7 @@ try // clang-format on
     prepare_user_data(user_data_cloud_init_config);
     config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
     auto vm_desc = to_machine_desc(request, name, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
-                                   vendor_data_cloud_init_config);
+                                   vendor_data_cloud_init_config, *config->ssh_key_provider);
 
     config->factory->prepare_instance_image(vm_image, vm_desc);
 
@@ -485,8 +452,7 @@ try // clang-format on
 
     reply.set_create_message("Waiting for cloud-init to complete");
     server->Write(reply);
-    wait_until_cloud_init_finished(vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider,
-                                   std::chrono::minutes(5));
+    vm->wait_for_cloud_init(std::chrono::minutes(5));
 
     reply.set_vm_instance_name(name);
     server->Write(reply);
@@ -510,14 +476,14 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-grpc::Status mp::Daemon::empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                                     EmptyTrashReply* response) // clang-format off
+grpc::Status mp::Daemon::purge(grpc::ServerContext* context, const PurgeRequest* request,
+                               PurgeReply* response) // clang-format off
 try // clang-format on
 {
-    std::vector<decltype(vm_instance_trash)::key_type> keys_to_delete;
-    for (auto& trash : vm_instance_trash)
+    std::vector<decltype(deleted_instances)::key_type> keys_to_delete;
+    for (auto& del : deleted_instances)
     {
-        const auto& name = trash.first;
+        const auto& name = del.first;
         config->factory->remove_resources_for(name);
         config->vault->remove(name);
         keys_to_delete.push_back(name);
@@ -525,7 +491,7 @@ try // clang-format on
 
     for (auto const& key : keys_to_delete)
     {
-        vm_instance_trash.erase(key);
+        deleted_instances.erase(key);
         vm_instance_specs.erase(key);
     }
 
@@ -628,25 +594,25 @@ try // clang-format on
     for (const auto& name : instances_for_info)
     {
         auto it = vm_instances.find(name);
-        bool in_trash{false};
+        bool deleted{false};
         if (it == vm_instances.end())
         {
-            it = vm_instance_trash.find(name);
-            if (it == vm_instance_trash.end())
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
             {
                 errors.write("instance \"{}\" does not exist\n", name);
                 continue;
             }
-            in_trash = true;
+            deleted = true;
         }
 
         auto info = response->add_info();
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         auto& vm = it->second;
         info->set_name(name);
-        if (in_trash)
+        if (deleted)
         {
-            info->mutable_instance_status()->set_status(mp::InstanceStatus::TRASHED);
+            info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         }
         else
         {
@@ -764,12 +730,12 @@ try // clang-format on
             entry->set_ipv4(vm->ipv4());
     }
 
-    for (const auto& instance : vm_instance_trash)
+    for (const auto& instance : deleted_instances)
     {
         const auto& name = instance.first;
         auto entry = response->add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(mp::InstanceStatus::TRASHED);
+        entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     }
 
     return grpc::Status::OK;
@@ -887,11 +853,11 @@ grpc::Status mp::Daemon::recover(grpc::ServerContext* context, const RecoverRequ
 try // clang-format on
 {
     fmt::MemoryWriter errors;
-    std::vector<decltype(vm_instance_trash)::key_type> instances_to_recover;
+    std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
     for (const auto& name : request->instance_name())
     {
-        auto it = vm_instance_trash.find(name);
-        if (it == vm_instance_trash.end())
+        auto it = deleted_instances.find(name);
+        if (it == deleted_instances.end())
         {
             it = vm_instances.find(name);
             if (it == vm_instances.end())
@@ -908,16 +874,16 @@ try // clang-format on
 
     if (instances_to_recover.empty())
     {
-        for (auto& pair : vm_instance_trash)
+        for (auto& pair : deleted_instances)
             instances_to_recover.push_back(pair.first);
     }
 
     for (const auto& name : instances_to_recover)
     {
-        auto it = vm_instance_trash.find(name);
+        auto it = deleted_instances.find(name);
         it->second->shutdown();
         vm_instances[name] = std::move(it->second);
-        vm_instance_trash.erase(name);
+        deleted_instances.erase(name);
     }
 
     return grpc::Status::OK;
@@ -967,8 +933,8 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            it = vm_instance_trash.find(name);
-            if (it == vm_instance_trash.end())
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
             {
                 mp::StartError start_error;
                 start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
@@ -1072,8 +1038,8 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            it = vm_instance_trash.find(name);
-            if (it == vm_instance_trash.end())
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
                 errors.write("instance \"{}\" does not exist\n", name);
             else
                 errors.write("instance \"{}\" is deleted\n", name);
@@ -1104,12 +1070,12 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-grpc::Status mp::Daemon::trash(grpc::ServerContext* context, const TrashRequest* request,
-                               TrashReply* response) // clang-format off
+grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
+                               DeleteReply* response) // clang-format off
 try // clang-format on
 {
     fmt::MemoryWriter errors;
-    std::vector<decltype(vm_instances)::key_type> instances_to_trash;
+    std::vector<decltype(vm_instances)::key_type> instances_to_delete;
     for (const auto& name : request->instance_name())
     {
         auto it = vm_instances.find(name);
@@ -1118,20 +1084,20 @@ try // clang-format on
             errors.write("instance \"{}\" does not exist\n", name);
             continue;
         }
-        instances_to_trash.push_back(name);
+        instances_to_delete.push_back(name);
     }
 
     if (errors.size() > 0)
         return grpc_status_for(errors);
 
-    if (instances_to_trash.empty())
+    if (instances_to_delete.empty())
     {
         for (auto& pair : vm_instances)
-            instances_to_trash.push_back(pair.first);
+            instances_to_delete.push_back(pair.first);
     }
 
     const bool purge = request->purge();
-    for (const auto& name : instances_to_trash)
+    for (const auto& name : instances_to_delete)
     {
         auto it = vm_instances.find(name);
         it->second->shutdown();
@@ -1143,7 +1109,7 @@ try // clang-format on
         }
         else
         {
-            vm_instance_trash[name] = std::move(it->second);
+            deleted_instances[name] = std::move(it->second);
         }
         vm_instances.erase(name);
     }

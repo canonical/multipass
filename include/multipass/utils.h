@@ -18,7 +18,9 @@
 #ifndef MULTIPASS_UTILS_H
 #define MULTIPASS_UTILS_H
 
+#include <chrono>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <QDir>
@@ -44,6 +46,33 @@ bool run_cmd_for_status(const QString& cmd, const QStringList& args);
 std::string run_cmd_for_output(const QString& cmd, const QStringList& args);
 std::string& trim_end(std::string& s);
 std::string escape_char(const std::string& s, char c);
+
+enum class TimeoutAction
+{
+    retry,
+    done
+};
+template <typename OnTimeoutCallable, typename TryAction, typename... Args>
+void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
+                    Args&&... args)
+{
+
+    static_assert(std::is_same<decltype(try_action(std::forward<Args>(args)...)), TimeoutAction>::value, "");
+    using namespace std::literals::chrono_literals;
+
+    auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        if (try_action(std::forward<Args>(args)...) == TimeoutAction::done)
+            return;
+
+        if ((std::chrono::steady_clock::now() + 1s) >= deadline)
+            break;
+
+        std::this_thread::sleep_for(1s);
+    }
+    on_timeout();
+}
 }
 }
 #endif // MULTIPASS_UTILS_H

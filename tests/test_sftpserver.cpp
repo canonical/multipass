@@ -136,6 +136,8 @@ std::string name_for_message(uint8_t message_type)
         return "SFTP_SYMLINK";
     case SFTP_RENAME:
         return "SFTP_RENAME";
+    case SFTP_EXTENDED:
+        return "SFTP_EXTENDED";
     default:
         return "Unknown";
     }
@@ -802,6 +804,86 @@ TEST_F(SftpServer, handles_reads)
     ASSERT_THAT(num_calls, Eq(1));
 }
 
+TEST_F(SftpServer, handle_extended_link)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    make_file_with_content(file_name);
+
+    auto sftp = make_sftpserver();
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("hardlink@openssh.com");
+    msg->submessage = submessage.data();
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
+
+    QFileInfo info(link_name);
+    EXPECT_TRUE(QFile::exists(link_name));
+    EXPECT_TRUE(content_match(link_name, "this is a test file"));
+}
+
+TEST_F(SftpServer, handle_extended_rename)
+{
+    mpt::TempDir temp_dir;
+    auto old_name = temp_dir.path() + "/test-file";
+    auto new_name = temp_dir.path() + "/test-renamed";
+    make_file_with_content(old_name);
+
+    auto sftp = make_sftpserver();
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("posix-rename@openssh.com");
+    msg->submessage = submessage.data();
+    auto name = name_as_char_array(old_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(new_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(QFile::exists(new_name));
+    EXPECT_FALSE(QFile::exists(old_name));
+}
+
+TEST_F(SftpServer, invalid_extended_fails)
+{
+    auto sftp = make_sftpserver();
+
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("invalid submessage");
+    msg->submessage = submessage.data();
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_OP_UNSUPPORTED, num_calls);
+
+    REPLACE(sftp_reply_status, reply_status);
+
+    sftp.run();
+
+    EXPECT_THAT(num_calls, Eq(1));
+}
+
 TEST_P(Stat, handles)
 {
     mpt::TempDir temp_dir;
@@ -876,5 +958,6 @@ INSTANTIATE_TEST_CASE_P(
         MessageAndReply{SFTP_WRITE, SSH_FX_BAD_MESSAGE}, MessageAndReply{SFTP_OPENDIR, SSH_FX_NO_SUCH_FILE},
         MessageAndReply{SFTP_STAT, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_LSTAT, SSH_FX_NO_SUCH_FILE},
         MessageAndReply{SFTP_READLINK, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_SYMLINK, SSH_FX_FAILURE},
-        MessageAndReply{SFTP_RENAME, SSH_FX_FAILURE}, MessageAndReply{SFTP_SETSTAT, SSH_FX_NO_SUCH_FILE}),
+        MessageAndReply{SFTP_RENAME, SSH_FX_FAILURE}, MessageAndReply{SFTP_SETSTAT, SSH_FX_NO_SUCH_FILE},
+        MessageAndReply{SFTP_EXTENDED, SSH_FX_FAILURE}),
     string_for_param);

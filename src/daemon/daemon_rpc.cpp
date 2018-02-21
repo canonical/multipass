@@ -68,29 +68,18 @@ auto make_server(const std::string& server_address, multipass::Rpc::Service* ser
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, std::ostream& cout, std::ostream& cerr)
     : server_address{server_address}, server{make_server(server_address, this)}, cout{cout}, cerr{cerr}
 {
-}
-
-void mp::DaemonRpc::run()
-{
     cout << fmt::format("gRPC listening on {}\n", server_address);
-    server->Wait();
 }
 
-void mp::DaemonRpc::shutdown()
+grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,
+                                   grpc::ServerWriter<LaunchReply>* reply)
 {
-    server->Shutdown();
+    return emit on_launch(context, request, reply); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateRequest* request,
-                                   grpc::ServerWriter<CreateReply>* reply)
+grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response)
 {
-    return emit on_create(context, request, reply); // must block until slot returns
-}
-
-grpc::Status mp::DaemonRpc::empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                                        EmptyTrashReply* response)
-{
-    return emit on_empty_trash(context, request, response); // must block until slot returns
+    return emit on_purge(context, request, response); // must block until slot returns
 }
 
 grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context, const FindRequest* request, FindReply* response)
@@ -134,9 +123,9 @@ grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context, const StopRequest
     return emit on_stop(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::trash(grpc::ServerContext* context, const TrashRequest* request, TrashReply* response)
+grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response)
 {
-    return emit on_trash(context, request, response); // must block until slot returns
+    return emit on_delete(context, request, response); // must block until slot returns
 }
 
 grpc::Status mp::DaemonRpc::umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response)

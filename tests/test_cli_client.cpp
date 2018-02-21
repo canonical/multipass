@@ -20,7 +20,6 @@
 #include "path.h"
 
 #include <src/client/client.h>
-#include <src/daemon/auto_join_thread.h>
 #include <src/daemon/daemon_rpc.h>
 
 #include <QEventLoop>
@@ -35,15 +34,6 @@ using namespace testing;
 class Client : public Test
 {
 public:
-    Client() : daemon_thread{[this] { stub_daemon.run(); }}
-    {
-    }
-
-    ~Client()
-    {
-        stub_daemon.shutdown();
-    }
-
     int send_command(std::vector<std::string> command)
     {
         return send_command(command, null_stream);
@@ -69,8 +59,6 @@ public:
 #endif
     std::stringstream null_stream;
     mp::DaemonRpc stub_daemon{server_address, null_stream, null_stream};
-    mp::AutoJoinThread daemon_thread;
-
 };
 
 // Tests for no postional args given

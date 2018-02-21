@@ -38,9 +38,6 @@ public:
     SSHSession(const std::string& host, int port);
     SSHSession(const std::string& host, int port, const SSHKeyProvider& key_provider);
 
-    static void wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
-                                  std::function<void()> precondition_check);
-
     SSHProcess exec(const std::string& cmd);
 
     void force_shutdown();

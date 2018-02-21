@@ -93,7 +93,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const SSHKeyProvid
     if (session == nullptr)
         throw std::runtime_error("Could not allocate ssh session");
 
-    const auto timeout = 1;
+    const long timeout = 1;
 
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_HOST, host.c_str());
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_PORT, &port);
@@ -126,32 +126,7 @@ void mp::SSHSession::force_shutdown()
     shutdown(socket, shutdown_read_and_writes);
 }
 
-void mp::SSHSession::wait_until_ssh_up(const std::string& host, int port, std::chrono::milliseconds timeout,
-                                       std::function<void()> precondition_check)
-{
-    using namespace std::literals::chrono_literals;
-
-    auto deadline = std::chrono::steady_clock::now() + timeout;
-    while (std::chrono::steady_clock::now() < deadline)
-    {
-        precondition_check();
-
-        try
-        {
-            mp::SSHSession session{host, port};
-            return;
-        }
-        catch (const std::exception&)
-        {
-            std::this_thread::sleep_for(1s);
-        }
-    }
-
-    throw std::runtime_error("timed out waiting for ssh service to start");
-}
-
 mp::SSHSession::operator ssh_session() const
 {
     return session.get();
 }
-

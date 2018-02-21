@@ -17,19 +17,19 @@
  *
  */
 #include "client.h"
-#include "cmd/create.h"
-#include "cmd/empty_trash.h"
+#include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/help.h"
 #include "cmd/info.h"
+#include "cmd/launch.h"
 #include "cmd/list.h"
 #include "cmd/mount.h"
+#include "cmd/purge.h"
 #include "cmd/recover.h"
 #include "cmd/shell.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
-#include "cmd/trash.h"
 #include "cmd/umount.h"
 #include "cmd/version.h"
 
@@ -68,8 +68,8 @@ mp::Client::Client(const ClientConfig& config)
       cout{config.cout},
       cerr{config.cerr}
 {
-    add_command<cmd::Create>();
-    add_command<cmd::EmptyTrash>();
+    add_command<cmd::Launch>();
+    add_command<cmd::Purge>();
     add_command<cmd::Exec>();
     add_command<cmd::Find>();
     add_command<cmd::Help>();
@@ -80,7 +80,7 @@ mp::Client::Client(const ClientConfig& config)
     add_command<cmd::Shell>();
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
-    add_command<cmd::Trash>();
+    add_command<cmd::Delete>();
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
 

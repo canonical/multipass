@@ -122,6 +122,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       mac_addr{mac_addr},
       vm_name{desc.vm_name},
       dnsmasq_server{&dnsmasq_server},
+      key_provider{desc.key_provider},
       monitor{&monitor},
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
 {
@@ -247,36 +248,36 @@ void mp::QemuVirtualMachine::on_restart()
     monitor->on_restart(vm_name);
 }
 
+void mp::QemuVirtualMachine::ensure_vm_is_running()
+{
+    QCoreApplication::processEvents();
+
+    if (vm_process->state() == QProcess::NotRunning)
+        throw mp::StartException(vm_name, saved_error_msg);
+}
+
 std::string mp::QemuVirtualMachine::ssh_hostname()
 {
     if (!ip)
     {
-        using namespace std::literals::chrono_literals;
-
-        auto deadline = std::chrono::steady_clock::now() + std::chrono::minutes(2);
-
-        while (std::chrono::steady_clock::now() < deadline)
-        {
-            QCoreApplication::processEvents();
-
-            if (vm_process->state() == QProcess::NotRunning)
-                throw mp::StartException(vm_name, saved_error_msg);
-
+        auto action = [this] {
+            ensure_vm_is_running();
             auto result = dnsmasq_server->get_ip_for(mac_addr);
-
             if (result)
             {
                 ip.emplace(result.value());
-                return ip.value().as_string();
+                return mp::utils::TimeoutAction::done;
             }
-
-            std::this_thread::sleep_for(1s);
-        }
-
-        throw std::runtime_error("failed to determine IP address");
+            else
+            {
+                return mp::utils::TimeoutAction::retry;
+            }
+        };
+        auto on_timeout = [] { return std::runtime_error("failed to determine IP address"); };
+        mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
     }
-    else
-        return ip.value().as_string();
+
+    return ip.value().as_string();
 }
 
 std::string mp::QemuVirtualMachine::ipv4()
@@ -284,19 +285,13 @@ std::string mp::QemuVirtualMachine::ipv4()
     if (!ip)
     {
         auto result = dnsmasq_server->get_ip_for(mac_addr);
-
         if (result)
-        {
             ip.emplace(result.value());
-            return ip.value().as_string();
-        }
         else
-        {
             return "UNKNOWN";
-        }
     }
-    else
-        return ip.value().as_string();
+
+    return ip.value().as_string();
 }
 
 std::string mp::QemuVirtualMachine::ipv6()
@@ -306,22 +301,32 @@ std::string mp::QemuVirtualMachine::ipv6()
 
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    auto precondition_check = [this]() {
-        QCoreApplication::processEvents();
-        if (vm_process->state() == QProcess::NotRunning)
-            throw mp::StartException(vm_name, saved_error_msg);
+    auto action = [this] {
+        ensure_vm_is_running();
+        try
+        {
+            mp::SSHSession session{ssh_hostname(), ssh_port()};
+            state = State::running;
+            return mp::utils::TimeoutAction::done;
+        }
+        catch (const std::exception&)
+        {
+            state = State::unknown;
+            return mp::utils::TimeoutAction::retry;
+        }
     };
+    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
+}
 
-    try
-    {
-        SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, precondition_check);
-
-        state = State::running;
-    }
-    catch (const std::exception& e)
-    {
-        state = State::unknown;
-
-        throw;
-    }
+void mp::QemuVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
+{
+    auto action = [this] {
+        ensure_vm_is_running();
+        mp::SSHSession session{ssh_hostname(), ssh_port(), key_provider};
+        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
+        return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
+    };
+    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
 }

@@ -20,7 +20,6 @@
 #ifndef MULTIPASS_DAEMON_H
 #define MULTIPASS_DAEMON_H
 
-#include "auto_join_thread.h"
 #include "daemon_config.h"
 #include "daemon_rpc.h"
 #include <multipass/virtual_machine.h>
@@ -49,18 +48,6 @@ struct VMSpecs
     std::unordered_map<std::string, VMMount> mounts;
 };
 
-class Daemon;
-class DaemonRunner
-{
-public:
-    DaemonRunner(std::unique_ptr<const DaemonConfig>& config, Daemon* daemon);
-    ~DaemonRunner();
-
-private:
-    DaemonRpc daemon_rpc;
-    AutoJoinThread daemon_thread;
-};
-
 struct DaemonConfig;
 class Daemon : public QObject, public multipass::Rpc::Service, public multipass::VMStatusMonitor
 {
@@ -75,11 +62,10 @@ protected:
     void on_restart(const std::string& name) override;
 
 public slots:
-    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
-                        grpc::ServerWriter<CreateReply>* reply) override;
+    grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
+                        grpc::ServerWriter<LaunchReply>* reply) override;
 
-    grpc::Status empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                             EmptyTrashReply* response) override;
+    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response) override;
 
     grpc::Status find(grpc::ServerContext* context, const FindRequest* request, FindReply* response) override;
 
@@ -97,7 +83,7 @@ public slots:
 
     grpc::Status stop(grpc::ServerContext* context, const StopRequest* request, StopReply* response) override;
 
-    grpc::Status trash(grpc::ServerContext* context, const TrashRequest* request, TrashReply* response) override;
+    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response) override;
 
     grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response) override;
 
@@ -111,9 +97,9 @@ private:
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
-    std::unordered_map<std::string, VirtualMachine::UPtr> vm_instance_trash;
+    std::unordered_map<std::string, VirtualMachine::UPtr> deleted_instances;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
-    DaemonRunner runner;
+    DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
 
     Daemon(const Daemon&) = delete;

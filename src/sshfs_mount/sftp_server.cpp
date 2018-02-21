@@ -82,6 +82,11 @@ int reply_bad_handle(sftp_client_message msg, const char* type)
     return sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, fmt::format("{}: invalid handle", type).c_str());
 }
 
+int reply_unsupported(sftp_client_message msg)
+{
+    return sftp_reply_status(msg, SSH_FX_OP_UNSUPPORTED, "Unsupported message");
+}
+
 auto longname_from(const QFileInfo& file_info, const std::string& filename)
 {
     fmt::MemoryWriter out;
@@ -340,9 +345,12 @@ void mp::SftpServer::process_message(sftp_client_message msg)
     case SFTP_SYMLINK:
         ret = handle_symlink(msg);
         break;
+    case SFTP_EXTENDED:
+        ret = handle_extended(msg);
+        break;
     default:
         cout << "[sftp server] Unknown message: " << static_cast<int>(type) << "\n";
-        ret = sftp_reply_status(msg, SSH_FX_OP_UNSUPPORTED, "Unsupported message");
+        ret = reply_unsupported(msg);
     }
     if (ret != 0)
         cout << "[sftp server] error occurred when replying to client\n";
@@ -684,6 +692,33 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
         data_ptr += r;
         len -= r;
     } while (len > 0);
+
+    return reply_ok(msg);
+}
+
+int mp::SftpServer::handle_extended(sftp_client_message msg)
+{
+    const auto submessage = sftp_client_message_get_submessage(msg);
+    if (submessage == nullptr)
+        return reply_failure(msg);
+
+    const std::string method(submessage);
+    if (method == "hardlink@openssh.com")
+    {
+        const auto old_name = sftp_client_message_get_filename(msg);
+        const auto new_name = sftp_client_message_get_data(msg);
+
+        if (!mp::platform::link(old_name, new_name))
+            return reply_failure(msg);
+    }
+    else if (method == "posix-rename@openssh.com")
+    {
+        return handle_rename(msg);
+    }
+    else
+    {
+        return reply_unsupported(msg);
+    }
 
     return reply_ok(msg);
 }

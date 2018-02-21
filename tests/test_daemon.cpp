@@ -18,6 +18,7 @@
  */
 
 #include <src/client/client.h>
+#include <src/daemon/auto_join_thread.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 
@@ -53,16 +54,22 @@ namespace
 struct MockDaemon : public mp::Daemon
 {
     using mp::Daemon::Daemon;
-    MOCK_METHOD3(create,
-                 grpc::Status(grpc::ServerContext*, const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*));
-    MOCK_METHOD3(empty_trash, grpc::Status(grpc::ServerContext*, const mp::EmptyTrashRequest*, mp::EmptyTrashReply*));
+    MOCK_METHOD3(launch,
+                 grpc::Status(grpc::ServerContext*, const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*));
+    MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext*, const mp::PurgeRequest*, mp::PurgeReply*));
+    MOCK_METHOD3(find,
+                 grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request, mp::FindReply* response));
     MOCK_METHOD3(info, grpc::Status(grpc::ServerContext*, const mp::InfoRequest*, mp::InfoReply*));
     MOCK_METHOD3(list, grpc::Status(grpc::ServerContext*, const mp::ListRequest*, mp::ListReply*));
+    MOCK_METHOD3(mount,
+                 grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request, mp::MountReply* response));
     MOCK_METHOD3(recover, grpc::Status(grpc::ServerContext*, const mp::RecoverRequest*, mp::RecoverReply*));
     MOCK_METHOD3(ssh_info, grpc::Status(grpc::ServerContext*, const mp::SSHInfoRequest*, mp::SSHInfoReply*));
     MOCK_METHOD3(start, grpc::Status(grpc::ServerContext*, const mp::StartRequest*, mp::StartReply*));
     MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext*, const mp::StopRequest*, mp::StopReply*));
-    MOCK_METHOD3(trash, grpc::Status(grpc::ServerContext*, const mp::TrashRequest*, mp::TrashReply*));
+    MOCK_METHOD3(delet, grpc::Status(grpc::ServerContext*, const mp::DeleteRequest*, mp::DeleteReply*));
+    MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
+                                      mp::UmountReply* response));
     MOCK_METHOD3(version, grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, mp::VersionReply*));
 };
 
@@ -129,7 +136,7 @@ struct Daemon : public Test
     {
         // Commands need to be sent from a thread different from that the QEventLoop is on.
         // Event loop is started/stopped to ensure all signals are delivered
-        std::thread t([this, &commands, &cout]() {
+        mp::AutoJoinThread t([this, &commands, &cout] {
             mp::ClientConfig client_config{server_address, cout, std::cerr};
             mp::Client client{client_config};
             for (const auto& command : commands)
@@ -145,7 +152,6 @@ struct Daemon : public Test
             loop.quit();
         });
         loop.exec();
-        t.join();
     }
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
@@ -153,7 +159,7 @@ struct Daemon : public Test
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
-    QEventLoop loop; // needed as cross-thread signal/slots used internally by mp::Daemon
+    QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
     QTemporaryDir cache_dir;
     mp::DaemonConfigBuilder config_builder;
     std::stringstream null_stream;
@@ -163,28 +169,33 @@ TEST_F(Daemon, receives_commands)
 {
     MockDaemon daemon{config_builder.build()};
 
-    EXPECT_CALL(daemon, create(_, _, _));
-    EXPECT_CALL(daemon, empty_trash(_, _, _));
-    EXPECT_CALL(daemon, ssh_info(_, _, _)).Times(2);
+    EXPECT_CALL(daemon, launch(_, _, _));
+    EXPECT_CALL(daemon, purge(_, _, _));
+    EXPECT_CALL(daemon, find(_, _, _));
+    EXPECT_CALL(daemon, ssh_info(_, _, _));
     EXPECT_CALL(daemon, info(_, _, _));
     EXPECT_CALL(daemon, list(_, _, _));
     EXPECT_CALL(daemon, recover(_, _, _));
     EXPECT_CALL(daemon, start(_, _, _));
     EXPECT_CALL(daemon, stop(_, _, _));
-    EXPECT_CALL(daemon, trash(_, _, _));
+    EXPECT_CALL(daemon, delet(_, _, _));
     EXPECT_CALL(daemon, version(_, _, _));
+    EXPECT_CALL(daemon, mount(_, _, _));
+    EXPECT_CALL(daemon, umount(_, _, _));
 
-    send_commands({{"connect", "foo"},
-                   {"delete", "foo"},   // name argument is required
+    send_commands({{"launch", "foo"},
+                   {"delete", "foo"},
                    {"exec", "foo", "--", "cmd"},
-                   {"info", "foo"}, // name argument is required
-                   {"launch"},
+                   {"info", "foo"},
                    {"list"},
                    {"purge"},
-                   {"recover", "foo"}, // name argument is required
-                   {"start", "foo"},   // name argument is required
-                   {"stop", "foo"},    // name argument is required
-                   {"version"}});
+                   {"recover", "foo"},
+                   {"start", "foo"},
+                   {"stop", "foo"},
+                   {"version"},
+                   {"find", "something"},
+                   {"mount", ".", "target"},
+                   {"umount", "instance"}});
 }
 
 TEST_F(Daemon, creates_virtual_machines)

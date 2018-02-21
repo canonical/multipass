@@ -36,15 +36,12 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service
     Q_OBJECT
 public:
     DaemonRpc(const std::string& server_address, std::ostream& cout, std::ostream& cerr);
-    void run();
-    void shutdown();
 
 signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
-    grpc::Status on_create(grpc::ServerContext* context, const CreateRequest* request,
-                           grpc::ServerWriter<CreateReply>* reply);
-    grpc::Status on_empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                                EmptyTrashReply* response);
+    grpc::Status on_launch(grpc::ServerContext* context, const LaunchRequest* request,
+                           grpc::ServerWriter<LaunchReply>* reply);
+    grpc::Status on_purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response);
     grpc::Status on_find(grpc::ServerContext* context, const FindRequest* request, FindReply* response);
     grpc::Status on_info(grpc::ServerContext* context, const InfoRequest* request, InfoReply* response);
     grpc::Status on_list(grpc::ServerContext* context, const ListRequest* request, ListReply* response);
@@ -53,7 +50,7 @@ signals:
     grpc::Status on_ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request, SSHInfoReply* response);
     grpc::Status on_start(grpc::ServerContext* context, const StartRequest* request, StartReply* response);
     grpc::Status on_stop(grpc::ServerContext* context, const StopRequest* request, StopReply* response);
-    grpc::Status on_trash(grpc::ServerContext* context, const TrashRequest* request, TrashReply* response);
+    grpc::Status on_delete(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response);
     grpc::Status on_umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response);
     grpc::Status on_version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response);
 
@@ -64,10 +61,9 @@ private:
     std::ostream& cerr;
 
 protected:
-    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
-                        grpc::ServerWriter<CreateReply>* reply) override;
-    grpc::Status empty_trash(grpc::ServerContext* context, const EmptyTrashRequest* request,
-                             EmptyTrashReply* response) override;
+    grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
+                        grpc::ServerWriter<LaunchReply>* reply) override;
+    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response) override;
     grpc::Status find(grpc::ServerContext* context, const FindRequest* request, FindReply* response) override;
     grpc::Status info(grpc::ServerContext* context, const InfoRequest* request, InfoReply* response) override;
     grpc::Status list(grpc::ServerContext* context, const ListRequest* request, ListReply* response) override;
@@ -76,7 +72,7 @@ protected:
     grpc::Status ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request, SSHInfoReply* response) override;
     grpc::Status start(grpc::ServerContext* context, const StartRequest* request, StartReply* response) override;
     grpc::Status stop(grpc::ServerContext* context, const StopRequest* request, StopReply* response) override;
-    grpc::Status trash(grpc::ServerContext* context, const TrashRequest* request, TrashReply* response) override;
+    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response) override;
     grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response) override;
     grpc::Status version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response) override;
     grpc::Status ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response) override;
