@@ -27,6 +27,7 @@
 
 namespace multipass
 {
+class SSHKeyProvider;
 class VirtualMachineDescription;
 class HyperVVirtualMachine final : public VirtualMachine
 {
@@ -42,11 +43,13 @@ public:
     std::string ipv4() override;
     std::string ipv6() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
+    void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
 private:
     const IPAddress ip;
     const QString name;
     VirtualMachine::State state;
+    const SSHKeyProvider& key_provider;
 };
 }
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H

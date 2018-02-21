@@ -17,8 +17,10 @@
  */
 
 #include "hyperkit_virtual_machine.h"
+
 #include "vmprocess.h"
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -134,5 +136,28 @@ std::string mp::HyperkitVirtualMachine::ipv6()
 
 void mp::HyperkitVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, [] {});
+    auto action = [this] {
+        try
+        {
+            mp::SSHSession session{ssh_hostname(), ssh_port()};
+            return mp::utils::TimeoutAction::done;
+        }
+        catch (const std::exception&)
+        {
+            return mp::utils::TimeoutAction::retry;
+        }
+    };
+    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
+void mp::HyperkitVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
+{
+    auto action = [this] {
+        mp::SSHSession session{ssh_hostname(), ssh_port(), desc.key_provider};
+        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
+        return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
+    };
+    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
 }

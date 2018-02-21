@@ -44,6 +44,7 @@ public:
     std::string ipv4() override;
     std::string ipv6() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
+    void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
 private:
     void on_start();

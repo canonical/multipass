@@ -21,12 +21,13 @@
 #include "powershell.h"
 
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
 namespace mp = multipass;
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const VirtualMachineDescription& desc)
-    : ip{address}, name{QString::fromStdString(desc.vm_name)}, state{State::off}
+    : ip{address}, name{QString::fromStdString(desc.vm_name)}, state{State::off}, key_provider{desc.key_provider}
 {
     if (!powershell_run({"Get-VM", "-Name", name}))
     {
@@ -92,5 +93,28 @@ std::string mp::HyperVVirtualMachine::ipv6()
 
 void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    SSHSession::wait_until_ssh_up(ssh_hostname(), ssh_port(), timeout, []{});
+    auto action = [this] {
+        try
+        {
+            mp::SSHSession session{ssh_hostname(), ssh_port()};
+            return mp::utils::TimeoutAction::done;
+        }
+        catch (const std::exception&)
+        {
+            return mp::utils::TimeoutAction::retry;
+        }
+    };
+    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
+void mp::HyperVVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
+{
+    auto action = [this] {
+        mp::SSHSession session{ssh_hostname(), ssh_port(), key_provider};
+        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
+        return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
+    };
+    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
 }

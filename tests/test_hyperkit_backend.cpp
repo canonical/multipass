@@ -22,6 +22,7 @@
 #include <multipass/virtual_machine_factory.h>
 #include <src/platform/backends/hyperkit/hyperkit_virtual_machine_factory.h>
 
+#include "stub_ssh_key_provider.h"
 #include "stub_status_monitor.h"
 #include "temp_file.h"
 
@@ -35,8 +36,9 @@ struct HyperkitBackend : public testing::Test
 {
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
+    mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{
-        2, "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", ""}, dummy_cloud_init_iso.name()};
+        2, "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", ""}, dummy_cloud_init_iso.name(), key_provider};
     mp::HyperkitVirtualMachineFactory backend;
 };
 
