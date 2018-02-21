@@ -277,16 +277,10 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                            const VirtualMachineDescription& desc)
 {
-    // Default to a 5GB virtual disk
-    QString disk_size{"5G"};
+    auto disk_size = QString::fromStdString(desc.disk_space);
 
-    if (!desc.disk_space.empty())
-    {
-        disk_size = QString::fromStdString(desc.disk_space);
-
-        if (disk_size.endsWith("B"))
-            disk_size.chop(1);
-    }
+    if (disk_size.endsWith("B"))
+        disk_size.chop(1);
 
     mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), instance_image.image_path, disk_size});
 }
