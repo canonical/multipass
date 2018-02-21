@@ -129,7 +129,7 @@ mp::VirtualMachineDescription to_machine_desc(const mp::CreateRequest* request, 
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
     const auto mem_size = request->mem_size().empty() ? "1G" : request->mem_size();
-    const auto disk_size = request->disk_space();
+    const auto disk_size = request->disk_space().empty() ? "5G" : request->disk_space();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
