@@ -327,7 +327,7 @@ public:
                 this->setOutputParameters<sizeof...(args)>(args...);
 
                 auto ret = _returns.at(0);
-                if(_returns.size() > 1) _returns.pop_front();
+                if(1 < _returns.size()) _returns.pop_front();
 
                 // it may seem odd to cast to the return type here, but the only
                 // reason it's needed is when the mocked function's return type
