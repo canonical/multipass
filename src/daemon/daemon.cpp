@@ -112,7 +112,7 @@ auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YA
     return cloud_init_iso;
 }
 
-void prepare_user_data(YAML::Node& user_data_config)
+void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 {
     auto users = user_data_config["users"];
     if (users.IsSequence())
@@ -121,6 +121,10 @@ void prepare_user_data(YAML::Node& user_data_config)
     auto packages = user_data_config["packages"];
     if (packages.IsSequence())
         packages.push_back("sshfs");
+
+    auto keys = user_data_config["ssh_authorized_keys"];
+    if (keys.IsSequence())
+        keys.push_back(vendor_config["ssh_authorized_keys"][0]);
 }
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
@@ -433,7 +437,7 @@ try // clang-format on
     auto vendor_data_cloud_init_config = make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone());
     auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
     auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-    prepare_user_data(user_data_cloud_init_config);
+    prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
     config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
     auto vm_desc = to_machine_desc(request, name, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
                                    vendor_data_cloud_init_config, *config->ssh_key_provider);
