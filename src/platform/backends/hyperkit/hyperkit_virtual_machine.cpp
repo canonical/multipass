@@ -19,6 +19,8 @@
 #include "hyperkit_virtual_machine.h"
 
 #include "vmprocess.h"
+
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -136,10 +138,15 @@ std::string mp::HyperkitVirtualMachine::ipv6()
 
 void mp::HyperkitVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
+    auto hostname = ssh_hostname();
+    if (hostname.empty())
+        throw mp::StartException(desc.vm_name, "unable to determine IP address");
+
+    auto port = ssh_port();
+    auto action = [&hostname, &port] {
         try
         {
-            mp::SSHSession session{ssh_hostname(), ssh_port()};
+            mp::SSHSession session{hostname, port};
             return mp::utils::TimeoutAction::done;
         }
         catch (const std::exception&)
