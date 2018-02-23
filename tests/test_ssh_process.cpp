@@ -22,6 +22,7 @@
 #include <gmock/gmock.h>
 
 #include <algorithm>
+#include <thread>
 
 namespace mp = multipass;
 using namespace testing;
@@ -47,11 +48,33 @@ struct SSHProcess : public Test
 
 TEST_F(SSHProcess, can_retrieve_exit_status)
 {
-    int expected_status = 42;
-    REPLACE(ssh_channel_get_exit_status, [&expected_status](auto...) { return expected_status; });
+    ssh_channel_callbacks callbacks{nullptr};
+    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
 
+    int expected_status{42};
+    auto event_dopoll = [&callbacks, &expected_status](auto...) {
+        if (!callbacks)
+            return SSH_ERROR;
+        callbacks->channel_exit_status_function(nullptr, nullptr, expected_status, callbacks->userdata);
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
     auto proc = session.exec("something");
     EXPECT_THAT(proc.exit_code(), Eq(expected_status));
+}
+
+TEST_F(SSHProcess, exit_code_times_out)
+{
+    REPLACE(ssh_event_dopoll, [](ssh_event, int timeout) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
+        return SSH_OK;
+    });
+    auto proc = session.exec("something");
+    EXPECT_THROW(proc.exit_code(std::chrono::milliseconds(1)), std::runtime_error);
 }
 
 TEST_F(SSHProcess, specifies_stderr_correctly)
