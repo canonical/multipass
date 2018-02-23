@@ -665,26 +665,22 @@ try // clang-format on
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider};
 
-            auto ssh_process = session.exec({"cat /proc/loadavg | cut -d ' ' -f1-3"});
-            auto output = ssh_process.read_std_output();
-            // Remove trailing newline
-            output.pop_back();
-            info->set_load(output);
+            auto run_in_vm = [&session](const std::string& cmd) {
+                auto proc = session.exec(cmd);
+                if (auto exit_code = proc.exit_code() != 0)
+                    throw std::runtime_error(fmt::format("failed to run '{}', exit code:{}", cmd, exit_code));
 
-            ssh_process = session.exec({"free -h | grep Mem | awk '{printf \"%s out of %s\", $3, $2}'"});
-            output = ssh_process.read_std_output();
-            info->set_memory_usage(output);
+                auto output = proc.read_std_output();
+                if (output.empty())
+                    throw std::runtime_error(fmt::format("no output after running '{}'", cmd));
 
-            ssh_process = session.exec({"df -h | grep -w /dev/sda1 | awk '{printf \"%s out of %s\", $3, $2}'"});
-            output = ssh_process.read_std_output();
-            info->set_disk_usage(output);
+                return mp::utils::trim_end(output);
+            };
 
-            ssh_process = session.exec({"lsb_release -ds"});
-            output = ssh_process.read_std_output();
-            // Remove trailing newline
-            output.pop_back();
-            info->set_current_release(output);
-
+            info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
+            info->set_memory_usage(run_in_vm("free -h | grep Mem | awk '{printf \"%s out of %s\", $3, $2}'"));
+            info->set_disk_usage(run_in_vm("df -h | grep -w /dev/sda1 | awk '{printf \"%s out of %s\", $3, $2}'"));
+            info->set_current_release(run_in_vm("lsb_release -ds"));
             info->set_ipv4(vm->ipv4());
         }
     }
