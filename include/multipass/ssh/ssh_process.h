@@ -18,11 +18,13 @@
 #ifndef MULTIPASS_SSH_PROCESS_H
 #define MULTIPASS_SSH_PROCESS_H
 
+#include <multipass/optional.h>
+
 #include <libssh/libssh.h>
 
+#include <chrono>
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace multipass
 {
@@ -33,7 +35,7 @@ public:
 
     SSHProcess(ssh_session ssh_session, const std::string& cmd);
 
-    int exit_code();
+    int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5));
     std::string read_std_output();
     std::string read_std_error();
 
@@ -47,7 +49,9 @@ private:
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel();
 
+    ssh_session session;
     ChannelUPtr channel;
+    optional<int> exit_status;
 
     friend class SftpServer;
 };
