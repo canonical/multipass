@@ -118,13 +118,18 @@ QString cmd::Find::short_help() const
 
 QString cmd::Find::description() const
 {
-    return QStringLiteral("Lists available images including <string> for creating instances from.\n"
+    return QStringLiteral("Lists available images matching <string> for creating instances from.\n"
                           "With no search string, lists all aliases for supported Ubuntu releases.");
 }
 
 mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("string", "Optionally find images matching this string", "[<remote:>]<string>");
+    parser->addPositionalArgument("string",
+                                  "An optional value to search for in [<type:>]<string> format, where "
+                                  "<type> can be either ‘release’ or ‘daily’. If <type> is omitted, "
+                                  "it defaults to ‘release’. <string> can be a partial image hash or an "
+                                  "ubuntu release version, codename or alias",
+                                  "[<string>]");
 
     auto status = parser->commandParse(this);
 
