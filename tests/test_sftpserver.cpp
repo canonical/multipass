@@ -937,6 +937,9 @@ TEST_P(WhenInvalidMessageReceived, replies_failure)
     auto msg = make_msg(params.message_type);
     msg->filename = file_name.data();
 
+    auto data = name_as_char_array("");
+    REPLACE(sftp_client_message_get_data, [&data](auto...) { return data.data(); });
+
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     int num_calls{0};
