@@ -272,24 +272,6 @@ TEST_F(Client, mount_cmd_fails_invalid_source_path)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_good_remote_name_source_path)
-{
-    EXPECT_THAT(send_command({"mount", "remote:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, mount_cmd_fails_invalid_remote_source_path)
-{
-    EXPECT_THAT(send_command({"mount", "foo:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, mount_cmd_fails_malformed_source_path)
-{
-    EXPECT_THAT(send_command({"mount", "too:many:colons:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::CommandLineError));
-}
-
 // recover cli tests
 TEST_F(Client, recover_cmd_fails_no_args)
 {
