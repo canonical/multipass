@@ -25,6 +25,21 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
+string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(cmake_build_type_lower MATCHES "asan")
+    add_compile_options(-fno-omit-frame-pointer -fsanitize=address)
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
+  elseif(cmake_build_type_lower MATCHES "ubsan")
+    add_compile_options(-fno-omit-frame-pointer -fsanitize=undefined)
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined")
+  elseif(cmake_build_type_lower MATCHES "tsan")
+    add_compile_options(-fno-omit-frame-pointer -fsanitize=thread)
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=thread")
+  endif()
+endif()
+
 # Needs to be here before we set our own compilation options
 add_subdirectory(3rd-party)
 
@@ -40,8 +55,6 @@ execute_process(COMMAND git describe
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wcast-align -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wno-expansion-to-defined -fPIC)
 add_definitions(-DMULTIPASS_PLATFORM_LINUX)
-
-string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
 
 if(cmake_build_type_lower MATCHES "coverage")
   find_program(GCOV gcov)
