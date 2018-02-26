@@ -30,6 +30,10 @@ namespace test
 struct SftpServerTest : public testing::Test
 {
     SftpServerTest()
+        : free_sftp{mock_sftp_free, [](sftp_session sftp) {
+                        std::free(sftp->handles);
+                        std::free(sftp);
+                    }}
     {
         connect.returnValue(SSH_OK);
         is_connected.returnValue(true);
@@ -46,11 +50,11 @@ struct SftpServerTest : public testing::Test
     decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
     decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
     decltype(MOCK(sftp_server_init)) init_sftp{MOCK(sftp_server_init)};
-    decltype(MOCK(sftp_free)) free_sftp{MOCK(sftp_free)};
     decltype(MOCK(sftp_reply_status)) reply_status{MOCK(sftp_reply_status)};
     decltype(MOCK(sftp_get_client_message)) get_client_msg{MOCK(sftp_get_client_message)};
     decltype(MOCK(sftp_client_message_free)) msg_free{MOCK(sftp_client_message_free)};
     decltype(MOCK(sftp_handle)) handle_sftp{MOCK(sftp_handle)};
+    MockScope<decltype(mock_sftp_free)> free_sftp;
 };
 } // namespace test
 } // namespace multipass
