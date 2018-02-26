@@ -64,7 +64,7 @@ public:
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
 {
-    EXPECT_THAT(send_command({}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, no_command_help_ok)

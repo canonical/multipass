@@ -18,11 +18,12 @@
 
 namespace multipass
 {
-enum class ParseCode : int
+enum class ParseCode
 {
-    Ok = 0,
-    CommandLineError = 1,
-    HelpRequested = 2
+    Ok,
+    CommandLineError,
+    CommandFail,
+    HelpRequested
 };
 
 enum ReturnCode
