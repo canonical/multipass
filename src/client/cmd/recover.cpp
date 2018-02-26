@@ -61,7 +61,7 @@ mp::ParseCode cmd::Recover::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to recover", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Recover all instances");
+    QCommandLineOption all_option("all", "Recover all deleted instances");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
