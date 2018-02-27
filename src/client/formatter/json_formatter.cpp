@@ -15,8 +15,10 @@
  *
  */
 
-#include <multipass/cli/format_utils.h>
 #include <multipass/cli/json_formatter.h>
+
+#include <multipass/cli/format_utils.h>
+#include <multipass/utils.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -36,6 +38,35 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         QJsonObject instance_info;
         instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(info.instance_status())));
         instance_info.insert("image_hash", QString::fromStdString(info.id().substr(0, 12)));
+        instance_info.insert("image_release", QString::fromStdString(info.image_release()));
+        instance_info.insert("release", QString::fromStdString(info.current_release()));
+
+        QJsonArray load;
+        if (!info.load().empty())
+        {
+            auto loads = mp::utils::split(info.load(), " ");
+            for (const auto& entry : loads)
+                load.append(std::stod(entry));
+        }
+        instance_info.insert("load", load);
+
+        QJsonObject disks;
+        QJsonObject disk;
+        if (!info.disk_usage().empty())
+            disk.insert("used", QString::fromStdString(info.disk_usage()));
+        if (!info.disk_total().empty())
+            disk.insert("total", QString::fromStdString(info.disk_total()));
+
+        // TODO: disk name should come from daemon
+        disks.insert("sda1", disk);
+        instance_info.insert("disks", disks);
+
+        QJsonObject memory;
+        if (!info.memory_usage().empty())
+            memory.insert("used", std::stoll(info.memory_usage()));
+        if (!info.memory_total().empty())
+            memory.insert("total", std::stoll(info.memory_total()));
+        instance_info.insert("memory", memory);
 
         QJsonArray ipv4_addrs;
         if (!info.ipv4().empty())
@@ -76,6 +107,8 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
         if (!instance.ipv4().empty())
             ipv4_addrs.append(QString::fromStdString(instance.ipv4()));
         instance_obj.insert("ipv4", ipv4_addrs);
+
+        instance_obj.insert("release", QString::fromStdString(instance.current_release()));
 
         instances.append(instance_obj);
     }
