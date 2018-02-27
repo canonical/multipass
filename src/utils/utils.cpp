@@ -114,3 +114,9 @@ std::string mp::utils::escape_char(const std::string& in, char c)
 {
     return std::regex_replace(in, std::regex({c}), fmt::format("\\{}", c));
 }
+
+std::vector<std::string> mp::utils::split(const std::string& string, const std::string& delimiter)
+{
+    std::regex regex(delimiter);
+    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1}, std::sregex_token_iterator{}};
+}
