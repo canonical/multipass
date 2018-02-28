@@ -207,6 +207,14 @@ auto to_unix_permissions(QFile::Permissions perms)
     return out;
 }
 
+auto validate_path(const std::string& source_path, const std::string& current_path)
+{
+    if (source_path.empty())
+        return false;
+
+    return current_path.compare(0, source_path.length(), source_path) == 0;
+}
+
 template <typename T>
 auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::unique_ptr<T>>& handles) -> T*
 {
@@ -218,12 +226,13 @@ auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::u
 }
 } // namespace
 
-mp::SftpServer::SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc,
+mp::SftpServer::SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc, const std::string& source,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
                            int default_uid, int default_gid, std::ostream& cout)
     : ssh_session{std::move(ssh_session)},
       sftp_ssh_session{make_ssh_session()},
       sftp_server_session{make_sftp_session(sftp_ssh_session.get(), sshfs_proc.release_channel())},
+      source_path{source},
       gid_map{gid_map},
       uid_map{uid_map},
       default_uid{default_uid},
@@ -407,6 +416,9 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 {
     const auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
     QDir dir(filename);
     if (!dir.mkdir(filename))
         return reply_failure(msg);
@@ -429,6 +441,9 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 int mp::SftpServer::handle_rmdir(sftp_client_message msg)
 {
     const auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
     QDir dir(filename);
     if (!dir.rmdir(filename))
         return reply_failure(msg);
@@ -438,6 +453,10 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
 
 int mp::SftpServer::handle_open(sftp_client_message msg)
 {
+    const auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
     QIODevice::OpenMode mode = 0;
     const auto flags = sftp_client_message_get_flags(msg);
     if (flags & SSH_FXF_READ)
@@ -463,7 +482,6 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     if (flags & SSH_FXF_TRUNC)
         mode |= QIODevice::Truncate;
 
-    const auto filename = sftp_client_message_get_filename(msg);
     auto file = std::make_unique<QFile>(filename);
 
     auto exists = file->exists();
@@ -495,7 +513,11 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
 int mp::SftpServer::handle_opendir(sftp_client_message msg)
 {
-    QDir dir(sftp_client_message_get_filename(msg));
+    auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
+    QDir dir(filename);
     if (!dir.exists())
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
 
@@ -559,7 +581,11 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
 
 int mp::SftpServer::handle_readlink(sftp_client_message msg)
 {
-    auto link = QFile::symLinkTarget(sftp_client_message_get_filename(msg));
+    auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
+    auto link = QFile::symLinkTarget(filename);
     if (link.isEmpty())
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
 
@@ -570,21 +596,38 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
 
 int mp::SftpServer::handle_realpath(sftp_client_message msg)
 {
-    auto realpath = QFileInfo(sftp_client_message_get_filename(msg)).absoluteFilePath();
+    auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
+    auto realpath = QFileInfo(filename).absoluteFilePath();
     return sftp_reply_name(msg, realpath.toStdString().c_str(), nullptr);
 }
 
 int mp::SftpServer::handle_remove(sftp_client_message msg)
 {
-    if (!QFile::remove(sftp_client_message_get_filename(msg)))
+    auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
+    if (!QFile::remove(filename))
         return reply_failure(msg);
     return reply_ok(msg);
 }
 
 int mp::SftpServer::handle_rename(sftp_client_message msg)
 {
-    const auto target = sftp_client_message_get_data(msg);
     const auto source = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, source))
+        return reply_perm_denied(msg);
+
+    if (!QFile::exists(source))
+        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+
+    const auto target = sftp_client_message_get_data(msg);
+    if (!validate_path(source_path, target))
+        return reply_perm_denied(msg);
+
     if (QFile::exists(target))
     {
         if (!QFile::remove(target))
@@ -611,6 +654,9 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     else
     {
         filename = sftp_client_message_get_filename(msg);
+        if (!validate_path(source_path, filename.toStdString()))
+            return reply_perm_denied(msg);
+
         if (!QFile::exists(filename))
             return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
@@ -649,7 +695,11 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
 int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 {
-    QFileInfo file_info(sftp_client_message_get_filename(msg));
+    auto filename = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, filename))
+        return reply_perm_denied(msg);
+
+    QFileInfo file_info(filename);
     if (!file_info.exists())
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
 
@@ -663,7 +713,16 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
     const auto old_name = sftp_client_message_get_filename(msg);
+    if (!validate_path(source_path, old_name))
+        return reply_perm_denied(msg);
+
+    if (!QFile::exists(old_name))
+        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+
     const auto new_name = sftp_client_message_get_data(msg);
+    if (!validate_path(source_path, new_name))
+        return reply_perm_denied(msg);
+
     if (!mp::platform::symlink(old_name, new_name, QFileInfo(old_name).isDir()))
         return reply_failure(msg);
 
@@ -706,6 +765,12 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     if (method == "hardlink@openssh.com")
     {
         const auto old_name = sftp_client_message_get_filename(msg);
+        if (!validate_path(source_path, old_name))
+            return reply_perm_denied(msg);
+
+        if (!QFile::exists(old_name))
+            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+
         const auto new_name = sftp_client_message_get_data(msg);
 
         if (!mp::platform::link(old_name, new_name))
