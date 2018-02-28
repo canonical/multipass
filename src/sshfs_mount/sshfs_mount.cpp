@@ -99,8 +99,8 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
         create_sshfs_process(session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'));
     auto default_uid = std::stoi(run_cmd(session, "id -u"));
     auto default_gid = std::stoi(run_cmd(session, "id -g"));
-    return std::make_unique<mp::SftpServer>(std::move(session), std::move(sshfs_proc), gid_map, uid_map, default_uid,
-                                            default_gid, cout);
+    return std::make_unique<mp::SftpServer>(std::move(session), std::move(sshfs_proc), source, gid_map, uid_map,
+                                            default_uid, default_gid, cout);
 }
 
 } // namespace anonymous
