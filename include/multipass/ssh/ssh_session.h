@@ -49,6 +49,7 @@ private:
     std::unique_ptr<ssh_session_struct, void(*)(ssh_session)> session;
 
     friend class SSHClient;
+    friend class SftpServer;
 };
 }
 #endif // MULTIPASS_SSH_H

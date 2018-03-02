@@ -68,7 +68,6 @@ private:
     int handle_extended(sftp_client_message msg);
 
     SSHSession ssh_session;
-    const SSHSessionUptr sftp_ssh_session;
     const SftpSessionUptr sftp_server_session;
     const std::string source_path;
     std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
