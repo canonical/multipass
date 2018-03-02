@@ -47,14 +47,6 @@ enum Permissions
     exec_other = 01
 };
 
-auto make_ssh_session()
-{
-    mp::SftpServer::SSHSessionUptr session{ssh_new(), ssh_free};
-    if (session == nullptr)
-        throw std::runtime_error("unable to obtain ssh session for sftp server");
-    return session;
-}
-
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel), sftp_free};
@@ -226,12 +218,11 @@ auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::u
 }
 } // namespace
 
-mp::SftpServer::SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc, const std::string& source,
+mp::SftpServer::SftpServer(SSHSession&& session, SSHProcess&& sshfs_proc, const std::string& source,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
                            int default_uid, int default_gid, std::ostream& cout)
-    : ssh_session{std::move(ssh_session)},
-      sftp_ssh_session{make_ssh_session()},
-      sftp_server_session{make_sftp_session(sftp_ssh_session.get(), sshfs_proc.release_channel())},
+    : ssh_session{std::move(session)},
+      sftp_server_session{make_sftp_session(ssh_session, sshfs_proc.release_channel())},
       source_path{source},
       gid_map{gid_map},
       uid_map{uid_map},
