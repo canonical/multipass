@@ -704,11 +704,6 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
     const auto old_name = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, old_name))
-        return reply_perm_denied(msg);
-
-    if (!QFile::exists(old_name))
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
 
     const auto new_name = sftp_client_message_get_data(msg);
     if (!validate_path(source_path, new_name))
@@ -756,13 +751,10 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     if (method == "hardlink@openssh.com")
     {
         const auto old_name = sftp_client_message_get_filename(msg);
-        if (!validate_path(source_path, old_name))
-            return reply_perm_denied(msg);
-
-        if (!QFile::exists(old_name))
-            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
 
         const auto new_name = sftp_client_message_get_data(msg);
+        if (!validate_path(source_path, new_name))
+            return reply_perm_denied(msg);
 
         if (!mp::platform::link(old_name, new_name))
             return reply_failure(msg);
