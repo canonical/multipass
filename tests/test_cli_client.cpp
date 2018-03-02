@@ -64,7 +64,7 @@ public:
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
 {
-    EXPECT_THAT(send_command({}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, no_command_help_ok)
@@ -271,37 +271,6 @@ TEST_F(Client, mount_cmd_fails_invalid_source_path)
     EXPECT_THAT(send_command({"mount", mpt::test_data_path_for("foo").toStdString(), "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
-
-TEST_F(Client, mount_cmd_good_remote_name_source_path)
-{
-    EXPECT_THAT(send_command({"mount", "remote:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, mount_cmd_fails_invalid_remote_source_path)
-{
-    EXPECT_THAT(send_command({"mount", "foo:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, mount_cmd_fails_malformed_source_path)
-{
-    EXPECT_THAT(send_command({"mount", "too:many:colons:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::CommandLineError));
-}
-
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-TEST_F(Client, mount_cmd_fail_windows_invalid_drive_letter)
-{
-    EXPECT_THAT(send_command({"mount", "foo:\\Windows", "test-vm:test"}), Eq(mp::ReturnCode::CommandLineError));
-}
-#else
-TEST_F(Client, mount_cmd_fails_2_colons_not_windows)
-{
-    EXPECT_THAT(send_command({"mount", "remote:foo:" + mpt::test_data_path().toStdString(), "test-vm:test"}),
-                Eq(mp::ReturnCode::CommandLineError));
-}
-#endif
 
 // recover cli tests
 TEST_F(Client, recover_cmd_fails_no_args)

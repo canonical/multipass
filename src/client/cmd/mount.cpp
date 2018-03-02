@@ -72,19 +72,18 @@ QString cmd::Mount::description() const
 {
     return QStringLiteral("Mount a local directory inside the instance. If the instance is\n"
                           "not currently running, the directory will be mounted\n"
-                          "automatically on instance boot.");
+                          "automatically on next boot.");
 }
 
 mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("source", "Path of the directory to mount, in [<name>:]<path> format, "
-                                            "where <name> can be either an instance name, or the string "
-                                            "\"remote\", meaning that the directory being mounted resides "
-                                            "on the host running multipassd", "<source>");
-    parser->addPositionalArgument("target", "Target mount points, in <name>[:<path>] format, where <name> "
-                                            "is an instance name, and optional <path> is the mount point. "
-                                            "If omitted, the mount point will be the same as the source's "
-                                            "<path>", "<target> [<target> ...]");
+    parser->addPositionalArgument("source", "Path of the local directory to mount", "<source>");
+    parser->addPositionalArgument("target",
+                                  "Target mount points, in <name>[:<path>] format, where <name> "
+                                  "is an instance name, and optional <path> is the mount point. "
+                                  "If omitted, the mount point will be the same as the source's "
+                                  "absolute path",
+                                  "<target> [<target> ...]");
 
     QCommandLineOption gid_map({"g", "gid-map"}, "A mapping of group IDs for use in the mount. "
                                                  "File and folder ownership will be mapped from "
@@ -97,111 +96,54 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     parser->addOptions({gid_map, uid_map});
 
     auto status = parser->commandParse(this);
-
     if (status != ParseCode::Ok)
-    {
         return status;
-    }
 
     if (parser->positionalArguments().count() < 2)
     {
         cerr << "Not enough arguments given\n";
-        status = ParseCode::CommandLineError;
+        return ParseCode::CommandLineError;
     }
-    else
+
+    QString source_path(parser->positionalArguments().at(0));
+
+    // Validate source directory of client side mounts
+    QFileInfo source_dir(source_path);
+    if (!source_dir.exists())
     {
-        QString source(parser->positionalArguments().at(0));
+        cerr << "Source path \"" << source_path.toStdString() << "\" does not exist\n";
+        return ParseCode::CommandLineError;
+    }
 
-        QString source_path;
-        auto colon_count = source.count(':');
+    if (!source_dir.isDir())
+    {
+        cerr << "Source path \"" << source_path.toStdString() << "\" is not a directory\n";
+        return ParseCode::CommandLineError;
+    }
 
-        if (colon_count > 2)
+    if (!source_dir.isReadable())
+    {
+        cerr << "Source path \"" << source_path.toStdString() << "\" is not readable\n";
+        return ParseCode::CommandLineError;
+    }
+
+    source_path = QDir(source_path).absolutePath();
+    request.set_source_path(source_path.toStdString());
+
+    for (auto i = 1; i < parser->positionalArguments().count(); ++i)
+    {
+        auto parsed_target = QString(parser->positionalArguments().at(i)).split(":");
+
+        auto entry = request.add_target_paths();
+        entry->set_instance_name(parsed_target.at(0).toStdString());
+
+        if (parsed_target.count() == 1)
         {
-            cerr << "Invalid source path given\n";
-            return ParseCode::CommandLineError;
-        }
-        else if (colon_count == 2)
-        {
-            // Check to see if we are Windows
-            if (source.section(':', 1, 1).size() != 1)
-            {
-                cerr << "Invalid source path given" << std::endl;
-                return ParseCode::CommandLineError;
-            }
-
-            // TODO: If [<name>:] is specified, make sure it's "remote".
-            // Change this when we support instance to instance mounts.
-            if (!source.startsWith("remote"))
-            {
-                cerr << "Source path needs to start with \"remote:\"\n";
-                return ParseCode::CommandLineError;
-            }
-
-            source_path = source.section(':', 1);
-        }
-        else if (colon_count == 1)
-        {
-            // Check to see if we are not Windows
-            if (source.section(':', 0, 0).size() != 1)
-            {
-                // TODO: If [<name>:] is specified, make sure it's "remote".
-                // Change this when we support instance to instance mounts.
-                if (!source.startsWith("remote"))
-                {
-                    cerr << "Source path needs to start with \"remote:\"" << std::endl;
-                    return ParseCode::CommandLineError;
-                }
-
-                source_path = source.section(':', 1);
-            }
-            else
-            {
-                source_path = source;
-            }
+            entry->set_target_path(source_path.toStdString());
         }
         else
         {
-            source_path = source;
-        }
-
-        // Validate source directory of client side mounts
-        QFileInfo source_dir(source_path);
-        if (!source_dir.exists())
-        {
-            cerr << "Source path \"" << source_path.toStdString() << "\" does not exist\n";
-            return ParseCode::CommandLineError;
-        }
-
-        if (!source_dir.isDir())
-        {
-            cerr << "Source path \"" << source_path.toStdString() << "\" is not a directory\n";
-            return ParseCode::CommandLineError;
-        }
-
-        if (!source_dir.isReadable())
-        {
-            cerr << "Source path \"" << source_path.toStdString() << "\" is not readable\n";
-            return ParseCode::CommandLineError;
-        }
-
-        source_path = QDir(source_path).absolutePath();
-        request.set_source_path(source_path.toStdString());
-
-        for (auto i = 1; i < parser->positionalArguments().count(); ++i)
-        {
-            auto parsed_target = QString(parser->positionalArguments().at(i)).split(":");
-
-            auto entry = request.add_target_paths();
-            entry->set_instance_name(parsed_target.at(0).toStdString());
-
-            if (parsed_target.count() == 1)
-            {
-                entry->set_target_path(source_path.toStdString());
-            }
-            else
-            {
-                entry->set_target_path(parsed_target.at(1).toStdString());
-            }
+            entry->set_target_path(parsed_target.at(1).toStdString());
         }
     }
 
@@ -247,7 +189,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         }
     }
 
-    return status;
+    return ParseCode::Ok;
 }
 
 mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name)

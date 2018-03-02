@@ -60,7 +60,7 @@ bool mp::utils::valid_hostname(const QString& name_string)
 bool mp::utils::invalid_target_path(const QString& target_path)
 {
     QString sanitized_path{QDir::cleanPath(target_path)};
-    QRegExp matcher("/+|/+(dev|proc|sys)(/.*)*|/+home/ubuntu/*");
+    QRegExp matcher("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*");
 
     return matcher.exactMatch(sanitized_path);
 }
@@ -113,4 +113,10 @@ std::string& mp::utils::trim_end(std::string& s)
 std::string mp::utils::escape_char(const std::string& in, char c)
 {
     return std::regex_replace(in, std::regex({c}), fmt::format("\\{}", c));
+}
+
+std::vector<std::string> mp::utils::split(const std::string& string, const std::string& delimiter)
+{
+    std::regex regex(delimiter);
+    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1}, std::sregex_token_iterator{}};
 }

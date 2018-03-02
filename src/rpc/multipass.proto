@@ -133,10 +133,12 @@ message InfoReply {
         string id = 5;
         string load = 6;
         string memory_usage = 7;
-        string disk_usage = 8;
-        string ipv4 = 9;
-        string ipv6 = 10;
-        MountInfo mount_info = 11;
+        string memory_total = 8;
+        string disk_usage = 9;
+        string disk_total = 10;
+        string ipv4 = 11;
+        string ipv6 = 12;
+        MountInfo mount_info = 13;
     }
     repeated Info info = 1;
 }

@@ -19,6 +19,8 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 
+#include <libssh/callbacks.h>
+
 #include <array>
 #include <sstream>
 
@@ -26,6 +28,31 @@ namespace mp = multipass;
 
 namespace
 {
+class ExitStatusCallback
+{
+public:
+    ExitStatusCallback(ssh_channel channel, mp::optional<int>& exit_status) : channel{channel}
+    {
+        ssh_callbacks_init(&cb);
+        cb.channel_exit_status_function = channel_exit_status_cb;
+        cb.userdata = &exit_status;
+        ssh_add_channel_callbacks(channel, &cb);
+    }
+    ~ExitStatusCallback()
+    {
+        ssh_remove_channel_callbacks(channel, &cb);
+    }
+
+private:
+    static void channel_exit_status_cb(ssh_session, ssh_channel, int exit_status, void* userdata)
+    {
+        auto exit_code = reinterpret_cast<mp::optional<int>*>(userdata);
+        *exit_code = exit_status;
+    }
+    ssh_channel channel;
+    ssh_channel_callbacks_struct cb{};
+};
+
 auto make_channel(ssh_session ssh_session, const std::string& cmd)
 {
     if (!ssh_is_connected(ssh_session))
@@ -38,14 +65,30 @@ auto make_channel(ssh_session ssh_session, const std::string& cmd)
 }
 }
 
-mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd) : channel{make_channel(session, cmd)}
+mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd)
+    : session{session}, channel{make_channel(session, cmd)}
 {
 }
 
-int mp::SSHProcess::exit_code()
+int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
-    // Warning: This may block indefinitely if the underlying command is still running
-    return ssh_channel_get_exit_status(channel.get());
+    ExitStatusCallback cb{channel.get(), exit_status};
+
+    std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(), ssh_event_free};
+    ssh_event_add_session(event.get(), session);
+
+    auto deadline = std::chrono::steady_clock::now() + timeout;
+
+    int rc{SSH_OK};
+    while ((std::chrono::steady_clock::now() < deadline) && rc == SSH_OK && !exit_status)
+    {
+        rc = ssh_event_dopoll(event.get(), timeout.count());
+    }
+
+    if (!exit_status)
+        throw std::runtime_error("failed to obtain exit status for remote process");
+
+    return *exit_status;
 }
 
 std::string mp::SSHProcess::read_std_output()

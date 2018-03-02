@@ -38,6 +38,8 @@ add_c_mocks(
   ssh_channel_request_exec
   ssh_channel_read_timeout
   ssh_channel_get_exit_status
+  ssh_event_dopoll
+  ssh_add_channel_callbacks
   sftp_server_new
   sftp_free
   sftp_server_init

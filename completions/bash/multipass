@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -21,47 +21,77 @@ _multipass_complete()
         local cmd="multipass list"
         [ -n "$state" ] && cmd="$cmd | \grep -E '$state'"
 
-        opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \awk '{print $1}' )
+        local instances=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \awk '{print $1}' )
+
+        local found
+        opts=""
+
+        _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
+        for instance in $instances; do
+            found=0
+            for ((i=2; i<CWORD; i++)); do
+                if [[ "${WORDS[i]}" == ${instance} ]]; then
+                    found=1
+                    break
+                fi
+            done
+            if [ ${found} == 0 ]; then
+                opts="${opts} ${instance}"
+            fi
+        done
     }
 
-    local cur cmd opts
+    local cur cmd opts prev
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
     cmd="${COMP_WORDS[1]}"
     multipass_cmds="shell delete exec find help info launch list mount purge \
                     recover start stop umount version"
 
-
     if [[ ${cur} == -* ]]; then
+        opts="--help --verbose"
+
         case "${cmd}" in
-            "shell"|"exec"|"find"|"help"|"info"|"list"|"purge"|"umount"|"version")
-                opts="--help --verbose"
+            "exec"|"find"|"help"|"purge"|"shell"|"sh"|"connect"|"umount"|"unmount")
+            ;;
+            "info")
+                opts="${opts} --all --format"
+            ;;
+            "list"|"ls")
+                opts="${opts} --format"
             ;;
             "delete")
-                opts="--help --verbose --all --purge"
+                opts="${opts} --all --purge"
             ;;
             "launch")
-                opts="--help --verbose --cpus --disk --mem --name --cloud-init"
+                opts="${opts} --cpus --disk --mem --name --cloud-init"
             ;;
             "mount")
-                opts="--help --verbose --gid-map --uid-map"
+                opts="${opts} --gid-map --uid-map"
             ;;
             "recover"|"start"|"stop")
-                opts="--help --verbose --all"
+                opts="${opts} --all"
             ;;
             *)
-                opts="--help --verbose"
+                opts=""
+            ;;
+        esac
+    elif [[ ${prev} == -* ]]; then
+        case "${prev}" in
+            "--format"|"-f")
+                opts="table json"
             ;;
         esac
     else
         case "${cmd}" in
-            "shell"|"exec"|"stop")
+            "connect"|"sh"|"shell"|"exec"|"stop")
                 _multipass_instances "RUNNING"
             ;;
             "start")
                 _multipass_instances "STOPPED"
             ;;
-            "info"|"umount")
+            "delete"|"info"|"umount"|"unmount")
                 _multipass_instances
             ;;
             "mount")
@@ -80,7 +110,7 @@ _multipass_complete()
 
                 if [ ${source_set} == 0 ] ; then
                     if [[ ${prev} != -* ]] || ([[ ${prev} == -* ]] && [[ ${prev} == *=* ]]); then
-                        COMPREPLY=( $(compgen -o plusdirs -- ${cur}) )
+                        _filedir -d
                     fi
                 elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
                     _multipass_instances

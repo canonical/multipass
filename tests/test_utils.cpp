@@ -153,6 +153,16 @@ TEST(Utils, path_sys_invalid)
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/foo")));
 }
 
+TEST(Utils, path_home_proper_invalid)
+{
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home/")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home//")));
+    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/foo/..")));
+}
+
 TEST(Utils, path_home_ubuntu_invalid)
 {
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu")));
@@ -162,6 +172,13 @@ TEST(Utils, path_home_ubuntu_invalid)
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu//")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home//ubuntu//")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/..")));
+}
+
+TEST(Utils, path_home_foo_valid)
+{
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/foo")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/foo/")));
+    EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/foo/")));
 }
 
 TEST(Utils, path_home_ubuntu_foo_valid)

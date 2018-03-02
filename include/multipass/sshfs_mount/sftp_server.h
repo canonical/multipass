@@ -34,8 +34,9 @@ class SSHSession;
 class SftpServer
 {
 public:
-    SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc, const std::unordered_map<int, int>& gid_map,
-               const std::unordered_map<int, int>& uid_map, int default_uid, int default_gid, std::ostream& cout);
+    SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc, const std::string& source,
+               const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
+               int default_uid, int default_gid, std::ostream& cout);
     SftpServer(SftpServer&& other);
 
     void run();
@@ -69,6 +70,7 @@ private:
     SSHSession ssh_session;
     const SSHSessionUptr sftp_ssh_session;
     const SftpSessionUptr sftp_server_session;
+    const std::string source_path;
     std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
     std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
     const std::unordered_map<int, int> gid_map;

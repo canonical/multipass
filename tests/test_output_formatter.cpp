@@ -78,9 +78,11 @@ auto construct_single_instance_info_reply()
     mount_entry->set_source_path("/home/user/test_dir");
     mount_entry->set_target_path("test_dir");
 
-    info_entry->set_load("0.00 0.00 0.00");
-    info_entry->set_memory_usage("58M out of 1.4G");
-    info_entry->set_disk_usage("1.2G out of 4.8G");
+    info_entry->set_load("0.45 0.51 0.15");
+    info_entry->set_memory_usage("60817408");
+    info_entry->set_memory_total("1503238554");
+    info_entry->set_disk_usage("1288490188");
+    info_entry->set_disk_total("5153960756");
     info_entry->set_current_release("Ubuntu 16.04.3 LTS");
     info_entry->set_ipv4("10.168.32.2");
 
@@ -105,8 +107,10 @@ auto construct_multiple_instances_info_reply()
     mount_entry->set_target_path("source");
 
     info_entry->set_load("0.03 0.10 0.15");
-    info_entry->set_memory_usage("37M out of 1.5G");
-    info_entry->set_disk_usage("1.8G out of 6.3G");
+    info_entry->set_memory_usage("38797312");
+    info_entry->set_memory_total("1610612736");
+    info_entry->set_disk_usage("1932735284");
+    info_entry->set_disk_total("6764573492");
     info_entry->set_current_release("Ubuntu 16.04.3 LTS");
     info_entry->set_ipv4("10.21.124.56");
 
@@ -168,9 +172,9 @@ TEST(TableFormatter, single_instance_info_output)
                                  "IPv4:           10.168.32.2\n"
                                  "Release:        Ubuntu 16.04.3 LTS\n"
                                  "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
-                                 "Load:           0.00 0.00 0.00\n"
+                                 "Load:           0.45 0.51 0.15\n"
                                  "Disk usage:     1.2G out of 4.8G\n"
-                                 "Memory usage:   58M out of 1.4G\n"
+                                 "Memory usage:   58.0M out of 1.4G\n"
                                  "Mounts:         /home/user/foo      => foo\n"
                                  "                /home/user/test_dir => test_dir\n";
 
@@ -191,7 +195,7 @@ TEST(TableFormatter, multiple_instances_info_output)
                                  "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
                                  "Load:           0.03 0.10 0.15\n"
                                  "Disk usage:     1.8G out of 6.3G\n"
-                                 "Memory usage:   37M out of 1.5G\n"
+                                 "Memory usage:   37.0M out of 1.5G\n"
                                  "Mounts:         /home/user/source => source\n\n"
                                  "Name:           bombastic\n"
                                  "State:          STOPPED\n"
@@ -231,6 +235,7 @@ TEST(JsonFormatter, single_instance_list_output)
                                 "                \"10.168.32.2\"\n"
                                 "            ],\n"
                                 "            \"name\": \"foo\",\n"
+                                "            \"release\": \"Ubuntu 16.04 LTS\",\n"
                                 "            \"state\": \"RUNNING\"\n"
                                 "        }\n"
                                 "    ]\n"
@@ -253,12 +258,14 @@ TEST(JsonFormatter, multiple_instances_list_output)
                                 "                \"10.21.124.56\"\n"
                                 "            ],\n"
                                 "            \"name\": \"bogus-instance\",\n"
+                                "            \"release\": \"Ubuntu 16.04 LTS\",\n"
                                 "            \"state\": \"RUNNING\"\n"
                                 "        },\n"
                                 "        {\n"
                                 "            \"ipv4\": [\n"
                                 "            ],\n"
                                 "            \"name\": \"bombastic\",\n"
+                                "            \"release\": \"Ubuntu 18.04 LTS\",\n"
                                 "            \"state\": \"STOPPED\"\n"
                                 "        }\n"
                                 "    ]\n"
@@ -294,10 +301,26 @@ TEST(JsonFormatter, single_instance_info_output)
                                 "    ],\n"
                                 "    \"info\": {\n"
                                 "        \"foo\": {\n"
+                                "            \"disks\": {\n"
+                                "                \"sda1\": {\n"
+                                "                    \"total\": \"5153960756\",\n"
+                                "                    \"used\": \"1288490188\"\n"
+                                "                }\n"
+                                "            },\n"
                                 "            \"image_hash\": \"1797c5c82016\",\n"
+                                "            \"image_release\": \"16.04 LTS\",\n"
                                 "            \"ipv4\": [\n"
                                 "                \"10.168.32.2\"\n"
                                 "            ],\n"
+                                "            \"load\": [\n"
+                                "                0.45,\n"
+                                "                0.51,\n"
+                                "                0.15\n"
+                                "            ],\n"
+                                "            \"memory\": {\n"
+                                "                \"total\": 1503238554,\n"
+                                "                \"used\": 60817408\n"
+                                "            },\n"
                                 "            \"mounts\": {\n"
                                 "                \"foo\": {\n"
                                 "                    \"gid_mappings\": [\n"
@@ -314,6 +337,7 @@ TEST(JsonFormatter, single_instance_info_output)
                                 "                    ]\n"
                                 "                }\n"
                                 "            },\n"
+                                "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
                                 "            \"state\": \"RUNNING\"\n"
                                 "        }\n"
                                 "    }\n"
@@ -334,10 +358,26 @@ TEST(JsonFormatter, multiple_instances_info_output)
                                 "    ],\n"
                                 "    \"info\": {\n"
                                 "        \"bogus-instance\": {\n"
+                                "            \"disks\": {\n"
+                                "                \"sda1\": {\n"
+                                "                    \"total\": \"6764573492\",\n"
+                                "                    \"used\": \"1932735284\"\n"
+                                "                }\n"
+                                "            },\n"
                                 "            \"image_hash\": \"1797c5c82016\",\n"
+                                "            \"image_release\": \"16.04 LTS\",\n"
                                 "            \"ipv4\": [\n"
                                 "                \"10.21.124.56\"\n"
                                 "            ],\n"
+                                "            \"load\": [\n"
+                                "                0.03,\n"
+                                "                0.1,\n"
+                                "                0.15\n"
+                                "            ],\n"
+                                "            \"memory\": {\n"
+                                "                \"total\": 1610612736,\n"
+                                "                \"used\": 38797312\n"
+                                "            },\n"
                                 "            \"mounts\": {\n"
                                 "                \"source\": {\n"
                                 "                    \"gid_mappings\": [\n"
@@ -347,14 +387,25 @@ TEST(JsonFormatter, multiple_instances_info_output)
                                 "                    ]\n"
                                 "                }\n"
                                 "            },\n"
+                                "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
                                 "            \"state\": \"RUNNING\"\n"
                                 "        },\n"
                                 "        \"bombastic\": {\n"
+                                "            \"disks\": {\n"
+                                "                \"sda1\": {\n"
+                                "                }\n"
+                                "            },\n"
                                 "            \"image_hash\": \"ab5191cc1725\",\n"
+                                "            \"image_release\": \"18.04 LTS\",\n"
                                 "            \"ipv4\": [\n"
                                 "            ],\n"
+                                "            \"load\": [\n"
+                                "            ],\n"
+                                "            \"memory\": {\n"
+                                "            },\n"
                                 "            \"mounts\": {\n"
                                 "            },\n"
+                                "            \"release\": \"\",\n"
                                 "            \"state\": \"STOPPED\"\n"
                                 "        }\n"
                                 "    }\n"

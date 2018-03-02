@@ -111,7 +111,7 @@ mp::ParseCode mp::ArgParser::parse()
             cerr << qPrintable(parser.errorText());
         }
         cout << qPrintable(generalHelpText());
-        return (help_requested) ? ParseCode::HelpRequested : ParseCode::CommandLineError;
+        return (help_requested) ? ParseCode::HelpRequested : ParseCode::CommandFail;
     }
 
     const QString requested_command =
@@ -156,10 +156,15 @@ mp::ParseCode mp::ArgParser::commandParse(cmd::Command* command)
 
 mp::ReturnCode mp::ArgParser::returnCodeFrom(ParseCode parse_code) const
 {
-    if (parse_code == ParseCode::CommandLineError)
+    switch (parse_code)
+    {
+    case ParseCode::CommandFail:
+        return ReturnCode::CommandFail;
+    case ParseCode::CommandLineError:
         return ReturnCode::CommandLineError;
-
-    return ReturnCode::Ok;
+    default:
+        return ReturnCode::Ok;
+    }
 }
 
 // This forces help to be printed using "help <command>"

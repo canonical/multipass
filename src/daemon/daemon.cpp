@@ -112,7 +112,7 @@ auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YA
     return cloud_init_iso;
 }
 
-void prepare_user_data(YAML::Node& user_data_config)
+void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 {
     auto users = user_data_config["users"];
     if (users.IsSequence())
@@ -121,6 +121,10 @@ void prepare_user_data(YAML::Node& user_data_config)
     auto packages = user_data_config["packages"];
     if (packages.IsSequence())
         packages.push_back("sshfs");
+
+    auto keys = user_data_config["ssh_authorized_keys"];
+    if (keys.IsSequence())
+        keys.push_back(vendor_config["ssh_authorized_keys"][0]);
 }
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
@@ -268,7 +272,8 @@ auto grpc_status_for(fmt::MemoryWriter& errors)
 {
     // Remove trailing newline due to grpc adding one of it's own
     auto error_string = errors.str();
-    error_string.pop_back();
+    if (error_string.back() == '\n')
+        error_string.pop_back();
 
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         fmt::format("The following errors occured:\n{}", error_string), "");
@@ -432,7 +437,7 @@ try // clang-format on
     auto vendor_data_cloud_init_config = make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone());
     auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
     auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-    prepare_user_data(user_data_cloud_init_config);
+    prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
     config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
     auto vm_desc = to_machine_desc(request, name, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
                                    vendor_data_cloud_init_config, *config->ssh_key_provider);
@@ -660,26 +665,24 @@ try // clang-format on
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider};
 
-            auto ssh_process = session.exec({"cat /proc/loadavg | cut -d ' ' -f1-3"});
-            auto output = ssh_process.read_std_output();
-            // Remove trailing newline
-            output.pop_back();
-            info->set_load(output);
+            auto run_in_vm = [&session](const std::string& cmd) {
+                auto proc = session.exec(cmd);
+                if (auto exit_code = proc.exit_code() != 0)
+                    throw std::runtime_error(fmt::format("failed to run '{}', exit code:{}", cmd, exit_code));
 
-            ssh_process = session.exec({"free -h | grep Mem | awk '{printf \"%s out of %s\", $3, $2}'"});
-            output = ssh_process.read_std_output();
-            info->set_memory_usage(output);
+                auto output = proc.read_std_output();
+                if (output.empty())
+                    throw std::runtime_error(fmt::format("no output after running '{}'", cmd));
 
-            ssh_process = session.exec({"df -h | grep -w /dev/sda1 | awk '{printf \"%s out of %s\", $3, $2}'"});
-            output = ssh_process.read_std_output();
-            info->set_disk_usage(output);
+                return mp::utils::trim_end(output);
+            };
 
-            ssh_process = session.exec({"lsb_release -ds"});
-            output = ssh_process.read_std_output();
-            // Remove trailing newline
-            output.pop_back();
-            info->set_current_release(output);
-
+            info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
+            info->set_memory_usage(run_in_vm("free -b | sed '1d;3d' | awk '{printf $3}'"));
+            info->set_memory_total(run_in_vm("free -b | sed '1d;3d' | awk '{printf $2}'"));
+            info->set_disk_usage(run_in_vm("df --output=used /dev/sda1 -B1 | sed 1d"));
+            info->set_disk_total(run_in_vm("df --output=size /dev/sda1 -B1 | sed 1d"));
+            info->set_current_release(run_in_vm("lsb_release -ds"));
             info->set_ipv4(vm->ipv4());
         }
     }
