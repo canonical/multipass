@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -432,4 +433,89 @@ TEST(JsonFormatter, no_instances_info_output)
     auto output = json_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_json_output));
+}
+
+TEST(CSVFormatter, single_instance_list_output)
+{
+    auto list_reply = construct_single_instance_list_reply();
+
+    auto expected_output = "Name,State,IPv4,IPv6,Release\n"
+                           "foo,RUNNING,10.168.32.2,,Ubuntu 16.04 LTS\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(list_reply);
+
+    EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST(CSVFormatter, multiple_instance_list_output)
+{
+    auto list_reply = construct_multiple_instances_list_reply();
+
+    auto expected_output = "Name,State,IPv4,IPv6,Release\n"
+                           "bogus-instance,RUNNING,10.21.124.56,,Ubuntu 16.04 LTS\n"
+                           "bombastic,STOPPED,,,Ubuntu 18.04 LTS\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(list_reply);
+
+    EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST(CSVFormatter, no_instances_list_output)
+{
+    mp::ListReply list_reply;
+
+    auto expected_output = "Name,State,IPv4,IPv6,Release\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(list_reply);
+
+    EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST(CSVFormatter, single_instance_info_output)
+{
+    auto info_reply = construct_single_instance_info_reply();
+
+    auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+                           "usage,Memory total,Mounts\nfoo,RUNNING,10.168.32.2,,Ubuntu 16.04.3 "
+                           "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
+                           "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
+                           "=> test_dir;\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(info_reply);
+
+    EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST(CSVFormatter, multiple_instances_info_output)
+{
+    auto info_reply = construct_multiple_instances_info_reply();
+
+    auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+                           "usage,Memory total,Mounts\nbogus-instance,RUNNING,10.21.124.56,,Ubuntu 16.04.3 "
+                           "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
+                           "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
+                           "source;\nbombastic,STOPPED,,,,"
+                           "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(info_reply);
+
+    EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST(CSVFormatter, no_instances_info_output)
+{
+    mp::InfoReply info_reply;
+
+    auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+                           "usage,Memory total,Mounts\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(info_reply);
+
+    EXPECT_THAT(output, Eq(expected_output));
 }
