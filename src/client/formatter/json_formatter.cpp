@@ -37,7 +37,7 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
     {
         QJsonObject instance_info;
         instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(info.instance_status())));
-        instance_info.insert("image_hash", QString::fromStdString(info.id().substr(0, 12)));
+        instance_info.insert("image_hash", QString::fromStdString(info.id()));
         instance_info.insert("image_release", QString::fromStdString(info.image_release()));
         instance_info.insert("release", QString::fromStdString(info.current_release()));
 
