@@ -69,8 +69,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     parser->addOption(all_option);
 
     QCommandLineOption formatOption(
-        "format", "Output info in the requested format.\nValid formats are: table (default), json and csv", "format",
-        "table");
+        "format", "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
+        "format", "table");
     parser->addOption(formatOption);
 
     auto status = parser->commandParse(this);
