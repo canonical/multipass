@@ -962,7 +962,7 @@ try // clang-format on
         vms.push_back(name);
     }
 
-    if (vms.empty())
+    if (request->instance_name().empty())
     {
         for (auto& pair : vm_instances)
         {
