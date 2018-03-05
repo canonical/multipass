@@ -92,17 +92,17 @@ auto longname_from(const QFileInfo& file_info, const std::string& filename)
         out << "-";
 
     /* user */
-    if (mode & QFileDevice::ReadUser)
+    if (mode & QFileDevice::ReadOwner)
         out << "r";
     else
         out << "-";
 
-    if (mode & QFileDevice::WriteUser)
+    if (mode & QFileDevice::WriteOwner)
         out << "w";
     else
         out << "-";
 
-    if (mode & QFileDevice::ExeUser)
+    if (mode & QFileDevice::ExeOwner)
         out << "x";
     else
         out << "-";
@@ -177,11 +177,11 @@ auto to_unix_permissions(QFile::Permissions perms)
 {
     int out = 0;
 
-    if (perms & QFileDevice::ReadUser)
+    if (perms & QFileDevice::ReadOwner)
         out |= Permissions::read_user;
-    if (perms & QFileDevice::WriteUser)
+    if (perms & QFileDevice::WriteOwner)
         out |= Permissions::write_user;
-    if (perms & QFileDevice::ExeUser)
+    if (perms & QFileDevice::ExeOwner)
         out |= Permissions::exec_user;
     if (perms & QFileDevice::ReadGroup)
         out |= Permissions::read_group;
