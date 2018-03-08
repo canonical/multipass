@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,6 +70,63 @@ TEST_F(Client, no_command_is_error)
 TEST_F(Client, no_command_help_ok)
 {
     EXPECT_THAT(send_command({"-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+// copy-files cli tests
+TEST_F(Client, copy_files_cmd_good_source_remote)
+{
+    EXPECT_THAT(send_command({"copy-files", "test-vm:foo", mpt::test_data_path().toStdString() + "good_index.json"}),
+                Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, copy_files_cmd_good_destination_remote)
+{
+    EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString() + "good_index.json", "test-vm:bar"}),
+                Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, copy_files_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"copy-files", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, copy_files_cmd_fails_invalid_source_file)
+{
+    EXPECT_THAT(send_command({"copy-files", "foo", "test-vm:bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, copy_files_cmd_fails_source_is_dir)
+{
+    EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString(), "test-vm:bar"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, copy_files_cmd_fails_no_instance)
+{
+    EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString() + "good_index.json", "."}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, copy_files_cmd_fails_instance_both_source_destination)
+{
+    EXPECT_THAT(send_command({"copy-files", "test-vm1:foo", "test-vm2:bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, copy_files_cmd_too_few_args_fails)
+{
+    EXPECT_THAT(send_command({"copy-files", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, copy_files_cmd_source_path_empty_fails)
+{
+    EXPECT_THAT(send_command({"copy-files", "test-vm1:", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, copy_file_cmd_multiple_sources_destination_file_fails)
+{
+    EXPECT_THAT(send_command({"copy-files", "test-vm1:foo", "test-vm2:bar",
+                              mpt::test_data_path().toStdString() + "good_index.json"}),
+                Eq(mp::ReturnCode::CommandLineError));
 }
 
 // shell cli test
