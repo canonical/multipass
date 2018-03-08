@@ -900,23 +900,28 @@ grpc::Status mp::Daemon::ssh_info(grpc::ServerContext* context, const SSHInfoReq
                                   SSHInfoReply* response) // clang-format off
 try // clang-format on
 {
-    const auto name = request->instance_name();
-    auto it = vm_instances.find(name);
-    if (it == vm_instances.end())
+    for (const auto& name : request->instance_name())
     {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" does not exist", name),
-                            "");
+        auto it = vm_instances.find(name);
+        if (it == vm_instances.end())
+        {
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" does not exist", name),
+                                "");
+        }
+
+        if (it->second->current_state() != mp::VirtualMachine::State::running)
+        {
+            return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                                fmt::format("instance \"{}\" is not running", name), "");
+        }
+
+        mp::SSHInfo ssh_info;
+        ssh_info.set_host(it->second->ssh_hostname());
+        ssh_info.set_port(it->second->ssh_port());
+        ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
+        (*response->mutable_ssh_info())[name] = ssh_info;
     }
 
-    if (it->second->current_state() != mp::VirtualMachine::State::running)
-    {
-        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format("instance \"{}\" is not running", name),
-                            "");
-    }
-
-    response->set_host(it->second->ssh_hostname());
-    response->set_port(it->second->ssh_port());
-    response->set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
     return grpc::Status::OK;
 }
 catch (const std::exception& e)

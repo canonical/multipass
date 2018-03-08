@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
  *
  */
 #include "client.h"
+#include "cmd/copy_files.h"
 #include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
@@ -71,6 +72,7 @@ mp::Client::Client(const ClientConfig& config)
       cout{config.cout},
       cerr{config.cerr}
 {
+    add_command<cmd::CopyFiles>();
     add_command<cmd::Launch>();
     add_command<cmd::Purge>();
     add_command<cmd::Exec>();

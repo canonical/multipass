@@ -46,14 +46,14 @@ _multipass_complete()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cmd="${COMP_WORDS[1]}"
-    multipass_cmds="shell delete exec find help info launch list mount purge \
-                    recover start stop umount version"
+    multipass_cmds="copy-files delete exec find help info launch list mount purge \
+                    recover shell start stop umount version"
 
     if [[ ${cur} == -* ]]; then
         opts="--help --verbose"
 
         case "${cmd}" in
-            "exec"|"find"|"help"|"purge"|"shell"|"sh"|"connect"|"umount"|"unmount")
+            "copy-files"|"exec"|"find"|"help"|"purge"|"shell"|"sh"|"connect"|"umount"|"unmount")
             ;;
             "info")
                 opts="${opts} --all --format"
@@ -80,7 +80,7 @@ _multipass_complete()
     elif [[ ${prev} == -* ]]; then
         case "${prev}" in
             "--format"|"-f")
-                opts="table json"
+                opts="table json csv yaml"
             ;;
         esac
     else

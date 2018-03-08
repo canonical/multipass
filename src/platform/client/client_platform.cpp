@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,30 +13,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#include "file_reader.h"
-#include "path.h"
+#include <multipass/cli/client_platform.h>
 
-#include <QFile>
+#include <QFileInfo>
 
-namespace mpt = multipass::test;
+namespace mcp = multipass::cli::platform;
 
-QByteArray mpt::load(QString path)
+void mcp::parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name)
 {
-    QFile file(path);
-    if (file.exists())
+    auto colon_count = entry.count(":");
+
+    switch (colon_count)
     {
-        file.open(QIODevice::ReadOnly);
-        return file.readAll();
+    case 0:
+        path = entry;
+        break;
+    case 1:
+        if (!QFileInfo::exists(entry))
+        {
+            instance_name = entry.section(":", 0, 0);
+            path = entry.section(":", 1);
+        }
+        else
+        {
+            path = entry;
+        }
+        break;
     }
-    throw std::invalid_argument(path.toStdString() + " does not exist");
-}
-
-QByteArray mpt::load_test_file(const char* file_name)
-{
-    auto file_path = multipass::test::test_data_path_for(file_name);
-    return multipass::test::load(file_path);
 }

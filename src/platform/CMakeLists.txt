@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -21,3 +21,4 @@ target_link_libraries(platform qemu_backend)
 
 add_subdirectory(backends)
 add_subdirectory(console)
+add_subdirectory(client)

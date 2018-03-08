@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -17,6 +17,7 @@
 function(add_ssh_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     openssh_key_provider.cpp
+    ssh_client_key_provider.cpp
     ssh_process.cpp
     ssh_session.cpp)
 
@@ -30,9 +31,23 @@ if(MULTIPASS_ENABLE_TESTS)
   add_ssh_target(ssh_test)
 endif()
 
+function(add_scp_client_target TARGET_NAME)
+  add_library(${TARGET_NAME} STATIC
+    scp_client.cpp
+    ssh_session.cpp)
+
+  target_link_libraries(${TARGET_NAME}
+    libssh
+    Qt5::Core)
+endfunction()
+
+add_scp_client_target(scp_client)
+if(MULTIPASS_ENABLE_TESTS)
+  add_scp_client_target(scp_test)
+endif()
+
 add_library(ssh_client STATIC
   ssh_client.cpp
-  ssh_client_key_provider.cpp
   ssh_session.cpp)
 
 target_link_libraries(ssh_client

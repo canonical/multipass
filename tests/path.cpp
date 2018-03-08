@@ -30,7 +30,7 @@ QString mpt::test_data_path()
     const auto test_data_dir_exists = dir.cd("test_data");
     if (!test_data_dir_exists)
         throw std::runtime_error("could not find test_data directory");
-    return dir.path() + dir.separator();
+    return QDir::toNativeSeparators(dir.path()) + dir.separator();
 }
 
 QString mpt::test_data_path_for(const char* file_name)
