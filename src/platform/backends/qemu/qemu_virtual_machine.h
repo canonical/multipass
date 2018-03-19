@@ -20,8 +20,6 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 
-#include "dnsmasq_server.h"
-
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
@@ -32,6 +30,7 @@ class QString;
 
 namespace multipass
 {
+class DNSMasqServer;
 class SSHKeyProvider;
 class VMStatusMonitor;
 class VirtualMachineDescription;

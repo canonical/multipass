@@ -21,6 +21,7 @@ add_library(qemu_backend STATIC
 
 target_link_libraries(qemu_backend
   fmt
+  logger
   Qt5::Core
   Qt5::Network
   ip_address_pool
