@@ -92,23 +92,21 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& source, co
 }
 
 auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const std::string& target,
-                      const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-                      std::ostream& cout)
+                      const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
 {
     auto sshfs_proc =
         create_sshfs_process(session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'));
     auto default_uid = std::stoi(run_cmd(session, "id -u"));
     auto default_gid = std::stoi(run_cmd(session, "id -g"));
     return std::make_unique<mp::SftpServer>(std::move(session), std::move(sshfs_proc), source, gid_map, uid_map,
-                                            default_uid, default_gid, cout);
+                                            default_uid, default_gid);
 }
 
 } // namespace anonymous
 
 mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
-                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-                           std::ostream& cout)
-    : sftp_server{make_sftp_server(std::move(session), source, target, gid_map, uid_map, cout)}, sftp_thread{[this] {
+                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
+    : sftp_server{make_sftp_server(std::move(session), source, target, gid_map, uid_map)}, sftp_thread{[this] {
           sftp_server->run();
           emit finished();
       }}

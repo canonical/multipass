@@ -20,6 +20,9 @@
 
 #include <multipass/url_downloader.h>
 
+#include <fmt/format.h>
+#include <multipass/logging/log.h>
+
 #include <QDir>
 #include <QEventLoop>
 #include <QFile>
@@ -30,9 +33,12 @@
 #include <memory>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "url downloader";
+
 template <typename Action, typename ErrorAction>
 QByteArray download(QNetworkAccessManager& manager, QUrl const& url, Action&& action, ErrorAction&& on_error)
 {
@@ -69,7 +75,7 @@ QByteArray download(QNetworkAccessManager& manager, QUrl const& url, Action&& ac
 }
 }
 
-mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::ostream& cerr) : cerr{cerr}
+mp::URLDownloader::URLDownloader(const mp::Path& cache_dir)
 {
     network_cache.setCacheDirectory(QDir(cache_dir).filePath("network-cache"));
     manager.setCache(&network_cache);
@@ -81,8 +87,8 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
     QFile file{file_name};
     file.open(QIODevice::ReadWrite | QIODevice::Truncate);
 
-    auto progress_monitor = [this, &file, &monitor, download_type, size](QNetworkReply* reply, QTimer& download_timeout,
-                                                                         qint64 bytes_received, qint64 bytes_total) {
+    auto progress_monitor = [&file, &monitor, download_type, size](QNetworkReply* reply, QTimer& download_timeout,
+                                                                   qint64 bytes_received, qint64 bytes_total) {
         if (download_timeout.isActive())
             download_timeout.stop();
         else
@@ -93,7 +99,8 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
         auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
         if (file.write(reply->readAll()) < 0)
         {
-            cerr << "Error writing image: " << file.errorString().toStdString() << "\n";
+            mpl::log(mpl::Level::error, category,
+                     fmt::format("error writing image: {}", file.errorString().toStdString()));
             reply->abort();
         }
         if (!monitor(download_type, progress))

@@ -44,7 +44,7 @@ class DefaultVMImageVault final : public VMImageVault
 {
 public:
     DefaultVMImageVault(VMImageHost* image_host, URLDownloader* downloader, multipass::Path cache_dir_path,
-                        multipass::Path data_dir_path, multipass::days days_to_expire, std::ostream& cout);
+                        multipass::Path data_dir_path, multipass::days days_to_expire);
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;
     void remove(const std::string& name) override;
@@ -66,7 +66,6 @@ private:
     const QDir instances_dir;
     const QDir images_dir;
     const days days_to_expire;
-    std::ostream& cout;
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
     std::unordered_map<std::string, VaultRecord> instance_image_records;

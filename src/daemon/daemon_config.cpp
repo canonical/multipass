@@ -21,6 +21,7 @@
 #include "default_vm_image_vault.h"
 #include "ubuntu_image_host.h"
 
+#include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
@@ -30,18 +31,18 @@
 #include <iostream>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
+
 std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 {
-    if (cout == nullptr)
-        cout = &std::cout;
-    if (cerr == nullptr)
-        cerr = &std::cerr;
     if (cache_directory.isEmpty())
         cache_directory = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
     if (data_directory.isEmpty())
         data_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (logger == nullptr)
+        logger = std::make_unique<mpl::StandardLogger>(mpl::Level::info);
     if (url_downloader == nullptr)
-        url_downloader = std::make_unique<URLDownloader>(cache_directory, *cerr);
+        url_downloader = std::make_unique<URLDownloader>(cache_directory);
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory);
     if (image_host == nullptr)
@@ -52,7 +53,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             url_downloader.get(), std::chrono::minutes{5});
     if (vault == nullptr)
         vault = std::make_unique<DefaultVMImageVault>(image_host.get(), url_downloader.get(), cache_directory,
-                                                      data_directory, days_to_expire, *cout);
+                                                      data_directory, days_to_expire);
     if (name_generator == nullptr)
         name_generator = mp::make_default_name_generator();
     if (server_address.empty())
@@ -62,6 +63,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     return std::unique_ptr<const DaemonConfig>(
         new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_host), std::move(vault),
-                         std::move(name_generator), std::move(ssh_key_provider), cache_directory, data_directory,
-                         server_address, *cout, *cerr});
+                         std::move(name_generator), std::move(ssh_key_provider), std::move(logger), cache_directory,
+                         data_directory, server_address});
 }

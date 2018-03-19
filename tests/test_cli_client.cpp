@@ -19,6 +19,7 @@
 
 #include "path.h"
 
+#include <multipass/logging/log.h>
 #include <src/client/client.h>
 #include <src/daemon/daemon_rpc.h>
 
@@ -58,7 +59,7 @@ public:
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
     std::stringstream null_stream;
-    mp::DaemonRpc stub_daemon{server_address, null_stream, null_stream};
+    mp::DaemonRpc stub_daemon{server_address};
 };
 
 // Tests for no postional args given

@@ -24,6 +24,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
@@ -48,9 +49,11 @@
 #include <stdexcept>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
@@ -300,7 +303,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
-      daemon_rpc{config->server_address, config->cout, config->cerr}
+      daemon_rpc{config->server_address}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -327,7 +330,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << fmt::format("Removing instance {}: {}\n", name, e.what());
+            mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
             invalid_specs.push_back(name);
             config->vault->remove(name);
         }
@@ -352,24 +355,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             return config->factory->prepare_source_image(source_image);
         };
 
-        auto download_monitor = [this](int download_type, int percentage) {
-            static bool done_once = false;
-            if (percentage % 10 == 0)
-            {
-                if (!done_once)
-                {
-                    config->cout << fmt::format("{}%", percentage);
-                    done_once = true;
-                    if (percentage == 100)
-                        config->cout << "\n";
-                    else
-                        config->cout << "..." << std::flush;
-                }
-            }
-            else
-            {
-                done_once = false;
-            }
+        auto download_monitor = [](int download_type, int percentage) {
+            mpl::log(mpl::Level::info, category, fmt::format("{}%", percentage));
             return true;
         };
         try
@@ -378,7 +365,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
         catch (const std::exception& e)
         {
-            config->cerr << fmt::format("Error updating images: {}\n", e.what());
+            mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
         }
     });
     const std::chrono::milliseconds ms = std::chrono::hours(6);
@@ -1252,8 +1239,9 @@ void mp::Daemon::on_restart(const std::string& name)
         }
         catch (const std::exception& e)
         {
-            config->cerr << fmt::format("Mount error detected during instance reboot. Removing \"{}\": {}", target_path,
-                                        e.what());
+            mpl::log(
+                mpl::Level::error, name,
+                fmt::format("Mount error detected during instance reboot. Removing \"{}\": {}", target_path, e.what()));
             invalid_mounts.push_back(target_path);
         }
     }
@@ -1327,8 +1315,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
 
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), key_provider};
 
-    auto sshfs_mount =
-        std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map, config->cout);
+    auto sshfs_mount = std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map);
 
     QObject::connect(sshfs_mount.get(), &SshfsMount::finished, this,
                      [this, name, target_path]() { mount_threads[name].erase(target_path); });

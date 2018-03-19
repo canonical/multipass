@@ -19,7 +19,6 @@
 #define MULTIPASS_SSHFS_MOUNT
 
 #include <memory>
-#include <ostream>
 #include <thread>
 #include <unordered_map>
 
@@ -35,8 +34,7 @@ class SshfsMount : public QObject
 
 public:
     SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
-               const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-               std::ostream& cout);
+               const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map);
     SshfsMount(SshfsMount&& other);
     virtual ~SshfsMount();
 

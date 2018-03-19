@@ -28,6 +28,7 @@ configure_file(
 add_subdirectory(client)
 add_subdirectory(daemon)
 add_subdirectory(iso)
+add_subdirectory(logging)
 add_subdirectory(network)
 add_subdirectory(petname)
 add_subdirectory(platform)

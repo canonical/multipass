@@ -23,6 +23,7 @@
 #include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <multipass/logging/logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/url_downloader.h>
@@ -43,11 +44,10 @@ struct DaemonConfig
     const std::unique_ptr<VMImageVault> vault;
     const std::unique_ptr<NameGenerator> name_generator;
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
+    const std::shared_ptr<logging::Logger> logger;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
-    std::ostream& cout;
-    std::ostream& cerr;
 };
 
 struct DaemonConfigBuilder
@@ -58,11 +58,10 @@ struct DaemonConfigBuilder
     std::unique_ptr<VMImageVault> vault;
     std::unique_ptr<NameGenerator> name_generator;
     std::unique_ptr<SSHKeyProvider> ssh_key_provider;
+    std::unique_ptr<logging::Logger> logger;
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;
-    std::ostream* cout{nullptr};
-    std::ostream* cerr{nullptr};
     multipass::days days_to_expire{14};
 
     std::unique_ptr<const DaemonConfig> build();

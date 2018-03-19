@@ -21,8 +21,9 @@
 #include "daemon_config.h"
 #include "auto_join_thread.h"
 
-#include <multipass/platform.h>
+#include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
+#include <multipass/platform.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
@@ -89,7 +90,7 @@ public:
         int sig = -1;
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
-            fmt::print("Received signal: {}\n", sig);
+            fmt::print(stderr, "Received signal: {}\n", sig);
         app.quit();
     }
 
@@ -103,15 +104,18 @@ try
 {
     QCoreApplication app(argc, argv);
     UnixSignalHandler handler(app);
+
     auto config = multipass::DaemonConfigBuilder{}.build();
     auto server_address = config->server_address;
+
+    multipass::logging::set_logger(config->logger);
     multipass::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
 
     app.exec();
 
-    fmt::print("Goodbye!\n");
+    fmt::print(stderr, "Goodbye!\n");
     return EXIT_SUCCESS;
 }
 catch (const std::exception& e)
