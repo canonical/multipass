@@ -17,8 +17,11 @@
 add_library(platform STATIC
   platform.cpp)
 
-target_link_libraries(platform qemu_backend)
+target_link_libraries(platform
+  qemu_backend
+  journaldlogger)
 
 add_subdirectory(backends)
-add_subdirectory(console)
 add_subdirectory(client)
+add_subdirectory(console)
+add_subdirectory(logger)

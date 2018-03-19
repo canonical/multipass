@@ -101,6 +101,7 @@ parts:
     - build-essential
     - cmake-extras
     - golang
+    - libsystemd-dev
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
