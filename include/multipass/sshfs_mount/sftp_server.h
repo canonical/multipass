@@ -36,7 +36,7 @@ class SftpServer
 public:
     SftpServer(SSHSession&& ssh_session, SSHProcess&& sshfs_proc, const std::string& source,
                const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-               int default_uid, int default_gid, std::ostream& cout);
+               int default_uid, int default_gid);
     SftpServer(SftpServer&& other);
 
     void run();
@@ -76,7 +76,6 @@ private:
     const std::unordered_map<int, int> uid_map;
     const int default_uid;
     const int default_gid;
-    std::ostream& cout;
 };
 } // namespace multipass
 #endif // MULTIPASS_SFTP_SERVER_H

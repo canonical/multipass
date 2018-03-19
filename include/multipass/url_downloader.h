@@ -38,19 +38,18 @@ class URLDownloader
 {
 public:
     URLDownloader() = default;
-    URLDownloader(const Path& cache_dir, std::ostream& cerr);
+    URLDownloader(const Path& cache_dir);
     virtual ~URLDownloader() = default;
     virtual void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                              const ProgressMonitor& monitor);
     virtual QByteArray download(const QUrl& url);
 
 private:
-    QNetworkAccessManager manager;
-    QNetworkDiskCache network_cache;
     URLDownloader(const URLDownloader&) = delete;
     URLDownloader& operator=(const URLDownloader&) = delete;
 
-    std::ostream& cerr{std::cerr};
+    QNetworkAccessManager manager;
+    QNetworkDiskCache network_cache;
 };
 }
 #endif // MULTIPASS_URL_DOWNLOADER_H

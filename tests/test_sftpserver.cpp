@@ -51,8 +51,7 @@ struct SftpServer : public mp::test::SftpServerTest
     {
         mp::SSHSession session{"a", 42};
         auto proc = session.exec("sshfs");
-        return {std::move(session), std::move(proc), path,       default_map,
-                default_map,        default_id,      default_id, nullstream};
+        return {std::move(session), std::move(proc), path, default_map, default_map, default_id, default_id};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)
@@ -90,7 +89,6 @@ struct SftpServer : public mp::test::SftpServerTest
     std::queue<sftp_client_message> messages;
     std::unordered_map<int, int> default_map;
     int default_id{1000};
-    std::stringstream nullstream;
 };
 
 struct MessageAndReply
