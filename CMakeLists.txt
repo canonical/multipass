@@ -54,6 +54,8 @@ execute_process(COMMAND git describe
                 OUTPUT_VARIABLE MULTIPASS_VERSION
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
   set(CMAKE_CXX_STANDARD 17)
   # Build with multiple processes
@@ -68,8 +70,6 @@ elseif(APPLE)
   add_definitions(-DMULTIPASS_PLATFORM_APPLE)
 else()
   set(CMAKE_CXX_STANDARD 14)
-  set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-  set(CMAKE_CXX_EXTENSIONS OFF)
   add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wcast-align -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wno-expansion-to-defined -fPIC)
   add_definitions(-DMULTIPASS_PLATFORM_LINUX)
 endif()
