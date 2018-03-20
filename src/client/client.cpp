@@ -38,8 +38,10 @@
 #include <algorithm>
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
+#include <multipass/cli/yaml_formatter.h>
 
 namespace mp = multipass;
 
@@ -56,7 +58,8 @@ auto make_map()
     std::map<std::string, std::unique_ptr<mp::Formatter>> map;
     map.emplace("table", make_entry<mp::TableFormatter>());
     map.emplace("json", make_entry<mp::JsonFormatter>());
-
+    map.emplace("csv", make_entry<mp::CSVFormatter>());
+    map.emplace("yaml", make_entry<mp::YamlFormatter>());
     return map;
 }
 }

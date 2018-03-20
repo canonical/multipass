@@ -513,8 +513,11 @@ TEST_F(SftpServer, symlink_in_invalid_dir_fails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_SYMLINK);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
+    auto target = name_as_char_array("bar");
+    msg->filename = target.data();
+
+    auto invalid_link = name_as_char_array("/foo/baz");
+    REPLACE(sftp_client_message_get_data, [&invalid_link](auto...) { return invalid_link.data(); });
 
     int perm_denied_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
@@ -1052,8 +1055,11 @@ TEST_F(SftpServer, extended_link_in_invalid_dir_fails)
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("hardlink@openssh.com");
     msg->submessage = submessage.data();
-    auto invalid_path = name_as_char_array("/foo/bar");
+    auto invalid_path = name_as_char_array("bar");
     msg->filename = invalid_path.data();
+
+    auto invalid_link = name_as_char_array("/foo/baz");
+    REPLACE(sftp_client_message_get_data, [&invalid_link](auto...) { return invalid_link.data(); });
 
     int perm_denied_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
@@ -1214,7 +1220,7 @@ INSTANTIATE_TEST_CASE_P(
         MessageAndReply{SFTP_FSTAT, SSH_FX_BAD_MESSAGE}, MessageAndReply{SFTP_READDIR, SSH_FX_BAD_MESSAGE},
         MessageAndReply{SFTP_WRITE, SSH_FX_BAD_MESSAGE}, MessageAndReply{SFTP_OPENDIR, SSH_FX_NO_SUCH_FILE},
         MessageAndReply{SFTP_STAT, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_LSTAT, SSH_FX_NO_SUCH_FILE},
-        MessageAndReply{SFTP_READLINK, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_SYMLINK, SSH_FX_NO_SUCH_FILE},
+        MessageAndReply{SFTP_READLINK, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_SYMLINK, SSH_FX_PERMISSION_DENIED},
         MessageAndReply{SFTP_RENAME, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_SETSTAT, SSH_FX_NO_SUCH_FILE},
         MessageAndReply{SFTP_EXTENDED, SSH_FX_FAILURE}),
     string_for_param);

@@ -72,9 +72,9 @@ QString cmd::List::description() const
 
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
-    QCommandLineOption formatOption("format",
-                                    "Output list in the requested format.\nValid formats are: table (default) and json",
-                                    "format", "table");
+    QCommandLineOption formatOption(
+        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
+        "format", "table");
 
     parser->addOption(formatOption);
 

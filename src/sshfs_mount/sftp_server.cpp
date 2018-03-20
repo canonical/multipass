@@ -92,17 +92,17 @@ auto longname_from(const QFileInfo& file_info, const std::string& filename)
         out << "-";
 
     /* user */
-    if (mode & QFileDevice::ReadUser)
+    if (mode & QFileDevice::ReadOwner)
         out << "r";
     else
         out << "-";
 
-    if (mode & QFileDevice::WriteUser)
+    if (mode & QFileDevice::WriteOwner)
         out << "w";
     else
         out << "-";
 
-    if (mode & QFileDevice::ExeUser)
+    if (mode & QFileDevice::ExeOwner)
         out << "x";
     else
         out << "-";
@@ -177,11 +177,11 @@ auto to_unix_permissions(QFile::Permissions perms)
 {
     int out = 0;
 
-    if (perms & QFileDevice::ReadUser)
+    if (perms & QFileDevice::ReadOwner)
         out |= Permissions::read_user;
-    if (perms & QFileDevice::WriteUser)
+    if (perms & QFileDevice::WriteOwner)
         out |= Permissions::write_user;
-    if (perms & QFileDevice::ExeUser)
+    if (perms & QFileDevice::ExeOwner)
         out |= Permissions::exec_user;
     if (perms & QFileDevice::ReadGroup)
         out |= Permissions::read_group;
@@ -704,11 +704,6 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
     const auto old_name = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, old_name))
-        return reply_perm_denied(msg);
-
-    if (!QFile::exists(old_name))
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
 
     const auto new_name = sftp_client_message_get_data(msg);
     if (!validate_path(source_path, new_name))
@@ -756,13 +751,10 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     if (method == "hardlink@openssh.com")
     {
         const auto old_name = sftp_client_message_get_filename(msg);
-        if (!validate_path(source_path, old_name))
-            return reply_perm_denied(msg);
-
-        if (!QFile::exists(old_name))
-            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
 
         const auto new_name = sftp_client_message_get_data(msg);
+        if (!validate_path(source_path, new_name))
+            return reply_perm_denied(msg);
 
         if (!mp::platform::link(old_name, new_name))
             return reply_failure(msg);
