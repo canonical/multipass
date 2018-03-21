@@ -59,9 +59,9 @@ void set_server_permissions(const std::string& server_address)
     if (!address.startsWith("unix:"))
         return;
 
-    auto group = getgrnam("adm");
+    auto group = getgrnam("sudo");
     if (!group)
-        throw std::runtime_error("Could not determine group id for 'adm'.");
+        throw std::runtime_error("Could not determine group id for 'sudo'.");
 
     auto socket_path = address.section("unix:", 1, 1).toStdString();
     if (chown(socket_path.c_str(), 0, group->gr_gid) == -1)
