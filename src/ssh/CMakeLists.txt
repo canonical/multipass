@@ -46,12 +46,19 @@ if(MULTIPASS_ENABLE_TESTS)
   add_scp_client_target(scp_test)
 endif()
 
-add_library(ssh_client STATIC
-  ssh_client.cpp
-  ssh_session.cpp)
+function(add_ssh_client_target TARGET_NAME)
+  add_library(${TARGET_NAME} STATIC
+    ssh_client.cpp
+    ssh_session.cpp)
 
-target_link_libraries(ssh_client
-  console
-  libssh
-  utils
-  Qt5::Core)
+  target_link_libraries(${TARGET_NAME}
+    console
+    libssh
+    utils
+    Qt5::Core)
+endfunction()
+
+add_ssh_client_target(ssh_client)
+if(MULTIPASS_ENABLE_TESTS)
+  add_ssh_client_target(ssh_client_test)
+endif()

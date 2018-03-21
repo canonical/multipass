@@ -15,32 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_SCP_CLIENT_H
-#define MULTIPASS_SCP_CLIENT_H
+#ifndef MULTIPASS_MOCK_SSH_CLIENT
+#define MULTIPASS_MOCK_SSH_CLIENT
 
-#include <multipass/ssh/ssh_session.h>
+#include <premock.hpp>
 
 #include <libssh/libssh.h>
 
-#include <memory>
-#include <string>
-#include <vector>
+DECL_MOCK(ssh_channel_request_shell);
+DECL_MOCK(ssh_channel_request_pty);
+DECL_MOCK(ssh_channel_change_pty_size);
 
-namespace multipass
-{
-using SSHSessionUPtr = std::unique_ptr<SSHSession>;
-
-class SCPClient
-{
-public:
-    SCPClient(const std::string& host, int port, const std::string& priv_key_blob);
-    SCPClient(SSHSessionUPtr ssh_session);
-
-    void push_file(const std::string& source_path, const std::string& destination_path);
-    void pull_file(const std::string& source_path, const std::string& destination_path);
-
-private:
-    SSHSessionUPtr ssh_session;
-};
-}
-#endif // MULTIPASS_SCP_CLIENT_H
+#endif // MULTIPASS_MOCK_SSH_CLIENT

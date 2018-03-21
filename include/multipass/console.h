@@ -37,7 +37,6 @@ public:
 
     virtual ~Console() = default;
 
-    virtual void setup_console() = 0;
     virtual int read_console(std::array<char, 512>& buffer) = 0;
     virtual void write_console(const char* buffer, int bytes) = 0;
     virtual void signal_console() = 0;
@@ -53,6 +52,7 @@ protected:
     Console& operator=(const Console&) = delete;
 
 private:
+    virtual void setup_console() = 0;
     virtual void restore_console() = 0;
 };
 }
