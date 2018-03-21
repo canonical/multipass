@@ -19,16 +19,22 @@
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
 
+#include "ssh_client_key_provider.h"
+
 #include <libssh/libssh.h>
 
 namespace mp = multipass;
 
 mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& priv_key_blob)
-    : ssh_session{mp::SSHSession::create_client_session(host, port, priv_key_blob)},
-      channel{ssh_channel_new(*ssh_session), ssh_channel_free},
-      console{Console::make_console()}
+    : SSHClient{std::make_unique<mp::SSHSession>(host, port, mp::SSHClientKeyProvider(priv_key_blob))}
 {
-    SSH::throw_on_error(ssh_channel_open_session, channel);
+}
+
+mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, Console::UPtr console)
+    : ssh_session{std::move(ssh_session)},
+      channel{ssh_channel_new(*this->ssh_session), ssh_channel_free},
+      console{(console == nullptr) ? Console::make_console() : std::move(console)}
+{
 }
 
 void mp::SSHClient::connect()
@@ -38,6 +44,8 @@ void mp::SSHClient::connect()
 
 int mp::SSHClient::exec(const std::vector<std::string>& args)
 {
+    SSH::throw_on_error(ssh_channel_open_session, channel);
+
     if (console->is_interactive())
     {
         SSH::throw_on_error(ssh_channel_request_pty, channel);
@@ -49,11 +57,6 @@ int mp::SSHClient::exec(const std::vector<std::string>& args)
     else
         SSH::throw_on_error(ssh_channel_request_exec, channel,
                             utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg).c_str());
-
-    if (console->is_interactive())
-    {
-        console->setup_console();
-    }
 
     handle_ssh_events();
 

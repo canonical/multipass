@@ -53,6 +53,7 @@ void set_signal()
 mp::UnixConsole::UnixConsole() : interactive{isatty(fileno(stdin)) == 1}
 {
     set_signal();
+    setup_console();
 }
 
 mp::UnixConsole::~UnixConsole()

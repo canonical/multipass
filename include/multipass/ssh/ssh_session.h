@@ -40,9 +40,6 @@ public:
 
     void force_shutdown();
 
-    static std::unique_ptr<SSHSession> create_client_session(const std::string& host, int port,
-                                                             const std::string& priv_key_blob);
-
 private:
     operator ssh_session() const;
 

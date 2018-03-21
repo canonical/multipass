@@ -18,6 +18,8 @@
 #include <multipass/ssh/scp_client.h>
 #include <multipass/ssh/throw_on_error.h>
 
+#include "ssh_client_key_provider.h"
+
 #include <QFile>
 #include <QFileInfo>
 
@@ -39,11 +41,11 @@ SCPUPtr make_scp_session(ssh_session session, int mode, const char* path)
 }
 
 mp::SCPClient::SCPClient(const std::string& host, int port, const std::string& priv_key_blob)
-    : ssh_session{mp::SSHSession::create_client_session(host, port, priv_key_blob)}
+    : SCPClient{std::make_unique<mp::SSHSession>(host, port, mp::SSHClientKeyProvider(priv_key_blob))}
 {
 }
 
-mp::SCPClient::SCPClient(const std::string& host, int port) : ssh_session{std::make_unique<mp::SSHSession>(host, port)}
+mp::SCPClient::SCPClient(SSHSessionUPtr ssh_session) : ssh_session{std::move(ssh_session)}
 {
 }
 
