@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,16 +35,17 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     }
 
     auto on_success = [this](mp::SSHInfoReply& reply) {
-        //TODO: this should setup a reader that continously prints out
-        //streaming replies from the server corresponding to stdout/stderr streams
-        auto host = reply.host();
-        auto port = reply.port();
-
         // TODO: mainly for testing - need a better way to test parsing
-        if (port == 0)
+        if (reply.ssh_info().empty())
             return ReturnCode::Ok;
 
-        auto priv_key_blob = reply.priv_key_base64();
+        // TODO: this should setup a reader that continously prints out
+        // streaming replies from the server corresponding to stdout/stderr streams
+        auto ssh_info = reply.ssh_info().begin()->second;
+        auto host = ssh_info.host();
+        auto port = ssh_info.port();
+        auto priv_key_blob = ssh_info.priv_key_base64();
+
         try
         {
             mp::SSHClient ssh_client{host, port, priv_key_blob};
@@ -106,7 +107,8 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     }
     else
     {
-        request.set_instance_name(parser->positionalArguments().first().toStdString());
+        auto entry = request.add_instance_name();
+        entry->append(parser->positionalArguments().first().toStdString());
     }
 
     return status;

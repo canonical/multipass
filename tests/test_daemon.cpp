@@ -30,6 +30,7 @@
 
 #include "mock_virtual_machine_factory.h"
 #include "stub_image_host.h"
+#include "stub_logger.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_virtual_machine_factory.h"
 #include "stub_vm_image_vault.h"
@@ -96,8 +97,7 @@ struct Daemon : public Test
         config_builder.factory = std::make_unique<mpt::StubVirtualMachineFactory>();
         config_builder.image_host = std::make_unique<mpt::StubVMImageHost>();
         config_builder.ssh_key_provider = std::make_unique<mpt::StubSSHKeyProvider>();
-        config_builder.cout = &null_stream;
-        config_builder.cerr = &null_stream;
+        config_builder.logger = std::make_unique<mpt::StubLogger>();
     }
 
     mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()

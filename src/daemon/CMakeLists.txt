@@ -27,6 +27,7 @@ add_library(daemon STATIC
 target_link_libraries(daemon
   fmt
   iso
+  logger
   rpc
   petname
   platform

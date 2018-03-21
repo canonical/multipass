@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -36,8 +36,9 @@ set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletes
 set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googletest)
 
 add_executable(multipass_tests
-  file_reader.cpp
+  file_operations.cpp
   main.cpp
+  mock_scp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
   path.cpp
@@ -52,6 +53,7 @@ add_executable(multipass_tests
   test_petname.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
+  test_scp_client.cpp
   test_sftpserver.cpp
   test_sshfsmount.cpp
   test_ssh_key_provider.cpp
@@ -79,6 +81,8 @@ target_compile_definitions(ssh_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(sshfs_mount_test PRIVATE
   ${c_mock_defines})
+target_compile_definitions(scp_test PRIVATE
+  ${c_mock_defines})
 
 target_link_libraries(multipass_tests
   client
@@ -86,6 +90,7 @@ target_link_libraries(multipass_tests
   ip_address_pool
   petname
   simplestreams
+  scp_test
   ssh_test
   sshfs_mount_test
   utils

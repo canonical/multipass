@@ -66,14 +66,14 @@ QString cmd::Exec::description() const
 mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std::vector<std::string>& args,
                                        std::ostream& cerr)
 {
-    auto host = reply.host();
-    auto port = reply.port();
-
     // TODO: mainly for testing - need a better way to test parsing
-    if (port == 0)
+    if (reply.ssh_info().empty())
         return ReturnCode::Ok;
 
-    auto priv_key_blob = reply.priv_key_base64();
+    auto ssh_info = reply.ssh_info().begin()->second;
+    auto host = ssh_info.host();
+    auto port = ssh_info.port();
+    auto priv_key_blob = ssh_info.priv_key_base64();
 
     try
     {
@@ -106,7 +106,8 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
     }
     else
     {
-        request.set_instance_name(parser->positionalArguments().first().toStdString());
+        auto entry = request.add_instance_name();
+        entry->append(parser->positionalArguments().first().toStdString());
     }
 
     return status;

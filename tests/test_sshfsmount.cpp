@@ -27,6 +27,8 @@
 #include <mutex>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
+
 using namespace testing;
 
 namespace
@@ -108,7 +110,7 @@ struct SshfsMount : public mp::test::SftpServerTest
     {
         mp::SSHSession session{"a", 42};
         auto proc = session.exec("sshfs");
-        return {std::move(session), default_source, default_target, default_map, default_map, nullstream};
+        return {std::move(session), default_source, default_target, default_map, default_map};
     }
 
     auto make_exec_that_fails_for(std::string expected_cmd, bool& invoked)
@@ -147,7 +149,6 @@ struct SshfsMount : public mp::test::SftpServerTest
     std::string default_target{"target"};
     std::unordered_map<int, int> default_map;
     int default_id{1000};
-    std::stringstream nullstream;
 };
 } // namespace
 

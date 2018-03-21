@@ -20,6 +20,7 @@
 #include "daemon_rpc.h"
 #include "daemon_config.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 
@@ -29,9 +30,12 @@
 #include <stdexcept>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "rpc";
+
 void throw_if_server_exists(const std::string& address)
 {
     auto channel = grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
@@ -65,10 +69,10 @@ auto make_server(const std::string& server_address, multipass::Rpc::Service* ser
 }
 }
 
-mp::DaemonRpc::DaemonRpc(const std::string& server_address, std::ostream& cout, std::ostream& cerr)
-    : server_address{server_address}, server{make_server(server_address, this)}, cout{cout}, cerr{cerr}
+mp::DaemonRpc::DaemonRpc(const std::string& server_address)
+    : server_address{server_address}, server{make_server(server_address, this)}
 {
-    cout << fmt::format("gRPC listening on {}\n", server_address);
+    mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}", server_address));
 }
 
 grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,

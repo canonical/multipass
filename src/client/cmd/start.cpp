@@ -139,7 +139,8 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
 mp::ReturnCode cmd::Start::install_sshfs(const std::string& instance_name)
 {
     SSHInfoRequest request;
-    request.set_instance_name(instance_name);
+    auto entry = request.add_instance_name();
+    entry->append(instance_name);
 
     std::vector<std::string> args{"sudo", "bash", "-c", "apt update && apt install -y sshfs"};
 

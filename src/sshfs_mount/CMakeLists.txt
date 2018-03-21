@@ -23,6 +23,7 @@ function(add_sshfs_mount_target TARGET_NAME)
 
   target_link_libraries(${TARGET_NAME}
     fmt
+    logger
     ssh
     utils
     Qt5::Core)

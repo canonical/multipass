@@ -17,6 +17,7 @@
 
 #include <multipass/sshfs_mount/sftp_server.h>
 
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
@@ -29,9 +30,11 @@
 #include <QFile>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "sftp server";
 using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
 
 enum Permissions
@@ -220,15 +223,14 @@ auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::u
 
 mp::SftpServer::SftpServer(SSHSession&& session, SSHProcess&& sshfs_proc, const std::string& source,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-                           int default_uid, int default_gid, std::ostream& cout)
+                           int default_uid, int default_gid)
     : ssh_session{std::move(session)},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_proc.release_channel())},
       source_path{source},
       gid_map{gid_map},
       uid_map{uid_map},
       default_uid{default_uid},
-      default_gid{default_gid},
-      cout{cout}
+      default_gid{default_gid}
 {
 }
 
@@ -349,11 +351,11 @@ void mp::SftpServer::process_message(sftp_client_message msg)
         ret = handle_extended(msg);
         break;
     default:
-        cout << "[sftp server] Unknown message: " << static_cast<int>(type) << "\n";
+        mpl::log(mpl::Level::warning, category, fmt::format("Unknown message: {}", static_cast<int>(type)));
         ret = reply_unsupported(msg);
     }
     if (ret != 0)
-        cout << "[sftp server] error occurred when replying to client\n";
+        mpl::log(mpl::Level::error, category, fmt::format("error occurred when replying to client: {}", ret));
 }
 
 void mp::SftpServer::run()
@@ -422,8 +424,9 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     auto ret = mp::platform::chown(filename, parent_dir.ownerId(), parent_dir.groupId());
     if (ret < 0)
     {
-        cout << fmt::format("[sftp server] failed to chown '{}' to owner:{} and group:{}\n", filename,
-                            parent_dir.ownerId(), parent_dir.groupId());
+        mpl::log(mpl::Level::error, category,
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}\n", filename, parent_dir.ownerId(),
+                             parent_dir.groupId()));
         return reply_failure(msg);
     }
     return reply_ok(msg);
@@ -463,7 +466,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         if (flags == SSH_FXF_WRITE)
         {
             mode |= QIODevice::Append;
-            cout << "[sftp server] Adding sshfs O_APPEND workaround.\n";
+            mpl::log(mpl::Level::info, category, "adding sshfs O_APPEND workaround");
         }
     }
 
@@ -490,8 +493,9 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         auto ret = mp::platform::chown(filename, current_dir.ownerId(), current_dir.groupId());
         if (ret < 0)
         {
-            fmt::format("[sftp server] failed to chown '{}' to owner:{} and group:{}\n", filename,
-                        current_dir.ownerId(), current_dir.groupId());
+            mpl::log(mpl::Level::error, category,
+                     fmt::format("failed to chown '{}' to owner:{} and group:{}\n", filename, current_dir.ownerId(),
+                                 current_dir.groupId()));
             return reply_failure(msg);
         }
     }

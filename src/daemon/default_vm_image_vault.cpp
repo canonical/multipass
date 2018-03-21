@@ -20,6 +20,7 @@
 #include "default_vm_image_vault.h"
 #include "json_writer.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
@@ -36,11 +37,13 @@
 #include <exception>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr char instance_db_name[] = "multipassd-instance-image-records.json";
-constexpr char image_db_name[] = "multipassd-image-records.json";
+constexpr auto category = "image vault";
+constexpr auto instance_db_name = "multipassd-instance-image-records.json";
+constexpr auto image_db_name = "multipassd-image-records.json";
 
 auto filename_for(const QString& path)
 {
@@ -229,8 +232,7 @@ private:
 }
 
 mp::DefaultVMImageVault::DefaultVMImageVault(VMImageHost* image_host, URLDownloader* downloader,
-                                             mp::Path cache_dir_path, mp::Path data_dir_path, mp::days days_to_expire,
-                                             std::ostream& cout)
+                                             mp::Path cache_dir_path, mp::Path data_dir_path, mp::days days_to_expire)
     : image_host{image_host},
       url_downloader{downloader},
       cache_dir{QDir(cache_dir_path).filePath("vault")},
@@ -238,7 +240,6 @@ mp::DefaultVMImageVault::DefaultVMImageVault(VMImageHost* image_host, URLDownloa
       instances_dir(data_dir.filePath("instances")),
       images_dir(cache_dir.filePath("images")),
       days_to_expire{days_to_expire},
-      cout{cout},
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
       instance_image_records{load_db(data_dir.filePath(instance_db_name), cache_dir.filePath(instance_db_name))}
 {
@@ -381,7 +382,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     for (const auto& key : keys_to_update)
     {
         const auto& record = prepared_image_records[key];
-        cout << fmt::format("Updating {} source image to latest:\n", record.query.release);
+        mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
         fetch_image(fetch_type, record.query, prepare, monitor);
     }
 }

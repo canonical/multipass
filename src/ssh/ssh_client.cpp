@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,7 @@
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
 
-#include "ssh_client_key_provider.h"
-
 #include <libssh/libssh.h>
-
-#include <sstream>
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
 #include <thread>
@@ -31,18 +27,8 @@
 
 namespace mp = multipass;
 
-namespace
-{
-using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
-
-auto create_ssh_session(const std::string& host, int port, const std::string& priv_key_blob)
-{
-    return std::make_unique<mp::SSHSession>(host, port, mp::SSHClientKeyProvider(priv_key_blob));
-}
-}
-
 mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& priv_key_blob)
-    : ssh_session{create_ssh_session(host, port, priv_key_blob)},
+    : ssh_session{mp::SSHSession::create_client_session(host, port, priv_key_blob)},
       channel{ssh_channel_new(*ssh_session), ssh_channel_free},
       console{Console::make_console()}
 {
@@ -81,6 +67,7 @@ int mp::SSHClient::exec(const std::vector<std::string>& args)
 void mp::SSHClient::handle_ssh_events()
 {
 #ifndef MULTIPASS_PLATFORM_WINDOWS
+    using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
     std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};
 
     // stdin

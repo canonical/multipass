@@ -17,7 +17,7 @@
 
 #include "sftp_server_test_fixture.h"
 
-#include "file_reader.h"
+#include "file_operations.h"
 #include "path.h"
 #include "temp_dir.h"
 #include "temp_file.h"
@@ -51,8 +51,7 @@ struct SftpServer : public mp::test::SftpServerTest
     {
         mp::SSHSession session{"a", 42};
         auto proc = session.exec("sshfs");
-        return {std::move(session), std::move(proc), path,       default_map,
-                default_map,        default_id,      default_id, nullstream};
+        return {std::move(session), std::move(proc), path, default_map, default_map, default_id, default_id};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)
@@ -90,7 +89,6 @@ struct SftpServer : public mp::test::SftpServerTest
     std::queue<sftp_client_message> messages;
     std::unordered_map<int, int> default_map;
     int default_id{1000};
-    std::stringstream nullstream;
 };
 
 struct MessageAndReply
@@ -182,21 +180,6 @@ auto name_as_char_array(const std::string& name)
     std::vector<char> out(name.begin(), name.end());
     out.push_back('\0');
     return out;
-}
-
-auto make_file_with_content(const QString& file_name)
-{
-    QFile file(file_name);
-    if (file.exists())
-        throw std::runtime_error("test file already exists");
-
-    if (!file.open(QFile::WriteOnly))
-        throw std::runtime_error("failed to open test file");
-
-    std::string content{"this is a test file"};
-    file.write(content.data(), content.size());
-
-    return file.size();
 }
 
 auto make_data(const std::string& in)
@@ -428,7 +411,7 @@ TEST_F(SftpServer, handles_readlink)
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
     auto link_name = temp_dir.path() + "/test-link";
-    make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     ASSERT_TRUE(mp::platform::symlink(file_name.toStdString().c_str(), link_name.toStdString().c_str(),
                                       QFileInfo(file_name).isDir()));
@@ -482,7 +465,7 @@ TEST_F(SftpServer, handles_symlink)
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
     auto link_name = temp_dir.path() + "/test-link";
-    make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_SYMLINK);
@@ -535,7 +518,7 @@ TEST_F(SftpServer, handles_rename)
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
     auto new_name = temp_dir.path() + "/test-renamed";
-    make_file_with_content(old_name);
+    mpt::make_file_with_content(old_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_RENAME);
@@ -581,7 +564,7 @@ TEST_F(SftpServer, handles_remove)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     ASSERT_TRUE(QFile::exists(file_name));
 
@@ -655,7 +638,7 @@ TEST_F(SftpServer, open_in_truncate_mode_truncates_file)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    auto size = make_file_with_content(file_name);
+    auto size = mpt::make_file_with_content(file_name);
 
     ASSERT_TRUE(QFile::exists(file_name));
     ASSERT_THAT(size, Gt(0));
@@ -711,7 +694,7 @@ TEST_F(SftpServer, handles_readdir)
     ASSERT_TRUE(dir_entry.mkdir(test_dir));
 
     auto test_file = temp_dir.path() + "/test-file";
-    make_file_with_content(test_file);
+    mpt::make_file_with_content(test_file);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto open_dir_msg = make_msg(SFTP_OPENDIR);
@@ -790,7 +773,7 @@ TEST_F(SftpServer, handles_fstat)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    uint64_t expected_size = make_file_with_content(file_name);
+    uint64_t expected_size = mpt::make_file_with_content(file_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto open_msg = make_msg(SFTP_OPEN);
@@ -873,7 +856,7 @@ TEST_F(SftpServer, handles_setstat)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_SETSTAT);
@@ -975,7 +958,7 @@ TEST_F(SftpServer, handles_reads)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    auto size = make_file_with_content(file_name);
+    auto size = mpt::make_file_with_content(file_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto open_msg = make_msg(SFTP_OPEN);
@@ -1021,7 +1004,7 @@ TEST_F(SftpServer, handle_extended_link)
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
     auto link_name = temp_dir.path() + "/test-link";
-    make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_EXTENDED);
@@ -1077,7 +1060,7 @@ TEST_F(SftpServer, handle_extended_rename)
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
     auto new_name = temp_dir.path() + "/test-renamed";
-    make_file_with_content(old_name);
+    mpt::make_file_with_content(old_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_EXTENDED);
@@ -1148,7 +1131,7 @@ TEST_P(Stat, handles)
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
     auto link_name = temp_dir.path() + "/test-link";
-    make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     auto msg_type = GetParam();
 

@@ -35,7 +35,7 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service
 {
     Q_OBJECT
 public:
-    DaemonRpc(const std::string& server_address, std::ostream& cout, std::ostream& cerr);
+    DaemonRpc(const std::string& server_address);
 
 signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
@@ -57,8 +57,6 @@ signals:
 private:
     const std::string server_address;
     const std::unique_ptr<grpc::Server> server;
-    std::ostream& cout;
-    std::ostream& cerr;
 
 protected:
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,

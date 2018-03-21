@@ -17,8 +17,9 @@
  *
  */
 
-#include "path.h"
 #include "src/daemon/ubuntu_image_host.h"
+
+#include "path.h"
 
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>

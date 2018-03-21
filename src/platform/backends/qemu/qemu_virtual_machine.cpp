@@ -18,18 +18,23 @@
  */
 
 #include "qemu_virtual_machine.h"
+
 #include "dnsmasq_server.h"
+
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <fmt/format.h>
+
 #include <QCoreApplication>
-#include <QDebug>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMetaEnum>
 #include <QObject>
 #include <QProcess>
 #include <QString>
@@ -38,6 +43,7 @@
 #include <thread>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -87,12 +93,15 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
     {
         process->setWorkingDirectory(snap.append("/qemu"));
     }
-    qDebug() << "QProcess::workingDirectory" << process->workingDirectory();
-    process->setProgram("qemu-system-x86_64");
-    qDebug() << "QProcess::program" << process->program();
-    process->setArguments(args);
-    qDebug() << "QProcess::arguments" << process->arguments();
 
+    process->setProgram("qemu-system-x86_64");
+    process->setArguments(args);
+
+    mpl::log(mpl::Level::debug, desc.vm_name,
+             fmt::format("process working dir '{}'", process->workingDirectory().toStdString()));
+    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program().toStdString()));
+    mpl::log(mpl::Level::info, desc.vm_name,
+             fmt::format("process arguments '{}'", process->arguments().join(", ").toStdString()));
     return process;
 }
 
@@ -127,7 +136,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
 {
     QObject::connect(vm_process.get(), &QProcess::started, [this]() {
-        qDebug() << "QProcess::started";
+        mpl::log(mpl::Level::info, vm_name, "process started");
         on_started();
     });
     QObject::connect(vm_process.get(), &QProcess::readyReadStandardOutput, [this]() {
@@ -138,40 +147,40 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         {
             if (event.toString() == "RESET" && state != State::restarting)
             {
-                qDebug() << "monitor: Instance" << QString::fromStdString(vm_name) << "restarting";
+                mpl::log(mpl::Level::info, vm_name, "VM restarting");
                 on_restart();
             }
             else if (event.toString() == "POWERDOWN")
             {
-                qDebug() << "monitor: Instance" << QString::fromStdString(vm_name) << "powering down";
+                mpl::log(mpl::Level::info, vm_name, "VM powering down");
             }
             else if (event.toString() == "SHUTDOWN")
             {
-                qDebug() << "monitor: Instance" << QString::fromStdString(vm_name) << "shut down";
+                mpl::log(mpl::Level::info, vm_name, "VM shut down");
             }
         }
     });
 
     QObject::connect(vm_process.get(), &QProcess::readyReadStandardError, [this]() {
         saved_error_msg = vm_process->readAllStandardError().data();
-        qDebug("qemu.err: %s", saved_error_msg.c_str());
+        mpl::log(mpl::Level::error, vm_name, saved_error_msg);
     });
 
-    QObject::connect(vm_process.get(), &QProcess::stateChanged, [](QProcess::ProcessState newState) {
-        qDebug() << "QProcess::stateChanged"
-                 << "newState" << newState;
+    QObject::connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {
+        auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
+        mpl::log(mpl::Level::info, vm_name, fmt::format("process state changed to {}", meta.valueToKey(newState)));
     });
 
     QObject::connect(vm_process.get(), &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
-        qDebug() << "QProcess::errorOccurred"
-                 << "error" << error;
+        auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
+        mpl::log(mpl::Level::error, vm_name, fmt::format("process error occurred {}", meta.valueToKey(error)));
         on_error();
     });
 
     QObject::connect(vm_process.get(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
                      [this](int exitCode, QProcess::ExitStatus exitStatus) {
-                         qDebug() << "QProcess::finished"
-                                  << "exitCode" << exitCode << "exitStatus" << exitStatus;
+                         mpl::log(mpl::Level::info, vm_name,
+                                  fmt::format("process finished with exit code {}", exitCode));
                          on_shutdown();
                      });
 }

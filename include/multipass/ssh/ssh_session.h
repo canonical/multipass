@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +24,6 @@
 
 #include <libssh/libssh.h>
 
-#include <chrono>
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -42,12 +40,16 @@ public:
 
     void force_shutdown();
 
+    static std::unique_ptr<SSHSession> create_client_session(const std::string& host, int port,
+                                                             const std::string& priv_key_blob);
+
 private:
     operator ssh_session() const;
 
     SSHSession(const std::string& host, int port, const SSHKeyProvider* key_provider);
     std::unique_ptr<ssh_session_struct, void(*)(ssh_session)> session;
 
+    friend class SCPClient;
     friend class SSHClient;
     friend class SftpServer;
 };

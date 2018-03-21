@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,26 +17,21 @@
  *
  */
 
-#include "file_reader.h"
-#include "path.h"
+#ifndef MULTIPASS_STUB_LOGGER_H
+#define MULTIPASS_STUB_LOGGER_H
 
-#include <QFile>
-
-namespace mpt = multipass::test;
-
-QByteArray mpt::load(QString path)
+#include <multipass/logging/logger.h>
+namespace multipass
 {
-    QFile file(path);
-    if (file.exists())
+namespace test
+{
+class StubLogger : public logging::Logger
+{
+    void log(logging::Level, logging::CString, logging::CString) const
     {
-        file.open(QIODevice::ReadOnly);
-        return file.readAll();
     }
-    throw std::invalid_argument(path.toStdString() + " does not exist");
-}
+};
+} // namespace test
+} // namespace multipass
 
-QByteArray mpt::load_test_file(const char* file_name)
-{
-    auto file_path = multipass::test::test_data_path_for(file_name);
-    return multipass::test::load(file_path);
-}
+#endif // MULTIPASS_STUB_LOGGER_H

@@ -22,6 +22,8 @@ add_library(ip_address_pool STATIC
             ip_address_pool.cpp)
 
 target_link_libraries(network
+  fmt
+  logger
   Qt5::Core
   Qt5::Network)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/ssh/ssh_key_provider.h>
+
+#include "ssh_client_key_provider.h"
 
 #include <libssh/callbacks.h>
 #include <libssh/socket.h>
@@ -126,6 +128,12 @@ void mp::SSHSession::force_shutdown()
 
     const int shutdown_read_and_writes = 2;
     shutdown(socket, shutdown_read_and_writes);
+}
+
+std::unique_ptr<mp::SSHSession> mp::SSHSession::create_client_session(const std::string& host, int port,
+                                                                      const std::string& priv_key_blob)
+{
+    return std::make_unique<mp::SSHSession>(host, port, mp::SSHClientKeyProvider(priv_key_blob));
 }
 
 mp::SSHSession::operator ssh_session() const

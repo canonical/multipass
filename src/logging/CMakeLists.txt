@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -12,33 +12,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(commands STATIC
-  animated_spinner.cpp
-  copy_files.cpp
-  launch.cpp
-  purge.cpp
-  exec.cpp
-  find.cpp
-  help.cpp
-  info.cpp
-  list.cpp
-  mount.cpp
-  recover.cpp
-  shell.cpp
-  start.cpp
-  stop.cpp
-  delete.cpp
-  umount.cpp
-  version.cpp
+add_library(logger
+  log.cpp
+  standard_logger.cpp)
 
-  ${PLATFORM_COMMANDS})
-
-target_link_libraries(commands
-  client_platform
-  scp_client
-  ssh_client
-  rpc
-  Qt5::Core
-  yaml)
+target_link_libraries(logger
+  fmt
+  Qt5::Core)
