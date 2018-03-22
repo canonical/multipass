@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
 
 #include "unix_console.h"
 
-#include <atomic>
+#include <multipass/auto_join_thread.h>
+#include <multipass/platform_unix.h>
 
-#include <signal.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -27,38 +27,73 @@ namespace mp = multipass;
 
 namespace
 {
-std::atomic<bool> window_resized{false};
+const std::vector<int> blocked_sigs{SIGWINCH, SIGUSR1};
 
-bool was_set(std::atomic<bool>& value)
+void change_ssh_pty_size(ssh_channel channel)
 {
-    bool old = value;
-    while (old && !value.compare_exchange_weak(old, false))
+    struct winsize win = {0, 0, 0, 0};
+
+    ioctl(fileno(stdout), TIOCGWINSZ, &win);
+    ssh_channel_change_pty_size(channel, win.ws_col, win.ws_row);
+}
+}
+
+class mp::WindowChangedSignalHandler
+{
+public:
+    WindowChangedSignalHandler(ssh_channel channel)
+        : signal_handling_thread{[this, channel] { monitor_signals(channel); }}
     {
     }
-    return old;
-}
 
-static void sig_window_changed(int i)
-{
-    (void)i;
-    window_resized = true;
-}
+    ~WindowChangedSignalHandler()
+    {
+        kill(0, SIGUSR1);
+    }
 
-void set_signal()
-{
-    signal(SIGWINCH, sig_window_changed);
-}
-}
+    void monitor_signals(ssh_channel channel)
+    {
+        auto sigset{mp::platform::make_sigset(blocked_sigs)};
 
-mp::UnixConsole::UnixConsole() : interactive{isatty(fileno(stdin)) == 1}
+        while (true)
+        {
+            int sig = -1;
+            sigwait(&sigset, &sig);
+
+            if (sig == SIGWINCH)
+            {
+                change_ssh_pty_size(channel);
+            }
+            else
+                break;
+        }
+    }
+
+private:
+    mp::AutoJoinThread signal_handling_thread;
+};
+
+mp::UnixConsole::UnixConsole(ssh_channel channel)
+    : interactive{isatty(fileno(stdin)) == 1},
+      handler{std::make_unique<WindowChangedSignalHandler>(channel)}
 {
-    set_signal();
     setup_console();
+
+    if (interactive)
+    {
+        ssh_channel_request_pty(channel);
+        change_ssh_pty_size(channel);
+    }
 }
 
 mp::UnixConsole::~UnixConsole()
 {
     restore_console();
+}
+
+void mp::UnixConsole::setup_environment()
+{
+    mp::platform::make_and_block_signals(blocked_sigs);
 }
 
 void mp::UnixConsole::setup_console()
@@ -72,24 +107,6 @@ void mp::UnixConsole::setup_console()
         cfmakeraw(&terminal_local);
         tcsetattr(fileno(stdin), TCSANOW, &terminal_local);
     }
-}
-
-bool mp::UnixConsole::is_window_size_changed()
-{
-    return was_set(window_resized);
-}
-
-mp::Console::WindowGeometry mp::UnixConsole::get_window_geometry()
-{
-    struct winsize win = {0, 0, 0, 0};
-    ioctl(fileno(stdout), TIOCGWINSZ, &win);
-
-    return mp::Console::WindowGeometry{win.ws_row, win.ws_col};
-}
-
-bool mp::UnixConsole::is_interactive()
-{
-    return interactive;
 }
 
 void mp::UnixConsole::restore_console()

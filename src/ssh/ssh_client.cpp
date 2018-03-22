@@ -21,9 +21,19 @@
 
 #include "ssh_client_key_provider.h"
 
-#include <libssh/libssh.h>
-
 namespace mp = multipass;
+
+namespace
+{
+mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
+{
+    mp::SSHClient::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+
+    mp::SSH::throw_on_error(ssh_channel_open_session, channel);
+
+    return channel;
+}
+}
 
 mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& priv_key_blob)
     : SSHClient{std::make_unique<mp::SSHSession>(host, port, mp::SSHClientKeyProvider(priv_key_blob))}
@@ -32,8 +42,8 @@ mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& p
 
 mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, Console::UPtr console)
     : ssh_session{std::move(ssh_session)},
-      channel{ssh_channel_new(*this->ssh_session), ssh_channel_free},
-      console{(console == nullptr) ? Console::make_console() : std::move(console)}
+      channel{make_channel(*this->ssh_session)},
+      console{(console == nullptr) ? Console::make_console(channel.get()) : std::move(console)}
 {
 }
 
@@ -44,14 +54,6 @@ void mp::SSHClient::connect()
 
 int mp::SSHClient::exec(const std::vector<std::string>& args)
 {
-    SSH::throw_on_error(ssh_channel_open_session, channel);
-
-    if (console->is_interactive())
-    {
-        SSH::throw_on_error(ssh_channel_request_pty, channel);
-        change_ssh_pty_size(console->get_window_geometry());
-    }
-
     if (args.empty())
         SSH::throw_on_error(ssh_channel_request_shell, channel);
     else
@@ -88,18 +90,10 @@ void mp::SSHClient::handle_ssh_events()
 
     while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
     {
-        if (console->is_window_size_changed())
-            change_ssh_pty_size(console->get_window_geometry());
-
         ssh_event_dopoll(event.get(), 60000);
     }
 
     ssh_event_remove_connector(event.get(), connector_in.get());
     ssh_event_remove_connector(event.get(), connector_out.get());
     ssh_event_remove_connector(event.get(), connector_err.get());
-}
-
-void mp::SSHClient::change_ssh_pty_size(mp::Console::WindowGeometry window_geometry)
-{
-    SSH::throw_on_error(ssh_channel_change_pty_size, channel, window_geometry.columns, window_geometry.rows);
 }

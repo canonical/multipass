@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,12 @@
 
 namespace mp = multipass;
 
-mp::Console::UPtr mp::Console::make_console()
+mp::Console::UPtr mp::Console::make_console(ssh_channel channel)
 {
-    return std::make_unique<UnixConsole>();
+    return std::make_unique<UnixConsole>(channel);
+}
+
+void mp::Console::setup_environment()
+{
+    UnixConsole::setup_environment();
 }
