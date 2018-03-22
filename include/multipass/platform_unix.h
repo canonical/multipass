@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,28 +13,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#include "client.h"
+#ifndef MULTIPASS_PLATFORM_UNIX_H
+#define MULTIPASS_PLATFORM_UNIX_H
 
-#include <multipass/cli/cli.h>
-#include <multipass/console.h>
-#include <multipass/platform.h>
+#include <vector>
 
-#include <QCoreApplication>
+#include <signal.h>
 
-namespace mp = multipass;
-
-int main(int argc, char* argv[])
+namespace multipass
 {
-    QCoreApplication app(argc, argv);
-    app.setApplicationName("multipass");
-    mp::Console::setup_environment();
-
-    mp::ClientConfig config{mp::platform::default_server_address(), std::cout, std::cerr};
-    mp::Client client{config};
-
-    return client.run(app.arguments());
+namespace platform
+{
+sigset_t make_sigset(std::vector<int> sigs);
+sigset_t make_and_block_signals(std::vector<int> sigs);
+} // namespace platform
 }
+#endif // MULTIPASS_PLATFORM_UNIX_H

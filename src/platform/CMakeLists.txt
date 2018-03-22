@@ -15,7 +15,8 @@
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 add_library(platform STATIC
-  platform.cpp)
+  platform_linux.cpp
+  platform_unix.cpp)
 
 target_link_libraries(platform
   qemu_backend

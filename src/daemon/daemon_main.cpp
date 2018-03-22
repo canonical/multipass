@@ -19,11 +19,12 @@
 
 #include "daemon.h"
 #include "daemon_config.h"
-#include "auto_join_thread.h"
 
+#include <multipass/auto_join_thread.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
+#include <multipass/platform_unix.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
@@ -39,19 +40,6 @@
 
 namespace
 {
-
-sigset_t make_and_block_signals(std::vector<int> sigs)
-{
-    sigset_t sigset;
-    sigemptyset(&sigset);
-    for (auto signal : sigs)
-    {
-        sigaddset(&sigset, signal);
-    }
-    sigprocmask(SIG_BLOCK, &sigset, nullptr);
-    return sigset;
-}
-
 void set_server_permissions(const std::string& server_address)
 {
     QString address = QString::fromStdString(server_address);
@@ -75,9 +63,12 @@ class UnixSignalHandler
 {
 public:
     UnixSignalHandler(QCoreApplication& app)
-        : signal_handling_thread{
-            [this, &app, sigs = make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] { monitor_signals(sigs, app); }}
-    {
+        : signal_handling_thread{[this, &app,
+                                  sigs = multipass::platform::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})]{
+              monitor_signals(sigs, app);
+}
+}
+{
     }
 
     ~UnixSignalHandler()

@@ -44,7 +44,6 @@ public:
 
 private:
     void handle_ssh_events();
-    void change_ssh_pty_size(Console::WindowGeometry window_geometry);
 
     SSHSessionUPtr ssh_session;
     ChannelUPtr channel;

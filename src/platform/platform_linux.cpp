@@ -17,24 +17,26 @@
  *
  */
 
-#include "client.h"
-
-#include <multipass/cli/cli.h>
-#include <multipass/console.h>
 #include <multipass/platform.h>
 
-#include <QCoreApplication>
+#include <multipass/virtual_machine_factory.h>
+
+#include "backends/qemu/qemu_virtual_machine_factory.h"
+#include "logger/journald_logger.h"
 
 namespace mp = multipass;
 
-int main(int argc, char* argv[])
+std::string mp::platform::default_server_address()
 {
-    QCoreApplication app(argc, argv);
-    app.setApplicationName("multipass");
-    mp::Console::setup_environment();
+    return {"unix:/run/multipass_socket"};
+}
 
-    mp::ClientConfig config{mp::platform::default_server_address(), std::cout, std::cerr};
-    mp::Client client{config};
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+{
+    return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+}
 
-    return client.run(app.arguments());
+mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
+{
+    return std::make_unique<logging::JournaldLogger>(level);
 }
