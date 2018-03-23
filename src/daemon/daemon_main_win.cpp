@@ -20,6 +20,10 @@
 #include "daemon.h"
 #include "daemon_config.h"
 
+#include <multipass/logging/log.h>
+
+#include <fmt/format.h>
+
 #include <QCoreApplication>
 
 #include <windows.h>
@@ -49,14 +53,17 @@ try
     QCoreApplication app(argc, argv);
     SetConsoleCtrlHandler(windows_console_ctrl_handler, TRUE);
 
-    multipass::Daemon daemon(multipass::DaemonConfigBuilder{}.build());
+    auto config = multipass::DaemonConfigBuilder{}.build();
+
+    multipass::logging::set_logger(config->logger);
+    multipass::Daemon daemon(std::move(config));
 
     app.exec();
 
-    std::cout << "Goodbye!\n";
+    fmt::print(stderr, "Goodbye!\n");
     return EXIT_SUCCESS;
 }
 catch (const std::exception& e)
 {
-    std::cerr << "Error: " << e.what() << "\n";
+    fmt::print(stderr, "Error: {}\n", e.what());
 }
