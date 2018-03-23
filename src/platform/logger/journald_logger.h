@@ -15,32 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_SCP_CLIENT_H
-#define MULTIPASS_SCP_CLIENT_H
+#ifndef MULTIPASS_JOURNALD_LOGGER_H
+#define MULTIPASS_JOURNALD_LOGGER_H
 
-#include <multipass/ssh/ssh_session.h>
-
-#include <libssh/libssh.h>
-
-#include <memory>
-#include <string>
-#include <vector>
+#include <multipass/logging/logger.h>
 
 namespace multipass
 {
-using SSHSessionUPtr = std::unique_ptr<SSHSession>;
-
-class SCPClient
+namespace logging
+{
+class JournaldLogger : public Logger
 {
 public:
-    SCPClient(const std::string& host, int port, const std::string& priv_key_blob);
-    SCPClient(SSHSessionUPtr ssh_session);
-
-    void push_file(const std::string& source_path, const std::string& destination_path);
-    void pull_file(const std::string& source_path, const std::string& destination_path);
+    JournaldLogger(Level level);
+    void log(Level level, CString category, CString message) const override;
 
 private:
-    SSHSessionUPtr ssh_session;
+    Level logging_level;
 };
-}
-#endif // MULTIPASS_SCP_CLIENT_H
+} // namespace logging
+} // namespace multipass
+#endif // MULTIPASS_JOURNALD_LOGGER_H

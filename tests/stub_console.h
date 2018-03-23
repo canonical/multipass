@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,37 +15,45 @@
  *
  */
 
-#ifndef MULTIPASS_UNIX_CONSOLE_H
-#define MULTIPASS_UNIX_CONSOLE_H
+#ifndef MULTIPASS_STUB_CONSOLE_H
+#define MULTIPASS_STUB_CONSOLE_H
 
 #include <multipass/console.h>
 
-#include <termios.h>
-
 namespace multipass
 {
-class UnixConsole final : public Console
+namespace test
 {
-public:
-    UnixConsole();
-    ~UnixConsole();
+struct StubConsole final : public multipass::Console
+{
+    void setup_console() override{};
 
     int read_console(std::array<char, 512>& buffer) override
     {
         return 0;
     };
+
     void write_console(const char* buffer, int bytes) override{};
+
     void signal_console() override{};
-    bool is_window_size_changed() override;
-    bool is_interactive() override;
-    WindowGeometry get_window_geometry() override;
 
-private:
-    void setup_console() override;
-    void restore_console() override;
+    bool is_window_size_changed() override
+    {
+        return false;
+    };
 
-    bool interactive{false};
-    struct termios saved_terminal;
+    bool is_interactive() override
+    {
+        return true;
+    };
+
+    WindowGeometry get_window_geometry() override
+    {
+        return WindowGeometry{-1, -1};
+    };
+
+    void restore_console() override{};
 };
 }
-#endif // MULTIPASS_UNIX_CONSOLE_H
+}
+#endif // MULTIPASS_STUB_CONSOLE_H

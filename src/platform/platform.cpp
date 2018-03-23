@@ -18,9 +18,12 @@
  */
 
 #include <multipass/platform.h>
+
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/qemu/qemu_virtual_machine_factory.h"
+#include "logger/journald_logger.h"
+
 #include <unistd.h>
 
 namespace mp = multipass;
@@ -33,6 +36,11 @@ std::string mp::platform::default_server_address()
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+}
+
+mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
+{
+    return std::make_unique<logging::JournaldLogger>(level);
 }
 
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)

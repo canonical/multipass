@@ -41,6 +41,7 @@ add_executable(multipass_tests
   mock_scp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
+  mock_ssh_client.cpp
   path.cpp
   temp_dir.cpp
   temp_file.cpp
@@ -56,6 +57,7 @@ add_executable(multipass_tests
   test_scp_client.cpp
   test_sftpserver.cpp
   test_sshfsmount.cpp
+  test_ssh_client.cpp
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
   test_ssh_session.cpp
@@ -83,6 +85,8 @@ target_compile_definitions(sshfs_mount_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(scp_test PRIVATE
   ${c_mock_defines})
+target_compile_definitions(ssh_client_test PRIVATE
+  ${c_mock_defines})
 
 target_link_libraries(multipass_tests
   client
@@ -92,6 +96,7 @@ target_link_libraries(multipass_tests
   simplestreams
   scp_test
   ssh_test
+  ssh_client_test
   sshfs_mount_test
   utils
   # 3rd-party

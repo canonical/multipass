@@ -356,7 +356,17 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         };
 
         auto download_monitor = [](int download_type, int percentage) {
-            mpl::log(mpl::Level::info, category, fmt::format("{}%", percentage));
+            static int last_percentage_logged = -1;
+            if (percentage % 10 == 0)
+            {
+                // Note: The progress callback may be called repeatedly with the same percentage,
+                // so this logic is to only log it once
+                if (last_percentage_logged != percentage)
+                {
+                    mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
+                    last_percentage_logged = percentage;
+                }
+            }
             return true;
         };
         try

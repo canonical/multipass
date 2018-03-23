@@ -20,6 +20,7 @@
 #ifndef MULTIPASS_PLATFORM_H
 #define MULTIPASS_PLATFORM_H
 
+#include <multipass/logging/logger.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <string>
@@ -30,6 +31,7 @@ namespace platform
 {
 std::string default_server_address();
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
+logging::Logger::UPtr make_logger(logging::Level level);
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);
 bool link(const char* target, const char* link);

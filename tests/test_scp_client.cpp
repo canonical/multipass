@@ -23,6 +23,7 @@
 #include "temp_dir.h"
 
 #include <multipass/ssh/scp_client.h>
+#include <multipass/ssh/ssh_session.h>
 
 #include <gmock/gmock.h>
 
@@ -42,7 +43,7 @@ struct SCPClient : public testing::Test
 
     mp::SCPClient make_scp_client()
     {
-        return {"a", 42};
+        return {std::make_unique<mp::SSHSession>("a", 42)};
     }
 
     decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};

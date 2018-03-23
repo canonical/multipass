@@ -22,9 +22,12 @@ elseif(APPLE)
   target_link_libraries(platform hyperkit_backend)
 else()
   add_library(platform STATIC platform.cpp)
-  target_link_libraries(platform qemu_backend)
+  target_link_libraries(platform
+    qemu_backend
+    journaldlogger)
 endif()
 
 add_subdirectory(backends)
-add_subdirectory(console)
 add_subdirectory(client)
+add_subdirectory(console)
+add_subdirectory(logger)
