@@ -36,6 +36,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
 }
 
+mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
+{
+    return nullptr;
+}
+
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
 {
     return 0;
