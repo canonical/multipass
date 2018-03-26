@@ -30,7 +30,6 @@ public:
     WindowsConsole();
     ~WindowsConsole();
 
-    void setup_console() override;
     int read_console(std::array<char, 512>& buffer) override;
     void write_console(const char* buffer, int bytes) override;
     void signal_console() override;
@@ -39,6 +38,7 @@ public:
     WindowGeometry get_window_geometry() override;
 
 private:
+    void setup_console() override;
     void restore_console() override;
 
     bool interactive;

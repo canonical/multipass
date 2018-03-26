@@ -29,6 +29,7 @@ mp::WindowsConsole::WindowsConsole()
 {
     events[0] = input_handle;
     events[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
+    setup_console();
 }
 
 mp::WindowsConsole::~WindowsConsole()
