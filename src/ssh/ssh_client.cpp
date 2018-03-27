@@ -110,9 +110,6 @@ void mp::SSHClient::handle_ssh_events()
         {
             num_bytes = ssh_channel_read(channel.get(), buffer.data(), buffer.size(), 0);
 
-            if (console->is_window_size_changed())
-                change_ssh_pty_size(console->get_window_geometry());
-
             console->write_console(buffer.data(), num_bytes);
         }
         console->signal_console();

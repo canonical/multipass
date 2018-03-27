@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,11 +21,12 @@
 
 namespace mp = multipass;
 
-mp::WindowsConsole::WindowsConsole()
+mp::WindowsConsole::WindowsConsole(ssh_channel channel)
     : interactive{!(_isatty(_fileno(stdin)) == 0)},
       input_handle{GetStdHandle(STD_INPUT_HANDLE)},
       output_handle{GetStdHandle(STD_OUTPUT_HANDLE)},
-      saved_geometry{0, 0}
+      saved_geometry{0, 0},
+      channel{channel}
 {
     events[0] = input_handle;
     events[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -47,6 +48,9 @@ void mp::WindowsConsole::setup_console()
                            ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_WINDOW_INPUT);
         GetConsoleMode(output_handle, &console_output_mode);
         SetConsoleMode(output_handle, console_output_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+        ssh_channel_request_pty(channel);
+        change_ssh_pty_size();
     }
 }
 
@@ -70,6 +74,8 @@ int mp::WindowsConsole::read_console(std::array<char, 512>& buffer)
 void mp::WindowsConsole::write_console(const char* buffer, int num_bytes)
 {
     DWORD write;
+
+    change_ssh_pty_size();
     WriteConsole(output_handle, buffer, num_bytes, &write, NULL);
 }
 
@@ -81,37 +87,20 @@ void mp::WindowsConsole::signal_console()
 // This is needed to see if the console window size has changed. Using WINDOW_BUFFER_SIZE_EVENT from
 // ReadConsoleInput() is not enough because the console's buffer size probably won't change when the
 // window itself is resized and there is no direct way to get a console window resize event.
-bool mp::WindowsConsole::is_window_size_changed()
+void mp::WindowsConsole::change_ssh_pty_size()
 {
     CONSOLE_SCREEN_BUFFER_INFO sb_info;
     GetConsoleScreenBufferInfo(output_handle, &sb_info);
-    auto current_columns = sb_info.srWindow.Right - sb_info.srWindow.Left;
-    auto current_rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
+    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left;
+    auto rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
 
-    bool changed = false;
-    if (saved_geometry.columns != current_columns)
+    if (saved_geometry.columns != columns ||
+        saved_geometry.rows != rows)
     {
-        saved_geometry.columns = current_columns;
-        changed = true;
+        saved_geometry.columns = columns;
+        saved_geometry.rows = rows;
+        ssh_channel_change_pty_size(channel, columns, rows);
     }
-
-    if (saved_geometry.rows != current_rows)
-    {
-        saved_geometry.rows = current_rows;
-        changed = true;
-    }
-
-    return changed;
-}
-
-mp::Console::WindowGeometry mp::WindowsConsole::get_window_geometry()
-{
-    return saved_geometry;
-}
-
-bool mp::WindowsConsole::is_interactive()
-{
-    return interactive;
 }
 
 void mp::WindowsConsole::restore_console()

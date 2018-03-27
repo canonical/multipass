@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 
 #include <multipass/console.h>
 
+#include <libssh/libssh.h>
+
 #include <windows.h>
 
 namespace multipass
@@ -27,27 +29,32 @@ namespace multipass
 class WindowsConsole final : public Console
 {
 public:
-    WindowsConsole();
+    WindowsConsole(ssh_channel channel);
     ~WindowsConsole();
 
     int read_console(std::array<char, 512>& buffer) override;
     void write_console(const char* buffer, int bytes) override;
     void signal_console() override;
-    bool is_window_size_changed() override;
-    bool is_interactive() override;
-    WindowGeometry get_window_geometry() override;
 
 private:
-    void setup_console() override;
-    void restore_console() override;
+    struct WindowGeometry
+    {
+        int rows;
+        int columns;
+    };
 
-    bool interactive;
+    void setup_console();
+    void restore_console();
+    void change_ssh_pty_size();
+
+    bool interactive{false};
     HANDLE input_handle;
     HANDLE output_handle;
     DWORD console_input_mode;
     DWORD console_output_mode;
     WindowGeometry saved_geometry;
     HANDLE events[2];
+    ssh_channel channel;
 };
 }
 #endif // MULTIPASS_WINDOWS_CONSOLE_H

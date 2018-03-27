@@ -28,7 +28,7 @@ namespace mp = multipass;
 mp::Console::UPtr mp::Console::make_console(ssh_channel channel)
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
-    return std::make_unique<WindowsConsole>();
+    return std::make_unique<WindowsConsole>(channel);
 #else
     return std::make_unique<UnixConsole>(channel);
 #endif
@@ -36,5 +36,7 @@ mp::Console::UPtr mp::Console::make_console(ssh_channel channel)
 
 void mp::Console::setup_environment()
 {
+#ifndef MULTIPASS_PLATFORM_WINDOWS
     UnixConsole::setup_environment();
+#endif
 }
