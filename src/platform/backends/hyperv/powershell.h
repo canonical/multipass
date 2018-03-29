@@ -20,11 +20,13 @@
 #ifndef MULTIPASS_POWERSHELL_H
 #define MULTIPASS_POWERSHELL_H
 
+#include <string>
+
 #include <QStringList>
 
 namespace multipass
 {
-bool powershell_run(QStringList args);
+bool powershell_run(QStringList args, const std::string& name);
 }
 
 #endif // MULTIPASS_POWERSHELL_H

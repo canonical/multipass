@@ -29,7 +29,7 @@ namespace mp = multipass;
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const VirtualMachineDescription& desc)
     : ip{address}, name{QString::fromStdString(desc.vm_name)}, state{State::off}, key_provider{desc.key_provider}
 {
-    if (!powershell_run({"Get-VM", "-Name", name}))
+    if (!powershell_run({"Get-VM", "-Name", name}, desc.vm_name))
     {
         auto mem_size = QString::fromStdString(desc.mem_size);
         if (mem_size.endsWith("K") || mem_size.endsWith("M") || mem_size.endsWith("G"))
@@ -39,8 +39,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const V
             mem_size.append("MB");
 
         powershell_run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
-                        "VHD", "-SwitchName", "multipass", "-MemoryStartupBytes", mem_size});
-        powershell_run({"Set-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso});
+                        "VHD", "-SwitchName", "multipass", "-MemoryStartupBytes", mem_size},
+                       desc.vm_name);
+        powershell_run({"Set-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso}, desc.vm_name);
     }
 }
 
@@ -51,13 +52,13 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 
 void mp::HyperVVirtualMachine::start()
 {
-    powershell_run({"Start-VM", "-Name", name});
+    powershell_run({"Start-VM", "-Name", name}, name.toStdString());
     state = State::running;
 }
 
 void mp::HyperVVirtualMachine::stop()
 {
-    powershell_run({"Stop-VM", "-Name", name});
+    powershell_run({"Stop-VM", "-Name", name}, name.toStdString());
     state = State::stopped;
 }
 

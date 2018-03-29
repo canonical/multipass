@@ -19,40 +19,52 @@
 
 #include "powershell.h"
 
-#include <QDebug>
+#include <multipass/logging/log.h>
+
+#include <fmt/format.h>
+
+#include <QMetaEnum>
 #include <QProcess>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
-bool mp::powershell_run(QStringList args)
+bool mp::powershell_run(QStringList args, const std::string& name)
 {
     QProcess power_shell;
     power_shell.setProgram("powershell.exe");
-    qDebug() << "QProcess::program" << power_shell.program();
     power_shell.setArguments(args);
-    qDebug() << "QProcess::arguments" << power_shell.arguments();
 
-    QObject::connect(&power_shell, &QProcess::started, []() { qDebug() << "powershell started"; });
-    QObject::connect(&power_shell, &QProcess::readyReadStandardOutput,
-                     [&]() { qDebug("powershell.out: %s", power_shell.readAllStandardOutput().data()); });
+    mpl::log(mpl::Level::debug, name,
+             fmt::format("powershell working dir '{}'", power_shell.workingDirectory().toStdString()));
+    mpl::log(mpl::Level::info, name, fmt::format("powershell program '{}'", power_shell.program().toStdString()));
+    mpl::log(mpl::Level::info, name,
+             fmt::format("powershell arguments '{}'", power_shell.arguments().join(", ").toStdString()));
 
-    QObject::connect(&power_shell, &QProcess::readyReadStandardError,
-                     [&]() { qDebug("powershell.err: %s", power_shell.readAllStandardError().data()); });
-
-    QObject::connect(&power_shell, &QProcess::stateChanged, [](QProcess::ProcessState newState) {
-        qDebug() << "QProcess::stateChanged"
-                 << "newState" << newState;
+    QObject::connect(&power_shell, &QProcess::started,
+                     [&name]() { mpl::log(mpl::Level::info, name, "powershell started"); });
+    QObject::connect(&power_shell, &QProcess::readyReadStandardOutput, [&name, &power_shell]() {
+        mpl::log(mpl::Level::info, name, power_shell.readAllStandardOutput().data());
     });
 
-    QObject::connect(&power_shell, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
-        qDebug() << "QProcess::errorOccurred"
-                 << "error" << error;
+    QObject::connect(&power_shell, &QProcess::readyReadStandardError, [&name, &power_shell]() {
+        mpl::log(mpl::Level::error, name, power_shell.readAllStandardError().data());
+    });
+
+    QObject::connect(&power_shell, &QProcess::stateChanged, [&name](QProcess::ProcessState newState) {
+        auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
+        mpl::log(mpl::Level::info, name, fmt::format("powershell state changed to {}", meta.valueToKey(newState)));
+    });
+
+    QObject::connect(&power_shell, &QProcess::errorOccurred, [&name](QProcess::ProcessError error) {
+        auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
+        mpl::log(mpl::Level::error, name, fmt::format("powershell error occurred {}", meta.valueToKey(error)));
     });
 
     QObject::connect(&power_shell, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                     [](int exitCode, QProcess::ExitStatus exitStatus) {
-                         qDebug() << "QProcess::finished"
-                                  << "exitCode" << exitCode << "exitStatus" << exitStatus;
+                     [&name](int exitCode, QProcess::ExitStatus exitStatus) {
+                         mpl::log(mpl::Level::info, name,
+                                  fmt::format("powershell finished with exit code {}", exitCode));
                      });
 
     power_shell.start();

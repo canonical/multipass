@@ -32,15 +32,16 @@ namespace mp = multipass;
 
 namespace
 {
-void create_virtual_switch()
+void create_virtual_switch(const std::string& name)
 {
-    if (!mp::powershell_run({"Get-VMSwitch", "-Name", "multipass"}))
+    if (!mp::powershell_run({"Get-VMSwitch", "-Name", "multipass"}, name))
     {
-        mp::powershell_run({"New-VMSwitch", "-SwitchType", "Internal", "-Name", "multipass"});
+        mp::powershell_run({"New-VMSwitch", "-SwitchType", "Internal", "-Name", "multipass"}, name);
         mp::powershell_run({"New-NetIPAddress", "-IPAddress", "10.122.122.1", "-PrefixLength", "24", "-InterfaceIndex",
-                            "(Get-NetAdapter -Name 'vEthernet (multipass)').ifIndex"});
+                            "(Get-NetAdapter -Name 'vEthernet (multipass)').ifIndex"},
+                           name);
         mp::powershell_run(
-            {"New-NetNat", "-Name", "multipassNAT", "-InternalIPInterfaceAddressPrefix", "10.122.122.0/24"});
+            {"New-NetNat", "-Name", "multipassNAT", "-InternalIPInterfaceAddressPrefix", "10.122.122.0/24"}, name);
     }
 }
 }
@@ -53,14 +54,14 @@ mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& dat
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                  VMStatusMonitor& monitor)
 {
-    create_virtual_switch();
+    create_virtual_switch("hyperv-factory");
     return std::make_unique<mp::HyperVVirtualMachine>(ip_pool.obtain_ip_for(desc.vm_name), desc);
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
     ip_pool.remove_ip_for(name);
-    powershell_run({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"});
+    powershell_run({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
 }
 
 mp::FetchType mp::HyperVVirtualMachineFactory::fetch_type()
@@ -105,7 +106,7 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
         auto disk_space = QString::fromStdString(desc.disk_space);
         if (disk_space.endsWith('K') || disk_space.endsWith('M') || disk_space.endsWith('G'))
             disk_space.append("B");
-        powershell_run({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_space});
+        powershell_run({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_space}, desc.vm_name);
     }
 }
 
