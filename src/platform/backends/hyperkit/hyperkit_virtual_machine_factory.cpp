@@ -19,23 +19,24 @@
 #include "hyperkit_virtual_machine_factory.h"
 #include "hyperkit_virtual_machine.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <QCoreApplication>
-#include <QDebug>
-#include <QFileInfo>
-#include <QProcess>
-
-#include <unistd.h> // getuid
+#include <fmt/format.h>
 
 #include <QCoreApplication>
-#include <QDebug>
 #include <QFileInfo>
 #include <QProcess>
 
 #include <unistd.h> // getuid
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
+
+namespace
+{
+constexpr auto category = "hyperkit-factory";
+}
 
 mp::VirtualMachine::UPtr
 mp::HyperkitVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -71,8 +72,11 @@ mp::VMImage mp::HyperkitVirtualMachineFactory::prepare_source_image(const VMImag
     QStringList uncompress_args(
         {QStringLiteral("convert"), "-p", "-O", "qcow2", source_image.image_path, uncompressed_file});
 
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("app path '{}'", QCoreApplication::applicationDirPath().toStdString()));
+    mpl::log(mpl::Level::debug, category, fmt::format("qemu-img {}", uncompress_args.join(", ").toStdString()));
+
     QProcess uncompress;
-    qDebug() << QCoreApplication::applicationDirPath() + "/qemu-img" << uncompress_args;
     uncompress.start(QCoreApplication::applicationDirPath() + "/qemu-img", uncompress_args);
     uncompress.waitForFinished();
 

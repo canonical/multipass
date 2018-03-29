@@ -18,7 +18,7 @@
 
 #include "ptyreader.h"
 
-#include <QDebug>
+#include <multipass/logging/log.h>
 
 extern "C" {
 #include <errno.h>
@@ -29,6 +29,7 @@ extern "C" {
 }
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 class mp::PtyReader::PtyFd
 {
@@ -121,7 +122,7 @@ bool mp::PtyReader::doRead()
 
     if (ioctl(fd->get(), FIONREAD, &bytes) < 0)
     {
-        qDebug("Error getting read buffer size, using fallback");
+        mpl::log(mpl::Level::error, "pty-reader", "could not get read buffer size, using fallback");
         bytes = 1024;
     }
     line.resize(bytes); // pre-allocate buffer size

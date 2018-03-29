@@ -22,5 +22,7 @@ add_library(hyperkit_backend STATIC
 
 target_link_libraries(hyperkit_backend
   Qt5::Core
+  fmt
+  logger
   ssh
   utils)

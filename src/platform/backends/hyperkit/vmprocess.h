@@ -55,6 +55,7 @@ private:
     std::unique_ptr<PtyReader> pty_reader;
     bool network_configured;
     QFileSystemWatcher pty_watcher;
+    std::string vm_name;
 };
 
 } // namespace multipass

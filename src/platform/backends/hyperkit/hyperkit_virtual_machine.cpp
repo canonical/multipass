@@ -21,18 +21,19 @@
 #include "vmprocess.h"
 
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
-#include <QDebug>
 #include <QEventLoop>
 #include <QMetaObject>
 #include <QString>
 #include <QTimer>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
     : state{State::off}, monitor{&monitor}, desc{desc}
@@ -122,8 +123,8 @@ std::string mp::HyperkitVirtualMachine::ipv4()
             ip_address = ip;
             loop.quit();
         });
-        QTimer::singleShot(40000, &loop, [&loop]() {
-            qDebug("Unable to determine IP address of VM");
+        QTimer::singleShot(40000, &loop, [&loop, this]() {
+            mpl::log(mpl::Level::error, desc.vm_name, "Unable to determine IP address");
             loop.quit();
         });
         loop.exec();

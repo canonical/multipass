@@ -19,17 +19,22 @@
 #include "vmprocess.h"
 
 #include "ptyreader.h"
+
+#include <multipass/logging/log.h>
 #include <multipass/virtual_machine_description.h>
+
+#include <fmt/format.h>
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
-#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QMetaEnum>
 #include <QTimer>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -74,7 +79,8 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
     QDir log_directory("/Library/Logs/Multipass/");
     if (!log_directory.exists())
     {
-        qDebug() << "Creating log file directory" << log_directory.path();
+        mpl::log(mpl::Level::info, desc.vm_name,
+                 fmt::format("creating log file dir {}", log_directory.path().toStdString()));
         log_directory.mkdir(log_directory.path());
     }
 
@@ -134,11 +140,14 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
      */
 
     auto process = std::make_unique<QProcess>();
-    qDebug() << "QProcess::workingDirectory" << process->workingDirectory();
     process->setProgram(QCoreApplication::applicationDirPath() + "/hyperkit");
-    qDebug() << "QProcess::program" << process->program();
     process->setArguments(args);
-    qDebug() << "QProcess::arguments" << process->arguments();
+
+    mpl::log(mpl::Level::debug, desc.vm_name,
+             fmt::format("process working dir '{}'", process->workingDirectory().toStdString()));
+    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program().toStdString()));
+    mpl::log(mpl::Level::info, desc.vm_name,
+             fmt::format("process arguments '{}'", process->arguments().join(", ").toStdString()));
 
     return process;
 }
@@ -159,24 +168,30 @@ void mp::VMProcess::start(const VirtualMachineDescription& desc)
     network_configured = false;
     const QString pty = QString("%1/pty").arg(dir(desc.image.image_path));
     vm_process = make_hyperkit_process(desc, pty);
+    vm_name = desc.vm_name;
 
     /* Hyperkit process monitoring */
     connect(vm_process.get(), &QProcess::started, this, &VMProcess::started);
 
     connect(vm_process.get(), &QProcess::readyReadStandardOutput,
-            [=]() { qDebug("hyperkit.out: %s", vm_process->readAllStandardOutput().constData()); });
+            [this]() { mpl::log(mpl::Level::info, vm_name, vm_process->readAllStandardOutput().constData()); });
     connect(vm_process.get(), &QProcess::readyReadStandardError,
-            [=]() { qDebug("hyperkit.err: %s", vm_process->readAllStandardError().constData()); });
+            [this]() { mpl::log(mpl::Level::error, vm_name, vm_process->readAllStandardError().constData()); });
+
+    connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {
+        auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
+        mpl::log(mpl::Level::info, vm_name, fmt::format("process state changed to {}", meta.valueToKey(newState)));
+    });
 
     connect(vm_process.get(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-            [=](int exitCode, QProcess::ExitStatus exitStatus) {
-                qDebug() << "QProcess::finished"
-                         << "exitCode" << exitCode << "exitStatus" << exitStatus;
+            [this](int exitCode, QProcess::ExitStatus exitStatus) {
+                mpl::log(mpl::Level::info, vm_name, fmt::format("process finished with exit code {}", exitCode));
                 emit stopped(exitCode != QProcess::NormalExit);
             });
 
-    connect(vm_process.get(), &QProcess::errorOccurred, [=](QProcess::ProcessError error) {
-        qDebug() << "QProcess::errorOccurred:" << error;
+    connect(vm_process.get(), &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
+        auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
+        mpl::log(mpl::Level::error, vm_name, fmt::format("process error occurred {}", meta.valueToKey(error)));
         emit stopped(true);
     });
 
@@ -188,7 +203,7 @@ void mp::VMProcess::start(const VirtualMachineDescription& desc)
     if (QFile::exists(pty))
         QFile::remove(pty);
 
-    qDebug() << "Setting up watch for PTY in dir" << dir(pty);
+    mpl::log(mpl::Level::info, vm_name, fmt::format("setting up watch for PTY in dir {}", dir(pty).toStdString()));
     pty_watcher.addPath(dir(pty));
 
     connect(&pty_watcher, &QFileSystemWatcher::directoryChanged, this, &mp::VMProcess::pty_available);
@@ -202,17 +217,17 @@ void mp::VMProcess::stop()
 
     if (vm_process->state() == QProcess::Starting)
     {
-        qDebug("Hyperkit VM in starting state, waiting for it to finish booting");
+        mpl::log(mpl::Level::info, vm_name, "hyperkit in starting state, waiting for it to finish booting");
         vm_process->waitForStarted(10000);
     }
 
-    qDebug("Sending shutdown signal to Hyperkit process, waiting for it to shutdown...");
+    mpl::log(mpl::Level::info, vm_name, "sending shutdown signal to hyperkit process, waiting for it to shutdown...");
     // hyperkit intercepts a SIGTERM signal and sends shutdown signal to the VM
     vm_process->terminate();
 
     if (!vm_process->waitForFinished(15000))
     {
-        qDebug("Hyperkit not responding to shutdown signal, killing it");
+        mpl::log(mpl::Level::info, vm_name, "hyperkit not responding to shutdown signal, killing it");
         vm_process->kill();
     }
 
@@ -227,14 +242,14 @@ void multipass::VMProcess::pty_available(const QString& dir)
         pty_watcher.removePath(dir);
         QObject::disconnect(&pty_watcher, &QFileSystemWatcher::directoryChanged, nullptr, nullptr);
 
-        qDebug() << "Hyperkit PTY found, opening" << pty;
+        mpl::log(mpl::Level::info, vm_name, fmt::format("hyperkit PTY found, opening {}", pty.toStdString()));
         try
         {
             pty_reader = std::make_unique<PtyReader>(pty);
         }
         catch (const std::exception& e)
         {
-            qDebug() << e.what();
+            mpl::log(mpl::Level::error, vm_name, fmt::format("failed to instantiate PtyReader: {}", e.what()));
             stop(); // FIXME: is this the most suitable decision?
             return;
         }
@@ -256,7 +271,7 @@ void multipass::VMProcess::console_output(const QByteArray& line)
             uint8_t fourth = ip_regex.cap(2).toUInt();
 
             std::string ip_address = "192.168." + std::to_string(third) + "." + std::to_string(fourth);
-            qDebug("IP address found: %s", ip_address.c_str());
+            mpl::log(mpl::Level::info, vm_name, fmt::format("IP address found: {}", ip_address.c_str()));
             emit ip_address_found(ip_address);
             network_configured = true;
         }
