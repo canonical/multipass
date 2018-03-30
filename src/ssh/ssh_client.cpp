@@ -22,8 +22,11 @@
 #include "ssh_client_key_provider.h"
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
+#include <io.h>
 #include <thread>
 #endif
+
+#include <iostream>
 
 namespace mp = multipass;
 
@@ -71,6 +74,7 @@ int mp::SSHClient::exec(const std::vector<std::string>& args)
 
 void mp::SSHClient::handle_ssh_events()
 {
+    using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
 #ifndef MULTIPASS_PLATFORM_WINDOWS
     using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
     std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};
@@ -103,29 +107,16 @@ void mp::SSHClient::handle_ssh_events()
     ssh_event_remove_connector(event.get(), connector_err.get());
 #else
     auto stdout_thread = std::thread([this]() {
-        std::array<char, 512> buffer;
-        int num_bytes{0};
-
         while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
         {
-            num_bytes = ssh_channel_read(channel.get(), buffer.data(), buffer.size(), 0);
-
-            console->write_console(buffer.data(), num_bytes);
+            console->write_console();
         }
-        console->signal_console();
+        console->exit_console();
     });
-
-    std::array<char, 512> buffer;
-    int bytes_read{0};
 
     while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
     {
-        bytes_read = console->read_console(buffer);
-
-        if (bytes_read == -1)
-            break;
-
-        ssh_channel_write(channel.get(), buffer.data(), bytes_read);
+        console->read_console();
     }
 
     stdout_thread.join();

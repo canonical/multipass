@@ -20,8 +20,6 @@
 
 #include <libssh/libssh.h>
 
-#include <array>
-#include <functional>
 #include <memory>
 
 namespace multipass

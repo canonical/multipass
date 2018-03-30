@@ -22,6 +22,8 @@
 
 #include <libssh/libssh.h>
 
+#include <thread>
+
 #include <windows.h>
 
 namespace multipass
@@ -30,31 +32,23 @@ class WindowsConsole final : public Console
 {
 public:
     WindowsConsole(ssh_channel channel);
-    ~WindowsConsole();
 
-    int read_console(std::array<char, 512>& buffer) override;
-    void write_console(const char* buffer, int bytes) override;
-    void signal_console() override;
+    void read_console() override;
+    void write_console() override;
+    void exit_console() override;
 
 private:
-    struct WindowGeometry
-    {
-        int rows;
-        int columns;
-    };
-
     void setup_console();
     void restore_console();
-    void change_ssh_pty_size();
 
     bool interactive{false};
     HANDLE input_handle;
     HANDLE output_handle;
     DWORD console_input_mode;
     DWORD console_output_mode;
-    WindowGeometry saved_geometry;
-    HANDLE events[2];
     ssh_channel channel;
+    HWINEVENTHOOK hook;
+    std::thread console_event_thread;
 };
 }
 #endif // MULTIPASS_WINDOWS_CONSOLE_H
