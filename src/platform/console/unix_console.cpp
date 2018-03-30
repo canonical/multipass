@@ -28,13 +28,20 @@ namespace mp = multipass;
 namespace
 {
 const std::vector<int> blocked_sigs{SIGWINCH, SIGUSR1};
+mp::Console::ConsoleGeometry last_geometry{0, 0};
 
 void change_ssh_pty_size(ssh_channel channel)
 {
     struct winsize win = {0, 0, 0, 0};
-
     ioctl(fileno(stdout), TIOCGWINSZ, &win);
-    ssh_channel_change_pty_size(channel, win.ws_col, win.ws_row);
+
+    if (last_geometry.rows != win.ws_row || last_geometry.columns != win.ws_col)
+    {
+        last_geometry.rows = win.ws_row;
+        last_geometry.columns = win.ws_col;
+
+        ssh_channel_change_pty_size(channel, win.ws_col, win.ws_row);
+    }
 }
 }
 

@@ -29,13 +29,19 @@ namespace multipass
 class Console
 {
 public:
+    struct ConsoleGeometry
+    {
+        int rows;
+        int columns;
+    };
+
     using UPtr = std::unique_ptr<Console>;
 
     virtual ~Console() = default;
 
-    virtual int read_console(std::array<char, 512>& buffer) = 0;
-    virtual void write_console(const char* buffer, int bytes) = 0;
-    virtual void signal_console() = 0;
+    virtual void read_console() = 0;
+    virtual void write_console() = 0;
+    virtual void exit_console() = 0;
 
     static UPtr make_console(ssh_channel channel);
     static void setup_environment();
