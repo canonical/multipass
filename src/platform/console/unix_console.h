@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,32 +20,36 @@
 
 #include <multipass/console.h>
 
+#include <libssh/libssh.h>
+
+#include <vector>
+
+#include <signal.h>
 #include <termios.h>
 
 namespace multipass
 {
+class WindowChangedSignalHandler;
 class UnixConsole final : public Console
 {
 public:
-    UnixConsole();
+    UnixConsole(ssh_channel channel);
     ~UnixConsole();
 
-    int read_console(std::array<char, 512>& buffer) override
-    {
-        return 0;
-    };
-    void write_console(const char* buffer, int bytes) override{};
-    void signal_console() override{};
-    bool is_window_size_changed() override;
-    bool is_interactive() override;
-    WindowGeometry get_window_geometry() override;
+    void read_console() override{};
+    void write_console() override{};
+    void exit_console() override{};
+
+    static void setup_environment();
 
 private:
-    void setup_console() override;
-    void restore_console() override;
+    void setup_console();
+    void restore_console();
 
     bool interactive{false};
     struct termios saved_terminal;
+
+    std::unique_ptr<WindowChangedSignalHandler> handler;
 };
 }
 #endif // MULTIPASS_UNIX_CONSOLE_H

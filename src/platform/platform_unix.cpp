@@ -18,30 +18,11 @@
  */
 
 #include <multipass/platform.h>
-
-#include <multipass/virtual_machine_factory.h>
-
-#include "backends/qemu/qemu_virtual_machine_factory.h"
-#include "logger/journald_logger.h"
+#include <multipass/platform_unix.h>
 
 #include <unistd.h>
 
 namespace mp = multipass;
-
-std::string mp::platform::default_server_address()
-{
-    return {"unix:/run/multipass_socket"};
-}
-
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
-{
-    return std::make_unique<QemuVirtualMachineFactory>(data_dir);
-}
-
-mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
-{
-    return std::make_unique<logging::JournaldLogger>(level);
-}
 
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
 {
@@ -56,4 +37,22 @@ bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
 bool mp::platform::link(const char* target, const char* link)
 {
     return ::link(target, link) == 0;
+}
+
+sigset_t mp::platform::make_sigset(std::vector<int> sigs)
+{
+    sigset_t sigset;
+    sigemptyset(&sigset);
+    for (auto signal : sigs)
+    {
+        sigaddset(&sigset, signal);
+    }
+    return sigset;
+}
+
+sigset_t mp::platform::make_and_block_signals(std::vector<int> sigs)
+{
+    auto sigset{make_sigset(sigs)};
+    sigprocmask(SIG_BLOCK, &sigset, nullptr);
+    return sigset;
 }

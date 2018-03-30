@@ -26,33 +26,11 @@ namespace test
 {
 struct StubConsole final : public multipass::Console
 {
-    void setup_console() override{};
+    void read_console() override{};
 
-    int read_console(std::array<char, 512>& buffer) override
-    {
-        return 0;
-    };
+    void write_console() override{};
 
-    void write_console(const char* buffer, int bytes) override{};
-
-    void signal_console() override{};
-
-    bool is_window_size_changed() override
-    {
-        return false;
-    };
-
-    bool is_interactive() override
-    {
-        return true;
-    };
-
-    WindowGeometry get_window_geometry() override
-    {
-        return WindowGeometry{-1, -1};
-    };
-
-    void restore_console() override{};
+    void exit_console() override{};
 };
 }
 }

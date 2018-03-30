@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,19 @@
  *
  */
 
-#include <multipass/console.h>
+#ifndef MULTIPASS_PLATFORM_UNIX_H
+#define MULTIPASS_PLATFORM_UNIX_H
 
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-#include "windows_console.h"
-#else
-#include "unix_console.h"
-#endif
+#include <vector>
 
-namespace mp = multipass;
+#include <signal.h>
 
-mp::Console::UPtr mp::Console::make_console(ssh_channel channel)
+namespace multipass
 {
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-    return std::make_unique<WindowsConsole>();
-#else
-    return std::make_unique<UnixConsole>(channel);
-#endif
-}
-
-void mp::Console::setup_environment()
+namespace platform
 {
-    UnixConsole::setup_environment();
+sigset_t make_sigset(std::vector<int> sigs);
+sigset_t make_and_block_signals(std::vector<int> sigs);
+} // namespace platform
 }
+#endif // MULTIPASS_PLATFORM_UNIX_H

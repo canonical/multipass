@@ -51,27 +51,9 @@ struct SSHClient : public testing::Test
 
 TEST_F(SSHClient, throws_when_unable_to_open_session)
 {
-    auto client = make_ssh_client();
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
 
-    EXPECT_THROW(client.connect(), std::runtime_error);
-}
-
-TEST_F(SSHClient, throws_when_request_pty_fails)
-{
-    auto client = make_ssh_client();
-    REPLACE(ssh_channel_request_pty, [](auto...) { return SSH_ERROR; });
-
-    EXPECT_THROW(client.connect(), std::runtime_error);
-}
-
-TEST_F(SSHClient, throws_when_change_pty_size_fails)
-{
-    auto client = make_ssh_client();
-    REPLACE(ssh_channel_request_pty, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_change_pty_size, [](auto...) { return SSH_ERROR; });
-
-    EXPECT_THROW(client.connect(), std::runtime_error);
+    EXPECT_THROW(make_ssh_client(), std::runtime_error);
 }
 
 TEST_F(SSHClient, throw_when_request_shell_fails)

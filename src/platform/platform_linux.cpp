@@ -13,28 +13,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ *
  */
 
-#include <multipass/console.h>
+#include <multipass/platform.h>
 
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-#include "windows_console.h"
-#else
-#include "unix_console.h"
-#endif
+#include <multipass/virtual_machine_factory.h>
+
+#include "backends/qemu/qemu_virtual_machine_factory.h"
+#include "logger/journald_logger.h"
 
 namespace mp = multipass;
 
-mp::Console::UPtr mp::Console::make_console(ssh_channel channel)
+std::string mp::platform::default_server_address()
 {
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-    return std::make_unique<WindowsConsole>();
-#else
-    return std::make_unique<UnixConsole>(channel);
-#endif
+    return {"unix:/run/multipass_socket"};
 }
 
-void mp::Console::setup_environment()
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    UnixConsole::setup_environment();
+    return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+}
+
+mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
+{
+    return std::make_unique<logging::JournaldLogger>(level);
 }

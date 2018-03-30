@@ -18,10 +18,10 @@
  */
 
 #include <src/client/client.h>
-#include <src/daemon/auto_join_thread.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 
+#include <multipass/auto_join_thread.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>

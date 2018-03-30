@@ -18,10 +18,14 @@ if(MSVC)
   add_library(platform STATIC platform_win.cpp)
   target_link_libraries(platform hyperv_backend)
 elseif(APPLE)
-  add_library(platform STATIC platform_osx.cpp)
+  add_library(platform STATIC
+    platform_osx.cpp
+    platform_unix.cpp)
   target_link_libraries(platform hyperkit_backend)
 else()
-  add_library(platform STATIC platform.cpp)
+  add_library(platform STATIC
+    platform_linux.cpp
+    platform_unix.cpp)
   target_link_libraries(platform
     qemu_backend
     journaldlogger)

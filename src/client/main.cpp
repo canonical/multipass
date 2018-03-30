@@ -20,6 +20,7 @@
 #include "client.h"
 
 #include <multipass/cli/cli.h>
+#include <multipass/console.h>
 #include <multipass/platform.h>
 
 #include <QCoreApplication>
@@ -30,6 +31,7 @@ int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
     app.setApplicationName("multipass");
+    mp::Console::setup_environment();
 
     mp::ClientConfig config{mp::platform::default_server_address(), std::cout, std::cerr};
     mp::Client client{config};
