@@ -26,14 +26,11 @@ namespace test
 {
 struct StubConsole final : public multipass::Console
 {
-    int read_console(std::array<char, 512>& buffer) override
-    {
-        return 0;
-    };
+    void read_console() override{};
 
-    void write_console(const char* buffer, int bytes) override{};
+    void write_console() override{};
 
-    void signal_console() override{};
+    void exit_console() override{};
 };
 }
 }

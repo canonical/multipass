@@ -36,12 +36,9 @@ public:
     UnixConsole(ssh_channel channel);
     ~UnixConsole();
 
-    int read_console(std::array<char, 512>& buffer) override
-    {
-        return 0;
-    };
-    void write_console(const char* buffer, int bytes) override{};
-    void signal_console() override{};
+    void read_console() override{};
+    void write_console() override{};
+    void exit_console() override{};
 
     static void setup_environment();
 
