@@ -21,7 +21,6 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
-#include <unistd.h>
 
 namespace mp = multipass;
 
@@ -38,19 +37,4 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
     return nullptr;
-}
-
-int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
-{
-    return ::chown(path, uid, gid);
-}
-
-bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
-{
-    return ::symlink(target, link) == 0;
-}
-
-bool mp::platform::link(const char* target, const char* link)
-{
-    return ::link(target, link) == 0;
 }
