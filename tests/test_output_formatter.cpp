@@ -23,6 +23,8 @@
 
 #include <gmock/gmock.h>
 
+#include <locale>
+
 namespace mp = multipass;
 using namespace testing;
 
@@ -124,9 +126,43 @@ auto construct_multiple_instances_info_reply()
 
     return info_reply;
 }
+
+class LocaleSettingTest : public testing::Test
+{
+public:
+    LocaleSettingTest() : saved_locale{std::locale()}
+    {
+        // The tests expected output are for the default C locale
+        std::locale::global(std::locale("C"));
+    }
+
+    ~LocaleSettingTest()
+    {
+        std::locale::global(saved_locale);
+    }
+
+private:
+    std::locale saved_locale;
+};
+
+class TableFormatter : public LocaleSettingTest
+{
+};
+
+class JsonFormatter : public LocaleSettingTest
+{
+};
+
+class CSVFormatter : public LocaleSettingTest
+{
+};
+
+class YamlFormatter : public LocaleSettingTest
+{
+};
 }
 
-TEST(TableFormatter, single_instance_list_output)
+TEST_F(TableFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
@@ -139,7 +175,7 @@ TEST(TableFormatter, single_instance_list_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableFormatter, multiple_instance_list_output)
+TEST_F(TableFormatter, multiple_instance_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
@@ -153,7 +189,7 @@ TEST(TableFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableFormatter, no_instances_list_output)
+TEST_F(TableFormatter, no_instances_list_output)
 {
     mp::ListReply list_reply;
 
@@ -165,7 +201,7 @@ TEST(TableFormatter, no_instances_list_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableFormatter, single_instance_info_output)
+TEST_F(TableFormatter, single_instance_info_output)
 {
     auto info_reply = construct_single_instance_info_reply();
 
@@ -186,7 +222,7 @@ TEST(TableFormatter, single_instance_info_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableFormatter, multiple_instances_info_output)
+TEST_F(TableFormatter, multiple_instances_info_output)
 {
     auto info_reply = construct_multiple_instances_info_reply();
 
@@ -214,7 +250,7 @@ TEST(TableFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(TableFormatter, no_instances_info_output)
+TEST_F(TableFormatter, no_instances_info_output)
 {
     mp::InfoReply info_reply;
 
@@ -226,7 +262,7 @@ TEST(TableFormatter, no_instances_info_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
-TEST(JsonFormatter, single_instance_list_output)
+TEST_F(JsonFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
@@ -249,7 +285,7 @@ TEST(JsonFormatter, single_instance_list_output)
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonFormatter, multiple_instances_list_output)
+TEST_F(JsonFormatter, multiple_instances_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
@@ -279,7 +315,7 @@ TEST(JsonFormatter, multiple_instances_list_output)
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonFormatter, no_instances_list_output)
+TEST_F(JsonFormatter, no_instances_list_output)
 {
     mp::ListReply list_reply;
 
@@ -294,7 +330,7 @@ TEST(JsonFormatter, no_instances_list_output)
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonFormatter, single_instance_info_output)
+TEST_F(JsonFormatter, single_instance_info_output)
 {
     auto info_reply = construct_single_instance_info_reply();
 
@@ -352,7 +388,7 @@ TEST(JsonFormatter, single_instance_info_output)
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonFormatter, multiple_instances_info_output)
+TEST_F(JsonFormatter, multiple_instances_info_output)
 {
     auto info_reply = construct_multiple_instances_info_reply();
 
@@ -421,7 +457,7 @@ TEST(JsonFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(JsonFormatter, no_instances_info_output)
+TEST_F(JsonFormatter, no_instances_info_output)
 {
     mp::InfoReply info_reply;
 
@@ -438,7 +474,7 @@ TEST(JsonFormatter, no_instances_info_output)
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
-TEST(CSVFormatter, single_instance_list_output)
+TEST_F(CSVFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
@@ -451,7 +487,7 @@ TEST(CSVFormatter, single_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(CSVFormatter, multiple_instance_list_output)
+TEST_F(CSVFormatter, multiple_instance_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
@@ -465,7 +501,7 @@ TEST(CSVFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(CSVFormatter, no_instances_list_output)
+TEST_F(CSVFormatter, no_instances_list_output)
 {
     mp::ListReply list_reply;
 
@@ -477,7 +513,7 @@ TEST(CSVFormatter, no_instances_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(CSVFormatter, single_instance_info_output)
+TEST_F(CSVFormatter, single_instance_info_output)
 {
     auto info_reply = construct_single_instance_info_reply();
 
@@ -493,7 +529,7 @@ TEST(CSVFormatter, single_instance_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(CSVFormatter, multiple_instances_info_output)
+TEST_F(CSVFormatter, multiple_instances_info_output)
 {
     auto info_reply = construct_multiple_instances_info_reply();
 
@@ -510,7 +546,7 @@ TEST(CSVFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(CSVFormatter, no_instances_info_output)
+TEST_F(CSVFormatter, no_instances_info_output)
 {
     mp::InfoReply info_reply;
 
@@ -523,7 +559,7 @@ TEST(CSVFormatter, no_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(YamlFormatter, single_instance_list_output)
+TEST_F(YamlFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
@@ -539,7 +575,7 @@ TEST(YamlFormatter, single_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(YamlFormatter, multiple_instance_list_output)
+TEST_F(YamlFormatter, multiple_instance_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
@@ -560,7 +596,7 @@ TEST(YamlFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(YamlFormatter, no_instances_list_output)
+TEST_F(YamlFormatter, no_instances_list_output)
 {
     mp::ListReply list_reply;
 
@@ -572,7 +608,7 @@ TEST(YamlFormatter, no_instances_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(YamlFormatter, single_instance_info_output)
+TEST_F(YamlFormatter, single_instance_info_output)
 {
     auto info_reply = construct_single_instance_info_reply();
 
@@ -616,7 +652,7 @@ TEST(YamlFormatter, single_instance_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(YamlFormatter, multiple_instances_info_output)
+TEST_F(YamlFormatter, multiple_instances_info_output)
 {
     auto info_reply = construct_multiple_instances_info_reply();
 
@@ -667,7 +703,7 @@ TEST(YamlFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
-TEST(YamlFormatter, no_instances_info_output)
+TEST_F(YamlFormatter, no_instances_info_output)
 {
     mp::InfoReply info_reply;
 
