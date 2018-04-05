@@ -22,6 +22,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <locale>
+
 namespace mp = multipass;
 
 namespace
@@ -58,9 +60,13 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
         if (!info.load().empty())
         {
+            // The VM returns load info in the default C locale
+            auto current_loc = std::locale();
+            std::locale::global(std::locale("C"));
             auto loads = mp::utils::split(info.load(), " ");
             for (const auto& entry : loads)
                 instance_node["load"].push_back(std::stod(entry));
+            std::locale::global(current_loc);
         }
 
         YAML::Node disk;
