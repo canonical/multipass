@@ -20,6 +20,7 @@ add_library(platform STATIC
 
 target_link_libraries(platform
   qemu_backend
+  libvirt_backend
   journaldlogger)
 
 add_subdirectory(backends)
