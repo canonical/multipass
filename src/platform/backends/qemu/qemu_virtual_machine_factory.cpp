@@ -20,6 +20,7 @@
 #include "qemu_virtual_machine_factory.h"
 #include "qemu_virtual_machine.h"
 
+#include <multipass/backend_utils.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -27,25 +28,12 @@
 #include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
 
-#include <chrono>
-#include <random>
-
 #include <QTcpSocket>
 
 namespace mp = multipass;
 
 namespace
 {
-std::default_random_engine gen;
-std::uniform_int_distribution<int> dist{0, 255};
-
-auto generate_mac_address()
-{
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    std::array<int, 3> octets{dist(gen), dist(gen), dist(gen)};
-    return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
-}
-
 // An interface name can only be 15 characters, so this generates a hash of the
 // VM instance name with a "tap-" prefix and then truncates it.
 auto generate_tap_device_name(const std::string& vm_name)
@@ -54,38 +42,6 @@ auto generate_tap_device_name(const std::string& vm_name)
     auto tap_name = fmt::format("tap-{:x}", name_hash);
     tap_name.resize(15);
     return tap_name;
-}
-
-bool can_reach_gateway(const std::string& ip)
-{
-    return mp::utils::run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
-}
-
-bool subnet_used_locally(const std::string& subnet)
-{
-    const auto ip_cmd = fmt::format("ip -4 route show | grep -q {}", subnet);
-    return mp::utils::run_cmd_for_status("bash", {"-c", ip_cmd.c_str()});
-}
-
-auto generate_random_subnet()
-{
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    for (auto i = 0; i < 100; ++i)
-    {
-        auto subnet = fmt::format("10.{}.{}", dist(gen), dist(gen));
-        if (subnet_used_locally(subnet))
-            continue;
-
-        if (can_reach_gateway(fmt::format("{}.1", subnet)))
-            continue;
-
-        if (can_reach_gateway(fmt::format("{}.254", subnet)))
-            continue;
-
-        return subnet;
-    }
-
-    throw std::runtime_error("Could not determine a subnet for networking.");
 }
 
 auto virtual_switch_subnet()
@@ -98,7 +54,7 @@ void create_virtual_switch(const std::string& subnet)
 {
     if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", "mpbr0"}))
     {
-        const auto mac_address = generate_mac_address();
+        const auto mac_address = mp::backend::generate_mac_address();
         const auto cidr = fmt::format("{}.1/24", subnet);
         const auto broadcast = fmt::format("{}.255", subnet);
 
@@ -242,7 +198,7 @@ std::string make_subnet(bool use_legacy_subnet)
     if (use_legacy_subnet)
         return "10.122.122";
 
-    return generate_random_subnet();
+    return mp::backend::generate_random_subnet();
 }
 
 std::string get_subnet(const mp::Path& data_dir, bool use_legacy_subnet)
@@ -295,7 +251,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     create_tap_device(QString::fromStdString(tap_device_name));
 
     return std::make_unique<mp::QemuVirtualMachine>(desc, legacy_ip_pool.check_ip_for(desc.vm_name), tap_device_name,
-                                                    generate_mac_address(), dnsmasq_server, monitor);
+                                                    mp::backend::generate_mac_address(), dnsmasq_server, monitor);
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
@@ -316,12 +272,7 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                            const VirtualMachineDescription& desc)
 {
-    auto disk_size = QString::fromStdString(desc.disk_space);
-
-    if (disk_size.endsWith("B"))
-        disk_size.chop(1);
-
-    mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), instance_image.image_path, disk_size});
+    mp::backend::resize_instance_image(desc.disk_space, instance_image.image_path);
 }
 
 void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)
@@ -330,12 +281,5 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Nod
 
 void mp::QemuVirtualMachineFactory::check_hypervisor_support()
 {
-    QProcess check_kvm;
-    check_kvm.start("check_kvm_support");
-    check_kvm.waitForFinished();
-
-    if (check_kvm.exitCode() == 1)
-    {
-        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
-    }
+    mp::backend::check_hypervisor_support();
 }
