@@ -1,5 +1,5 @@
 name: multipass
-version: '2017.0.0'
+version: 'git'
 version-script: |
   git describe
 summary: Ubuntu at your fingertips
@@ -15,7 +15,7 @@ apps:
   multipassd:
     command: bin/launch-multipassd
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu::$SNAP/lib:$SNAP/usr/lib:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu
+      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/usr/lib
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       QT_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
@@ -23,11 +23,23 @@ apps:
     daemon: simple
   multipass:
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu::$SNAP/lib:$SNAP/usr/lib:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu
+      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/usr/lib
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       QT_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
+  libvirt-bin:
+    command: bin/launch-libvirtd
+    environment:
+      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/usr/lib
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      LC_ALL: C
+    daemon: simple
+  virsh:
+    command: bin/virsh
+    environment:
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      LC_ALL: C
 
 parts:
   qtbase5-dev:
@@ -102,13 +114,14 @@ parts:
     - cmake-extras
     - golang
     - libsystemd-dev
+    - libvirt-dev
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     install: |-
-      set -ex
+      set -e
       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
@@ -126,21 +139,83 @@ parts:
       usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
       usr/lib/ipxe/qemu/efi-virtio.rom: qemu/efi-virtio.rom
 
-  dnsmasq:
-    plugin: nil
-    stage-packages:
-    - dnsmasq
-
   kvm-support:
     plugin: nil
     stage-packages:
     - msr-tools
+
+  libvirt:
+    source: .
+    source-subdir: libvirt-1.3.1
+    plugin: autotools
+    build-packages:
+    - libxml2-dev
+    - libxml-libxml-perl
+    - libcurl4-gnutls-dev
+    - libncurses5-dev
+    - libreadline-dev
+    - zlib1g-dev
+    - libgcrypt20-dev
+    - libgnutls28-dev
+    - libyajl-dev
+    - libpcap0.8-dev
+    - libaudit-dev
+    - libdevmapper-dev
+    - libpciaccess-dev
+    - libnl-3-dev
+    - libnl-route-3-dev
+    - uuid-dev
+    - libnuma-dev
+    - python-all
+    - python-six
+    stage-packages:
+    - dmidecode
+    - dnsmasq
+    - libxml2
+    - libyajl2
+    - libnuma1
+    - libcurl3-gnutls
+    - libpciaccess0
+    configflags:
+    - --with-qemu
+    - --without-bhyve
+    - --without-xen
+    - --without-openvz
+    - --without-vmware
+    - --without-xenapi
+    - --without-esx
+    - --without-hyperv
+    - --without-lxc
+    - --without-vz
+    - --without-vbox
+    - --without-uml
+    - --without-sasl
+    - --without-storage-iscsi
+    - --without-storage-sheepdog
+    - --without-storage-rbd
+    - --without-storage-lvm
+    - --without-selinux
+    - --prefix=/snap/$SNAPCRAFT_PROJECT_NAME/current
+    - --localstatedir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
+    - --sysconfdir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
+    - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
+    - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
+    prepare: |
+      apt update
+      apt source libvirt
+    organize:
+      # Hack to shift installed libvirt back to root of snap
+      # required to ensure that pathing to files etc works at
+      # runtime
+      # * is not used to avoid directory merge conflicts
+      snap/multipass/current/: ./
 
   network-utils:
     plugin: nil
     stage-packages:
     - iproute2
     - iputils-ping
+    - libatm1
 
   glue:
     plugin: dump

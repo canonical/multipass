@@ -1,4 +1,19 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
-# Just a placeholder, however validation of the proxy.{http,https}
-# configuration could be made here
+vm_backend="$(snapctl get vm-backend)"
+
+if [[ -n $vm_backend && ! $vm_backend =~ (LIBVIRT|QEMU) ]]; then
+    echo "\"$vm_backend\" is not a supported VM backend"
+    exit 1
+fi
+
+vm_backend_saved="$(snapctl get vm-backend-saved)"
+
+if [[ $vm_backend == "QEMU" && -z $vm_backend_saved ]]; then
+    exit 0
+fi
+
+if [[ $vm_backend != $vm_backend_saved ]]; then
+    snapctl set vm-backend-saved="$vm_backend"
+    snapctl restart $SNAP_NAME
+fi
