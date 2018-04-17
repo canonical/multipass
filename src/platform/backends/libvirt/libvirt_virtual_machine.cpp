@@ -116,8 +116,14 @@ void get_parsed_memory_values(const std::string& mem_size, std::string& memory, 
 auto generate_xml_config_for(const mp::VirtualMachineDescription& desc)
 {
     std::string memory, mem_unit;
-
     get_parsed_memory_values(desc.mem_size, memory, mem_unit);
+
+    QString qemu_path{"/usr/bin/qemu-system-x86_64"};
+    auto snap = qgetenv("SNAP");
+    if (!snap.isEmpty())
+    {
+        qemu_path.prepend(snap);
+    }
 
     return fmt::format(
         "<domain type=\'kvm\'>\n"
@@ -138,7 +144,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc)
         "    <vmport state=\'off\'/>\n"
         "  </features>\n"
         "  <devices>\n"
-        "    <emulator>/usr/bin/qemu-system-x86_64</emulator>\n"
+        "    <emulator>{}</emulator>\n"
         "    <disk type=\'file\' device=\'disk\'>\n"
         "      <driver name=\'qemu\' type=\'qcow2\'/>\n"
         "      <source file=\'{}\'/>\n"
@@ -155,24 +161,23 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc)
         "    </disk>\n"
         "    <interface type=\'bridge\'>\n"
         "      <mac address=\'{}\'/>\n"
-        "      <source bridge=\'virbr0\'/>\n"
+        "      <source bridge=\'mpbr0\'/>\n"
         "      <target dev=\'vnet0\'/>\n"
         "      <model type=\'virtio\'/>\n"
         "      <alias name=\'net0\'/>\n"
         "    </interface>\n"
-        "    <serial type=\'null\'>\n"
-        "      <target port=\"1\"/>\n"
+        "    <serial type=\'pty\'>\n"
+        "      <source path=\'/dev/pts/2\'/>\n"
+        "      <target port=\"0\"/>\n"
         "    </serial>\n"
         "    <video>\n"
         "      <model type=\'qxl\' ram=\'65536\' vram=\'65536\' vgamem=\'16384\' heads=\'1\' primary=\'yes\'/>\n"
         "      <alias name=\'video0\'/>\n"
         "    </video>\n"
         "  </devices>\n"
-        "  <seclabel type=\'dynamic\' model=\'apparmor\' relabel=\'yes\'>\n"
-        "  </seclabel>\n"
         "</domain>",
-        desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, desc.image.image_path.toStdString(),
-        desc.cloud_init_iso.toStdString(), mp::backend::generate_mac_address());
+        desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, qemu_path.toStdString(),
+        desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), mp::backend::generate_mac_address());
 }
 
 auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDescription& desc)
@@ -227,7 +232,8 @@ void mp::LibVirtVirtualMachine::start()
     if (state == State::running)
         return;
 
-    virDomainCreate(domain.get());
+    if (virDomainCreate(domain.get()) == -1)
+        throw std::runtime_error(virGetLastErrorMessage());
 
     state = State::starting;
     monitor->on_resume();

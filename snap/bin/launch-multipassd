@@ -2,5 +2,6 @@
 
 export http_proxy="$(snapctl get proxy.http)"
 export https_proxy="$(snapctl get proxy.https)"
+export MULTIPASS_VM_BACKEND="$(snapctl get vm-backend)"
 
 exec $SNAP/bin/multipassd

@@ -1,0 +1,7 @@
+#!/bin/sh -e
+
+vm_backend="$(snapctl get vm-backend)"
+
+if [ "$vm_backend" = "LIBVIRT" ]; then
+    exec $SNAP/sbin/libvirtd
+fi
