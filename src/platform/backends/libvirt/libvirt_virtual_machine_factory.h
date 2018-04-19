@@ -44,6 +44,7 @@ public:
 
 private:
     ConnectionUPtr connection;
+    const std::string bridge_name;
 };
 }
 

@@ -37,13 +37,13 @@ auto connect_to_libvirt_daemon()
     return conn;
 }
 
-auto generate_libvirt_bridge_xml_config()
+auto generate_libvirt_bridge_xml_config(const std::string& bridge_name)
 {
     auto subnet = mp::backend::generate_random_subnet();
 
     return fmt::format("<network>\n"
                        "  <name>default</name>\n"
-                       "  <bridge name=\"mpbr0\"/>\n"
+                       "  <bridge name=\"{}\"/>\n"
                        "  <forward/>\n"
                        "  <ip address=\"{}.1\" netmask=\"255.255.255.0\">\n"
                        "    <dhcp>\n"
@@ -51,32 +51,37 @@ auto generate_libvirt_bridge_xml_config()
                        "    </dhcp>\n"
                        "  </ip>\n"
                        "</network>",
-                       subnet, subnet, subnet);
+                       bridge_name, subnet, subnet, subnet);
 }
 
-void enable_libvirt_network(virConnectPtr connection)
+std::string enable_libvirt_network(virConnectPtr connection)
 {
     mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection, "default"), virNetworkFree};
+    std::string bridge_name;
 
     if (network == nullptr)
     {
+        bridge_name = mp::backend::generate_virtual_bridge_name();
         network = mp::LibVirtVirtualMachine::NetworkUPtr{
-            virNetworkCreateXML(connection, generate_libvirt_bridge_xml_config().c_str()), virNetworkFree};
+            virNetworkCreateXML(connection, generate_libvirt_bridge_xml_config(bridge_name).c_str()), virNetworkFree};
     }
     else
     {
+        bridge_name = virNetworkGetBridgeName(network.get());
+
         if (virNetworkIsActive(network.get()) == 0)
         {
             virNetworkCreate(network.get());
         }
     }
+
+    return bridge_name;
 }
 }
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : connection{connect_to_libvirt_daemon()}
+    : connection{connect_to_libvirt_daemon()}, bridge_name{enable_libvirt_network(connection.get())}
 {
-    enable_libvirt_network(connection.get());
 }
 
 mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
@@ -86,7 +91,7 @@ mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
 mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                   VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::LibVirtVirtualMachine>(desc, connection.get(), monitor);
+    return std::make_unique<mp::LibVirtVirtualMachine>(desc, connection.get(), bridge_name, monitor);
 }
 
 void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& name)

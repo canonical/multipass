@@ -43,6 +43,7 @@ public:
 
 private:
     IPAddressPool legacy_ip_pool;
+    const QString bridge_name;
     DNSMasqServer dnsmasq_server;
 };
 }
