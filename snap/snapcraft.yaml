@@ -33,54 +33,54 @@ parts:
   qtbase5-dev:
     after: [qt5-qmake-bin]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.4+dfsg-0ubuntu4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/29364b97080c080696feb549b39d64c57d51360d0a27f6a3f2d956cfef063353
+    source-checksum: sha256/c856d6ab1b8a63760c60828108425c5b2dadb5de844ad0d77e12a77b5e47cf83
     prime: [-*]
 
   qtbase5-dev-tools:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.4+dfsg-0ubuntu4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/5a2dc0f0067bc3ba5f651fe22592601263cb6983059bf7540ea2a73c4ba592ef
+    source-checksum: sha256/a4d6b840380a6aeff930947934c5d3f2dfc2a854346a0557e73f0fb862750402
     prime: [-*]
 
   qt5-qmake:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.4+dfsg-0ubuntu4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/4c37d7e8ec7dfa90a286033d3ac5f96fea061f96562960111ca4be1088530b7f
+    source-checksum: sha256/b3f102f45ce7ef894f81133f10f33401b4430a7227ccc49c794dc7a0f637a76c
     prime: [-*]
 
   qt5-qmake-bin:
     after: [qt5-qmake]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.4+dfsg-0ubuntu4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/976120a7364332f9928e0f98fd051cc6389ef1bfbd185823e034d1f695e1ca00
+    source-checksum: sha256/aae95892d51d92abd092211ffc473e0a85fecdc810a5ef058346557624979847
     prime: [-*]
 
   libqt5core5a:
     after: [libicu]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.4+dfsg-0ubuntu4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/ebe9f9b7f0f9504d35dc7646938b5edf3e9ed05ba576f5fb9f5603f2b70fb213
+    source-checksum: sha256/27d43c6baab9555e77f76ce8faa637dbb9d3da9c7eb87cb44aaa63db3c79a519
     stage-packages:
     - libdouble-conversion1v5
     - libpcre16-3
 
   libqt5dbus5:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.4+dfsg-0ubuntu4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/34b99d2ef474bf17ed8f7adecc3cf58344366b50c847575fdcf6d4cd86dffc51
+    source-checksum: sha256/0116e50f3db3aa2a9fe369347f649ea49969e6413611caa9ffbc670b5dffeb80
 
   libqt5network5:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.4+dfsg-0ubuntu4_amd64.deb
+    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_amd64.deb
     source-type: deb
-    source-checksum: sha256/7d15ac44f474a6fba61fa458f04cffba7db6047d2db32f87ec92eae4af5a656f
+    source-checksum: sha256/9ce96a38ede0d062071262ecc4a700b98f5e26f7054b8e351a0f0ca5bc8ca5f0
     stage-packages:
     - libproxy1v5
 
