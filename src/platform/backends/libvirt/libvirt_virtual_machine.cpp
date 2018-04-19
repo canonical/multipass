@@ -113,7 +113,7 @@ void get_parsed_memory_values(const std::string& mem_size, std::string& memory, 
         mem_unit = "GiB";
 }
 
-auto generate_xml_config_for(const mp::VirtualMachineDescription& desc)
+auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name)
 {
     std::string memory, mem_unit;
     get_parsed_memory_values(desc.mem_size, memory, mem_unit);
@@ -161,7 +161,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc)
         "    </disk>\n"
         "    <interface type=\'bridge\'>\n"
         "      <mac address=\'{}\'/>\n"
-        "      <source bridge=\'mpbr0\'/>\n"
+        "      <source bridge=\'{}\'/>\n"
         "      <target dev=\'vnet0\'/>\n"
         "      <model type=\'virtio\'/>\n"
         "      <alias name=\'net0\'/>\n"
@@ -177,12 +177,14 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc)
         "  </devices>\n"
         "</domain>",
         desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, qemu_path.toStdString(),
-        desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), mp::backend::generate_mac_address());
+        desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), mp::backend::generate_mac_address(),
+        bridge_name);
 }
 
-auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDescription& desc)
+auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDescription& desc,
+                           const std::string& bridge_name)
 {
-    virSetErrorFunc(NULL, libvirt_error_handler);
+    virSetErrorFunc(nullptr, libvirt_error_handler);
 
     mp::LibVirtVirtualMachine::DomainUPtr domain{virDomainLookupByName(connection, desc.vm_name.c_str()),
                                                  virDomainFree};
@@ -192,7 +194,7 @@ auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDes
 
     if (domain == nullptr)
         domain = mp::LibVirtVirtualMachine::DomainUPtr{
-            virDomainDefineXML(connection, generate_xml_config_for(desc).c_str()), virDomainFree};
+            virDomainDefineXML(connection, generate_xml_config_for(desc, bridge_name).c_str()), virDomainFree};
 
     if (domain == nullptr)
         throw std::runtime_error("Error getting domain definition");
@@ -211,10 +213,10 @@ auto get_domain_state(virDomainPtr domain)
 }
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc, virConnectPtr connection,
-                                                 mp::VMStatusMonitor& monitor)
+                                                 const std::string& bridge_name, mp::VMStatusMonitor& monitor)
     : vm_name{desc.vm_name},
       connection{connection},
-      domain{get_domain_definition(connection, desc)},
+      domain{get_domain_definition(connection, desc, bridge_name)},
       state{get_domain_state(domain.get())},
       mac_addr{get_instance_mac_addr(domain.get())},
       ip{get_instance_ip(connection, mac_addr)},

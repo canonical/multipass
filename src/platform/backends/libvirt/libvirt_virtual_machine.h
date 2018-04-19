@@ -36,7 +36,8 @@ public:
     using DomainUPtr = std::unique_ptr<virDomain, decltype(virDomainFree)*>;
     using NetworkUPtr = std::unique_ptr<virNetwork, decltype(virNetworkFree)*>;
 
-    LibVirtVirtualMachine(const VirtualMachineDescription& desc, virConnectPtr connection, VMStatusMonitor& monitor);
+    LibVirtVirtualMachine(const VirtualMachineDescription& desc, virConnectPtr connection,
+                          const std::string& bridge_name, VMStatusMonitor& monitor);
     ~LibVirtVirtualMachine();
 
     void start() override;
