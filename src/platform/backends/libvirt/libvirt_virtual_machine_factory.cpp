@@ -61,7 +61,7 @@ std::string enable_libvirt_network(virConnectPtr connection)
 
     if (network == nullptr)
     {
-        bridge_name = mp::backend::generate_virtual_bridge_name();
+        bridge_name = mp::backend::generate_virtual_bridge_name("mpvirtbr");
         network = mp::LibVirtVirtualMachine::NetworkUPtr{
             virNetworkCreateXML(connection, generate_libvirt_bridge_xml_config(bridge_name).c_str()), virNetworkFree};
     }

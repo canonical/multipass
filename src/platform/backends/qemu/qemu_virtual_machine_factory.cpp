@@ -242,7 +242,7 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, mp::optional<m
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
     : legacy_ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}},
-      bridge_name{QString::fromStdString(mp::backend::generate_virtual_bridge_name())},
+      bridge_name{QString::fromStdString(mp::backend::generate_virtual_bridge_name("mpqemubr"))},
       dnsmasq_server{create_dnsmasq_server(data_dir, legacy_ip_pool.first_free_ip(), bridge_name)}
 {
 }
