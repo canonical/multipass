@@ -46,13 +46,6 @@ bool can_reach_gateway(const std::string& ip)
 }
 }
 
-std::string mp::backend::generate_mac_address()
-{
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    std::array<int, 3> octets{dist(gen), dist(gen), dist(gen)};
-    return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
-}
-
 std::string mp::backend::generate_random_subnet()
 {
     gen.seed(std::chrono::system_clock::now().time_since_epoch().count());

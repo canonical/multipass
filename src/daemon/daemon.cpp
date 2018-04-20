@@ -131,9 +131,9 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
-                                              const mp::VMImage& image, YAML::Node& meta_data_config,
-                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                                              const mp::SSHKeyProvider& key_provider)
+                                              const std::string& mac_addr, const mp::VMImage& image,
+                                              YAML::Node& meta_data_config, YAML::Node& user_data_config,
+                                              YAML::Node& vendor_data_config, const mp::SSHKeyProvider& key_provider)
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
     const auto mem_size = request->mem_size().empty() ? "1G" : request->mem_size();
@@ -141,7 +141,7 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_size, name, image, cloud_init_iso, key_provider};
+    return {num_cores, mem_size, disk_size, name, mac_addr, image, cloud_init_iso, key_provider};
 }
 
 template <typename T>
@@ -199,6 +199,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto num_cores = record["num_cores"].toInt();
         auto mem_size = record["mem_size"].toString();
         auto disk_space = record["disk_space"].toString();
+        auto mac_addr = record["mac_addr"].toString();
 
         std::unordered_map<std::string, mp::VMMount> mounts;
         std::unordered_map<int, int> uid_map;
@@ -223,7 +224,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             mounts[target_path] = mount;
         }
 
-        reconstructed_records[key] = {num_cores, mem_size.toStdString(), disk_space.toStdString(), mounts};
+        reconstructed_records[key] = {num_cores, mem_size.toStdString(), disk_space.toStdString(),
+                                      mac_addr.toStdString(), mounts};
     }
     return reconstructed_records;
 }
@@ -307,6 +309,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
+    bool mac_addr_missing{false};
     for (auto const& entry : vm_instance_specs)
     {
         const auto& name = entry.first;
@@ -318,10 +321,19 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
+        auto mac_addr = spec.mac_addr;
+        if (mac_addr.empty())
+        {
+            mac_addr = mp::utils::generate_mac_address();
+            vm_instance_specs[name].mac_addr = mac_addr;
+            mac_addr_missing = true;
+        }
+        allocated_mac_addrs.insert(mac_addr);
+
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,          name,
+        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,          name, mac_addr,
                                               vm_image,       cloud_init_iso, *config->ssh_key_provider};
 
         try
@@ -341,7 +353,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         vm_instance_specs.erase(bad_spec);
     }
 
-    if (!invalid_specs.empty())
+    if (!invalid_specs.empty() || mac_addr_missing)
         persist_instances();
 
     config->vault->prune_expired_images();
@@ -436,13 +448,27 @@ try // clang-format on
     auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
     prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
     config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
-    auto vm_desc = to_machine_desc(request, name, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
-                                   vendor_data_cloud_init_config, *config->ssh_key_provider);
+
+    std::string mac_addr;
+    while (true)
+    {
+        mac_addr = mp::utils::generate_mac_address();
+
+        auto it = allocated_mac_addrs.find(mac_addr);
+        if (it == allocated_mac_addrs.end())
+        {
+            allocated_mac_addrs.insert(mac_addr);
+            break;
+        }
+    }
+    auto vm_desc =
+        to_machine_desc(request, name, mac_addr, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
+                        vendor_data_cloud_init_config, *config->ssh_key_provider);
 
     config->factory->prepare_instance_image(vm_image, vm_desc);
 
     vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-    vm_instance_specs[name] = {vm_desc.num_cores, vm_desc.mem_size, vm_desc.disk_space, {}};
+    vm_instance_specs[name] = {vm_desc.num_cores, vm_desc.mem_size, vm_desc.disk_space, vm_desc.mac_addr, {}};
     persist_instances();
 
     reply.set_create_message("Starting " + name);
@@ -1284,6 +1310,7 @@ void mp::Daemon::persist_instances()
         json.insert("num_cores", specs.num_cores);
         json.insert("mem_size", QString::fromStdString(specs.mem_size));
         json.insert("disk_space", QString::fromStdString(specs.disk_space));
+        json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)

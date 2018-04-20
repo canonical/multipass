@@ -122,13 +122,13 @@ auto qmp_execute_json(const QString& cmd)
 }
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, optional<mp::IPAddress> address,
-                                           const std::string& tap_device_name, const std::string& mac_addr,
-                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
+                                           const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
+                                           VMStatusMonitor& monitor)
     : state{State::off},
       ip{address},
       is_legacy_ip{ip ? true : false},
       tap_device_name{tap_device_name},
-      mac_addr{mac_addr},
+      mac_addr{desc.mac_addr},
       vm_name{desc.vm_name},
       dnsmasq_server{&dnsmasq_server},
       key_provider{desc.key_provider},

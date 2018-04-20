@@ -47,6 +47,7 @@ std::string run_cmd_for_output(const QString& cmd, const QStringList& args);
 std::string& trim_end(std::string& s);
 std::string escape_char(const std::string& s, char c);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
+std::string generate_mac_address();
 
 enum class TimeoutAction
 {

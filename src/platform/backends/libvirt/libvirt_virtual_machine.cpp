@@ -177,8 +177,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         "  </devices>\n"
         "</domain>",
         desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, qemu_path.toStdString(),
-        desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), mp::backend::generate_mac_address(),
-        bridge_name);
+        desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.mac_addr, bridge_name);
 }
 
 auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDescription& desc,

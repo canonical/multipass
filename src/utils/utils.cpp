@@ -23,6 +23,7 @@
 #include <QFileInfo>
 #include <QProcess>
 
+#include <random>
 #include <regex>
 
 namespace mp = multipass;
@@ -119,4 +120,14 @@ std::vector<std::string> mp::utils::split(const std::string& string, const std::
 {
     std::regex regex(delimiter);
     return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1}, std::sregex_token_iterator{}};
+}
+
+std::string mp::utils::generate_mac_address()
+{
+    std::default_random_engine gen;
+    std::uniform_int_distribution<int> dist{0, 255};
+
+    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
+    std::array<int, 3> octets{dist(gen), dist(gen), dist(gen)};
+    return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
 }
