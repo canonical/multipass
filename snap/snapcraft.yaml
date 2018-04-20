@@ -120,7 +120,8 @@ parts:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
-    install: |-
+    override-build: |
+      snapcraftctl build
       set -e
       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
@@ -200,11 +201,12 @@ parts:
     - --sysconfdir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
     - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
     - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
-    prepare: |
+    override-build: |
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.21.debian.tar.xz
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.21.dsc
       dpkg-source -x libvirt_1.3.1-1ubuntu10.21.dsc
+      snapcraftctl build
     organize:
       # Hack to shift installed libvirt back to root of snap
       # required to ensure that pathing to files etc works at
