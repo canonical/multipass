@@ -39,8 +39,7 @@ class QemuVirtualMachine final : public VirtualMachine
 {
 public:
     QemuVirtualMachine(const VirtualMachineDescription& desc, optional<IPAddress> address,
-                       const std::string& tap_device_name, const std::string& mac_addr, DNSMasqServer& dnsmasq_server,
-                       VMStatusMonitor& monitor);
+                       const std::string& tap_device_name, DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;

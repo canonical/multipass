@@ -56,7 +56,7 @@ void create_virtual_switch(const std::string& subnet, const QString& bridge_name
 
     if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
-        const auto mac_address = mp::backend::generate_mac_address();
+        const auto mac_address = mp::utils::generate_mac_address();
         const auto cidr = fmt::format("{}.1/24", subnet);
         const auto broadcast = fmt::format("{}.255", subnet);
 
@@ -259,7 +259,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
     return std::make_unique<mp::QemuVirtualMachine>(desc, legacy_ip_pool.check_ip_for(desc.vm_name), tap_device_name,
-                                                    mp::backend::generate_mac_address(), dnsmasq_server, monitor);
+                                                    dnsmasq_server, monitor);
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
