@@ -108,13 +108,13 @@ parts:
     - qtbase5-dev-tools
     - libqt5core5a
     - libqt5network5
+    - libvirt
     plugin: cmake
     build-packages:
     - build-essential
     - cmake-extras
     - golang
     - libsystemd-dev
-    - libvirt-dev
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -201,8 +201,10 @@ parts:
     - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
     - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
     prepare: |
-      apt update
-      apt source libvirt
+      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
+      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.21.debian.tar.xz
+      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.21.dsc
+      dpkg-source -x libvirt_1.3.1-1ubuntu10.21.dsc
     organize:
       # Hack to shift installed libvirt back to root of snap
       # required to ensure that pathing to files etc works at
