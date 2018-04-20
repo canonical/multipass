@@ -38,7 +38,7 @@ jobs:
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
              env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/
+                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
                  /root/build_multipass/parts/multipass/build/bin/multipass_tests'
 
     - env: BUILD_TYPE=Coverage
@@ -48,7 +48,7 @@ jobs:
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
              env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/
+                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
                  cmake --build /root/build_multipass/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
