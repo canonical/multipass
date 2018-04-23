@@ -169,6 +169,8 @@ parts:
     - libnuma-dev
     - python-all
     - python-six
+    - wget
+    - dpkg-dev
     stage-packages:
     - dmidecode
     - dnsmasq
