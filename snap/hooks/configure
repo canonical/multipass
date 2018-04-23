@@ -1,19 +1,19 @@
 #!/bin/bash -e
 
-vm_backend="$(snapctl get vm-backend)"
+driver="$(snapctl get driver)"
 
-if [[ -n $vm_backend && ! $vm_backend =~ (LIBVIRT|QEMU) ]]; then
-    echo "\"$vm_backend\" is not a supported VM backend"
+if [[ -n $driver && ! $driver =~ (LIBVIRT|QEMU) ]]; then
+    echo "\"$driver\" is not a supported virtualization driver"
     exit 1
 fi
 
-vm_backend_saved="$(snapctl get vm-backend-saved)"
+driver_saved="$(snapctl get driver-saved)"
 
-if [[ $vm_backend == "QEMU" && -z $vm_backend_saved ]]; then
+if [[ $driver == "QEMU" && -z $driver_saved ]]; then
     exit 0
 fi
 
-if [[ $vm_backend != $vm_backend_saved ]]; then
-    snapctl set vm-backend-saved="$vm_backend"
+if [[ $driver != $driver_saved ]]; then
+    snapctl set driver-saved="driver"
     snapctl restart $SNAP_NAME
 fi

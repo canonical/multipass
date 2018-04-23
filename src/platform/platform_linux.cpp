@@ -34,14 +34,14 @@ std::string mp::platform::default_server_address()
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    auto backend = qgetenv("MULTIPASS_VM_BACKEND");
+    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
-    if (backend.isEmpty() || backend == "QEMU")
+    if (driver.isEmpty() || driver == "QEMU")
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
-    else if (backend == "LIBVIRT")
+    else if (driver == "LIBVIRT")
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
 
-    throw std::runtime_error("Invalid VM backend set in the environment");
+    throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
