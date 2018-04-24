@@ -32,6 +32,7 @@
 
 #include <QCoreApplication>
 #include <QFile>
+#include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMetaEnum>
@@ -39,6 +40,7 @@
 #include <QProcess>
 #include <QString>
 #include <QStringList>
+#include <QSysInfo>
 
 #include <thread>
 
@@ -47,6 +49,10 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
+                                          {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
+                                          {"s390x", "s390x"}};
+
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
                        const std::string& mac_addr)
 {
@@ -94,7 +100,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
         process->setWorkingDirectory(snap.append("/qemu"));
     }
 
-    process->setProgram("qemu-system-x86_64");
+    process->setProgram("qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture()));
     process->setArguments(args);
 
     mpl::log(mpl::Level::debug, desc.vm_name,

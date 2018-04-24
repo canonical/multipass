@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,19 @@
 #include <multipass/simple_streams_manifest.h>
 
 #include <QFileInfo>
+#include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSysInfo>
 
 namespace mp = multipass;
 
 namespace
 {
+const QHash<QString, QString> arch_to_manifest{{"x86_64", "amd64"}, {"arm", "armhf"},     {"arm64", "arm64"},
+                                               {"i386", "i386"},    {"power", "powerpc"}, {"power64", "ppc64el"},
+                                               {"s390x", "s390x"}};
+
 QJsonObject parse_manifest(QByteArray json)
 {
     QJsonParseError parse_error;
@@ -77,12 +83,17 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(Q
     if (manifest_products.isEmpty())
         throw std::runtime_error("No products found");
 
+    auto arch = arch_to_manifest.value(QSysInfo::currentCpuArchitecture());
+
+    if (arch.isEmpty())
+        throw std::runtime_error("Unsupported cloud image architecture");
+
     std::vector<VMImageInfo> products;
     for (const auto& value : manifest_products)
     {
         const auto product = value.toObject();
 
-        if (product["arch"].toString() != "amd64")
+        if (product["arch"].toString() != arch)
             continue;
 
         const auto product_aliases = product["aliases"].toString().split(",");

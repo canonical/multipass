@@ -22,6 +22,7 @@
 
 #include <QProcess>
 #include <QString>
+#include <QSysInfo>
 
 #include <chrono>
 #include <exception>
@@ -84,13 +85,17 @@ std::string mp::backend::generate_virtual_bridge_name(const std::string& base_na
 
 void mp::backend::check_hypervisor_support()
 {
-    QProcess check_kvm;
-    check_kvm.start("check_kvm_support");
-    check_kvm.waitForFinished();
-
-    if (check_kvm.exitCode() == 1)
+    auto arch = QSysInfo::currentCpuArchitecture();
+    if (arch == "x86_64" || arch == "i386")
     {
-        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+        QProcess check_kvm;
+        check_kvm.start("check_kvm_support");
+        check_kvm.waitForFinished();
+
+        if (check_kvm.exitCode() == 1)
+        {
+            throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+        }
     }
 }
 

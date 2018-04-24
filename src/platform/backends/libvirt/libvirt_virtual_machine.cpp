@@ -113,16 +113,38 @@ void get_parsed_memory_values(const std::string& mem_size, std::string& memory, 
         mem_unit = "GiB";
 }
 
-auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name)
+auto get_host_architecture(virConnectPtr connection)
+{
+    std::string arch;
+    std::unique_ptr<char, decltype(free)*> capabilities{virConnectGetCapabilities(connection), free};
+
+    QXmlStreamReader reader(capabilities.get());
+
+    while (!reader.atEnd())
+    {
+        reader.readNext();
+
+        if (reader.name() == "arch")
+        {
+            arch = reader.readElementText().toStdString();
+            break;
+        }
+    }
+
+    return arch;
+}
+
+auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
+                             const std::string& arch)
 {
     std::string memory, mem_unit;
     get_parsed_memory_values(desc.mem_size, memory, mem_unit);
 
-    QString qemu_path{"/usr/bin/qemu-system-x86_64"};
+    auto qemu_path = fmt::format("/usr/bin/qemu-system-{}", arch);
     auto snap = qgetenv("SNAP");
     if (!snap.isEmpty())
     {
-        qemu_path.prepend(snap);
+        qemu_path = fmt::format("{}{}", snap.toStdString(), qemu_path);
     }
 
     return fmt::format(
@@ -135,7 +157,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         "    <partition>/machine</partition>\n"
         "  </resource>\n"
         "  <os>\n"
-        "    <type arch=\'x86_64\'>hvm</type>\n"
+        "    <type arch=\'{}\'>hvm</type>\n"
         "    <boot dev=\'hd\'/>\n"
         "  </os>\n"
         "  <features>\n"
@@ -176,7 +198,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         "    </video>\n"
         "  </devices>\n"
         "</domain>",
-        desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, qemu_path.toStdString(),
+        desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, arch, qemu_path,
         desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.mac_addr, bridge_name);
 }
 
@@ -193,7 +215,9 @@ auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDes
 
     if (domain == nullptr)
         domain = mp::LibVirtVirtualMachine::DomainUPtr{
-            virDomainDefineXML(connection, generate_xml_config_for(desc, bridge_name).c_str()), virDomainFree};
+            virDomainDefineXML(connection,
+                               generate_xml_config_for(desc, bridge_name, get_host_architecture(connection)).c_str()),
+            virDomainFree};
 
     if (domain == nullptr)
         throw std::runtime_error("Error getting domain definition");
