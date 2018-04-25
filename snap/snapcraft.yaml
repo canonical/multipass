@@ -15,23 +15,21 @@ apps:
   multipassd:
     command: bin/launch-multipassd
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/usr/lib
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-      QT_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
   multipass:
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/usr/lib
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-      QT_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins
-    command: bin/multipass
+    command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
   libvirt-bin:
     command: bin/launch-libvirtd
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/usr/lib
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       LC_ALL: C
     daemon: simple
@@ -45,62 +43,86 @@ parts:
   qtbase5-dev:
     after: [qt5-qmake-bin]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
-    source-checksum: sha256/c856d6ab1b8a63760c60828108425c5b2dadb5de844ad0d77e12a77b5e47cf83
     prime: [-*]
 
   qtbase5-dev-tools:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
-    source-checksum: sha256/a4d6b840380a6aeff930947934c5d3f2dfc2a854346a0557e73f0fb862750402
     prime: [-*]
 
   qt5-qmake:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
-    source-checksum: sha256/b3f102f45ce7ef894f81133f10f33401b4430a7227ccc49c794dc7a0f637a76c
     prime: [-*]
 
   qt5-qmake-bin:
     after: [qt5-qmake]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
-    source-checksum: sha256/aae95892d51d92abd092211ffc473e0a85fecdc810a5ef058346557624979847
     prime: [-*]
 
   libqt5core5a:
     after: [libicu]
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
-    source-checksum: sha256/27d43c6baab9555e77f76ce8faa637dbb9d3da9c7eb87cb44aaa63db3c79a519
     stage-packages:
     - libdouble-conversion1v5
     - libpcre16-3
 
   libqt5dbus5:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
-    source-checksum: sha256/0116e50f3db3aa2a9fe369347f649ea49969e6413611caa9ffbc670b5dffeb80
 
   libqt5network5:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
-    source-checksum: sha256/9ce96a38ede0d062071262ecc4a700b98f5e26f7054b8e351a0f0ca5bc8ca5f0
     stage-packages:
     - libproxy1v5
 
   libicu:
     plugin: dump
-    source: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_amd64.deb
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_arm64.deb
     source-type: deb
-    source-checksum: sha256/7a2f29ea19f2a14007fd84f25eb88db4fb3ca43bdb07fdb681329d2b5daca500
 
   multipass:
     after:
@@ -130,11 +152,14 @@ parts:
   qemu:
     plugin: nil
     stage-packages:
-    - qemu-system-x86
+    - on amd64: [qemu-system-x86]
+    - on i386: [qemu-system-x86]
+    - on armhf: [qemu-system-arm]
+    - on arm64: [qemu-system-arm]
     - qemu-utils
     - libslang2
     organize:
-      usr/lib/x86_64-linux-gnu/pulseaudio/libpulsecommon-8.0.so: usr/lib/x86_64-linux-gnu/libpulsecommon-8.0.so
+      usr/lib/*/pulseaudio/libpulsecommon-8.0.so: usr/lib/libpulsecommon-8.0.so
       usr/share/seabios/bios-256k.bin: qemu/bios-256k.bin
       usr/share/seabios/vgabios-stdvga.bin: qemu/vgabios-stdvga.bin
       usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
@@ -143,7 +168,7 @@ parts:
   kvm-support:
     plugin: nil
     stage-packages:
-    - msr-tools
+    - try: [msr-tools]
 
   libvirt:
     source: .
@@ -166,7 +191,7 @@ parts:
     - libnl-3-dev
     - libnl-route-3-dev
     - uuid-dev
-    - libnuma-dev
+    - try: [libnuma-dev]
     - python-all
     - python-six
     - wget
@@ -176,7 +201,7 @@ parts:
     - dnsmasq
     - libxml2
     - libyajl2
-    - libnuma1
+    - try: [libnuma1]
     - libcurl3-gnutls
     - libpciaccess0
     configflags:
