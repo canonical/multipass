@@ -10,9 +10,7 @@ else
   ARCH="$SNAP_ARCH-linux-gnu"
 fi
 
-driver="$(snapctl get driver)"
+export LD_LIBRARY_PATH=$SNAP/lib/$ARCH:$SNAP/usr/lib/$ARCH:$LD_LIBRARY_PATH
+export QT_PLUGIN_PATH=$SNAP/usr/lib/$ARCH/qt5/plugins
 
-if [ "$driver" = "LIBVIRT" ]; then
-    export LD_LIBRARY_PATH=$SNAP/lib/$ARCH:$SNAP/usr/lib/$ARCH:$LD_LIBRARY_PATH
-    exec $SNAP/sbin/libvirtd
-fi
+exec $SNAP/bin/multipass "$@"
