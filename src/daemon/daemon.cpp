@@ -710,8 +710,8 @@ try // clang-format on
             info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
             info->set_memory_usage(run_in_vm("free -b | sed '1d;3d' | awk '{printf $3}'"));
             info->set_memory_total(run_in_vm("free -b | sed '1d;3d' | awk '{printf $2}'"));
-            info->set_disk_usage(run_in_vm("df --output=used /dev/sda1 -B1 | sed 1d"));
-            info->set_disk_total(run_in_vm("df --output=size /dev/sda1 -B1 | sed 1d"));
+            info->set_disk_usage(run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_disk_total(run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_current_release(run_in_vm("lsb_release -ds"));
             info->set_ipv4(vm->ipv4());
         }
