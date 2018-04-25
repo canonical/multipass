@@ -55,7 +55,7 @@ public:
 
     ~WindowChangedSignalHandler()
     {
-        kill(0, SIGUSR1);
+        pthread_kill(signal_handling_thread.thread.native_handle(), SIGUSR1);
     }
 
     void monitor_signals(ssh_channel channel)
