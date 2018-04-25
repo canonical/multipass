@@ -236,7 +236,7 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, mp::optional<m
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {data_dir, bridge_addr, first_ip.value_or(start_addr), end_addr};
+    return {data_dir, bridge_name, bridge_addr, first_ip.value_or(start_addr), end_addr};
 }
 }
 
