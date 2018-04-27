@@ -21,6 +21,7 @@
 
 #include <multipass/virtual_machine_factory.h>
 
+#include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 
@@ -33,7 +34,14 @@ std::string mp::platform::default_server_address()
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+
+    if (driver.isEmpty() || driver == "QEMU")
+        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+    else if (driver == "LIBVIRT")
+        return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
+
+    throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

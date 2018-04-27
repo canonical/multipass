@@ -23,8 +23,8 @@ namespace mp = multipass;
 
 namespace
 {
-auto start_dnsmasq_process(const QDir& data_dir, const mp::IPAddress& bridge_addr, const mp::IPAddress& start_ip,
-                           const mp::IPAddress& end_ip)
+auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
+                           const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
 {
     auto cmd = std::make_unique<QProcess>();
     cmd->start("dnsmasq",
@@ -32,7 +32,7 @@ auto start_dnsmasq_process(const QDir& data_dir, const mp::IPAddress& bridge_add
                              << "--strict-order"
                              << "--bind-interfaces"
                              << "--except-interface=lo"
-                             << "--interface=mpbr0"
+                             << QString("--interface=%1").arg(bridge_name)
                              << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
                              << "--dhcp-no-override"
                              << "--dhcp-authoritative"
@@ -47,12 +47,12 @@ auto start_dnsmasq_process(const QDir& data_dir, const mp::IPAddress& bridge_add
 }
 }
 
-mp::DNSMasqServer::DNSMasqServer(const Path& path, const IPAddress& bridge_addr, const IPAddress& start,
-                                 const IPAddress& end)
+mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
+                                 const IPAddress& start, const IPAddress& end)
     : start_ip{start},
       end_ip{end},
       data_dir{QDir(path + "/vm-ips")},
-      dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_addr, start_ip, end_ip)}
+      dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_name, bridge_addr, start_ip, end_ip)}
 {
 }
 

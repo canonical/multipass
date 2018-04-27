@@ -72,9 +72,14 @@ struct QemuBackend : public testing::Test
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mpt::StubSSHKeyProvider key_provider;
-    mp::VirtualMachineDescription default_description{
-        2,           "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", "", {}}, dummy_cloud_init_iso.name(),
-        key_provider};
+    mp::VirtualMachineDescription default_description{2,
+                                                      "3M",
+                                                      "",
+                                                      "pied-piper-valley",
+                                                      "",
+                                                      {dummy_image.name(), "", "", "", {}},
+                                                      dummy_cloud_init_iso.name(),
+                                                      key_provider};
     QTemporaryDir data_dir;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
     std::string old_path;

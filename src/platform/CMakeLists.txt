@@ -28,6 +28,7 @@ else()
     platform_unix.cpp)
   target_link_libraries(platform
     qemu_backend
+    libvirt_backend
     journaldlogger)
 endif()
 

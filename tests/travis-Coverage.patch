@@ -1,6 +1,6 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -102,11 +102,11 @@ parts:
+@@ -115,11 +115,11 @@ parts:
      - cmake-extras
      - golang
      - libsystemd-dev
@@ -11,6 +11,6 @@
 +    - -DCMAKE_BUILD_TYPE=Coverage
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
-     install: |-
-       set -ex
-       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
+     override-build: |
+       snapcraftctl build
+       set -e

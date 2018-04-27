@@ -1,4 +1,19 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
-# Just a placeholder, however validation of the proxy.{http,https}
-# configuration could be made here
+driver="$(snapctl get driver)"
+
+if [[ -n $driver && ! $driver =~ (LIBVIRT|QEMU) ]]; then
+    echo "\"$driver\" is not a supported virtualization driver"
+    exit 1
+fi
+
+driver_saved="$(snapctl get driver-saved)"
+
+if [[ $driver == "QEMU" && -z $driver_saved ]]; then
+    exit 0
+fi
+
+if [[ $driver != $driver_saved ]]; then
+    snapctl set driver-saved="driver"
+    snapctl restart $SNAP_NAME
+fi

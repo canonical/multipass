@@ -15,36 +15,21 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_SERVER_H
-#define MULTIPASS_DNSMASQ_SERVER_H
+#ifndef MULTIPASS_BACKEND_UTILS_H
+#define MULTIPASS_BACKEND_UTILS_H
 
-#include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/path.h>
 
-#include <QDir>
-#include <QProcess>
-
-#include <memory>
 #include <string>
 
 namespace multipass
 {
-class DNSMasqServer
+namespace backend
 {
-public:
-    DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
-                  const IPAddress& start, const IPAddress& end);
-    DNSMasqServer(DNSMasqServer&& other);
-    ~DNSMasqServer();
-
-    optional<IPAddress> get_ip_for(const std::string& hw_addr);
-
-private:
-    const IPAddress start_ip;
-    const IPAddress end_ip;
-    const QDir data_dir;
-    std::unique_ptr<QProcess> dnsmasq_cmd;
-};
+std::string generate_random_subnet();
+std::string generate_virtual_bridge_name(const std::string& base_name);
+void check_hypervisor_support();
+void resize_instance_image(const std::string& disk_space, const multipass::Path& image_path);
 }
-#endif // MULTIPASS_DNSMASQ_SERVER_H
+}
+#endif // MULTIPASS_BACKEND_UTILS_H

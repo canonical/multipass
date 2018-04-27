@@ -20,6 +20,7 @@
 #include "qemu_virtual_machine_factory.h"
 #include "qemu_virtual_machine.h"
 
+#include <multipass/backend_utils.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -27,25 +28,12 @@
 #include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
 
-#include <chrono>
-#include <random>
-
 #include <QTcpSocket>
 
 namespace mp = multipass;
 
 namespace
 {
-std::default_random_engine gen;
-std::uniform_int_distribution<int> dist{0, 255};
-
-auto generate_mac_address()
-{
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    std::array<int, 3> octets{dist(gen), dist(gen), dist(gen)};
-    return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
-}
-
 // An interface name can only be 15 characters, so this generates a hash of the
 // VM instance name with a "tap-" prefix and then truncates it.
 auto generate_tap_device_name(const std::string& vm_name)
@@ -56,77 +44,49 @@ auto generate_tap_device_name(const std::string& vm_name)
     return tap_name;
 }
 
-bool can_reach_gateway(const std::string& ip)
+auto virtual_switch_subnet(const QString& bridge_name)
 {
-    return mp::utils::run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
+    auto ip_cmd = QString("ip route show | grep %1 | cut -d ' ' -f1 | cut -d '.' -f1-3").arg(bridge_name);
+    return mp::utils::run_cmd_for_output("bash", {"-c", ip_cmd});
 }
 
-bool subnet_used_locally(const std::string& subnet)
+void create_virtual_switch(const std::string& subnet, const QString& bridge_name)
 {
-    const auto ip_cmd = fmt::format("ip -4 route show | grep -q {}", subnet);
-    return mp::utils::run_cmd_for_status("bash", {"-c", ip_cmd.c_str()});
-}
+    const QString dummy_name{bridge_name + "-dummy"};
 
-auto generate_random_subnet()
-{
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    for (auto i = 0; i < 100; ++i)
+    if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
-        auto subnet = fmt::format("10.{}.{}", dist(gen), dist(gen));
-        if (subnet_used_locally(subnet))
-            continue;
-
-        if (can_reach_gateway(fmt::format("{}.1", subnet)))
-            continue;
-
-        if (can_reach_gateway(fmt::format("{}.254", subnet)))
-            continue;
-
-        return subnet;
-    }
-
-    throw std::runtime_error("Could not determine a subnet for networking.");
-}
-
-auto virtual_switch_subnet()
-{
-    return mp::utils::run_cmd_for_output("bash",
-                                         {"-c", "ip route show | grep mpbr0 | cut -d ' ' -f1 | cut -d '.' -f1-3"});
-}
-
-void create_virtual_switch(const std::string& subnet)
-{
-    if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", "mpbr0"}))
-    {
-        const auto mac_address = generate_mac_address();
+        const auto mac_address = mp::utils::generate_mac_address();
         const auto cidr = fmt::format("{}.1/24", subnet);
         const auto broadcast = fmt::format("{}.255", subnet);
 
         mp::utils::run_cmd_for_status("ip",
-                                      {"link", "add", "mpbr0-dummy", "address", mac_address.c_str(), "type", "dummy"});
-        mp::utils::run_cmd_for_status("ip", {"link", "add", "mpbr0", "type", "bridge"});
-        mp::utils::run_cmd_for_status("ip", {"link", "set", "mpbr0-dummy", "master", "mpbr0"});
-        mp::utils::run_cmd_for_status("ip",
-                                      {"address", "add", cidr.c_str(), "dev", "mpbr0", "broadcast", broadcast.c_str()});
-        mp::utils::run_cmd_for_status("ip", {"link", "set", "mpbr0", "up"});
+                                      {"link", "add", dummy_name, "address", mac_address.c_str(), "type", "dummy"});
+        mp::utils::run_cmd_for_status("ip", {"link", "add", bridge_name, "type", "bridge"});
+        mp::utils::run_cmd_for_status("ip", {"link", "set", dummy_name, "master", bridge_name});
+        mp::utils::run_cmd_for_status(
+            "ip", {"address", "add", cidr.c_str(), "dev", bridge_name, "broadcast", broadcast.c_str()});
+        mp::utils::run_cmd_for_status("ip", {"link", "set", bridge_name, "up"});
     }
 }
 
-void delete_virtual_switch()
+void delete_virtual_switch(const QString& bridge_name)
 {
-    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", "mpbr0"}))
+    const QString dummy_name{bridge_name + "-dummy"};
+
+    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
-        mp::utils::run_cmd_for_status("ip", {"link", "delete", "mpbr0"});
-        mp::utils::run_cmd_for_status("ip", {"link", "delete", "mpbr0-dummy"});
+        mp::utils::run_cmd_for_status("ip", {"link", "delete", bridge_name});
+        mp::utils::run_cmd_for_status("ip", {"link", "delete", dummy_name});
     }
 }
 
-void create_tap_device(const QString& tap_name)
+void create_tap_device(const QString& tap_name, const QString& bridge_name)
 {
     if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", tap_name}))
     {
         mp::utils::run_cmd_for_status("ip", {"tuntap", "add", tap_name, "mode", "tap"});
-        mp::utils::run_cmd_for_status("ip", {"link", "set", tap_name, "master", "mpbr0"});
+        mp::utils::run_cmd_for_status("ip", {"link", "set", tap_name, "master", bridge_name});
         mp::utils::run_cmd_for_status("ip", {"link", "set", tap_name, "up"});
     }
 }
@@ -136,47 +96,47 @@ void set_ip_forward()
     mp::utils::run_cmd_for_status("sysctl", {"-w", "net.ipv4.ip_forward=1"});
 }
 
-void set_nat_iptables(const std::string& subnet)
+void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
 {
     const auto cidr = QString::fromStdString(fmt::format("{}.0/24", subnet));
 
     // Setup basic iptables overrides for DHCP/DNS
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "67", "-j", "ACCEPT"}))
+    if (!mp::utils::run_cmd_for_status(
+            "iptables", {"-C", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "67", "-j", "ACCEPT"}))
         mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "67", "-j", "ACCEPT"});
+                                      {"-I", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "67", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status(
+            "iptables", {"-C", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "53", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status(
+            "iptables", {"-C", "INPUT", "-i", bridge_name, "-p", "tcp", "--dport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "INPUT", "-i", bridge_name, "-p", "tcp", "--dport", "53", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status(
+            "iptables", {"-C", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "67", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status(
+            "iptables", {"-I", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "67", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status(
+            "iptables", {"-C", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status(
+            "iptables", {"-I", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "53", "-j", "ACCEPT"});
+
+    if (!mp::utils::run_cmd_for_status(
+            "iptables", {"-C", "OUTPUT", "-o", bridge_name, "-p", "tcp", "--sport", "53", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status(
+            "iptables", {"-I", "OUTPUT", "-o", bridge_name, "-p", "tcp", "--sport", "53", "-j", "ACCEPT"});
 
     if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "INPUT", "-i", "mpbr0", "-p", "udp", "--dport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "INPUT", "-i", "mpbr0", "-p", "tcp", "--dport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "INPUT", "-i", "mpbr0", "-p", "tcp", "--dport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "67", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "67", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "OUTPUT", "-o", "mpbr0", "-p", "udp", "--sport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "OUTPUT", "-o", "mpbr0", "-p", "tcp", "--sport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "OUTPUT", "-o", "mpbr0", "-p", "tcp", "--sport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-t", "mangle", "-C", "POSTROUTING", "-o", "mpbr0", "-p", "udp", "--dport",
+                                       {"-t", "mangle", "-C", "POSTROUTING", "-o", bridge_name, "-p", "udp", "--dport",
                                         "68", "-j", "CHECKSUM", "--checksum-fill"}))
         mp::utils::run_cmd_for_status("iptables",
-                                      {"-t", "mangle", "-I", "POSTROUTING", "-o", "mpbr0", "-p", "udp", "--dport", "68",
-                                       "-j", "CHECKSUM", "--checksum-fill"});
+                                      {"-t", "mangle", "-I", "POSTROUTING", "-o", bridge_name, "-p", "udp", "--dport",
+                                       "68", "-j", "CHECKSUM", "--checksum-fill"});
 
     // Do not masquerade to these reserved address blocks.
     if (!mp::utils::run_cmd_for_status(
@@ -211,30 +171,32 @@ void set_nat_iptables(const std::string& subnet)
 
     // Allow established traffic to the private subnet
     if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "FORWARD", "-d", cidr, "-o", "mpbr0", "-m", "conntrack", "--ctstate",
+                                       {"-C", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack", "--ctstate",
                                         "RELATED,ESTABLISHED", "-j", "ACCEPT"}))
         mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "FORWARD", "-d", cidr, "-o", "mpbr0", "-m", "conntrack", "--ctstate",
+                                      {"-I", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack", "--ctstate",
                                        "RELATED,ESTABLISHED", "-j", "ACCEPT"});
 
     // Allow outbound traffic from the private subnet
-    if (!mp::utils::run_cmd_for_status("iptables", {"-C", "FORWARD", "-s", cidr, "-i", "mpbr0", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables", {"-I", "FORWARD", "-s", cidr, "-i", "mpbr0", "-j", "ACCEPT"});
+    if (!mp::utils::run_cmd_for_status("iptables", {"-C", "FORWARD", "-s", cidr, "-i", bridge_name, "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables", {"-I", "FORWARD", "-s", cidr, "-i", bridge_name, "-j", "ACCEPT"});
 
     // Allow traffic between virtual machines
-    if (!mp::utils::run_cmd_for_status("iptables", {"-C", "FORWARD", "-i", "mpbr0", "-o", "mpbr0", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables", {"-I", "FORWARD", "-i", "mpbr0", "-o", "mpbr0", "-j", "ACCEPT"});
+    if (!mp::utils::run_cmd_for_status("iptables",
+                                       {"-C", "FORWARD", "-i", bridge_name, "-o", bridge_name, "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables",
+                                      {"-I", "FORWARD", "-i", bridge_name, "-o", bridge_name, "-j", "ACCEPT"});
 
     // Reject everything else
     if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "FORWARD", "-i", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
+            "iptables", {"-C", "FORWARD", "-i", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
         mp::utils::run_cmd_for_status(
-            "iptables", {"-I", "FORWARD", "-i", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"});
+            "iptables", {"-I", "FORWARD", "-i", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 
     if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "FORWARD", "-o", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
+            "iptables", {"-C", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
         mp::utils::run_cmd_for_status(
-            "iptables", {"-I", "FORWARD", "-o", "mpbr0", "-j", "REJECT", "--reject-with icmp-port-unreachable"});
+            "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
 std::string make_subnet(bool use_legacy_subnet)
@@ -242,12 +204,12 @@ std::string make_subnet(bool use_legacy_subnet)
     if (use_legacy_subnet)
         return "10.122.122";
 
-    return generate_random_subnet();
+    return mp::backend::generate_random_subnet();
 }
 
-std::string get_subnet(const mp::Path& data_dir, bool use_legacy_subnet)
+std::string get_subnet(const mp::Path& data_dir, bool use_legacy_subnet, const QString& bridge_name)
 {
-    auto subnet = virtual_switch_subnet();
+    auto subnet = virtual_switch_subnet(bridge_name);
     if (!subnet.empty())
         return subnet;
 
@@ -261,41 +223,43 @@ std::string get_subnet(const mp::Path& data_dir, bool use_legacy_subnet)
     return new_subnet;
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, mp::optional<mp::IPAddress> first_ip)
+mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, mp::optional<mp::IPAddress> first_ip,
+                                        const QString& bridge_name)
 {
     const bool use_legacy_subnet = first_ip ? true : false;
-    const auto subnet = get_subnet(data_dir, use_legacy_subnet);
+    const auto subnet = get_subnet(data_dir, use_legacy_subnet, bridge_name);
 
-    create_virtual_switch(subnet);
+    create_virtual_switch(subnet, bridge_name);
     set_ip_forward();
-    set_nat_iptables(subnet);
+    set_nat_iptables(subnet, bridge_name);
 
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {data_dir, bridge_addr, first_ip.value_or(start_addr), end_addr};
+    return {data_dir, bridge_name, bridge_addr, first_ip.value_or(start_addr), end_addr};
 }
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
     : legacy_ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}},
-      dnsmasq_server{create_dnsmasq_server(data_dir, legacy_ip_pool.first_free_ip())}
+      bridge_name{QString::fromStdString(mp::backend::generate_virtual_bridge_name("mpqemubr"))},
+      dnsmasq_server{create_dnsmasq_server(data_dir, legacy_ip_pool.first_free_ip(), bridge_name)}
 {
 }
 
 mp::QemuVirtualMachineFactory::~QemuVirtualMachineFactory()
 {
-    delete_virtual_switch();
+    delete_virtual_switch(bridge_name);
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                VMStatusMonitor& monitor)
 {
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
-    create_tap_device(QString::fromStdString(tap_device_name));
+    create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
     return std::make_unique<mp::QemuVirtualMachine>(desc, legacy_ip_pool.check_ip_for(desc.vm_name), tap_device_name,
-                                                    generate_mac_address(), dnsmasq_server, monitor);
+                                                    dnsmasq_server, monitor);
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
@@ -316,12 +280,7 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                            const VirtualMachineDescription& desc)
 {
-    auto disk_size = QString::fromStdString(desc.disk_space);
-
-    if (disk_size.endsWith("B"))
-        disk_size.chop(1);
-
-    mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), instance_image.image_path, disk_size});
+    mp::backend::resize_instance_image(desc.disk_space, instance_image.image_path);
 }
 
 void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)
@@ -330,12 +289,5 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Nod
 
 void mp::QemuVirtualMachineFactory::check_hypervisor_support()
 {
-    QProcess check_kvm;
-    check_kvm.start("check_kvm_support");
-    check_kvm.waitForFinished();
-
-    if (check_kvm.exitCode() == 1)
-    {
-        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
-    }
+    mp::backend::check_hypervisor_support();
 }
