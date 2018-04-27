@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ struct HyperVBackend : public testing::Test
     mpt::TempFile dummy_cloud_init_iso;
     mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{
-        2,           "3M", "", "pied-piper-valley", {dummy_image.name(), "", "", "", {}}, dummy_cloud_init_iso.name(),
+        2,           "3M", "", "pied-piper-valley", "", {dummy_image.name(), "", "", "", {}}, dummy_cloud_init_iso.name(),
         key_provider};
     QTemporaryDir data_dir;
     mp::HyperVVirtualMachineFactory backend{data_dir.path()};
