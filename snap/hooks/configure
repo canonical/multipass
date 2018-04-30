@@ -14,6 +14,6 @@ if [[ $driver == "QEMU" && -z $driver_saved ]]; then
 fi
 
 if [[ $driver != $driver_saved ]]; then
-    snapctl set driver-saved="driver"
+    snapctl set driver-saved="$driver"
     snapctl restart $SNAP_NAME
 fi
