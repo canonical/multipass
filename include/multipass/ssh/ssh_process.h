@@ -50,6 +50,7 @@ private:
     ssh_channel release_channel();
 
     ssh_session session;
+    const std::string cmd;
     ChannelUPtr channel;
     optional<int> exit_status;
 
