@@ -18,10 +18,10 @@ _multipass_complete()
     {
         local state=$1
 
-        local cmd="multipass list"
+        local cmd="multipass list --format=csv"
         [ -n "$state" ] && cmd="$cmd | \grep -E '$state'"
 
-        local instances=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \awk '{print $1}' )
+        local instances=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
 
         local found
         opts=""
