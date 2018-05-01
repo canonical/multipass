@@ -213,15 +213,14 @@ auto get_domain_state(virDomainPtr domain)
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc, virConnectPtr connection,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor)
-    : vm_name{desc.vm_name},
+    : VirtualMachine{desc.key_provider, desc.vm_name},
       connection{connection},
       domain{get_domain_definition(connection, desc, bridge_name)},
-      state{get_domain_state(domain.get())},
       mac_addr{get_instance_mac_addr(domain.get())},
       ip{get_instance_ip(connection, mac_addr)},
-      key_provider{desc.key_provider},
       monitor{&monitor}
 {
+    state = get_domain_state(domain.get());
 }
 
 mp::LibVirtVirtualMachine::~LibVirtVirtualMachine()
@@ -303,30 +302,10 @@ std::string mp::LibVirtVirtualMachine::ipv6()
 
 void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        try
-        {
-            mp::SSHSession session{ssh_hostname(), ssh_port()};
-            state = State::running;
-            return mp::utils::TimeoutAction::done;
-        }
-        catch (const std::exception&)
-        {
-            state = State::unknown;
-            return mp::utils::TimeoutAction::retry;
-        }
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mp::utils::wait_until_ssh_up(this, timeout);
 }
 
 void mp::LibVirtVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        mp::SSHSession session{ssh_hostname(), ssh_port(), key_provider};
-        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-        return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mp::utils::wait_for_cloud_init(this, timeout);
 }

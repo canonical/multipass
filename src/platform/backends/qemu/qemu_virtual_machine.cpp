@@ -124,14 +124,12 @@ auto qmp_execute_json(const QString& cmd)
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, optional<mp::IPAddress> address,
                                            const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
                                            VMStatusMonitor& monitor)
-    : state{State::off},
+    : VirtualMachine{desc.key_provider, desc.vm_name},
       ip{address},
       is_legacy_ip{ip ? true : false},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
-      vm_name{desc.vm_name},
       dnsmasq_server{&dnsmasq_server},
-      key_provider{desc.key_provider},
       monitor{&monitor},
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
 {
@@ -310,32 +308,14 @@ std::string mp::QemuVirtualMachine::ipv6()
 
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        ensure_vm_is_running();
-        try
-        {
-            mp::SSHSession session{ssh_hostname(), ssh_port()};
-            state = State::running;
-            return mp::utils::TimeoutAction::done;
-        }
-        catch (const std::exception&)
-        {
-            state = State::unknown;
-            return mp::utils::TimeoutAction::retry;
-        }
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    auto process_vm_events = [this] { ensure_vm_is_running(); };
+
+    mp::utils::wait_until_ssh_up(this, timeout, process_vm_events);
 }
 
 void mp::QemuVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        ensure_vm_is_running();
-        mp::SSHSession session{ssh_hostname(), ssh_port(), key_provider};
-        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-        return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    auto process_vm_events = [this] { ensure_vm_is_running(); };
+
+    mp::utils::wait_for_cloud_init(this, timeout, process_vm_events);
 }

@@ -19,6 +19,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 
+#include <fmt/format.h>
 #include <libssh/callbacks.h>
 
 #include <array>
@@ -66,7 +67,7 @@ auto make_channel(ssh_session ssh_session, const std::string& cmd)
 }
 
 mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd)
-    : session{session}, channel{make_channel(session, cmd)}
+    : session{session}, cmd{cmd}, channel{make_channel(session, cmd)}
 {
 }
 
@@ -86,7 +87,7 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     }
 
     if (!exit_status)
-        throw std::runtime_error("failed to obtain exit status for remote process");
+        throw std::runtime_error(fmt::format("failed to obtain exit status for remote process: \'{}\'", cmd));
 
     return *exit_status;
 }
