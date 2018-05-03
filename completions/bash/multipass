@@ -82,6 +82,9 @@ _multipass_complete()
             "--format"|"-f")
                 opts="table json csv yaml"
             ;;
+            "--cloud-init")
+                _filedir
+            ;;
         esac
     else
         case "${cmd}" in
