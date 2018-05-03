@@ -513,6 +513,37 @@ TEST_F(SftpServer, symlink_in_invalid_dir_fails)
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
 }
 
+TEST_F(SftpServer, broken_symlink_does_not_fail)
+{
+    mpt::TempDir temp_dir;
+    auto missing_file_name = temp_dir.path() + "/test-file";
+    auto broken_link_name = temp_dir.path() + "/test-link";
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto msg = make_msg(SFTP_SYMLINK);
+    auto broken_target = name_as_char_array(missing_file_name.toStdString());
+    msg->filename = broken_target.data();
+
+    auto broken_link = name_as_char_array(broken_link_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&broken_link](auto...) { return broken_link.data(); });
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
+
+    QFileInfo info(broken_link_name);
+    // False because underlying file does not exist
+    EXPECT_FALSE(QFile::exists(broken_link_name));
+    EXPECT_FALSE(QFile::exists(missing_file_name));
+    // True implies the symlink itself exists
+    EXPECT_TRUE(info.isSymLink());
+}
+
 TEST_F(SftpServer, handles_rename)
 {
     mpt::TempDir temp_dir;
@@ -1150,8 +1181,7 @@ TEST_P(Stat, handles)
 
     int num_calls{0};
     QFile file(file_name);
-    QFile link(link_name);
-    uint64_t expected_size = msg_type == SFTP_LSTAT ? link.size() : file.size();
+    uint64_t expected_size = msg_type == SFTP_LSTAT ? file_name.size() : file.size();
     auto reply_attr = [&num_calls, &msg, expected_size](sftp_client_message reply_msg, sftp_attributes attr) {
         EXPECT_THAT(reply_msg, Eq(msg.get()));
         EXPECT_THAT(attr->size, Eq(expected_size));

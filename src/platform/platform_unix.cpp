@@ -20,13 +20,38 @@
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
 
+#include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 namespace mp = multipass;
 
+namespace
+{
+sftp_attributes_struct stat_to_attr(const struct stat* st)
+{
+    sftp_attributes_struct attr{};
+
+    attr.size = st->st_size;
+
+    attr.uid = st->st_uid;
+    attr.gid = st->st_gid;
+
+    attr.flags =
+        SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS | SSH_FILEXFER_ATTR_ACMODTIME;
+
+    attr.atime = st->st_atime;
+    attr.mtime = st->st_mtime;
+
+    attr.permissions = st->st_mode;
+
+    return attr;
+}
+} // namespace
+
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
 {
-    return ::chown(path, uid, gid);
+    return ::lchown(path, uid, gid);
 }
 
 bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
@@ -37,6 +62,31 @@ bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
 bool mp::platform::link(const char* target, const char* link)
 {
     return ::link(target, link) == 0;
+}
+
+int mp::platform::utime(const char* path, int atime, int mtime)
+{
+    struct timeval tv[2];
+    tv[0].tv_sec = atime;
+    tv[0].tv_usec = 0;
+    tv[1].tv_sec = mtime;
+    tv[1].tv_usec = 0;
+
+    return ::lutimes(path, tv);
+}
+
+int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
+{
+    struct stat st;
+
+    auto ret = lstat(path, &st);
+
+    if (ret < 0)
+        return ret;
+
+    *attr = stat_to_attr(&st);
+
+    return 0;
 }
 
 sigset_t mp::platform::make_sigset(std::vector<int> sigs)

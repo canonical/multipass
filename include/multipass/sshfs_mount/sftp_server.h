@@ -48,6 +48,8 @@ public:
 private:
     void process_message(sftp_client_message msg);
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
+    int mapped_uid_for(const int uid);
+    int mapped_gid_for(const int gid);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);

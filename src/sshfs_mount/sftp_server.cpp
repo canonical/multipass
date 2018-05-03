@@ -21,7 +21,6 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
-#include <multipass/utime.h>
 
 #include <fmt/format.h>
 
@@ -240,40 +239,8 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
 
     attr.size = file_info.size();
 
-    const auto no_id_info_available = static_cast<uint>(-2);
-    if (file_info.ownerId() == no_id_info_available)
-    {
-        attr.uid = default_uid;
-    }
-    else
-    {
-        auto map = uid_map.find(file_info.ownerId());
-        if (map != uid_map.end())
-        {
-            attr.uid = map->second;
-        }
-        else
-        {
-            attr.uid = file_info.ownerId();
-        }
-    }
-
-    if (file_info.groupId() == no_id_info_available)
-    {
-        attr.gid = default_gid;
-    }
-    else
-    {
-        auto map = gid_map.find(file_info.groupId());
-        if (map != gid_map.end())
-        {
-            attr.gid = map->second;
-        }
-        else
-        {
-            attr.gid = file_info.groupId();
-        }
-    }
+    attr.uid = mapped_uid_for(file_info.ownerId());
+    attr.gid = mapped_gid_for(file_info.groupId());
 
     attr.permissions = to_unix_permissions(file_info.permissions());
     attr.atime = file_info.lastRead().toUTC().toMSecsSinceEpoch() / 1000;
@@ -289,6 +256,32 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
         attr.permissions |= SSH_S_IFREG;
 
     return attr;
+}
+
+int mp::SftpServer::mapped_uid_for(const int uid)
+{
+    const auto no_id_info_available = -2;
+    if (uid == no_id_info_available)
+        return default_uid;
+
+    auto map = uid_map.find(uid);
+    if (map != uid_map.end())
+        return map->second;
+
+    return uid;
+}
+
+int mp::SftpServer::mapped_gid_for(const int gid)
+{
+    const auto no_id_info_available = -2;
+    if (gid == no_id_info_available)
+        return default_gid;
+
+    auto map = gid_map.find(gid);
+    if (map != gid_map.end())
+        return map->second;
+
+    return gid;
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
@@ -478,7 +471,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     auto file = std::make_unique<QFile>(filename);
 
-    auto exists = file->exists();
+    auto exists = QFileInfo(filename).isSymLink() || file->exists();
 
     if (!file->open(mode))
         return reply_failure(msg);
@@ -565,8 +558,18 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
     for (int i = 0; i < num_entries; i++)
     {
         auto entry = dir_entries->takeFirst();
-        auto attr = attr_from(entry);
         const auto filename = entry.fileName().toStdString();
+        sftp_attributes_struct attr{};
+        if (entry.isSymLink())
+        {
+            mp::platform::symlink_attr_from(entry.absoluteFilePath().toStdString().c_str(), &attr);
+            attr.uid = mapped_uid_for(attr.uid);
+            attr.gid = mapped_gid_for(attr.gid);
+        }
+        else
+        {
+            attr = attr_from(entry);
+        }
         const auto longname = longname_from(entry, filename);
         sftp_reply_names_add(msg, filename.c_str(), longname.c_str(), &attr);
     }
@@ -616,7 +619,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     if (!validate_path(source_path, source))
         return reply_perm_denied(msg);
 
-    if (!QFile::exists(source))
+    if (!QFileInfo(source).isSymLink() && !QFile::exists(source))
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
 
     const auto target = sftp_client_message_get_data(msg);
@@ -652,7 +655,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         if (!validate_path(source_path, filename.toStdString()))
             return reply_perm_denied(msg);
 
-        if (!QFile::exists(filename))
+        if (!QFileInfo(filename).isSymLink() && !QFile::exists(filename))
             return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
@@ -670,12 +673,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
     {
-        struct utimbuf timebuf;
-
-        timebuf.actime = msg->attr->atime;
-        timebuf.modtime = msg->attr->mtime;
-
-        if (utime(filename.toStdString().c_str(), &timebuf) < 0)
+        if (mp::platform::utime(filename.toStdString().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
             return reply_failure(msg);
     }
 
@@ -695,13 +693,22 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
         return reply_perm_denied(msg);
 
     QFileInfo file_info(filename);
-    if (!file_info.exists())
+    if (!file_info.isSymLink() && !file_info.exists())
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
 
-    if (follow && file_info.isSymLink())
-        file_info = QFileInfo(file_info.symLinkTarget());
+    sftp_attributes_struct attr{};
 
-    auto attr = attr_from(file_info);
+    if (!follow && file_info.isSymLink())
+    {
+        mp::platform::symlink_attr_from(filename, &attr);
+        attr.uid = mapped_uid_for(attr.uid);
+        attr.gid = mapped_gid_for(attr.gid);
+    }
+    else
+    {
+        attr = attr_from(file_info);
+    }
+
     return sftp_reply_attr(msg, &attr);
 }
 
@@ -715,6 +722,17 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
     if (!mp::platform::symlink(old_name, new_name, QFileInfo(old_name).isDir()))
         return reply_failure(msg);
+
+    QFileInfo current_file(new_name);
+    QFileInfo current_dir(current_file.path());
+    auto ret = mp::platform::chown(new_name, current_dir.ownerId(), current_dir.groupId());
+    if (ret < 0)
+    {
+        mpl::log(mpl::Level::error, category,
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}\n", new_name, current_dir.ownerId(),
+                             current_dir.groupId()));
+        return reply_failure(msg);
+    }
 
     return reply_ok(msg);
 }

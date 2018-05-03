@@ -23,6 +23,8 @@
 #include <multipass/logging/logger.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include <libssh/sftp.h>
+
 #include <string>
 
 namespace multipass
@@ -35,6 +37,8 @@ logging::Logger::UPtr make_logger(logging::Level level);
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);
 bool link(const char* target, const char* link);
+int utime(const char* path, int atime, int mtime);
+int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 } // namespace platform
 }
 #endif // MULTIPASS_PLATFORM_H
