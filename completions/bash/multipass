@@ -24,7 +24,6 @@ _multipass_complete()
         local instances=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
 
         local found
-        opts=""
 
         _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
         for instance in $instances; do
@@ -49,35 +48,29 @@ _multipass_complete()
     multipass_cmds="copy-files delete exec find help info launch list mount purge \
                     recover shell start stop umount version"
 
-    if [[ ${cur} == -* ]]; then
-        opts="--help --verbose"
+    opts="--help --verbose"
+    case "${cmd}" in
+        "info")
+            opts="${opts} --all --format"
+        ;;
+        "list"|"ls")
+            opts="${opts} --format"
+        ;;
+        "delete")
+            opts="${opts} --all --purge"
+        ;;
+        "launch")
+            opts="${opts} --cpus --disk --mem --name --cloud-init"
+        ;;
+        "mount")
+            opts="${opts} --gid-map --uid-map"
+        ;;
+        "recover"|"start"|"stop")
+            opts="${opts} --all"
+        ;;
+    esac
 
-        case "${cmd}" in
-            "copy-files"|"exec"|"find"|"help"|"purge"|"shell"|"sh"|"connect"|"umount"|"unmount")
-            ;;
-            "info")
-                opts="${opts} --all --format"
-            ;;
-            "list"|"ls")
-                opts="${opts} --format"
-            ;;
-            "delete")
-                opts="${opts} --all --purge"
-            ;;
-            "launch")
-                opts="${opts} --cpus --disk --mem --name --cloud-init"
-            ;;
-            "mount")
-                opts="${opts} --gid-map --uid-map"
-            ;;
-            "recover"|"start"|"stop")
-                opts="${opts} --all"
-            ;;
-            *)
-                opts=""
-            ;;
-        esac
-    elif [[ ${prev} == -* ]]; then
+    if [[ ${prev} == -* ]]; then
         case "${prev}" in
             "--format"|"-f")
                 opts="table json csv yaml"
@@ -125,8 +118,8 @@ _multipass_complete()
         esac
     fi
 
-    if [[ -z ${opts} && ${COMP_CWORD} -eq 1 ]]; then
-        opts=$multipass_cmds
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        opts="${opts} ${multipass_cmds}"
     fi
 
     if [[ -n "${opts}" ]]; then
