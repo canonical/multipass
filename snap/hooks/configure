@@ -7,13 +7,11 @@ if [[ -n $driver && ! $driver =~ (LIBVIRT|QEMU) ]]; then
     exit 1
 fi
 
-driver_saved="$(snapctl get driver-saved)"
-
-if [[ $driver == "QEMU" && -z $driver_saved ]]; then
-    exit 0
-fi
+driver_saved="$(cat $SNAP_COMMON/driver)" || true
+driver=${driver:-QEMU}
+driver_saved=${driver_saved:-QEMU}
 
 if [[ $driver != $driver_saved ]]; then
-    snapctl set driver-saved="$driver"
+    echo "$driver" > $SNAP_COMMON/driver
     snapctl restart $SNAP_NAME
 fi
