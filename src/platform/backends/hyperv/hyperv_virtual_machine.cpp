@@ -27,7 +27,11 @@
 namespace mp = multipass;
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const VirtualMachineDescription& desc)
-    : ip{address}, name{QString::fromStdString(desc.vm_name)}, state{State::off}, key_provider{desc.key_provider}
+    : VirtualMachine{desc.key_provider, desc.vm_name},
+      ip{address},
+      name{QString::fromStdString(desc.vm_name)},
+      state{State::off},
+      key_provider{desc.key_provider}
 {
     if (!powershell_run({"Get-VM", "-Name", name}, desc.vm_name))
     {

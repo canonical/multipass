@@ -36,7 +36,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : state{State::off}, monitor{&monitor}, desc{desc}
+    : VirtualMachine{desc.key_provider, desc.vm_name}, state{State::off}, monitor{&monitor}, desc{desc}
 {
     thread.setObjectName("HyperkitVirtualMachine thread");
 }
