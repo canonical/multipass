@@ -31,7 +31,6 @@ class QString;
 namespace multipass
 {
 class DNSMasqServer;
-class SSHKeyProvider;
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
@@ -59,14 +58,11 @@ private:
     void on_shutdown();
     void on_restart();
     void ensure_vm_is_running();
-    VirtualMachine::State state;
     optional<IPAddress> ip;
     bool is_legacy_ip;
     const std::string tap_device_name;
     const std::string mac_addr;
-    const std::string vm_name;
     DNSMasqServer* dnsmasq_server;
-    const SSHKeyProvider& key_provider;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
     std::string saved_error_msg;

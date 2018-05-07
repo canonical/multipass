@@ -22,12 +22,18 @@
 
 #include <multipass/virtual_machine.h>
 
+#include "stub_ssh_key_provider.h"
+
 namespace multipass
 {
 namespace test
 {
 struct StubVirtualMachine final : public multipass::VirtualMachine
 {
+    StubVirtualMachine() : VirtualMachine{StubSSHKeyProvider(), ""}
+    {
+    }
+
     void start() override
     {
     }

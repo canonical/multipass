@@ -26,6 +26,8 @@
 
 namespace multipass
 {
+class SSHKeyProvider;
+
 class VirtualMachine
 {
 public:
@@ -53,8 +55,13 @@ public:
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
 
+    VirtualMachine::State state;
+    const SSHKeyProvider& key_provider;
+    const std::string vm_name;
+
 protected:
-    VirtualMachine() = default;
+    VirtualMachine(const SSHKeyProvider& key_provider, const std::string& vm_name)
+        : state{State::off}, key_provider{key_provider}, vm_name{vm_name} {};
     VirtualMachine(const VirtualMachine&) = delete;
     VirtualMachine& operator=(const VirtualMachine&) = delete;
 };

@@ -19,16 +19,20 @@
 #define MULTIPASS_UTILS_H
 
 #include <chrono>
+#include <functional>
 #include <string>
 #include <thread>
 #include <vector>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QString>
 #include <QStringList>
 
 namespace multipass
 {
+class VirtualMachine;
+
 namespace utils
 {
 enum class QuoteType
@@ -48,6 +52,10 @@ std::string& trim_end(std::string& s);
 std::string escape_char(const std::string& s, char c);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string generate_mac_address();
+void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+                       std::function<void()> const& process_vm_events = []() { QCoreApplication::processEvents(); });
+void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+                         std::function<void()> const& process_vm_events = []() { QCoreApplication::processEvents(); });
 
 enum class TimeoutAction
 {

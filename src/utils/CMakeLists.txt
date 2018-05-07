@@ -17,4 +17,5 @@ add_library(utils STATIC
 
 target_link_libraries(utils
   fmt
+  ssh
   Qt5::Core)

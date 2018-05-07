@@ -26,7 +26,6 @@
 
 namespace multipass
 {
-class SSHKeyProvider;
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
@@ -52,13 +51,10 @@ public:
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
 private:
-    const std::string vm_name;
     virConnectPtr connection;
     DomainUPtr domain;
-    VirtualMachine::State state;
     const std::string mac_addr;
     optional<IPAddress> ip;
-    const SSHKeyProvider& key_provider;
     VMStatusMonitor* monitor;
 };
 }
