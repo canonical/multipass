@@ -26,7 +26,7 @@
 #include <unordered_map>
 
 #include <QFile>
-#include <QFileInfoList>
+#include <QFileInfo>
 
 namespace multipass
 {
@@ -48,6 +48,8 @@ public:
 private:
     void process_message(sftp_client_message msg);
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
+    int mapped_uid_for(const int uid);
+    int mapped_gid_for(const int gid);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
@@ -70,7 +72,7 @@ private:
     SSHSession ssh_session;
     const SftpSessionUptr sftp_server_session;
     const std::string source_path;
-    std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
+    std::unordered_map<void*, std::unique_ptr<QStringList>> open_dir_handles;
     std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
     const std::unordered_map<int, int> gid_map;
     const std::unordered_map<int, int> uid_map;
