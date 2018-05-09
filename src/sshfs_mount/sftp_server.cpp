@@ -705,6 +705,9 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
     }
     else
     {
+        if (file_info.isSymLink())
+            file_info = QFileInfo(file_info.symLinkTarget());
+
         attr = attr_from(file_info);
     }
 
