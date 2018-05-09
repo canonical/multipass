@@ -537,11 +537,9 @@ TEST_F(SftpServer, broken_symlink_does_not_fail)
     ASSERT_THAT(num_calls, Eq(1));
 
     QFileInfo info(broken_link_name);
-    // False because underlying file does not exist
-    EXPECT_FALSE(QFile::exists(broken_link_name));
-    EXPECT_FALSE(QFile::exists(missing_file_name));
-    // True implies the symlink itself exists
     EXPECT_TRUE(info.isSymLink());
+    EXPECT_FALSE(QFile::exists(info.symLinkTarget()));
+    EXPECT_FALSE(QFile::exists(missing_file_name));
 }
 
 TEST_F(SftpServer, handles_rename)
