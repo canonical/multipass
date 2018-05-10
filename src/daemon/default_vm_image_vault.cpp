@@ -315,7 +315,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
     }
 
-    expunge_invalid_image_records();
     persist_image_records();
     persist_instance_records();
 
@@ -350,6 +349,9 @@ void mp::DefaultVMImageVault::prune_expired_images()
         if (!record.second.query.persistent &&
             record.second.last_accessed + days_to_expire <= std::chrono::system_clock::now())
         {
+            mpl::log(
+                mpl::Level::info, category,
+                fmt::format("Source image {} is expired. Removing it from the cache.\n", record.second.query.release));
             expired_keys.push_back(record.first);
             QFileInfo image_file{record.second.image.image_path};
             if (image_file.exists())
@@ -420,24 +422,4 @@ void mp::DefaultVMImageVault::persist_image_records()
         image_records_json.insert(key, record_to_json(record.second));
     }
     write_json(image_records_json, cache_dir.filePath(image_db_name));
-}
-
-void mp::DefaultVMImageVault::expunge_invalid_image_records()
-{
-    std::vector<decltype(prepared_image_records)::key_type> invalid_keys;
-    for (const auto& record : prepared_image_records)
-    {
-        const auto& key = record.first;
-        auto info = image_host->info_for(record.second.query);
-        if (info.id.toStdString() != key)
-            invalid_keys.push_back(key);
-    }
-
-    for (auto const& key : invalid_keys)
-    {
-        QFileInfo image_file{prepared_image_records[key].image.image_path};
-        prepared_image_records.erase(key);
-        if (image_file.exists())
-            image_file.dir().removeRecursively();
-    }
 }
