@@ -70,7 +70,8 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         if (info.id().empty())
             out.write("{}\n", "Not Available");
         else
-            out.write("{} (Ubuntu {})\n", info.id().substr(0, 12), info.image_release());
+            out.write("{}{}\n", info.id().substr(0, 12),
+                      !info.image_release().empty() ? fmt::format(" (Ubuntu {})", info.image_release()) : "");
         out.write("{:<16}{}\n", "Load:", info.load().empty() ? "--" : info.load());
         out.write("{:<16}{}\n", "Disk usage:", to_usage(info.disk_usage(), info.disk_total()));
         out.write("{:<16}{}\n", "Memory usage:", to_usage(info.memory_usage(), info.memory_total()));
@@ -107,7 +108,8 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
         out.write("{:<24}{:<12}{:<17}{:<}\n", instance.name(),
                   mp::format::status_string_for(instance.instance_status()),
                   instance.ipv4().empty() ? "--" : instance.ipv4(),
-                  instance.current_release().empty() ? "Not Available" : instance.current_release());
+                  instance.current_release().empty() ? "Not Available"
+                                                     : fmt::format("Ubuntu {}", instance.current_release()));
     }
 
     return out.str();
