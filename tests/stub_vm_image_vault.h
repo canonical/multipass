@@ -32,7 +32,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
     multipass::VMImage fetch_image(const multipass::FetchType&, const multipass::Query&, const PrepareAction& prepare,
                                    const multipass::ProgressMonitor&) override
     {
-        return prepare({dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}});
+        return prepare({dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}});
     };
 
     void remove(const std::string&) override{};

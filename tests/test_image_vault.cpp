@@ -273,7 +273,7 @@ TEST_F(ImageVault, uses_image_from_prepare)
     }
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name, "", "", source_image.id, {}};
+        return {file_name, "", "", source_image.id, "", "", {}};
     };
 
     mp::DefaultVMImageVault vault{&host, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -300,7 +300,7 @@ TEST_F(ImageVault, image_purged_expired)
             file.write("");
             file.flush();
         }
-        return {file_name, "", "", source_image.id, {}};
+        return {file_name, "", "", source_image.id, "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
@@ -327,7 +327,7 @@ TEST_F(ImageVault, image_exists_not_expired)
             file.write("");
             file.flush();
         }
-        return {file_name, "", "", source_image.id, {}};
+        return {file_name, "", "", source_image.id, "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 

@@ -661,17 +661,24 @@ try // clang-format on
             info->mutable_instance_status()->set_status(status_for(vm->current_state()));
         }
 
-        try
+        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto original_release = vm_image.original_release;
+
+        if (original_release.empty())
         {
-            auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
-            auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
-            info->set_image_release(vm_image_info.release_title.toStdString());
-            info->set_id(vm_image.id);
+            try
+            {
+                auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
+                original_release = vm_image_info.release_title.toStdString();
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
+            }
         }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
-        }
+
+        info->set_image_release(original_release);
+        info->set_id(vm_image.id);
 
         auto vm_specs = vm_instance_specs[name];
 
@@ -755,16 +762,23 @@ try // clang-format on
         entry->mutable_instance_status()->set_status(status_for(vm->current_state()));
 
         // FIXME: Set the release to the cached current version when supported
-        try
+        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto current_release = vm_image.original_release;
+
+        if (current_release.empty())
         {
-            auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
-            auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
-            entry->set_current_release("Ubuntu " + vm_image_info.release_title.toStdString());
+            try
+            {
+                auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
+                current_release = vm_image_info.release_title.toStdString();
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
+            }
         }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
-        }
+
+        entry->set_current_release(current_release);
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
             entry->set_ipv4(vm->ipv4());

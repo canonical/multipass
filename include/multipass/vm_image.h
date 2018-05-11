@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,8 @@ public:
     Path kernel_path;
     Path initrd_path;
     std::string id;
+    std::string original_release;
+    std::string current_release;
     std::vector<std::string> aliases;
 };
 }

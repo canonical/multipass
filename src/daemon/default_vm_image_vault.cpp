@@ -67,6 +67,8 @@ auto image_to_json(const mp::VMImage& image)
     json.insert("kernel_path", image.kernel_path);
     json.insert("initrd_path", image.initrd_path);
     json.insert("id", QString::fromStdString(image.id));
+    json.insert("original_release", QString::fromStdString(image.original_release));
+    json.insert("current_release", QString::fromStdString(image.current_release));
 
     QJsonArray aliases;
     for (const auto& alias : image.aliases)
@@ -133,6 +135,8 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         auto kernel_path = image["kernel_path"].toString();
         auto initrd_path = image["initrd_path"].toString();
         auto image_id = image["id"].toString().toStdString();
+        auto original_release = image["original_release"].toString().toStdString();
+        auto current_release = image["current_release"].toString().toStdString();
 
         std::vector<std::string> aliases;
         for (const auto& entry : image["aliases"].toArray())
@@ -163,9 +167,10 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
             last_accessed = std::chrono::system_clock::time_point(duration);
         }
 
-        reconstructed_records[key] = {{image_path, kernel_path, initrd_path, image_id, aliases},
-                                      {"", release.toStdString(), persistent.toBool(), remote_name.toStdString()},
-                                      last_accessed};
+        reconstructed_records[key] = {
+            {image_path, kernel_path, initrd_path, image_id, original_release, current_release, aliases},
+            {"", release.toStdString(), persistent.toBool(), remote_name.toStdString()},
+            last_accessed};
     }
     return reconstructed_records;
 }
@@ -252,6 +257,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     if (name_entry != instance_image_records.end())
     {
         const auto& record = name_entry->second;
+
         return record.image;
     }
 
@@ -282,6 +288,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     VMImage source_image;
     source_image.id = id;
     source_image.image_path = image_dir.filePath(filename_for(info.image_location));
+    source_image.original_release = info.release_title.toStdString();
     for (const auto& alias : info.aliases)
     {
         source_image.aliases.push_back(alias.toStdString());
@@ -399,6 +406,8 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
             copy(prepared_image.kernel_path, output_dir),
             copy(prepared_image.initrd_path, output_dir),
             prepared_image.id,
+            prepared_image.original_release,
+            prepared_image.current_release,
             {}};
 }
 

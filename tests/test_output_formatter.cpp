@@ -37,7 +37,7 @@ auto construct_single_instance_list_reply()
     auto list_entry = list_reply.add_instances();
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("Ubuntu 16.04 LTS");
+    list_entry->set_current_release("16.04 LTS");
     list_entry->set_ipv4("10.168.32.2");
 
     return list_reply;
@@ -50,13 +50,13 @@ auto construct_multiple_instances_list_reply()
     auto list_entry = list_reply.add_instances();
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("Ubuntu 16.04 LTS");
+    list_entry->set_current_release("16.04 LTS");
     list_entry->set_ipv4("10.21.124.56");
 
     list_entry = list_reply.add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("Ubuntu 18.04 LTS");
+    list_entry->set_current_release("18.04 LTS");
 
     return list_reply;
 }
@@ -273,7 +273,7 @@ TEST_F(JsonFormatter, single_instance_list_output)
                                 "                \"10.168.32.2\"\n"
                                 "            ],\n"
                                 "            \"name\": \"foo\",\n"
-                                "            \"release\": \"Ubuntu 16.04 LTS\",\n"
+                                "            \"release\": \"16.04 LTS\",\n"
                                 "            \"state\": \"RUNNING\"\n"
                                 "        }\n"
                                 "    ]\n"
@@ -296,14 +296,14 @@ TEST_F(JsonFormatter, multiple_instances_list_output)
                                 "                \"10.21.124.56\"\n"
                                 "            ],\n"
                                 "            \"name\": \"bogus-instance\",\n"
-                                "            \"release\": \"Ubuntu 16.04 LTS\",\n"
+                                "            \"release\": \"16.04 LTS\",\n"
                                 "            \"state\": \"RUNNING\"\n"
                                 "        },\n"
                                 "        {\n"
                                 "            \"ipv4\": [\n"
                                 "            ],\n"
                                 "            \"name\": \"bombastic\",\n"
-                                "            \"release\": \"Ubuntu 18.04 LTS\",\n"
+                                "            \"release\": \"18.04 LTS\",\n"
                                 "            \"state\": \"STOPPED\"\n"
                                 "        }\n"
                                 "    ]\n"
@@ -479,7 +479,7 @@ TEST_F(CSVFormatter, single_instance_list_output)
     auto list_reply = construct_single_instance_list_reply();
 
     auto expected_output = "Name,State,IPv4,IPv6,Release\n"
-                           "foo,RUNNING,10.168.32.2,,Ubuntu 16.04 LTS\n";
+                           "foo,RUNNING,10.168.32.2,,16.04 LTS\n";
 
     mp::CSVFormatter csv_formatter;
     auto output = csv_formatter.format(list_reply);
@@ -492,8 +492,8 @@ TEST_F(CSVFormatter, multiple_instance_list_output)
     auto list_reply = construct_multiple_instances_list_reply();
 
     auto expected_output = "Name,State,IPv4,IPv6,Release\n"
-                           "bogus-instance,RUNNING,10.21.124.56,,Ubuntu 16.04 LTS\n"
-                           "bombastic,STOPPED,,,Ubuntu 18.04 LTS\n";
+                           "bogus-instance,RUNNING,10.21.124.56,,16.04 LTS\n"
+                           "bombastic,STOPPED,,,18.04 LTS\n";
 
     mp::CSVFormatter csv_formatter;
     auto output = csv_formatter.format(list_reply);
@@ -567,7 +567,7 @@ TEST_F(YamlFormatter, single_instance_list_output)
                            "  - state: RUNNING\n"
                            "    ipv4:\n"
                            "      - 10.168.32.2\n"
-                           "    release: Ubuntu 16.04 LTS\n";
+                           "    release: 16.04 LTS\n";
 
     mp::YamlFormatter formatter;
     auto output = formatter.format(list_reply);
@@ -583,12 +583,12 @@ TEST_F(YamlFormatter, multiple_instance_list_output)
                            "  - state: RUNNING\n"
                            "    ipv4:\n"
                            "      - 10.21.124.56\n"
-                           "    release: Ubuntu 16.04 LTS\n"
+                           "    release: 16.04 LTS\n"
                            "bombastic:\n"
                            "  - state: STOPPED\n"
                            "    ipv4:\n"
                            "      - \"\"\n"
-                           "    release: Ubuntu 18.04 LTS\n";
+                           "    release: 18.04 LTS\n";
 
     mp::YamlFormatter formatter;
     auto output = formatter.format(list_reply);
