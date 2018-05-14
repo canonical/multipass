@@ -125,11 +125,12 @@ QString cmd::Find::description() const
 mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("string",
-                                  "An optional value to search for in [<type:>]<string> format, where "
-                                  "<type> can be either ‘release’ or ‘daily’. If <type> is omitted, "
-                                  "it defaults to ‘release’. <string> can be a partial image hash or an "
-                                  "ubuntu release version, codename or alias",
-                                  "[<string>]");
+                                  "An optional value to search for in [<remote:>]<string> format, where "
+                                  "<remote> can be either ‘release’ or ‘daily’. If <remote> is omitted, "
+                                  "it will search ‘release‘ first, and if no matches are found, it will "
+                                  "then search ‘daily‘. <string> can be a partial image hash or an "
+                                  "Ubuntu release version, codename or alias.",
+                                  "[<remote:>][<string>]");
 
     auto status = parser->commandParse(this);
 
