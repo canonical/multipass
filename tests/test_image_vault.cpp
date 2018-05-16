@@ -337,3 +337,28 @@ TEST_F(ImageVault, image_exists_not_expired)
 
     EXPECT_TRUE(QFileInfo::exists(file_name));
 }
+
+TEST_F(ImageVault, invalid_custom_image_file_throws)
+{
+    mp::DefaultVMImageVault vault{&host, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = "file://foo";
+    query.query_type = mp::Query::Type::LocalFile;
+
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error);
+}
+
+TEST_F(ImageVault, custom_image_url_downloads)
+{
+    mp::DefaultVMImageVault vault{&host, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = "http://www.foo.com/fake.img";
+    query.query_type = mp::Query::Type::HttpDownload;
+
+    vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
+
+    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    EXPECT_TRUE(url_downloader.downloaded_urls.contains(QString::fromStdString(query.release)));
+}
