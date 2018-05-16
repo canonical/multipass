@@ -41,7 +41,7 @@ struct UbuntuImageHost : public testing::Test
 {
     mp::Query make_query(std::string release, std::string remote)
     {
-        return {"", release, false, remote};
+        return {"", release, false, remote, mp::Query::Type::SimpleStreams};
     }
 
     QString host_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + "releases/"};

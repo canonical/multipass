@@ -61,9 +61,24 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     if (!request->remote_name().empty() && request->image().empty())
         throw std::runtime_error("Must specify an image when specifying a remote");
 
-    std::string image = request->image().empty() ? "default" : request->image();
+    std::string image = !request->custom_image_path().empty()
+                            ? request->custom_image_path()
+                            : (request->image().empty() ? "default" : request->image());
     // TODO: persistence should be specified by the rpc as well
-    return {name, image, false, request->remote_name()};
+
+    mp::Query::Type query_type{mp::Query::Type::SimpleStreams};
+
+    if (!request->custom_image_path().empty())
+    {
+        QString custom_image_path = QString::fromStdString(request->custom_image_path());
+
+        if (custom_image_path.startsWith("file"))
+            query_type = mp::Query::Type::LocalFile;
+        else if (custom_image_path.startsWith("http"))
+            query_type = mp::Query::Type::HttpDownload;
+    }
+
+    return {name, image, false, request->remote_name(), query_type};
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone)
@@ -537,8 +552,8 @@ try // clang-format on
 {
     if (!request->search_string().empty())
     {
-        auto vm_images_info =
-            config->image_host->all_info_for({"", request->search_string(), false, request->remote_name()});
+        auto vm_images_info = config->image_host->all_info_for(
+            {"", request->search_string(), false, request->remote_name(), Query::Type::SimpleStreams});
 
         for (const auto& info : vm_images_info)
         {
@@ -664,7 +679,7 @@ try // clang-format on
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         auto original_release = vm_image.original_release;
 
-        if (original_release.empty())
+        if (!vm_image.id.empty() && original_release.empty())
         {
             try
             {
@@ -765,7 +780,7 @@ try // clang-format on
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         auto current_release = vm_image.original_release;
 
-        if (current_release.empty())
+        if (!vm_image.id.empty() && current_release.empty())
         {
             try
             {

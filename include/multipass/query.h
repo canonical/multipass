@@ -27,10 +27,18 @@ namespace multipass
 class Query
 {
 public:
+    enum Type
+    {
+        SimpleStreams,
+        LocalFile,
+        HttpDownload
+    };
+
     std::string name;
     std::string release;
     bool persistent;
     std::string remote_name;
+    Type query_type;
 };
 }
 #endif // MULTIPASS_QUERY_H
