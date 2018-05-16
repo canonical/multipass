@@ -141,55 +141,80 @@ TEST_F(Client, shell_cmd_help_ok)
     EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-// create cli tests
-TEST_F(Client, create_cmd_good_arguments)
+// launch cli tests
+TEST_F(Client, launch_cmd_good_arguments)
 {
     EXPECT_THAT(send_command({"launch", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, create_cmd_help_ok)
+TEST_F(Client, launch_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"launch", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, create_cmd_fails_multiple_args)
+TEST_F(Client, launch_cmd_fails_multiple_args)
 {
     EXPECT_THAT(send_command({"launch", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, create_cmd_unknown_option_fails)
+TEST_F(Client, launch_cmd_unknown_option_fails)
 {
     EXPECT_THAT(send_command({"launch", "-z", "2"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, create_cmd_name_option_ok)
+TEST_F(Client, launch_cmd_name_option_ok)
 {
     EXPECT_THAT(send_command({"launch", "-n", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, create_cmd_name_option_fails_no_value)
+TEST_F(Client, launch_cmd_name_option_fails_no_value)
 {
     EXPECT_THAT(send_command({"launch", "-n"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, create_cmd_memory_option_ok)
+TEST_F(Client, launch_cmd_memory_option_ok)
 {
     EXPECT_THAT(send_command({"launch", "-m", "1G"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, create_cmd_memory_option_fails_no_value)
+TEST_F(Client, launch_cmd_memory_option_fails_no_value)
 {
     EXPECT_THAT(send_command({"launch", "-m"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, create_cmd_cpu_option_ok)
+TEST_F(Client, launch_cmd_cpu_option_ok)
 {
     EXPECT_THAT(send_command({"launch", "-c", "2"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, create_cmd_cpu_option_fails_no_value)
+TEST_F(Client, launch_cmd_cpu_option_fails_no_value)
 {
     EXPECT_THAT(send_command({"launch", "-c"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_image_option_file_ok)
+{
+    EXPECT_THAT(send_command({"launch", "--image", "file://foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_image_option_http_ok)
+{
+    EXPECT_THAT(send_command({"launch", "--image", "http://foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_image_option_invalid_prefix_fail)
+{
+    EXPECT_THAT(send_command({"launch", "--image", "image://foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_image_option_no_prefix_fail)
+{
+    EXPECT_THAT(send_command({"launch", "--image", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_image_option_and_image_pos_arg_fail)
+{
+    EXPECT_THAT(send_command({"launch", "--image", "file://foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 // purge cli tests
