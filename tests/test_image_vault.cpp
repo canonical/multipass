@@ -106,7 +106,7 @@ struct ImageVault : public testing::Test
     QTemporaryDir cache_dir;
     QTemporaryDir data_dir;
     std::string instance_name{"valley-pied-piper"};
-    mp::Query default_query{instance_name, "xenial", false, ""};
+    mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::SimpleStreams};
 };
 }
 

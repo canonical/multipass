@@ -57,6 +57,7 @@ auto query_to_json(const mp::Query& query)
     json.insert("release", QString::fromStdString(query.release));
     json.insert("persistent", query.persistent);
     json.insert("remote_name", QString::fromStdString(query.remote_name));
+    json.insert("query_type", static_cast<int>(query.query_type));
     return json;
 }
 
@@ -154,6 +155,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         if (!persistent.isBool())
             return {};
         auto remote_name = query["remote_name"].toString();
+        auto query_type = static_cast<mp::Query::Type>(query["type"].toInt());
 
         std::chrono::system_clock::time_point last_accessed;
         auto last_accessed_count = static_cast<qint64>(record["last_accessed"].toDouble());
@@ -169,7 +171,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
 
         reconstructed_records[key] = {
             {image_path, kernel_path, initrd_path, image_id, original_release, current_release, aliases},
-            {"", release.toStdString(), persistent.toBool(), remote_name.toStdString()},
+            {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
             last_accessed};
     }
     return reconstructed_records;
@@ -261,71 +263,104 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         return record.image;
     }
 
-    auto info = image_host->info_for(query);
-    auto id = info.id.toStdString();
-
-    if (!query.name.empty())
+    if (query.query_type != Query::Type::SimpleStreams)
     {
-        for (auto& record : prepared_image_records)
+        QUrl image_url(QString::fromStdString(query.release));
+        VMImage source_image;
+
+        if (image_url.isLocalFile())
         {
-            const auto aliases = record.second.image.aliases;
-            if (id == record.first || std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
+            if (!QFile::exists(image_url.path()))
+                throw std::runtime_error(
+                    fmt::format("Custom image `{}` does not exist.", image_url.path().toStdString()));
+
+            source_image.image_path = image_url.path();
+
+            source_image = image_instance_from(query.name, prepare(source_image));
+        }
+        else
+        {
+            auto instance_dir = make_dir(QString::fromStdString(query.name), instances_dir);
+            source_image.image_path = instance_dir.filePath(filename_for(image_url.path()));
+            DeleteOnException image_file{source_image.image_path};
+
+            url_downloader->download_to(image_url, source_image.image_path, 0, DownloadProgress::IMAGE, monitor);
+
+            prepare(source_image);
+        }
+
+        instance_image_records[query.name] = {source_image, query, std::chrono::system_clock::now()};
+        persist_instance_records();
+        return source_image;
+    }
+    else
+    {
+        auto info = image_host->info_for(query);
+        auto id = info.id.toStdString();
+
+        if (!query.name.empty())
+        {
+            for (auto& record : prepared_image_records)
             {
-                const auto prepared_image = record.second.image;
-                auto vm_image = image_instance_from(query.name, prepared_image);
-                instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-                persist_instance_records();
-                record.second.last_accessed = std::chrono::system_clock::now();
-                persist_image_records();
-                return vm_image;
+                const auto aliases = record.second.image.aliases;
+                if (id == record.first || std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
+                {
+                    const auto prepared_image = record.second.image;
+                    auto vm_image = image_instance_from(query.name, prepared_image);
+                    instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+                    persist_instance_records();
+                    record.second.last_accessed = std::chrono::system_clock::now();
+                    persist_image_records();
+                    return vm_image;
+                }
             }
         }
-    }
 
-    auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
-    auto image_dir = make_dir(image_dir_name, images_dir);
+        auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
+        auto image_dir = make_dir(image_dir_name, images_dir);
 
-    VMImage source_image;
-    source_image.id = id;
-    source_image.image_path = image_dir.filePath(filename_for(info.image_location));
-    source_image.original_release = info.release_title.toStdString();
-    for (const auto& alias : info.aliases)
-    {
-        source_image.aliases.push_back(alias.toStdString());
-    }
-    DeleteOnException image_file{source_image.image_path};
+        VMImage source_image;
+        source_image.id = id;
+        source_image.image_path = image_dir.filePath(filename_for(info.image_location));
+        source_image.original_release = info.release_title.toStdString();
+        for (const auto& alias : info.aliases)
+        {
+            source_image.aliases.push_back(alias.toStdString());
+        }
+        DeleteOnException image_file{source_image.image_path};
 
-    url_downloader->download_to(info.image_location, source_image.image_path, info.size, DownloadProgress::IMAGE,
-                                monitor);
-
-    if (fetch_type == FetchType::ImageKernelAndInitrd)
-    {
-        source_image.kernel_path = image_dir.filePath(filename_for(info.kernel_location));
-        source_image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
-        DeleteOnException kernel_file{source_image.kernel_path};
-        DeleteOnException initrd_file{source_image.initrd_path};
-        url_downloader->download_to(info.kernel_location, source_image.kernel_path, -1, DownloadProgress::KERNEL,
+        url_downloader->download_to(info.image_location, source_image.image_path, info.size, DownloadProgress::IMAGE,
                                     monitor);
-        url_downloader->download_to(info.initrd_location, source_image.initrd_path, -1, DownloadProgress::INITRD,
-                                    monitor);
+
+        if (fetch_type == FetchType::ImageKernelAndInitrd)
+        {
+            source_image.kernel_path = image_dir.filePath(filename_for(info.kernel_location));
+            source_image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
+            DeleteOnException kernel_file{source_image.kernel_path};
+            DeleteOnException initrd_file{source_image.initrd_path};
+            url_downloader->download_to(info.kernel_location, source_image.kernel_path, -1, DownloadProgress::KERNEL,
+                                        monitor);
+            url_downloader->download_to(info.initrd_location, source_image.initrd_path, -1, DownloadProgress::INITRD,
+                                        monitor);
+        }
+
+        auto prepared_image = prepare(source_image);
+        prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
+        remove_source_images(source_image, prepared_image);
+
+        VMImage vm_image;
+
+        if (!query.name.empty())
+        {
+            vm_image = image_instance_from(query.name, prepared_image);
+            instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+        }
+
+        persist_image_records();
+        persist_instance_records();
+
+        return vm_image;
     }
-
-    auto prepared_image = prepare(source_image);
-    prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
-    remove_source_images(source_image, prepared_image);
-
-    VMImage vm_image;
-
-    if (!query.name.empty())
-    {
-        vm_image = image_instance_from(query.name, prepared_image);
-        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-    }
-
-    persist_image_records();
-    persist_instance_records();
-
-    return vm_image;
 }
 
 void mp::DefaultVMImageVault::remove(const std::string& name)
