@@ -75,7 +75,7 @@ _multipass_complete()
             "--format"|"-f")
                 opts="table json csv yaml"
             ;;
-            "--cloud-init")
+            "--cloud-init"|"--image")
                 _filedir
                 return
             ;;
