@@ -36,6 +36,7 @@ public:
     std::string disk_space;
     std::string vm_name;
     std::string mac_addr;
+    std::string ssh_username;
     VMImage image;
     Path cloud_init_iso;
     const SSHKeyProvider& key_provider;

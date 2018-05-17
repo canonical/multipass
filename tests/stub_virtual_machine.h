@@ -61,6 +61,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "localhost";
     }
 
+    std::string ssh_username() override
+    {
+        return "ubuntu";
+    }
+
     std::string ipv4() override
     {
         return {};

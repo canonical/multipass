@@ -46,6 +46,7 @@ struct VMSpecs
     std::string mem_size;
     std::string disk_space;
     std::string mac_addr;
+    std::string ssh_username;
     std::unordered_map<std::string, VMMount> mounts;
 };
 

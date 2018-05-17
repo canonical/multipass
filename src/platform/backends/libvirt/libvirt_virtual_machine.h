@@ -45,6 +45,7 @@ public:
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
+    std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
@@ -54,6 +55,7 @@ private:
     virConnectPtr connection;
     DomainUPtr domain;
     const std::string mac_addr;
+    const std::string username;
     optional<IPAddress> ip;
     VMStatusMonitor* monitor;
 };

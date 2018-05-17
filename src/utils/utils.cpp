@@ -163,11 +163,11 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
 {
     auto action = [virtual_machine, &process_vm_events] {
         process_vm_events();
-        mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
-                               virtual_machine->key_provider};
-        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
         try
         {
+            mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
+                                   virtual_machine->ssh_username(), virtual_machine->key_provider};
+            auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
             return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
         }
         catch (const std::exception& e)

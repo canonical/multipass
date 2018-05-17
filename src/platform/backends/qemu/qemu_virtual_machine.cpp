@@ -135,6 +135,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       is_legacy_ip{ip ? true : false},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
+      username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
@@ -291,6 +292,11 @@ std::string mp::QemuVirtualMachine::ssh_hostname()
     }
 
     return ip.value().as_string();
+}
+
+std::string mp::QemuVirtualMachine::ssh_username()
+{
+    return username;
 }
 
 std::string mp::QemuVirtualMachine::ipv4()

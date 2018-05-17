@@ -215,6 +215,7 @@ message SSHInfo {
     int32 port = 1;
     string priv_key_base64 = 2;
     string host = 3;
+    string username = 4;
 }
 
 message SSHInfoReply {

@@ -48,7 +48,7 @@ TEST(SSHSession, throws_when_unable_to_auth)
     mp::test::StubSSHKeyProvider key_provider;
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_ERROR; });
-    EXPECT_THROW(mp::SSHSession("theanswertoeverything", 42, key_provider), std::runtime_error);
+    EXPECT_THROW(mp::SSHSession("theanswertoeverything", 42, "ubuntu", key_provider), std::runtime_error);
 }
 
 TEST(SSHSession, exec_throws_on_a_dead_session)

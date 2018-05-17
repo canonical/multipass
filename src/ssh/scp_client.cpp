@@ -40,8 +40,9 @@ SCPUPtr make_scp_session(ssh_session session, int mode, const char* path)
 }
 }
 
-mp::SCPClient::SCPClient(const std::string& host, int port, const std::string& priv_key_blob)
-    : SCPClient{std::make_unique<mp::SSHSession>(host, port, mp::SSHClientKeyProvider(priv_key_blob))}
+mp::SCPClient::SCPClient(const std::string& host, int port, const std::string& username,
+                         const std::string& priv_key_blob)
+    : SCPClient{std::make_unique<mp::SSHSession>(host, port, username, mp::SSHClientKeyProvider(priv_key_blob))}
 {
 }
 

@@ -48,6 +48,7 @@ struct DaemonConfig
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
+    const std::string ssh_username;
 };
 
 struct DaemonConfigBuilder
@@ -62,6 +63,7 @@ struct DaemonConfigBuilder
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;
+    std::string ssh_username;
     multipass::days days_to_expire{14};
 
     std::unique_ptr<const DaemonConfig> build();
