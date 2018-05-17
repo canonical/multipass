@@ -35,8 +35,9 @@ mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 }
 }
 
-mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& priv_key_blob)
-    : SSHClient{std::make_unique<mp::SSHSession>(host, port, mp::SSHClientKeyProvider(priv_key_blob))}
+mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& username,
+                         const std::string& priv_key_blob)
+    : SSHClient{std::make_unique<mp::SSHSession>(host, port, username, mp::SSHClientKeyProvider(priv_key_blob))}
 {
 }
 

@@ -33,7 +33,7 @@ using SSHSessionUPtr = std::unique_ptr<SSHSession>;
 class SCPClient
 {
 public:
-    SCPClient(const std::string& host, int port, const std::string& priv_key_blob);
+    SCPClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob);
     SCPClient(SSHSessionUPtr ssh_session);
 
     void push_file(const std::string& source_path, const std::string& destination_path);

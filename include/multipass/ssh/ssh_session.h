@@ -34,7 +34,7 @@ class SSHSession
 {
 public:
     SSHSession(const std::string& host, int port);
-    SSHSession(const std::string& host, int port, const SSHKeyProvider& key_provider);
+    SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider& key_provider);
 
     SSHProcess exec(const std::string& cmd);
 
@@ -43,7 +43,7 @@ public:
 private:
     operator ssh_session() const;
 
-    SSHSession(const std::string& host, int port, const SSHKeyProvider* key_provider);
+    SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider* key_provider);
     std::unique_ptr<ssh_session_struct, void(*)(ssh_session)> session;
 
     friend class SCPClient;

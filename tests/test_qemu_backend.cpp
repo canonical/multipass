@@ -77,6 +77,7 @@ struct QemuBackend : public testing::Test
                                                       "",
                                                       "pied-piper-valley",
                                                       "",
+                                                      "",
                                                       {dummy_image.name(), "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
                                                       key_provider};

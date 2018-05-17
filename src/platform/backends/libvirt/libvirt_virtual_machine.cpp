@@ -241,6 +241,7 @@ mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescrip
       connection{connection},
       domain{get_domain_definition(connection, desc, bridge_name)},
       mac_addr{get_instance_mac_addr(domain.get())},
+      username{desc.ssh_username},
       ip{get_instance_ip(connection, mac_addr)},
       monitor{&monitor}
 {
@@ -303,6 +304,11 @@ std::string mp::LibVirtVirtualMachine::ssh_hostname()
     mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
 
     return ip.value().as_string();
+}
+
+std::string mp::LibVirtVirtualMachine::ssh_username()
+{
+    return username;
 }
 
 std::string mp::LibVirtVirtualMachine::ipv4()
