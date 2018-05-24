@@ -106,5 +106,6 @@ void mp::backend::resize_instance_image(const std::string& disk_space, const mp:
     if (disk_size.endsWith("B"))
         disk_size.chop(1);
 
-    mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), image_path, disk_size});
+    if (!mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), image_path, disk_size}))
+        throw std::runtime_error("Cannot resize instance image");
 }

@@ -82,6 +82,7 @@ struct TrackingURLDownloader : public mp::URLDownloader
     void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                      const mp::ProgressMonitor&) override
     {
+        QFile(file_name).open(QIODevice::WriteOnly);
         downloaded_urls << url.toString();
         downloaded_files << file_name;
     }
@@ -93,6 +94,18 @@ struct TrackingURLDownloader : public mp::URLDownloader
 
     QStringList downloaded_files;
     QStringList downloaded_urls;
+};
+
+struct DummyURLDownloader : public mp::URLDownloader
+{
+    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+                     const mp::ProgressMonitor&) override
+    {
+    }
+    QByteArray download(const QUrl& url) override
+    {
+        return {};
+    }
 };
 
 struct ImageVault : public testing::Test
@@ -361,4 +374,12 @@ TEST_F(ImageVault, custom_image_url_downloads)
 
     EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
     EXPECT_TRUE(url_downloader.downloaded_urls.contains(QString::fromStdString(query.release)));
+}
+
+TEST_F(ImageVault, missing_downloaded_image_throws)
+{
+    DummyURLDownloader dummy_url_downloader;
+    mp::DefaultVMImageVault vault{&host, &dummy_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
+                 std::runtime_error);
 }

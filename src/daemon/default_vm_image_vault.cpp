@@ -182,6 +182,9 @@ QString copy(const QString& file_name, const QDir& output_dir)
     if (file_name.isEmpty())
         return {};
 
+    if (!QFileInfo::exists(file_name))
+        throw std::runtime_error(fmt::format("{} missing", file_name.toStdString()));
+
     QFileInfo info{file_name};
     const auto source_name = info.fileName();
     auto new_path = output_dir.filePath(source_name);
@@ -306,12 +309,22 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                 if (id == record.first || std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
                 {
                     const auto prepared_image = record.second.image;
-                    auto vm_image = image_instance_from(query.name, prepared_image);
-                    instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-                    persist_instance_records();
-                    record.second.last_accessed = std::chrono::system_clock::now();
-                    persist_image_records();
-                    return vm_image;
+                    try
+                    {
+                        auto vm_image = image_instance_from(query.name, prepared_image);
+                        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+                        persist_instance_records();
+                        record.second.last_accessed = std::chrono::system_clock::now();
+                        persist_image_records();
+                        return vm_image;
+                    }
+                    catch (const std::exception& e)
+                    {
+                        mpl::log(mpl::Level::warning, category,
+                                 fmt::format("Cannot create instance image: {}", e.what()));
+
+                        break;
+                    }
                 }
             }
         }
