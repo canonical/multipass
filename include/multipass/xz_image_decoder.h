@@ -15,22 +15,32 @@
  *
  */
 
-#ifndef MULTIPASS_BACKEND_UTILS_H
-#define MULTIPASS_BACKEND_UTILS_H
+#ifndef MULTIPASS_XZ_IMAGE_DECODER_H
+#define MULTIPASS_XZ_IMAGE_DECODER_H
 
 #include <multipass/path.h>
+#include <multipass/progress_monitor.h>
 
-#include <string>
+#include <memory>
+
+#include <QFile>
+
+#include <xz.h>
 
 namespace multipass
 {
-namespace backend
+class XzImageDecoder
 {
-std::string generate_random_subnet();
-std::string generate_virtual_bridge_name(const std::string& base_name);
-void check_hypervisor_support();
-void resize_instance_image(const std::string& disk_space, const multipass::Path& image_path);
-std::string image_format_for(const multipass::Path& image_path);
-}
-}
-#endif // MULTIPASS_BACKEND_UTILS_H
+public:
+    XzImageDecoder(const Path& xz_file_path);
+
+    void decode_to(const Path& decoded_file_path, const ProgressMonitor& monitor);
+
+    using XzDecoderUPtr = std::unique_ptr<xz_dec, decltype(xz_dec_end)*>;
+
+private:
+    QFile xz_file;
+    XzDecoderUPtr xz_decoder;
+};
+} // namespace multipass
+#endif // MULTIPASS_XZ_IMAGE_DECODER_H
