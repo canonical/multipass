@@ -19,6 +19,7 @@
 #include "libvirt_virtual_machine.h"
 
 #include <multipass/backend_utils.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <fmt/format.h>
@@ -106,7 +107,17 @@ mp::FetchType mp::LibVirtVirtualMachineFactory::fetch_type()
 
 mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
-    return source_image;
+    VMImage image{source_image};
+
+    if (mp::backend::image_format_for(source_image.image_path) == "raw")
+    {
+        auto qcow2_path{mp::Path(source_image.image_path).append(".qcow2")};
+        mp::utils::run_cmd_for_status(
+            "qemu-img", {QStringLiteral("convert"), "-p", "-O", "qcow2", source_image.image_path, qcow2_path});
+        image.image_path = qcow2_path;
+    }
+
+    return image;
 }
 
 void mp::LibVirtVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,

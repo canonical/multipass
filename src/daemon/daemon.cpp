@@ -447,10 +447,10 @@ try // clang-format on
     }
 
     auto query = query_from(request, name);
-    auto download_monitor = [server](int download_type, int percentage) {
+    auto progress_monitor = [server](int progress_type, int percentage) {
         LaunchReply create_reply;
-        create_reply.mutable_download_progress()->set_percent_complete(std::to_string(percentage));
-        create_reply.mutable_download_progress()->set_type((DownloadProgress::DownloadTypes)download_type);
+        create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
+        create_reply.mutable_launch_progress()->set_type((LaunchProgress::ProgressTypes)progress_type);
         return server->Write(create_reply);
     };
 
@@ -458,6 +458,7 @@ try // clang-format on
         LaunchReply reply;
         reply.set_create_message("Preparing image for " + name);
         server->Write(reply);
+
         return config->factory->prepare_source_image(source_image);
     };
 
@@ -466,7 +467,7 @@ try // clang-format on
     LaunchReply reply;
     reply.set_create_message("Creating " + name);
     server->Write(reply);
-    auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, download_monitor);
+    auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
     reply.set_create_message("Configuring " + name);
     server->Write(reply);

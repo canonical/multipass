@@ -20,6 +20,8 @@
 
 #include <fmt/format.h>
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
 #include <QString>
 #include <QSysInfo>
@@ -108,4 +110,14 @@ void mp::backend::resize_instance_image(const std::string& disk_space, const mp:
 
     if (!mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), image_path, disk_size}))
         throw std::runtime_error("Cannot resize instance image");
+}
+
+std::string mp::backend::image_format_for(const mp::Path& image_path)
+{
+    auto image_info = QString::fromStdString(
+        mp::utils::run_cmd_for_output("qemu-img", {QStringLiteral("info"), "--output=json", image_path}));
+
+    auto image_record = QJsonDocument::fromJson(image_info.toUtf8(), nullptr).object();
+
+    return image_record["format"].toString().toStdString();
 }

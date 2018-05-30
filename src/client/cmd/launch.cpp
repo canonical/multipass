@@ -74,23 +74,24 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     };
 
     auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {
-        std::unordered_map<int, std::string> download_messages{
-            {DownloadProgress_DownloadTypes_IMAGE, "Retrieving image: "},
-            {DownloadProgress_DownloadTypes_KERNEL, "Retrieving kernel image: "},
-            {DownloadProgress_DownloadTypes_INITRD, "Retrieving initrd image: "}};
+        std::unordered_map<int, std::string> progress_messages{
+            {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
+            {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
+            {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
+            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "}};
 
-        if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kDownloadProgress)
+        if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
         {
-            auto& download_message = download_messages[reply.download_progress().type()];
-            if (reply.download_progress().percent_complete() != "-1")
+            auto& progress_message = progress_messages[reply.launch_progress().type()];
+            if (reply.launch_progress().percent_complete() != "-1")
             {
                 spinner.stop();
                 cout << "\r";
-                cout << download_message << reply.download_progress().percent_complete() << "%" << std::flush;
+                cout << progress_message << reply.launch_progress().percent_complete() << "%" << std::flush;
             }
             else
             {
-                spinner.start(download_message);
+                spinner.start(progress_message);
             }
         }
         else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)

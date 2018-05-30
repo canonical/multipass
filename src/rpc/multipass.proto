@@ -58,20 +58,21 @@ message LaunchError {
     repeated ErrorCodes error_codes = 1;
 }
 
-message DownloadProgress {
-    enum DownloadTypes {
+message LaunchProgress {
+    enum ProgressTypes {
         IMAGE = 0;
         KERNEL = 1;
         INITRD = 2;
+        EXTRACT = 3;
     }
-    DownloadTypes type = 1;
+    ProgressTypes type = 1;
     string percent_complete = 2;
 }
 
 message LaunchReply {
     oneof create_oneof {
         string vm_instance_name = 1;
-        DownloadProgress download_progress = 2;
+        LaunchProgress launch_progress = 2;
         string create_message = 3;
     }
 }

@@ -27,4 +27,5 @@ target_link_libraries(libvirt_backend
   ip_address_pool
   Qt5::Core
   ssh
+  utils
   ${LIBVIRT_LIBRARIES})

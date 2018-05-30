@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <multipass/url_downloader.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
+#include <multipass/xz_image_decoder.h>
 
 #include <fmt/format.h>
 
@@ -276,10 +277,12 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             if (!QFile::exists(image_url.path()))
                 throw std::runtime_error(
                     fmt::format("Custom image `{}` does not exist.", image_url.path().toStdString()));
-
             source_image.image_path = image_url.path();
 
-            source_image = image_instance_from(query.name, prepare(source_image));
+            if (source_image.image_path.endsWith(".xz"))
+            {
+                source_image = extract_image_from(query.name, source_image, monitor);
+            }
         }
         else
         {
@@ -287,14 +290,19 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             source_image.image_path = instance_dir.filePath(filename_for(image_url.path()));
             DeleteOnException image_file{source_image.image_path};
 
-            url_downloader->download_to(image_url, source_image.image_path, 0, DownloadProgress::IMAGE, monitor);
+            url_downloader->download_to(image_url, source_image.image_path, 0, LaunchProgress::IMAGE, monitor);
 
-            prepare(source_image);
+            if (source_image.image_path.endsWith(".xz"))
+            {
+                source_image = extract_downloaded_image(source_image, monitor);
+            }
         }
 
-        instance_image_records[query.name] = {source_image, query, std::chrono::system_clock::now()};
+        auto vm_image = prepare(source_image);
+        remove_source_images(source_image, vm_image);
+        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
         persist_instance_records();
-        return source_image;
+        return vm_image;
     }
     else
     {
@@ -342,7 +350,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         }
         DeleteOnException image_file{source_image.image_path};
 
-        url_downloader->download_to(info.image_location, source_image.image_path, info.size, DownloadProgress::IMAGE,
+        url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
                                     monitor);
 
         if (fetch_type == FetchType::ImageKernelAndInitrd)
@@ -351,9 +359,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             source_image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
             DeleteOnException kernel_file{source_image.kernel_path};
             DeleteOnException initrd_file{source_image.initrd_path};
-            url_downloader->download_to(info.kernel_location, source_image.kernel_path, -1, DownloadProgress::KERNEL,
+            url_downloader->download_to(info.kernel_location, source_image.kernel_path, -1, LaunchProgress::KERNEL,
                                         monitor);
-            url_downloader->download_to(info.initrd_location, source_image.initrd_path, -1, DownloadProgress::INITRD,
+            url_downloader->download_to(info.initrd_location, source_image.initrd_path, -1, LaunchProgress::INITRD,
                                         monitor);
         }
 
@@ -442,6 +450,38 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
         fetch_image(fetch_type, record.query, prepare, monitor);
     }
+}
+
+mp::VMImage mp::DefaultVMImageVault::extract_image_from(const std::string& instance_name, const VMImage& source_image,
+                                                        const ProgressMonitor& monitor)
+{
+    const auto name = QString::fromStdString(instance_name);
+    const auto output_dir = make_dir(name, instances_dir);
+    QFileInfo file_info{source_image.image_path};
+    const auto image_name = file_info.fileName().remove(".xz");
+    const auto image_path = output_dir.filePath(image_name);
+
+    VMImage image{source_image};
+    image.image_path = image_path;
+
+    XzImageDecoder xz_decoder(source_image.image_path);
+    xz_decoder.decode_to(image_path, monitor);
+
+    return image;
+}
+
+mp::VMImage mp::DefaultVMImageVault::extract_downloaded_image(const VMImage& source_image,
+                                                              const ProgressMonitor& monitor)
+{
+    VMImage image{source_image};
+    XzImageDecoder xz_decoder(image.image_path);
+    auto image_path = image.image_path.remove(".xz");
+
+    xz_decoder.decode_to(image_path, monitor);
+    delete_file(source_image.image_path);
+    image.image_path = image_path;
+
+    return image;
 }
 
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& instance_name,
