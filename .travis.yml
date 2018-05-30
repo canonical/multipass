@@ -19,8 +19,6 @@ install:
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
-- sg lxd -c '/snap/bin/lxc network create lxdbr0'
-- sg lxd -c '/snap/bin/lxc network attach-profile lxdbr0 default eth0'
 
 before_script:
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
