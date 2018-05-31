@@ -283,6 +283,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             {
                 source_image = extract_image_from(query.name, source_image, monitor);
             }
+            else
+            {
+                source_image = image_instance_from(query.name, source_image);
+            }
         }
         else
         {
