@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ public:
     virtual void on_stop() = 0;
     virtual void on_shutdown() = 0;
     virtual void on_restart(const std::string& name) = 0;
+    virtual void persist_state_for(const std::string& name) = 0;
 
 protected:
     VMStatusMonitor() = default;

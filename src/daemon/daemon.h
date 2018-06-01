@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,6 +47,7 @@ struct VMSpecs
     std::string disk_space;
     std::string mac_addr;
     std::string ssh_username;
+    VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
 };
 
@@ -62,6 +63,7 @@ protected:
     void on_stop() override;
     void on_shutdown() override;
     void on_restart(const std::string& name) override;
+    void persist_state_for(const std::string& name) override;
 
 public slots:
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,

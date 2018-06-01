@@ -186,7 +186,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                      [this](int exitCode, QProcess::ExitStatus exitStatus) {
                          mpl::log(mpl::Level::info, vm_name,
                                   fmt::format("process finished with exit code {}", exitCode));
-                         on_shutdown();
+                         if (update_shutdown_status)
+                         {
+                             on_shutdown();
+                         }
                      });
 }
 
@@ -194,6 +197,7 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
 {
     remove_tap_device(QString::fromStdString(tap_device_name));
 
+    update_shutdown_status = false;
     shutdown();
 }
 
@@ -223,6 +227,11 @@ void mp::QemuVirtualMachine::shutdown()
         vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();
     }
+    else
+    {
+        vm_process->terminate();
+        vm_process->waitForFinished();
+    }
 }
 
 mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
@@ -235,26 +244,35 @@ int mp::QemuVirtualMachine::ssh_port()
     return 22;
 }
 
+void mp::QemuVirtualMachine::update_state()
+{
+    monitor->persist_state_for(vm_name);
+}
+
 void mp::QemuVirtualMachine::on_started()
 {
     state = State::starting;
+    update_state();
     monitor->on_resume();
 }
 
 void mp::QemuVirtualMachine::on_error()
 {
     state = State::off;
+    update_state();
 }
 
 void mp::QemuVirtualMachine::on_shutdown()
 {
     state = State::off;
+    update_state();
     monitor->on_shutdown();
 }
 
 void mp::QemuVirtualMachine::on_restart()
 {
     state = State::restarting;
+    update_state();
 
     if (!is_legacy_ip)
         ip = nullopt;
