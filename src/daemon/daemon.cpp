@@ -219,6 +219,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto disk_space = record["disk_space"].toString();
         auto mac_addr = record["mac_addr"].toString();
         auto ssh_username = record["ssh_username"].toString();
+        auto state = record["state"].toInt();
 
         if (ssh_username.isEmpty())
             ssh_username = "ubuntu";
@@ -251,6 +252,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       disk_space.toStdString(),
                                       mac_addr.toStdString(),
                                       ssh_username.toStdString(),
+                                      static_cast<mp::VirtualMachine::State>(state),
                                       mounts};
     }
     return reconstructed_records;
@@ -372,6 +374,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
             invalid_specs.push_back(name);
             config->vault->remove(name);
+        }
+
+        if (spec.state != VirtualMachine::State::off && spec.state != VirtualMachine::State::stopped &&
+            vm_instances[name]->current_state() != VirtualMachine::State::running)
+        {
+            mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
+            QTimer::singleShot(0, [this, &name] {
+                vm_instances[name]->start();
+                on_restart(name);
+            });
         }
     }
 
@@ -497,8 +509,13 @@ try // clang-format on
     config->factory->prepare_instance_image(vm_image, vm_desc);
 
     vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-    vm_instance_specs[name] = {vm_desc.num_cores, vm_desc.mem_size,     vm_desc.disk_space,
-                               vm_desc.mac_addr,  config->ssh_username, {}};
+    vm_instance_specs[name] = {vm_desc.num_cores,
+                               vm_desc.mem_size,
+                               vm_desc.disk_space,
+                               vm_desc.mac_addr,
+                               config->ssh_username,
+                               VirtualMachine::State::off,
+                               {}};
     persist_instances();
 
     reply.set_create_message("Starting " + name);
@@ -1349,6 +1366,13 @@ void mp::Daemon::on_restart(const std::string& name)
         persist_instances();
 }
 
+void mp::Daemon::persist_state_for(const std::string& name)
+{
+    auto& vm = vm_instances[name];
+    vm_instance_specs[name].state = vm->current_state();
+    persist_instances();
+}
+
 void mp::Daemon::persist_instances()
 {
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
@@ -1358,6 +1382,7 @@ void mp::Daemon::persist_instances()
         json.insert("disk_space", QString::fromStdString(specs.disk_space));
         json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
         json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
+        json.insert("state", static_cast<int>(specs.state));
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)

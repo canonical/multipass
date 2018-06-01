@@ -261,6 +261,7 @@ void mp::LibVirtVirtualMachine::start()
         throw std::runtime_error(virGetLastErrorMessage());
 
     state = State::starting;
+    update_state();
     monitor->on_resume();
 }
 
@@ -273,6 +274,7 @@ void mp::LibVirtVirtualMachine::shutdown()
 {
     virDomainShutdown(domain.get());
     state = State::off;
+    update_state();
     monitor->on_shutdown();
 }
 
@@ -338,4 +340,9 @@ void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds time
 void mp::LibVirtVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
     mp::utils::wait_for_cloud_init(this, timeout);
+}
+
+void mp::LibVirtVirtualMachine::update_state()
+{
+    monitor->persist_state_for(vm_name);
 }
