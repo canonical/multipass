@@ -20,6 +20,8 @@ apps:
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
+    passthrough:
+      after: [libvirt-bin]
   multipass:
     environment:
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib
@@ -33,6 +35,7 @@ apps:
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       LC_ALL: C
     daemon: simple
+    stop-mode: sigterm
   virsh:
     command: bin/virsh
     environment:
