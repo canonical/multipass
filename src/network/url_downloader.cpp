@@ -123,3 +123,18 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 {
     return ::download(manager, url, [](QNetworkReply*, QTimer&, qint64, qint64) {}, [] {});
 }
+
+QDateTime mp::URLDownloader::last_modified(const QUrl& url)
+{
+    QEventLoop event_loop;
+
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
+    auto reply = std::unique_ptr<QNetworkReply>(manager.head(request));
+    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+
+    event_loop.exec();
+
+    return reply->header(QNetworkRequest::LastModifiedHeader).toDateTime();
+}

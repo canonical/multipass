@@ -25,6 +25,7 @@
 #include <multipass/progress_monitor.h>
 
 #include <QByteArray>
+#include <QDateTime>
 #include <QNetworkAccessManager>
 #include <QNetworkDiskCache>
 
@@ -43,6 +44,7 @@ public:
     virtual void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                              const ProgressMonitor& monitor);
     virtual QByteArray download(const QUrl& url);
+    virtual QDateTime last_modified(const QUrl& url);
 
 private:
     URLDownloader(const URLDownloader&) = delete;
