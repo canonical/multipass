@@ -20,11 +20,14 @@
 #include "daemon.h"
 #include "daemon_config.h"
 
+#include "cli.h"
+
 #include <multipass/auto_join_thread.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
@@ -94,9 +97,11 @@ int main(int argc, char* argv[])
 try
 {
     QCoreApplication app(argc, argv);
+    QCoreApplication::setApplicationVersion(multipass::version_string);
     UnixSignalHandler handler(app);
 
-    auto config = multipass::DaemonConfigBuilder{}.build();
+    auto builder = multipass::cli::parse(app);
+    auto config = builder.build();
     auto server_address = config->server_address;
 
     multipass::logging::set_logger(config->logger);
