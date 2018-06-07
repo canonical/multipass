@@ -30,6 +30,7 @@
 
 #include <fmt/format.h>
 
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -71,6 +72,7 @@ auto image_to_json(const mp::VMImage& image)
     json.insert("id", QString::fromStdString(image.id));
     json.insert("original_release", QString::fromStdString(image.original_release));
     json.insert("current_release", QString::fromStdString(image.current_release));
+    json.insert("release_date", QString::fromStdString(image.release_date));
 
     QJsonArray aliases;
     for (const auto& alias : image.aliases)
@@ -139,6 +141,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         auto image_id = image["id"].toString().toStdString();
         auto original_release = image["original_release"].toString().toStdString();
         auto current_release = image["current_release"].toString().toStdString();
+        auto release_date = image["release_date"].toString().toStdString();
 
         std::vector<std::string> aliases;
         for (const auto& entry : image["aliases"].toArray())
@@ -171,7 +174,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         }
 
         reconstructed_records[key] = {
-            {image_path, kernel_path, initrd_path, image_id, original_release, current_release, aliases},
+            {image_path, kernel_path, initrd_path, image_id, original_release, current_release, release_date, aliases},
             {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
             last_accessed};
     }
@@ -270,7 +273,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     if (query.query_type != Query::Type::SimpleStreams)
     {
         QUrl image_url(QString::fromStdString(query.release));
-        VMImage source_image;
+        VMImage source_image, vm_image;
 
         if (image_url.isLocalFile())
         {
@@ -287,25 +290,68 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             {
                 source_image = image_instance_from(query.name, source_image);
             }
+
+            vm_image = prepare(source_image);
         }
         else
         {
-            auto instance_dir = make_dir(QString::fromStdString(query.name), instances_dir);
-            source_image.image_path = instance_dir.filePath(filename_for(image_url.path()));
-            DeleteOnException image_file{source_image.image_path};
+            // Generate a sha256 hash based on the URL and use that for the id
+            auto hash =
+                QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex().toStdString();
+            auto last_modified = url_downloader->last_modified(image_url);
 
+            auto entry = prepared_image_records.find(hash);
+            if (entry != prepared_image_records.end())
+            {
+                auto& record = entry->second;
+
+                if (last_modified.isValid() && (last_modified.toString().toStdString() == record.image.release_date))
+                {
+                    auto vm_image = image_instance_from(query.name, record.image);
+                    instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+                    persist_instance_records();
+                    record.last_accessed = std::chrono::system_clock::now();
+                    persist_image_records();
+                    return vm_image;
+                }
+                else
+                {
+                    source_image = record.image;
+                }
+            }
+            else
+            {
+                auto image_filename = filename_for(image_url.path());
+                // Attempt to make a sane directory name based on the filename of the image
+                auto image_dir_name = QString("%1-%2")
+                                          .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
+                                          .arg(last_modified.toString("yyyyMMdd"));
+                auto image_dir = make_dir(image_dir_name, images_dir);
+
+                source_image.id = hash;
+                source_image.image_path = image_dir.filePath(image_filename);
+            }
+
+            DeleteOnException image_file{source_image.image_path};
             url_downloader->download_to(image_url, source_image.image_path, 0, LaunchProgress::IMAGE, monitor);
 
             if (source_image.image_path.endsWith(".xz"))
             {
                 source_image = extract_downloaded_image(source_image, monitor);
             }
+
+            vm_image = prepare(source_image);
+            vm_image.release_date = last_modified.toString().toStdString();
+            prepared_image_records[hash] = {vm_image, query, std::chrono::system_clock::now()};
+            persist_image_records();
         }
 
-        auto vm_image = prepare(source_image);
         remove_source_images(source_image, vm_image);
+
+        vm_image = image_instance_from(query.name, vm_image);
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
         persist_instance_records();
+
         return vm_image;
     }
     else
@@ -413,7 +459,7 @@ void mp::DefaultVMImageVault::prune_expired_images()
     for (const auto& record : prepared_image_records)
     {
         // Expire source images if they aren't persistent and haven't been accessed in 14 days
-        if (!record.second.query.persistent &&
+        if (record.second.query.query_type == Query::Type::SimpleStreams && !record.second.query.persistent &&
             record.second.last_accessed + days_to_expire <= std::chrono::system_clock::now())
         {
             mpl::log(
@@ -438,7 +484,8 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     std::vector<decltype(prepared_image_records)::key_type> keys_to_update;
     for (const auto& record : prepared_image_records)
     {
-        if (record.first.compare(0, record.second.query.release.length(), record.second.query.release) != 0)
+        if (record.second.query.query_type == Query::Type::SimpleStreams &&
+            record.first.compare(0, record.second.query.release.length(), record.second.query.release) != 0)
         {
             auto info = image_host->info_for(record.second.query);
             if (info.id.toStdString() != record.first)
@@ -500,6 +547,7 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
             prepared_image.id,
             prepared_image.original_release,
             prepared_image.current_release,
+            prepared_image.release_date,
             {}};
 }
 

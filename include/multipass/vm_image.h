@@ -35,6 +35,7 @@ public:
     std::string id;
     std::string original_release;
     std::string current_release;
+    std::string release_date;
     std::vector<std::string> aliases;
 };
 }
