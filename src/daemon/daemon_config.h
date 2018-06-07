@@ -65,6 +65,7 @@ struct DaemonConfigBuilder
     std::string server_address;
     std::string ssh_username;
     multipass::days days_to_expire{14};
+    multipass::logging::Level verbosity_level{multipass::logging::Level::info};
 
     std::unique_ptr<const DaemonConfig> build();
 };
