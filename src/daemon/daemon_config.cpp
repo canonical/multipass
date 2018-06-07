@@ -40,10 +40,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (data_directory.isEmpty())
         data_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     if (logger == nullptr)
-        logger = platform::make_logger(logging::Level::info);
+        logger = platform::make_logger(verbosity_level);
     // Fallback when platform does not have a logger
     if (logger == nullptr)
-        logger = std::make_unique<mpl::StandardLogger>(mpl::Level::info);
+        logger = std::make_unique<mpl::StandardLogger>(verbosity_level);
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory);
     if (factory == nullptr)
