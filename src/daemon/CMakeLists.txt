@@ -17,6 +17,7 @@
 set(CMAKE_AUTOMOC ON)
 
 add_library(daemon STATIC
+  cli.cpp
   daemon.cpp
   daemon_config.cpp
   daemon_rpc.cpp
