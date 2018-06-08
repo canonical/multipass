@@ -1,5 +1,17 @@
 #!/bin/sh -e
 
+if [ "$SNAP_ARCH" = "amd64" ]; then
+  ARCH="x86_64-linux-gnu"
+elif [ "$SNAP_ARCH" = "armhf" ]; then
+  ARCH="arm-linux-gnueabihf"
+elif [ "$SNAP_ARCH" = "arm64" ]; then
+  ARCH="aarch64-linux-gnu"
+else
+  ARCH="$SNAP_ARCH-linux-gnu"
+fi
+
+export LD_LIBRARY_PATH=$SNAP/lib/$ARCH:$SNAP/usr/lib/$ARCH:$LD_LIBRARY_PATH
+export QT_PLUGIN_PATH=$SNAP/usr/lib/$ARCH/qt5/plugins
 export http_proxy="$(snapctl get proxy.http)"
 export https_proxy="$(snapctl get proxy.https)"
 export MULTIPASS_VM_DRIVER="$(snapctl get driver)"

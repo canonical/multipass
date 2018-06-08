@@ -113,16 +113,38 @@ void get_parsed_memory_values(const std::string& mem_size, std::string& memory, 
         mem_unit = "GiB";
 }
 
-auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name)
+auto get_host_architecture(virConnectPtr connection)
+{
+    std::string arch;
+    std::unique_ptr<char, decltype(free)*> capabilities{virConnectGetCapabilities(connection), free};
+
+    QXmlStreamReader reader(capabilities.get());
+
+    while (!reader.atEnd())
+    {
+        reader.readNext();
+
+        if (reader.name() == "arch")
+        {
+            arch = reader.readElementText().toStdString();
+            break;
+        }
+    }
+
+    return arch;
+}
+
+auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
+                             const std::string& arch)
 {
     std::string memory, mem_unit;
     get_parsed_memory_values(desc.mem_size, memory, mem_unit);
 
-    QString qemu_path{"/usr/bin/qemu-system-x86_64"};
+    auto qemu_path = fmt::format("/usr/bin/qemu-system-{}", arch);
     auto snap = qgetenv("SNAP");
     if (!snap.isEmpty())
     {
-        qemu_path.prepend(snap);
+        qemu_path = fmt::format("{}{}", snap.toStdString(), qemu_path);
     }
 
     return fmt::format(
@@ -135,7 +157,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         "    <partition>/machine</partition>\n"
         "  </resource>\n"
         "  <os>\n"
-        "    <type arch=\'x86_64\'>hvm</type>\n"
+        "    <type arch=\'{}\'>hvm</type>\n"
         "    <boot dev=\'hd\'/>\n"
         "  </os>\n"
         "  <features>\n"
@@ -176,7 +198,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         "    </video>\n"
         "  </devices>\n"
         "</domain>",
-        desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, qemu_path.toStdString(),
+        desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, arch, qemu_path,
         desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.mac_addr, bridge_name);
 }
 
@@ -193,7 +215,9 @@ auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDes
 
     if (domain == nullptr)
         domain = mp::LibVirtVirtualMachine::DomainUPtr{
-            virDomainDefineXML(connection, generate_xml_config_for(desc, bridge_name).c_str()), virDomainFree};
+            virDomainDefineXML(connection,
+                               generate_xml_config_for(desc, bridge_name, get_host_architecture(connection)).c_str()),
+            virDomainFree};
 
     if (domain == nullptr)
         throw std::runtime_error("Error getting domain definition");
@@ -217,6 +241,7 @@ mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescrip
       connection{connection},
       domain{get_domain_definition(connection, desc, bridge_name)},
       mac_addr{get_instance_mac_addr(domain.get())},
+      username{desc.ssh_username},
       ip{get_instance_ip(connection, mac_addr)},
       monitor{&monitor}
 {
@@ -236,6 +261,7 @@ void mp::LibVirtVirtualMachine::start()
         throw std::runtime_error(virGetLastErrorMessage());
 
     state = State::starting;
+    update_state();
     monitor->on_resume();
 }
 
@@ -248,6 +274,7 @@ void mp::LibVirtVirtualMachine::shutdown()
 {
     virDomainShutdown(domain.get());
     state = State::off;
+    update_state();
     monitor->on_shutdown();
 }
 
@@ -281,6 +308,11 @@ std::string mp::LibVirtVirtualMachine::ssh_hostname()
     return ip.value().as_string();
 }
 
+std::string mp::LibVirtVirtualMachine::ssh_username()
+{
+    return username;
+}
+
 std::string mp::LibVirtVirtualMachine::ipv4()
 {
     if (!ip)
@@ -308,4 +340,9 @@ void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds time
 void mp::LibVirtVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
     mp::utils::wait_for_cloud_init(this, timeout);
+}
+
+void mp::LibVirtVirtualMachine::update_state()
+{
+    monitor->persist_state_for(vm_name);
 }

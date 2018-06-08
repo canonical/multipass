@@ -23,6 +23,7 @@
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
 
+#include <QTimer>
 #include <QUrl>
 
 #include <algorithm>
@@ -70,6 +71,7 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::unordered_map<std::string, std::st
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
     : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{remotes}
 {
+    QTimer::singleShot(0, [this]() { update_manifest(); });
 }
 
 mp::VMImageInfo mp::UbuntuVMImageHost::info_for(const Query& query)

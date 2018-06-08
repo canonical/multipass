@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -17,6 +17,7 @@
 set(CMAKE_AUTOMOC ON)
 
 add_library(daemon STATIC
+  cli.cpp
   daemon.cpp
   daemon_config.cpp
   daemon_rpc.cpp
@@ -37,6 +38,7 @@ target_link_libraries(daemon
   utils
   Qt5::Core
   Qt5::Network
+  xz_image_decoder
   yaml)
 
 if(MSVC)

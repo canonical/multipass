@@ -47,10 +47,12 @@ public:
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
+    std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
+    void update_state() override;
 
 private:
     void on_started();
@@ -62,10 +64,12 @@ private:
     bool is_legacy_ip;
     const std::string tap_device_name;
     const std::string mac_addr;
+    const std::string username;
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
     std::string saved_error_msg;
+    bool update_shutdown_status{true};
 };
 }
 

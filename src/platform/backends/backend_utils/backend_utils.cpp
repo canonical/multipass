@@ -20,8 +20,11 @@
 
 #include <fmt/format.h>
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
 #include <QString>
+#include <QSysInfo>
 
 #include <chrono>
 #include <exception>
@@ -84,13 +87,17 @@ std::string mp::backend::generate_virtual_bridge_name(const std::string& base_na
 
 void mp::backend::check_hypervisor_support()
 {
-    QProcess check_kvm;
-    check_kvm.start("check_kvm_support");
-    check_kvm.waitForFinished();
-
-    if (check_kvm.exitCode() == 1)
+    auto arch = QSysInfo::currentCpuArchitecture();
+    if (arch == "x86_64" || arch == "i386")
     {
-        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+        QProcess check_kvm;
+        check_kvm.start("check_kvm_support");
+        check_kvm.waitForFinished();
+
+        if (check_kvm.exitCode() == 1)
+        {
+            throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+        }
     }
 }
 
@@ -101,5 +108,16 @@ void mp::backend::resize_instance_image(const std::string& disk_space, const mp:
     if (disk_size.endsWith("B"))
         disk_size.chop(1);
 
-    mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), image_path, disk_size});
+    if (!mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), image_path, disk_size}))
+        throw std::runtime_error("Cannot resize instance image");
+}
+
+std::string mp::backend::image_format_for(const mp::Path& image_path)
+{
+    auto image_info = QString::fromStdString(
+        mp::utils::run_cmd_for_output("qemu-img", {QStringLiteral("info"), "--output=json", image_path}));
+
+    auto image_record = QJsonDocument::fromJson(image_info.toUtf8(), nullptr).object();
+
+    return image_record["format"].toString().toStdString();
 }

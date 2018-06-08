@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2018 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -70,7 +70,16 @@ elseif(APPLE)
   add_definitions(-DMULTIPASS_PLATFORM_APPLE)
 else()
   set(CMAKE_CXX_STANDARD 14)
-  add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wcast-align -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wno-expansion-to-defined -fPIC)
+  add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wempty-body -Wformat-security -Winit-self -Warray-bounds -fPIC)
+
+  if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
+    add_compile_options(-Wcast-align)
+  endif()
+
+  CHECK_CXX_COMPILER_FLAG("-Wno-expansion-to-defined" COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
+  if(COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
+    add_compile_options(-Wno-expansion-to-defined)
+  endif()
   add_definitions(-DMULTIPASS_PLATFORM_LINUX)
 endif()
 

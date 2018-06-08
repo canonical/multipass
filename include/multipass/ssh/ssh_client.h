@@ -36,7 +36,7 @@ class SSHClient
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
 
-    SSHClient(const std::string& host, int port, const std::string& priv_key_blob);
+    SSHClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob);
     SSHClient(SSHSessionUPtr ssh_session, Console::UPtr console = nullptr);
 
     int exec(const std::vector<std::string>& args);

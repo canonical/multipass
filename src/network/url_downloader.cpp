@@ -89,12 +89,15 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
     auto progress_monitor = [&file, &monitor, download_type, size](QNetworkReply* reply, QTimer& download_timeout,
                                                                    qint64 bytes_received, qint64 bytes_total) {
+        if (bytes_received == 0)
+            return;
+
         if (download_timeout.isActive())
             download_timeout.stop();
         else
             return;
 
-        if (bytes_total == -1)
+        if (bytes_total == -1 && size > 0)
             bytes_total = size;
         auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
         if (file.write(reply->readAll()) < 0)
@@ -119,4 +122,19 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
     return ::download(manager, url, [](QNetworkReply*, QTimer&, qint64, qint64) {}, [] {});
+}
+
+QDateTime mp::URLDownloader::last_modified(const QUrl& url)
+{
+    QEventLoop event_loop;
+
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
+    auto reply = std::unique_ptr<QNetworkReply>(manager.head(request));
+    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+
+    event_loop.exec();
+
+    return reply->header(QNetworkRequest::LastModifiedHeader).toDateTime();
 }

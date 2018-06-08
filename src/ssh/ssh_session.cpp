@@ -87,7 +87,8 @@ auto initialize_session()
 }
 }
 
-mp::SSHSession::SSHSession(const std::string& host, int port, const SSHKeyProvider* key_provider)
+mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
+                           const SSHKeyProvider* key_provider)
     : session{initialize_session(), ssh_free}
 {
     if (session == nullptr)
@@ -98,7 +99,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const SSHKeyProvid
 
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_HOST, host.c_str());
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_PORT, &port);
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_USER, "ubuntu");
+    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_USER, username.c_str());
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_TIMEOUT, &timeout);
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_NODELAY, &nodelay);
     SSH::throw_on_error(ssh_connect, session);
@@ -106,12 +107,13 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const SSHKeyProvid
         SSH::throw_on_error(ssh_userauth_publickey, session, nullptr, key_provider->private_key());
 }
 
-mp::SSHSession::SSHSession(const std::string& host, int port, const SSHKeyProvider& key_provider)
-    : SSHSession(host, port, &key_provider)
+mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
+                           const SSHKeyProvider& key_provider)
+    : SSHSession(host, port, username, &key_provider)
 {
 }
 
-mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host, port, nullptr)
+mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host, port, "ubuntu", nullptr)
 {
 }
 

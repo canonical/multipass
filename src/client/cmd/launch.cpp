@@ -74,23 +74,24 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     };
 
     auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {
-        std::unordered_map<int, std::string> download_messages{
-            {DownloadProgress_DownloadTypes_IMAGE, "Retrieving image: "},
-            {DownloadProgress_DownloadTypes_KERNEL, "Retrieving kernel image: "},
-            {DownloadProgress_DownloadTypes_INITRD, "Retrieving initrd image: "}};
+        std::unordered_map<int, std::string> progress_messages{
+            {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
+            {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
+            {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
+            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "}};
 
-        if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kDownloadProgress)
+        if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
         {
-            auto& download_message = download_messages[reply.download_progress().type()];
-            if (reply.download_progress().percent_complete() != "-1")
+            auto& progress_message = progress_messages[reply.launch_progress().type()];
+            if (reply.launch_progress().percent_complete() != "-1")
             {
                 spinner.stop();
                 cout << "\r";
-                cout << download_message << reply.download_progress().percent_complete() << "%" << std::flush;
+                cout << progress_message << reply.launch_progress().percent_complete() << "%" << std::flush;
             }
             else
             {
-                spinner.start(download_message);
+                spinner.start(progress_message);
             }
         }
         else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)
@@ -128,7 +129,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                  "1024"); // In MB's
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration", "file");
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption});
+    QCommandLineOption imageOption("image", "URL to custom image to start in either `http://` or `file://` format",
+                                   "url");
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, imageOption});
 
     auto status = parser->commandParse(this);
 
@@ -145,6 +148,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (!parser->positionalArguments().isEmpty())
     {
+        if (parser->isSet(imageOption))
+        {
+            cerr << "Cannot specify `--image` option and remote image at the same time\n";
+            return ParseCode::CommandLineError;
+        }
+
         auto remote_image_name = parser->positionalArguments().first();
         auto colon_count = remote_image_name.count(':');
 
@@ -196,6 +205,19 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
         }
+    }
+
+    if (parser->isSet(imageOption))
+    {
+        auto image_url = parser->value(imageOption);
+
+        if (!image_url.startsWith("http") && !image_url.startsWith("file://"))
+        {
+            cerr << "Custom image URL needs to be in `http://` or `file://` format.\n";
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_custom_image_path(parser->value(imageOption).toStdString());
     }
 
     return status;

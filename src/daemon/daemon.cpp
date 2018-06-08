@@ -61,18 +61,35 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     if (!request->remote_name().empty() && request->image().empty())
         throw std::runtime_error("Must specify an image when specifying a remote");
 
-    std::string image = request->image().empty() ? "default" : request->image();
+    std::string image = !request->custom_image_path().empty()
+                            ? request->custom_image_path()
+                            : (request->image().empty() ? "default" : request->image());
     // TODO: persistence should be specified by the rpc as well
-    return {name, image, false, request->remote_name()};
+
+    mp::Query::Type query_type{mp::Query::Type::SimpleStreams};
+
+    if (!request->custom_image_path().empty())
+    {
+        QString custom_image_path = QString::fromStdString(request->custom_image_path());
+
+        if (custom_image_path.startsWith("file"))
+            query_type = mp::Query::Type::LocalFile;
+        else if (custom_image_path.startsWith("http"))
+            query_type = mp::Query::Type::HttpDownload;
+    }
+
+    return {name, image, false, request->remote_name(), query_type};
 }
 
-auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone)
+auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
+                                   const std::string& username)
 {
     auto ssh_key_line = fmt::format("ssh-rsa {} multipass@localhost", key_provider.public_key_as_base64());
 
     auto config = YAML::Load(mp::base_cloud_init_config);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = time_zone;
+    config["system_info"]["default_user"]["name"] = username;
 
     return config;
 }
@@ -131,9 +148,10 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
-                                              const std::string& mac_addr, const mp::VMImage& image,
-                                              YAML::Node& meta_data_config, YAML::Node& user_data_config,
-                                              YAML::Node& vendor_data_config, const mp::SSHKeyProvider& key_provider)
+                                              const std::string& mac_addr, const std::string& ssh_username,
+                                              const mp::VMImage& image, YAML::Node& meta_data_config,
+                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                                              const mp::SSHKeyProvider& key_provider)
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
     const auto mem_size = request->mem_size().empty() ? "1G" : request->mem_size();
@@ -141,7 +159,7 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_size, name, mac_addr, image, cloud_init_iso, key_provider};
+    return {num_cores, mem_size, disk_size, name, mac_addr, ssh_username, image, cloud_init_iso, key_provider};
 }
 
 template <typename T>
@@ -200,6 +218,11 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto mem_size = record["mem_size"].toString();
         auto disk_space = record["disk_space"].toString();
         auto mac_addr = record["mac_addr"].toString();
+        auto ssh_username = record["ssh_username"].toString();
+        auto state = record["state"].toInt();
+
+        if (ssh_username.isEmpty())
+            ssh_username = "ubuntu";
 
         std::unordered_map<std::string, mp::VMMount> mounts;
         std::unordered_map<int, int> uid_map;
@@ -224,8 +247,13 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             mounts[target_path] = mount;
         }
 
-        reconstructed_records[key] = {num_cores, mem_size.toStdString(), disk_space.toStdString(),
-                                      mac_addr.toStdString(), mounts};
+        reconstructed_records[key] = {num_cores,
+                                      mem_size.toStdString(),
+                                      disk_space.toStdString(),
+                                      mac_addr.toStdString(),
+                                      ssh_username.toStdString(),
+                                      static_cast<mp::VirtualMachine::State>(state),
+                                      mounts};
     }
     return reconstructed_records;
 }
@@ -333,7 +361,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,          name, mac_addr,
+        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,
+                                              name,           mac_addr,       spec.ssh_username,
                                               vm_image,       cloud_init_iso, *config->ssh_key_provider};
 
         try
@@ -345,6 +374,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
             invalid_specs.push_back(name);
             config->vault->remove(name);
+        }
+
+        if (spec.state != VirtualMachine::State::off && spec.state != VirtualMachine::State::stopped &&
+            vm_instances[name]->current_state() != VirtualMachine::State::running)
+        {
+            mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
+            QTimer::singleShot(0, [this, &name] {
+                vm_instances[name]->start();
+                on_restart(name);
+            });
         }
     }
 
@@ -420,10 +459,10 @@ try // clang-format on
     }
 
     auto query = query_from(request, name);
-    auto download_monitor = [server](int download_type, int percentage) {
+    auto progress_monitor = [server](int progress_type, int percentage) {
         LaunchReply create_reply;
-        create_reply.mutable_download_progress()->set_percent_complete(std::to_string(percentage));
-        create_reply.mutable_download_progress()->set_type((DownloadProgress::DownloadTypes)download_type);
+        create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
+        create_reply.mutable_launch_progress()->set_type((LaunchProgress::ProgressTypes)progress_type);
         return server->Write(create_reply);
     };
 
@@ -431,6 +470,7 @@ try // clang-format on
         LaunchReply reply;
         reply.set_create_message("Preparing image for " + name);
         server->Write(reply);
+
         return config->factory->prepare_source_image(source_image);
     };
 
@@ -439,11 +479,12 @@ try // clang-format on
     LaunchReply reply;
     reply.set_create_message("Creating " + name);
     server->Write(reply);
-    auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, download_monitor);
+    auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
     reply.set_create_message("Configuring " + name);
     server->Write(reply);
-    auto vendor_data_cloud_init_config = make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone());
+    auto vendor_data_cloud_init_config =
+        make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
     auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
     auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
     prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
@@ -462,13 +503,19 @@ try // clang-format on
         }
     }
     auto vm_desc =
-        to_machine_desc(request, name, mac_addr, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
-                        vendor_data_cloud_init_config, *config->ssh_key_provider);
+        to_machine_desc(request, name, mac_addr, config->ssh_username, vm_image, meta_data_cloud_init_config,
+                        user_data_cloud_init_config, vendor_data_cloud_init_config, *config->ssh_key_provider);
 
     config->factory->prepare_instance_image(vm_image, vm_desc);
 
     vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-    vm_instance_specs[name] = {vm_desc.num_cores, vm_desc.mem_size, vm_desc.disk_space, vm_desc.mac_addr, {}};
+    vm_instance_specs[name] = {vm_desc.num_cores,
+                               vm_desc.mem_size,
+                               vm_desc.disk_space,
+                               vm_desc.mac_addr,
+                               config->ssh_username,
+                               VirtualMachine::State::off,
+                               {}};
     persist_instances();
 
     reply.set_create_message("Starting " + name);
@@ -537,8 +584,8 @@ try // clang-format on
 {
     if (!request->search_string().empty())
     {
-        auto vm_images_info =
-            config->image_host->all_info_for({"", request->search_string(), false, request->remote_name()});
+        auto vm_images_info = config->image_host->all_info_for(
+            {"", request->search_string(), false, request->remote_name(), Query::Type::SimpleStreams});
 
         for (const auto& info : vm_images_info)
         {
@@ -661,17 +708,24 @@ try // clang-format on
             info->mutable_instance_status()->set_status(status_for(vm->current_state()));
         }
 
-        try
+        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto original_release = vm_image.original_release;
+
+        if (!vm_image.id.empty() && original_release.empty())
         {
-            auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
-            auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
-            info->set_image_release(vm_image_info.release_title.toStdString());
-            info->set_id(vm_image.id);
+            try
+            {
+                auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
+                original_release = vm_image_info.release_title.toStdString();
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
+            }
         }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
-        }
+
+        info->set_image_release(original_release);
+        info->set_id(vm_image.id);
 
         auto vm_specs = vm_instance_specs[name];
 
@@ -693,7 +747,8 @@ try // clang-format on
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
-            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), *config->ssh_key_provider};
+            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                   *config->ssh_key_provider};
 
             auto run_in_vm = [&session](const std::string& cmd) {
                 auto proc = session.exec(cmd);
@@ -755,16 +810,23 @@ try // clang-format on
         entry->mutable_instance_status()->set_status(status_for(vm->current_state()));
 
         // FIXME: Set the release to the cached current version when supported
-        try
+        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto current_release = vm_image.original_release;
+
+        if (!vm_image.id.empty() && current_release.empty())
         {
-            auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
-            auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
-            entry->set_current_release("Ubuntu " + vm_image_info.release_title.toStdString());
+            try
+            {
+                auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
+                current_release = vm_image_info.release_title.toStdString();
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
+            }
         }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error fetching image information: {}", e.what()));
-        }
+
+        entry->set_current_release(current_release);
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
             entry->set_ipv4(vm->ipv4());
@@ -956,6 +1018,7 @@ try // clang-format on
         ssh_info.set_host(it->second->ssh_hostname());
         ssh_info.set_port(it->second->ssh_port());
         ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
+        ssh_info.set_username(it->second->ssh_username());
         (*response->mutable_ssh_info())[name] = ssh_info;
     }
 
@@ -1303,6 +1366,13 @@ void mp::Daemon::on_restart(const std::string& name)
         persist_instances();
 }
 
+void mp::Daemon::persist_state_for(const std::string& name)
+{
+    auto& vm = vm_instances[name];
+    vm_instance_specs[name].state = vm->current_state();
+    persist_instances();
+}
+
 void mp::Daemon::persist_instances()
 {
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
@@ -1311,6 +1381,8 @@ void mp::Daemon::persist_instances()
         json.insert("mem_size", QString::fromStdString(specs.mem_size));
         json.insert("disk_space", QString::fromStdString(specs.disk_space));
         json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
+        json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
+        json.insert("state", static_cast<int>(specs.state));
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)
@@ -1364,7 +1436,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
 {
     auto& key_provider = *config->ssh_key_provider;
 
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), key_provider};
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
 
     auto sshfs_mount = std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map);
 

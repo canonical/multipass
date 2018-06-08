@@ -56,6 +56,7 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
 
             auto host = ssh_info.host();
             auto port = ssh_info.port();
+            auto username = ssh_info.username();
             auto priv_key_blob = ssh_info.priv_key_base64();
 
             auto destination_path{destination.second};
@@ -71,7 +72,7 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
 
             try
             {
-                mp::SCPClient scp_client{host, port, priv_key_blob};
+                mp::SCPClient scp_client{host, port, username, priv_key_blob};
                 if (!destination.first.empty())
                     scp_client.push_file(source.second, destination_path);
                 else

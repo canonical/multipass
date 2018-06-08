@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,32 +13,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_QUERY_H
-#define MULTIPASS_QUERY_H
+#ifndef MULTIPASS_XZ_IMAGE_DECODER_H
+#define MULTIPASS_XZ_IMAGE_DECODER_H
 
-#include <string>
+#include <multipass/path.h>
+#include <multipass/progress_monitor.h>
+
+#include <memory>
+
+#include <QFile>
+
+#include <xz.h>
 
 namespace multipass
 {
-class Query
+class XzImageDecoder
 {
 public:
-    enum Type
-    {
-        SimpleStreams,
-        LocalFile,
-        HttpDownload
-    };
+    XzImageDecoder(const Path& xz_file_path);
 
-    std::string name;
-    std::string release;
-    bool persistent;
-    std::string remote_name;
-    Type query_type;
+    void decode_to(const Path& decoded_file_path, const ProgressMonitor& monitor);
+
+    using XzDecoderUPtr = std::unique_ptr<xz_dec, decltype(xz_dec_end)*>;
+
+private:
+    QFile xz_file;
+    XzDecoderUPtr xz_decoder;
 };
-}
-#endif // MULTIPASS_QUERY_H
+} // namespace multipass
+#endif // MULTIPASS_XZ_IMAGE_DECODER_H

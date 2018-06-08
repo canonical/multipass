@@ -75,8 +75,9 @@ _multipass_complete()
             "--format"|"-f")
                 opts="table json csv yaml"
             ;;
-            "--cloud-init")
+            "--cloud-init"|"--image")
                 _filedir
+                return
             ;;
         esac
     else
@@ -107,9 +108,19 @@ _multipass_complete()
                 if [ ${source_set} == 0 ] ; then
                     if [[ ${prev} != -* ]] || ([[ ${prev} == -* ]] && [[ ${prev} == *=* ]]); then
                         _filedir -d
+                        return
                     fi
                 elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
                     _multipass_instances
+                fi
+            ;;
+            "copy-files")
+                _multipass_instances "RUNNING"
+
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                if [[ "${#COMPREPLY[@]}" == "0" ]]; then
+                    _filedir
+                    return
                 fi
             ;;
             "help")

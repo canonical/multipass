@@ -32,6 +32,7 @@
 
 #include <QCoreApplication>
 #include <QFile>
+#include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMetaEnum>
@@ -39,6 +40,7 @@
 #include <QProcess>
 #include <QString>
 #include <QStringList>
+#include <QSysInfo>
 
 #include <thread>
 
@@ -47,6 +49,10 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
+                                          {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
+                                          {"s390x", "s390x"}};
+
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
                        const std::string& mac_addr)
 {
@@ -94,7 +100,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
         process->setWorkingDirectory(snap.append("/qemu"));
     }
 
-    process->setProgram("qemu-system-x86_64");
+    process->setProgram("qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture()));
     process->setArguments(args);
 
     mpl::log(mpl::Level::debug, desc.vm_name,
@@ -129,6 +135,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       is_legacy_ip{ip ? true : false},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
+      username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
@@ -179,7 +186,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                      [this](int exitCode, QProcess::ExitStatus exitStatus) {
                          mpl::log(mpl::Level::info, vm_name,
                                   fmt::format("process finished with exit code {}", exitCode));
-                         on_shutdown();
+                         if (update_shutdown_status)
+                         {
+                             on_shutdown();
+                         }
                      });
 }
 
@@ -187,6 +197,7 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
 {
     remove_tap_device(QString::fromStdString(tap_device_name));
 
+    update_shutdown_status = false;
     shutdown();
 }
 
@@ -216,6 +227,11 @@ void mp::QemuVirtualMachine::shutdown()
         vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();
     }
+    else
+    {
+        vm_process->terminate();
+        vm_process->waitForFinished();
+    }
 }
 
 mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
@@ -228,26 +244,35 @@ int mp::QemuVirtualMachine::ssh_port()
     return 22;
 }
 
+void mp::QemuVirtualMachine::update_state()
+{
+    monitor->persist_state_for(vm_name);
+}
+
 void mp::QemuVirtualMachine::on_started()
 {
     state = State::starting;
+    update_state();
     monitor->on_resume();
 }
 
 void mp::QemuVirtualMachine::on_error()
 {
     state = State::off;
+    update_state();
 }
 
 void mp::QemuVirtualMachine::on_shutdown()
 {
     state = State::off;
+    update_state();
     monitor->on_shutdown();
 }
 
 void mp::QemuVirtualMachine::on_restart()
 {
     state = State::restarting;
+    update_state();
 
     if (!is_legacy_ip)
         ip = nullopt;
@@ -285,6 +310,11 @@ std::string mp::QemuVirtualMachine::ssh_hostname()
     }
 
     return ip.value().as_string();
+}
+
+std::string mp::QemuVirtualMachine::ssh_username()
+{
+    return username;
 }
 
 std::string mp::QemuVirtualMachine::ipv4()

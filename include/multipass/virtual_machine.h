@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,10 +50,12 @@ public:
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
     virtual std::string ssh_hostname() = 0;
+    virtual std::string ssh_username() = 0;
     virtual std::string ipv4() = 0;
     virtual std::string ipv6() = 0;
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
+    virtual void update_state() = 0;
 
     VirtualMachine::State state;
     const SSHKeyProvider& key_provider;

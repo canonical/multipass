@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +26,11 @@
 #include <multipass/url_downloader.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
+#include <multipass/xz_image_decoder.h>
 
 #include <fmt/format.h>
 
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -57,6 +59,7 @@ auto query_to_json(const mp::Query& query)
     json.insert("release", QString::fromStdString(query.release));
     json.insert("persistent", query.persistent);
     json.insert("remote_name", QString::fromStdString(query.remote_name));
+    json.insert("query_type", static_cast<int>(query.query_type));
     return json;
 }
 
@@ -67,6 +70,9 @@ auto image_to_json(const mp::VMImage& image)
     json.insert("kernel_path", image.kernel_path);
     json.insert("initrd_path", image.initrd_path);
     json.insert("id", QString::fromStdString(image.id));
+    json.insert("original_release", QString::fromStdString(image.original_release));
+    json.insert("current_release", QString::fromStdString(image.current_release));
+    json.insert("release_date", QString::fromStdString(image.release_date));
 
     QJsonArray aliases;
     for (const auto& alias : image.aliases)
@@ -133,6 +139,9 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         auto kernel_path = image["kernel_path"].toString();
         auto initrd_path = image["initrd_path"].toString();
         auto image_id = image["id"].toString().toStdString();
+        auto original_release = image["original_release"].toString().toStdString();
+        auto current_release = image["current_release"].toString().toStdString();
+        auto release_date = image["release_date"].toString().toStdString();
 
         std::vector<std::string> aliases;
         for (const auto& entry : image["aliases"].toArray())
@@ -150,6 +159,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
         if (!persistent.isBool())
             return {};
         auto remote_name = query["remote_name"].toString();
+        auto query_type = static_cast<mp::Query::Type>(query["type"].toInt());
 
         std::chrono::system_clock::time_point last_accessed;
         auto last_accessed_count = static_cast<qint64>(record["last_accessed"].toDouble());
@@ -163,9 +173,10 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
             last_accessed = std::chrono::system_clock::time_point(duration);
         }
 
-        reconstructed_records[key] = {{image_path, kernel_path, initrd_path, image_id, aliases},
-                                      {"", release.toStdString(), persistent.toBool(), remote_name.toStdString()},
-                                      last_accessed};
+        reconstructed_records[key] = {
+            {image_path, kernel_path, initrd_path, image_id, original_release, current_release, release_date, aliases},
+            {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
+            last_accessed};
     }
     return reconstructed_records;
 }
@@ -174,6 +185,9 @@ QString copy(const QString& file_name, const QDir& output_dir)
 {
     if (file_name.isEmpty())
         return {};
+
+    if (!QFileInfo::exists(file_name))
+        throw std::runtime_error(fmt::format("{} missing", file_name.toStdString()));
 
     QFileInfo info{file_name};
     const auto source_name = info.fileName();
@@ -252,74 +266,172 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     if (name_entry != instance_image_records.end())
     {
         const auto& record = name_entry->second;
+
         return record.image;
     }
 
-    auto info = image_host->info_for(query);
-    auto id = info.id.toStdString();
-
-    if (!query.name.empty())
+    if (query.query_type != Query::Type::SimpleStreams)
     {
-        for (auto& record : prepared_image_records)
+        QUrl image_url(QString::fromStdString(query.release));
+        VMImage source_image, vm_image;
+
+        if (image_url.isLocalFile())
         {
-            const auto aliases = record.second.image.aliases;
-            if (id == record.first || std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
+            if (!QFile::exists(image_url.path()))
+                throw std::runtime_error(
+                    fmt::format("Custom image `{}` does not exist.", image_url.path().toStdString()));
+            source_image.image_path = image_url.path();
+
+            if (source_image.image_path.endsWith(".xz"))
             {
-                const auto prepared_image = record.second.image;
-                auto vm_image = image_instance_from(query.name, prepared_image);
-                instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-                persist_instance_records();
-                record.second.last_accessed = std::chrono::system_clock::now();
-                persist_image_records();
-                return vm_image;
+                source_image = extract_image_from(query.name, source_image, monitor);
+            }
+            else
+            {
+                source_image = image_instance_from(query.name, source_image);
+            }
+
+            vm_image = prepare(source_image);
+        }
+        else
+        {
+            // Generate a sha256 hash based on the URL and use that for the id
+            auto hash =
+                QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex().toStdString();
+            auto last_modified = url_downloader->last_modified(image_url);
+
+            auto entry = prepared_image_records.find(hash);
+            if (entry != prepared_image_records.end())
+            {
+                auto& record = entry->second;
+
+                if (last_modified.isValid() && (last_modified.toString().toStdString() == record.image.release_date))
+                {
+                    auto vm_image = image_instance_from(query.name, record.image);
+                    instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+                    persist_instance_records();
+                    record.last_accessed = std::chrono::system_clock::now();
+                    persist_image_records();
+                    return vm_image;
+                }
+                else
+                {
+                    source_image = record.image;
+                }
+            }
+            else
+            {
+                auto image_filename = filename_for(image_url.path());
+                // Attempt to make a sane directory name based on the filename of the image
+                auto image_dir_name = QString("%1-%2")
+                                          .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
+                                          .arg(last_modified.toString("yyyyMMdd"));
+                auto image_dir = make_dir(image_dir_name, images_dir);
+
+                source_image.id = hash;
+                source_image.image_path = image_dir.filePath(image_filename);
+            }
+
+            DeleteOnException image_file{source_image.image_path};
+            url_downloader->download_to(image_url, source_image.image_path, 0, LaunchProgress::IMAGE, monitor);
+
+            if (source_image.image_path.endsWith(".xz"))
+            {
+                source_image = extract_downloaded_image(source_image, monitor);
+            }
+
+            vm_image = prepare(source_image);
+            vm_image.release_date = last_modified.toString().toStdString();
+            prepared_image_records[hash] = {vm_image, query, std::chrono::system_clock::now()};
+            persist_image_records();
+        }
+
+        remove_source_images(source_image, vm_image);
+
+        vm_image = image_instance_from(query.name, vm_image);
+        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+        persist_instance_records();
+
+        return vm_image;
+    }
+    else
+    {
+        auto info = image_host->info_for(query);
+        auto id = info.id.toStdString();
+
+        if (!query.name.empty())
+        {
+            for (auto& record : prepared_image_records)
+            {
+                const auto aliases = record.second.image.aliases;
+                if (id == record.first || std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
+                {
+                    const auto prepared_image = record.second.image;
+                    try
+                    {
+                        auto vm_image = image_instance_from(query.name, prepared_image);
+                        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+                        persist_instance_records();
+                        record.second.last_accessed = std::chrono::system_clock::now();
+                        persist_image_records();
+                        return vm_image;
+                    }
+                    catch (const std::exception& e)
+                    {
+                        mpl::log(mpl::Level::warning, category,
+                                 fmt::format("Cannot create instance image: {}", e.what()));
+
+                        break;
+                    }
+                }
             }
         }
-    }
 
-    auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
-    auto image_dir = make_dir(image_dir_name, images_dir);
+        auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
+        auto image_dir = make_dir(image_dir_name, images_dir);
 
-    VMImage source_image;
-    source_image.id = id;
-    source_image.image_path = image_dir.filePath(filename_for(info.image_location));
-    for (const auto& alias : info.aliases)
-    {
-        source_image.aliases.push_back(alias.toStdString());
-    }
-    DeleteOnException image_file{source_image.image_path};
+        VMImage source_image;
+        source_image.id = id;
+        source_image.image_path = image_dir.filePath(filename_for(info.image_location));
+        source_image.original_release = info.release_title.toStdString();
+        for (const auto& alias : info.aliases)
+        {
+            source_image.aliases.push_back(alias.toStdString());
+        }
+        DeleteOnException image_file{source_image.image_path};
 
-    url_downloader->download_to(info.image_location, source_image.image_path, info.size, DownloadProgress::IMAGE,
-                                monitor);
-
-    if (fetch_type == FetchType::ImageKernelAndInitrd)
-    {
-        source_image.kernel_path = image_dir.filePath(filename_for(info.kernel_location));
-        source_image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
-        DeleteOnException kernel_file{source_image.kernel_path};
-        DeleteOnException initrd_file{source_image.initrd_path};
-        url_downloader->download_to(info.kernel_location, source_image.kernel_path, -1, DownloadProgress::KERNEL,
+        url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
                                     monitor);
-        url_downloader->download_to(info.initrd_location, source_image.initrd_path, -1, DownloadProgress::INITRD,
-                                    monitor);
+
+        if (fetch_type == FetchType::ImageKernelAndInitrd)
+        {
+            source_image.kernel_path = image_dir.filePath(filename_for(info.kernel_location));
+            source_image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
+            DeleteOnException kernel_file{source_image.kernel_path};
+            DeleteOnException initrd_file{source_image.initrd_path};
+            url_downloader->download_to(info.kernel_location, source_image.kernel_path, -1, LaunchProgress::KERNEL,
+                                        monitor);
+            url_downloader->download_to(info.initrd_location, source_image.initrd_path, -1, LaunchProgress::INITRD,
+                                        monitor);
+        }
+
+        auto prepared_image = prepare(source_image);
+        prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
+        remove_source_images(source_image, prepared_image);
+
+        VMImage vm_image;
+
+        if (!query.name.empty())
+        {
+            vm_image = image_instance_from(query.name, prepared_image);
+            instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+        }
+
+        persist_image_records();
+        persist_instance_records();
+
+        return vm_image;
     }
-
-    auto prepared_image = prepare(source_image);
-    prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
-    remove_source_images(source_image, prepared_image);
-
-    VMImage vm_image;
-
-    if (!query.name.empty())
-    {
-        vm_image = image_instance_from(query.name, prepared_image);
-        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-    }
-
-    expunge_invalid_image_records();
-    persist_image_records();
-    persist_instance_records();
-
-    return vm_image;
 }
 
 void mp::DefaultVMImageVault::remove(const std::string& name)
@@ -329,8 +441,8 @@ void mp::DefaultVMImageVault::remove(const std::string& name)
         return;
 
     QDir instance_dir{instances_dir};
-    instance_dir.cd(QString::fromStdString(name));
-    instance_dir.removeRecursively();
+    if (instance_dir.cd(QString::fromStdString(name)))
+        instance_dir.removeRecursively();
 
     instance_image_records.erase(name);
     persist_instance_records();
@@ -347,9 +459,12 @@ void mp::DefaultVMImageVault::prune_expired_images()
     for (const auto& record : prepared_image_records)
     {
         // Expire source images if they aren't persistent and haven't been accessed in 14 days
-        if (!record.second.query.persistent &&
+        if (record.second.query.query_type == Query::Type::SimpleStreams && !record.second.query.persistent &&
             record.second.last_accessed + days_to_expire <= std::chrono::system_clock::now())
         {
+            mpl::log(
+                mpl::Level::info, category,
+                fmt::format("Source image {} is expired. Removing it from the cache.\n", record.second.query.release));
             expired_keys.push_back(record.first);
             QFileInfo image_file{record.second.image.image_path};
             if (image_file.exists())
@@ -369,7 +484,8 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     std::vector<decltype(prepared_image_records)::key_type> keys_to_update;
     for (const auto& record : prepared_image_records)
     {
-        if (record.first.compare(0, record.second.query.release.length(), record.second.query.release) != 0)
+        if (record.second.query.query_type == Query::Type::SimpleStreams &&
+            record.first.compare(0, record.second.query.release.length(), record.second.query.release) != 0)
         {
             auto info = image_host->info_for(record.second.query);
             if (info.id.toStdString() != record.first)
@@ -387,6 +503,38 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     }
 }
 
+mp::VMImage mp::DefaultVMImageVault::extract_image_from(const std::string& instance_name, const VMImage& source_image,
+                                                        const ProgressMonitor& monitor)
+{
+    const auto name = QString::fromStdString(instance_name);
+    const auto output_dir = make_dir(name, instances_dir);
+    QFileInfo file_info{source_image.image_path};
+    const auto image_name = file_info.fileName().remove(".xz");
+    const auto image_path = output_dir.filePath(image_name);
+
+    VMImage image{source_image};
+    image.image_path = image_path;
+
+    XzImageDecoder xz_decoder(source_image.image_path);
+    xz_decoder.decode_to(image_path, monitor);
+
+    return image;
+}
+
+mp::VMImage mp::DefaultVMImageVault::extract_downloaded_image(const VMImage& source_image,
+                                                              const ProgressMonitor& monitor)
+{
+    VMImage image{source_image};
+    XzImageDecoder xz_decoder(image.image_path);
+    auto image_path = image.image_path.remove(".xz");
+
+    xz_decoder.decode_to(image_path, monitor);
+    delete_file(source_image.image_path);
+    image.image_path = image_path;
+
+    return image;
+}
+
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& instance_name,
                                                          const VMImage& prepared_image)
 {
@@ -397,6 +545,9 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
             copy(prepared_image.kernel_path, output_dir),
             copy(prepared_image.initrd_path, output_dir),
             prepared_image.id,
+            prepared_image.original_release,
+            prepared_image.current_release,
+            prepared_image.release_date,
             {}};
 }
 
@@ -420,24 +571,4 @@ void mp::DefaultVMImageVault::persist_image_records()
         image_records_json.insert(key, record_to_json(record.second));
     }
     write_json(image_records_json, cache_dir.filePath(image_db_name));
-}
-
-void mp::DefaultVMImageVault::expunge_invalid_image_records()
-{
-    std::vector<decltype(prepared_image_records)::key_type> invalid_keys;
-    for (const auto& record : prepared_image_records)
-    {
-        const auto& key = record.first;
-        auto info = image_host->info_for(record.second.query);
-        if (info.id.toStdString() != key)
-            invalid_keys.push_back(key);
-    }
-
-    for (auto const& key : invalid_keys)
-    {
-        QFileInfo image_file{prepared_image_records[key].image.image_path};
-        prepared_image_records.erase(key);
-        if (image_file.exists())
-            image_file.dir().removeRecursively();
-    }
 }

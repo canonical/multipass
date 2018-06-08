@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,9 +55,11 @@ public:
 
 private:
     VMImage image_instance_from(const std::string& name, const VMImage& prepared_image);
+    VMImage extract_image_from(const std::string& instance_name, const VMImage& source_image,
+                               const ProgressMonitor& monitor);
+    VMImage extract_downloaded_image(const VMImage& source_image, const ProgressMonitor& monitor);
     void persist_image_records();
     void persist_instance_records();
-    void expunge_invalid_image_records();
 
     VMImageHost* const image_host;
     URLDownloader* const url_downloader;

@@ -63,9 +63,11 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory, cache_directory);
+    if (ssh_username.empty())
+        ssh_username = "multipass";
 
     return std::unique_ptr<const DaemonConfig>(
         new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_host), std::move(vault),
                          std::move(name_generator), std::move(ssh_key_provider), std::move(logger), cache_directory,
-                         data_directory, server_address});
+                         data_directory, server_address, ssh_username});
 }

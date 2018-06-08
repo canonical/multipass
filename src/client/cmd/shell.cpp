@@ -44,11 +44,12 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         auto ssh_info = reply.ssh_info().begin()->second;
         auto host = ssh_info.host();
         auto port = ssh_info.port();
+        auto username = ssh_info.username();
         auto priv_key_blob = ssh_info.priv_key_base64();
 
         try
         {
-            mp::SSHClient ssh_client{host, port, priv_key_blob};
+            mp::SSHClient ssh_client{host, port, username, priv_key_blob};
             ssh_client.connect();
         }
         catch (const std::exception& e)

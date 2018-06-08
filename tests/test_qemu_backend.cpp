@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,7 +77,8 @@ struct QemuBackend : public testing::Test
                                                       "",
                                                       "pied-piper-valley",
                                                       "",
-                                                      {dummy_image.name(), "", "", "", {}},
+                                                      "",
+                                                      {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
                                                       key_provider};
     QTemporaryDir data_dir;
@@ -100,9 +101,11 @@ TEST_F(QemuBackend, machine_sends_monitoring_events)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
+    EXPECT_CALL(mock_monitor, persist_state_for(_));
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
+    EXPECT_CALL(mock_monitor, persist_state_for(_)).Times(AtLeast(1));
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
 }

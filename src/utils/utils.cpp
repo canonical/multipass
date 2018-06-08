@@ -146,15 +146,20 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         {
             mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port()};
             virtual_machine->state = VirtualMachine::State::running;
+            virtual_machine->update_state();
             return mp::utils::TimeoutAction::done;
         }
         catch (const std::exception&)
         {
-            virtual_machine->state = VirtualMachine::State::unknown;
             return mp::utils::TimeoutAction::retry;
         }
     };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
+    auto on_timeout = [virtual_machine] {
+        virtual_machine->state = VirtualMachine::State::unknown;
+        virtual_machine->update_state();
+        return std::runtime_error("timed out waiting for ssh service to start");
+    };
+
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
@@ -163,11 +168,11 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
 {
     auto action = [virtual_machine, &process_vm_events] {
         process_vm_events();
-        mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
-                               virtual_machine->key_provider};
-        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
         try
         {
+            mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
+                                   virtual_machine->ssh_username(), virtual_machine->key_provider};
+            auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
             return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
         }
         catch (const std::exception& e)
