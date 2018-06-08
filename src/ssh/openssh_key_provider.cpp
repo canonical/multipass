@@ -114,11 +114,6 @@ std::string mp::OpenSSHKeyProvider::public_key_as_base64() const
     return {base64};
 }
 
-std::string mp::OpenSSHKeyProvider::private_key_path() const
-{
-    return ssh_key_dir.filePath("id_rsa").toStdString();
-}
-
 ssh_key mp::OpenSSHKeyProvider::private_key() const
 {
     return priv_key.get();

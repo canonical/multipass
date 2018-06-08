@@ -43,22 +43,11 @@ mp::SSHClientKeyProvider::SSHClientKeyProvider(const std::string& priv_key_blob)
 std::string mp::SSHClientKeyProvider::private_key_as_base64() const
 {
     throw std::runtime_error("Unimplemented");
-
-    return "";
 }
 
 std::string mp::SSHClientKeyProvider::public_key_as_base64() const
 {
     throw std::runtime_error("Unimplemented");
-
-    return "";
-}
-
-std::string mp::SSHClientKeyProvider::private_key_path() const
-{
-    throw std::runtime_error("Unimplemented");
-
-    return "";
 }
 
 ssh_key mp::SSHClientKeyProvider::private_key() const

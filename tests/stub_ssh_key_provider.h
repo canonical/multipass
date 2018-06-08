@@ -39,11 +39,6 @@ public:
         return {};
     }
 
-    std::string private_key_path() const override
-    {
-        return {};
-    }
-
     ssh_key private_key() const override
     {
         return nullptr;
