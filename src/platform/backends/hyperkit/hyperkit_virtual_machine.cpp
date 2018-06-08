@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,11 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{desc.key_provider, desc.vm_name}, state{State::off}, monitor{&monitor}, desc{desc}
+    : VirtualMachine{desc.key_provider, desc.vm_name},
+      state{State::off},
+      monitor{&monitor},
+      username{desc.ssh_username},
+      desc{desc}
 {
     thread.setObjectName("HyperkitVirtualMachine thread");
 }
@@ -104,6 +108,11 @@ mp::VirtualMachine::State mp::HyperkitVirtualMachine::current_state()
     return state;
 }
 
+void mp::HyperkitVirtualMachine::update_state()
+{
+    monitor->persist_state_for(vm_name);
+}
+
 int mp::HyperkitVirtualMachine::ssh_port()
 {
     return 22;
@@ -112,6 +121,11 @@ int mp::HyperkitVirtualMachine::ssh_port()
 std::string mp::HyperkitVirtualMachine::ssh_hostname()
 {
     return ipv4();
+}
+
+std::string mp::HyperkitVirtualMachine::ssh_username()
+{
+    return username;
 }
 
 std::string mp::HyperkitVirtualMachine::ipv4()
@@ -139,33 +153,10 @@ std::string mp::HyperkitVirtualMachine::ipv6()
 
 void mp::HyperkitVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    auto hostname = ssh_hostname();
-    if (hostname.empty())
-        throw mp::StartException(desc.vm_name, "unable to determine IP address");
-
-    auto port = ssh_port();
-    auto action = [&hostname, &port] {
-        try
-        {
-            mp::SSHSession session{hostname, port};
-            return mp::utils::TimeoutAction::done;
-        }
-        catch (const std::exception&)
-        {
-            return mp::utils::TimeoutAction::retry;
-        }
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mp::utils::wait_until_ssh_up(this, timeout);
 }
 
 void mp::HyperkitVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        mp::SSHSession session{ssh_hostname(), ssh_port(), desc.key_provider};
-        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-        return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mp::utils::wait_for_cloud_init(this, timeout);
 }

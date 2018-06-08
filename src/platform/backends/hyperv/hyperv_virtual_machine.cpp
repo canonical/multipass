@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,9 +31,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const V
       ip{address},
       name{QString::fromStdString(desc.vm_name)},
       state{State::off},
-      key_provider{desc.key_provider}
+      username{desc.ssh_username}
 {
-    if (!powershell_run({"Get-VM", "-Name", name}, desc.vm_name))
+    if (!powershell_run({"Get-VM", "-Name", name}, vm_name))
     {
         auto mem_size = QString::fromStdString(desc.mem_size);
         if (mem_size.endsWith("K") || mem_size.endsWith("M") || mem_size.endsWith("G"))
@@ -44,8 +44,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const V
 
         powershell_run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
                         "VHD", "-SwitchName", "multipass", "-MemoryStartupBytes", mem_size},
-                       desc.vm_name);
-        powershell_run({"Set-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso}, desc.vm_name);
+                       vm_name);
+        powershell_run({"Set-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso}, vm_name);
     }
 }
 
@@ -81,9 +81,19 @@ int mp::HyperVVirtualMachine::ssh_port()
     return 22;
 }
 
+void mp::HyperVVirtualMachine::update_state()
+{
+    return;
+}
+
 std::string mp::HyperVVirtualMachine::ssh_hostname()
 {
     return ip.as_string();
+}
+
+std::string mp::HyperVVirtualMachine::ssh_username()
+{
+    return username;
 }
 
 std::string mp::HyperVVirtualMachine::ipv4()
@@ -98,28 +108,10 @@ std::string mp::HyperVVirtualMachine::ipv6()
 
 void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        try
-        {
-            mp::SSHSession session{ssh_hostname(), ssh_port()};
-            return mp::utils::TimeoutAction::done;
-        }
-        catch (const std::exception&)
-        {
-            return mp::utils::TimeoutAction::retry;
-        }
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for ssh service to start"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mp::utils::wait_until_ssh_up(this, timeout);
 }
 
 void mp::HyperVVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        mp::SSHSession session{ssh_hostname(), ssh_port(), key_provider};
-        auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-        return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
-    };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mp::utils::wait_for_cloud_init(this, timeout);
 }

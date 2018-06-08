@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,16 +40,18 @@ public:
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
+    std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
+    void update_state() override;
 
 private:
     const IPAddress ip;
     const QString name;
     VirtualMachine::State state;
-    const SSHKeyProvider& key_provider;
+    const std::string username;
 };
 }
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
