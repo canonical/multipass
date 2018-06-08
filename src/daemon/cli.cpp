@@ -26,6 +26,23 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+namespace
+{
+multipass::logging::Level to_logging_level(const QString& value)
+{
+    if (value == "error")
+        return mpl::Level::error;
+    if (value == "warning")
+        return mpl::Level::warning;
+    if (value == "info")
+        return mpl::Level::info;
+    if (value == "debug")
+        return mpl::Level::debug;
+
+    throw std::runtime_error("Invalid logging verbosity: " + value.toStdString());
+}
+} // namespace
+
 mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
 {
     QCommandLineParser parser;
@@ -34,18 +51,26 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
     auto version_option = parser.addVersionOption();
 
     QCommandLineOption logger_option{"logger", "specifies which logger to use", "platform|stderr"};
+    QCommandLineOption verbosity_option{
+        {"V", "verbosity"}, "specifies the logging verbosity level", "error|warning|info|debug"};
+
     parser.addOption(logger_option);
+    parser.addOption(verbosity_option);
 
     parser.process(app);
 
     DaemonConfigBuilder builder;
+
+    if (parser.isSet(verbosity_option))
+        builder.verbosity_level = to_logging_level(parser.value(verbosity_option));
+
     if (parser.isSet(logger_option))
     {
         auto logger = parser.value(logger_option);
         if (logger == "platform")
-            builder.logger = platform::make_logger(logging::Level::info);
+            builder.logger = platform::make_logger(builder.verbosity_level);
         else if (logger == "stderr")
-            builder.logger = std::make_unique<mpl::StandardLogger>(mpl::Level::info);
+            builder.logger = std::make_unique<mpl::StandardLogger>(builder.verbosity_level);
         else
             throw std::runtime_error("Invalid logger option: " + logger.toStdString());
     }

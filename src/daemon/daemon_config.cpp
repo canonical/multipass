@@ -21,6 +21,7 @@
 #include "default_vm_image_vault.h"
 #include "ubuntu_image_host.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
@@ -35,15 +36,20 @@ namespace mpl = multipass::logging;
 
 std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 {
+    // Install logger as early as possible
+    if (logger == nullptr)
+        logger = platform::make_logger(verbosity_level);
+    // Fallback when platform does not have a logger
+    if (logger == nullptr)
+        logger = std::make_unique<mpl::StandardLogger>(verbosity_level);
+
+    std::shared_ptr<mpl::Logger> shared_logger{std::move(logger)};
+    mpl::set_logger(shared_logger);
+
     if (cache_directory.isEmpty())
         cache_directory = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
     if (data_directory.isEmpty())
         data_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    if (logger == nullptr)
-        logger = platform::make_logger(logging::Level::info);
-    // Fallback when platform does not have a logger
-    if (logger == nullptr)
-        logger = std::make_unique<mpl::StandardLogger>(mpl::Level::info);
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory);
     if (factory == nullptr)
@@ -68,6 +74,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     return std::unique_ptr<const DaemonConfig>(
         new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_host), std::move(vault),
-                         std::move(name_generator), std::move(ssh_key_provider), std::move(logger), cache_directory,
+                         std::move(name_generator), std::move(ssh_key_provider), shared_logger, cache_directory,
                          data_directory, server_address, ssh_username});
 }
