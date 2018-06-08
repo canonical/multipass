@@ -23,6 +23,7 @@
 #include <multipass/path.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
+#include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
 #include <QDir>
@@ -58,6 +59,8 @@ private:
     VMImage extract_image_from(const std::string& instance_name, const VMImage& source_image,
                                const ProgressMonitor& monitor);
     VMImage extract_downloaded_image(const VMImage& source_image, const ProgressMonitor& monitor);
+    VMImage fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image, const QDir& image_dir,
+                                    const ProgressMonitor& monitor);
     void persist_image_records();
     void persist_instance_records();
 
