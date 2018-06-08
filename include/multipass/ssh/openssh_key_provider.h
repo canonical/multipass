@@ -40,7 +40,6 @@ public:
     OpenSSHKeyProvider(const Path& cache_dir, const Path& fallback_dir);
     std::string private_key_as_base64() const override;
     std::string public_key_as_base64() const override;
-    std::string private_key_path() const override;
     ssh_key private_key() const override;
 
 private:

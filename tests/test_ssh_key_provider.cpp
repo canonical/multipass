@@ -42,7 +42,6 @@ TEST_F(SSHKeyProvider, creates_key)
 {
     mp::OpenSSHKeyProvider key_provider{key_dir.path(), QDir(key_dir.path()).filePath(("fallback"))};
 
-    EXPECT_TRUE(QFile::exists(QString::fromStdString(key_provider.private_key_path())));
     EXPECT_THAT(key_provider.public_key_as_base64(), StrNe(""));
 }
 
