@@ -38,8 +38,11 @@
 
 #include <grp.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <vector>
+
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -66,12 +69,11 @@ class UnixSignalHandler
 {
 public:
     UnixSignalHandler(QCoreApplication& app)
-        : signal_handling_thread{[this, &app,
-                                  sigs = multipass::platform::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})]{
-              monitor_signals(sigs, app);
-}
-}
-{
+        : signal_handling_thread{
+              [this, &app, sigs = multipass::platform::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] {
+                  monitor_signals(sigs, app);
+              }}
+    {
     }
 
     ~UnixSignalHandler()
@@ -84,17 +86,17 @@ public:
         int sig = -1;
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
-            fmt::print(stderr, "Received signal: {}\n", sig);
+            mpl::log(mpl::Level::info, "daemon", fmt::format("Received signal {} ({})", sig, strsignal(sig)));
         app.quit();
     }
 
 private:
     multipass::AutoJoinThread signal_handling_thread;
 };
-}
+} // namespace
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) // clang-format off
+try // clang-format on
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationVersion(multipass::version_string);
@@ -104,18 +106,17 @@ try
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    multipass::logging::set_logger(config->logger);
     multipass::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
 
     app.exec();
 
-    fmt::print(stderr, "Goodbye!\n");
+    mpl::log(mpl::Level::info, "daemon", "Goodbye!");
     return EXIT_SUCCESS;
 }
 catch (const std::exception& e)
 {
-    fmt::print(stderr, "Error: {}\n", e.what());
+    mpl::log(mpl::Level::error, "daemon", e.what());
     return EXIT_FAILURE;
 }

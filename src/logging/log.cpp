@@ -17,7 +17,14 @@
 
 #include <multipass/logging/log.h>
 
+#include <fmt/format.h>
+
+#include <QByteArray>
+#include <QString>
+#include <QtGlobal>
+
 #include <shared_mutex>
+#include <stdexcept>
 
 namespace mpl = multipass::logging;
 
@@ -25,6 +32,29 @@ namespace
 {
 std::shared_timed_mutex mutex;
 std::shared_ptr<multipass::logging::Logger> global_logger;
+
+mpl::Level to_level(QtMsgType type)
+{
+    switch (type)
+    {
+    case QtDebugMsg:
+        return mpl::Level::debug;
+    case QtInfoMsg:
+        return mpl::Level::info;
+    case QtWarningMsg:
+        return mpl::Level::warning;
+    case QtCriticalMsg:
+    case QtFatalMsg:
+        return mpl::Level::error;
+    }
+    throw std::invalid_argument("Unknown Qt log message type");
+}
+
+void qt_message_handler(QtMsgType type, const QMessageLogContext&, const QString& message)
+{
+    auto msg = message.toLocal8Bit();
+    mpl::log(to_level(type), "Qt", msg.constData());
+}
 } // namespace
 
 void mpl::log(Level level, CString category, CString message)
@@ -32,10 +62,13 @@ void mpl::log(Level level, CString category, CString message)
     std::shared_lock<decltype(mutex)> lock{mutex};
     if (global_logger)
         global_logger->log(level, category, message);
+    else
+        fmt::print(stderr, "[{}] [{}] {}\n", as_string(level).c_str(), category.c_str(), message.c_str());
 }
 
 void mpl::set_logger(std::shared_ptr<Logger> logger)
 {
     std::lock_guard<decltype(mutex)> lock{mutex};
     global_logger = logger;
+    qInstallMessageHandler(qt_message_handler);
 }
