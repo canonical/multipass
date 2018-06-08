@@ -25,7 +25,6 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <multipass/xz_image_decoder.h>
 
 #include <fmt/format.h>
@@ -344,11 +343,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             vm_image.release_date = last_modified.toString().toStdString();
             prepared_image_records[hash] = {vm_image, query, std::chrono::system_clock::now()};
             persist_image_records();
+            vm_image = image_instance_from(query.name, vm_image);
         }
 
         remove_source_images(source_image, vm_image);
 
-        vm_image = image_instance_from(query.name, vm_image);
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
         persist_instance_records();
 
@@ -405,14 +404,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
         if (fetch_type == FetchType::ImageKernelAndInitrd)
         {
-            source_image.kernel_path = image_dir.filePath(filename_for(info.kernel_location));
-            source_image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
-            DeleteOnException kernel_file{source_image.kernel_path};
-            DeleteOnException initrd_file{source_image.initrd_path};
-            url_downloader->download_to(info.kernel_location, source_image.kernel_path, -1, LaunchProgress::KERNEL,
-                                        monitor);
-            url_downloader->download_to(info.initrd_location, source_image.initrd_path, -1, LaunchProgress::INITRD,
-                                        monitor);
+            source_image = fetch_kernel_and_initrd(info, source_image, image_dir, monitor);
         }
 
         auto prepared_image = prepare(source_image);
@@ -549,6 +541,21 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
             prepared_image.current_release,
             prepared_image.release_date,
             {}};
+}
+
+mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image,
+                                                             const QDir& image_dir, const ProgressMonitor& monitor)
+{
+    auto image{source_image};
+
+    image.kernel_path = image_dir.filePath(filename_for(info.kernel_location));
+    image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
+    DeleteOnException kernel_file{image.kernel_path};
+    DeleteOnException initrd_file{image.initrd_path};
+    url_downloader->download_to(info.kernel_location, image.kernel_path, -1, LaunchProgress::KERNEL, monitor);
+    url_downloader->download_to(info.initrd_location, image.initrd_path, -1, LaunchProgress::INITRD, monitor);
+
+    return image;
 }
 
 void mp::DefaultVMImageVault::persist_instance_records()
