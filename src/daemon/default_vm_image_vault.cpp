@@ -290,7 +290,15 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                 source_image = image_instance_from(query.name, source_image);
             }
 
+            if (fetch_type == FetchType::ImageKernelAndInitrd)
+            {
+                Query kernel_query{query.name, "default", false, "", Query::Type::SimpleStreams};
+                auto info = image_host->info_for(kernel_query);
+                source_image = fetch_kernel_and_initrd(info, source_image, QFileInfo(source_image.image_path).absoluteDir(), monitor);
+            }
+
             vm_image = prepare(source_image);
+            remove_source_images(source_image, vm_image);
         }
         else
         {
@@ -334,6 +342,13 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             DeleteOnException image_file{source_image.image_path};
             url_downloader->download_to(image_url, source_image.image_path, 0, LaunchProgress::IMAGE, monitor);
 
+            if (fetch_type == FetchType::ImageKernelAndInitrd)
+            {
+                Query kernel_query{query.name, "default", false, "", Query::Type::SimpleStreams};
+                auto info = image_host->info_for(kernel_query);
+                source_image = fetch_kernel_and_initrd(info, source_image, QFileInfo(source_image.image_path).absoluteDir(), monitor);
+            }
+
             if (source_image.image_path.endsWith(".xz"))
             {
                 source_image = extract_downloaded_image(source_image, monitor);
@@ -342,11 +357,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             vm_image = prepare(source_image);
             vm_image.release_date = last_modified.toString().toStdString();
             prepared_image_records[hash] = {vm_image, query, std::chrono::system_clock::now()};
+            remove_source_images(source_image, vm_image);
             persist_image_records();
             vm_image = image_instance_from(query.name, vm_image);
         }
-
-        remove_source_images(source_image, vm_image);
 
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
         persist_instance_records();

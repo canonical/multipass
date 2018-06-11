@@ -39,8 +39,8 @@ namespace
 {
 constexpr auto category = "url downloader";
 
-template <typename Action, typename ErrorAction>
-QByteArray download(QNetworkAccessManager& manager, QUrl const& url, Action&& action, ErrorAction&& on_error)
+template <typename ProgressAction, typename DownloadAction, typename ErrorAction>
+QByteArray download(QNetworkAccessManager& manager, QUrl const& url, ProgressAction&& on_progress, DownloadAction&& on_download, ErrorAction&& on_error)
 {
     QEventLoop event_loop;
     QTimer download_timeout;
@@ -54,7 +54,10 @@ QByteArray download(QNetworkAccessManager& manager, QUrl const& url, Action&& ac
 
     QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
     QObject::connect(reply.get(), &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
-        action(reply.get(), download_timeout, bytes_received, bytes_total);
+        on_progress(reply.get(), bytes_received, bytes_total);
+    });
+    QObject::connect(reply.get(), &QNetworkReply::readyRead, [&]() {
+        on_download(reply.get(), download_timeout);
     });
     QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
         download_timeout.stop();
@@ -87,41 +90,44 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
     QFile file{file_name};
     file.open(QIODevice::ReadWrite | QIODevice::Truncate);
 
-    auto progress_monitor = [&file, &monitor, download_type, size](QNetworkReply* reply, QTimer& download_timeout,
+    auto progress_monitor = [&monitor, download_type, size](QNetworkReply* reply,
                                                                    qint64 bytes_received, qint64 bytes_total) {
         if (bytes_received == 0)
             return;
 
+        if (bytes_total == -1 && size > 0)
+            bytes_total = size;
+
+        auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
+        if (!monitor(download_type, progress))
+        {
+            reply->abort();
+        }
+    };
+
+    auto on_download = [&file](QNetworkReply* reply, QTimer& download_timeout) {
         if (download_timeout.isActive())
             download_timeout.stop();
         else
             return;
 
-        if (bytes_total == -1 && size > 0)
-            bytes_total = size;
-        auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
         if (file.write(reply->readAll()) < 0)
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("error writing image: {}", file.errorString().toStdString()));
             reply->abort();
         }
-        if (!monitor(download_type, progress))
-        {
-            reply->abort();
-        }
-
         download_timeout.start(10000);
     };
 
     auto on_error = [&file]() { file.remove(); };
 
-    ::download(manager, url, progress_monitor, on_error);
+    ::download(manager, url, progress_monitor, on_download, on_error);
 }
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
-    return ::download(manager, url, [](QNetworkReply*, QTimer&, qint64, qint64) {}, [] {});
+    return ::download(manager, url, [](QNetworkReply*, qint64, qint64) {}, [](QNetworkReply*, QTimer&) {}, [] {});
 }
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)
