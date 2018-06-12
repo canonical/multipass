@@ -32,7 +32,6 @@ public:
     virtual ~SSHKeyProvider() = default;
     virtual std::string private_key_as_base64() const = 0;
     virtual std::string public_key_as_base64() const = 0;
-    virtual std::string private_key_path() const = 0;
     virtual ssh_key private_key() const = 0;
 
 protected:
