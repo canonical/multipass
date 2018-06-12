@@ -78,7 +78,8 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
             {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
             {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
             {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
-            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "}};
+            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
+            {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "}};
 
         if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
         {

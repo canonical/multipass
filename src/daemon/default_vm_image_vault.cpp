@@ -225,6 +225,26 @@ QDir make_dir(const QString& name, const QDir& cache_dir)
     return new_dir;
 }
 
+void verify_image_download(const mp::Path& image_path, const std::string& image_hash)
+{
+    QFile image_file(image_path);
+    if (!image_file.open(QFile::ReadOnly))
+    {
+        throw std::runtime_error("Cannot open image file for computing hash");
+    }
+
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    if (!hash.addData(&image_file))
+    {
+        throw std::runtime_error("Cannot read image file to compute hash");
+    }
+
+    if (hash.result().toHex().toStdString() != image_hash)
+    {
+        throw std::runtime_error("Downloaded image hash does not match");
+    }
+}
+
 class DeleteOnException
 {
 public:
@@ -417,6 +437,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
         url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
                                     monitor);
+
+        monitor(LaunchProgress::VERIFY, -1);
+        verify_image_download(source_image.image_path, id);
 
         if (fetch_type == FetchType::ImageKernelAndInitrd)
         {

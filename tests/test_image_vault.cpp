@@ -42,7 +42,7 @@ using namespace testing;
 
 namespace
 {
-static constexpr auto default_id = "42";
+static constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 static constexpr auto default_version = "20160217.1";
 
 struct ImageHost : public mp::VMImageHost
@@ -102,6 +102,23 @@ struct DummyURLDownloader : public mp::URLDownloader
                      const mp::ProgressMonitor&) override
     {
     }
+    QByteArray download(const QUrl& url) override
+    {
+        return {};
+    }
+};
+
+struct BadURLDownloader : public mp::URLDownloader
+{
+    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+                     const mp::ProgressMonitor&) override
+    {
+        QFile file(file_name);
+        file.open(QIODevice::WriteOnly);
+        file.write("Bad hash");
+        file.close();
+    }
+
     QByteArray download(const QUrl& url) override
     {
         return {};
@@ -380,6 +397,14 @@ TEST_F(ImageVault, missing_downloaded_image_throws)
 {
     DummyURLDownloader dummy_url_downloader;
     mp::DefaultVMImageVault vault{&host, &dummy_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
+                 std::runtime_error);
+}
+
+TEST_F(ImageVault, hash_mismatch_throws)
+{
+    BadURLDownloader bad_url_downloader;
+    mp::DefaultVMImageVault vault{&host, &bad_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
                  std::runtime_error);
 }
