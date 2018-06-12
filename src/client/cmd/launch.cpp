@@ -209,6 +209,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(imageOption))
     {
+#ifdef MULTIPASS_PLATFORM_APPLE
+        cerr << "The `--image` option is not currently supported on OSX.\n";
+        return ParseCode::CommandLineError;
+#else
         auto image_url = parser->value(imageOption);
 
         if (!image_url.startsWith("http") && !image_url.startsWith("file://"))
@@ -218,6 +222,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
 
         request.set_custom_image_path(parser->value(imageOption).toStdString());
+#endif
     }
 
     return status;
