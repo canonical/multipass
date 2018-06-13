@@ -44,7 +44,6 @@ message LaunchRequest {
     string time_zone = 7;
     string cloud_init_user_data = 8;
     string remote_name = 9;
-    string custom_image_path = 10;
 }
 
 message LaunchError {
