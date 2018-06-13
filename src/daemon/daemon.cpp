@@ -61,22 +61,15 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     if (!request->remote_name().empty() && request->image().empty())
         throw std::runtime_error("Must specify an image when specifying a remote");
 
-    std::string image = !request->custom_image_path().empty()
-                            ? request->custom_image_path()
-                            : (request->image().empty() ? "default" : request->image());
+    std::string image = request->image().empty() ? "default" : request->image();
     // TODO: persistence should be specified by the rpc as well
 
     mp::Query::Type query_type{mp::Query::Type::SimpleStreams};
 
-    if (!request->custom_image_path().empty())
-    {
-        QString custom_image_path = QString::fromStdString(request->custom_image_path());
-
-        if (custom_image_path.startsWith("file"))
-            query_type = mp::Query::Type::LocalFile;
-        else if (custom_image_path.startsWith("http"))
-            query_type = mp::Query::Type::HttpDownload;
-    }
+    if (QString::fromStdString(image).startsWith("file"))
+        query_type = mp::Query::Type::LocalFile;
+    else if (QString::fromStdString(image).startsWith("http"))
+        query_type = mp::Query::Type::HttpDownload;
 
     return {name, image, false, request->remote_name(), query_type};
 }
