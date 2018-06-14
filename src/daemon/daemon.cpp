@@ -26,6 +26,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
+#include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -441,6 +442,11 @@ try // clang-format on
                             create_error.SerializeAsString());
     }
 
+    auto query = query_from(request, name);
+    if (!mp::platform::is_alias_supported(query.release))
+        throw std::runtime_error(fmt::format(
+            "{} is not a supported alias. Please use `multipass find` for supported image aliases.", query.release));
+
     config->factory->check_hypervisor_support();
 
     auto option_errors = validate_create_arguments(request);
@@ -451,7 +457,6 @@ try // clang-format on
                             option_errors.SerializeAsString());
     }
 
-    auto query = query_from(request, name);
     auto progress_monitor = [server](int progress_type, int percentage) {
         LaunchReply create_reply;
         create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
@@ -580,6 +585,11 @@ try // clang-format on
         auto vm_images_info = config->image_host->all_info_for(
             {"", request->search_string(), false, request->remote_name(), Query::Type::SimpleStreams});
 
+        if (!mp::platform::is_alias_supported(request->search_string()))
+            throw std::runtime_error(
+                fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
+                            request->search_string()));
+
         for (const auto& info : vm_images_info)
         {
             std::string name;
@@ -617,17 +627,20 @@ try // clang-format on
                 {
                     if (!info.aliases.empty())
                     {
-                        image_found[info.release_title.toStdString()] = true;
                         auto entry = response->add_images_info();
-                        entry->set_release(info.release_title.toStdString());
-                        entry->set_version(info.version.toStdString());
-
                         for (const auto& alias : info.aliases)
                         {
+                            if (!mp::platform::is_alias_supported(alias.toStdString()))
+                                return;
+
                             auto alias_entry = entry->add_aliases_info();
                             alias_entry->set_remote_name((remote == default_remote) ? "" : remote);
                             alias_entry->set_alias(alias.toStdString());
                         }
+
+                        image_found[info.release_title.toStdString()] = true;
+                        entry->set_release(info.release_title.toStdString());
+                        entry->set_version(info.version.toStdString());
                     }
                 }
             }
