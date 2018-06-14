@@ -133,3 +133,8 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
 
     return 0;
 }
+
+bool mp::platform::is_alias_supported(const std::string& alias)
+{
+    return true;
+}

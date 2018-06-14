@@ -22,7 +22,14 @@
 
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 
+#include <set>
+
 namespace mp = multipass;
+
+namespace
+{
+const std::set<std::string> supported_aliases{"default", "lts", "16.04", "x", "xenial", "b", "bionic", "18.04"};
+}
 
 std::string mp::platform::default_server_address()
 {
@@ -37,4 +44,17 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
     return nullptr;
+}
+
+bool mp::platform::is_alias_supported(const std::string& alias)
+{
+    if (qgetenv("MULTIPASS_UNLOCK") == "lucky-chimp")
+        return true;
+
+    if (supported_aliases.find(alias) != supported_aliases.end())
+    {
+        return true;
+    }
+
+    return false;
 }
