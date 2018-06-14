@@ -78,7 +78,8 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
             {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
             {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
             {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
-            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "}};
+            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
+            {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "}};
 
         if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
         {
@@ -121,7 +122,16 @@ QString cmd::Launch::description() const
 
 mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("image", "Ubuntu image to start", "[<remote:>]<image>");
+    parser->addPositionalArgument("image",
+                                  "Optional image to launch. If omitted, then the default Ubuntu LTS "
+                                  "will be used.\n"
+                                  "<remote> can be either ‘release’ or ‘daily‘. If <remote> is omitted, "
+                                  "‘release’ will be used.\n"
+                                  "<image> can be a partial image hash or an Ubuntu release version, "
+                                  "codename or alias.\n"
+                                  "<url> is a custom image URL that is in http://, https://, or file:// "
+                                  "format.\n",
+                                  "[[<remote:>]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"}, "Number of CPUs to allocate", "cpus", "1");
     QCommandLineOption diskOption({"d", "disk"}, "Disk space to allocate in bytes, or with K, M, G suffix", "disk",
                                   "default");
@@ -129,9 +139,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                  "1024"); // In MB's
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration", "file");
-    QCommandLineOption imageOption("image", "URL to custom image to start in either `http://` or `file://` format",
-                                   "url");
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, imageOption});
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption});
 
     auto status = parser->commandParse(this);
 
@@ -148,28 +156,36 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (!parser->positionalArguments().isEmpty())
     {
-        if (parser->isSet(imageOption))
-        {
-            cerr << "Cannot specify `--image` option and remote image at the same time\n";
-            return ParseCode::CommandLineError;
-        }
-
         auto remote_image_name = parser->positionalArguments().first();
-        auto colon_count = remote_image_name.count(':');
 
-        if (colon_count > 1)
+        if (remote_image_name.startsWith("http://") || remote_image_name.startsWith("https://") ||
+            remote_image_name.startsWith("file://"))
         {
-            cerr << "Invalid remote and source image name supplied\n";
+#ifdef MULTIPASS_PLATFORM_APPLE
+            cerr << "http and file schemas are not currently supported on OSX.\n";
             return ParseCode::CommandLineError;
-        }
-        else if (colon_count == 1)
-        {
-            request.set_remote_name(remote_image_name.section(':', 0, 0).toStdString());
-            request.set_image(remote_image_name.section(':', 1).toStdString());
+#else
+            request.set_image(remote_image_name.toStdString());
+#endif
         }
         else
         {
-            request.set_image(remote_image_name.toStdString());
+            auto colon_count = remote_image_name.count(':');
+
+            if (colon_count > 1)
+            {
+                cerr << "Invalid remote and source image name supplied\n";
+                return ParseCode::CommandLineError;
+            }
+            else if (colon_count == 1)
+            {
+                request.set_remote_name(remote_image_name.section(':', 0, 0).toStdString());
+                request.set_image(remote_image_name.section(':', 1).toStdString());
+            }
+            else
+            {
+                request.set_image(remote_image_name.toStdString());
+            }
         }
     }
 
@@ -205,24 +221,6 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
         }
-    }
-
-    if (parser->isSet(imageOption))
-    {
-#ifdef MULTIPASS_PLATFORM_APPLE
-        cerr << "The `--image` option is not currently supported on OSX.\n";
-        return ParseCode::CommandLineError;
-#else
-        auto image_url = parser->value(imageOption);
-
-        if (!image_url.startsWith("http") && !image_url.startsWith("file://"))
-        {
-            cerr << "Custom image URL needs to be in `http://` or `file://` format.\n";
-            return ParseCode::CommandLineError;
-        }
-
-        request.set_custom_image_path(parser->value(imageOption).toStdString());
-#endif
     }
 
     return status;

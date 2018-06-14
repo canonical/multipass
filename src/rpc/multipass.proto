@@ -44,7 +44,6 @@ message LaunchRequest {
     string time_zone = 7;
     string cloud_init_user_data = 8;
     string remote_name = 9;
-    string custom_image_path = 10;
 }
 
 message LaunchError {
@@ -64,6 +63,7 @@ message LaunchProgress {
         KERNEL = 1;
         INITRD = 2;
         EXTRACT = 3;
+        VERIFY = 4;
     }
     ProgressTypes type = 1;
     string percent_complete = 2;

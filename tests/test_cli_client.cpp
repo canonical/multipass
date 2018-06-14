@@ -192,29 +192,14 @@ TEST_F(Client, launch_cmd_cpu_option_fails_no_value)
     EXPECT_THAT(send_command({"launch", "-c"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, launch_cmd_image_option_file_ok)
+TEST_F(Client, launch_cmd_custom_image_file_ok)
 {
-    EXPECT_THAT(send_command({"launch", "--image", "file://foo"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_image_option_http_ok)
+TEST_F(Client, launch_cmd_custom_image_http_ok)
 {
-    EXPECT_THAT(send_command({"launch", "--image", "http://foo"}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, launch_cmd_image_option_invalid_prefix_fail)
-{
-    EXPECT_THAT(send_command({"launch", "--image", "image://foo"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, launch_cmd_image_option_no_prefix_fail)
-{
-    EXPECT_THAT(send_command({"launch", "--image", "foo"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, launch_cmd_image_option_and_image_pos_arg_fail)
-{
-    EXPECT_THAT(send_command({"launch", "--image", "file://foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests
