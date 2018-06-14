@@ -25,6 +25,7 @@ configure_file(
   @ONLY
 )
 
+add_subdirectory(cert)
 add_subdirectory(client)
 add_subdirectory(daemon)
 add_subdirectory(iso)
