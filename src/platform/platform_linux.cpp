@@ -48,3 +48,8 @@ mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
     return std::make_unique<logging::JournaldLogger>(level);
 }
+
+bool mp::platform::is_alias_supported(const std::string& alias)
+{
+    return true;
+}
