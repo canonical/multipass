@@ -65,6 +65,27 @@ auto key_from(const std::string& search_string)
         key = "default";
     return key;
 }
+
+mp::VMImageInfo ubuntu_core_info(mp::URLDownloader* url_downloader)
+{
+    QString url{"http://cdimage.ubuntu.com/ubuntu-core/16/current/ubuntu-core-16-amd64.img.xz"};
+    auto sha256_sums =
+        url_downloader->download({"http://cdimage.ubuntu.com/ubuntu-core/16/current/SHA256SUMS"}).split('\n');
+    QString hash;
+
+    for (const auto& line : sha256_sums)
+    {
+        if (line.contains("ubuntu-core-16-amd64.img.xz"))
+        {
+            hash = QString(line.split(' ').first());
+            break;
+        }
+    }
+
+    auto last_modified = url_downloader->last_modified({url});
+
+    return {{"core"}, "core-16", "Core 16", true, url, "", "", hash, last_modified.toString("yyyyMMdd"), 0};
+}
 }
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::unordered_map<std::string, std::string> remotes,
@@ -77,6 +98,11 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::unordered_map<std::string, std::st
 mp::VMImageInfo mp::UbuntuVMImageHost::info_for(const Query& query)
 {
     auto key = key_from(query.release);
+    if (key == "core")
+    {
+        return ubuntu_core_info(url_downloader);
+    }
+
     const auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
     auto& manifest = manifest_from(remote_name);
 
@@ -109,11 +135,8 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for(const Query& query)
 
         return with_location_fully_resolved(QString::fromStdString(remotes[remote_name]), *info);
     }
-    else
-        throw std::runtime_error("Unable to find an image matching \"" + query.release + "\"");
 
-    // Should not reach this
-    return *info;
+    throw std::runtime_error("Unable to find an image matching \"" + query.release + "\"");
 }
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& query)
@@ -121,6 +144,12 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     std::vector<mp::VMImageInfo> images;
 
     auto key = key_from(query.release);
+    if (key == "core")
+    {
+        images.push_back(ubuntu_core_info(url_downloader));
+        return images;
+    }
+
     const auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
     auto& manifest = manifest_from(remote_name);
 
@@ -187,6 +216,8 @@ void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
                    with_location_fully_resolved(QString::fromStdString(remotes[manifest.first]), product));
         }
     }
+
+    action("release", ubuntu_core_info(url_downloader));
 }
 
 std::string mp::UbuntuVMImageHost::get_default_remote()
