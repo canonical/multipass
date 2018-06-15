@@ -446,6 +446,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             source_image = fetch_kernel_and_initrd(info, source_image, image_dir, monitor);
         }
 
+        if (source_image.image_path.endsWith(".xz"))
+        {
+            source_image = extract_downloaded_image(source_image, monitor);
+        }
+
         auto prepared_image = prepare(source_image);
         prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
         remove_source_images(source_image, prepared_image);
