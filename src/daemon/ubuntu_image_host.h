@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 
 #include <chrono>
 #include <string>
-#include <unordered_map>
+#include <vector>
 
 namespace multipass
 {
@@ -38,7 +38,7 @@ class URLDownloader;
 class UbuntuVMImageHost final : public VMImageHost
 {
 public:
-    UbuntuVMImageHost(std::unordered_map<std::string, std::string> remotes, URLDownloader* downloader,
+    UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes, URLDownloader* downloader,
                       std::chrono::seconds manifest_time_to_live);
     VMImageInfo info_for(const Query& query) override;
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
@@ -52,9 +52,10 @@ private:
     void match_alias(const QString& key, const VMImageInfo** info, const SimpleStreamsManifest& manifest);
     std::chrono::seconds manifest_time_to_live;
     std::chrono::steady_clock::time_point last_update;
-    std::unordered_map<std::string, std::unique_ptr<SimpleStreamsManifest>> manifests;
+    std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     URLDownloader* const url_downloader;
-    std::unordered_map<std::string, std::string> remotes;
+    std::vector<std::pair<std::string, std::string>> remotes;
+    std::string remote_url_from(const std::string& remote_name);
     QString index_path;
 };
 }
