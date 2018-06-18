@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         factory = platform::vm_backend(data_directory);
     if (image_host == nullptr)
         image_host = std::make_unique<mp::UbuntuVMImageHost>(
-            std::unordered_map<std::string, std::string>{
+            std::vector<std::pair<std::string, std::string>>{
                 {mp::release_remote, "http://cloud-images.ubuntu.com/releases/"},
                 {mp::daily_remote, "http://cloud-images.ubuntu.com/daily/"}},
             url_downloader.get(), std::chrono::minutes{5});
