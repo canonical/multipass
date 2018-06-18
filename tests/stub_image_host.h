@@ -43,6 +43,11 @@ struct StubVMImageHost final : public multipass::VMImageHost
         return {{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
     };
 
+    std::vector<multipass::VMImageInfo> all_images_for(const std::string& remote_name) override
+    {
+        return {};
+    };
+
     void for_each_entry_do(const Action&) override
     {
     }

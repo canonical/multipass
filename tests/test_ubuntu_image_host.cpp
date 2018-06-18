@@ -181,6 +181,28 @@ TEST_F(UbuntuImageHost, all_info_release_returns_one_alias_match)
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
 }
 
+TEST_F(UbuntuImageHost, all_images_for_release_returns_four_matches)
+{
+    mp::UbuntuVMImageHost host{
+        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+
+    auto images = host.all_images_for("release");
+
+    const size_t expected_matches{4};
+    EXPECT_THAT(images.size(), Eq(expected_matches));
+}
+
+TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
+{
+    mp::UbuntuVMImageHost host{
+        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+
+    auto images = host.all_images_for("daily");
+
+    const size_t expected_matches{2};
+    EXPECT_THAT(images.size(), Eq(expected_matches));
+}
+
 TEST_F(UbuntuImageHost, invalid_remote_throws_error)
 {
     mp::UbuntuVMImageHost host{

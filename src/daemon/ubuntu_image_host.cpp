@@ -208,6 +208,25 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash(const std::string& ful
     return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
 }
 
+std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name)
+{
+    std::vector<mp::VMImageInfo> images;
+    auto& manifest = manifest_from(remote_name);
+
+    for (const auto& entry : manifest->products)
+    {
+        if (entry.supported)
+        {
+            images.push_back(with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
+        }
+    }
+
+    if (images.empty())
+        throw std::runtime_error(fmt::format("Unable to find images for remote \"{}\"", remote_name));
+
+    return images;
+}
+
 void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
 {
     update_manifest();
