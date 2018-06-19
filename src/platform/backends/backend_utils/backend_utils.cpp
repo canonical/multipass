@@ -91,6 +91,7 @@ void mp::backend::check_hypervisor_support()
     if (arch == "x86_64" || arch == "i386")
     {
         QProcess check_kvm;
+        check_kvm.setProcessChannelMode(QProcess::MergedChannels);
         check_kvm.start("check_kvm_support");
         check_kvm.waitForFinished();
 
