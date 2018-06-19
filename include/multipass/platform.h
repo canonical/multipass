@@ -40,6 +40,7 @@ bool link(const char* target, const char* link);
 int utime(const char* path, int atime, int mtime);
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 bool is_alias_supported(const std::string& alias);
+bool is_remote_supported(const std::string& remote);
 } // namespace platform
 }
 #endif // MULTIPASS_PLATFORM_H

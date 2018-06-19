@@ -53,3 +53,8 @@ bool mp::platform::is_alias_supported(const std::string& alias)
 {
     return true;
 }
+
+bool mp::platform::is_remote_supported(const std::string& remote)
+{
+    return true;
+}

@@ -54,7 +54,7 @@ struct StubVMImageHost final : public multipass::VMImageHost
 
     std::string get_default_remote() override
     {
-        return {};
+        return "release";
     };
 };
 }
