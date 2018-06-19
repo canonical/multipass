@@ -22,13 +22,16 @@
 
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 
-#include <set>
+#include <unordered_set>
 
 namespace mp = multipass;
 
 namespace
 {
-const std::set<std::string> supported_aliases{"default", "lts", "16.04", "x", "xenial", "b", "bionic", "18.04"};
+constexpr auto unlock_code{"lucky-chimp"};
+const std::unordered_set<std::string> supported_aliases{"default", "lts", "16.04",  "x",
+                                                        "xenial",  "b",   "bionic", "18.04"};
+const std::unordered_set<std::string> supported_remotes{"release"};
 }
 
 std::string mp::platform::default_server_address()
@@ -48,10 +51,23 @@ mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 
 bool mp::platform::is_alias_supported(const std::string& alias)
 {
-    if (qgetenv("MULTIPASS_UNLOCK") == "lucky-chimp")
+    if (qgetenv("MULTIPASS_UNLOCK") == unlock_code)
         return true;
 
     if (supported_aliases.find(alias) != supported_aliases.end())
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool mp::platform::is_remote_supported(const std::string& remote)
+{
+    if (qgetenv("MULTIPASS_UNLOCK") == unlock_code)
+        return true;
+
+    if (supported_remotes.find(remote) != supported_remotes.end())
     {
         return true;
     }
