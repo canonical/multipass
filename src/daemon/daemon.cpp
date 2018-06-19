@@ -444,6 +444,13 @@ try // clang-format on
     }
 
     auto query = query_from(request, name);
+    if (query.remote_name.empty())
+        query.remote_name = config->image_host->get_default_remote();
+
+    if (!mp::platform::is_remote_supported(query.remote_name))
+        throw std::runtime_error(fmt::format(
+            "{} is not a supported remote. Please use `multipass find` for supported images.", query.remote_name));
+
     if (!mp::platform::is_alias_supported(query.release))
         throw std::runtime_error(fmt::format(
             "{} is not a supported alias. Please use `multipass find` for supported image aliases.", query.release));
@@ -583,6 +590,14 @@ try // clang-format on
 {
     if (!request->search_string().empty())
     {
+        if (!request->remote_name().empty())
+        {
+            if (!mp::platform::is_remote_supported(request->remote_name()))
+                throw std::runtime_error(fmt::format(
+                    "{} is not a supported remote. Please use `multipass find` for list of supported images.",
+                    request->remote_name()));
+        }
+
         auto vm_images_info = config->image_host->all_info_for(
             {"", request->search_string(), false, request->remote_name(), Query::Type::SimpleStreams});
 
@@ -614,6 +629,11 @@ try // clang-format on
     }
     else if (!request->remote_name().empty())
     {
+        if (!mp::platform::is_remote_supported(request->remote_name()))
+            throw std::runtime_error(
+                fmt::format("{} is not a supported remote. Please use `multipass find` for list of supported images.",
+                            request->remote_name()));
+
         auto vm_images_info = config->image_host->all_images_for(request->remote_name());
 
         for (const auto& info : vm_images_info)
@@ -642,6 +662,9 @@ try // clang-format on
         const auto default_remote{config->image_host->get_default_remote()};
         auto action = [&response, &image_found, default_remote](const std::string& remote,
                                                                 const mp::VMImageInfo& info) {
+            if (!mp::platform::is_remote_supported(remote))
+                return;
+
             if (info.supported)
             {
                 if (image_found.find(info.release_title.toStdString()) == image_found.end())
