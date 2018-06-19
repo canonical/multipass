@@ -56,6 +56,7 @@ add_executable(multipass_tests
   test_simple_streams_manifest.cpp
   test_scp_client.cpp
   test_sftpserver.cpp
+  test_ssl_cert_provider.cpp
   test_sshfsmount.cpp
   test_ssh_client.cpp
   test_ssh_key_provider.cpp
@@ -89,6 +90,7 @@ target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
 
 target_link_libraries(multipass_tests
+  cert
   client
   daemon
   ip_address_pool

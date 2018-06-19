@@ -48,6 +48,7 @@
 #include <QJsonParseError>
 
 #include <stdexcept>
+#include <unordered_set>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -443,6 +444,13 @@ try // clang-format on
     }
 
     auto query = query_from(request, name);
+    if (query.remote_name.empty())
+        query.remote_name = config->image_host->get_default_remote();
+
+    if (!mp::platform::is_remote_supported(query.remote_name))
+        throw std::runtime_error(fmt::format(
+            "{} is not a supported remote. Please use `multipass find` for supported images.", query.remote_name));
+
     if (!mp::platform::is_alias_supported(query.release))
         throw std::runtime_error(fmt::format(
             "{} is not a supported alias. Please use `multipass find` for supported image aliases.", query.release));
@@ -582,6 +590,14 @@ try // clang-format on
 {
     if (!request->search_string().empty())
     {
+        if (!request->remote_name().empty())
+        {
+            if (!mp::platform::is_remote_supported(request->remote_name()))
+                throw std::runtime_error(fmt::format(
+                    "{} is not a supported remote. Please use `multipass find` for list of supported images.",
+                    request->remote_name()));
+        }
+
         auto vm_images_info = config->image_host->all_info_for(
             {"", request->search_string(), false, request->remote_name(), Query::Type::SimpleStreams});
 
@@ -611,14 +627,42 @@ try // clang-format on
             alias_entry->set_alias(name);
         }
     }
+    else if (!request->remote_name().empty())
+    {
+        if (!mp::platform::is_remote_supported(request->remote_name()))
+            throw std::runtime_error(
+                fmt::format("{} is not a supported remote. Please use `multipass find` for list of supported images.",
+                            request->remote_name()));
+
+        auto vm_images_info = config->image_host->all_images_for(request->remote_name());
+
+        for (const auto& info : vm_images_info)
+        {
+            if (!info.aliases.empty())
+            {
+                auto entry = response->add_images_info();
+                for (const auto& alias : info.aliases)
+                {
+                    if (!mp::platform::is_alias_supported(alias.toStdString()))
+                        continue;
+
+                    auto alias_entry = entry->add_aliases_info();
+                    alias_entry->set_remote_name(request->remote_name());
+                    alias_entry->set_alias(alias.toStdString());
+                }
+
+                entry->set_release(info.release_title.toStdString());
+                entry->set_version(info.version.toStdString());
+            }
+        }
+    }
     else
     {
-        std::unordered_map<std::string, bool> image_found;
-        const auto remote_name{request->remote_name()};
+        std::unordered_set<std::string> image_found;
         const auto default_remote{config->image_host->get_default_remote()};
-        auto action = [&response, &image_found, remote_name, default_remote](const std::string& remote,
-                                                                             const mp::VMImageInfo& info) {
-            if (!remote_name.empty() && remote_name != remote)
+        auto action = [&response, &image_found, default_remote](const std::string& remote,
+                                                                const mp::VMImageInfo& info) {
+            if (!mp::platform::is_remote_supported(remote))
                 return;
 
             if (info.supported)
@@ -638,7 +682,7 @@ try // clang-format on
                             alias_entry->set_alias(alias.toStdString());
                         }
 
-                        image_found[info.release_title.toStdString()] = true;
+                        image_found.insert(info.release_title.toStdString());
                         entry->set_release(info.release_title.toStdString());
                         entry->set_version(info.version.toStdString());
                     }

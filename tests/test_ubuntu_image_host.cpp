@@ -81,7 +81,8 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{4};
+    // Account for the hardcoded core image info
+    const size_t expected_entries{5};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"), Eq(1u));
@@ -178,6 +179,28 @@ TEST_F(UbuntuImageHost, all_info_release_returns_one_alias_match)
 
     const size_t expected_matches{1};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
+}
+
+TEST_F(UbuntuImageHost, all_images_for_release_returns_four_matches)
+{
+    mp::UbuntuVMImageHost host{
+        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+
+    auto images = host.all_images_for("release");
+
+    const size_t expected_matches{4};
+    EXPECT_THAT(images.size(), Eq(expected_matches));
+}
+
+TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
+{
+    mp::UbuntuVMImageHost host{
+        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+
+    auto images = host.all_images_for("daily");
+
+    const size_t expected_matches{2};
+    EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
 TEST_F(UbuntuImageHost, invalid_remote_throws_error)
