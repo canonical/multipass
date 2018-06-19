@@ -20,7 +20,26 @@ add_library(cert
 target_include_directories(cert PRIVATE
   ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/boringssl/include)
 
-set_source_files_properties(ssl_cert_provider.cpp PROPERTIES COMPILE_FLAGS "-Wno-nested-anon-types -Wno-gnu -Wno-pedantic")
+CHECK_CXX_COMPILER_FLAG("-Wno-nested-anon-types" COMPILER_SUPPORTS_NO_NESTED_ANON_TYPES)
+CHECK_CXX_COMPILER_FLAG("-Wno-gnu" COMPILER_SUPPORTS_NO_GNU)
+CHECK_CXX_COMPILER_FLAG("-Wno-pedantic" COMPILER_SUPPORTS_NO_PEDANTIC)
+
+set(ssl_ignore_header_warning_flags "")
+if (COMPILER_SUPPORTS_NO_NESTED_ANON_TYPES)
+  string(APPEND ssl_ignore_header_warning_flags " -Wno-nested-anon-types ")
+endif()
+
+if (COMPILER_SUPPORTS_NO_GNU)
+  string(APPEND ssl_ignore_header_warning_flags " -Wno-gnu ")
+endif()
+
+if (COMPILER_SUPPORTS_NO_PEDANTIC)
+  string(APPEND ssl_ignore_header_warning_flags " -Wno-pedantic ")
+endif()
+
+if (ssl_ignore_header_warning_flags)
+  set_source_files_properties(ssl_cert_provider.cpp PROPERTIES COMPILE_FLAGS ${ssl_ignore_header_warning_flags})
+endif()
 
 target_link_libraries(cert
         crypto
