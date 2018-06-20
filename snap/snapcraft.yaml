@@ -35,7 +35,6 @@ apps:
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       LC_ALL: C
     daemon: simple
-    stop-mode: sigterm
   virsh:
     command: bin/virsh
     environment:
