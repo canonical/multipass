@@ -19,7 +19,6 @@
 
 #include <openssl/bio.h>
 #include <openssl/pem.h>
-#include <openssl/rsa.h>
 #include <openssl/x509.h>
 
 #include <memory>
@@ -34,6 +33,14 @@ struct EVPKeyDeleter
     void operator()(EVP_PKEY* key)
     {
         EVP_PKEY_free(key);
+    }
+};
+
+struct ECKeyDeleter
+{
+    void operator()(EC_KEY* key)
+    {
+        EC_KEY_free(key);
     }
 };
 
@@ -71,26 +78,22 @@ struct BIODeleter
 
 auto make_key()
 {
+    std::unique_ptr<EC_KEY, ECKeyDeleter> ec_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    if (ec_key == nullptr)
+        throw std::runtime_error("Failed to allocate ec key structure");
+
+    if (EC_KEY_generate_key(ec_key.get()) == false)
+        throw std::runtime_error("Failed to generate key");
+
     std::unique_ptr<EVP_PKEY, EVPKeyDeleter> ec_pkey{EVP_PKEY_new()};
     if (ec_pkey == nullptr)
         throw std::runtime_error("Failed to allocate private key structure");
 
-    std::unique_ptr<RSA, RSADeleter> rsa{RSA_new()};
-    if (rsa == nullptr)
-        throw std::runtime_error("Failed to allocate RSA structure");
+    if (EVP_PKEY_assign_EC_KEY(ec_pkey.get(), ec_key.get()) == false)
+        throw std::runtime_error("Failed to assign key");
 
-    std::unique_ptr<BIGNUM, BIGNUMDeleter> value{BN_new()};
-    if (value == nullptr)
-        throw std::runtime_error("Failed to allocate BIGNUM structure");
-
-    if (!BN_set_word(value.get(), RSA_F4))
-        throw std::runtime_error("Failed to set BIGNUM to RSA_F4");
-
-    if (!RSA_generate_key_ex(rsa.get(), 2048, value.get(), nullptr))
-        throw std::runtime_error("Failed to generate RSA key");
-
-    if (!EVP_PKEY_assign_RSA(ec_pkey.get(), rsa.release()))
-        throw std::runtime_error("Unable to assign rsa key");
+    // EVP_PKEY has ownership now
+    ec_key.release();
 
     return ec_pkey;
 }
