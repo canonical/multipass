@@ -127,6 +127,8 @@ public:
         if (!PEM_write_PrivateKey(file.get(), key, nullptr, nullptr, 0, nullptr, nullptr))
             throw std::runtime_error(
                 fmt::format("Failed writing certificate private key to file '{}'", name.toStdString()));
+
+        QFile::setPermissions(name, QFile::ReadOwner);
     }
 
     EVP_PKEY* get() const
