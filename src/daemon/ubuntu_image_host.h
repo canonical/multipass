@@ -49,7 +49,7 @@ public:
 
 private:
     void update_manifest();
-    std::unique_ptr<SimpleStreamsManifest>& manifest_from(const std::string& remote);
+    SimpleStreamsManifest* manifest_from(const std::string& remote);
     void match_alias(const QString& key, const VMImageInfo** info, const SimpleStreamsManifest& manifest);
     std::chrono::seconds manifest_time_to_live;
     std::chrono::steady_clock::time_point last_update;

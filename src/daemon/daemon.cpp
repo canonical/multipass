@@ -678,7 +678,8 @@ try // clang-format on
                                 return;
 
                             auto alias_entry = entry->add_aliases_info();
-                            alias_entry->set_remote_name((remote == default_remote) ? "" : remote);
+                            if (remote != mp::custom_manifest_name && remote != default_remote)
+                                alias_entry->set_remote_name(remote);
                             alias_entry->set_alias(alias.toStdString());
                         }
 

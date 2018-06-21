@@ -81,8 +81,7 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    // Account for the hardcoded core image info
-    const size_t expected_entries{5};
+    const size_t expected_entries{4};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"), Eq(1u));
