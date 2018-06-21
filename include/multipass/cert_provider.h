@@ -25,7 +25,8 @@ namespace multipass
 class CertProvider
 {
 public:
-    virtual std::string certificate_as_base64() const = 0;
+    virtual std::string PEM_certificate() const = 0;
+    virtual std::string PEM_signing_key() const = 0;
 };
 }
 #endif // MULTIPASS_CERTPROVIDER_H
