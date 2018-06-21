@@ -15,24 +15,14 @@
  *
  */
 
-#ifndef MULTIPASS_CERTPROVIDER_H
-#define MULTIPASS_CERTPROVIDER_H
-
-#include <string>
-
+#ifndef MULTIPASS_RPC_CONNECTION_TYPE_H
+#define MULTIPASS_RPC_CONNECTION_TYPE_H
 namespace multipass
 {
-class CertProvider
+enum class RpcConnectionType
 {
-public:
-    virtual ~CertProvider() = default;
-    virtual std::string PEM_certificate() const = 0;
-    virtual std::string PEM_signing_key() const = 0;
-
-protected:
-    CertProvider() = default;
-    CertProvider(const CertProvider&) = delete;
-    CertProvider& operator=(const CertProvider&) = delete;
+    insecure,
+    ssl
 };
-} // namespace multipass
-#endif // MULTIPASS_CERTPROVIDER_H
+}
+#endif // MULTIPASS_RPC_CONNECTION_TYPE_H

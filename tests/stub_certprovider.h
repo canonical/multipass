@@ -15,24 +15,27 @@
  *
  */
 
-#ifndef MULTIPASS_CERTPROVIDER_H
-#define MULTIPASS_CERTPROVIDER_H
+#ifndef MULTIPASS_STUB_CERTPROVIDER_H
+#define MULTIPASS_STUB_CERTPROVIDER_H
 
-#include <string>
+#include <multipass/cert_provider.h>
 
 namespace multipass
 {
-class CertProvider
+namespace test
+{
+class StubCertProvider : public CertProvider
 {
 public:
-    virtual ~CertProvider() = default;
-    virtual std::string PEM_certificate() const = 0;
-    virtual std::string PEM_signing_key() const = 0;
-
-protected:
-    CertProvider() = default;
-    CertProvider(const CertProvider&) = delete;
-    CertProvider& operator=(const CertProvider&) = delete;
+    std::string PEM_certificate() const override
+    {
+        return {};
+    };
+    std::string PEM_signing_key() const override
+    {
+        return {};
+    };
 };
+} // namespace test
 } // namespace multipass
-#endif // MULTIPASS_CERTPROVIDER_H
+#endif // MULTIPASS_STUB_CERTPROVIDER_H
