@@ -27,7 +27,9 @@
 
 #include <QFile>
 
-#include <errno.h>
+#include <array>
+#include <cerrno>
+#include <cstring>
 #include <fstream>
 #include <memory>
 #include <vector>
@@ -165,7 +167,7 @@ public:
         X509_gmtime_adj(X509_get_notBefore(x509), 0);
         X509_gmtime_adj(X509_get_notAfter(x509), 31536000L);
 
-        X509_NAME* name = X509_get_subject_name(x509);
+        auto name = X509_get_subject_name(x509);
         X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char*)"CA", -1, -1, 0);
         X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, (unsigned char*)"Canonical", -1, -1, 0);
         X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char*)"localhost", -1, -1, 0);
