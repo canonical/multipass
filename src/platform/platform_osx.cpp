@@ -51,6 +51,9 @@ mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 
 bool mp::platform::is_alias_supported(const std::string& alias)
 {
+    if (alias == "core")
+        return false;
+
     if (qgetenv("MULTIPASS_UNLOCK") == unlock_code)
         return true;
 
