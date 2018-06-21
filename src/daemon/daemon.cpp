@@ -328,7 +328,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
-      daemon_rpc{config->server_address}
+      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;

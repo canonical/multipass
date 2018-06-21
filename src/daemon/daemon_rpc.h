@@ -21,11 +21,14 @@
 #define MULTIPASS_DAEMON_RPC_H
 
 #include "daemon_config.h"
-#include <grpc++/grpc++.h>
+
+#include <multipass/cert_provider.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/rpc_connection_type.h>
+
+#include <grpcpp/grpcpp.h>
 
 #include <QObject>
-
 #include <memory>
 
 namespace multipass
@@ -35,7 +38,7 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service
 {
     Q_OBJECT
 public:
-    DaemonRpc(const std::string& server_address);
+    DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider);
 
 signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
@@ -78,5 +81,5 @@ protected:
     DaemonRpc(const DaemonRpc&) = delete;
     DaemonRpc& operator=(const DaemonRpc&) = delete;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

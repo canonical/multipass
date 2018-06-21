@@ -63,10 +63,30 @@ auto make_map()
     map.emplace("yaml", make_entry<mp::YamlFormatter>());
     return map;
 }
+
+auto make_channel(const std::string& server_address, mp::RpcConnectionType conn_type)
+{
+    std::shared_ptr<grpc::ChannelCredentials> creds;
+    if (conn_type == mp::RpcConnectionType::ssl)
+    {
+        auto opts = grpc::SslCredentialsOptions();
+        opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+        creds = grpc::SslCredentials(opts);
+    }
+    else if (conn_type == mp::RpcConnectionType::insecure)
+    {
+        creds = grpc::InsecureChannelCredentials();
+    }
+    else
+    {
+        throw std::runtime_error("Unknown connection type");
+    }
+    return grpc::CreateChannel(server_address, creds);
 }
+} // namespace
 
 mp::Client::Client(const ClientConfig& config)
-    : rpc_channel{grpc::CreateChannel(config.server_address, grpc::InsecureChannelCredentials())},
+    : rpc_channel{make_channel(config.server_address, config.conn_type)},
       stub{mp::Rpc::NewStub(rpc_channel)},
       formatters{make_map()},
       cout{config.cout},

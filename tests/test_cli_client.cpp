@@ -18,6 +18,7 @@
  */
 
 #include "path.h"
+#include "stub_certprovider.h"
 
 #include <multipass/logging/log.h>
 #include <src/client/client.h>
@@ -42,7 +43,7 @@ public:
 
     int send_command(std::vector<std::string> command, std::ostream& cout)
     {
-        mp::ClientConfig client_config{server_address, cout, null_stream};
+        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure, cout, null_stream};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -59,7 +60,8 @@ public:
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
     std::stringstream null_stream;
-    mp::DaemonRpc stub_daemon{server_address};
+    mpt::StubCertProvider cert_provider;
+    mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider};
 };
 
 // Tests for no postional args given
