@@ -42,5 +42,8 @@ if (ssl_ignore_header_warning_flags)
 endif()
 
 target_link_libraries(cert
-        crypto
+  crypto
+  fmt
+  utils
+  Qt5::Core
 )
