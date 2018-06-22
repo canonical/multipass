@@ -2,6 +2,10 @@
 # and protobuf not knowing so finding the system version instead
 include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
 
+if (MSVC)
+  add_compile_options(-wd5045) #Disable warning about Spectre mitigation
+endif()
+
 # Add the subdir here to avoid polluting their cmake scope
 add_subdirectory(grpc EXCLUDE_FROM_ALL)
 
