@@ -74,8 +74,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (cert_provider == nullptr)
         cert_provider = std::make_unique<mp::SSLCertProvider>(data_directory);
     if (ssh_username.empty())
-        if (ssh_username.empty())
-            ssh_username = "multipass";
+        ssh_username = "multipass";
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader), std::move(factory), std::move(image_host), std::move(vault),
