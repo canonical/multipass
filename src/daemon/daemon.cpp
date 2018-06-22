@@ -296,10 +296,10 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Mount failed", mount_error.SerializeAsString());
 }
 
-auto grpc_status_for(fmt::MemoryWriter& errors)
+auto grpc_status_for(fmt::memory_buffer& errors)
 {
     // Remove trailing newline due to grpc adding one of it's own
-    auto error_string = errors.str();
+    auto error_string = fmt::to_string(errors);
     if (error_string.back() == '\n')
         error_string.pop_back();
 
@@ -703,7 +703,7 @@ grpc::Status mp::Daemon::info(grpc::ServerContext* context, const InfoRequest* r
                               InfoReply* response) // clang-format off
 try // clang-format on
 {
-    fmt::MemoryWriter errors;
+    fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_for_info;
 
     if (request->instance_name().empty())
@@ -726,7 +726,7 @@ try // clang-format on
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
             {
-                errors.write("instance \"{}\" does not exist\n", name);
+                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
                 continue;
             }
             deleted = true;
@@ -934,28 +934,28 @@ try // clang-format on
         uid_map[map.host_uid()] = map.instance_uid();
     }
 
-    fmt::MemoryWriter errors;
+    fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
         const auto name = path_entry.instance_name();
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            errors.write("instance \"{}\" does not exist\n", name);
+            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
             continue;
         }
 
         auto target_path = path_entry.target_path();
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
-            errors.write("Unable to mount to \"{}\"\n", target_path);
+            fmt::format_to(errors, "Unable to mount to \"{}\"\n", target_path);
             continue;
         }
 
         auto entry = mount_threads.find(name);
         if (entry != mount_threads.end() && entry->second.find(target_path) != entry->second.end())
         {
-            errors.write("\"{}:{}\" is already mounted\n", name, target_path);
+            fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
         }
 
@@ -973,7 +973,7 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                errors.write("error mounting \"{}\": {}", target_path, e.what());
+                fmt::format_to(errors, "error mounting \"{}\": {}", target_path, e.what());
                 continue;
             }
         }
@@ -981,7 +981,7 @@ try // clang-format on
         auto& vm_specs = vm_instance_specs[name];
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
-            errors.write("There is already a mount defined for \"{}:{}\"\n", name, target_path);
+            fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
             continue;
         }
 
@@ -1005,7 +1005,7 @@ grpc::Status mp::Daemon::recover(grpc::ServerContext* context, const RecoverRequ
                                  RecoverReply* response) // clang-format off
 try // clang-format on
 {
-    fmt::MemoryWriter errors;
+    fmt::memory_buffer errors;
     std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
     for (const auto& name : request->instance_name())
     {
@@ -1014,9 +1014,9 @@ try // clang-format on
         {
             it = vm_instances.find(name);
             if (it == vm_instances.end())
-                errors.write("instance \"{}\" does not exist\n", name);
+                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
             else
-                errors.write("instance \"{}\" has not been deleted\n", name);
+                fmt::format_to(errors, "instance \"{}\" has not been deleted\n", name);
             continue;
         }
         instances_to_recover.push_back(name);
@@ -1136,7 +1136,7 @@ try // clang-format on
     }
 
     bool update_instance_db{false};
-    fmt::MemoryWriter errors;
+    fmt::memory_buffer errors;
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
@@ -1163,7 +1163,7 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                errors.write("Removing \"{}\": {}", target_path, e.what());
+                fmt::format_to(errors, "Removing \"{}\": {}", target_path, e.what());
                 invalid_mounts.push_back(target_path);
             }
         }
@@ -1190,7 +1190,7 @@ grpc::Status mp::Daemon::stop(grpc::ServerContext* context, const StopRequest* r
                               StopReply* response) // clang-format off
 try // clang-format on
 {
-    fmt::MemoryWriter errors;
+    fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_stop;
     for (const auto& name : request->instance_name())
     {
@@ -1199,9 +1199,9 @@ try // clang-format on
         {
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
-                errors.write("instance \"{}\" does not exist\n", name);
+                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
             else
-                errors.write("instance \"{}\" is deleted\n", name);
+                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
             continue;
         }
         instances_to_stop.push_back(name);
@@ -1233,14 +1233,14 @@ grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest
                                DeleteReply* response) // clang-format off
 try // clang-format on
 {
-    fmt::MemoryWriter errors;
+    fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_delete;
     for (const auto& name : request->instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            errors.write("instance \"{}\" does not exist\n", name);
+            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
             continue;
         }
         instances_to_delete.push_back(name);
@@ -1287,14 +1287,14 @@ grpc::Status mp::Daemon::umount(grpc::ServerContext* context, const UmountReques
                                 UmountReply* response) // clang-format off
 try // clang-format on
 {
-    fmt::MemoryWriter errors;
+    fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
         const auto name = path_entry.instance_name();
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            errors.write("instance \"{}\" does not exist\n", name);
+            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
             continue;
         }
 
@@ -1341,14 +1341,14 @@ try // clang-format on
                 auto found = stop_sshfs_for(target_path);
                 if (!found)
                 {
-                    errors.write("\"{}\" is not mounted\n", target_path);
+                    fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
                 }
             }
 
             auto erased = mounts.erase(target_path);
             if (!erased)
             {
-                errors.write("\"{}\" not found in database\n", target_path);
+                fmt::format_to(errors, "\"{}\" not found in database\n", target_path);
             }
         }
     }

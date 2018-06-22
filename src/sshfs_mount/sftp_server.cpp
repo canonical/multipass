@@ -81,9 +81,15 @@ int reply_unsupported(sftp_client_message msg)
     return sftp_reply_status(msg, SSH_FX_OP_UNSUPPORTED, "Unsupported message");
 }
 
+fmt::memory_buffer& operator<<(fmt::memory_buffer& buf, const char* v)
+{
+    fmt::format_to(buf, v);
+    return buf;
+}
+
 auto longname_from(const QFileInfo& file_info, const std::string& filename)
 {
-    fmt::MemoryWriter out;
+    fmt::memory_buffer out;
     auto mode = file_info.permissions();
 
     if (file_info.isSymLink())
@@ -141,10 +147,10 @@ auto longname_from(const QFileInfo& file_info, const std::string& filename)
     else
         out << "-";
 
-    out.write(" 1 {} {} {}", file_info.ownerId(), file_info.groupId(), file_info.size());
+    fmt::format_to(out, " 1 {} {} {}", file_info.ownerId(), file_info.groupId(), file_info.size());
 
     const auto timestamp = file_info.lastModified().toString("MMM d hh:mm:ss yyyy").toStdString();
-    out.write(" {} {}", timestamp, filename);
+    fmt::format_to(out, " {} {}", timestamp, filename);
 
     return out;
 }
@@ -570,7 +576,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
             attr = attr_from(entry);
         }
         const auto longname = longname_from(entry, filename);
-        sftp_reply_names_add(msg, filename.c_str(), longname.c_str(), &attr);
+        sftp_reply_names_add(msg, filename.c_str(), longname.data(), &attr);
     }
 
     return sftp_reply_names(msg);

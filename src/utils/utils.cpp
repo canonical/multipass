@@ -73,14 +73,14 @@ bool mp::utils::invalid_target_path(const QString& target_path)
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
 {
-    fmt::MemoryWriter out;
+    fmt::memory_buffer buf;
     for (auto const& arg : args)
     {
-        out.write("{0}{1}{0} ", quote_for(arg, quote_type), arg);
+        fmt::format_to(buf, "{0}{1}{0} ", quote_for(arg, quote_type), arg);
     }
 
     // Remove the last space inserted
-    auto cmd = out.str();
+    auto cmd = fmt::to_string(buf);
     cmd.pop_back();
     return cmd;
 }
