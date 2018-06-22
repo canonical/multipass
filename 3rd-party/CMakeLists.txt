@@ -86,7 +86,7 @@ add_subdirectory(libssh EXCLUDE_FROM_ALL)
 add_library(fmt INTERFACE)
 target_compile_definitions(fmt INTERFACE FMT_HEADER_ONLY=1)
 target_include_directories(fmt INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/fmt)
+  ${CMAKE_CURRENT_SOURCE_DIR}/fmt/include)
 
 # premock header only library to mock c-functions
 add_library(premock INTERFACE)

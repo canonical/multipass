@@ -25,40 +25,41 @@ namespace mp = multipass;
 
 std::string mp::CSVFormatter::format(const InfoReply& reply) const
 {
-    fmt::MemoryWriter out;
-
-    out.write("Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
-              "total,Mounts\n");
+    fmt::memory_buffer buf;
+    fmt::format_to(
+        buf, "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
+             "total,Mounts\n");
 
     for (const auto& info : reply.info())
     {
-        out.write("{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
-                  mp::format::status_string_for(info.instance_status()), info.ipv4(), info.ipv6(),
-                  info.current_release(), info.id(), info.image_release(), info.load(), info.disk_usage(),
-                  info.disk_total(), info.memory_usage(), info.memory_total());
+        fmt::format_to(buf, "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
+                       mp::format::status_string_for(info.instance_status()), info.ipv4(), info.ipv6(),
+                       info.current_release(), info.id(), info.image_release(), info.load(), info.disk_usage(),
+                       info.disk_total(), info.memory_usage(), info.memory_total());
 
         auto mount_paths = info.mount_info().mount_paths();
         for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
         {
-            out.write("{} => {};", mount->source_path(), mount->target_path());
+            fmt::format_to(buf, "{} => {};", mount->source_path(), mount->target_path());
         }
 
-        out.write("\n");
+        fmt::format_to(buf, "\n");
     }
-    return out.str();
+    return fmt::to_string(buf);
 }
 
 std::string mp::CSVFormatter::format(const ListReply& reply) const
 {
-    fmt::MemoryWriter out;
+    fmt::memory_buffer buf;
 
-    out.write("Name,State,IPv4,IPv6,Release\n");
+    fmt::format_to(buf, "Name,State,IPv4,IPv6,Release\n");
 
     for (const auto& instance : reply.instances())
     {
-        out.write("{},{},{},{},{}\n", instance.name(), mp::format::status_string_for(instance.instance_status()),
-                  instance.ipv4(), instance.ipv6(), instance.current_release());
+        fmt::format_to(buf, "{},{},{},{},{}\n", instance.name(),
+                       mp::format::status_string_for(instance.instance_status()), instance.ipv4(), instance.ipv6(),
+                       instance.current_release());
     }
 
-    return out.str();
+    return fmt::to_string(buf);
 }
