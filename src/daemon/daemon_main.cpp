@@ -53,9 +53,14 @@ void set_server_permissions(const std::string& server_address)
     if (!address.startsWith("unix:"))
         return;
 
-    auto group = getgrnam("sudo");
+#ifdef MULTIPASS_PLATFORM_APPLE
+    std::string group_name{"admin"};
+#else
+    std::string group_name{"sudo"};
+#endif
+    auto group = getgrnam(group_name.c_str());
     if (!group)
-        throw std::runtime_error("Could not determine group id for 'sudo'.");
+        throw std::runtime_error(fmt::format("Could not determine group id for '{}'", group_name));
 
     auto socket_path = address.section("unix:", 1, 1).toStdString();
     if (chown(socket_path.c_str(), 0, group->gr_gid) == -1)

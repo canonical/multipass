@@ -36,7 +36,7 @@ const std::unordered_set<std::string> supported_remotes{"release"};
 
 std::string mp::platform::default_server_address()
 {
-    return {"localhost:50051"};
+    return {"unix:/var/run/multipass_socket"};
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
