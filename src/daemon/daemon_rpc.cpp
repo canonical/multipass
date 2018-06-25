@@ -53,12 +53,29 @@ void throw_if_server_exists(const std::string& address)
         throw std::runtime_error(fmt::format("a multipass daemon already exists at {}", address));
 }
 
-auto make_server(const std::string& server_address, multipass::Rpc::Service* service)
+auto make_server(const std::string& server_address, mp::RpcConnectionType conn_type,
+                 const mp::CertProvider& cert_provider, mp::Rpc::Service* service)
 {
     throw_if_server_exists(server_address);
     grpc::ServerBuilder builder;
 
-    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+    std::shared_ptr<grpc::ServerCredentials> creds;
+    if (conn_type == mp::RpcConnectionType::ssl)
+    {
+        grpc::SslServerCredentialsOptions opts(GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY);
+        opts.pem_key_cert_pairs.push_back({cert_provider.PEM_signing_key(), cert_provider.PEM_certificate()});
+        creds = grpc::SslServerCredentials(opts);
+    }
+    else if (conn_type == mp::RpcConnectionType::insecure)
+    {
+        creds = grpc::InsecureServerCredentials();
+    }
+    else
+    {
+        throw std::invalid_argument("Unknown connection type");
+    }
+
+    builder.AddListeningPort(server_address, creds);
     builder.RegisterService(service);
 
     std::unique_ptr<grpc::Server> server{builder.BuildAndStart()};
@@ -67,12 +84,14 @@ auto make_server(const std::string& server_address, multipass::Rpc::Service* ser
 
     return server;
 }
-}
+} // namespace
 
-mp::DaemonRpc::DaemonRpc(const std::string& server_address)
-    : server_address{server_address}, server{make_server(server_address, this)}
+mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
+                         const CertProvider& cert_provider)
+    : server_address{server_address}, server{make_server(server_address, type, cert_provider, this)}
 {
-    mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}", server_address));
+    std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
+    mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
 }
 
 grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,

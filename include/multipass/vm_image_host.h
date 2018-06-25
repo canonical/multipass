@@ -28,6 +28,8 @@
 
 namespace multipass
 {
+constexpr auto custom_manifest_name = "multipass";
+
 class Query;
 class VMImage;
 class VMImageHost

@@ -26,6 +26,7 @@ add_library(daemon STATIC
   ubuntu_image_host.cpp)
 
 target_link_libraries(daemon
+  cert
   fmt
   iso
   logger

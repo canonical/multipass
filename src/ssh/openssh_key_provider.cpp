@@ -19,25 +19,16 @@
 
 #include <multipass/ssh/openssh_key_provider.h>
 
+#include <multipass/utils.h>
+
 #include <QDir>
 #include <QFile>
 
 #include <memory>
 
-
 namespace mp = multipass;
 namespace
 {
-
-QDir make_dir(const QDir& cache_dir, const QString& name)
-{
-    if (!cache_dir.mkpath(name))
-    {
-        QString dir{cache_dir.filePath(name)};
-        throw std::runtime_error("unable to create directory \'" + dir.toStdString() + "\'");
-    }
-    return cache_dir.filePath(name);
-}
 
 mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
 {
@@ -84,7 +75,7 @@ void mp::OpenSSHKeyProvider::KeyDeleter::operator()(ssh_key key)
 }
 
 mp::OpenSSHKeyProvider::OpenSSHKeyProvider(const mp::Path& cache_dir, const mp::Path& fallback_dir)
-    : ssh_key_dir{make_dir(cache_dir, "ssh-keys")},
+    : ssh_key_dir{mp::utils::make_dir(cache_dir, "ssh-keys")},
       fallback_ssh_key_dir{QDir(fallback_dir).filePath("ssh-keys")},
       priv_key{get_priv_key(ssh_key_dir, fallback_ssh_key_dir)}
 {

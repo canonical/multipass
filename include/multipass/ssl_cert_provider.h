@@ -15,24 +15,34 @@
  *
  */
 
-#ifndef MULTIPASS_CERTPROVIDER_H
-#define MULTIPASS_CERTPROVIDER_H
+#ifndef MULTIPASS_SSL_CERT_PROVIDER_H
+#define MULTIPASS_SSL_CERT_PROVIDER_H
+
+#include <multipass/cert_provider.h>
+#include <multipass/path.h>
+
+#include <QDir>
 
 #include <string>
 
 namespace multipass
 {
-class CertProvider
+class SSLCertProvider : public CertProvider
 {
 public:
-    virtual ~CertProvider() = default;
-    virtual std::string PEM_certificate() const = 0;
-    virtual std::string PEM_signing_key() const = 0;
+    struct KeyCertificatePair
+    {
+        std::string pem_cert;
+        std::string pem_priv_key;
+    };
 
-protected:
-    CertProvider() = default;
-    CertProvider(const CertProvider&) = delete;
-    CertProvider& operator=(const CertProvider&) = delete;
+    explicit SSLCertProvider(const Path& data_dir);
+    std::string PEM_certificate() const override;
+    std::string PEM_signing_key() const override;
+
+private:
+    QDir cert_dir;
+    KeyCertificatePair key_cert_pair;
 };
 } // namespace multipass
-#endif // MULTIPASS_CERTPROVIDER_H
+#endif // MULTIPASS_SSL_CERT_PROVIDER_H

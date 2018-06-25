@@ -29,6 +29,7 @@
 #include <multipass/vm_image_vault.h>
 
 #include "mock_virtual_machine_factory.h"
+#include "stub_certprovider.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
 #include "stub_ssh_key_provider.h"
@@ -97,6 +98,8 @@ struct Daemon : public Test
         config_builder.factory = std::make_unique<mpt::StubVirtualMachineFactory>();
         config_builder.image_host = std::make_unique<mpt::StubVMImageHost>();
         config_builder.ssh_key_provider = std::make_unique<mpt::StubSSHKeyProvider>();
+        config_builder.cert_provider = std::make_unique<mpt::StubCertProvider>();
+        config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
     }
 
@@ -137,7 +140,7 @@ struct Daemon : public Test
         // Commands need to be sent from a thread different from that the QEventLoop is on.
         // Event loop is started/stopped to ensure all signals are delivered
         mp::AutoJoinThread t([this, &commands, &cout] {
-            mp::ClientConfig client_config{server_address, cout, std::cerr};
+            mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure, cout, std::cerr};
             mp::Client client{client_config};
             for (const auto& command : commands)
             {

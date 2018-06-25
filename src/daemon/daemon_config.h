@@ -23,8 +23,10 @@
 #include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <multipass/cert_provider.h>
 #include <multipass/logging/logger.h>
 #include <multipass/name_generator.h>
+#include <multipass/rpc_connection_type.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
@@ -35,7 +37,6 @@
 
 namespace multipass
 {
-
 struct DaemonConfig
 {
     const std::unique_ptr<URLDownloader> url_downloader;
@@ -44,11 +45,13 @@ struct DaemonConfig
     const std::unique_ptr<VMImageVault> vault;
     const std::unique_ptr<NameGenerator> name_generator;
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
+    const std::unique_ptr<CertProvider> cert_provider;
     const std::shared_ptr<logging::Logger> logger;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
     const std::string ssh_username;
+    const RpcConnectionType connection_type;
 };
 
 struct DaemonConfigBuilder
@@ -59,6 +62,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<VMImageVault> vault;
     std::unique_ptr<NameGenerator> name_generator;
     std::unique_ptr<SSHKeyProvider> ssh_key_provider;
+    std::unique_ptr<CertProvider> cert_provider;
     std::unique_ptr<logging::Logger> logger;
     multipass::Path cache_directory;
     multipass::Path data_directory;
@@ -66,9 +70,10 @@ struct DaemonConfigBuilder
     std::string ssh_username;
     multipass::days days_to_expire{14};
     multipass::logging::Level verbosity_level{multipass::logging::Level::info};
+    RpcConnectionType connection_type{RpcConnectionType::ssl};
 
     std::unique_ptr<const DaemonConfig> build();
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_DAEMON_CONFIG_H

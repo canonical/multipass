@@ -15,17 +15,27 @@
  *
  */
 
-#ifndef MULTIPASS_SSL_CERT_PROVIDER_H
-#define MULTIPASS_SSL_CERT_PROVIDER_H
+#ifndef MULTIPASS_STUB_CERTPROVIDER_H
+#define MULTIPASS_STUB_CERTPROVIDER_H
 
 #include <multipass/cert_provider.h>
 
 namespace multipass
 {
-class SSLCertProvider : public CertProvider
+namespace test
+{
+class StubCertProvider : public CertProvider
 {
 public:
-    std::string certificate_as_base64() const override;
+    std::string PEM_certificate() const override
+    {
+        return {};
+    };
+    std::string PEM_signing_key() const override
+    {
+        return {};
+    };
 };
+} // namespace test
 } // namespace multipass
-#endif // MULTIPASS_SSL_CERT_PROVIDER_H
+#endif // MULTIPASS_STUB_CERTPROVIDER_H

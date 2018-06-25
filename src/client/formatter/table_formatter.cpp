@@ -52,40 +52,41 @@ std::string to_usage(const std::string& usage, const std::string& total)
 } // namespace
 std::string mp::TableFormatter::format(const InfoReply& reply) const
 {
-    fmt::MemoryWriter out;
+    fmt::memory_buffer buf;
 
     for (const auto& info : reply.info())
     {
-        out.write("{:<16}{}\n", "Name:", info.name());
-        out.write("{:<16}{}\n", "State:", mp::format::status_string_for(info.instance_status()));
-        out.write("{:<16}{}\n", "IPv4:", info.ipv4().empty() ? "--" : info.ipv4());
+        fmt::format_to(buf, "{:<16}{}\n", "Name:", info.name());
+        fmt::format_to(buf, "{:<16}{}\n", "State:", mp::format::status_string_for(info.instance_status()));
+        fmt::format_to(buf, "{:<16}{}\n", "IPv4:", info.ipv4().empty() ? "--" : info.ipv4());
 
         if (!info.ipv6().empty())
         {
-            out.write("{:<16}{}\n", "IPv6:", info.ipv6());
+            fmt::format_to(buf, "{:<16}{}\n", "IPv6:", info.ipv6());
         }
 
-        out.write("{:<16}{}\n", "Release:", info.current_release().empty() ? "--" : info.current_release());
-        out.write("{:<16}", "Image hash:");
+        fmt::format_to(buf, "{:<16}{}\n", "Release:", info.current_release().empty() ? "--" : info.current_release());
+        fmt::format_to(buf, "{:<16}", "Image hash:");
         if (info.id().empty())
-            out.write("{}\n", "Not Available");
+            fmt::format_to(buf, "{}\n", "Not Available");
         else
-            out.write("{}{}\n", info.id().substr(0, 12),
-                      !info.image_release().empty() ? fmt::format(" (Ubuntu {})", info.image_release()) : "");
-        out.write("{:<16}{}\n", "Load:", info.load().empty() ? "--" : info.load());
-        out.write("{:<16}{}\n", "Disk usage:", to_usage(info.disk_usage(), info.disk_total()));
-        out.write("{:<16}{}\n", "Memory usage:", to_usage(info.memory_usage(), info.memory_total()));
+            fmt::format_to(buf, "{}{}\n", info.id().substr(0, 12),
+                           !info.image_release().empty() ? fmt::format(" (Ubuntu {})", info.image_release()) : "");
+        fmt::format_to(buf, "{:<16}{}\n", "Load:", info.load().empty() ? "--" : info.load());
+        fmt::format_to(buf, "{:<16}{}\n", "Disk usage:", to_usage(info.disk_usage(), info.disk_total()));
+        fmt::format_to(buf, "{:<16}{}\n", "Memory usage:", to_usage(info.memory_usage(), info.memory_total()));
 
         auto mount_paths = info.mount_info().mount_paths();
         for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
         {
-            out.write("{:<16}{:{}} => {}\n", (mount == mount_paths.cbegin()) ? "Mounts:" : " ", mount->source_path(),
-                      info.mount_info().longest_path_len(), mount->target_path());
+            fmt::format_to(buf, "{:<16}{:{}} => {}\n", (mount == mount_paths.cbegin()) ? "Mounts:" : " ",
+                           mount->source_path(), info.mount_info().longest_path_len(), mount->target_path());
         }
 
-        out.write("\n");
+        fmt::format_to(buf, "\n");
     }
-    auto output = out.str();
+
+    auto output = fmt::to_string(buf);
     if (!reply.info().empty())
         output.pop_back();
     else
@@ -96,21 +97,21 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
 
 std::string mp::TableFormatter::format(const ListReply& reply) const
 {
-    fmt::MemoryWriter out;
+    fmt::memory_buffer buf;
 
     if (reply.instances().empty())
         return "No instances found.\n";
 
-    out.write("{:<24}{:<12}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
+    fmt::format_to(buf, "{:<24}{:<12}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
 
     for (const auto& instance : reply.instances())
     {
-        out.write("{:<24}{:<12}{:<17}{:<}\n", instance.name(),
-                  mp::format::status_string_for(instance.instance_status()),
-                  instance.ipv4().empty() ? "--" : instance.ipv4(),
-                  instance.current_release().empty() ? "Not Available"
-                                                     : fmt::format("Ubuntu {}", instance.current_release()));
+        fmt::format_to(buf, "{:<24}{:<12}{:<17}{:<}\n", instance.name(),
+                       mp::format::status_string_for(instance.instance_status()),
+                       instance.ipv4().empty() ? "--" : instance.ipv4(),
+                       instance.current_release().empty() ? "Not Available"
+                                                          : fmt::format("Ubuntu {}", instance.current_release()));
     }
 
-    return out.str();
+    return fmt::to_string(buf);
 }

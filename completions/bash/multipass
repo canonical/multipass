@@ -40,11 +40,12 @@ _multipass_complete()
         done
     }
 
-    local cur cmd opts prev
+    local cur cmd opts prev prev_opts
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cmd="${COMP_WORDS[1]}"
+    prev_opts=false
     multipass_cmds="copy-files delete exec find help info launch list mount purge \
                     recover shell start stop umount version"
 
@@ -74,13 +75,16 @@ _multipass_complete()
         case "${prev}" in
             "--format"|"-f")
                 opts="table json csv yaml"
+                prev_opts=true
             ;;
-            "--cloud-init"|"--image")
+            "--cloud-init")
                 _filedir
                 return
             ;;
         esac
-    else
+    fi
+
+    if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
             "connect"|"sh"|"shell"|"exec"|"stop")
                 _multipass_instances "RUNNING"
