@@ -18,6 +18,7 @@
  */
 
 #include <multipass/ip_address_pool.h>
+#include <multipass/utils.h>
 
 #include <QDir>
 #include <QFile>
@@ -29,19 +30,6 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto ip_db_name = "multipassd-vm-ips.json";
-
-QDir make_dir(const QString& name, const QDir& data_dir)
-{
-    if (!data_dir.mkpath(name))
-    {
-        QString dir{data_dir.filePath(name)};
-        throw std::runtime_error("unable to create directory \'" + dir.toStdString() + "\'");
-    }
-
-    QDir new_dir{data_dir};
-    new_dir.cd(name);
-    return new_dir;
-}
 
 std::unordered_map<std::string, mp::IPAddress> load_db(const QDir& data_dir)
 {
@@ -87,7 +75,7 @@ auto ips_in(T& ip_map)
 mp::IPAddressPool::IPAddressPool(const Path& path, const IPAddress& start, const IPAddress& end)
     : start_ip{start},
       end_ip{end},
-      data_dir{make_dir("vm-ips", path)},
+      data_dir{mp::utils::make_dir(path, "vm-ips")},
       ip_map{load_db(data_dir)},
       ips_in_use{ips_in(ip_map)}
 {

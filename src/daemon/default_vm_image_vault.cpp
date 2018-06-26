@@ -24,6 +24,7 @@
 #include <multipass/query.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 #include <multipass/vm_image.h>
 #include <multipass/xz_image_decoder.h>
 
@@ -212,19 +213,6 @@ void remove_source_images(const mp::VMImage& source_image, const mp::VMImage& pr
         delete_file(source_image.initrd_path);
 }
 
-QDir make_dir(const QString& name, const QDir& cache_dir)
-{
-    if (!cache_dir.mkpath(name))
-    {
-        QString dir{cache_dir.filePath(name)};
-        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir.toStdString()));
-    }
-
-    QDir new_dir{cache_dir};
-    new_dir.cd(name);
-    return new_dir;
-}
-
 void verify_image_download(const mp::Path& image_path, const std::string& image_hash)
 {
     QFile image_file(image_path);
@@ -354,7 +342,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                 auto image_dir_name = QString("%1-%2")
                                           .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
                                           .arg(last_modified.toString("yyyyMMdd"));
-                auto image_dir = make_dir(image_dir_name, images_dir);
+                auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
 
                 source_image.id = hash;
                 source_image.image_path = image_dir.filePath(image_filename);
@@ -423,7 +411,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         }
 
         auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
-        auto image_dir = make_dir(image_dir_name, images_dir);
+        auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
 
         VMImage source_image;
         source_image.id = id;
@@ -543,7 +531,7 @@ mp::VMImage mp::DefaultVMImageVault::extract_image_from(const std::string& insta
                                                         const ProgressMonitor& monitor)
 {
     const auto name = QString::fromStdString(instance_name);
-    const auto output_dir = make_dir(name, instances_dir);
+    const auto output_dir = mp::utils::make_dir(instances_dir, name);
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = output_dir.filePath(image_name);
@@ -575,7 +563,7 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
                                                          const VMImage& prepared_image)
 {
     auto name = QString::fromStdString(instance_name);
-    auto output_dir = make_dir(name, instances_dir);
+    auto output_dir = mp::utils::make_dir(instances_dir, name);
 
     return {copy(prepared_image.image_path, output_dir),
             copy(prepared_image.kernel_path, output_dir),
