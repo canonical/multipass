@@ -444,8 +444,6 @@ try // clang-format on
     }
 
     auto query = query_from(request, name);
-    if (query.remote_name.empty())
-        query.remote_name = config->image_host->get_default_remote();
 
     if (!mp::platform::is_remote_supported(query.remote_name))
         throw std::runtime_error(fmt::format(
