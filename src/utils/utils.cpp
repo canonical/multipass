@@ -190,7 +190,7 @@ QDir mp::utils::make_dir(const QDir& a_dir, const QString& name)
     if (!a_dir.mkpath(name))
     {
         QString dir{a_dir.filePath(name)};
-        throw std::runtime_error("unable to create directory \'" + dir.toStdString() + "\'");
+        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir.toStdString()));
     }
     return a_dir.filePath(name);
 }
