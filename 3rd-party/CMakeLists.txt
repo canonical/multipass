@@ -80,7 +80,7 @@ target_link_libraries(yaml INTERFACE
   yaml-cpp)
 
 # libssh config
-add_subdirectory(libssh EXCLUDE_FROM_ALL)
+add_subdirectory(libssh)
 
 # fmt header only library
 add_library(fmt INTERFACE)
