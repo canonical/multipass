@@ -16,6 +16,7 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
   - zlib: https://github.com/madler/zlib
 - hyperkit: https://github.com/moby/hyperkit
 - libssh: https://github.com/albaguirre/libssh
+- qt: https://www.qt.io/
 - xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
 - yaml-cpp: https://github.com/jbeder/yaml-cpp
 
@@ -48,8 +49,9 @@ Below is a summary of the licensing used in the respective projects. See their s
 - zlib: zlib License; (C) 1995-2017 Jean-loup Gailly and Mark Adler
 - hyperkit: hyperkit License; Copyright the authors and contributors. See individual source files for details.
 - libssh:
-	- GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
-	- OpenSSL Exception
+  - GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
+  - OpenSSL Exception
+- qt: GNU LGPL Version 3; Copyright (c) 2016 The Qt Company
 - xz-embedded: zx-embedded License;
 - yaml-cpp: MIT License; Copyright (c) 2008-2015 Jesse Beder.
 - gettext (libintl): GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
@@ -305,7 +307,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### GNU GPL Version 2 License
 ```
-    GNU GENERAL PUBLIC LICENSE
+		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991
 
  Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
@@ -589,7 +591,7 @@ POSSIBILITY OF SUCH DAMAGES.
 
 ### GNU LGPL Version 2.1 License
 ```
-  GNU LESSER GENERAL PUBLIC LICENSE
+		   GNU LESSER GENERAL PUBLIC LICENSE
 		       Version 2.1, February 1999
 
  Copyright (C) 1991, 1999 Free Software Foundation, Inc.
