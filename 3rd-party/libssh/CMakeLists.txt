@@ -45,35 +45,26 @@ configure_file(libssh/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/libssh/config.h
 # but will be included in the final libssh shared library
 set(OPENSSL_CRYPTO_LIBRARY crypto decrepit ssh-boringssl-compat)
 
+message(STATUS "Checking for 'libssh' version")
+
 # Since the main CMake file is bypassed, we have to search that CMake file to determine the proper
 # shared library versions
-file(STRINGS libssh/CMakeLists.txt libssh_version_line REGEX ".*LIBRARY_VERSION.*")
-file(STRINGS libssh/CMakeLists.txt libssh_soversion_line REGEX ".*LIBRARY_SOVERSION.*")
+file(STRINGS libssh/CMakeLists.txt LIBRARY_VERSION REGEX "^set\\(LIBRARY_VERSION")
+file(STRINGS libssh/CMakeLists.txt LIBRARY_SOVERSION REGEX "^set\\(LIBRARY_SOVERSION")
 
-if (NOT libssh_version_line)
-    message(FATAL_ERROR "no library version specified in libssh project")
-endif()
-
-if (NOT libssh_soversion_line)
-    message(FATAL_ERROR "no library soversion specified in libssh project")
-endif()
-
-string(REPLACE "\"" "" libssh_version_line ${libssh_version_line})
-string(REPLACE "\"" "" libssh_soversion_line ${libssh_soversion_line})
-
-unset(CMAKE_MATCH_1)
-string(REGEX MATCH ".*LIBRARY_VERSION (.*)\\)" _ ${libssh_version_line})
-if (NOT CMAKE_MATCH_1)
+string(REGEX REPLACE "^set\\(LIBRARY_VERSION \"(.*)\"\\)$" "\\1"
+       LIBRARY_VERSION "${LIBRARY_VERSION}")
+if (NOT LIBRARY_VERSION)
     message(FATAL_ERROR "unable to find libssh library version")
 endif()
-set(LIBRARY_VERSION ${CMAKE_MATCH_1})
 
-unset(CMAKE_MATCH_1)
-string(REGEX MATCH ".*LIBRARY_SOVERSION (.*)\\)" _ ${libssh_soversion_line})
-if (NOT CMAKE_MATCH_1)
+string(REGEX REPLACE "^set\\(LIBRARY_SOVERSION \"(.*)\"\\)$" "\\1"
+       LIBRARY_SOVERSION "${LIBRARY_SOVERSION}")
+if (NOT LIBRARY_SOVERSION)
     message(FATAL_ERROR "unable to find libssh library soversion")
 endif()
-set(LIBRARY_SOVERSION ${CMAKE_MATCH_1})
+
+message(STATUS "  Found ${LIBRARY_VERSION}, ${LIBRARY_SOVERSION}")
 
 # We bypass the main CMake file to avoid various package checks which are satisfied manually
 # through the configuration above.
