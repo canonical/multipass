@@ -109,11 +109,10 @@ struct SshfsMount : public mp::test::SftpServerTest
     mp::SshfsMount make_sshfsmount()
     {
         mp::SSHSession session{"a", 42};
-        auto proc = session.exec("sshfs");
         return {std::move(session), default_source, default_target, default_map, default_map};
     }
 
-    auto make_exec_that_fails_for(std::string expected_cmd, bool& invoked)
+    auto make_exec_that_fails_for(const std::string& expected_cmd, bool& invoked)
     {
         auto request_exec = [this, expected_cmd, &invoked](ssh_channel, const char* raw_cmd) {
             std::string cmd{raw_cmd};
@@ -127,7 +126,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         return request_exec;
     }
 
-    auto make_channel_read_return(std::string output, std::string::size_type& remaining, bool& prereq_invoked)
+    auto make_channel_read_return(const std::string& output, std::string::size_type& remaining, bool& prereq_invoked)
     {
         auto channel_read = [output, &remaining, &prereq_invoked](ssh_channel, void* dest, uint32_t count,
                                                                   int is_stderr, int) {

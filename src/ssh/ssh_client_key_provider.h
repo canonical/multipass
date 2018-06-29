@@ -33,7 +33,7 @@ public:
     };
     using KeyUPtr = std::unique_ptr<ssh_key_struct, KeyDeleter>;
 
-    SSHClientKeyProvider(const std::string& priv_key_blob);
+    explicit SSHClientKeyProvider(const std::string& priv_key_blob);
 
     std::string private_key_as_base64() const override;
     std::string public_key_as_base64() const override;

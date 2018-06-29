@@ -64,38 +64,30 @@ constexpr std::uint16_t operator"" _u16(unsigned long long v)
     return static_cast<std::uint16_t>(v);
 }
 
+constexpr std::uint8_t operator"" _u8(unsigned long long v)
+{
+    return static_cast<std::uint8_t>(v);
+}
+
+uint8_t to_u8(uint32_t value)
+{
+    return static_cast<uint8_t>(value);
+}
+
 std::array<uint8_t, 8> to_lsb_msb(uint32_t value)
 {
-    std::array<uint8_t, 8> d;
-    d[0] = (value & 0x000000FF) >> 0;
-    d[1] = (value & 0x0000FF00) >> 8;
-    d[2] = (value & 0x00FF0000) >> 16;
-    d[3] = (value & 0xFF000000) >> 24;
-    d[4] = (value & 0xFF000000) >> 24;
-    d[5] = (value & 0x00FF0000) >> 16;
-    d[6] = (value & 0x0000FF00) >> 8;
-    d[7] = (value & 0x000000FF) >> 0;
-    return d;
+    return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u), to_u8(value >> 24u),
+             to_u8(value >> 16u), to_u8(value >> 8u), to_u8(value)}};
 }
 
 std::array<uint8_t, 4> to_lsb_msb(uint16_t value)
 {
-    std::array<uint8_t, 4> d;
-    d[0] = (value & 0x00FF) >> 0;
-    d[1] = (value & 0xFF00) >> 8;
-    d[2] = (value & 0xFF00) >> 8;
-    d[3] = (value & 0x00FF) >> 0;
-    return d;
+    return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 8u), to_u8(value)}};
 }
 
 std::array<uint8_t, 4> to_lsb(uint32_t value)
 {
-    std::array<uint8_t, 4> d;
-    d[0] = (value & 0x000000FF) >> 0;
-    d[1] = (value & 0x0000FF00) >> 8;
-    d[2] = (value & 0x00FF0000) >> 16;
-    d[3] = (value & 0xFF000000) >> 24;
-    return d;
+    return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u)}};
 }
 
 template <typename T, typename SizeType, typename V>
@@ -197,7 +189,7 @@ struct RootDirRecord
         data[25] = 0x02;                             // record is a directory entry
         set_at(data, 28, to_lsb_msb(1_u16));         // vol seq #
         data[32] = 1;                                // id_len length
-        data[33] = type == Type::root ? 0x00 : 0x01; // directory id
+        data[33] = type == Type::root ? 0_u8 : 1_u8; // directory id
     }
 
     std::array<uint8_t, 34> data;
@@ -302,7 +294,7 @@ struct FileRecord
         data[25] = 0x00;                               // record is a file entry
         set_at(data, 28, to_lsb_msb(1_u16));           // vol seq #
 
-        auto id_len = name.length();
+        auto id_len = static_cast<uint8_t>(name.length());
         data[32] = id_len;
         auto pad_length = is_even(id_len) ? 1u : 0u;
         data.resize(data.size() + id_len + pad_length);
@@ -317,10 +309,9 @@ struct FileRecord
 auto make_iso_name(const std::string& name)
 {
     std::string iso_name{name};
+    std::transform(iso_name.begin(), iso_name.end(), iso_name.begin(), [](unsigned char c) { return std::toupper(c); });
     std::transform(iso_name.begin(), iso_name.end(), iso_name.begin(),
-                   [](unsigned char c) -> unsigned char { return std::toupper(c); });
-    std::transform(iso_name.begin(), iso_name.end(), iso_name.begin(),
-                   [](unsigned char c) -> unsigned char { return std::isalnum(c) ? c : '_'; });
+                   [](unsigned char c) { return std::isalnum(c) ? c : '_'; });
     if (iso_name.size() > 8)
         iso_name = iso_name.substr(0, 8);
     iso_name.append(".;1");
@@ -358,14 +349,14 @@ struct JolietFileRecord : FileRecord
 
 struct RootPathTable
 {
-    explicit RootPathTable(uint32_t dir_record_location) : data{}
+    explicit RootPathTable(uint32_t dir_record_location)
     {
         data[0] = 0x1; // dir id len (root id len is 1)
         set_at(data, 2, to_lsb(dir_record_location));
         data[6] = 0x01; // dir # of parent dir
         data[8] = 0x00; // dir id (0x00 = root)
     }
-    std::array<uint8_t, 10> data;
+    std::array<uint8_t, 10> data{};
 };
 
 template <typename Size>
@@ -387,7 +378,7 @@ void pad_to_end(QFile& f)
     char end = 0;
     f.write(&end, 1);
 }
-}
+} // namespace
 
 void mp::CloudInitIso::add_file(const std::string& name, const std::string& data)
 {

@@ -43,10 +43,10 @@ public:
     Petname(NumWords num_words, std::string separator);
     /// Constructs an instance that will generate names using
     /// a default separator of "-" and the requested number of words
-    Petname(NumWords num_words);
+    explicit Petname(NumWords num_words);
     /// Constructs an instance that will generate names using
     /// the requested separator and two words
-    Petname(std::string separator);
+    explicit Petname(std::string separator);
 
     std::string make_name() override;
 

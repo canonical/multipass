@@ -155,7 +155,7 @@ auto longname_from(const QFileInfo& file_info, const std::string& filename)
     return out;
 }
 
-auto to_qt_permissions(int perms)
+auto to_qt_permissions(uint32_t perms)
 {
     QFile::Permissions out;
 
@@ -450,7 +450,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     if (!validate_path(source_path, filename))
         return reply_perm_denied(msg);
 
-    QIODevice::OpenMode mode = 0;
+    QIODevice::OpenMode mode{QIODevice::NotOpen};
     const auto flags = sftp_client_message_get_flags(msg);
     if (flags & SSH_FXF_READ)
         mode |= QIODevice::ReadOnly;

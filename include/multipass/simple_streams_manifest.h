@@ -32,20 +32,15 @@
 namespace multipass
 {
 
-class SimpleStreamsManifest
+struct SimpleStreamsManifest
 {
-public:
-    SimpleStreamsManifest(SimpleStreamsManifest&&) = default;
-    SimpleStreamsManifest& operator=(SimpleStreamsManifest&&) = default;
+    SimpleStreamsManifest(const SimpleStreamsManifest&) = delete;
+    SimpleStreamsManifest& operator=(const SimpleStreamsManifest&) = delete;
+    static std::unique_ptr<SimpleStreamsManifest> fromJson(const QByteArray& json);
 
-    static std::unique_ptr<SimpleStreamsManifest> fromJson(QByteArray json);
     const QString updated_at;
     const std::vector<VMImageInfo> products;
     const QMap<QString, const VMImageInfo*> image_records;
-
-protected:
-    SimpleStreamsManifest(const SimpleStreamsManifest&) = delete;
-    SimpleStreamsManifest& operator=(const SimpleStreamsManifest&) = delete;
 };
 }
 #endif // MULTIPASS_SIMPLE_STREAMS_MANIFEST_H

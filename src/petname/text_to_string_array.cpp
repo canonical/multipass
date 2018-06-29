@@ -30,7 +30,7 @@ void usage(char* argv[])
     std::cout << argv[0] << " <adjectives> <adverbs> <names> <output>\n";
 }
 
-std::vector<std::string> words_in(std::string filename)
+std::vector<std::string> words_in(const std::string& filename)
 {
     std::ifstream input_stream(filename);
     std::string word;
@@ -45,8 +45,9 @@ std::vector<std::string> words_in(std::string filename)
 class Words
 {
 public:
-    Words(std::string filename, std::string var_name)
-        : var_name{var_name}, words{words_in(filename)} {}
+    Words(const std::string& filename, std::string var_name) : var_name{std::move(var_name)}, words{words_in(filename)}
+    {
+    }
 
     void print_to(std::ostream& out)
     {

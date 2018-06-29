@@ -15,19 +15,33 @@
  *
  */
 
-#ifndef MULTIPASS_PLATFORM_UNIX_H
-#define MULTIPASS_PLATFORM_UNIX_H
+#include <multipass/cloud_init_iso.h>
 
-#include <vector>
+#include <QTemporaryDir>
+#include <gmock/gmock.h>
 
-#include <signal.h>
+namespace mp = multipass;
+using namespace testing;
 
-namespace multipass
+struct CloudInitIso : public testing::Test
 {
-namespace platform
+    CloudInitIso()
+    {
+        if (!dir.isValid())
+            throw std::runtime_error("test failed to create temp directory");
+    }
+    QTemporaryDir dir;
+};
+
+TEST_F(CloudInitIso, creates_iso_file)
 {
-sigset_t make_sigset(const std::vector<int>& sigs);
-sigset_t make_and_block_signals(const std::vector<int>& sigs);
-} // namespace platform
+    mp::CloudInitIso iso;
+    iso.add_file("test", "test data");
+
+    auto file_path = dir.filePath("test.iso");
+    iso.write_to(file_path);
+
+    QFile file{file_path};
+    EXPECT_TRUE(file.exists());
+    EXPECT_THAT(file.size(), Ge(0));
 }
-#endif // MULTIPASS_PLATFORM_UNIX_H

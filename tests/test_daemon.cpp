@@ -77,7 +77,7 @@ struct MockDaemon : public mp::Daemon
 
 struct StubNameGenerator : public mp::NameGenerator
 {
-    StubNameGenerator(std::string name) : name{name}
+    explicit StubNameGenerator(std::string name) : name{std::move(name)}
     {
     }
     std::string make_name() override
@@ -355,7 +355,7 @@ namespace
 class DummyKeyProvider : public mpt::StubSSHKeyProvider
 {
 public:
-    DummyKeyProvider(const std::string& key) : key{key}
+    explicit DummyKeyProvider(std::string key) : key{std::move(key)}
     {
     }
     std::string public_key_as_base64() const override

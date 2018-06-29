@@ -24,7 +24,7 @@
 
 #include <vector>
 
-#include <signal.h>
+#include <csignal>
 #include <termios.h>
 
 namespace multipass
@@ -33,7 +33,7 @@ class WindowChangedSignalHandler;
 class UnixConsole final : public Console
 {
 public:
-    UnixConsole(ssh_channel channel);
+    explicit UnixConsole(ssh_channel channel);
     ~UnixConsole();
 
     void read_console() override{};

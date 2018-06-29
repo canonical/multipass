@@ -48,7 +48,7 @@ void change_ssh_pty_size(ssh_channel channel)
 class mp::WindowChangedSignalHandler
 {
 public:
-    WindowChangedSignalHandler(ssh_channel channel)
+    explicit WindowChangedSignalHandler(ssh_channel channel)
         : signal_handling_thread{[this, channel] { monitor_signals(channel); }}
     {
     }

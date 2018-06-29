@@ -69,6 +69,6 @@ void mpl::log(Level level, CString category, CString message)
 void mpl::set_logger(std::shared_ptr<Logger> logger)
 {
     std::lock_guard<decltype(mutex)> lock{mutex};
-    global_logger = logger;
+    global_logger = std::move(logger);
     qInstallMessageHandler(qt_message_handler);
 }

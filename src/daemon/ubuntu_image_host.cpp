@@ -117,7 +117,7 @@ auto custom_manifest(mp::URLDownloader* url_downloader)
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
-    : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{remotes}
+    : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
     QTimer::singleShot(0, [this]() { update_manifest(); });
 }

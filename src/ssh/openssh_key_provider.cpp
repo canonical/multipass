@@ -89,7 +89,7 @@ std::string mp::OpenSSHKeyProvider::private_key_as_base64() const
         throw std::runtime_error("Unable to open private key file");
 
     auto data = key_file.readAll();
-    size_t data_size = data.length();
+    auto data_size = static_cast<size_t>(data.length());
     return {data.constData(), data_size};
 }
 

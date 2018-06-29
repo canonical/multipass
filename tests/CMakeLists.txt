@@ -39,6 +39,7 @@ add_executable(multipass_tests
   temp_dir.cpp
   temp_file.cpp
   test_cli_client.cpp
+  test_cloud_init_iso.cpp
   test_daemon.cpp
   test_format_utils.cpp
   test_output_formatter.cpp
@@ -87,6 +88,7 @@ target_link_libraries(multipass_tests
   client
   daemon
   ip_address_pool
+  iso
   petname
   simplestreams
   scp_test
