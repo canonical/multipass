@@ -29,7 +29,7 @@ namespace multipass
 class AnimatedSpinner
 {
 public:
-    AnimatedSpinner(std::ostream& cout);
+    explicit AnimatedSpinner(std::ostream& cout);
     ~AnimatedSpinner();
 
     void start(const std::string& message);

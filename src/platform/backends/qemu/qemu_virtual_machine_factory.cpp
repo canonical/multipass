@@ -223,7 +223,7 @@ std::string get_subnet(const mp::Path& data_dir, bool use_legacy_subnet, const Q
     return new_subnet;
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, mp::optional<mp::IPAddress> first_ip,
+mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const mp::optional<mp::IPAddress>& first_ip,
                                         const QString& bridge_name)
 {
     const bool use_legacy_subnet = first_ip ? true : false;

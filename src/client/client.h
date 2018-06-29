@@ -41,7 +41,7 @@ struct ClientConfig
 class Client
 {
 public:
-    Client(const ClientConfig& context);
+    explicit Client(const ClientConfig& context);
     int run(const QStringList& arguments);
 
 private:

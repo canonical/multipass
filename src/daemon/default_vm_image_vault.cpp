@@ -95,7 +95,8 @@ auto record_to_json(const mp::VaultRecord& record)
     return json;
 }
 
-std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name, const QString& fallback_db_name=QString())
+std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
+                                                         const QString& fallback_db_name = QString())
 {
     QFile db_file{db_name};
     auto opened = db_file.open(QIODevice::ReadOnly);
@@ -236,7 +237,7 @@ void verify_image_download(const mp::Path& image_path, const std::string& image_
 class DeleteOnException
 {
 public:
-    DeleteOnException(const mp::Path& path) : file(path)
+    explicit DeleteOnException(const mp::Path& path) : file(path)
     {
     }
     ~DeleteOnException()
@@ -250,7 +251,7 @@ public:
 private:
     QFile file;
 };
-}
+} // namespace
 
 mp::DefaultVMImageVault::DefaultVMImageVault(VMImageHost* image_host, URLDownloader* downloader,
                                              mp::Path cache_dir_path, mp::Path data_dir_path, mp::days days_to_expire)

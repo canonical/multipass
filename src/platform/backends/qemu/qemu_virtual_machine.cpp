@@ -131,7 +131,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
                                            VMStatusMonitor& monitor)
     : VirtualMachine{desc.key_provider, desc.vm_name},
-      ip{address},
+      ip{std::move(address)},
       is_legacy_ip{ip ? true : false},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},

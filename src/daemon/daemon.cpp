@@ -304,7 +304,7 @@ auto grpc_status_for(fmt::memory_buffer& errors)
         error_string.pop_back();
 
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        fmt::format("The following errors occured:\n{}", error_string), "");
+                        fmt::format("The following errors occurred:\n{}", error_string), "");
 }
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)

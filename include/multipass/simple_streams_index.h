@@ -28,7 +28,7 @@ namespace multipass
 class SimpleStreamsIndex
 {
 public:
-    static SimpleStreamsIndex fromJson(QByteArray json);
+    static SimpleStreamsIndex fromJson(const QByteArray& json);
 
     const QString manifest_path;
     const QString updated_at;

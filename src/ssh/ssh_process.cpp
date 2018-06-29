@@ -107,7 +107,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     std::stringstream output;
     std::array<char, 256> buffer;
     int num_bytes{0};
-    const bool is_std_err = type == StreamType::err ? true : false;
+    const bool is_std_err = type == StreamType::err;
     do
     {
         num_bytes = ssh_channel_read_timeout(channel.get(), buffer.data(), buffer.size(), is_std_err, timeout);

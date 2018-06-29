@@ -27,7 +27,7 @@ namespace logging
 class JournaldLogger : public Logger
 {
 public:
-    JournaldLogger(Level level);
+    explicit JournaldLogger(Level level);
     void log(Level level, CString category, CString message) const override;
 
 private:

@@ -42,8 +42,8 @@ using namespace testing;
 
 namespace
 {
-static constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-static constexpr auto default_version = "20160217.1";
+constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+constexpr auto default_version = "20160217.1";
 
 struct ImageHost : public mp::VMImageHost
 {

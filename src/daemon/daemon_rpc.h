@@ -39,6 +39,8 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service
     Q_OBJECT
 public:
     DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider);
+    DaemonRpc(const DaemonRpc&) = delete;
+    DaemonRpc& operator=(const DaemonRpc&) = delete;
 
 signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
@@ -77,9 +79,6 @@ protected:
     grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response) override;
     grpc::Status version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response) override;
     grpc::Status ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response) override;
-
-    DaemonRpc(const DaemonRpc&) = delete;
-    DaemonRpc& operator=(const DaemonRpc&) = delete;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

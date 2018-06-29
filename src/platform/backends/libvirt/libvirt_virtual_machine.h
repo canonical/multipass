@@ -37,7 +37,6 @@ public:
 
     LibVirtVirtualMachine(const VirtualMachineDescription& desc, virConnectPtr connection,
                           const std::string& bridge_name, VMStatusMonitor& monitor);
-    ~LibVirtVirtualMachine();
 
     void start() override;
     void stop() override;

@@ -55,7 +55,7 @@ bool verify_decode(const xz_ret& ret)
 }
 
 mp::XzImageDecoder::XzImageDecoder(const Path& xz_file_path)
-    : xz_file{xz_file_path}, xz_decoder{xz_dec_init(XZ_DYNALLOC, 1 << 26), xz_dec_end}
+    : xz_file{xz_file_path}, xz_decoder{xz_dec_init(XZ_DYNALLOC, 1u << 26), xz_dec_end}
 {
     xz_crc32_init();
     xz_crc64_init();
@@ -70,7 +70,7 @@ void mp::XzImageDecoder::decode_to(const Path& decoded_image_path, const Progres
     if (!decoded_file.open(QIODevice::WriteOnly))
         throw std::runtime_error(fmt::format("failed to open {} for writing", decoded_file.fileName().toStdString()));
 
-    struct xz_buf decode_buf;
+    struct xz_buf decode_buf{};
     const auto max_size = 65536u;
 
     std::vector<char> read_data,

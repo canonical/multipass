@@ -25,12 +25,15 @@ namespace mp = multipass;
 
 namespace
 {
-uint8_t as_octect(int value)
+uint8_t as_octect(uint32_t value)
+{
+    return static_cast<uint8_t>(value);
+}
+
+void check_range(int value)
 {
     if (value < 0 || value > 255)
         throw std::invalid_argument("invalid IP octet");
-
-    return static_cast<uint8_t>(value);
 }
 
 std::array<uint8_t, 4> parse(const std::string& ip)
@@ -43,18 +46,17 @@ std::array<uint8_t, 4> parse(const std::string& ip)
     std::stringstream s(ip);
     s >> a >> ch >> b >> ch >> c >> ch >> d;
 
-    // Double brackets here because clang disklikes it even though it's perfectly valid
+    check_range(a);
+    check_range(b);
+    check_range(c);
+    check_range(d);
+
     return {{as_octect(a), as_octect(b), as_octect(c), as_octect(d)}};
 }
 
-auto to_octets(uint32_t value)
+std::array<uint8_t, 4> to_octets(uint32_t value)
 {
-    std::array<uint8_t, 4> octets;
-    octets[0] = as_octect((value >> 24) & 0xFF);
-    octets[1] = as_octect((value >> 16) & 0xFF);
-    octets[2] = as_octect((value >> 8) & 0xFF);
-    octets[3] = as_octect((value >> 0) & 0xFF);
-    return octets;
+    return {{as_octect(value >> 24u), as_octect(value >> 16u), as_octect(value >> 8u), as_octect(value)}};
 }
 }
 
@@ -80,7 +82,10 @@ std::string mp::IPAddress::as_string() const
 
 uint32_t mp::IPAddress::as_uint32() const
 {
-    uint32_t value = octets[0] << 24 | octets[1] << 16 | octets[2] << 8 | octets[3];
+    uint32_t value = octets[0] << 24u;
+    value |= octets[1] << 16u;
+    value |= octets[2] << 8u;
+    value |= octets[3];
     return value;
 }
 
