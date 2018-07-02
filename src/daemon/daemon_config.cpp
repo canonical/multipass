@@ -30,7 +30,7 @@
 
 #include <QStandardPaths>
 
-#include <iostream>
+#include <memory>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

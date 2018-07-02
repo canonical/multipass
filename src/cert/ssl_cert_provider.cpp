@@ -66,7 +66,7 @@ private:
 class WritableFile
 {
 public:
-    WritableFile(const QString& name) : fp{fopen(name.toStdString().c_str(), "wb"), fclose}
+    explicit WritableFile(const QString& name) : fp{fopen(name.toStdString().c_str(), "wb"), fclose}
     {
         if (fp == nullptr)
             throw std::runtime_error(
@@ -95,7 +95,7 @@ public:
         if (ec_key == nullptr)
             throw std::runtime_error("Failed to allocate ec key structure");
 
-        if (EC_KEY_generate_key(ec_key.get()) == false)
+        if (!EC_KEY_generate_key(ec_key.get()))
             throw std::runtime_error("Failed to generate key");
 
         if (!EVP_PKEY_assign_EC_KEY(key.get(), ec_key.get()))
@@ -139,10 +139,10 @@ long random_long()
     std::array<uint8_t, 4> bytes;
     RAND_bytes(bytes.data(), bytes.size());
 
-    out |= bytes[0] & 0xFF;
-    out |= (bytes[1] << 8) & 0xFF00;
-    out |= (bytes[2] << 16) & 0xFF0000;
-    out |= (bytes[3] << 24) & 0xFF000000;
+    out |= bytes[0];
+    out |= bytes[1] << 8u;
+    out |= bytes[2] << 16u;
+    out |= bytes[3] << 24u;
     return out;
 }
 

@@ -33,15 +33,14 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
-class Client : public Test
+struct Client : public Test
 {
-public:
-    int send_command(std::vector<std::string> command)
+    int send_command(const std::vector<std::string>& command)
     {
         return send_command(command, null_stream);
     }
 
-    int send_command(std::vector<std::string> command, std::ostream& cout)
+    int send_command(const std::vector<std::string>& command, std::ostream& cout)
     {
         mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure, cout, null_stream};
         mp::Client client{client_config};

@@ -34,7 +34,7 @@ const QHash<QString, QString> arch_to_manifest{{"x86_64", "amd64"}, {"arm", "arm
                                                {"i386", "i386"},    {"power", "powerpc"}, {"power64", "ppc64el"},
                                                {"s390x", "s390x"}};
 
-QJsonObject parse_manifest(QByteArray json)
+QJsonObject parse_manifest(const QByteArray& json)
 {
     QJsonParseError parse_error;
     const auto doc = QJsonDocument::fromJson(json, &parse_error);
@@ -74,7 +74,7 @@ QString derive_unpacked_file_path_prefix_from(const QString& image_location)
 }
 }
 
-std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(QByteArray json)
+std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(const QByteArray& json)
 {
     const auto manifest = parse_manifest(json);
     const auto updated = manifest["updated"].toString();

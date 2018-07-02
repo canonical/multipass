@@ -19,6 +19,7 @@
 
 #include <multipass/backend_utils.h>
 #include <multipass/logging/log.h>
+#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -37,7 +38,7 @@ namespace
 {
 virErrorPtr libvirt_error;
 
-static void libvirt_error_handler(void* opaque, virErrorPtr error)
+void libvirt_error_handler(void* opaque, virErrorPtr error)
 {
     virFreeError(libvirt_error);
     libvirt_error = virSaveLastError();
@@ -95,12 +96,12 @@ void get_parsed_memory_values(const std::string& mem_size, std::string& memory, 
     auto mem{QString::fromStdString(mem_size)};
     QString unit;
 
-    for (auto i = 0; i < mem.size(); ++i)
+    for (const auto& c : mem)
     {
-        if (mem[i].isDigit())
-            memory.append(1, mem[i].toLatin1());
-        else if (mem[i].isLetter())
-            unit.append(mem[i]);
+        if (c.isDigit())
+            memory.append(1, c.toLatin1());
+        else if (c.isLetter())
+            unit.append(c);
     }
 
     if (unit.isEmpty())
@@ -233,7 +234,7 @@ auto get_domain_state(virDomainPtr domain)
 
     return (state == VIR_DOMAIN_RUNNING) ? mp::VirtualMachine::State::running : mp::VirtualMachine::State::off;
 }
-}
+} // namespace
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc, virConnectPtr connection,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor)
@@ -246,10 +247,6 @@ mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescrip
       monitor{&monitor}
 {
     state = get_domain_state(domain.get());
-}
-
-mp::LibVirtVirtualMachine::~LibVirtVirtualMachine()
-{
 }
 
 void mp::LibVirtVirtualMachine::start()

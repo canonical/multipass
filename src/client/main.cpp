@@ -30,11 +30,11 @@ namespace mp = multipass;
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    app.setApplicationName("multipass");
+    QCoreApplication::setApplicationName("multipass");
     mp::Console::setup_environment();
 
     mp::ClientConfig config{mp::platform::default_server_address(), mp::RpcConnectionType::ssl, std::cout, std::cerr};
     mp::Client client{config};
 
-    return client.run(app.arguments());
+    return client.run(QCoreApplication::arguments());
 }

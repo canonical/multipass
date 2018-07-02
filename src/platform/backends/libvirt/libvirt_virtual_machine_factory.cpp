@@ -85,10 +85,6 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& d
 {
 }
 
-mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
-{
-}
-
 mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                   VMStatusMonitor& monitor)
 {

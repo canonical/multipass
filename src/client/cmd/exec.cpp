@@ -70,11 +70,11 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
     if (reply.ssh_info().empty())
         return ReturnCode::Ok;
 
-    auto ssh_info = reply.ssh_info().begin()->second;
-    auto host = ssh_info.host();
-    auto port = ssh_info.port();
-    auto username = ssh_info.username();
-    auto priv_key_blob = ssh_info.priv_key_base64();
+    const auto& ssh_info = reply.ssh_info().begin()->second;
+    const auto& host = ssh_info.host();
+    const auto& port = ssh_info.port();
+    const auto& username = ssh_info.username();
+    const auto& priv_key_blob = ssh_info.priv_key_base64();
 
     try
     {

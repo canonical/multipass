@@ -27,7 +27,7 @@ namespace mp = multipass;
 
 namespace
 {
-QJsonObject parse_index(QByteArray json)
+QJsonObject parse_index(const QByteArray& json)
 {
     QJsonParseError parse_error;
     auto doc = QJsonDocument::fromJson(json, &parse_error);
@@ -45,7 +45,7 @@ QJsonObject parse_index(QByteArray json)
 }
 }
 
-mp::SimpleStreamsIndex mp::SimpleStreamsIndex::fromJson(QByteArray json)
+mp::SimpleStreamsIndex mp::SimpleStreamsIndex::fromJson(const QByteArray& json)
 {
     auto index = parse_index(json);
 

@@ -36,13 +36,14 @@
 
 #include <QCoreApplication>
 
+#include <csignal>
+#include <cstring>
 #include <grp.h>
-#include <signal.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <vector>
 
 namespace mpl = multipass::logging;
+namespace mpp = multipass::platform;
 
 namespace
 {
@@ -73,11 +74,9 @@ void set_server_permissions(const std::string& server_address)
 class UnixSignalHandler
 {
 public:
-    UnixSignalHandler(QCoreApplication& app)
+    UnixSignalHandler()
         : signal_handling_thread{
-              [this, &app, sigs = multipass::platform::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] {
-                  monitor_signals(sigs, app);
-              }}
+              [this, sigs = mpp::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] { monitor_signals(sigs); }}
     {
     }
 
@@ -86,13 +85,13 @@ public:
         pthread_kill(signal_handling_thread.thread.native_handle(), SIGUSR1);
     }
 
-    void monitor_signals(sigset_t sigset, QCoreApplication& app)
+    void monitor_signals(sigset_t sigset)
     {
         int sig = -1;
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
             mpl::log(mpl::Level::info, "daemon", fmt::format("Received signal {} ({})", sig, strsignal(sig)));
-        app.quit();
+        QCoreApplication::quit();
     }
 
 private:
@@ -105,7 +104,7 @@ try // clang-format on
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationVersion(multipass::version_string);
-    UnixSignalHandler handler(app);
+    UnixSignalHandler handler;
 
     auto builder = multipass::cli::parse(app);
     auto config = builder.build();
@@ -115,7 +114,7 @@ try // clang-format on
 
     set_server_permissions(server_address);
 
-    app.exec();
+    QCoreApplication::exec();
 
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
     return EXIT_SUCCESS;

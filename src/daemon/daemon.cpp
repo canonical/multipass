@@ -304,7 +304,7 @@ auto grpc_status_for(fmt::memory_buffer& errors)
         error_string.pop_back();
 
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        fmt::format("The following errors occured:\n{}", error_string), "");
+                        fmt::format("The following errors occurred:\n{}", error_string), "");
 }
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
@@ -444,8 +444,6 @@ try // clang-format on
     }
 
     auto query = query_from(request, name);
-    if (query.remote_name.empty())
-        query.remote_name = config->image_host->get_default_remote();
 
     if (!mp::platform::is_remote_supported(query.remote_name))
         throw std::runtime_error(fmt::format(

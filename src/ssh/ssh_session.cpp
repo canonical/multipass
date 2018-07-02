@@ -102,6 +102,9 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_USER, username.c_str());
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_TIMEOUT, &timeout);
     SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_NODELAY, &nodelay);
+    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
+    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
+
     SSH::throw_on_error(ssh_connect, session);
     if (key_provider)
         SSH::throw_on_error(ssh_userauth_publickey, session, nullptr, key_provider->private_key());

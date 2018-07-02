@@ -56,7 +56,9 @@ class Daemon : public QObject, public multipass::Rpc::Service, public multipass:
 {
     Q_OBJECT
 public:
-    Daemon(std::unique_ptr<const DaemonConfig> config);
+    explicit Daemon(std::unique_ptr<const DaemonConfig> config);
+    Daemon(const Daemon&) = delete;
+    Daemon& operator=(const Daemon&) = delete;
 
 protected:
     void on_resume() override;
@@ -106,9 +108,6 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-
-    Daemon(const Daemon&) = delete;
-    Daemon& operator=(const Daemon&) = delete;
 };
 }
 #endif // MULTIPASS_DAEMON_H
