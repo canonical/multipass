@@ -67,7 +67,7 @@ bool mp::platform::is_alias_supported(const std::string& alias)
 
 bool mp::platform::is_remote_supported(const std::string& remote)
 {
-    if (qgetenv("MULTIPASS_UNLOCK") == unlock_code)
+    if (remote.empty() || qgetenv("MULTIPASS_UNLOCK") == unlock_code)
         return true;
 
     if (supported_remotes.find(remote) != supported_remotes.end())
