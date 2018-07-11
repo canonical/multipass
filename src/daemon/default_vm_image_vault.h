@@ -44,7 +44,7 @@ public:
 class DefaultVMImageVault final : public VMImageVault
 {
 public:
-    DefaultVMImageVault(VMImageHost* image_host, URLDownloader* downloader, multipass::Path cache_dir_path,
+    DefaultVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, multipass::Path cache_dir_path,
                         multipass::Path data_dir_path, multipass::days days_to_expire);
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;
@@ -61,10 +61,11 @@ private:
     VMImage extract_downloaded_image(const VMImage& source_image, const ProgressMonitor& monitor);
     VMImage fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image, const QDir& image_dir,
                                     const ProgressMonitor& monitor);
+    VMImageInfo info_for(const Query& query);
     void persist_image_records();
     void persist_instance_records();
 
-    VMImageHost* const image_host;
+    std::vector<VMImageHost*> image_hosts;
     URLDownloader* const url_downloader;
     const QDir cache_dir;
     const QDir data_dir;
