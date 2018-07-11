@@ -29,7 +29,7 @@ class Query
 public:
     enum Type
     {
-        SimpleStreams,
+        Alias,
         LocalFile,
         HttpDownload
     };

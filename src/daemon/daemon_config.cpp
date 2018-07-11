@@ -19,6 +19,8 @@
 
 #include "daemon_config.h"
 #include "default_vm_image_vault.h"
+
+#include "custom_image_host.h"
 #include "ubuntu_image_host.h"
 
 #include <multipass/logging/log.h>
@@ -55,16 +57,25 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         url_downloader = std::make_unique<URLDownloader>(cache_directory);
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory);
-    if (image_host == nullptr)
-        image_host = std::make_unique<mp::UbuntuVMImageHost>(
+    if (image_hosts.empty())
+    {
+        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get()));
+        image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, std::string>>{
-                {mp::custom_manifest_name, ""},
                 {mp::release_remote, "http://cloud-images.ubuntu.com/releases/"},
                 {mp::daily_remote, "http://cloud-images.ubuntu.com/daily/"}},
-            url_downloader.get(), std::chrono::minutes{5});
+            url_downloader.get(), std::chrono::minutes{5}));
+    }
     if (vault == nullptr)
-        vault = std::make_unique<DefaultVMImageVault>(image_host.get(), url_downloader.get(), cache_directory,
-                                                      data_directory, days_to_expire);
+    {
+        std::vector<VMImageHost*> hosts;
+        for (const auto& image : image_hosts)
+        {
+            hosts.push_back(image.get());
+        }
+        vault = std::make_unique<DefaultVMImageVault>(hosts, url_downloader.get(), cache_directory, data_directory,
+                                                      days_to_expire);
+    }
     if (name_generator == nullptr)
         name_generator = mp::make_default_name_generator();
     if (server_address.empty())
@@ -77,7 +88,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         ssh_username = "multipass";
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
-        std::move(url_downloader), std::move(factory), std::move(image_host), std::move(vault),
+        std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), shared_logger,
         cache_directory, data_directory, server_address, ssh_username, connection_type});
 }

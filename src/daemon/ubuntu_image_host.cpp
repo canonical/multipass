@@ -67,52 +67,6 @@ auto key_from(const std::string& search_string)
         key = "default";
     return key;
 }
-
-auto custom_manifest(mp::URLDownloader* url_downloader)
-{
-    const QString url{"http://cdimage.ubuntu.com/ubuntu-core/16/current/ubuntu-core-16-amd64.img.xz"};
-    const auto last_modified = url_downloader->last_modified({url});
-    const auto sha256_sums =
-        url_downloader->download({"http://cdimage.ubuntu.com/ubuntu-core/16/current/SHA256SUMS"}).split('\n');
-    QString hash;
-
-    for (const auto& line : sha256_sums)
-    {
-        if (line.contains("ubuntu-core-16-amd64.img.xz"))
-        {
-            hash = QString(line.split(' ').first());
-            break;
-        }
-    }
-
-    auto custom_json = fmt::format("{{\n"
-                                   "  \"products\": {{\n"
-                                   "    \"core-16:amd64\": {{\n"
-                                   "      \"aliases\": \"core\",\n"
-                                   "      \"arch\": \"amd64\",\n"
-                                   "      \"release\": \"core-16\",\n"
-                                   "      \"release_title\": \"Core 16\",\n"
-                                   "      \"supported\": true,\n"
-                                   "      \"versions\": {{\n"
-                                   "        \"{}\": {{\n"
-                                   "          \"items\": {{\n"
-                                   "            \"disk1.img\": {{\n"
-                                   "              \"path\": \"{}\","
-                                   "              \"sha256\": \"{}\",\n"
-                                   "              \"size\": 0\n"
-                                   "            }}\n"
-                                   "          }}\n"
-                                   "        }}\n"
-                                   "      }}\n"
-                                   "    }}\n"
-                                   "  }},\n"
-                                   "  \"updated\": \"{}\"\n"
-                                   "}}",
-                                   last_modified.toString("yyyyMMdd").toStdString(), url.toStdString(),
-                                   hash.toStdString(), last_modified.toString("yyyyMMdd").toStdString());
-
-    return mp::SimpleStreamsManifest::fromJson(QByteArray::fromStdString(custom_json));
-}
 }
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
@@ -122,32 +76,16 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
     QTimer::singleShot(0, [this]() { update_manifest(); });
 }
 
-mp::VMImageInfo mp::UbuntuVMImageHost::info_for(const Query& query)
+mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
 {
     auto key = key_from(query.release);
-    std::string remote_name;
     mp::SimpleStreamsManifest* manifest;
     const VMImageInfo* info{nullptr};
 
-    if (query.remote_name.empty())
-    {
-        remote_name = custom_manifest_name;
-        manifest = manifest_from(remote_name);
-        match_alias(key, &info, *manifest);
+    auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
 
-        if (!info)
-            remote_name = release_remote;
-    }
-    else
-    {
-        remote_name = query.remote_name;
-    }
-
-    if (!info)
-    {
-        manifest = manifest_from(remote_name);
-        match_alias(key, &info, *manifest);
-    }
+    manifest = manifest_from(remote_name);
+    match_alias(key, &info, *manifest);
 
     if (!info)
     {
@@ -183,29 +121,13 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     std::vector<mp::VMImageInfo> images;
 
     auto key = key_from(query.release);
-    std::string remote_name;
     mp::SimpleStreamsManifest* manifest;
     const VMImageInfo* info{nullptr};
 
-    if (query.remote_name.empty())
-    {
-        remote_name = custom_manifest_name;
-        manifest = manifest_from(remote_name);
-        match_alias(key, &info, *manifest);
+    auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
 
-        if (!info)
-            remote_name = release_remote;
-    }
-    else
-    {
-        remote_name = query.remote_name;
-    }
-
-    if (!info)
-    {
-        manifest = manifest_from(remote_name);
-        match_alias(key, &info, *manifest);
-    }
+    manifest = manifest_from(remote_name);
+    match_alias(key, &info, *manifest);
 
     if (info)
     {
@@ -289,11 +211,6 @@ void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
     }
 }
 
-std::string mp::UbuntuVMImageHost::get_default_remote()
-{
-    return release_remote;
-}
-
 void mp::UbuntuVMImageHost::update_manifest()
 {
     const auto now = std::chrono::steady_clock::now();
@@ -303,11 +220,8 @@ void mp::UbuntuVMImageHost::update_manifest()
 
         for (const auto& remote : remotes)
         {
-            if (remote.first == mp::custom_manifest_name)
-                manifests.emplace_back(std::make_pair(custom_manifest_name, custom_manifest(url_downloader)));
-            else
-                manifests.emplace_back(std::make_pair(
-                    remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+            manifests.emplace_back(
+                std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
         }
         last_update = now;
     }

@@ -66,7 +66,7 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     std::string image = request->image().empty() ? "default" : request->image();
     // TODO: persistence should be specified by the rpc as well
 
-    mp::Query::Type query_type{mp::Query::Type::SimpleStreams};
+    mp::Query::Type query_type{mp::Query::Type::Alias};
 
     if (QString::fromStdString(image).startsWith("file"))
         query_type = mp::Query::Type::LocalFile;
@@ -596,8 +596,18 @@ try // clang-format on
                     request->remote_name()));
         }
 
-        auto vm_images_info = config->image_host->all_info_for(
-            {"", request->search_string(), false, request->remote_name(), Query::Type::SimpleStreams});
+        std::vector<VMImageInfo> vm_images_info;
+        for (const auto& image_host : config->image_hosts)
+        {
+            auto images_info = image_host->all_info_for(
+                {"", request->search_string(), false, request->remote_name(), Query::Type::Alias});
+
+            if (!images_info.empty())
+            {
+                vm_images_info = std::move(images_info);
+                break;
+            }
+        }
 
         if (!mp::platform::is_alias_supported(request->search_string()))
             throw std::runtime_error(
@@ -632,7 +642,7 @@ try // clang-format on
                 fmt::format("{} is not a supported remote. Please use `multipass find` for list of supported images.",
                             request->remote_name()));
 
-        auto vm_images_info = config->image_host->all_images_for(request->remote_name());
+        auto vm_images_info = config->image_hosts.back()->all_images_for(request->remote_name());
 
         for (const auto& info : vm_images_info)
         {
@@ -656,39 +666,58 @@ try // clang-format on
     }
     else
     {
-        std::unordered_set<std::string> image_found;
-        const auto default_remote{config->image_host->get_default_remote()};
-        auto action = [&response, &image_found, default_remote](const std::string& remote,
-                                                                const mp::VMImageInfo& info) {
-            if (!mp::platform::is_remote_supported(remote))
-                return;
-
-            if (info.supported)
-            {
-                if (image_found.find(info.release_title.toStdString()) == image_found.end())
+        {
+            auto action = [&response](const std::string& dummy, const mp::VMImageInfo& info) {
+                auto entry = response->add_images_info();
+                for (const auto& alias : info.aliases)
                 {
-                    if (!info.aliases.empty())
+                    if (!mp::platform::is_alias_supported(alias.toStdString()))
+                        return;
+
+                    auto alias_entry = entry->add_aliases_info();
+                    alias_entry->set_alias(alias.toStdString());
+                }
+                entry->set_release(info.release_title.toStdString());
+                entry->set_version(info.version.toStdString());
+            };
+            config->image_hosts.front()->for_each_entry_do(action);
+        }
+
+        {
+            std::unordered_set<std::string> image_found;
+            const auto default_remote{"release"};
+            auto action = [&response, &image_found, default_remote](const std::string& remote,
+                                                                    const mp::VMImageInfo& info) {
+                if (!mp::platform::is_remote_supported(remote))
+                    return;
+
+                if (info.supported)
+                {
+                    if (image_found.find(info.release_title.toStdString()) == image_found.end())
                     {
-                        auto entry = response->add_images_info();
-                        for (const auto& alias : info.aliases)
+                        if (!info.aliases.empty())
                         {
-                            if (!mp::platform::is_alias_supported(alias.toStdString()))
-                                return;
+                            auto entry = response->add_images_info();
+                            for (const auto& alias : info.aliases)
+                            {
+                                if (!mp::platform::is_alias_supported(alias.toStdString()))
+                                    return;
 
-                            auto alias_entry = entry->add_aliases_info();
-                            if (remote != mp::custom_manifest_name && remote != default_remote)
-                                alias_entry->set_remote_name(remote);
-                            alias_entry->set_alias(alias.toStdString());
+                                auto alias_entry = entry->add_aliases_info();
+                                if (remote != default_remote)
+                                    alias_entry->set_remote_name(remote);
+                                alias_entry->set_alias(alias.toStdString());
+                            }
+
+                            image_found.insert(info.release_title.toStdString());
+                            entry->set_release(info.release_title.toStdString());
+                            entry->set_version(info.version.toStdString());
                         }
-
-                        image_found.insert(info.release_title.toStdString());
-                        entry->set_release(info.release_title.toStdString());
-                        entry->set_version(info.version.toStdString());
                     }
                 }
-            }
-        };
-        config->image_host->for_each_entry_do(action);
+            };
+            config->image_hosts.back()->for_each_entry_do(action);
+        }
     }
     return grpc::Status::OK;
 }
@@ -764,7 +793,7 @@ try // clang-format on
         {
             try
             {
-                auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
+                auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
                 original_release = vm_image_info.release_title.toStdString();
             }
             catch (const std::exception& e)
@@ -866,7 +895,7 @@ try // clang-format on
         {
             try
             {
-                auto vm_image_info = config->image_host->info_for_full_hash(vm_image.id);
+                auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
                 current_release = vm_image_info.release_title.toStdString();
             }
             catch (const std::exception& e)
