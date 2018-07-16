@@ -25,9 +25,16 @@ before_script:
 
 jobs:
   include:
-    - env: BUILD_TYPE=RelWithDebInfo
+    - &release
+      env: BUILD_TYPE=RelWithDebInfo
       script:
       - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+      cache:
+        directories:
+        - snap
+      before_cache:
+      - mkdir -p snap
+      - cp multipass_`git describe`_amd64.snap snap/
 
     - env: BUILD_TYPE=Debug
       script:
@@ -50,3 +57,10 @@ jobs:
                  cmake --build /root/build_multipass/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+
+    - <<: *release
+      stage: integration test
+      script:
+      - sudo snap install --dangerous --classic snap/multipass_`git describe`_amd64.snap
+      before_cache:
+      - rm snap/multipass_`git describe`_amd64.snap
