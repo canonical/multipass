@@ -21,6 +21,7 @@
 #include "json_writer.h"
 
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
@@ -280,6 +281,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
     if (query.query_type != Query::Type::Alias)
     {
+        if (!mp::platform::is_image_url_supported())
+            throw std::runtime_error(fmt::format("http and file based images are not supported"));
+
         QUrl image_url(QString::fromStdString(query.release));
         VMImage source_image, vm_image;
 
@@ -383,6 +387,16 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     else
     {
         auto info = info_for(query);
+
+        if (!mp::platform::is_remote_supported(query.remote_name))
+            throw std::runtime_error(fmt::format(
+                "{} is not a supported remote. Please use `multipass find` for supported images.", query.remote_name));
+
+        if (!mp::platform::is_alias_supported(query.release))
+            throw std::runtime_error(
+                fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
+                            query.release));
+
         auto id = info.id.toStdString();
 
         if (!query.name.empty())

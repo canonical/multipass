@@ -445,14 +445,6 @@ try // clang-format on
 
     auto query = query_from(request, name);
 
-    if (!mp::platform::is_remote_supported(query.remote_name))
-        throw std::runtime_error(fmt::format(
-            "{} is not a supported remote. Please use `multipass find` for supported images.", query.remote_name));
-
-    if (!mp::platform::is_alias_supported(query.release))
-        throw std::runtime_error(fmt::format(
-            "{} is not a supported alias. Please use `multipass find` for supported image aliases.", query.release));
-
     config->factory->check_hypervisor_support();
 
     auto option_errors = validate_create_arguments(request);
