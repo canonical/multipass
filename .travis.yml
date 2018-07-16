@@ -12,6 +12,11 @@ branches:
   - trying
   - master
 
+stages:
+- prune cache
+- test
+- integration test
+
 install:
 - sudo apt-get --yes --no-install-recommends install snapd
 - sudo snap install lxd
@@ -26,13 +31,19 @@ before_script:
 jobs:
   include:
     - &release
+      stage: prune cache
       env: BUILD_TYPE=RelWithDebInfo
+      install: ~
       script:
-          #      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
-      - wget -O multipass_`git describe`_amd64.snap https://api.snapcraft.io/api/v1/snaps/download/mA11087v6dR3IEcQLgICQVjuvhUUBUKM_344.snap
+      - rm --recursive --force snap
       cache:
         directories:
         - snap
+    - <<: *release
+      stage: test
+      script:
+          #      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+      - wget -O multipass_`git describe`_amd64.snap https://api.snapcraft.io/api/v1/snaps/download/mA11087v6dR3IEcQLgICQVjuvhUUBUKM_344.snap
       before_cache:
       - mkdir -p snap
       - cp multipass_`git describe`_amd64.snap snap/
@@ -61,7 +72,12 @@ jobs:
 
     - <<: *release
       stage: integration test
+      install:
+      - sudo apt-get --yes --no-install-recommends install snapd
       script:
-      - sudo snap install --dangerous --classic snap/multipass_`git describe`_amd64.snap
-      before_cache:
-      - rm snap/multipass_`git describe`_amd64.snap
+      - sudo snap install --dangerous --classic ./snap/multipass_`git describe`_amd64.snap
+      - sleep 10
+      - snap run multipass launch
+      after_failure:
+      - sudo systemctl status snap.multipass.multipassd.service
+      - sudo journalctl -u snap.multipass.multipassd.service | tee
