@@ -12,6 +12,11 @@ branches:
   - trying
   - master
 
+stages:
+- prune cache
+- test
+- integration test
+
 install:
 - sudo apt-get --yes --no-install-recommends install snapd
 - sudo snap install lxd
@@ -25,28 +30,54 @@ before_script:
 
 jobs:
   include:
-    - env: BUILD_TYPE=RelWithDebInfo
+    - &release
+      stage: prune cache
+      env: BUILD_TYPE=RelWithDebInfo
+      install: ~
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+      - rm --recursive --force snap
+      cache:
+        directories:
+        - snap
+    - <<: *release
+      stage: test
+      script:
+          #      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+      - wget -O multipass_`git describe`_amd64.snap https://api.snapcraft.io/api/v1/snaps/download/mA11087v6dR3IEcQLgICQVjuvhUUBUKM_344.snap
+      before_cache:
+      - mkdir -p snap
+      - cp multipass_`git describe`_amd64.snap snap/
 
-    - env: BUILD_TYPE=Debug
-      script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-      - sg lxd -c
-          '/snap/bin/lxc exec snapcraft-multipass --
-             env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
-                 /root/build_multipass/parts/multipass/build/bin/multipass_tests'
+        #    - env: BUILD_TYPE=Debug
+        #      script:
+        #      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
+        #      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        #      - sg lxd -c
+        #          '/snap/bin/lxc exec snapcraft-multipass --
+        #             env CTEST_OUTPUT_ON_FAILURE=1
+        #                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
+        #                 /root/build_multipass/parts/multipass/build/bin/multipass_tests'
+        #
+        #    - env: BUILD_TYPE=Coverage
+        #      script:
+        #      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
+        #      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        #      - sg lxd -c
+        #          '/snap/bin/lxc exec snapcraft-multipass --
+        #             env CTEST_OUTPUT_ON_FAILURE=1
+        #                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
+        #                 cmake --build /root/build_multipass/parts/multipass/build --target covreport'
+        #      after_success:
+        #      - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
 
-    - env: BUILD_TYPE=Coverage
+    - <<: *release
+      stage: integration test
+      install:
+      - sudo apt-get --yes --no-install-recommends install snapd
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-      - sg lxd -c
-          '/snap/bin/lxc exec snapcraft-multipass --
-             env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
-                 cmake --build /root/build_multipass/parts/multipass/build --target covreport'
-      after_success:
-      - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+      - sudo snap install --dangerous --classic ./snap/multipass_`git describe`_amd64.snap
+      - sleep 10
+      - snap run multipass launch
+      after_failure:
+      - sudo systemctl status snap.multipass.multipassd.service
+      - sudo journalctl -u snap.multipass.multipassd.service | tee
