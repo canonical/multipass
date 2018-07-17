@@ -21,6 +21,7 @@
 #include "json_writer.h"
 
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
@@ -253,9 +254,9 @@ private:
 };
 } // namespace
 
-mp::DefaultVMImageVault::DefaultVMImageVault(VMImageHost* image_host, URLDownloader* downloader,
+mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                              mp::Path cache_dir_path, mp::Path data_dir_path, mp::days days_to_expire)
-    : image_host{image_host},
+    : image_hosts{image_hosts},
       url_downloader{downloader},
       cache_dir{QDir(cache_dir_path).filePath("vault")},
       data_dir{QDir(data_dir_path).filePath("vault")},
@@ -278,8 +279,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         return record.image;
     }
 
-    if (query.query_type != Query::Type::SimpleStreams)
+    if (query.query_type != Query::Type::Alias)
     {
+        if (!mp::platform::is_image_url_supported())
+            throw std::runtime_error(fmt::format("http and file based images are not supported"));
+
         QUrl image_url(QString::fromStdString(query.release));
         VMImage source_image, vm_image;
 
@@ -301,8 +305,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
             if (fetch_type == FetchType::ImageKernelAndInitrd)
             {
-                Query kernel_query{query.name, "default", false, "", Query::Type::SimpleStreams};
-                auto info = image_host->info_for(kernel_query);
+                Query kernel_query{query.name, "default", false, "", Query::Type::Alias};
+                auto info = info_for(kernel_query);
+
                 source_image = fetch_kernel_and_initrd(info, source_image,
                                                        QFileInfo(source_image.image_path).absoluteDir(), monitor);
             }
@@ -354,8 +359,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
             if (fetch_type == FetchType::ImageKernelAndInitrd)
             {
-                Query kernel_query{query.name, "default", false, "", Query::Type::SimpleStreams};
-                auto info = image_host->info_for(kernel_query);
+                Query kernel_query{query.name, "default", false, "", Query::Type::Alias};
+                auto info = info_for(kernel_query);
+
                 source_image = fetch_kernel_and_initrd(info, source_image,
                                                        QFileInfo(source_image.image_path).absoluteDir(), monitor);
             }
@@ -380,7 +386,17 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     }
     else
     {
-        auto info = image_host->info_for(query);
+        auto info = info_for(query);
+
+        if (!mp::platform::is_remote_supported(query.remote_name))
+            throw std::runtime_error(fmt::format(
+                "{} is not a supported remote. Please use `multipass find` for supported images.", query.remote_name));
+
+        if (!mp::platform::is_alias_supported(query.release))
+            throw std::runtime_error(
+                fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
+                            query.release));
+
         auto id = info.id.toStdString();
 
         if (!query.name.empty())
@@ -484,7 +500,7 @@ void mp::DefaultVMImageVault::prune_expired_images()
     for (const auto& record : prepared_image_records)
     {
         // Expire source images if they aren't persistent and haven't been accessed in 14 days
-        if (record.second.query.query_type == Query::Type::SimpleStreams && !record.second.query.persistent &&
+        if (record.second.query.query_type == Query::Type::Alias && !record.second.query.persistent &&
             record.second.last_accessed + days_to_expire <= std::chrono::system_clock::now())
         {
             mpl::log(
@@ -509,10 +525,10 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     std::vector<decltype(prepared_image_records)::key_type> keys_to_update;
     for (const auto& record : prepared_image_records)
     {
-        if (record.second.query.query_type == Query::Type::SimpleStreams &&
+        if (record.second.query.query_type == Query::Type::Alias &&
             record.first.compare(0, record.second.query.release.length(), record.second.query.release) != 0)
         {
-            auto info = image_host->info_for(record.second.query);
+            auto info = info_for(record.second.query);
             if (info.id.toStdString() != record.first)
             {
                 keys_to_update.push_back(record.first);
@@ -589,6 +605,21 @@ mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& 
     url_downloader->download_to(info.initrd_location, image.initrd_path, -1, LaunchProgress::INITRD, monitor);
 
     return image;
+}
+
+mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
+{
+    for (const auto& image_host : image_hosts)
+    {
+        auto info = image_host->info_for(query);
+
+        if (info)
+        {
+            return info.value();
+        }
+    }
+
+    return {};
 }
 
 void mp::DefaultVMImageVault::persist_instance_records()

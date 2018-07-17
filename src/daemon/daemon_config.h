@@ -34,6 +34,7 @@
 #include <multipass/vm_image_vault.h>
 
 #include <memory>
+#include <vector>
 
 namespace multipass
 {
@@ -41,7 +42,7 @@ struct DaemonConfig
 {
     const std::unique_ptr<URLDownloader> url_downloader;
     const std::unique_ptr<VirtualMachineFactory> factory;
-    const std::unique_ptr<VMImageHost> image_host;
+    const std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     const std::unique_ptr<VMImageVault> vault;
     const std::unique_ptr<NameGenerator> name_generator;
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
@@ -58,7 +59,7 @@ struct DaemonConfigBuilder
 {
     std::unique_ptr<URLDownloader> url_downloader;
     std::unique_ptr<VirtualMachineFactory> factory;
-    std::unique_ptr<VMImageHost> image_host;
+    std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     std::unique_ptr<VMImageVault> vault;
     std::unique_ptr<NameGenerator> name_generator;
     std::unique_ptr<SSHKeyProvider> ssh_key_provider;
