@@ -41,6 +41,7 @@ int utime(const char* path, int atime, int mtime);
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 bool is_alias_supported(const std::string& alias);
 bool is_remote_supported(const std::string& remote);
+bool is_image_url_supported();
 } // namespace platform
 }
 #endif // MULTIPASS_PLATFORM_H

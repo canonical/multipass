@@ -40,12 +40,11 @@ class UbuntuVMImageHost final : public VMImageHost
 public:
     UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes, URLDownloader* downloader,
                       std::chrono::seconds manifest_time_to_live);
-    VMImageInfo info_for(const Query& query) override;
+    optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
     VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name) override;
     void for_each_entry_do(const Action& action) override;
-    std::string get_default_remote() override;
 
 private:
     void update_manifest();

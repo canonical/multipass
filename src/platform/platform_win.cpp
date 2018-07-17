@@ -143,3 +143,8 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 {
     return true;
 }
+
+bool mp::platform::is_image_url_supported()
+{
+    return true;
+}

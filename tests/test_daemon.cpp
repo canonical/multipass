@@ -96,7 +96,7 @@ struct Daemon : public Test
         config_builder.cache_directory = cache_dir.path();
         config_builder.vault = std::make_unique<mpt::StubVMImageVault>();
         config_builder.factory = std::make_unique<mpt::StubVirtualMachineFactory>();
-        config_builder.image_host = std::make_unique<mpt::StubVMImageHost>();
+        config_builder.image_hosts.push_back(std::make_unique<mpt::StubVMImageHost>());
         config_builder.ssh_key_provider = std::make_unique<mpt::StubSSHKeyProvider>();
         config_builder.cert_provider = std::make_unique<mpt::StubCertProvider>();
         config_builder.connection_type = mp::RpcConnectionType::insecure;
