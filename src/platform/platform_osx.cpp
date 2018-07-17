@@ -77,3 +77,11 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 
     return false;
 }
+
+bool mp::platform::is_image_url_supported()
+{
+    if (qgetenv("MULTIPASS_UNLOCK") == unlock_code)
+        return true;
+
+    return false;
+}
