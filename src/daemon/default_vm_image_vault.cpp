@@ -615,7 +615,7 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
 
         if (info)
         {
-            return info.value();
+            return *info;
         }
     }
 
