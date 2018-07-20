@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
 
-install -D $SNAP/var/snap/multipass/common/libvirt/libvirtd.conf $SNAP_COMMON/libvirt/libvirtd.conf
+mkdir -p $SNAP_COMMON/libvirt
+cp $SNAP/var/snap/multipass/common/libvirt/libvirtd.conf $SNAP_COMMON/libvirt/libvirtd.conf
 sed -i 's/unix_sock_group = "libvirtd"/unix_sock_group = "sudo"/' $SNAP_COMMON/libvirt/libvirtd.conf
