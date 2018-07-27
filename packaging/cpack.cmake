@@ -65,6 +65,7 @@ if(APPLE)
   set(CPACK_productbuild_COMPONENT_INSTALL ON)
 
   set(CPACK_PACKAGING_INSTALL_PREFIX   "/Library/Application Support/com.canonical.multipass")
+  set(CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qt5-libs-rpath.sh ${CMAKE_BINARY_DIR}")
 
   set(MULTIPASSD_PLIST "com.canonical.multipassd.plist")
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSD_PLIST}.in"

@@ -11,17 +11,23 @@ Can be installed via the App Store. Once this is done, you may need to install t
 Ensure you have development Frameworks for at least OS X 10.8 installed, with the typical compiler toolchain and "git". Avoid the version of cmake supplied, we need a newer one (see later).
 
 ### Qt5
-Install the latest stable version of Qt5.9 (5.9.3 at the moment): <http://www.qt.io/download-open-source/>.
+#### Option 1: Using Qt official sources
+Install the latest stable version of Qt5.11 (5.11.1 at the moment): <http://www.qt.io/download-open-source/>.
 
 If it tells you that XCode 5.0.0 needs to be installed, go to XCode > Preferences > Locations and make a selection in the _Command Line Tools_ box.
 
 Add Qt5 to your PATH environment variable, adding to your `.bash_profile` file the following line:
 
-    export PATH=$PATH:~/Qt/5.9/clang_64/bin
+    export PATH=$PATH:~/Qt/5.11.1/clang_64/bin
 
 Adjust accordingly if you customized the Qt install directory.
 
 ***Note:*** Qt5.8.0 has a known networking bug and should be avoided.
+
+#### Option 2: Using Homebrew
+Install Qt5:
+
+    brew install qt5
 
 ### Cmake/Go
 Building a Multipass package requires cmake 3.9 or greater. Go is also necessary at build time. The most convenient means to obtain these dependencies is with Homebrew <https://brew.sh/>.
@@ -52,7 +58,17 @@ Building
 ---------------------------------------
     cd <multipass>
     git submodule update --init --recursive
-    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=~/Qt/5.9.3/clang_64
+
+To build with official Qt sources do:
+
+    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=~/Qt/5.11.1/clang_64
+
+Alternatively if using Qt5 from Homebrew, do
+
+    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=/usr/local/opt/qt5
+
+Then start the build with:
+
     cmake --build build
 
 Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about missing Qt5.
