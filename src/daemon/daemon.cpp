@@ -57,6 +57,8 @@ namespace
 {
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
+constexpr auto uuid_file_name = "multipass-unique-id";
+constexpr auto metrics_opt_in_name = "multipassd-send-metrics";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -307,6 +309,51 @@ auto grpc_status_for(fmt::memory_buffer& errors)
                         fmt::format("The following errors occurred:\n{}", error_string), "");
 }
 
+auto get_unique_id(const mp::Path& data_path)
+{
+    QFile id_file{QDir(data_path).filePath(uuid_file_name)};
+    QString id;
+
+    if (!id_file.exists())
+    {
+        id = mp::MetricsProvider::generate_unique_id();
+        id_file.open(QIODevice::WriteOnly);
+        id_file.write(id.toUtf8());
+    }
+    else
+    {
+        id_file.open(QIODevice::ReadOnly);
+        id = QString(id_file.readAll());
+    }
+
+    id_file.close();
+    return id;
+}
+
+auto get_metrics_opt_in(const mp::Path& data_path)
+{
+    QFile opt_in_file{QDir(data_path).filePath(metrics_opt_in_name)};
+    auto opt_in_status{mp::OptInStatus::DENIED};
+
+    if (!opt_in_file.exists())
+    {
+        opt_in_status = mp::OptInStatus::UNKNOWN;
+    }
+    else
+    {
+        opt_in_file.open(QIODevice::ReadOnly);
+        auto data = opt_in_file.readAll();
+        if (data.size() > 0)
+        {
+            opt_in_status = static_cast<mp::OptInStatus::Status>(data.toInt());
+        }
+
+        opt_in_file.close();
+    }
+
+    return opt_in_status;
+}
+
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
@@ -328,7 +375,9 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
-      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider}
+      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider},
+      metrics_provider{metrics_url, get_unique_id(config->data_directory)},
+      metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -432,6 +481,37 @@ grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchReques
                                 grpc::ServerWriter<LaunchReply>* server) // clang-format off
 try // clang-format on
 {
+    if (metrics_opt_in == OptInStatus::UNKNOWN || metrics_opt_in == OptInStatus::LATER)
+    {
+        QFile opt_in_file{QDir(config->data_directory).filePath(metrics_opt_in_name)};
+        opt_in_file.open(QIODevice::WriteOnly);
+        opt_in_file.close();
+        metrics_opt_in = OptInStatus::PENDING;
+
+        LaunchReply reply;
+        reply.set_metrics_pending(true);
+        server->Write(reply);
+
+        return grpc::Status::OK;
+    }
+    else if (metrics_opt_in == OptInStatus::PENDING)
+    {
+        if (request->opt_in_reply().opt_in_status() != OptInStatus::UNKNOWN)
+        {
+            metrics_opt_in = request->opt_in_reply().opt_in_status();
+            QFile opt_in_file{QDir(config->data_directory).filePath(metrics_opt_in_name)};
+            opt_in_file.open(QIODevice::WriteOnly);
+            opt_in_file.write(QString::number(request->opt_in_reply().opt_in_status()).toUtf8());
+            opt_in_file.close();
+
+            if (metrics_opt_in == OptInStatus::DENIED)
+                metrics_provider.send_denied();
+        }
+    }
+
+    if (metrics_opt_in == OptInStatus::ACCEPTED)
+        metrics_provider.send_metrics();
+
     auto name = name_from(request, *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
