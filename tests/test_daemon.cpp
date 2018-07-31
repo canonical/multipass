@@ -94,6 +94,7 @@ struct Daemon : public Test
     {
         config_builder.server_address = server_address;
         config_builder.cache_directory = cache_dir.path();
+        config_builder.data_directory = data_dir.path();
         config_builder.vault = std::make_unique<mpt::StubVMImageVault>();
         config_builder.factory = std::make_unique<mpt::StubVirtualMachineFactory>();
         config_builder.image_hosts.push_back(std::make_unique<mpt::StubVMImageHost>());
@@ -101,6 +102,10 @@ struct Daemon : public Test
         config_builder.cert_provider = std::make_unique<mpt::StubCertProvider>();
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
+
+        QFile opt_in_file{QDir(data_dir.path()).filePath("multipassd-send-metrics")};
+        opt_in_file.open(QIODevice::WriteOnly);
+        opt_in_file.write(QByteArray::number(static_cast<int>(mp::OptInStatus::DENIED)));
     }
 
     mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()
@@ -160,6 +165,7 @@ struct Daemon : public Test
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
     QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
     QTemporaryDir cache_dir;
+    QTemporaryDir data_dir;
     mp::DaemonConfigBuilder config_builder;
     std::stringstream null_stream;
 };

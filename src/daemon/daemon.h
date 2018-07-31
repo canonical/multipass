@@ -22,9 +22,10 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+#include <multipass/metrics_provider.h>
+#include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
-#include <multipass/sshfs_mount/sshfs_mount.h>
 
 #include <memory>
 #include <unordered_map>
@@ -108,6 +109,8 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
+    MetricsProvider metrics_provider;
+    OptInStatus::Status metrics_opt_in;
 };
 }
 #endif // MULTIPASS_DAEMON_H

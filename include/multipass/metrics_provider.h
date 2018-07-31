@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,31 +15,33 @@
  *
  */
 
-#ifndef MULTIPASS_LAUNCH_H
-#define MULTIPASS_LAUNCH_H
+#ifndef MULTIPASS_METRICS_PROVIDER_H
+#define MULTIPASS_METRICS_PROVIDER_H
 
-#include <multipass/cli/command.h>
+#include <QByteArray>
+#include <QNetworkAccessManager>
+#include <QString>
+#include <QUrl>
 
 namespace multipass
 {
-namespace cmd
-{
-class Launch final : public Command
+class MetricsProvider
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+    MetricsProvider(const QUrl& metrics_url, const QString& unique_id);
+    MetricsProvider(const QString& metrics_url, const QString& unique_id);
 
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
+    bool send_metrics();
+    void send_denied();
+
+    static QString generate_unique_id();
 
 private:
-    ParseCode parse_args(ArgParser* parser) override;
-    ReturnCode request_launch();
+    void post_request(const QByteArray& body);
 
-    LaunchRequest request;
+    const QUrl metrics_url;
+    const QString unique_id;
+    QNetworkAccessManager manager;
 };
-} // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_LAUNCH_H
+#endif // MULTIPASS_METRICS_PROVIDER_H
