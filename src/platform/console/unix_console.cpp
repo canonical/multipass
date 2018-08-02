@@ -18,12 +18,14 @@
 #include "unix_console.h"
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/cli/client_platform.h>
 #include <multipass/platform_unix.h>
 
 #include <sys/ioctl.h>
 #include <unistd.h>
 
 namespace mp = multipass;
+namespace mcp = multipass::cli::platform;
 
 namespace
 {
@@ -81,8 +83,7 @@ private:
 };
 
 mp::UnixConsole::UnixConsole(ssh_channel channel)
-    : interactive{isatty(fileno(stdin)) == 1},
-      handler{std::make_unique<WindowChangedSignalHandler>(channel)}
+    : interactive{mcp::is_tty()}, handler{std::make_unique<WindowChangedSignalHandler>(channel)}
 {
     setup_console();
 

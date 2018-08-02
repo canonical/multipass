@@ -18,4 +18,5 @@ add_library(console STATIC
     unix_console.cpp)
 
 target_link_libraries(console
+  client_platform
   libssh)
