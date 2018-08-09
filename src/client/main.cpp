@@ -22,10 +22,27 @@
 #include <multipass/cli/cli.h>
 #include <multipass/console.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 
 #include <QCoreApplication>
+#include <QtGlobal>
 
 namespace mp = multipass;
+
+namespace
+{
+std::string get_server_address()
+{
+    const auto address = qgetenv("MULTIPASS_SERVER_ADDRESS").toStdString();
+    if (!address.empty())
+    {
+        mp::utils::validate_server_address(address);
+        return address;
+    }
+
+    return mp::platform::default_server_address();
+}
+} // namespace
 
 int main(int argc, char* argv[])
 {
@@ -33,7 +50,7 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("multipass");
     mp::Console::setup_environment();
 
-    mp::ClientConfig config{mp::platform::default_server_address(), mp::RpcConnectionType::ssl, std::cout, std::cerr};
+    mp::ClientConfig config{get_server_address(), mp::RpcConnectionType::ssl, std::cout, std::cerr};
     mp::Client client{config};
 
     return client.run(QCoreApplication::arguments());
