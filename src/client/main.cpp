@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     mp::Console::setup_environment();
 
     auto data_dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    auto client_cert_dir = mp::utils::make_dir(data_dir, "client-cert");
+    auto client_cert_dir = mp::utils::make_dir(data_dir, "client-certificate");
     auto cert_provider = std::make_unique<mp::SSLCertProvider>(client_cert_dir);
 
     mp::ClientConfig config{get_server_address(), mp::RpcConnectionType::ssl, std::move(cert_provider), std::cout,

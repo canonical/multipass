@@ -21,8 +21,6 @@
 #include <multipass/cert_provider.h>
 #include <multipass/path.h>
 
-#include <QDir>
-
 #include <string>
 
 namespace multipass
@@ -42,7 +40,6 @@ public:
     std::string PEM_signing_key() const override;
 
 private:
-    QDir cert_dir;
     KeyCertificatePair key_cert_pair;
 };
 } // namespace multipass
