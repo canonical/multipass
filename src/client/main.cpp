@@ -22,9 +22,11 @@
 #include <multipass/cli/cli.h>
 #include <multipass/console.h>
 #include <multipass/platform.h>
+#include <multipass/ssl_cert_provider.h>
 #include <multipass/utils.h>
 
 #include <QCoreApplication>
+#include <QStandardPaths>
 #include <QtGlobal>
 
 namespace mp = multipass;
@@ -50,7 +52,12 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("multipass");
     mp::Console::setup_environment();
 
-    mp::ClientConfig config{get_server_address(), mp::RpcConnectionType::ssl, std::cout, std::cerr};
+    auto data_dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    auto client_cert_dir = mp::utils::make_dir(data_dir, "client-cert");
+    auto cert_provider = std::make_unique<mp::SSLCertProvider>(client_cert_dir);
+
+    mp::ClientConfig config{get_server_address(), mp::RpcConnectionType::ssl, std::move(cert_provider), std::cout,
+                            std::cerr};
     mp::Client client{config};
 
     return client.run(QCoreApplication::arguments());
