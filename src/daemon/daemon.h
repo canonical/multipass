@@ -96,6 +96,9 @@ public slots:
 
     grpc::Status version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response) override;
 
+    grpc::Status registr(grpc::ServerContext* context, const RegisterRequest* request,
+                         RegisterReply* response) override;
+
 private:
     void persist_instances();
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
@@ -112,5 +115,5 @@ private:
     MetricsProvider metrics_provider;
     OptInStatus::Status metrics_opt_in;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_DAEMON_H

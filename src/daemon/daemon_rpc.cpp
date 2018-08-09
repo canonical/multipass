@@ -90,9 +90,9 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
                          const CertProvider& cert_provider, const CertStore& client_cert_store)
-    : server_address{server_address}, server{make_server(server_address, type, cert_provider, client_cert_store, this)}
+    : server{make_server(server_address, type, cert_provider, client_cert_store, this)}
 {
-    std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
+    std::string ssl_enabled = type == mp::RpcConnectionType::insecure ? "off" : "on";
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
 }
 
@@ -166,4 +166,10 @@ grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionR
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response)
 {
     return grpc::Status::OK;
+}
+
+grpc::Status mp::DaemonRpc::registr(grpc::ServerContext* context, const RegisterRequest* request,
+                                    RegisterReply* response)
+{
+    return emit on_register(context, request, response); // must block until slot returns
 }

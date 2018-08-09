@@ -32,6 +32,7 @@ service Rpc {
     rpc delet (DeleteRequest) returns (DeleteReply);
     rpc umount (UmountRequest) returns (UmountReply);
     rpc version (VersionRequest) returns (VersionReply);
+    rpc registr (RegisterRequest) returns (RegisterReply);
 }
 
 message OptInStatus {
@@ -281,4 +282,11 @@ message VersionRequest {
 
 message VersionReply {
     string version = 1;
+}
+
+message RegisterRequest {
+    string cert = 1;
+}
+
+message RegisterReply {
 }

@@ -369,6 +369,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_register, &daemon, &mp::Daemon::registr, Qt::BlockingQueuedConnection);
 }
 } // namespace
 
@@ -1469,6 +1470,18 @@ grpc::Status mp::Daemon::version(grpc::ServerContext* context, const VersionRequ
 {
     response->set_version(multipass::version_string);
     return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::registr(grpc::ServerContext* context, const RegisterRequest* request,
+                                 RegisterReply* response) // clang-format off
+try // clang-format on
+{
+    config->client_cert_store->add_cert(request->cert());
+    return grpc::Status::OK;
+}
+catch (const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
 void mp::Daemon::on_shutdown()

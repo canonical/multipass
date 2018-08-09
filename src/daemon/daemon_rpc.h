@@ -59,9 +59,9 @@ signals:
     grpc::Status on_delete(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response);
     grpc::Status on_umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response);
     grpc::Status on_version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response);
+    grpc::Status on_register(grpc::ServerContext* context, const RegisterRequest* request, RegisterReply* response);
 
 private:
-    const std::string server_address;
     const std::unique_ptr<grpc::Server> server;
 
 protected:
@@ -80,6 +80,8 @@ protected:
     grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response) override;
     grpc::Status version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response) override;
     grpc::Status ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response) override;
+    grpc::Status registr(grpc::ServerContext* context, const RegisterRequest* request,
+                         RegisterReply* response) override;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H
