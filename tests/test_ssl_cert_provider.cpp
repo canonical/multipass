@@ -18,9 +18,9 @@
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/utils.h>
 
+#include "file_operations.h"
 #include "temp_dir.h"
 
-#include <QTemporaryDir>
 #include <gmock/gmock.h>
 
 namespace mp = multipass;
@@ -28,23 +28,6 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
-namespace
-{
-template <typename T>
-void write(const QDir& dir, const char* name, const T& t)
-{
-    QFile output{dir.filePath(name)};
-    auto opened = output.open(QIODevice::WriteOnly);
-    if (!opened)
-        throw std::runtime_error("test unable to open file for writing");
-
-    auto written = output.write(t);
-    if (written == -1)
-        throw std::runtime_error("test unable to write data");
-
-    output.close();
-}
-} // namespace
 struct SSLCertProvider : public testing::Test
 {
     SSLCertProvider()
@@ -84,9 +67,12 @@ TEST_F(SSLCertProvider, imports_existing_cert_and_key)
                                "aXByaQyt\n"
                                "-----END CERTIFICATE-----\n";
 
-    QDir dir{cert_dir};
-    write(dir, "multipass_cert_key.pem", key_data);
-    write(dir, "multipass_cert.pem", cert_data);
+    const QDir dir{cert_dir};
+    const auto key_path = dir.filePath("multipass_cert_key.pem");
+    const auto cert_path = dir.filePath("multipass_cert.pem");
+
+    mpt::make_file_with_content(key_path, key_data);
+    mpt::make_file_with_content(cert_path, cert_data);
 
     mp::SSLCertProvider cert_provider{cert_dir};
 
