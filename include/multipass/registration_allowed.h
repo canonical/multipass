@@ -15,15 +15,14 @@
  *
  */
 
-#ifndef MULTIPASS_RPC_CONNECTION_TYPE_H
-#define MULTIPASS_RPC_CONNECTION_TYPE_H
+#ifndef MULTIPASS_REGISTRATION_ALLOWED_H
+#define MULTIPASS_REGISTRATION_ALLOWED_H
 namespace multipass
 {
-enum class RpcConnectionType
+enum class RegistrationAllowed
 {
-    insecure,
-    ssl,
-    ssl_accept_only_known_clients
+    no,
+    yes
 };
 }
-#endif // MULTIPASS_RPC_CONNECTION_TYPE_H
+#endif // MULTIPASS_REGISTRATION_ALLOWED_H

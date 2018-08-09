@@ -56,10 +56,8 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
     QCommandLineOption logger_option{"logger", "specifies which logger to use", "platform|stderr"};
     QCommandLineOption verbosity_option{
         {"V", "verbosity"}, "specifies the logging verbosity level", "error|warning|info|debug"};
-    QCommandLineOption address_option{"address",
-                                      "specifies which address to use for the multipassd service;"
-                                      " a socket can be specified using unix:<socket_file>",
-                                      "server_name:port"};
+    QCommandLineOption address_option{
+        "pub-address", "specifies the public server address to use for the multipassd service. ", "address"};
 
     parser.addOption(logger_option);
     parser.addOption(verbosity_option);
@@ -87,7 +85,7 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
     {
         auto address = parser.value(address_option).toStdString();
         mp::utils::validate_server_address(address);
-        builder.server_address = address;
+        builder.pub_server_address = address;
     }
 
     return builder;

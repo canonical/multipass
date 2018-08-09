@@ -61,9 +61,12 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
     grpc::ServerBuilder builder;
 
     std::shared_ptr<grpc::ServerCredentials> creds;
-    if (conn_type == mp::RpcConnectionType::ssl)
+    if (conn_type == mp::RpcConnectionType::ssl || conn_type == mp::RpcConnectionType::ssl_accept_only_known_clients)
     {
-        grpc::SslServerCredentialsOptions opts(GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY);
+        auto req_type = conn_type == mp::RpcConnectionType::ssl
+                            ? GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY
+                            : GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY;
+        grpc::SslServerCredentialsOptions opts(req_type);
         opts.pem_key_cert_pairs.push_back({cert_provider.PEM_signing_key(), cert_provider.PEM_certificate()});
         opts.pem_root_certs = client_cert_store.PEM_cert_chain();
         creds = grpc::SslServerCredentials(opts);
@@ -86,14 +89,23 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
 
     return server;
 }
+bool allows_registration(mp::RegistrationAllowed reg_allowed)
+{
+    return reg_allowed == mp::RegistrationAllowed::yes;
+}
 } // namespace
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
-                         const CertProvider& cert_provider, const CertStore& client_cert_store)
-    : server{make_server(server_address, type, cert_provider, client_cert_store, this)}
+                         mp::RegistrationAllowed reg_allowed, const CertProvider& cert_provider,
+                         const CertStore& client_cert_store)
+    : allow_registration{allows_registration(reg_allowed)},
+      server{make_server(server_address, type, cert_provider, client_cert_store, this)}
 {
     std::string ssl_enabled = type == mp::RpcConnectionType::insecure ? "off" : "on";
-    mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
+    std::string accepting =
+        type == mp::RpcConnectionType::ssl_accept_only_known_clients ? "registered clients only" : "all";
+    mpl::log(mpl::Level::info, category,
+             fmt::format("gRPC listening on {}, SSL:{}, accepting: {}", server_address, ssl_enabled, accepting));
 }
 
 grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,
@@ -171,5 +183,8 @@ grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest
 grpc::Status mp::DaemonRpc::registr(grpc::ServerContext* context, const RegisterRequest* request,
                                     RegisterReply* response)
 {
-    return emit on_register(context, request, response); // must block until slot returns
+    if (allow_registration)
+        return emit on_register(context, request, response); // must block until slot returns
+
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "registration is not allowed", "");
 }

@@ -23,6 +23,7 @@
 #include "daemon_config.h"
 
 #include <multipass/cert_provider.h>
+#include <multipass/registration_allowed.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 
@@ -38,8 +39,8 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service
 {
     Q_OBJECT
 public:
-    DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider,
-              const CertStore& client_cert_store);
+    DaemonRpc(const std::string& server_address, RpcConnectionType type, RegistrationAllowed reg_allowed,
+              const CertProvider& cert_provider, const CertStore& client_cert_store);
     DaemonRpc(const DaemonRpc&) = delete;
     DaemonRpc& operator=(const DaemonRpc&) = delete;
 
@@ -62,6 +63,7 @@ signals:
     grpc::Status on_register(grpc::ServerContext* context, const RegisterRequest* request, RegisterReply* response);
 
 private:
+    const bool allow_registration;
     const std::unique_ptr<grpc::Server> server;
 
 protected:

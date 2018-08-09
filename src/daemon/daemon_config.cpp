@@ -99,14 +99,18 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (cert_provider == nullptr)
         cert_provider = std::make_unique<mp::SSLCertProvider>(mp::utils::make_dir(data_directory, "certificates"),
                                                               server_name_from(server_address));
+    if (pub_cert_provider == nullptr && !pub_server_address.empty())
+        pub_cert_provider = std::make_unique<mp::SSLCertProvider>(mp::utils::make_dir(data_directory, "certificates"),
+                                                                  server_name_from(pub_server_address));
     if (client_cert_store == nullptr)
         client_cert_store =
             std::make_unique<mp::ClientCertStore>(mp::utils::make_dir(data_directory, "registered-certs"));
     if (ssh_username.empty())
         ssh_username = "multipass";
 
-    return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
-        std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
-        std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
-        shared_logger, cache_directory, data_directory, server_address, ssh_username, connection_type});
+    return std::unique_ptr<const DaemonConfig>(
+        new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
+                         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider),
+                         std::move(pub_cert_provider), std::move(client_cert_store), shared_logger, cache_directory,
+                         data_directory, server_address, pub_server_address, ssh_username, connection_type});
 }
