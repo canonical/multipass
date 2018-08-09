@@ -233,8 +233,8 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
 } // namespace
 
-mp::SSLCertProvider::SSLCertProvider(const multipass::Path& data_dir, const std::string& server_name)
-    : cert_dir{mp::utils::make_dir(data_dir, "certificate")}, key_cert_pair{make_cert_key_pair(cert_dir, server_name)}
+mp::SSLCertProvider::SSLCertProvider(const multipass::Path& cert_dir, const std::string& server_name)
+    : key_cert_pair{make_cert_key_pair(cert_dir, server_name)}
 {
 }
 
