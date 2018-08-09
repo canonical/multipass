@@ -27,7 +27,9 @@
 #include <QProcess>
 #include <QUuid>
 
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <fstream>
 #include <random>
 #include <regex>
@@ -216,4 +218,9 @@ std::string mp::utils::contents_of(const multipass::Path& file_path)
     std::stringstream stream;
     stream << in.rdbuf();
     return stream.str();
+}
+
+bool mp::utils::has_only_digits(const std::string& value)
+{
+    return std::all_of(value.begin(), value.end(), [](char c) { return std::isdigit(c); });
 }

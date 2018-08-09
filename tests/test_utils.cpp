@@ -328,3 +328,10 @@ TEST(Utils, split_returns_one_token_if_no_delimiter)
 
     EXPECT_THAT(tokens[0], StrEq(content));
 }
+
+TEST(Utils, has_only_digits_works)
+{
+    EXPECT_FALSE(mp::utils::has_only_digits("124ft:,"));
+    EXPECT_TRUE(mp::utils::has_only_digits("0123456789"));
+    EXPECT_FALSE(mp::utils::has_only_digits("0123456789:'`'"));
+}
