@@ -14,6 +14,7 @@
 #
 
 add_library(cert
+  biomem.cpp
   client_cert_store.cpp
   ssl_cert_provider.cpp
 )
