@@ -25,6 +25,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <sstream>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
@@ -294,4 +296,35 @@ TEST(Utils, contents_of_empty_contents_on_empty_file)
 
     auto content = mp::utils::contents_of(file_name);
     EXPECT_TRUE(content.empty());
+}
+
+TEST(Utils, split_returns_token_list)
+{
+    std::vector<std::string> expected_tokens;
+    expected_tokens.push_back("Hello");
+    expected_tokens.push_back("World");
+    expected_tokens.push_back("Bye!");
+
+    const std::string delimiter{":"};
+
+    std::stringstream content;
+    for (const auto& token : expected_tokens)
+    {
+        content << token;
+        content << delimiter;
+    }
+
+    const auto tokens = mp::utils::split(content.str(), delimiter);
+    EXPECT_THAT(tokens, ContainerEq(expected_tokens));
+}
+
+TEST(Utils, split_returns_one_token_if_no_delimiter)
+{
+    const std::string content{"no delimiter here"};
+    const std::string delimiter{":"};
+
+    const auto tokens = mp::utils::split(content, delimiter);
+    ASSERT_THAT(tokens.size(), Eq(1u));
+
+    EXPECT_THAT(tokens[0], StrEq(content));
 }
