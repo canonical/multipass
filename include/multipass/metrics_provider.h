@@ -34,8 +34,6 @@ public:
     bool send_metrics();
     void send_denied();
 
-    static QString generate_unique_id();
-
 private:
     void post_request(const QByteArray& body);
 
