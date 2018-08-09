@@ -25,6 +25,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QUuid>
 
 #include <array>
 #include <random>
@@ -41,7 +42,7 @@ auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
         return "";
     return arg.find('\'') == std::string::npos ? "'" : "\"";
 }
-}
+} // namespace
 
 QDir mp::utils::base_dir(const QString& path)
 {
@@ -193,4 +194,12 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
         throw std::runtime_error(fmt::format("unable to create directory '{}'", dir.toStdString()));
     }
     return a_dir.filePath(name);
+}
+
+QString mp::utils::make_uuid()
+{
+    auto uuid = QUuid::createUuid().toString();
+
+    // Remove curly brackets enclosing uuid
+    return uuid.mid(1, uuid.size() - 2);
 }

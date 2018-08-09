@@ -17,6 +17,8 @@
 
 #include <multipass/utils.h>
 
+#include <QRegExp>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -255,4 +257,10 @@ TEST(Utils, try_action_does_not_timeout)
 
     EXPECT_FALSE(on_timeout_called);
     EXPECT_TRUE(action_called);
+}
+
+TEST(Utils, uuid_has_no_curly_brackets)
+{
+    auto uuid = mp::utils::make_uuid();
+    EXPECT_FALSE(uuid.contains(QRegExp("[{}]")));
 }

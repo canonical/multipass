@@ -316,7 +316,7 @@ auto get_unique_id(const mp::Path& data_path)
 
     if (!id_file.exists())
     {
-        id = mp::MetricsProvider::generate_unique_id();
+        id = mp::utils::make_uuid();
         id_file.open(QIODevice::WriteOnly);
         id_file.write(id.toUtf8());
     }
