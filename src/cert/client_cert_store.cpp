@@ -18,6 +18,11 @@
 #include <multipass/client_cert_store.h>
 #include <multipass/utils.h>
 
+#include "biomem.h"
+
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+
 #include <QDir>
 #include <QFile>
 
@@ -28,7 +33,17 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto chain_name = "multipass_client_certs.pem";
+
+void validate_certificate(const std::string& pem_cert)
+{
+    mp::BIOMem bio{pem_cert};
+    auto raw_cert = PEM_read_bio_X509(bio.get(), nullptr, nullptr, nullptr);
+    std::unique_ptr<X509, decltype(X509_free)*> x509{raw_cert, X509_free};
+
+    if (raw_cert == nullptr)
+        throw std::runtime_error("invalid certificate data");
 }
+} // namespace
 
 mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir) : cert_dir{cert_dir}
 {
@@ -36,6 +51,7 @@ mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir) : cert_dir
 
 void mp::ClientCertStore::add_cert(const std::string& pem_cert)
 {
+    validate_certificate(pem_cert);
     QDir dir{cert_dir};
     QFile file{dir.filePath(chain_name)};
     auto opened = file.open(QIODevice::WriteOnly | QIODevice::Append);

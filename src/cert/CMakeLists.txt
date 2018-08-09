@@ -41,6 +41,7 @@ endif()
 
 if (ssl_ignore_header_warning_flags)
   set_source_files_properties(ssl_cert_provider.cpp PROPERTIES COMPILE_FLAGS ${ssl_ignore_header_warning_flags})
+  set_source_files_properties(client_cert_store.cpp PROPERTIES COMPILE_FLAGS ${ssl_ignore_header_warning_flags})
 endif()
 
 target_link_libraries(cert
