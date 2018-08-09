@@ -18,12 +18,26 @@
 #ifndef MULTIPASS_SHOW_CREDS_H
 #define MULTIPASS_SHOW_CREDS_H
 
+#include <multipass/cli/command.h>
 
+namespace multipass
+{
+namespace cmd
+{
+class ShowCreds final : public Command
+{
+public:
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
 
-class show_creds {
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
 
+private:
+    ParseCode parse_args(ArgParser* parser) override;
 };
-
-
+} // namespace cmd
+} // namespace multipass
 
 #endif // MULTIPASS_SHOW_CREDS_H

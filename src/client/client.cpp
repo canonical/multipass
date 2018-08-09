@@ -29,6 +29,7 @@
 #include "cmd/purge.h"
 #include "cmd/recover.h"
 #include "cmd/shell.h"
+#include "cmd/show_creds.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
 #include "cmd/umount.h"
@@ -107,6 +108,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
     add_command<cmd::Shell>();
+    add_command<cmd::ShowCreds>();
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
     add_command<cmd::Delete>();
@@ -120,7 +122,7 @@ mp::Client::Client(ClientConfig& config)
 template <typename T>
 void mp::Client::add_command()
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, &formatters, cout, cerr);
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, formatters, *cert_provider, cout, cerr);
     commands.push_back(std::move(cmd));
 }
 
