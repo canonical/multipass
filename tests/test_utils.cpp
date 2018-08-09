@@ -17,12 +17,17 @@
 
 #include <multipass/utils.h>
 
+#include "file_operations.h"
+#include "temp_dir.h"
+
 #include <QRegExp>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
+
 using namespace testing;
 
 TEST(Utils, KB_is_valid)
@@ -263,4 +268,30 @@ TEST(Utils, uuid_has_no_curly_brackets)
 {
     auto uuid = mp::utils::make_uuid();
     EXPECT_FALSE(uuid.contains(QRegExp("[{}]")));
+}
+
+TEST(Utils, contents_of_actually_reads_contents)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    std::string expected_content{"just a bit of test content here"};
+    mpt::make_file_with_content(file_name, expected_content);
+
+    auto content = mp::utils::contents_of(file_name);
+    EXPECT_THAT(content, StrEq(expected_content));
+}
+
+TEST(Utils, contents_of_throws_on_missing_file)
+{
+    EXPECT_THROW(mp::utils::contents_of("this-file-does-not-exist"), std::runtime_error);
+}
+
+TEST(Utils, contents_of_empty_contents_on_empty_file)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/empty_test_file";
+    mpt::make_file_with_content(file_name, "");
+
+    auto content = mp::utils::contents_of(file_name);
+    EXPECT_TRUE(content.empty());
 }

@@ -28,8 +28,10 @@
 #include <QUuid>
 
 #include <array>
+#include <fstream>
 #include <random>
 #include <regex>
+#include <sstream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -202,4 +204,16 @@ QString mp::utils::make_uuid()
 
     // Remove curly brackets enclosing uuid
     return uuid.mid(1, uuid.size() - 2);
+}
+
+std::string mp::utils::contents_of(const multipass::Path& file_path)
+{
+    const std::string name{file_path.toStdString()};
+    std::ifstream in(name, std::ios::in | std::ios::binary);
+    if (!in)
+        throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno));
+
+    std::stringstream stream;
+    stream << in.rdbuf();
+    return stream.str();
 }

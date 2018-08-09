@@ -203,23 +203,6 @@ private:
     std::unique_ptr<X509, decltype(X509_free)*> x509{X509_new(), X509_free};
 };
 
-std::string contents_of(const QString& name)
-{
-    std::ifstream in(name.toStdString(), std::ios::in | std::ios::binary);
-    if (in)
-    {
-        std::string contents;
-        in.seekg(0, std::ios::end);
-        contents.resize(in.tellg());
-        in.seekg(0, std::ios::beg);
-        in.read(&contents[0], contents.size());
-        in.close();
-        return contents;
-    }
-    throw std::runtime_error(
-        fmt::format("failed to open file '{}': {}({})", name.toStdString(), strerror(errno), errno));
-}
-
 mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir)
 {
     auto priv_key_path = cert_dir.filePath("multipass_cert_key.pem");
@@ -227,7 +210,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir)
 
     if (QFile::exists(priv_key_path) && QFile::exists(cert_path))
     {
-        return {contents_of(cert_path), contents_of(priv_key_path)};
+        return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
     }
 
     EVPKey key;
