@@ -18,7 +18,8 @@
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/utils.h>
 
-#include <openssl/bio.h>
+#include "biomem.h"
+
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/x509.h>
@@ -38,31 +39,6 @@ namespace mp = multipass;
 
 namespace
 {
-class BIOMem
-{
-public:
-    BIOMem()
-    {
-        if (bio == nullptr)
-            throw std::runtime_error("Failed to create BIO structure");
-    }
-
-    std::string as_string()
-    {
-        std::vector<char> pem(bio->num_write);
-        BIO_read(bio.get(), pem.data(), pem.size());
-        return {pem.begin(), pem.end()};
-    }
-
-    BIO* get() const
-    {
-        return bio.get();
-    }
-
-private:
-    std::unique_ptr<BIO, decltype(BIO_free)*> bio{BIO_new(BIO_s_mem()), BIO_free};
-};
-
 class WritableFile
 {
 public:
@@ -107,7 +83,7 @@ public:
 
     std::string as_pem() const
     {
-        BIOMem mem;
+        mp::BIOMem mem;
         auto bytes = PEM_write_bio_PrivateKey(mem.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr);
         if (bytes == 0)
             throw std::runtime_error("Failed to export certificate in PEM format");
@@ -192,7 +168,7 @@ public:
 
     std::string as_pem()
     {
-        BIOMem mem;
+        mp::BIOMem mem;
         auto bytes = PEM_write_bio_X509(mem.get(), x509.get());
         if (bytes == 0)
             throw std::runtime_error("Failed to write certificate in PEM format");
