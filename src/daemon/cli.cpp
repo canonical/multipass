@@ -26,9 +26,6 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 
-#include <algorithm>
-#include <cctype>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -89,23 +86,7 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
     if (parser.isSet(address_option))
     {
         auto address = parser.value(address_option).toStdString();
-        if (address.empty())
-            throw std::runtime_error("empty server address");
-
-        auto tokens = mp::utils::split(address, ":");
-        const auto server_name = tokens[0];
-        if (tokens.size() == 1u)
-        {
-            if (server_name == "unix")
-                throw std::runtime_error(fmt::format("missing socket file in address '{}'", address));
-            else
-                throw std::runtime_error(fmt::format("missing port number in address '{}'", address));
-        }
-
-        const auto port = tokens[1];
-        if (server_name != "unix" && !mp::utils::has_only_digits(port))
-            throw std::runtime_error(fmt::format("invalid port number in address '{}'", address));
-
+        mp::utils::validate_server_address(address);
         builder.server_address = address;
     }
 
