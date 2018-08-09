@@ -26,6 +26,7 @@ add_library(commands STATIC
   list.cpp
   mount.cpp
   recover.cpp
+  register.cpp
   shell.cpp
   show_creds.cpp
   start.cpp

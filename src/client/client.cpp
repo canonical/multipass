@@ -28,6 +28,7 @@
 #include "cmd/mount.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
+#include "cmd/register.h"
 #include "cmd/shell.h"
 #include "cmd/show_creds.h"
 #include "cmd/start.h"
@@ -107,6 +108,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::List>();
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
+    add_command<cmd::Register>();
     add_command<cmd::Shell>();
     add_command<cmd::ShowCreds>();
     add_command<cmd::Start>();

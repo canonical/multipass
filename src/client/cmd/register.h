@@ -18,12 +18,28 @@
 #ifndef MULTIPASS_REGISTER_H
 #define MULTIPASS_REGISTER_H
 
+#include <multipass/cli/command.h>
 
+namespace multipass
+{
+namespace cmd
+{
+class Register final : public Command
+{
+public:
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
 
-class register {
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
 
+private:
+    RegisterRequest request;
+
+    ParseCode parse_args(ArgParser* parser) override;
 };
-
-
+} // namespace cmd
+} // namespace multipass
 
 #endif // MULTIPASS_REGISTER_H
