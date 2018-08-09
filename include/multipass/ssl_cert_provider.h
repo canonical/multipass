@@ -37,6 +37,7 @@ public:
     };
 
     explicit SSLCertProvider(const Path& data_dir);
+    SSLCertProvider(const Path& data_dir, const std::string& server_name);
     std::string PEM_certificate() const override;
     std::string PEM_signing_key() const override;
 
