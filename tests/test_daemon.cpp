@@ -29,6 +29,7 @@
 #include <multipass/vm_image_vault.h>
 
 #include "mock_virtual_machine_factory.h"
+#include "stub_cert_store.h"
 #include "stub_certprovider.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
@@ -100,6 +101,7 @@ struct Daemon : public Test
         config_builder.image_hosts.push_back(std::make_unique<mpt::StubVMImageHost>());
         config_builder.ssh_key_provider = std::make_unique<mpt::StubSSHKeyProvider>();
         config_builder.cert_provider = std::make_unique<mpt::StubCertProvider>();
+        config_builder.client_cert_store = std::make_unique<mpt::StubCertStore>();
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
 
@@ -116,8 +118,7 @@ struct Daemon : public Test
         ON_CALL(*mock_factory_ptr, create_virtual_machine(_, _))
             .WillByDefault(Return(ByMove(std::make_unique<mpt::StubVirtualMachine>())));
 
-        ON_CALL(*mock_factory_ptr, prepare_source_image(_))
-            .WillByDefault(ReturnArg<0>());
+        ON_CALL(*mock_factory_ptr, prepare_source_image(_)).WillByDefault(ReturnArg<0>());
 
         config_builder.factory = std::move(mock_factory);
         return mock_factory_ptr;
@@ -145,7 +146,8 @@ struct Daemon : public Test
         // Commands need to be sent from a thread different from that the QEventLoop is on.
         // Event loop is started/stopped to ensure all signals are delivered
         mp::AutoJoinThread t([this, &commands, &cout] {
-            mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure, cout, std::cerr};
+            mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
+                                           std::make_unique<mpt::StubCertProvider>(), cout, std::cerr};
             mp::Client client{client_config};
             for (const auto& command : commands)
             {
@@ -372,7 +374,7 @@ public:
 private:
     std::string key;
 };
-}
+} // namespace
 
 TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config)
 {

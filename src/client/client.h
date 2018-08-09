@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_CLIENT_H
 #define MULTIPASS_CLIENT_H
 
+#include <multipass/cert_provider.h>
 #include <multipass/cli/cli.h>
 #include <multipass/cli/command.h>
 #include <multipass/cli/formatter.h>
@@ -34,6 +35,7 @@ struct ClientConfig
 {
     const std::string server_address;
     const RpcConnectionType conn_type;
+    std::unique_ptr<CertProvider> cert_provider;
     std::ostream& cout;
     std::ostream& cerr;
 };
@@ -41,12 +43,13 @@ struct ClientConfig
 class Client
 {
 public:
-    explicit Client(const ClientConfig& context);
+    explicit Client(ClientConfig& context);
     int run(const QStringList& arguments);
 
 private:
     template <typename T>
     void add_command();
+    const std::unique_ptr<CertProvider> cert_provider;
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
     std::map<std::string, std::unique_ptr<multipass::Formatter>> formatters;

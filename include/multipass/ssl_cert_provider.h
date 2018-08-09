@@ -21,8 +21,6 @@
 #include <multipass/cert_provider.h>
 #include <multipass/path.h>
 
-#include <QDir>
-
 #include <string>
 
 namespace multipass
@@ -37,11 +35,11 @@ public:
     };
 
     explicit SSLCertProvider(const Path& data_dir);
+    SSLCertProvider(const Path& data_dir, const std::string& server_name);
     std::string PEM_certificate() const override;
     std::string PEM_signing_key() const override;
 
 private:
-    QDir cert_dir;
     KeyCertificatePair key_cert_pair;
 };
 } // namespace multipass

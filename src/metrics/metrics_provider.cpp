@@ -31,7 +31,6 @@
 #include <QNetworkRequest>
 #include <QRegExp>
 #include <QString>
-#include <QUuid>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -66,7 +65,7 @@ bool mp::MetricsProvider::send_metrics()
     metrics.push_back(metric);
 
     QJsonObject metric_batch;
-    metric_batch.insert("uuid", generate_unique_id());
+    metric_batch.insert("uuid", mp::utils::make_uuid());
     metric_batch.insert("created", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
     metric_batch.insert("metrics", metrics);
     metric_batch.insert("credentials", QString());
@@ -91,12 +90,6 @@ void mp::MetricsProvider::send_denied()
     auto body = QJsonDocument(denied_batches).toJson(QJsonDocument::Compact);
 
     post_request(body);
-}
-
-QString mp::MetricsProvider::generate_unique_id()
-{
-    auto uuid = QUuid::createUuid();
-    return uuid.toString().remove(QRegExp("[{}]"));
 }
 
 void mp::MetricsProvider::post_request(const QByteArray& body)

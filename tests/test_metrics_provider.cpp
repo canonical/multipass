@@ -15,7 +15,8 @@
  *
  */
 
-#include "multipass/metrics_provider.h"
+#include <multipass/metrics_provider.h>
+#include <multipass/utils.h>
 
 #include "temp_file.h"
 
@@ -43,7 +44,7 @@ struct MetricsProvider : public testing::Test
 
 TEST_F(MetricsProvider, opt_in_metrics_valid)
 {
-    auto unique_id = mp::MetricsProvider::generate_unique_id();
+    const auto unique_id = mp::utils::make_uuid();
     mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id};
 
     metrics_provider.send_metrics();
@@ -108,7 +109,7 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
 
 TEST_F(MetricsProvider, opt_out_denied_valid)
 {
-    auto unique_id = mp::MetricsProvider::generate_unique_id();
+    const auto unique_id = mp::utils::make_uuid();
     mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id};
 
     metrics_provider.send_denied();

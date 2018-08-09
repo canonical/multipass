@@ -18,7 +18,8 @@
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/utils.h>
 
-#include <openssl/bio.h>
+#include "biomem.h"
+
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/x509.h>
@@ -38,31 +39,6 @@ namespace mp = multipass;
 
 namespace
 {
-class BIOMem
-{
-public:
-    BIOMem()
-    {
-        if (bio == nullptr)
-            throw std::runtime_error("Failed to create BIO structure");
-    }
-
-    std::string as_string()
-    {
-        std::vector<char> pem(bio->num_write);
-        BIO_read(bio.get(), pem.data(), pem.size());
-        return {pem.begin(), pem.end()};
-    }
-
-    BIO* get() const
-    {
-        return bio.get();
-    }
-
-private:
-    std::unique_ptr<BIO, decltype(BIO_free)*> bio{BIO_new(BIO_s_mem()), BIO_free};
-};
-
 class WritableFile
 {
 public:
@@ -107,7 +83,7 @@ public:
 
     std::string as_pem() const
     {
-        BIOMem mem;
+        mp::BIOMem mem;
         auto bytes = PEM_write_bio_PrivateKey(mem.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr);
         if (bytes == 0)
             throw std::runtime_error("Failed to export certificate in PEM format");
@@ -151,10 +127,17 @@ std::vector<unsigned char> as_vector(const std::string& v)
     return {v.begin(), v.end()};
 }
 
+std::string cn_name_from(const std::string& server_name)
+{
+    if (server_name.empty())
+        return mp::utils::make_uuid().toStdString();
+    return server_name;
+}
+
 class X509Cert
 {
 public:
-    explicit X509Cert(const EVPKey& key)
+    explicit X509Cert(const EVPKey& key, const std::string& server_name)
     {
         if (x509 == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
@@ -168,7 +151,7 @@ public:
 
         auto country = as_vector("US");
         auto org = as_vector("Canonical");
-        auto cn = as_vector("localhost");
+        auto cn = as_vector(cn_name_from(server_name));
 
         auto name = X509_get_subject_name(x509.get());
         X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, country.data(), country.size(), APPEND_ENTRY, ADD_RDN);
@@ -185,7 +168,7 @@ public:
 
     std::string as_pem()
     {
-        BIOMem mem;
+        mp::BIOMem mem;
         auto bytes = PEM_write_bio_X509(mem.get(), x509.get());
         if (bytes == 0)
             throw std::runtime_error("Failed to write certificate in PEM format");
@@ -203,35 +186,20 @@ private:
     std::unique_ptr<X509, decltype(X509_free)*> x509{X509_new(), X509_free};
 };
 
-std::string contents_of(const QString& name)
+mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir, const std::string& server_name)
 {
-    std::ifstream in(name.toStdString(), std::ios::in | std::ios::binary);
-    if (in)
-    {
-        std::string contents;
-        in.seekg(0, std::ios::end);
-        contents.resize(in.tellg());
-        in.seekg(0, std::ios::beg);
-        in.read(&contents[0], contents.size());
-        in.close();
-        return contents;
-    }
-    throw std::runtime_error(
-        fmt::format("failed to open file '{}': {}({})", name.toStdString(), strerror(errno), errno));
-}
+    QString prefix = server_name.empty() ? "multipass_cert" : QString::fromStdString(server_name);
 
-mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir)
-{
-    auto priv_key_path = cert_dir.filePath("multipass_cert_key.pem");
-    auto cert_path = cert_dir.filePath("multipass_cert.pem");
+    auto priv_key_path = cert_dir.filePath(prefix + "_key.pem");
+    auto cert_path = cert_dir.filePath(prefix + ".pem");
 
     if (QFile::exists(priv_key_path) && QFile::exists(cert_path))
     {
-        return {contents_of(cert_path), contents_of(priv_key_path)};
+        return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
     }
 
     EVPKey key;
-    X509Cert cert{key};
+    X509Cert cert{key, server_name};
 
     key.write(priv_key_path);
     cert.write(cert_path);
@@ -241,8 +209,12 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir)
 
 } // namespace
 
-mp::SSLCertProvider::SSLCertProvider(const multipass::Path& data_dir)
-    : cert_dir{mp::utils::make_dir(data_dir, "certificate")}, key_cert_pair{make_cert_key_pair(cert_dir)}
+mp::SSLCertProvider::SSLCertProvider(const multipass::Path& cert_dir, const std::string& server_name)
+    : key_cert_pair{make_cert_key_pair(cert_dir, server_name)}
+{
+}
+
+mp::SSLCertProvider::SSLCertProvider(const multipass::Path& data_dir) : SSLCertProvider(data_dir, "")
 {
 }
 

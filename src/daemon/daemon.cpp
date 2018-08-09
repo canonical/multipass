@@ -28,6 +28,7 @@
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
+#include <multipass/registration_allowed.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -316,7 +317,7 @@ auto get_unique_id(const mp::Path& data_path)
 
     if (!id_file.exists())
     {
-        id = mp::MetricsProvider::generate_unique_id();
+        id = mp::utils::make_uuid();
         id_file.open(QIODevice::WriteOnly);
         id_file.write(id.toUtf8());
     }
@@ -369,13 +370,15 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_register, &daemon, &mp::Daemon::registr, Qt::BlockingQueuedConnection);
 }
-}
+} // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
-      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider},
+      daemon_rpc{config->server_address, config->connection_type, RegistrationAllowed::yes, *config->cert_provider,
+                 *config->client_cert_store},
       metrics_provider{metrics_url, get_unique_id(config->data_directory)},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
@@ -475,6 +478,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     });
     const std::chrono::milliseconds ms = std::chrono::hours(6);
     source_images_maintenance_task.start(ms.count());
+
+    start_public_rpc();
 }
 
 grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
@@ -915,8 +920,10 @@ try // clang-format on
             info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
             info->set_memory_usage(run_in_vm("free -b | sed '1d;3d' | awk '{printf $3}'"));
             info->set_memory_total(run_in_vm("free -b | sed '1d;3d' | awk '{printf $2}'"));
-            info->set_disk_usage(run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
-            info->set_disk_total(run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_disk_usage(
+                run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_disk_total(
+                run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_current_release(run_in_vm("lsb_release -ds"));
             info->set_ipv4(vm->ipv4());
         }
@@ -1469,6 +1476,19 @@ grpc::Status mp::Daemon::version(grpc::ServerContext* context, const VersionRequ
     return grpc::Status::OK;
 }
 
+grpc::Status mp::Daemon::registr(grpc::ServerContext* context, const RegisterRequest* request,
+                                 RegisterReply* response) // clang-format off
+try // clang-format on
+{
+    config->client_cert_store->add_cert(request->cert());
+    start_public_rpc();
+    return grpc::Status::OK;
+}
+catch (const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
 void mp::Daemon::on_shutdown()
 {
 }
@@ -1594,4 +1614,16 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                      [this, name, target_path]() { mount_threads[name].erase(target_path); });
 
     mount_threads[name][target_path] = std::move(sshfs_mount);
+}
+
+void mp::Daemon::start_public_rpc()
+{
+    auto cert_chain = config->client_cert_store->PEM_cert_chain();
+    if (!config->pub_server_address.empty() && !cert_chain.empty())
+    {
+        public_daemon_rpc = std::make_unique<DaemonRpc>(
+            config->pub_server_address, RpcConnectionType::ssl_accept_only_known_clients, RegistrationAllowed::no,
+            *config->pub_cert_provider, *config->client_cert_store);
+        connect_rpc(*public_daemon_rpc, *this);
+    }
 }

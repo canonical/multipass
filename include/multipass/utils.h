@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_UTILS_H
 #define MULTIPASS_UTILS_H
 
+#include <multipass/path.h>
+
 #include <chrono>
 #include <functional>
 #include <string>
@@ -42,7 +44,11 @@ enum class QuoteType
 };
 
 QDir base_dir(const QString& path);
-QDir make_dir(const QDir& a_dir, const QString& name);
+multipass::Path make_dir(const QDir& a_dir, const QString& name);
+QString make_uuid();
+std::string contents_of(const multipass::Path& file_path);
+bool has_only_digits(const std::string& value);
+void validate_server_address(const std::string& value);
 bool valid_memory_value(const QString& mem_string);
 bool valid_hostname(const QString& name_string);
 bool invalid_target_path(const QString& target_path);

@@ -16,13 +16,15 @@
  * Authored by: Chris Townsend <christopher.townsend@canonical.com>
  *
  */
+#include <src/client/client.h>
+#include <src/daemon/daemon_rpc.h>
 
 #include "path.h"
+#include "stub_cert_store.h"
 #include "stub_certprovider.h"
 
 #include <multipass/logging/log.h>
-#include <src/client/client.h>
-#include <src/daemon/daemon_rpc.h>
+#include <multipass/registration_allowed.h>
 
 #include <QEventLoop>
 #include <QStringList>
@@ -42,7 +44,8 @@ struct Client : public Test
 
     int send_command(const std::vector<std::string>& command, std::ostream& cout)
     {
-        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure, cout, null_stream};
+        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
+                                       std::make_unique<mpt::StubCertProvider>(), cout, null_stream};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -60,7 +63,9 @@ struct Client : public Test
 #endif
     std::stringstream null_stream;
     mpt::StubCertProvider cert_provider;
-    mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider};
+    mpt::StubCertStore cert_store;
+    mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, mp::RegistrationAllowed::yes,
+                              cert_provider, cert_store};
 };
 
 // Tests for no postional args given

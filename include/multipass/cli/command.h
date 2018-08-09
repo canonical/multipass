@@ -21,13 +21,13 @@
 #define MULTIPASS_COMMAND_H
 
 #include <multipass/callable_traits.h>
+#include <multipass/cert_provider.h>
 #include <multipass/cli/formatter.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
-#include <grpc++/grpc++.h>
 #include <QString>
-
+#include <grpcpp/grpcpp.h>
 
 namespace multipass
 {
@@ -40,27 +40,37 @@ class Command
 public:
     using UPtr = std::unique_ptr<Command>;
     Command(grpc::Channel& channel, Rpc::Stub& stub,
-            std::map<std::string, std::unique_ptr<multipass::Formatter>>* formatters, std::ostream& cout,
-            std::ostream& cerr)
-        : rpc_channel{&channel}, stub{&stub}, formatters{formatters}, cout{cout}, cerr{cerr}
+            std::map<std::string, std::unique_ptr<multipass::Formatter>>& formatters, CertProvider& cert_provider,
+            std::ostream& cout, std::ostream& cerr)
+        : rpc_channel{&channel},
+          stub{&stub},
+          formatters{&formatters},
+          cert_provider{cert_provider},
+          cout{cout},
+          cerr{cerr}
     {
     }
     virtual ~Command() = default;
 
-    virtual ReturnCode run(ArgParser *parser) = 0;
+    virtual ReturnCode run(ArgParser* parser) = 0;
 
     virtual std::string name() const = 0;
-    virtual std::vector<std::string> aliases() const { return {name()}; };
+    virtual std::vector<std::string> aliases() const
+    {
+        return {name()};
+    };
     virtual QString short_help() const = 0;
     virtual QString description() const = 0;
 
 protected:
     template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable>
-    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success, FailureCallable&& on_failure)
+    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success,
+                        FailureCallable&& on_failure)
     {
         check_return_callables(on_success, on_failure);
 
-        using ReplyType = typename std::remove_reference<typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>::type;
+        using ReplyType = typename std::remove_reference<
+            typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>::type;
         ReplyType reply;
 
         auto rpc_method =
@@ -77,16 +87,18 @@ protected:
         return on_failure(status);
     }
 
-    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable, typename StreamingCallback>
-    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success, FailureCallable&& on_failure, StreamingCallback&& streaming_callback)
-    {   
+    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable,
+              typename StreamingCallback>
+    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success,
+                        FailureCallable&& on_failure, StreamingCallback&& streaming_callback)
+    {
         check_return_callables(on_success, on_failure);
 
-        using ReplyType = typename std::remove_reference<typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>::type;
+        using ReplyType = typename std::remove_reference<
+            typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>::type;
         ReplyType reply;
 
-        auto rpc_method =
-            std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
+        auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
 
         grpc::ClientContext context;
         std::unique_ptr<grpc::ClientReader<ReplyType>> reader = rpc_method(&context, request);
@@ -99,7 +111,7 @@ protected:
         auto status = reader->Finish();
 
         if (status.ok())
-        {   
+        {
             return on_success(reply);
         }
 
@@ -120,11 +132,12 @@ protected:
     grpc::Channel* rpc_channel;
     Rpc::Stub* stub;
     std::map<std::string, std::unique_ptr<multipass::Formatter>>* formatters;
+    CertProvider& cert_provider;
     std::ostream& cout;
     std::ostream& cerr;
 
 private:
-    virtual ParseCode parse_args(ArgParser *parser) = 0;
+    virtual ParseCode parse_args(ArgParser* parser) = 0;
 
     template <typename SuccessCallable, typename FailureCallable>
     void check_return_callables(SuccessCallable&& on_success, FailureCallable&& on_failure)
@@ -138,8 +151,8 @@ private:
         static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value, "");
         static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value, "");
         static_assert(std::is_same<FailureCallableArgType, grpc::Status&>::value, "");
-     }
+    }
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_COMMAND_H

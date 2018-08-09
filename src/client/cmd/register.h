@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,25 +13,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *              Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_FILE_READER_H
-#define MULTIPASS_FILE_READER_H
+#ifndef MULTIPASS_REGISTER_H
+#define MULTIPASS_REGISTER_H
 
-#include <QByteArray>
-#include <QString>
+#include <multipass/cli/command.h>
 
 namespace multipass
 {
-namespace test
+namespace cmd
 {
-QByteArray load(QString path);
-QByteArray load_test_file(const char* file_name);
-qint64 make_file_with_content(const QString& file_name);
-qint64 make_file_with_content(const QString& file_name, const std::string& content);
-}
-}
-#endif // MULTIPASS_FILE_READER_H
+class Register final : public Command
+{
+public:
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
+
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    RegisterRequest request;
+
+    ParseCode parse_args(ArgParser* parser) override;
+};
+} // namespace cmd
+} // namespace multipass
+
+#endif // MULTIPASS_REGISTER_H

@@ -15,31 +15,31 @@
  *
  */
 
-#ifndef MULTIPASS_METRICS_PROVIDER_H
-#define MULTIPASS_METRICS_PROVIDER_H
+#include "biomem.h"
 
-#include <QByteArray>
-#include <QNetworkAccessManager>
-#include <QString>
-#include <QUrl>
+#include <vector>
 
-namespace multipass
+namespace mp = multipass;
+
+mp::BIOMem::BIOMem() : bio{BIO_new(BIO_s_mem()), BIO_free}
 {
-class MetricsProvider
+    if (bio == nullptr)
+        throw std::runtime_error("Failed to create BIO structure");
+}
+
+mp::BIOMem::BIOMem(const std::string& pem_source) : BIOMem()
 {
-public:
-    MetricsProvider(const QUrl& metrics_url, const QString& unique_id);
-    MetricsProvider(const QString& metrics_url, const QString& unique_id);
+    BIO_write(bio.get(), pem_source.data(), pem_source.size());
+}
 
-    bool send_metrics();
-    void send_denied();
+std::string mp::BIOMem::as_string() const
+{
+    std::vector<char> pem(bio->num_write);
+    BIO_read(bio.get(), pem.data(), pem.size());
+    return {pem.begin(), pem.end()};
+}
 
-private:
-    void post_request(const QByteArray& body);
-
-    const QUrl metrics_url;
-    const QString unique_id;
-    QNetworkAccessManager manager;
-};
-} // namespace multipass
-#endif // MULTIPASS_METRICS_PROVIDER_H
+BIO* mp::BIOMem::get() const
+{
+    return bio.get();
+}

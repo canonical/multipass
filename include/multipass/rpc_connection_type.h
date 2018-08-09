@@ -22,7 +22,8 @@ namespace multipass
 enum class RpcConnectionType
 {
     insecure,
-    ssl
+    ssl,
+    ssl_accept_only_known_clients
 };
 }
 #endif // MULTIPASS_RPC_CONNECTION_TYPE_H
