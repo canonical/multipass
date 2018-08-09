@@ -335,3 +335,17 @@ TEST(Utils, has_only_digits_works)
     EXPECT_TRUE(mp::utils::has_only_digits("0123456789"));
     EXPECT_FALSE(mp::utils::has_only_digits("0123456789:'`'"));
 }
+
+TEST(Utils, validate_server_address_throws_on_invalid_address)
+{
+    EXPECT_THROW(mp::utils::validate_server_address("unix"), std::runtime_error);
+    EXPECT_THROW(mp::utils::validate_server_address("unix:"), std::runtime_error);
+    EXPECT_THROW(mp::utils::validate_server_address("test:test"), std::runtime_error);
+    EXPECT_THROW(mp::utils::validate_server_address(""), std::runtime_error);
+}
+
+TEST(Utils, validate_server_address_does_not_throw_on_good_address)
+{
+    EXPECT_NO_THROW(mp::utils::validate_server_address("unix:/tmp/a_socket"));
+    EXPECT_NO_THROW(mp::utils::validate_server_address("test-server.net:123"));
+}

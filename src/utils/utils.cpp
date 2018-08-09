@@ -224,3 +224,23 @@ bool mp::utils::has_only_digits(const std::string& value)
 {
     return std::all_of(value.begin(), value.end(), [](char c) { return std::isdigit(c); });
 }
+
+void mp::utils::validate_server_address(const std::string& address)
+{
+    if (address.empty())
+        throw std::runtime_error("empty server address");
+
+    const auto tokens = mp::utils::split(address, ":");
+    const auto server_name = tokens[0];
+    if (tokens.size() == 1u)
+    {
+        if (server_name == "unix")
+            throw std::runtime_error(fmt::format("missing socket file in address '{}'", address));
+        else
+            throw std::runtime_error(fmt::format("missing port number in address '{}'", address));
+    }
+
+    const auto port = tokens[1];
+    if (server_name != "unix" && !mp::utils::has_only_digits(port))
+        throw std::runtime_error(fmt::format("invalid port number in address '{}'", address));
+}
