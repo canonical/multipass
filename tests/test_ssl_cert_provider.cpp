@@ -116,3 +116,16 @@ TEST_F(SSLCertProvider, persists_cert_and_key)
     EXPECT_TRUE(QFile::exists(key_file));
     EXPECT_TRUE(QFile::exists(cert_file));
 }
+
+TEST_F(SSLCertProvider, creates_different_certs_per_server_name)
+{
+    mp::SSLCertProvider cert_provider1{cert_dir.path(), "test_server1"};
+    mp::SSLCertProvider cert_provider2{cert_dir.path(), "test_server2"};
+
+    auto pem_cert1 = cert_provider1.PEM_certificate();
+    auto pem_key1 = cert_provider1.PEM_signing_key();
+    auto pem_cert2 = cert_provider2.PEM_certificate();
+    auto pem_key2 = cert_provider2.PEM_signing_key();
+    EXPECT_THAT(pem_cert1, StrNe(pem_cert2));
+    EXPECT_THAT(pem_key1, StrNe(pem_key2));
+}

@@ -29,6 +29,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>
+#include <multipass/utils.h>
 
 #include <QStandardPaths>
 
@@ -37,6 +38,18 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+namespace
+{
+std::string server_name_from(const std::string& server_address)
+{
+    auto tokens = mp::utils::split(server_address, ":");
+    const auto server_name = tokens[0];
+
+    if (server_name == "unix")
+        return "localhost";
+    return server_name;
+}
+} // namespace
 std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 {
     // Install logger as early as possible
@@ -83,7 +96,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory, cache_directory);
     if (cert_provider == nullptr)
-        cert_provider = std::make_unique<mp::SSLCertProvider>(data_directory);
+        cert_provider = std::make_unique<mp::SSLCertProvider>(data_directory, server_name_from(server_address));
     if (ssh_username.empty())
         ssh_username = "multipass";
 

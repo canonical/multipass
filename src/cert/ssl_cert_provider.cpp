@@ -151,10 +151,17 @@ std::vector<unsigned char> as_vector(const std::string& v)
     return {v.begin(), v.end()};
 }
 
+std::string cn_name_from(const std::string& server_name)
+{
+    if (server_name.empty())
+        return mp::utils::make_uuid().toStdString();
+    return server_name;
+}
+
 class X509Cert
 {
 public:
-    explicit X509Cert(const EVPKey& key)
+    explicit X509Cert(const EVPKey& key, const std::string& server_name)
     {
         if (x509 == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
@@ -168,7 +175,7 @@ public:
 
         auto country = as_vector("US");
         auto org = as_vector("Canonical");
-        auto cn = as_vector("localhost");
+        auto cn = as_vector(cn_name_from(server_name));
 
         auto name = X509_get_subject_name(x509.get());
         X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, country.data(), country.size(), APPEND_ENTRY, ADD_RDN);
@@ -203,10 +210,12 @@ private:
     std::unique_ptr<X509, decltype(X509_free)*> x509{X509_new(), X509_free};
 };
 
-mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir)
+mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir, const std::string& server_name)
 {
-    auto priv_key_path = cert_dir.filePath("multipass_cert_key.pem");
-    auto cert_path = cert_dir.filePath("multipass_cert.pem");
+    QString prefix = server_name.empty() ? "multipass_cert" : QString::fromStdString(server_name);
+
+    auto priv_key_path = cert_dir.filePath(prefix + "_key.pem");
+    auto cert_path = cert_dir.filePath(prefix + ".pem");
 
     if (QFile::exists(priv_key_path) && QFile::exists(cert_path))
     {
@@ -214,7 +223,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir)
     }
 
     EVPKey key;
-    X509Cert cert{key};
+    X509Cert cert{key, server_name};
 
     key.write(priv_key_path);
     cert.write(cert_path);
@@ -224,8 +233,12 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir)
 
 } // namespace
 
-mp::SSLCertProvider::SSLCertProvider(const multipass::Path& data_dir)
-    : cert_dir{mp::utils::make_dir(data_dir, "certificate")}, key_cert_pair{make_cert_key_pair(cert_dir)}
+mp::SSLCertProvider::SSLCertProvider(const multipass::Path& data_dir, const std::string& server_name)
+    : cert_dir{mp::utils::make_dir(data_dir, "certificate")}, key_cert_pair{make_cert_key_pair(cert_dir, server_name)}
+{
+}
+
+mp::SSLCertProvider::SSLCertProvider(const multipass::Path& data_dir) : SSLCertProvider(data_dir, "")
 {
 }
 
