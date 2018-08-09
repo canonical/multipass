@@ -31,6 +31,7 @@ namespace test
 QByteArray load(QString path);
 QByteArray load_test_file(const char* file_name);
 qint64 make_file_with_content(const QString& file_name);
+qint64 make_file_with_content(const QString& file_name, const std::string& content);
 }
 }
 #endif // MULTIPASS_FILE_READER_H
