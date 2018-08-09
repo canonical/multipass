@@ -39,6 +39,7 @@ add_executable(multipass_tests
   temp_dir.cpp
   temp_file.cpp
   test_cli_client.cpp
+  test_client_cert_store.cpp
   test_cloud_init_iso.cpp
   test_daemon.cpp
   test_format_utils.cpp
