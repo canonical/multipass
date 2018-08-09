@@ -185,7 +185,7 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
-QDir mp::utils::make_dir(const QDir& a_dir, const QString& name)
+mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
 {
     if (!a_dir.mkpath(name))
     {
