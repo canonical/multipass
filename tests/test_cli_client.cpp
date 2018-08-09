@@ -62,7 +62,8 @@ struct Client : public Test
 #endif
     std::stringstream null_stream;
     mpt::StubCertProvider cert_provider;
-    mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider};
+    mpt::StubCertStore cert_store;
+    mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store};
 };
 
 // Tests for no postional args given
