@@ -38,7 +38,8 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service
 {
     Q_OBJECT
 public:
-    DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider);
+    DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider,
+              const CertStore& client_cert_store);
     DaemonRpc(const DaemonRpc&) = delete;
     DaemonRpc& operator=(const DaemonRpc&) = delete;
 

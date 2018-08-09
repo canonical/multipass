@@ -370,12 +370,12 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
-}
+} // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
-      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider},
+      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
       metrics_provider{metrics_url, get_unique_id(config->data_directory)},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
@@ -915,8 +915,10 @@ try // clang-format on
             info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
             info->set_memory_usage(run_in_vm("free -b | sed '1d;3d' | awk '{printf $3}'"));
             info->set_memory_total(run_in_vm("free -b | sed '1d;3d' | awk '{printf $2}'"));
-            info->set_disk_usage(run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
-            info->set_disk_total(run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_disk_usage(
+                run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_disk_total(
+                run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_current_release(run_in_vm("lsb_release -ds"));
             info->set_ipv4(vm->ipv4());
         }

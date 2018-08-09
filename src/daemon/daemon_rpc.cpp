@@ -54,7 +54,8 @@ void throw_if_server_exists(const std::string& address)
 }
 
 auto make_server(const std::string& server_address, mp::RpcConnectionType conn_type,
-                 const mp::CertProvider& cert_provider, mp::Rpc::Service* service)
+                 const mp::CertProvider& cert_provider, const mp::CertStore& client_cert_store,
+                 mp::Rpc::Service* service)
 {
     throw_if_server_exists(server_address);
     grpc::ServerBuilder builder;
@@ -64,6 +65,7 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
     {
         grpc::SslServerCredentialsOptions opts(GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY);
         opts.pem_key_cert_pairs.push_back({cert_provider.PEM_signing_key(), cert_provider.PEM_certificate()});
+        opts.pem_root_certs = client_cert_store.PEM_cert_chain();
         creds = grpc::SslServerCredentials(opts);
     }
     else if (conn_type == mp::RpcConnectionType::insecure)
@@ -87,8 +89,8 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
 } // namespace
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
-                         const CertProvider& cert_provider)
-    : server_address{server_address}, server{make_server(server_address, type, cert_provider, this)}
+                         const CertProvider& cert_provider, const CertStore& client_cert_store)
+    : server_address{server_address}, server{make_server(server_address, type, cert_provider, client_cert_store, this)}
 {
     std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
