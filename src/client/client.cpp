@@ -34,10 +34,11 @@
 #include "cmd/umount.h"
 #include "cmd/version.h"
 
-#include <grpc++/grpc++.h>
+#include <grpcpp/grpcpp.h>
 
 #include <algorithm>
 
+#include <multipass/cert_provider.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/json_formatter.h>
@@ -64,13 +65,15 @@ auto make_map()
     return map;
 }
 
-auto make_channel(const std::string& server_address, mp::RpcConnectionType conn_type)
+auto make_channel(const std::string& server_address, mp::RpcConnectionType conn_type, mp::CertProvider& cert_provider)
 {
     std::shared_ptr<grpc::ChannelCredentials> creds;
     if (conn_type == mp::RpcConnectionType::ssl)
     {
         auto opts = grpc::SslCredentialsOptions();
         opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+        opts.pem_cert_chain = cert_provider.PEM_certificate();
+        opts.pem_private_key = cert_provider.PEM_signing_key();
         creds = grpc::SslCredentials(opts);
     }
     else if (conn_type == mp::RpcConnectionType::insecure)
@@ -85,8 +88,9 @@ auto make_channel(const std::string& server_address, mp::RpcConnectionType conn_
 }
 } // namespace
 
-mp::Client::Client(const ClientConfig& config)
-    : rpc_channel{make_channel(config.server_address, config.conn_type)},
+mp::Client::Client(ClientConfig& config)
+    : cert_provider{std::move(config.cert_provider)},
+      rpc_channel{make_channel(config.server_address, config.conn_type, *cert_provider)},
       stub{mp::Rpc::NewStub(rpc_channel)},
       formatters{make_map()},
       cout{config.cout},

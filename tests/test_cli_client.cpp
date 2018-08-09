@@ -18,6 +18,7 @@
  */
 
 #include "path.h"
+#include "stub_cert_store.h"
 #include "stub_certprovider.h"
 
 #include <multipass/logging/log.h>
@@ -42,7 +43,8 @@ struct Client : public Test
 
     int send_command(const std::vector<std::string>& command, std::ostream& cout)
     {
-        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure, cout, null_stream};
+        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
+                                       std::make_unique<mpt::StubCertProvider>(), cout, null_stream};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
