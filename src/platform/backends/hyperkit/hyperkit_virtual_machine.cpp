@@ -52,6 +52,9 @@ mp::HyperkitVirtualMachine::~HyperkitVirtualMachine()
 
 void mp::HyperkitVirtualMachine::start()
 {
+    if (state == State::running)
+        return;
+
     vm_process = std::make_unique<VMProcess>();
 
     vm_process->moveToThread(&thread);
@@ -64,16 +67,12 @@ void mp::HyperkitVirtualMachine::start()
     QObject::connect(&thread, &QThread::started, vm_process.get(), [=]() { vm_process->start(desc); });
     QObject::connect(&thread, &QThread::finished, [=]() { on_shutdown(); });
 
-    if (state != State::running)
-    {
-        state = State::running;
-        thread.start();
-    }
+    thread.start();
 }
 
 void mp::HyperkitVirtualMachine::stop()
 {
-    if (state == State::running)
+    if (state != State::off || state != State::stopped)
     {
         QMetaObject::invokeMethod(vm_process.get(), "stop");
         thread.wait(20000);
@@ -87,6 +86,8 @@ void mp::HyperkitVirtualMachine::shutdown()
 
 void mp::HyperkitVirtualMachine::on_start()
 {
+    state = State::starting;
+    update_state();
     monitor->on_resume();
 }
 
@@ -94,6 +95,7 @@ void mp::HyperkitVirtualMachine::on_shutdown()
 {
     state = State::off;
     ip_address.clear();
+    update_state();
     monitor->on_shutdown();
     vm_process.reset();
 }
@@ -130,15 +132,19 @@ std::string mp::HyperkitVirtualMachine::ssh_username()
 
 std::string mp::HyperkitVirtualMachine::ipv4()
 {
-    if (state == State::running && ip_address.empty())
+    if (state == State::starting && ip_address.empty())
     {
         QEventLoop loop;
         QObject::connect(vm_process.get(), &VMProcess::ip_address_found, &loop, [this, &loop](std::string ip) {
             ip_address = ip;
+            state = State::running;
+            update_state();
             loop.quit();
         });
         QTimer::singleShot(40000, &loop, [&loop, this]() {
             mpl::log(mpl::Level::error, desc.vm_name, "Unable to determine IP address");
+            state = State::unknown;
+            update_state();
             loop.quit();
         });
         loop.exec();
