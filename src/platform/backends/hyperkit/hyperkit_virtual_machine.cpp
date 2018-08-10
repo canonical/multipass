@@ -40,13 +40,15 @@ mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescripti
       state{State::off},
       monitor{&monitor},
       username{desc.ssh_username},
-      desc{desc}
+      desc{desc},
+      update_shutdown_status{true}
 {
     thread.setObjectName("HyperkitVirtualMachine thread");
 }
 
 mp::HyperkitVirtualMachine::~HyperkitVirtualMachine()
 {
+    update_shutdown_status = false;
     shutdown();
 }
 
@@ -65,7 +67,12 @@ void mp::HyperkitVirtualMachine::start()
 
     // cross-thread control
     QObject::connect(&thread, &QThread::started, vm_process.get(), [=]() { vm_process->start(desc); });
-    QObject::connect(&thread, &QThread::finished, [=]() { on_shutdown(); });
+    QObject::connect(&thread, &QThread::finished, [=]() {
+        if (update_shutdown_status)
+        {
+            on_shutdown();
+        }
+    });
 
     thread.start();
 }

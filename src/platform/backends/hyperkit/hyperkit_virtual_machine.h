@@ -59,6 +59,7 @@ private:
     QThread thread;
     std::string ip_address;
     const VirtualMachineDescription desc;
+    bool update_shutdown_status;
 };
 }
 
