@@ -17,13 +17,13 @@
 
 #include "windows_console.h"
 
+#include <multipass/cli/client_platform.h>
+
 #include <array>
 #include <mutex>
 
-#include <io.h>
-
-#include <iostream>
 namespace mp = multipass;
+namespace mcp = multipass::cli::platform;
 
 namespace
 {
@@ -78,7 +78,7 @@ void monitor_console_resize(HWINEVENTHOOK& hook)
 } // namespace
 
 mp::WindowsConsole::WindowsConsole(ssh_channel channel)
-    : interactive{!(_isatty(_fileno(stdin)) == 0)},
+    : interactive{mcp::is_tty()},
       input_handle{GetStdHandle(STD_INPUT_HANDLE)},
       output_handle{GetStdHandle(STD_OUTPUT_HANDLE)},
       channel{channel},
