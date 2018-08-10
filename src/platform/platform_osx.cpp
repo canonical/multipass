@@ -24,6 +24,8 @@
 
 #include <unordered_set>
 
+#include <unistd.h>
+
 namespace mp = multipass;
 
 namespace
@@ -47,6 +49,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
     return nullptr;
+}
+
+bool mp::platform::link(const char* target, const char* link)
+{
+    return ::link(target, link) == 0;
 }
 
 bool mp::platform::is_alias_supported(const std::string& alias)
