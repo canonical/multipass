@@ -1,76 +1,108 @@
+<html>
+<head>
+<style>
+  /* Installer's webview has very limited CSS support */
+  body {
+    font: normal 9pt Verdana, Arial, sans-serif;
+  }
+  pre { font-size: 8pt; } /* Licences still wrap, any smaller and illegible */
+</style>
+</head>
+<body>
+<h2>Multipass</h2>
 
-# Multipass
-Copyright © 2017-2018, Canonical Ltd.
+<p>Copyright &copy; 2017-2018, Canonical Ltd.</p>
 
-The open source portion is available at https://github.com/CanonicalLtd/multipass/
+<p>The open source portion is available at <a href="https://github.com/CanonicalLtd/multipass/">https://github.com/CanonicalLtd/multipass/</a></p>
 
-## Open source projects used directly:
-- fmt: https://github.com/fmtlib/fmt
-- grpc: https://github.com/grpc/grpc
-  - abseil-cpp: https://github.com/abseil/abseil-cpp
-  - boringssl: https://github.com/google/boringssl
-    - fiat-crypto https://github.com/mit-plv/fiat-crypto
-  - c-ares: https://github.com/c-ares/c-ares
-  - gflags: https://github.com/gflags/gflags
-  - protobuf: https://github.com/google/protobuf
-  - zlib: https://github.com/madler/zlib
-- hyperkit: https://github.com/moby/hyperkit
-- libssh: https://github.com/albaguirre/libssh
-- qt: https://www.qt.io/
-- xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
-- yaml-cpp: https://github.com/jbeder/yaml-cpp
+<h3>Open source projects used directly:</h3>
 
-## Additional binaries used from homebrew:
-- gettext (libintl): https://formulae.brew.sh/formula/gettext
-- glib: https://formulae.brew.sh/formula/glib
-- gmp: https://formulae.brew.sh/formula/gmp
-- gnutls: https://formulae.brew.sh/formula/gnutls
-- libffi: https://formulae.brew.sh/formula/libffi
-- libtasn1: https://formulae.brew.sh/formula/libtasn1
-- libunistring: https://formulae.brew.sh/formula/libunistring
-- nettle: https://formulae.brew.sh/formula/nettle
-- p11-kit: https://formulae.brew.sh/formula/p11-kit
-- pcre: https://formulae.brew.sh/formula/pcre
-- qemu (qemu-img): https://formulae.brew.sh/formula/qemu
+<ul>
+<li>fmt: <a href="https://github.com/fmtlib/fmt">https://github.com/fmtlib/fmt</a></li>
+<li>grpc: <a href="https://github.com/grpc/grpc">https://github.com/grpc/grpc</a>
+  <ul>
+  <li>abseil-cpp: <a href="https://github.com/abseil/abseil-cpp">https://github.com/abseil/abseil-cpp</a></li>
+  <li>boringssl: <a href="https://github.com/google/boringssl">https://github.com/google/boringssl</a></li>
+  <li>fiat-crypto <a href="https://github.com/mit-plv/fiat-crypto">https://github.com/mit-plv/fiat-crypto</a></li>
+  <li>c-ares: <a href="https://github.com/c-ares/c-ares">https://github.com/c-ares/c-ares</a></li>
+  <li>gflags: <a href="https://github.com/gflags/gflags">https://github.com/gflags/gflags</a></li>
+  <li>protobuf: <a href="https://github.com/google/protobuf">https://github.com/google/protobuf</a></li>
+  <li>zlib: <a href="https://github.com/madler/zlib">https://github.com/madler/zlib</a></li>
+  </ul>
+</li>
+<li>hyperkit: <a href="https://github.com/moby/hyperkit">https://github.com/moby/hyperkit</a></li>
+<li>libssh: <a href="https://github.com/albaguirre/libssh">https://github.com/albaguirre/libssh</a></li>
+<li>qt: <a href="https://www.qt.io/">https://www.qt.io/</a></li>
+<li>xz-embedded: <a href="https://git.tukaani.org/?p=xz-embedded.git">https://git.tukaani.org/?p=xz-embedded.git</a></li>
+<li>yaml-cpp: <a href="https://github.com/jbeder/yaml-cpp">https://github.com/jbeder/yaml-cpp</a></li>
+</ul>
+<br />
 
-## Licensing:
-Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
-- fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich
-- grpc: Apache License 2.0
-- abseil-cpp: Apache License 2.0
-- boringssl:
-  - OpenSSL; Copyright (c) 1998-2011 The OpenSSL Project.
-  - SSLeay; Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
-  - ISC; Copyright (c) 2015, Google Inc.
-- fiat-crypto: MIT License; Copyright (c) 2015-2016 the fiat-crypto authors (see the AUTHORS file).
-- c-ares: MIT License; Copyright (c) 2007 - 2018, Daniel Stenberg with many contributors, see AUTHORS file.
-- gflags: BSD 3-Clause "New" or "Revised" License; Copyright (c) 2006, Google Inc.
-- protobuf: BSD 3-Clause "New" or "Revised" License; Copyright 2008 Google Inc.
-- zlib: zlib License; (C) 1995-2017 Jean-loup Gailly and Mark Adler
-- hyperkit: hyperkit License; Copyright the authors and contributors. See individual source files for details.
-- libssh:
-  - GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
-  - OpenSSL Exception
-- qt: GNU LGPL Version 3; Copyright (c) 2016 The Qt Company
-- xz-embedded: zx-embedded License;
-- yaml-cpp: MIT License; Copyright (c) 2008-2015 Jesse Beder.
-- gettext (libintl): GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
-- glib: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
-- gmp: GNU LGPL Version 3 License; See AUTHORS file for Copyright information
-- gnutls: GNU LGPL Version 2.1 and 3 Licenses; See AUTHORS file for Copyright information
-- libffi: libffi License; Copyright (c) 1996-2014 Anthony Green, Red Hat, Inc and others.
-- libtasn1: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
-- libunistring: GNU LGPL Version 3 License; See AUTHORS file for Copyright information
-- nettle: GNU LGPL Version 3 License; See AUTHORS file for Copyright information
-- p11-kit: p11-kit License;
-- pcre: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
-- qemu (qemu-img): GNU GPL Version 2 License; See AUTHORS file for Copyright information
+<h3>Additional binaries used from homebrew:</h3>
 
-## Licenses:
-Below are the contents of all the licenses used across all the projects distributed along with Multipass.
+<ul>
+<li>gettext (libintl): <a href="https://formulae.brew.sh/formula/gettext">https://formulae.brew.sh/formula/gettext</a></li>
+<li>glib: <a href="https://formulae.brew.sh/formula/glib">https://formulae.brew.sh/formula/glib</a></li>
+<li>gmp: <a href="https://formulae.brew.sh/formula/gmp">https://formulae.brew.sh/formula/gmp</a></li>
+<li>gnutls: <a href="https://formulae.brew.sh/formula/gnutls">https://formulae.brew.sh/formula/gnutls</a></li>
+<li>libffi: <a href="https://formulae.brew.sh/formula/libffi">https://formulae.brew.sh/formula/libffi</a></li>
+<li>libtasn1: <a href="https://formulae.brew.sh/formula/libtasn1">https://formulae.brew.sh/formula/libtasn1</a></li>
+<li>libunistring: <a href="https://formulae.brew.sh/formula/libunistring">https://formulae.brew.sh/formula/libunistring</a></li>
+<li>nettle: <a href="https://formulae.brew.sh/formula/nettle">https://formulae.brew.sh/formula/nettle</a></li>
+<li>p11-kit: <a href="https://formulae.brew.sh/formula/p11-kit">https://formulae.brew.sh/formula/p11-kit</a></li>
+<li>pcre: <a href="https://formulae.brew.sh/formula/pcre">https://formulae.brew.sh/formula/pcre</a></li>
+<li>qemu (qemu-img): <a href="https://formulae.brew.sh/formula/qemu">https://formulae.brew.sh/formula/qemu</a></li>
+</ul>
+<br />
 
-### Apache License 2.0
-```
+<h2>Licensing:</h2>
+<p>Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.</p>
+
+<ul>
+<li>fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich</li>
+<li>grpc: Apache License 2.0</li>
+<li>abseil-cpp: Apache License 2.0</li>
+<li>boringssl:
+  <ul>
+  <li>OpenSSL; Copyright (c) 1998-2011 The OpenSSL Project.</li>
+  <li>SSLeay; Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)</li>
+  <li>ISC; Copyright (c) 2015, Google Inc.</li>
+  </ul>
+</li>
+<li>fiat-crypto: MIT License; Copyright (c) 2015-2016 the fiat-crypto authors (see the AUTHORS file).</li>
+<li>c-ares: MIT License; Copyright (c) 2007 - 2018, Daniel Stenberg with many contributors, see AUTHORS file.</li>
+<li>gflags: BSD 3-Clause "New" or "Revised" License; Copyright (c) 2006, Google Inc.</li>
+<li>protobuf: BSD 3-Clause "New" or "Revised" License; Copyright 2008 Google Inc.</li>
+<li>zlib: zlib License; (C) 1995-2017 Jean-loup Gailly and Mark Adler</li>
+<li>hyperkit: hyperkit License; Copyright the authors and contributors. See individual source files for details.</li>
+<li>libssh:
+  <ul>
+  <li>GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information</li>
+  <li>OpenSSL Exception</li>
+  </ul>
+</li>
+<li>qt: GNU LGPL Version 3; Copyright (c) 2016 The Qt Company</li>
+<li>xz-embedded: zx-embedded License;</li>
+<li>yaml-cpp: MIT License; Copyright (c) 2008-2015 Jesse Beder.</li>
+<li>gettext (libintl): GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information</li>
+<li>glib: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information</li>
+<li>gmp: GNU LGPL Version 3 License; See AUTHORS file for Copyright information</li>
+<li>gnutls: GNU LGPL Version 2.1 and 3 Licenses; See AUTHORS file for Copyright information</li>
+<li>libffi: libffi License; Copyright (c) 1996-2014 Anthony Green, Red Hat, Inc and others.</li>
+<li>libtasn1: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information</li>
+<li>libunistring: GNU LGPL Version 3 License; See AUTHORS file for Copyright information</li>
+<li>nettle: GNU LGPL Version 3 License; See AUTHORS file for Copyright information</li>
+<li>p11-kit: p11-kit License;</li>
+<li>pcre: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information</li>
+<li>qemu (qemu-img): GNU GPL Version 2 License; See AUTHORS file for Copyright information</li>
+</ul>
+<br />
+
+<h2>Licenses:</h2>
+<p>Below are the contents of all the licenses used across all the projects distributed along with Multipass.</p>
+
+<h3>Apache License 2.0</h3>
+<pre>
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -247,10 +279,11 @@ Below are the contents of all the licenses used across all the projects distribu
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
-   ```
+</pre>
+<br />
 
-### BSD 2-Clause "Simplified" License
-```
+<h3>BSD 2-Clause "Simplified" License</h3>
+<pre>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -272,10 +305,11 @@ OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTE
 HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-```
+</pre>
+<br />
 
-### BSD 3-Clause "New" or "Revised" License
-```
+<h3>BSD 3-Clause "New" or "Revised" License</h3>
+<pre>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -303,10 +337,11 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-```
+</pre>
+<br />
 
-### GNU GPL Version 2 License
-```
+<h3>GNU GPL Version 2 License</h3>
+<pre>
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991
 
@@ -587,10 +622,11 @@ PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGES.
 
 		     END OF TERMS AND CONDITIONS
-```
+</pre>
+<br />
 
-### GNU LGPL Version 2.1 License
-```
+<h3>GNU LGPL Version 2.1 License</h3>
+<pre>
 		   GNU LESSER GENERAL PUBLIC LICENSE
 		       Version 2.1, February 1999
 
@@ -1048,10 +1084,11 @@ FAILURE OF THE LIBRARY TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
 SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGES.
 		     END OF TERMS AND CONDITIONS
-```
+</pre>
+<br />
 
-### GNU LGPL Version 3 License
-```
+<h3>GNU LGPL Version 3 License</h3>
+<pre>
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -1217,10 +1254,11 @@ whether future versions of the GNU Lesser General Public License shall
 apply, that proxy's public statement of acceptance of any version is
 permanent authorization for you to choose that version for the
 Library.
-```
+</pre>
+<br />
 
-### ISC License
-```
+<h3>ISC License</h3>
+<pre>
 /* Copyright (c) 2015, Google Inc.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -1234,10 +1272,11 @@ Library.
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
-```
+</pre>
+<br />
 
-### MIT License
-```
+<h3>MIT License</h3>
+<pre>
 Permission to use, copy, modify, and distribute this software and its documentation
 for any purpose and without fee is hereby granted, provided that the above copyright
 notice appear in all copies and that both that copyright notice and this permission
@@ -1246,10 +1285,11 @@ in advertising or publicity pertaining to distribution of the software without
 specific, written prior permission. M.I.T. makes no representations about the
 suitability of this software for any purpose. It is provided "as is" without express
 or implied warranty.
-```
+</pre>
+<br />
 
-### OpenSSL License
-```
+<h3>OpenSSL License</h3>
+<pre>
 /* ====================================================================
  * Copyright (c) 1998-2011 The OpenSSL Project.  All rights reserved.
  *
@@ -1303,10 +1343,11 @@ or implied warranty.
  * Hudson (tjh@cryptsoft.com).
  *
  */
-```
+</pre>
+<br />
 
-### SSLeay License
-```
+<h3>SSLeay License</h3>
+<pre>
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
  *
@@ -1363,10 +1404,11 @@ or implied warranty.
  * copied and put under another distribution licence
  * [including the GNU Public Licence.]
  */
- ```
+</pre>
+<br />
 
-### libssh OpenSSL Exception
-```
+<h3>libssh OpenSSL Exception</h3>
+<pre>
 Linking with OpenSSL
   17. In addition, as a special exception, we give permission to link the code of
 its release of libssh with the OpenSSL project's "OpenSSL" library (or with modified
@@ -1376,10 +1418,11 @@ respects for all of the code used other than "OpenSSL". If you modify this file,
 may extend this exception to your version of the file, but you are not obligated to
 do so. If you do not wish to do so, delete this exception statement from your
 version.
-```
+</pre>
+<br />
 
-### hyperkit License
-```
+<h3>hyperkit License</h3>
+<pre>
 Copyright the authors and contributors. See individual source files for details.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -1401,10 +1444,11 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
-```
+</pre>
+<br />
 
-### libffi License
-```
+<h3>libffi License</h3>
+<pre>
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 ``Software''), to deal in the Software without restriction, including
@@ -1423,10 +1467,11 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
+</pre>
+<br />
 
-### p11-kit License
-```
+<h3>p11-kit License</h3>
+<pre>
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
@@ -1454,19 +1499,21 @@ AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
-```
+</pre>
+<br />
 
-### xz-embedded License
-```
+<h3>xz-embedded License</h3>
+<pre>
 All the files in this package have been written by Lasse Collin
 and/or Igor Pavlov. All these files have been put into the
 public domain. You can do whatever you want with these files.
 
 As usual, this software is provided "as is", without any warranty.
-```
+</pre>
+<br />
 
-### zlib License
-```
+<h3>zlib License</h3>
+<pre>
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
 arising from the use of this software.
@@ -1494,4 +1541,7 @@ Gailly and Mark Adler; it does not include third-party code.
 If you redistribute modified sources, we would appreciate that you include in
 the file ChangeLog history information documenting your changes.  Please read
 the FAQ for more information on the distribution of modified source versions.
-```
+</pre>
+
+</body>
+</html>
