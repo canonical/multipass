@@ -49,6 +49,11 @@ mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
     return std::make_unique<logging::JournaldLogger>(level);
 }
 
+bool mp::platform::link(const char* target, const char* link)
+{
+    return ::link(target, link) == 0;
+}
+
 bool mp::platform::is_alias_supported(const std::string& alias)
 {
     return true;
