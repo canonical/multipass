@@ -24,6 +24,9 @@
 
 #include <unordered_set>
 
+#include <QFileInfo>
+#include <QString>
+
 #include <unistd.h>
 
 namespace mp = multipass;
@@ -53,6 +56,13 @@ mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 
 bool mp::platform::link(const char* target, const char* link)
 {
+    QFileInfo file_info{target};
+
+    if (file_info.isSymLink())
+    {
+        return ::symlink(file_info.symLinkTarget().toStdString().c_str(), link) == 0;
+    }
+
     return ::link(target, link) == 0;
 }
 

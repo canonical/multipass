@@ -21,7 +21,9 @@ elseif(APPLE)
   add_library(platform STATIC
     platform_osx.cpp
     platform_unix.cpp)
-  target_link_libraries(platform hyperkit_backend)
+  target_link_libraries(platform
+    hyperkit_backend
+    Qt5::Core)
 else()
   add_library(platform STATIC
     platform_linux.cpp
