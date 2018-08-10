@@ -11,6 +11,9 @@ if [ -f "$LAUNCH_AGENT_DEST" ]; then
     rm -fv "$LAUNCH_AGENT_DEST"
 fi
 
+# Create log dir and ensure correct permissions
+mkdir -p "$3/Library/Logs/Multipass" -m 755
+
 # Install launch agent
 cp -v "$LAUNCH_AGENT_SRC" "$LAUNCH_AGENT_DEST"
 launchctl load "$LAUNCH_AGENT_DEST"

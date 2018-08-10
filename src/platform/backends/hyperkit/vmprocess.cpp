@@ -33,6 +33,8 @@
 #include <QMetaEnum>
 #include <QTimer>
 
+#include <sys/stat.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -82,6 +84,7 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
         mpl::log(mpl::Level::info, desc.vm_name,
                  fmt::format("creating log file dir {}", log_directory.path().toStdString()));
         log_directory.mkdir(log_directory.path());
+        ::chmod(qPrintable(log_directory.path()), 0755);
     }
 
     QStringList args;
