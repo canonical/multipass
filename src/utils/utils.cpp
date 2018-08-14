@@ -25,10 +25,15 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QUuid>
 
+#include <algorithm>
 #include <array>
+#include <cctype>
+#include <fstream>
 #include <random>
 #include <regex>
+#include <sstream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -41,7 +46,7 @@ auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
         return "";
     return arg.find('\'') == std::string::npos ? "'" : "\"";
 }
-}
+} // namespace
 
 QDir mp::utils::base_dir(const QString& path)
 {
@@ -185,7 +190,7 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
-QDir mp::utils::make_dir(const QDir& a_dir, const QString& name)
+mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
 {
     if (!a_dir.mkpath(name))
     {
@@ -193,4 +198,49 @@ QDir mp::utils::make_dir(const QDir& a_dir, const QString& name)
         throw std::runtime_error(fmt::format("unable to create directory '{}'", dir.toStdString()));
     }
     return a_dir.filePath(name);
+}
+
+QString mp::utils::make_uuid()
+{
+    auto uuid = QUuid::createUuid().toString();
+
+    // Remove curly brackets enclosing uuid
+    return uuid.mid(1, uuid.size() - 2);
+}
+
+std::string mp::utils::contents_of(const multipass::Path& file_path)
+{
+    const std::string name{file_path.toStdString()};
+    std::ifstream in(name, std::ios::in | std::ios::binary);
+    if (!in)
+        throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno));
+
+    std::stringstream stream;
+    stream << in.rdbuf();
+    return stream.str();
+}
+
+bool mp::utils::has_only_digits(const std::string& value)
+{
+    return std::all_of(value.begin(), value.end(), [](char c) { return std::isdigit(c); });
+}
+
+void mp::utils::validate_server_address(const std::string& address)
+{
+    if (address.empty())
+        throw std::runtime_error("empty server address");
+
+    const auto tokens = mp::utils::split(address, ":");
+    const auto server_name = tokens[0];
+    if (tokens.size() == 1u)
+    {
+        if (server_name == "unix")
+            throw std::runtime_error(fmt::format("missing socket file in address '{}'", address));
+        else
+            throw std::runtime_error(fmt::format("missing port number in address '{}'", address));
+    }
+
+    const auto port = tokens[1];
+    if (server_name != "unix" && !mp::utils::has_only_digits(port))
+        throw std::runtime_error(fmt::format("invalid port number in address '{}'", address));
 }

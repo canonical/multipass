@@ -19,6 +19,7 @@
 
 #include "ubuntu_image_host.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
@@ -32,9 +33,11 @@
 #include <unordered_set>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "image_host";
 constexpr auto index_path = "streams/v1/index.json";
 
 auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader)
@@ -73,7 +76,16 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
     : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
-    QTimer::singleShot(0, [this]() { update_manifest(); });
+    QTimer::singleShot(0, [this]() {
+        try
+        {
+            update_manifest();
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::error, category, e.what());
+        }
+    });
 }
 
 mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)

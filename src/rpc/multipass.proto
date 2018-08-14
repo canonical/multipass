@@ -34,6 +34,17 @@ service Rpc {
     rpc version (VersionRequest) returns (VersionReply);
 }
 
+message OptInStatus {
+    enum Status {
+        UNKNOWN = 0;
+        PENDING = 1;
+        LATER = 2;
+        ACCEPTED = 3;
+        DENIED = 4;
+    }
+    Status opt_in_status = 1;
+}
+
 message LaunchRequest {
     string instance_name = 1;
     string image = 2;
@@ -44,6 +55,7 @@ message LaunchRequest {
     string time_zone = 7;
     string cloud_init_user_data = 8;
     string remote_name = 9;
+    OptInStatus opt_in_reply = 10;
 }
 
 message LaunchError {
@@ -75,6 +87,7 @@ message LaunchReply {
         LaunchProgress launch_progress = 2;
         string create_message = 3;
     }
+    bool metrics_pending = 4;
 }
 
 message PurgeRequest {

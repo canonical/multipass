@@ -17,10 +17,19 @@
 
 #include <multipass/utils.h>
 
+#include "file_operations.h"
+#include "temp_dir.h"
+
+#include <QRegExp>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <sstream>
+
 namespace mp = multipass;
+namespace mpt = multipass::test;
+
 using namespace testing;
 
 TEST(Utils, KB_is_valid)
@@ -255,4 +264,88 @@ TEST(Utils, try_action_does_not_timeout)
 
     EXPECT_FALSE(on_timeout_called);
     EXPECT_TRUE(action_called);
+}
+
+TEST(Utils, uuid_has_no_curly_brackets)
+{
+    auto uuid = mp::utils::make_uuid();
+    EXPECT_FALSE(uuid.contains(QRegExp("[{}]")));
+}
+
+TEST(Utils, contents_of_actually_reads_contents)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    std::string expected_content{"just a bit of test content here"};
+    mpt::make_file_with_content(file_name, expected_content);
+
+    auto content = mp::utils::contents_of(file_name);
+    EXPECT_THAT(content, StrEq(expected_content));
+}
+
+TEST(Utils, contents_of_throws_on_missing_file)
+{
+    EXPECT_THROW(mp::utils::contents_of("this-file-does-not-exist"), std::runtime_error);
+}
+
+TEST(Utils, contents_of_empty_contents_on_empty_file)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/empty_test_file";
+    mpt::make_file_with_content(file_name, "");
+
+    auto content = mp::utils::contents_of(file_name);
+    EXPECT_TRUE(content.empty());
+}
+
+TEST(Utils, split_returns_token_list)
+{
+    std::vector<std::string> expected_tokens;
+    expected_tokens.push_back("Hello");
+    expected_tokens.push_back("World");
+    expected_tokens.push_back("Bye!");
+
+    const std::string delimiter{":"};
+
+    std::stringstream content;
+    for (const auto& token : expected_tokens)
+    {
+        content << token;
+        content << delimiter;
+    }
+
+    const auto tokens = mp::utils::split(content.str(), delimiter);
+    EXPECT_THAT(tokens, ContainerEq(expected_tokens));
+}
+
+TEST(Utils, split_returns_one_token_if_no_delimiter)
+{
+    const std::string content{"no delimiter here"};
+    const std::string delimiter{":"};
+
+    const auto tokens = mp::utils::split(content, delimiter);
+    ASSERT_THAT(tokens.size(), Eq(1u));
+
+    EXPECT_THAT(tokens[0], StrEq(content));
+}
+
+TEST(Utils, has_only_digits_works)
+{
+    EXPECT_FALSE(mp::utils::has_only_digits("124ft:,"));
+    EXPECT_TRUE(mp::utils::has_only_digits("0123456789"));
+    EXPECT_FALSE(mp::utils::has_only_digits("0123456789:'`'"));
+}
+
+TEST(Utils, validate_server_address_throws_on_invalid_address)
+{
+    EXPECT_THROW(mp::utils::validate_server_address("unix"), std::runtime_error);
+    EXPECT_THROW(mp::utils::validate_server_address("unix:"), std::runtime_error);
+    EXPECT_THROW(mp::utils::validate_server_address("test:test"), std::runtime_error);
+    EXPECT_THROW(mp::utils::validate_server_address(""), std::runtime_error);
+}
+
+TEST(Utils, validate_server_address_does_not_throw_on_good_address)
+{
+    EXPECT_NO_THROW(mp::utils::validate_server_address("unix:/tmp/a_socket"));
+    EXPECT_NO_THROW(mp::utils::validate_server_address("test-server.net:123"));
 }

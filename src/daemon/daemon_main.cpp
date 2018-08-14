@@ -27,6 +27,7 @@
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
@@ -42,6 +43,7 @@
 #include <sys/stat.h>
 #include <vector>
 
+namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpp = multipass::platform;
 
@@ -49,9 +51,12 @@ namespace
 {
 void set_server_permissions(const std::string& server_address)
 {
-    QString address = QString::fromStdString(server_address);
+    auto tokens = mp::utils::split(server_address, ":");
+    if (tokens.size() != 2u)
+        throw std::runtime_error(fmt::format("invalid server address specified: {}", server_address));
 
-    if (!address.startsWith("unix:"))
+    const auto server_name = tokens[0];
+    if (server_name != "unix")
         return;
 
 #ifdef MULTIPASS_PLATFORM_APPLE
@@ -63,7 +68,7 @@ void set_server_permissions(const std::string& server_address)
     if (!group)
         throw std::runtime_error(fmt::format("Could not determine group id for '{}'", group_name));
 
-    auto socket_path = address.section("unix:", 1, 1).toStdString();
+    const auto socket_path = tokens[1];
     if (chown(socket_path.c_str(), 0, group->gr_gid) == -1)
         throw std::runtime_error("Could not set ownership of the multipass socket.");
 
@@ -95,7 +100,7 @@ public:
     }
 
 private:
-    multipass::AutoJoinThread signal_handling_thread;
+    mp::AutoJoinThread signal_handling_thread;
 };
 } // namespace
 
@@ -103,14 +108,14 @@ int main(int argc, char* argv[]) // clang-format off
 try // clang-format on
 {
     QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion(multipass::version_string);
+    QCoreApplication::setApplicationVersion(mp::version_string);
     UnixSignalHandler handler;
 
-    auto builder = multipass::cli::parse(app);
+    auto builder = mp::cli::parse(app);
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    multipass::Daemon daemon(std::move(config));
+    mp::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
 

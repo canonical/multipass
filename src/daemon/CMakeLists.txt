@@ -31,9 +31,10 @@ target_link_libraries(daemon
   fmt
   iso
   logger
-  rpc
+  metrics
   petname
   platform
+  rpc
   simplestreams
   ssh
   sshfs_mount

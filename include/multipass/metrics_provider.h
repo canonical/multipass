@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,25 +13,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *              Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_FILE_READER_H
-#define MULTIPASS_FILE_READER_H
+#ifndef MULTIPASS_METRICS_PROVIDER_H
+#define MULTIPASS_METRICS_PROVIDER_H
 
 #include <QByteArray>
+#include <QNetworkAccessManager>
 #include <QString>
+#include <QUrl>
 
 namespace multipass
 {
-namespace test
+class MetricsProvider
 {
-QByteArray load(QString path);
-QByteArray load_test_file(const char* file_name);
-qint64 make_file_with_content(const QString& file_name);
-qint64 make_file_with_content(const QString& file_name, const std::string& content);
-}
-}
-#endif // MULTIPASS_FILE_READER_H
+public:
+    MetricsProvider(const QUrl& metrics_url, const QString& unique_id);
+    MetricsProvider(const QString& metrics_url, const QString& unique_id);
+
+    bool send_metrics();
+    void send_denied();
+
+private:
+    void post_request(const QByteArray& body);
+
+    const QUrl metrics_url;
+    const QString unique_id;
+    QNetworkAccessManager manager;
+};
+} // namespace multipass
+#endif // MULTIPASS_METRICS_PROVIDER_H

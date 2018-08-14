@@ -19,6 +19,9 @@
 
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
+
+#include <fmt/format.h>
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -39,7 +42,7 @@ multipass::logging::Level to_logging_level(const QString& value)
     if (value == "debug")
         return mpl::Level::debug;
 
-    throw std::runtime_error("Invalid logging verbosity: " + value.toStdString());
+    throw std::runtime_error("invalid logging verbosity: " + value.toStdString());
 }
 } // namespace
 
@@ -53,9 +56,14 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
     QCommandLineOption logger_option{"logger", "specifies which logger to use", "platform|stderr"};
     QCommandLineOption verbosity_option{
         {"V", "verbosity"}, "specifies the logging verbosity level", "error|warning|info|debug"};
+    QCommandLineOption address_option{"address",
+                                      "specifies which address to use for the multipassd service;"
+                                      " a socket can be specified using unix:<socket_file>",
+                                      "server_name:port"};
 
     parser.addOption(logger_option);
     parser.addOption(verbosity_option);
+    parser.addOption(address_option);
 
     parser.process(app);
 
@@ -72,7 +80,14 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
         else if (logger == "stderr")
             builder.logger = std::make_unique<mpl::StandardLogger>(builder.verbosity_level);
         else
-            throw std::runtime_error("Invalid logger option: " + logger.toStdString());
+            throw std::runtime_error(fmt::format("invalid logger option '{}'", logger.toStdString()));
+    }
+
+    if (parser.isSet(address_option))
+    {
+        auto address = parser.value(address_option).toStdString();
+        mp::utils::validate_server_address(address);
+        builder.server_address = address;
     }
 
     return builder;

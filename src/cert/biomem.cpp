@@ -15,38 +15,31 @@
  *
  */
 
-#include <multipass/cli/client_platform.h>
+#include "biomem.h"
 
-#include <QFileInfo>
+#include <vector>
 
-#include <unistd.h>
+namespace mp = multipass;
 
-namespace mcp = multipass::cli::platform;
-
-void mcp::parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name)
+mp::BIOMem::BIOMem() : bio{BIO_new(BIO_s_mem()), BIO_free}
 {
-    auto colon_count = entry.count(":");
-
-    switch (colon_count)
-    {
-    case 0:
-        path = entry;
-        break;
-    case 1:
-        if (!QFileInfo::exists(entry))
-        {
-            instance_name = entry.section(":", 0, 0);
-            path = entry.section(":", 1);
-        }
-        else
-        {
-            path = entry;
-        }
-        break;
-    }
+    if (bio == nullptr)
+        throw std::runtime_error("Failed to create BIO structure");
 }
 
-bool mcp::is_tty()
+mp::BIOMem::BIOMem(const std::string& pem_source) : BIOMem()
 {
-    return (isatty(fileno(stdin)) == 1);
+    BIO_write(bio.get(), pem_source.data(), pem_source.size());
+}
+
+std::string mp::BIOMem::as_string() const
+{
+    std::vector<char> pem(bio->num_write);
+    BIO_read(bio.get(), pem.data(), pem.size());
+    return {pem.begin(), pem.end()};
+}
+
+BIO* mp::BIOMem::get() const
+{
+    return bio.get();
 }

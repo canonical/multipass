@@ -36,6 +36,7 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser) override;
+    ReturnCode request_launch();
 
     LaunchRequest request;
 };

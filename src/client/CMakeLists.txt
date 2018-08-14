@@ -19,6 +19,7 @@ add_library(client STATIC
   client.cpp)
 
 target_link_libraries(client
+  cert
   commands
   fmt
   formatter

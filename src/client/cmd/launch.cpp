@@ -19,16 +19,26 @@
 
 #include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_platform.h>
 
 #include <yaml-cpp/yaml.h>
 
 #include <QTimeZone>
 
+#include <regex>
 #include <unordered_map>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
+namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
+
+namespace
+{
+const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
+const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
+const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
+} // namespace
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
@@ -40,69 +50,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
 
-    mp::AnimatedSpinner spinner{cout};
-    auto on_success = [this, &spinner](mp::LaunchReply& reply) {
-        spinner.stop();
-        cout << "Launched: " << reply.vm_instance_name() << "\n";
-        return ReturnCode::Ok;
-    };
-
-    auto on_failure = [this, &spinner](grpc::Status& status) {
-        spinner.stop();
-        cerr << "failed to launch: " << status.error_message() << "\n";
-
-        LaunchError launch_error;
-        launch_error.ParseFromString(status.error_details());
-
-        for (const auto& error : launch_error.error_codes())
-        {
-            if (error == LaunchError::INVALID_DISK_SIZE)
-            {
-                cerr << "Invalid disk size value supplied: " << request.disk_space() << "\n";
-            }
-            else if (error == LaunchError::INVALID_MEM_SIZE)
-            {
-                cerr << "Invalid memory size value supplied: " << request.mem_size() << "\n";
-            }
-            else if (error == LaunchError::INVALID_HOSTNAME)
-            {
-                cerr << "Invalid instance name supplied: " << request.instance_name() << "\n";
-            }
-        }
-
-        return ReturnCode::CommandFail;
-    };
-
-    auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {
-        std::unordered_map<int, std::string> progress_messages{
-            {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
-            {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
-            {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
-            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
-            {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "}};
-
-        if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
-        {
-            auto& progress_message = progress_messages[reply.launch_progress().type()];
-            if (reply.launch_progress().percent_complete() != "-1")
-            {
-                spinner.stop();
-                cout << "\r";
-                cout << progress_message << reply.launch_progress().percent_complete() << "%" << std::flush;
-            }
-            else
-            {
-                spinner.start(progress_message);
-            }
-        }
-        else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)
-        {
-            spinner.stop();
-            spinner.start(reply.create_message());
-        }
-    };
-
-    return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
+    return request_launch();
 }
 
 std::string cmd::Launch::name() const
@@ -224,4 +172,112 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     }
 
     return status;
+}
+
+mp::ReturnCode cmd::Launch::request_launch()
+{
+    mp::AnimatedSpinner spinner{cout};
+
+    auto on_success = [this, &spinner](mp::LaunchReply& reply) {
+        spinner.stop();
+
+        if (reply.metrics_pending())
+        {
+            if (mcp::is_tty())
+            {
+                cout << "Would you agree to help Multipass developers by anonymously sending usage data?\n"
+                     << "Things we're interested in: your operating system, the images you use, the number\n"
+                     << "of instances you have, their properties and how long you use them.\n"
+                     << "We'd also like to know how long it takes for certain operations to complete.\n\n"
+                     << "Send usage data (yes/no/Later)? ";
+
+                while (true)
+                {
+                    std::string answer;
+                    std::getline(std::cin, answer);
+                    if (std::regex_match(answer, yes))
+                    {
+                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::ACCEPTED);
+                        break;
+                    }
+                    else if (std::regex_match(answer, no))
+                    {
+                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::DENIED);
+                        break;
+                    }
+                    else if (answer.empty() || std::regex_match(answer, later))
+                    {
+                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::LATER);
+                        break;
+                    }
+                    else
+                    {
+                        cout << "Please answer yes/no/Later: ";
+                    }
+                }
+            }
+            return request_launch();
+        }
+
+        cout << "Launched: " << reply.vm_instance_name() << "\n";
+        return ReturnCode::Ok;
+    };
+
+    auto on_failure = [this, &spinner](grpc::Status& status) {
+        spinner.stop();
+
+        cerr << "failed to launch: " << status.error_message() << "\n";
+
+        LaunchError launch_error;
+        launch_error.ParseFromString(status.error_details());
+
+        for (const auto& error : launch_error.error_codes())
+        {
+            if (error == LaunchError::INVALID_DISK_SIZE)
+            {
+                cerr << "Invalid disk size value supplied: " << request.disk_space() << "\n";
+            }
+            else if (error == LaunchError::INVALID_MEM_SIZE)
+            {
+                cerr << "Invalid memory size value supplied: " << request.mem_size() << "\n";
+            }
+            else if (error == LaunchError::INVALID_HOSTNAME)
+            {
+                cerr << "Invalid instance name supplied: " << request.instance_name() << "\n";
+            }
+        }
+
+        return ReturnCode::CommandFail;
+    };
+
+    auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {
+        std::unordered_map<int, std::string> progress_messages{
+            {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
+            {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
+            {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
+            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
+            {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "}};
+
+        if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
+        {
+            auto& progress_message = progress_messages[reply.launch_progress().type()];
+            if (reply.launch_progress().percent_complete() != "-1")
+            {
+                spinner.stop();
+                cout << "\r";
+                cout << progress_message << reply.launch_progress().percent_complete() << "%" << std::flush;
+            }
+            else
+            {
+                spinner.start(progress_message);
+            }
+        }
+        else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)
+        {
+            spinner.stop();
+            spinner.start(reply.create_message());
+        }
+    };
+
+    return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
 }

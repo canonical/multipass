@@ -24,6 +24,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <multipass/cert_provider.h>
+#include <multipass/cert_store.h>
 #include <multipass/logging/logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/rpc_connection_type.h>
@@ -38,6 +39,8 @@
 
 namespace multipass
 {
+constexpr auto metrics_url = "https://api.staging.jujucharms.com/omnibus/v4/multipass/metrics";
+
 struct DaemonConfig
 {
     const std::unique_ptr<URLDownloader> url_downloader;
@@ -47,6 +50,7 @@ struct DaemonConfig
     const std::unique_ptr<NameGenerator> name_generator;
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     const std::unique_ptr<CertProvider> cert_provider;
+    const std::unique_ptr<CertStore> client_cert_store;
     const std::shared_ptr<logging::Logger> logger;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
@@ -64,6 +68,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<NameGenerator> name_generator;
     std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     std::unique_ptr<CertProvider> cert_provider;
+    std::unique_ptr<CertStore> client_cert_store;
     std::unique_ptr<logging::Logger> logger;
     multipass::Path cache_directory;
     multipass::Path data_directory;

@@ -343,12 +343,12 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             }
             else
             {
-                auto image_filename = filename_for(image_url.path());
+                const auto image_filename = filename_for(image_url.path());
                 // Attempt to make a sane directory name based on the filename of the image
-                auto image_dir_name = QString("%1-%2")
+                const auto image_dir_name = QString("%1-%2")
                                           .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
                                           .arg(last_modified.toString("yyyyMMdd"));
-                auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
+                const QDir image_dir{mp::utils::make_dir(images_dir, image_dir_name)};
 
                 source_image.id = hash;
                 source_image.image_path = image_dir.filePath(image_filename);
@@ -427,8 +427,8 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             }
         }
 
-        auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
-        auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
+        const auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
+        const QDir image_dir{mp::utils::make_dir(images_dir, image_dir_name)};
 
         VMImage source_image;
         source_image.id = id;
@@ -477,7 +477,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
 void mp::DefaultVMImageVault::remove(const std::string& name)
 {
-    auto name_entry = instance_image_records.find(name);
+    const auto& name_entry = instance_image_records.find(name);
     if (name_entry == instance_image_records.end())
         return;
 
@@ -548,7 +548,7 @@ mp::VMImage mp::DefaultVMImageVault::extract_image_from(const std::string& insta
                                                         const ProgressMonitor& monitor)
 {
     const auto name = QString::fromStdString(instance_name);
-    const auto output_dir = mp::utils::make_dir(instances_dir, name);
+    const QDir output_dir{mp::utils::make_dir(instances_dir, name)};
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = output_dir.filePath(image_name);
