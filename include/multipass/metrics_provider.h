@@ -18,28 +18,41 @@
 #ifndef MULTIPASS_METRICS_PROVIDER_H
 #define MULTIPASS_METRICS_PROVIDER_H
 
+#include <multipass/auto_join_thread.h>
+
 #include <QByteArray>
+#include <QJsonArray>
 #include <QNetworkAccessManager>
 #include <QString>
 #include <QUrl>
+
+#include <condition_variable>
+#include <mutex>
 
 namespace multipass
 {
 class MetricsProvider
 {
 public:
-    MetricsProvider(const QUrl& metrics_url, const QString& unique_id);
+    MetricsProvider(const QUrl& url, const QString& unique_id);
     MetricsProvider(const QString& metrics_url, const QString& unique_id);
+    ~MetricsProvider();
 
     bool send_metrics();
     void send_denied();
 
 private:
-    void post_request(const QByteArray& body);
+    void update_and_notify_sender(const QJsonObject& metric);
 
     const QUrl metrics_url;
     const QString unique_id;
-    QNetworkAccessManager manager;
+    QJsonArray metric_batches;
+
+    AutoJoinThread metrics_sender;
+    std::mutex metrics_mutex;
+    std::condition_variable metrics_cv;
+    bool running{true};
+    bool metrics_available{false};
 };
 } // namespace multipass
 #endif // MULTIPASS_METRICS_PROVIDER_H
