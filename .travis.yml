@@ -27,11 +27,11 @@ jobs:
   include:
     - env: BUILD_TYPE=RelWithDebInfo
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft'
 
     - env: BUILD_TYPE=Debug
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
@@ -41,7 +41,7 @@ jobs:
 
     - env: BUILD_TYPE=Coverage
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
