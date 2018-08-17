@@ -21,6 +21,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#include "logger/win_event_logger.h"
 
 #include <QFile>
 
@@ -79,7 +80,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
-    return nullptr;
+    return std::make_unique<logging::EventLogger>(level);
 }
 
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
@@ -89,8 +90,7 @@ int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
 
 bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
 {
-    DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 |
-	          SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     return CreateSymbolicLink(link, target, flags);
 }
 

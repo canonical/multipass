@@ -14,7 +14,8 @@
 #
 
 if(MSVC)
-  # Platform specific logger library here
+  add_library(wineventlogger STATIC win_event_logger.cpp)
+  target_link_libraries(wineventlogger fmt)
 elseif(APPLE)
   # Platform specific logger library here
 else()
