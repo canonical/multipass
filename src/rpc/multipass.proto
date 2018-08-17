@@ -81,6 +81,19 @@ message LaunchProgress {
     string percent_complete = 2;
 }
 
+message MetricsShowInfo {
+    // TODO: Place holder for real host data
+    message HostInfo {
+        string release = 1;
+    }
+    // TODO: Place holder for real instance data
+    message InstanceInfo {
+        string release = 1;
+    }
+    HostInfo host_info = 1;
+    repeated InstanceInfo instances_info = 2;
+}
+
 message LaunchReply {
     oneof create_oneof {
         string vm_instance_name = 1;
@@ -88,6 +101,7 @@ message LaunchReply {
         string create_message = 3;
     }
     bool metrics_pending = 4;
+    MetricsShowInfo metrics_show_info = 5;
 }
 
 message PurgeRequest {
