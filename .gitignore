@@ -1,3 +1,7 @@
 .idea
 cmake-build-debug
 CMakeLists.txt.user
+
+# only care about the encrypted file
+/tools/bot-data/*
+/tools/bot-data.tar.xz
