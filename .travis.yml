@@ -50,3 +50,16 @@ jobs:
                  cmake --build /root/build_multipass/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+    - if: env(TRAVIS_SECURE_ENV_VARS) = true
+      env: BUILD_TYPE=macOS
+      before_install:
+      - openssl aes-256-cbc -K $encrypted_8d49841daf21_key -iv $encrypted_8d49841daf21_iv
+        -in bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
+      - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
+      script:
+      - if [ ${TRAVIS_EVENT_TYPE} == "push" ]; then
+          export REF="+refs/pull/${TRAVIS_PULL_REQUEST}/merge"
+        else
+          export REF="${TRAVIS_COMMIT}"
+        fi
+      - ssh -u ${MAC_USER} -p ${MAC_PORT} ${MAC_HOST} multipass-build/build-in-snapshot.sh ${REF}
