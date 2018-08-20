@@ -51,6 +51,7 @@ jobs:
       after_success:
       - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     - if: (type = pull_request AND head_repo = CanonicalLtd/multipass)
+          OR (type != pull_request AND repo = CanonicalLtd/multipass)
       env: BUILD_TYPE=macOS
       git:
         submodules: false
@@ -61,4 +62,10 @@ jobs:
       - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
       install: ~
       script:
-      - ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh +refs/pull/${TRAVIS_PULL_REQUEST}/merge
+      - |
+        if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
+          REF="+refs/pull/${TRAVIS_PULL_REQUEST}/merge"
+        else
+          REF="${TRAVIS_COMMIT}"
+        fi
+        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
