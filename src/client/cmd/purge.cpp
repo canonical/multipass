@@ -35,7 +35,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "purge failed: " << status.error_message() << "\n";
-        return mp::ReturnCode::CommandFail;
+        return return_code_for(status.error_code());
     };
 
     mp::PurgeRequest request;

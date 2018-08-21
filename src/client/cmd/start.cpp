@@ -72,7 +72,8 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
                 }
             }
         }
-        return ReturnCode::CommandFail;
+
+        return return_code_for(status.error_code());
     };
 
     std::string message{"Starting "};
@@ -148,7 +149,7 @@ mp::ReturnCode cmd::Start::install_sshfs(const std::string& instance_name)
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "exec failed: " << status.error_message() << "\n";
-        return ReturnCode::CommandFail;
+        return return_code_for(status.error_code());
     };
 
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
