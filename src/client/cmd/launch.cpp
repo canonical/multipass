@@ -242,7 +242,7 @@ mp::ReturnCode cmd::Launch::request_launch()
             }
         }
 
-        return ReturnCode::CommandFail;
+        return return_code_for(status.error_code());
     };
 
     auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {

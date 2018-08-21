@@ -43,7 +43,7 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
         cerr << "stop failed: " << status.error_message() << "\n";
-        return ReturnCode::CommandFail;
+        return return_code_for(status.error_code());
     };
 
     std::string message{"Stopping "};

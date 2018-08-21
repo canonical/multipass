@@ -114,6 +114,11 @@ protected:
         return nullptr;
     }
 
+    ReturnCode return_code_for(const grpc::StatusCode& code)
+    {
+        return code == grpc::StatusCode::UNAVAILABLE ? ReturnCode::DaemonFail : ReturnCode::CommandFail;
+    }
+
     Command(const Command&) = delete;
     Command& operator=(const Command&) = delete;
 

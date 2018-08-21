@@ -89,8 +89,7 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "copy-files failed: " << status.error_message() << "\n";
-
-        return ReturnCode::CommandFail;
+        return return_code_for(status.error_code());
     };
 
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
