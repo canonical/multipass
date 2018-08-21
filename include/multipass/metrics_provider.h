@@ -48,11 +48,11 @@ private:
     const QString unique_id;
     QJsonArray metric_batches;
 
-    AutoJoinThread metrics_sender;
     std::mutex metrics_mutex;
     std::condition_variable metrics_cv;
     bool running{true};
     bool metrics_available{false};
+    AutoJoinThread metrics_sender;
 };
 } // namespace multipass
 #endif // MULTIPASS_METRICS_PROVIDER_H
