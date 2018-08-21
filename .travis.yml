@@ -27,11 +27,11 @@ jobs:
   include:
     - env: BUILD_TYPE=RelWithDebInfo
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft'
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft'
 
     - env: BUILD_TYPE=Debug
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
@@ -41,7 +41,7 @@ jobs:
 
     - env: BUILD_TYPE=Coverage
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_CONTAINER_BUILDS=1 /snap/bin/snapcraft build multipass'
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
@@ -50,3 +50,22 @@ jobs:
                  cmake --build /root/build_multipass/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+    - if: (type = pull_request AND head_repo = CanonicalLtd/multipass)
+          OR (type != pull_request AND repo = CanonicalLtd/multipass)
+      env: BUILD_TYPE=macOS
+      git:
+        submodules: false
+      sudo: false
+      before_install:
+      - openssl aes-256-cbc -K $encrypted_c6da723f3a3c_key -iv $encrypted_c6da723f3a3c_iv
+        -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
+      - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
+      install: ~
+      script:
+      - |
+        if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
+          REF="+refs/pull/${TRAVIS_PULL_REQUEST}/merge"
+        else
+          REF="${TRAVIS_COMMIT}"
+        fi
+        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"

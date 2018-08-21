@@ -32,12 +32,30 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
+using namespace std::literals::chrono_literals;
 using namespace testing;
 
 namespace
 {
 struct MetricsProvider : public testing::Test
 {
+    void wait_for_metrics()
+    {
+        while (true)
+        {
+            QFile file{metrics_file.name()};
+
+            if (file.size() == 0 || !file.open(QIODevice::ReadWrite))
+            {
+                std::this_thread::sleep_for(10ms);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
     mpt::TempFile metrics_file;
 };
 } // namespace
@@ -46,8 +64,9 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
 {
     const auto unique_id = mp::utils::make_uuid();
     mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id};
-
     metrics_provider.send_metrics();
+
+    wait_for_metrics();
 
     QFile file{metrics_file.name()};
     file.open(QIODevice::ReadOnly);
@@ -111,8 +130,9 @@ TEST_F(MetricsProvider, opt_out_denied_valid)
 {
     const auto unique_id = mp::utils::make_uuid();
     mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id};
-
     metrics_provider.send_denied();
+
+    wait_for_metrics();
 
     QFile file{metrics_file.name()};
     file.open(QIODevice::ReadOnly);
