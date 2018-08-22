@@ -52,6 +52,12 @@ struct VMSpecs
     std::unordered_map<std::string, VMMount> mounts;
 };
 
+struct MetricsOptInData
+{
+    OptInStatus::Status opt_in_status;
+    int delay_opt_in_count;
+};
+
 struct DaemonConfig;
 class Daemon : public QObject, public multipass::Rpc::Service, public multipass::VMStatusMonitor
 {
@@ -110,7 +116,7 @@ private:
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
     MetricsProvider metrics_provider;
-    OptInStatus::Status metrics_opt_in;
+    MetricsOptInData metrics_opt_in;
 };
 }
 #endif // MULTIPASS_DAEMON_H
