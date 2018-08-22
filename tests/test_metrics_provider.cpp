@@ -18,6 +18,7 @@
 #include <multipass/metrics_provider.h>
 #include <multipass/utils.h>
 
+#include "temp_dir.h"
 #include "temp_file.h"
 
 #include <QDateTime>
@@ -57,13 +58,14 @@ struct MetricsProvider : public testing::Test
     }
 
     mpt::TempFile metrics_file;
+    mpt::TempDir metrics_dir;
 };
 } // namespace
 
 TEST_F(MetricsProvider, opt_in_metrics_valid)
 {
     const auto unique_id = mp::utils::make_uuid();
-    mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id};
+    mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id, metrics_dir.path()};
     metrics_provider.send_metrics();
 
     wait_for_metrics();
@@ -129,7 +131,7 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
 TEST_F(MetricsProvider, opt_out_denied_valid)
 {
     const auto unique_id = mp::utils::make_uuid();
-    mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id};
+    mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id, metrics_dir.path()};
     metrics_provider.send_denied();
 
     wait_for_metrics();
