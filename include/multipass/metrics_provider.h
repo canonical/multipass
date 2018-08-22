@@ -19,6 +19,7 @@
 #define MULTIPASS_METRICS_PROVIDER_H
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/path.h>
 
 #include <QByteArray>
 #include <QJsonArray>
@@ -34,8 +35,8 @@ namespace multipass
 class MetricsProvider
 {
 public:
-    MetricsProvider(const QUrl& url, const QString& unique_id);
-    MetricsProvider(const QString& metrics_url, const QString& unique_id);
+    MetricsProvider(const QUrl& url, const QString& unique_id, const Path& path);
+    MetricsProvider(const QString& metrics_url, const QString& unique_id, const Path& path);
     ~MetricsProvider();
 
     bool send_metrics();
@@ -46,6 +47,7 @@ private:
 
     const QUrl metrics_url;
     const QString unique_id;
+    const Path& data_path;
     QJsonArray metric_batches;
 
     std::mutex metrics_mutex;

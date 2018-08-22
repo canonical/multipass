@@ -396,7 +396,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
       daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
-      metrics_provider{metrics_url, get_unique_id(config->data_directory)},
+      metrics_provider{metrics_url, get_unique_id(config->data_directory), config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
     connect_rpc(daemon_rpc, *this);
