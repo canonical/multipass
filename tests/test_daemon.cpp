@@ -104,10 +104,6 @@ struct Daemon : public Test
         config_builder.client_cert_store = std::make_unique<mpt::StubCertStore>();
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
-
-        QFile opt_in_file{QDir(data_dir.path()).filePath("multipassd-send-metrics")};
-        opt_in_file.open(QIODevice::WriteOnly);
-        opt_in_file.write(QByteArray::number(static_cast<int>(mp::OptInStatus::DENIED)));
     }
 
     mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()
