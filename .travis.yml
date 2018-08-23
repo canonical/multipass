@@ -15,13 +15,19 @@ branches:
 install:
 - sudo apt-get --yes --no-install-recommends install snapd
 - sudo snap install lxd
-- sudo snap install snapcraft --classic
+- sudo snap install snapcraft --classic --edge
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
+- |
+  echo -e "#cloud-config\npackages: [ccache]" | sg lxd -c '/snap/bin/lxc profile set default user.user-data -'
+- sg lxd -c '/snap/bin/lxc profile set default environment.path /usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+- sg lxd -c "/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache"
 
 before_script:
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
+
+cache: ccache
 
 jobs:
   include:
@@ -69,3 +75,4 @@ jobs:
           REF="${TRAVIS_COMMIT}"
         fi
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
+      cache: ~
