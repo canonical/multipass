@@ -26,9 +26,8 @@
 
 namespace mp = multipass;
 
-mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const VirtualMachineDescription& desc)
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc)
     : VirtualMachine{desc.key_provider, desc.vm_name},
-      ip{address},
       name{QString::fromStdString(desc.vm_name)},
       state{State::off},
       username{desc.ssh_username}
@@ -43,9 +42,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const IPAddress& address, const V
             mem_size.append("MB");
 
         powershell_run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
-                        "VHD", "-SwitchName", "multipass", "-MemoryStartupBytes", mem_size},
+                        "VHD", "-SwitchName", "\"Default Switch\"", "-MemoryStartupBytes", mem_size},
                        vm_name);
-        powershell_run({"Set-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso}, vm_name);
+        powershell_run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso}, vm_name);
     }
 }
 
@@ -83,12 +82,11 @@ int mp::HyperVVirtualMachine::ssh_port()
 
 void mp::HyperVVirtualMachine::update_state()
 {
-    return;
 }
 
 std::string mp::HyperVVirtualMachine::ssh_hostname()
 {
-    return ip.as_string();
+    return name.toStdString() + ".mshome.net";
 }
 
 std::string mp::HyperVVirtualMachine::ssh_username()
@@ -98,7 +96,7 @@ std::string mp::HyperVVirtualMachine::ssh_username()
 
 std::string mp::HyperVVirtualMachine::ipv4()
 {
-    return ip.as_string();
+    return {};
 }
 
 std::string mp::HyperVVirtualMachine::ipv6()

@@ -20,7 +20,6 @@
 #ifndef MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
 #define MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
 
-#include <multipass/ip_address.h>
 #include <multipass/virtual_machine.h>
 
 #include <QString>
@@ -32,7 +31,7 @@ class VirtualMachineDescription;
 class HyperVVirtualMachine final : public VirtualMachine
 {
 public:
-    HyperVVirtualMachine(const IPAddress& address, const VirtualMachineDescription& desc);
+    HyperVVirtualMachine(const VirtualMachineDescription& desc);
     ~HyperVVirtualMachine();
     void stop() override;
     void start() override;
@@ -48,10 +47,9 @@ public:
     void update_state() override;
 
 private:
-    const IPAddress ip;
     const QString name;
     VirtualMachine::State state;
     const std::string username;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H

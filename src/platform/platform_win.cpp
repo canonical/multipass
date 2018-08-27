@@ -73,9 +73,9 @@ std::string mp::platform::default_server_address()
     return {"localhost:50051"};
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
 {
-    return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
+    return std::make_unique<HyperVVirtualMachineFactory>();
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

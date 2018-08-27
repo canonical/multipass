@@ -30,37 +30,14 @@
 
 namespace mp = multipass;
 
-namespace
-{
-void create_virtual_switch(const std::string& name)
-{
-    if (!mp::powershell_run({"Get-VMSwitch", "-Name", "multipass"}, name))
-    {
-        mp::powershell_run({"New-VMSwitch", "-SwitchType", "Internal", "-Name", "multipass"}, name);
-        mp::powershell_run({"New-NetIPAddress", "-IPAddress", "10.122.122.1", "-PrefixLength", "24", "-InterfaceIndex",
-                            "(Get-NetAdapter -Name 'vEthernet (multipass)').ifIndex"},
-                           name);
-        mp::powershell_run(
-            {"New-NetNat", "-Name", "multipassNAT", "-InternalIPInterfaceAddressPrefix", "10.122.122.0/24"}, name);
-    }
-}
-}
-
-mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& data_dir)
-    : ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}}
-{
-}
-
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                  VMStatusMonitor& monitor)
 {
-    create_virtual_switch("hyperv-factory");
-    return std::make_unique<mp::HyperVVirtualMachine>(ip_pool.obtain_ip_for(desc.vm_name), desc);
+    return std::make_unique<mp::HyperVVirtualMachine>(desc);
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    ip_pool.remove_ip_for(name);
     powershell_run({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
 }
 
@@ -113,22 +90,6 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 void mp::HyperVVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config,
                                                 YAML::Node& user_config)
 {
-    meta_config["dsmode"] = "local";
-
-    auto ip = ip_pool.obtain_ip_for(name);
-    std::stringstream netconfig;
-
-    netconfig << "|\n"
-              << "    auto eth0\n"
-              << "    iface eth0 inet static\n"
-              << "    address " << ip.as_string() << "\n"
-              << "    network 10.122.122.0\n"
-              << "    netmask 255.255.255.0\n"
-              << "    broadcast 10.122.122.255\n"
-              << "    gateway 10.122.122.1\n"
-              << "    dns-nameservers 8.8.8.8\n"; // TODO: Use a DNS proxy instead
-
-    meta_config["network-interfaces"] = netconfig.str();
 }
 
 void mp::HyperVVirtualMachineFactory::check_hypervisor_support()

@@ -20,7 +20,6 @@
 #ifndef MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H
 
-#include <multipass/ip_address_pool.h>
 #include <multipass/virtual_machine_factory.h>
 
 namespace multipass
@@ -28,7 +27,6 @@ namespace multipass
 class HyperVVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
-    explicit HyperVVirtualMachineFactory(const Path& data_dir);
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
@@ -37,10 +35,7 @@ public:
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
     void check_hypervisor_support() override;
-
-private:
-    IPAddressPool ip_pool;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H

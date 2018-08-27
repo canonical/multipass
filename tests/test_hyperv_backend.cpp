@@ -29,8 +29,6 @@
 
 #include <gmock/gmock.h>
 
-#include <QTemporaryDir>
-
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -51,10 +49,9 @@ struct HyperVBackend : public testing::Test
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
                                                       key_provider};
-    QTemporaryDir data_dir;
-    mp::HyperVVirtualMachineFactory backend{data_dir.path()};
+    mp::HyperVVirtualMachineFactory backend;
 };
-}
+} // namespace
 
 TEST_F(HyperVBackend, creates_in_off_state)
 {
