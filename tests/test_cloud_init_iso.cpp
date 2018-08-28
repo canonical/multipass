@@ -17,31 +17,31 @@
 
 #include <multipass/cloud_init_iso.h>
 
-#include <QTemporaryDir>
+#include "temp_dir.h"
+
 #include <gmock/gmock.h>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 using namespace testing;
 
 struct CloudInitIso : public testing::Test
 {
     CloudInitIso()
     {
-        if (!dir.isValid())
-            throw std::runtime_error("test failed to create temp directory");
+        iso_path = QDir{temp_dir.path()}.filePath("test.iso");
     }
-    QTemporaryDir dir;
+    mpt::TempDir temp_dir;
+    QString iso_path;
 };
 
 TEST_F(CloudInitIso, creates_iso_file)
 {
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
+    iso.write_to(iso_path);
 
-    auto file_path = dir.filePath("test.iso");
-    iso.write_to(file_path);
-
-    QFile file{file_path};
+    QFile file{iso_path};
     EXPECT_TRUE(file.exists());
     EXPECT_THAT(file.size(), Ge(0));
 }
