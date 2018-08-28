@@ -36,13 +36,13 @@
 #include "stub_ssh_key_provider.h"
 #include "stub_virtual_machine_factory.h"
 #include "stub_vm_image_vault.h"
+#include "temp_dir.h"
 
 #include <yaml-cpp/yaml.h>
 
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
-#include <QTemporaryDir>
 
 #include <memory>
 #include <sstream>
@@ -162,8 +162,8 @@ struct Daemon : public Test
 
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
     QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
-    QTemporaryDir cache_dir;
-    QTemporaryDir data_dir;
+    mpt::TempDir cache_dir;
+    mpt::TempDir data_dir;
     mp::DaemonConfigBuilder config_builder;
     std::stringstream null_stream;
 };
