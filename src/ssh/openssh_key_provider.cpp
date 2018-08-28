@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -46,16 +44,9 @@ mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
     return key;
 }
 
-mp::OpenSSHKeyProvider::KeyUPtr get_priv_key(const QDir& key_dir, const QDir& fallback_dir)
+mp::OpenSSHKeyProvider::KeyUPtr get_priv_key(const QDir& key_dir)
 {
     auto priv_key_path = key_dir.filePath("id_rsa");
-    auto fallback_key_path = fallback_dir.filePath("id_rsa");
-
-    if (!QFile::exists(priv_key_path) && QFile::exists(fallback_key_path))
-    {
-        QFile::copy(fallback_key_path, priv_key_path);
-    }
-
     if (QFile::exists(priv_key_path))
     {
         ssh_key priv_key;
@@ -74,10 +65,8 @@ void mp::OpenSSHKeyProvider::KeyDeleter::operator()(ssh_key key)
     ssh_key_free(key);
 }
 
-mp::OpenSSHKeyProvider::OpenSSHKeyProvider(const mp::Path& cache_dir, const mp::Path& fallback_dir)
-    : ssh_key_dir{mp::utils::make_dir(cache_dir, "ssh-keys")},
-      fallback_ssh_key_dir{QDir(fallback_dir).filePath("ssh-keys")},
-      priv_key{get_priv_key(ssh_key_dir, fallback_ssh_key_dir)}
+mp::OpenSSHKeyProvider::OpenSSHKeyProvider(const mp::Path& cache_dir)
+    : ssh_key_dir{mp::utils::make_dir(cache_dir, "ssh-keys")}, priv_key{get_priv_key(ssh_key_dir)}
 {
 }
 

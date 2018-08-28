@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "daemon_config.h"
@@ -95,7 +93,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (server_address.empty())
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)
-        ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory, cache_directory);
+        ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
     if (cert_provider == nullptr)
         cert_provider = std::make_unique<mp::SSLCertProvider>(mp::utils::make_dir(data_directory, "certificates"),
                                                               server_name_from(server_address));

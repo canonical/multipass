@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -37,14 +35,13 @@ public:
     };
     using KeyUPtr = std::unique_ptr<ssh_key_struct, KeyDeleter>;
 
-    OpenSSHKeyProvider(const Path& cache_dir, const Path& fallback_dir);
+    OpenSSHKeyProvider(const Path& cache_dir);
     std::string private_key_as_base64() const override;
     std::string public_key_as_base64() const override;
     ssh_key private_key() const override;
 
 private:
     QDir ssh_key_dir;
-    QDir fallback_ssh_key_dir;
     KeyUPtr priv_key;
 };
 }
