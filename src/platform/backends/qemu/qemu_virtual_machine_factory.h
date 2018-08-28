@@ -13,15 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 
 #include "dnsmasq_server.h"
 
-#include <multipass/ip_address_pool.h>
 #include <multipass/virtual_machine_factory.h>
 
 namespace multipass
@@ -42,7 +39,6 @@ public:
     void check_hypervisor_support() override;
 
 private:
-    IPAddressPool legacy_ip_pool;
     const QString bridge_name;
     DNSMasqServer dnsmasq_server;
 };
