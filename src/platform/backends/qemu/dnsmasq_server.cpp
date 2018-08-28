@@ -17,8 +17,9 @@
 
 #include "dnsmasq_server.h"
 
-#include <QFile>
+#include <multipass/utils.h>
 
+#include <fstream>
 namespace mp = multipass;
 
 namespace
@@ -31,8 +32,7 @@ auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, con
                QStringList() << "--keep-in-foreground"
                              << "--strict-order"
                              << "--bind-interfaces"
-                             << "--except-interface=lo"
-                             << QString("--interface=%1").arg(bridge_name)
+                             << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                              << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
                              << "--dhcp-no-override"
                              << "--dhcp-authoritative"
@@ -45,7 +45,7 @@ auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, con
     cmd->waitForStarted();
     return cmd;
 }
-}
+} // namespace
 
 mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
                                  const IPAddress& start, const IPAddress& end)
@@ -64,20 +64,19 @@ mp::DNSMasqServer::~DNSMasqServer()
 
 mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
 {
-    QProcess cmd;
-
-    cmd.start("bash",
-              QStringList() << "-c"
-                            << QString("grep \"%1\" %2 | cut -d ' ' -f3")
-                                   .arg(QString::fromStdString(hw_addr))
-                                   .arg(data_dir.filePath("dnsmasq.leases")));
-
-    cmd.waitForFinished();
-
-    auto ip_addr = cmd.readAll().trimmed();
-
-    if (ip_addr.isEmpty())
-        return {};
-    else
-        return mp::optional<mp::IPAddress>{mp::IPAddress{ip_addr.toStdString()}};
+    // DNSMasq leases entries consist of:
+    // <lease expiration> <mac addr> <ipv4> <name> * * *
+    const auto path = data_dir.filePath("dnsmasq.leases").toStdString();
+    const std::string delimiter{" "};
+    const int hw_addr_idx{1};
+    const int ipv4_idx{2};
+    std::ifstream leases_file{path};
+    std::string line;
+    while (getline(leases_file, line))
+    {
+        const auto fields = mp::utils::split(line, delimiter);
+        if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
+            return mp::optional<mp::IPAddress>{fields[ipv4_idx]};
+    }
+    return mp::nullopt;
 }
