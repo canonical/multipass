@@ -276,29 +276,6 @@ TEST_F(ImageVault, remembers_prepared_images)
     EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
 }
 
-TEST_F(ImageVault, reads_fallback_db)
-{
-    int prepare_called_count{0};
-    auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
-        ++prepare_called_count;
-        return source_image;
-    };
-
-    // Note this uses cache_dir for both cache and data paths
-    mp::DefaultVMImageVault first_vault{hosts, &url_downloader, cache_dir.path(), cache_dir.path(), mp::days{0}};
-    auto vm_image1 = first_vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
-
-    auto another_query = default_query;
-    another_query.name = "valley-pied-piper-chat";
-    mp::DefaultVMImageVault another_vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
-    auto vm_image2 = another_vault.fetch_image(mp::FetchType::ImageOnly, another_query, prepare, stub_monitor);
-
-    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
-    EXPECT_THAT(prepare_called_count, Eq(1));
-    EXPECT_THAT(vm_image1.image_path, Ne(vm_image2.image_path));
-    EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
-}
-
 TEST_F(ImageVault, uses_image_from_prepare)
 {
     QByteArray expected_data;
