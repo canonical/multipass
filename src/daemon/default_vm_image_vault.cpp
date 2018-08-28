@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "default_vm_image_vault.h"
@@ -96,22 +94,12 @@ auto record_to_json(const mp::VaultRecord& record)
     return json;
 }
 
-std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name,
-                                                         const QString& fallback_db_name = QString())
+std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
 {
     QFile db_file{db_name};
     auto opened = db_file.open(QIODevice::ReadOnly);
     if (!opened)
-    {
-        if (fallback_db_name.isEmpty())
-            return {};
-
-        // Try to open the old location
-        db_file.setFileName(fallback_db_name);
-        auto opened = db_file.open(QIODevice::ReadOnly);
-        if (!opened)
-            return {};
-    }
+        return {};
 
     QJsonParseError parse_error;
     auto doc = QJsonDocument::fromJson(db_file.readAll(), &parse_error);
@@ -264,7 +252,7 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
       images_dir(cache_dir.filePath("images")),
       days_to_expire{days_to_expire},
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
-      instance_image_records{load_db(data_dir.filePath(instance_db_name), cache_dir.filePath(instance_db_name))}
+      instance_image_records{load_db(data_dir.filePath(instance_db_name))}
 {
 }
 
@@ -622,24 +610,27 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
     return {};
 }
 
-void mp::DefaultVMImageVault::persist_instance_records()
+namespace
 {
-    QJsonObject instance_records_json;
-    for (const auto& record : instance_image_records)
+template <typename T>
+void persist_records(const T& records, const QString& path)
+{
+    QJsonObject json_records;
+    for (const auto& record : records)
     {
         auto key = QString::fromStdString(record.first);
-        instance_records_json.insert(key, record_to_json(record.second));
+        json_records.insert(key, record_to_json(record.second));
     }
-    write_json(instance_records_json, data_dir.filePath(instance_db_name));
+    mp::write_json(json_records, path);
+}
+} // namespace
+
+void mp::DefaultVMImageVault::persist_instance_records()
+{
+    persist_records(instance_image_records, data_dir.filePath(instance_db_name));
 }
 
 void mp::DefaultVMImageVault::persist_image_records()
 {
-    QJsonObject image_records_json;
-    for (const auto& record : prepared_image_records)
-    {
-        auto key = QString::fromStdString(record.first);
-        image_records_json.insert(key, record_to_json(record.second));
-    }
-    write_json(image_records_json, cache_dir.filePath(image_db_name));
+    persist_records(prepared_image_records, cache_dir.filePath(image_db_name));
 }
