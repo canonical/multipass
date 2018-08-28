@@ -24,7 +24,7 @@ target_include_directories(libvirt_backend PRIVATE ${LIBVIRT_INCLUDE_DIRS})
 target_link_libraries(libvirt_backend
   backend_utils
   fmt
-  ip_address_pool
+  ip_address
   Qt5::Core
   ssh
   utils
