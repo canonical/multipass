@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "qemu_virtual_machine_factory.h"
@@ -131,12 +129,10 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
         mp::utils::run_cmd_for_status(
             "iptables", {"-I", "OUTPUT", "-o", bridge_name, "-p", "tcp", "--sport", "53", "-j", "ACCEPT"});
 
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-t", "mangle", "-C", "POSTROUTING", "-o", bridge_name, "-p", "udp", "--dport",
-                                        "68", "-j", "CHECKSUM", "--checksum-fill"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-t", "mangle", "-I", "POSTROUTING", "-o", bridge_name, "-p", "udp", "--dport",
-                                       "68", "-j", "CHECKSUM", "--checksum-fill"});
+    if (!mp::utils::run_cmd_for_status("iptables", {"-t", "mangle", "-C", "POSTROUTING", "-o", bridge_name, "-p", "udp",
+                                                    "--dport", "68", "-j", "CHECKSUM", "--checksum-fill"}))
+        mp::utils::run_cmd_for_status("iptables", {"-t", "mangle", "-I", "POSTROUTING", "-o", bridge_name, "-p", "udp",
+                                                   "--dport", "68", "-j", "CHECKSUM", "--checksum-fill"});
 
     // Do not masquerade to these reserved address blocks.
     if (!mp::utils::run_cmd_for_status(
@@ -150,19 +146,15 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "-d", "255.255.255.255/32", "-j", "RETURN"});
 
     // Masquerade all packets going from VMs to the LAN/Internet
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p", "tcp",
-                                        "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p", "tcp", "-j",
-                                       "MASQUERADE", "--to-ports", "1024-65535"});
+    if (!mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
+                                                    "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
+        mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
+                                                   "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
 
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p", "udp",
-                                        "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p", "udp", "-j",
-                                       "MASQUERADE", "--to-ports", "1024-65535"});
+    if (!mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
+                                                    "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
+        mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
+                                                   "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
 
     if (!mp::utils::run_cmd_for_status(
             "iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-j", "MASQUERADE"}))
@@ -170,12 +162,10 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-j", "MASQUERADE"});
 
     // Allow established traffic to the private subnet
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack", "--ctstate",
-                                        "RELATED,ESTABLISHED", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack", "--ctstate",
-                                       "RELATED,ESTABLISHED", "-j", "ACCEPT"});
+    if (!mp::utils::run_cmd_for_status("iptables", {"-C", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack",
+                                                    "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"}))
+        mp::utils::run_cmd_for_status("iptables", {"-I", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack",
+                                                   "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"});
 
     // Allow outbound traffic from the private subnet
     if (!mp::utils::run_cmd_for_status("iptables", {"-C", "FORWARD", "-s", cidr, "-i", bridge_name, "-j", "ACCEPT"}))
@@ -199,15 +189,7 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
-std::string make_subnet(bool use_legacy_subnet)
-{
-    if (use_legacy_subnet)
-        return "10.122.122";
-
-    return mp::backend::generate_random_subnet();
-}
-
-std::string get_subnet(const mp::Path& data_dir, bool use_legacy_subnet, const QString& bridge_name)
+std::string get_subnet(const mp::Path& data_dir, const QString& bridge_name)
 {
     auto subnet = virtual_switch_subnet(bridge_name);
     if (!subnet.empty())
@@ -218,16 +200,14 @@ std::string get_subnet(const mp::Path& data_dir, bool use_legacy_subnet, const Q
     if (subnet_file.size() > 0)
         return subnet_file.readAll().trimmed().toStdString();
 
-    auto new_subnet = make_subnet(use_legacy_subnet);
+    auto new_subnet = mp::backend::generate_random_subnet();
     subnet_file.write(new_subnet.data(), new_subnet.length());
     return new_subnet;
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const mp::optional<mp::IPAddress>& first_ip,
-                                        const QString& bridge_name)
+mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
 {
-    const bool use_legacy_subnet = first_ip ? true : false;
-    const auto subnet = get_subnet(data_dir, use_legacy_subnet, bridge_name);
+    const auto subnet = get_subnet(data_dir, bridge_name);
 
     create_virtual_switch(subnet, bridge_name);
     set_ip_forward();
@@ -236,14 +216,13 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const mp::opti
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {data_dir, bridge_name, bridge_addr, first_ip.value_or(start_addr), end_addr};
+    return {data_dir, bridge_name, bridge_addr, start_addr, end_addr};
 }
-}
+} // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : legacy_ip_pool{data_dir, mp::IPAddress{"10.122.122.2"}, mp::IPAddress{"10.122.122.254"}},
-      bridge_name{QString::fromStdString(mp::backend::generate_virtual_bridge_name("mpqemubr"))},
-      dnsmasq_server{create_dnsmasq_server(data_dir, legacy_ip_pool.first_free_ip(), bridge_name)}
+    : bridge_name{QString::fromStdString(mp::backend::generate_virtual_bridge_name("mpqemubr"))},
+      dnsmasq_server{create_dnsmasq_server(data_dir, bridge_name)}
 {
 }
 
@@ -258,13 +237,11 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
-    return std::make_unique<mp::QemuVirtualMachine>(desc, legacy_ip_pool.check_ip_for(desc.vm_name), tap_device_name,
-                                                    dnsmasq_server, monitor);
+    return std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor);
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    legacy_ip_pool.remove_ip_for(name);
 }
 
 mp::FetchType mp::QemuVirtualMachineFactory::fetch_type()

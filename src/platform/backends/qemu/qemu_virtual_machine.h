@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
@@ -37,8 +35,8 @@ class VirtualMachineDescription;
 class QemuVirtualMachine final : public VirtualMachine
 {
 public:
-    QemuVirtualMachine(const VirtualMachineDescription& desc, optional<IPAddress> address,
-                       const std::string& tap_device_name, DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
+    QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
+                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -60,8 +58,7 @@ private:
     void on_shutdown();
     void on_restart();
     void ensure_vm_is_running();
-    optional<IPAddress> ip;
-    bool is_legacy_ip;
+    multipass::optional<IPAddress> ip;
     const std::string tap_device_name;
     const std::string mac_addr;
     const std::string username;
@@ -71,6 +68,6 @@ private:
     std::string saved_error_msg;
     bool update_shutdown_status{true};
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_H

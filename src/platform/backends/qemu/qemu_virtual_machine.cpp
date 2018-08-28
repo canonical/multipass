@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "qemu_virtual_machine.h"
@@ -127,12 +125,9 @@ auto qmp_execute_json(const QString& cmd)
 }
 }
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, optional<mp::IPAddress> address,
-                                           const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
-                                           VMStatusMonitor& monitor)
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
+                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : VirtualMachine{desc.key_provider, desc.vm_name},
-      ip{std::move(address)},
-      is_legacy_ip{ip ? true : false},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
@@ -274,8 +269,7 @@ void mp::QemuVirtualMachine::on_restart()
     state = State::restarting;
     update_state();
 
-    if (!is_legacy_ip)
-        ip = nullopt;
+    ip = nullopt;
 
     monitor->on_restart(vm_name);
 }
