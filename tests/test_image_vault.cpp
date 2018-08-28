@@ -13,14 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "src/daemon/default_vm_image_vault.h"
 
 #include "file_operations.h"
 #include "path.h"
+#include "temp_dir.h"
 #include "temp_file.h"
 
 #include <multipass/optional.h>
@@ -28,8 +27,6 @@
 #include <multipass/url_downloader.h>
 #include <multipass/vm_image_host.h>
 
-#include <QTemporaryDir>
-#include <QTemporaryFile>
 #include <QUrl>
 
 #include <gmock/gmock.h>
@@ -148,12 +145,12 @@ struct ImageVault : public testing::Test
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
     mp::VMImageVault::PrepareAction stub_prepare{
         [](const mp::VMImage& source_image) -> mp::VMImage { return source_image; }};
-    QTemporaryDir cache_dir;
-    QTemporaryDir data_dir;
+    mpt::TempDir cache_dir;
+    mpt::TempDir data_dir;
     std::string instance_name{"valley-pied-piper"};
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
-}
+} // namespace
 
 TEST_F(ImageVault, downloads_image)
 {
