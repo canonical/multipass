@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/metrics_provider.h>
+#include <multipass/metrics/metrics_provider.h>
 #include <multipass/utils.h>
 
 #include "temp_dir.h"

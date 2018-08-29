@@ -16,7 +16,7 @@
  */
 
 #include <multipass/logging/log.h>
-#include <multipass/metrics_provider.h>
+#include <multipass/metrics/metrics_provider.h>
 #include <multipass/utils.h>
 
 #include <fmt/format.h>
