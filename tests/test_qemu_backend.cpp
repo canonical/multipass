@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
@@ -23,14 +21,12 @@
 #include "path.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_status_monitor.h"
+#include "temp_dir.h"
 #include "temp_file.h"
 
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <QTemporaryDir>
-#include <QTemporaryFile>
 
 #include <gmock/gmock.h>
 
@@ -52,7 +48,7 @@ void set_path(const std::string& value)
         throw std::runtime_error(message);
     }
 }
-}
+} // namespace
 struct QemuBackend : public testing::Test
 {
     void SetUp()
@@ -81,7 +77,7 @@ struct QemuBackend : public testing::Test
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
                                                       key_provider};
-    QTemporaryDir data_dir;
+    mpt::TempDir data_dir;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
     std::string old_path;
 };
@@ -95,8 +91,6 @@ TEST_F(QemuBackend, creates_in_off_state)
 
 TEST_F(QemuBackend, machine_sends_monitoring_events)
 {
-    QTemporaryDir data_dir;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
     mpt::MockVMStatusMonitor mock_monitor;
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);

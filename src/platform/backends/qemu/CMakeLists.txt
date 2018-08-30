@@ -25,8 +25,9 @@ target_link_libraries(qemu_backend
   logger
   Qt5::Core
   Qt5::Network
-  ip_address_pool
+  ip_address
   ssh
+  utils
   yaml)
 
 install(PROGRAMS check_kvm_support

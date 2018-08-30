@@ -23,11 +23,11 @@
 
 #include <QDateTime>
 #include <QEventLoop>
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
-#include <QRegExp>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -37,6 +37,7 @@ using namespace std::literals::chrono_literals;
 namespace
 {
 constexpr auto category = "metrics";
+constexpr auto saved_metrics_file = "saved_metrics.json";
 
 void post_request(const QUrl& metrics_url, const QByteArray& body)
 {
@@ -69,10 +70,35 @@ void post_request(const QUrl& metrics_url, const QByteArray& body)
         throw std::runtime_error(fmt::format("Metrics error: {}", reply->errorString().toStdString()));
     }
 }
+
+auto load_saved_metrics(const mp::Path& data_path)
+{
+    QFile metrics_file{QDir(data_path).filePath(saved_metrics_file)};
+
+    if (!metrics_file.exists())
+        return QJsonArray();
+
+    metrics_file.open(QIODevice::ReadOnly);
+    auto metrics = QJsonDocument::fromJson(metrics_file.readAll()).array();
+
+    return metrics;
 }
 
-mp::MetricsProvider::MetricsProvider(const QUrl& url, const QString& unique_id)
-    : metrics_url{url}, unique_id{unique_id}, metrics_sender{[this] {
+void persist_metrics(const QByteArray& metrics, const mp::Path& data_path)
+{
+    QFile metrics_file{QDir(data_path).filePath(saved_metrics_file)};
+    metrics_file.open(QIODevice::WriteOnly);
+    metrics_file.write(metrics);
+}
+} // namespace
+
+mp::MetricsProvider::MetricsProvider(const QUrl& url, const QString& unique_id, const mp::Path& path)
+    : metrics_url{url},
+      unique_id{unique_id},
+      data_path{path},
+      metric_batches(load_saved_metrics(data_path)),
+      metrics_available{!metric_batches.isEmpty()},
+      metrics_sender{[this] {
           std::unique_lock<std::mutex> lock(metrics_mutex);
           auto timeout = std::chrono::seconds(3600);
           auto metrics_failed{false};
@@ -87,7 +113,7 @@ mp::MetricsProvider::MetricsProvider(const QUrl& url, const QString& unique_id)
               if (!metrics_available && !metrics_failed)
                   continue;
 
-              auto saved_metrics = metric_batches;
+              auto saved_metrics(metric_batches);
               auto body = QJsonDocument(metric_batches).toJson(QJsonDocument::Compact);
               lock.unlock();
 
@@ -119,6 +145,8 @@ mp::MetricsProvider::MetricsProvider(const QUrl& url, const QString& unique_id)
 
                       timeout = std::chrono::seconds::zero();
                   }
+
+                  persist_metrics(QJsonDocument(metric_batches).toJson(QJsonDocument::Compact), data_path);
               }
               catch (const std::exception& e)
               {
@@ -144,8 +172,8 @@ mp::MetricsProvider::MetricsProvider(const QUrl& url, const QString& unique_id)
 {
 }
 
-mp::MetricsProvider::MetricsProvider(const QString& metrics_url, const QString& unique_id)
-    : MetricsProvider{QUrl{metrics_url}, unique_id}
+mp::MetricsProvider::MetricsProvider(const QString& metrics_url, const QString& unique_id, const mp::Path& path)
+    : MetricsProvider{QUrl{metrics_url}, unique_id, path}
 {
 }
 
@@ -196,6 +224,7 @@ void mp::MetricsProvider::update_and_notify_sender(const QJsonObject& metric)
     {
         std::lock_guard<std::mutex> lck(metrics_mutex);
         metric_batches.push_back(metric);
+        persist_metrics(QJsonDocument(metric_batches).toJson(QJsonDocument::Compact), data_path);
         metrics_available = true;
     }
     metrics_cv.notify_one();

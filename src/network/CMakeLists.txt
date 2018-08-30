@@ -17,15 +17,11 @@
 add_library(network STATIC
             url_downloader.cpp)
 
-add_library(ip_address_pool STATIC
-            ip_address.cpp
-            ip_address_pool.cpp)
+add_library(ip_address STATIC
+            ip_address.cpp)
 
 target_link_libraries(network
   fmt
   logger
   Qt5::Core
   Qt5::Network)
-
-target_link_libraries(ip_address_pool
-  Qt5::Core)

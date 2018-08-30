@@ -55,7 +55,8 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
                     cerr << "\n***Please re-run the mount command.\n";
             }
         }
-        return ReturnCode::CommandFail;
+
+        return return_code_for(status.error_code());
     };
 
     return dispatch(&RpcMethod::mount, request, on_success, on_failure);
@@ -204,7 +205,7 @@ mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name)
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "exec failed: " << status.error_message() << "\n";
-        return ReturnCode::CommandFail;
+        return return_code_for(status.error_code());
     };
 
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);

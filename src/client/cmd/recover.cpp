@@ -39,7 +39,7 @@ mp::ReturnCode cmd::Recover::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) {
         cerr << "recover failed: " << status.error_message() << "\n";
-        return mp::ReturnCode::CommandFail;
+        return return_code_for(status.error_code());
     };
 
     return dispatch(&RpcMethod::recover, request, on_success, on_failure);

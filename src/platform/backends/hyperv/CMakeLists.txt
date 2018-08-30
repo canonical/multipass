@@ -23,7 +23,6 @@ target_link_libraries(hyperv_backend
   Qt5::Core
   fmt
   logger
-  ip_address_pool
   ssh
   utils
   yaml)

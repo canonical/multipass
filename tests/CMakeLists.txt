@@ -52,7 +52,7 @@ add_executable(multipass_tests
   test_format_utils.cpp
   test_output_formatter.cpp
   test_image_vault.cpp
-  test_ip_address_pool.cpp
+  test_ip_address.cpp
   test_metrics_provider.cpp
   test_petname.cpp
   test_simple_streams_index.cpp
@@ -96,7 +96,7 @@ target_link_libraries(multipass_tests
   cert
   client
   daemon
-  ip_address_pool
+  ip_address
   iso
   metrics
   petname
