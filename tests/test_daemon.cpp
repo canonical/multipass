@@ -36,13 +36,13 @@
 #include "stub_ssh_key_provider.h"
 #include "stub_virtual_machine_factory.h"
 #include "stub_vm_image_vault.h"
+#include "temp_dir.h"
 
 #include <yaml-cpp/yaml.h>
 
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
-#include <QTemporaryDir>
 
 #include <memory>
 #include <sstream>
@@ -104,10 +104,6 @@ struct Daemon : public Test
         config_builder.client_cert_store = std::make_unique<mpt::StubCertStore>();
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
-
-        QFile opt_in_file{QDir(data_dir.path()).filePath("multipassd-send-metrics")};
-        opt_in_file.open(QIODevice::WriteOnly);
-        opt_in_file.write(QByteArray::number(static_cast<int>(mp::OptInStatus::DENIED)));
     }
 
     mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()
@@ -170,8 +166,8 @@ struct Daemon : public Test
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
     QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
-    QTemporaryDir cache_dir;
-    QTemporaryDir data_dir;
+    mpt::TempDir cache_dir;
+    mpt::TempDir data_dir;
     mp::DaemonConfigBuilder config_builder;
     std::stringstream null_stream;
 };

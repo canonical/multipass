@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_SSH_H
@@ -39,16 +37,11 @@ public:
     SSHProcess exec(const std::string& cmd);
 
     void force_shutdown();
-
-private:
     operator ssh_session() const;
 
+private:
     SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider* key_provider);
-    std::unique_ptr<ssh_session_struct, void(*)(ssh_session)> session;
-
-    friend class SCPClient;
-    friend class SSHClient;
-    friend class SftpServer;
+    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SSH_H

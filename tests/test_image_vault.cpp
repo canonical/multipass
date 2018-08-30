@@ -13,23 +13,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "src/daemon/default_vm_image_vault.h"
 
 #include "file_operations.h"
 #include "path.h"
+#include "temp_dir.h"
 #include "temp_file.h"
 
 #include <multipass/optional.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 #include <multipass/vm_image_host.h>
 
-#include <QTemporaryDir>
-#include <QTemporaryFile>
 #include <QUrl>
 
 #include <gmock/gmock.h>
@@ -91,7 +89,7 @@ struct TrackingURLDownloader : public mp::URLDownloader
     void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                      const mp::ProgressMonitor&) override
     {
-        QFile(file_name).open(QIODevice::WriteOnly);
+        mpt::make_file_with_content(file_name, "");
         downloaded_urls << url.toString();
         downloaded_files << file_name;
     }
@@ -122,10 +120,7 @@ struct BadURLDownloader : public mp::URLDownloader
     void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                      const mp::ProgressMonitor&) override
     {
-        QFile file(file_name);
-        file.open(QIODevice::WriteOnly);
-        file.write("Bad hash");
-        file.close();
+        mpt::make_file_with_content(file_name, "Bad hash");
     }
 
     QByteArray download(const QUrl& url) override
@@ -148,12 +143,12 @@ struct ImageVault : public testing::Test
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
     mp::VMImageVault::PrepareAction stub_prepare{
         [](const mp::VMImage& source_image) -> mp::VMImage { return source_image; }};
-    QTemporaryDir cache_dir;
-    QTemporaryDir data_dir;
+    mpt::TempDir cache_dir;
+    mpt::TempDir data_dir;
     std::string instance_name{"valley-pied-piper"};
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
-}
+} // namespace
 
 TEST_F(ImageVault, downloads_image)
 {
@@ -279,43 +274,13 @@ TEST_F(ImageVault, remembers_prepared_images)
     EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
 }
 
-TEST_F(ImageVault, reads_fallback_db)
-{
-    int prepare_called_count{0};
-    auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
-        ++prepare_called_count;
-        return source_image;
-    };
-
-    // Note this uses cache_dir for both cache and data paths
-    mp::DefaultVMImageVault first_vault{hosts, &url_downloader, cache_dir.path(), cache_dir.path(), mp::days{0}};
-    auto vm_image1 = first_vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
-
-    auto another_query = default_query;
-    another_query.name = "valley-pied-piper-chat";
-    mp::DefaultVMImageVault another_vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
-    auto vm_image2 = another_vault.fetch_image(mp::FetchType::ImageOnly, another_query, prepare, stub_monitor);
-
-    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
-    EXPECT_THAT(prepare_called_count, Eq(1));
-    EXPECT_THAT(vm_image1.image_path, Ne(vm_image2.image_path));
-    EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
-}
-
 TEST_F(ImageVault, uses_image_from_prepare)
 {
-    QByteArray expected_data;
-    expected_data.append(QString("12345-pied-piper-rats"));
+    constexpr auto expected_data = "12345-pied-piper-rats";
 
     QDir dir{cache_dir.path()};
     auto file_name = dir.filePath("prepared-image");
-
-    QFile file{file_name};
-    if (file.open(QIODevice::WriteOnly))
-    {
-        file.write(expected_data);
-        file.flush();
-    }
+    mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         return {file_name, "", "", source_image.id, "", "", "", {}};
@@ -324,8 +289,8 @@ TEST_F(ImageVault, uses_image_from_prepare)
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
-    auto image_data = mpt::load(vm_image.image_path);
-    EXPECT_THAT(image_data, Eq(expected_data));
+    const auto image_data = mp::utils::contents_of(vm_image.image_path);
+    EXPECT_THAT(image_data, StrEq(expected_data));
     EXPECT_THAT(vm_image.id, Eq(default_id));
 }
 
@@ -333,18 +298,11 @@ TEST_F(ImageVault, image_purged_expired)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
 
-    QDir dir{cache_dir.path()};
-    dir.mkpath("images");
-    dir.cd("images");
-    auto file_name = dir.filePath("mock_image.img");
+    QDir images_dir{mp::utils::make_dir(cache_dir.path(), "images")};
+    auto file_name = images_dir.filePath("mock_image.img");
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        QFile file{file_name};
-        if (file.open(QIODevice::WriteOnly))
-        {
-            file.write("");
-            file.flush();
-        }
+        mpt::make_file_with_content(file_name);
         return {file_name, "", "", source_image.id, "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
@@ -360,18 +318,11 @@ TEST_F(ImageVault, image_exists_not_expired)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
 
-    QDir dir{cache_dir.path()};
-    dir.mkpath("images");
-    dir.cd("images");
-    auto file_name = dir.filePath("mock_image.img");
+    QDir images_dir{mp::utils::make_dir(cache_dir.path(), "images")};
+    auto file_name = images_dir.filePath("mock_image.img");
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        QFile file{file_name};
-        if (file.open(QIODevice::WriteOnly))
-        {
-            file.write("");
-            file.flush();
-        }
+        mpt::make_file_with_content(file_name);
         return {file_name, "", "", source_image.id, "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
