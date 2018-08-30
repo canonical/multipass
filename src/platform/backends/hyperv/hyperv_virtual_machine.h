@@ -13,14 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
 #define MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
 
 #include <multipass/virtual_machine.h>
+#include <multipass/optional.h>
+#include <multipass/ip_address.h>
 
 #include <QString>
 
@@ -50,6 +50,7 @@ private:
     const QString name;
     VirtualMachine::State state;
     const std::string username;
+    multipass::optional<multipass::IPAddress> ip;
 };
 } // namespace multipass
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H

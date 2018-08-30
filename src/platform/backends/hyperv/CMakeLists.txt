@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 add_library(hyperv_backend STATIC
   hyperv_virtual_machine.cpp
@@ -22,6 +21,7 @@ add_library(hyperv_backend STATIC
 target_link_libraries(hyperv_backend
   Qt5::Core
   fmt
+  ip_address
   logger
   ssh
   utils

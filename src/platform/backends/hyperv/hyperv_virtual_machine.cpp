@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "hyperv_virtual_machine.h"
@@ -24,8 +22,33 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <winsock2.h>
+
 namespace mp = multipass;
 
+namespace
+{
+mp::optional<mp::IPAddress> remote_ip(const std::string& host, int port) // clang-format off
+try // clang-format on
+{
+    mp::SSHSession session{host, port};
+
+    sockaddr_in addr{};
+    int size = sizeof(addr);
+    auto socket = ssh_get_fd(session);
+    const auto failed = getpeername(socket, reinterpret_cast<sockaddr*>(&addr), &size);
+
+    if (failed)
+        return mp::nullopt;
+
+    return mp::optional<mp::IPAddress>{ntohl(addr.sin_addr.s_addr)};
+}
+catch (...)
+{
+    return mp::nullopt;
+}
+
+} // namespace
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc)
     : VirtualMachine{desc.key_provider, desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
@@ -63,6 +86,7 @@ void mp::HyperVVirtualMachine::stop()
 {
     powershell_run({"Stop-VM", "-Name", name}, name.toStdString());
     state = State::stopped;
+    ip = mp::nullopt;
 }
 
 void mp::HyperVVirtualMachine::shutdown()
@@ -96,7 +120,13 @@ std::string mp::HyperVVirtualMachine::ssh_username()
 
 std::string mp::HyperVVirtualMachine::ipv4()
 {
-    return {};
+    if (!ip)
+    {
+        auto result = remote_ip(ssh_hostname(), ssh_port());
+        if (result)
+            ip.emplace(result.value());
+    }
+    return ip ? ip.value().as_string() : "UNKNOWN";
 }
 
 std::string mp::HyperVVirtualMachine::ipv6()
