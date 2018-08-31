@@ -54,6 +54,8 @@ void validate_server_address(const std::string& value);
 bool valid_memory_value(const QString& mem_string);
 bool valid_hostname(const QString& name_string);
 bool invalid_target_path(const QString& target_path);
+int to_megabytes(const std::string& mem_value);
+int to_gigabytes(const std::string& mem_value);
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
 bool run_cmd_for_status(const QString& cmd, const QStringList& args);
 std::string run_cmd_for_output(const QString& cmd, const QStringList& args);
