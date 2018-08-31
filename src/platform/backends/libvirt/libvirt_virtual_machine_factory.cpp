@@ -64,16 +64,17 @@ std::string enable_libvirt_network(virConnectPtr connection)
     {
         bridge_name = mp::backend::generate_virtual_bridge_name("mpvirtbr");
         network = mp::LibVirtVirtualMachine::NetworkUPtr{
-            virNetworkCreateXML(connection, generate_libvirt_bridge_xml_config(bridge_name).c_str()), virNetworkFree};
+            virNetworkDefineXML(connection, generate_libvirt_bridge_xml_config(bridge_name).c_str()), virNetworkFree};
+        virNetworkSetAutostart(network.get(), 1);
     }
     else
     {
         bridge_name = virNetworkGetBridgeName(network.get());
+    }
 
-        if (virNetworkIsActive(network.get()) == 0)
-        {
-            virNetworkCreate(network.get());
-        }
+    if (virNetworkIsActive(network.get()) == 0)
+    {
+        virNetworkCreate(network.get());
     }
 
     return bridge_name;
