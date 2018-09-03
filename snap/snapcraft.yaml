@@ -145,6 +145,7 @@ parts:
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     override-build: |
+      update-ccache-symlinks || /bin/true
       snapcraftctl build
       set -e
       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
