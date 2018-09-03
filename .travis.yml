@@ -12,6 +12,10 @@ branches:
   - trying
   - master
 
+env:
+  global:
+  - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
+
 install:
 - sudo apt-get --yes --no-install-recommends install snapd
 - sudo snap install lxd
