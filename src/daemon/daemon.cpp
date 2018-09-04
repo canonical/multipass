@@ -537,9 +537,6 @@ try // clang-format on
         }
     }
 
-    if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
-        metrics_provider.send_metrics();
-
     auto name = name_from(request, *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
@@ -635,6 +632,37 @@ try // clang-format on
 
     reply.set_vm_instance_name(name);
     server->Write(reply);
+
+    if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
+    {
+        MetricsData metrics_data;
+
+        // TODO: Collect host side metrics
+
+        for (const auto& instance : vm_instance_specs)
+        {
+            // TODO: Instance metrics still left to collect
+            //  - alias used to launch instance - use 'custom' when custom aliases are supported
+            //  - instance lifetime
+            //  - instance uptime (if running)
+            //  - OS (from lsb_release?)
+            //  - OS version (ditto)
+            InstanceMetricsData instance_data;
+            const auto& name = instance.first;
+            const auto& vm = instance.second;
+
+            instance_data.mem_size = mp::utils::to_megabytes(vm.mem_size);
+            instance_data.num_cpus = vm.num_cores;
+            instance_data.disk_size = mp::utils::to_gigabytes(vm.disk_space);
+            instance_data.num_mounts = vm.mounts.size();
+
+            auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+            instance_data.image_file_name = QFileInfo(vm_image.image_path).fileName().toStdString();
+            metrics_data.instances.push_back(instance_data);
+        }
+
+        metrics_provider.send_metrics(metrics_data);
+    }
 
     return grpc::Status::OK;
 }

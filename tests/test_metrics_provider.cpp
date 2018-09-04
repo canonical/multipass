@@ -59,6 +59,7 @@ struct MetricsProvider : public testing::Test
 
     mpt::TempFile metrics_file;
     mpt::TempDir metrics_dir;
+    mp::MetricsData metrics_data;
 };
 } // namespace
 
@@ -66,7 +67,7 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
 {
     const auto unique_id = mp::utils::make_uuid();
     mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id, metrics_dir.path()};
-    metrics_provider.send_metrics();
+    metrics_provider.send_metrics(metrics_data);
 
     wait_for_metrics();
 

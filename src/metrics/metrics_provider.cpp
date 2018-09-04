@@ -186,7 +186,7 @@ mp::MetricsProvider::~MetricsProvider()
     metrics_cv.notify_one();
 }
 
-bool mp::MetricsProvider::send_metrics()
+bool mp::MetricsProvider::send_metrics(const MetricsData& metrics_data)
 {
     QJsonObject tags;
     tags.insert("multipass_id", unique_id);
