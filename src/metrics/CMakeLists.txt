@@ -20,5 +20,6 @@ add_library(metrics_histogram STATIC
 
 target_link_libraries(metrics
   fmt
+  metrics_histogram
   Qt5::Core
   Qt5::Network)

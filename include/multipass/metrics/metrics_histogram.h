@@ -18,10 +18,17 @@
 #ifndef MULTIPASS_METRICS_HISTOGRAM_H
 #define MULTIPASS_METRICS_HISTOGRAM_H
 
+#include <string>
 #include <vector>
 
 namespace multipass
 {
+struct HistogramBins
+{
+    const std::vector<int> bins;
+    const std::vector<std::string> bin_strings;
+};
+
 class MetricsHistogram
 {
 public:

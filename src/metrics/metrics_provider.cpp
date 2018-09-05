@@ -16,6 +16,7 @@
  */
 
 #include <multipass/logging/log.h>
+#include <multipass/metrics/metrics_histogram.h>
 #include <multipass/metrics/metrics_provider.h>
 #include <multipass/utils.h>
 
@@ -38,6 +39,18 @@ namespace
 {
 constexpr auto category = "metrics";
 constexpr auto saved_metrics_file = "saved_metrics.json";
+
+mp::HistogramBins memory_bins{{512, 1024, 2048, 4096, 8196},
+                              {"less_than_512MB", "512MB_to_1023MB", "1024MB_to_2047MB", "2048MB_to_4095MB",
+                               "4096MB_to_8195MB", "8196MB_and_greater"}};
+
+mp::HistogramBins disk_bins{{4, 8, 16}, {"less_than_4GB", "4GB_to_7GB", "8GB_to_15GB", "16GB_and_greater"}};
+
+mp::HistogramBins mount_bins{{1, 2, 4, 8, 16, 32, 64},
+                             {"0_mounts", "1_mount", "2_to_3_mounts", "4_to_7_mounts", "8_to_15_mounts",
+                              "16_to_31_mounts", "32_to_63_mounts", "64_and_greater_mounts"}};
+
+mp::HistogramBins cpu_bins{{2, 4, 6}, {"1_cpu", "2_to_3_cpus", "4_to_5_cpus", "6_and_greater_cpus"}};
 
 void post_request(const QUrl& metrics_url, const QByteArray& body)
 {
@@ -188,17 +201,42 @@ mp::MetricsProvider::~MetricsProvider()
 
 bool mp::MetricsProvider::send_metrics(const MetricsData& metrics_data)
 {
+    QJsonArray metrics;
+    MetricsHistogram instance_mem_histogram{memory_bins.bins};
+    MetricsHistogram instance_disk_histogram{disk_bins.bins};
+    MetricsHistogram instance_mounts_histogram{mount_bins.bins};
+    MetricsHistogram instance_cpus_histogram{cpu_bins.bins};
+
     QJsonObject tags;
     tags.insert("multipass_id", unique_id);
 
-    QJsonObject metric;
-    metric.insert("key", "host-machine-info");
-    metric.insert("value", "1");
-    metric.insert("time", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
-    metric.insert("tags", tags);
+    for (const auto& instance : metrics_data.instances)
+    {
+        instance_mem_histogram.record(instance.mem_size);
+        instance_disk_histogram.record(instance.disk_size);
+        instance_mounts_histogram.record(instance.num_mounts);
+        instance_cpus_histogram.record(instance.num_cpus);
+    }
 
-    QJsonArray metrics;
-    metrics.push_back(metric);
+    auto add_histogram_metrics = [&metrics, &tags](const MetricsHistogram& histogram,
+                                                   const std::vector<std::string> bin_strings) {
+        auto bin{0};
+        for (const auto& bin_string : bin_strings)
+        {
+            QJsonObject metric;
+            metric.insert("key", QString::fromStdString(fmt::format("instances_with_{}", bin_string)));
+            metric.insert("value", histogram.count(bin++));
+            metric.insert("time", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
+            metric.insert("tags", tags);
+
+            metrics.push_back(metric);
+        }
+    };
+
+    add_histogram_metrics(instance_mem_histogram, memory_bins.bin_strings);
+    add_histogram_metrics(instance_disk_histogram, disk_bins.bin_strings);
+    add_histogram_metrics(instance_mounts_histogram, mount_bins.bin_strings);
+    add_histogram_metrics(instance_cpus_histogram, cpu_bins.bin_strings);
 
     QJsonObject metric_batch;
     metric_batch.insert("uuid", mp::utils::make_uuid());
