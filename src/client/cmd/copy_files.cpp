@@ -59,24 +59,13 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
             auto username = ssh_info.username();
             auto priv_key_blob = ssh_info.priv_key_base64();
 
-            auto destination_path{destination.second};
-            if (destination_path.empty())
-            {
-                destination_path.append(QFileInfo(QString::fromStdString(source.second)).fileName().toStdString());
-            }
-            else if (QFileInfo(QString::fromStdString(destination_path)).isDir())
-            {
-                destination_path.append("/" +
-                                        QFileInfo(QString::fromStdString(source.second)).fileName().toStdString());
-            }
-
             try
             {
                 mp::SCPClient scp_client{host, port, username, priv_key_blob};
                 if (!destination.first.empty())
-                    scp_client.push_file(source.second, destination_path);
+                    scp_client.push_file(source.second, destination.second);
                 else
-                    scp_client.pull_file(source.second, destination_path);
+                    scp_client.pull_file(source.second, destination.second);
             }
             catch (const std::exception& e)
             {

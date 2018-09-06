@@ -52,7 +52,17 @@ mp::SCPClient::SCPClient(SSHSessionUPtr ssh_session) : ssh_session{std::move(ssh
 
 void mp::SCPClient::push_file(const std::string& source_path, const std::string& destination_path)
 {
-    SCPUPtr scp{make_scp_session(*ssh_session, SSH_SCP_WRITE, destination_path.c_str())};
+    auto full_destination_path{destination_path};
+    if (full_destination_path.empty())
+    {
+        full_destination_path.append(QFileInfo(QString::fromStdString(source_path)).fileName().toStdString());
+    }
+    else if (QFileInfo(QString::fromStdString(destination_path)).isDir())
+    {
+        full_destination_path.append("/" + QFileInfo(QString::fromStdString(source_path)).fileName().toStdString());
+    }
+
+    SCPUPtr scp{make_scp_session(*ssh_session, SSH_SCP_WRITE, full_destination_path.c_str())};
     SSH::throw_on_error(ssh_scp_init, scp);
 
     QFile source(QString::fromStdString(source_path));
@@ -103,7 +113,17 @@ void mp::SCPClient::pull_file(const std::string& source_path, const std::string&
     std::vector<char> data;
     data.reserve(len);
 
-    QFile destination(QString::fromStdString(destination_path));
+    auto full_destination_path{destination_path};
+    if (full_destination_path.empty())
+    {
+        full_destination_path = filename;
+    }
+    else if (QFileInfo(QString::fromStdString(destination_path)).isDir())
+    {
+        full_destination_path.append("/" + filename);
+    }
+
+    QFile destination(QString::fromStdString(full_destination_path));
     if (!destination.open(QIODevice::WriteOnly))
         throw std::runtime_error("Error opening file for writing: " + destination.errorString().toStdString());
 
