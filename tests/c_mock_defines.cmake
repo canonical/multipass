@@ -33,6 +33,7 @@ add_c_mocks(
   ssh_is_connected
   ssh_options_set
   ssh_userauth_publickey
+  ssh_channel_is_closed
   ssh_channel_new
   ssh_channel_open_session
   ssh_channel_request_exec

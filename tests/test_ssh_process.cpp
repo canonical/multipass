@@ -37,11 +37,13 @@ struct SSHProcess : public Test
         is_connected.returnValue(true);
         open_session.returnValue(SSH_OK);
         request_exec.returnValue(SSH_OK);
+        channel_is_closed.returnValue(0);
     }
     decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
     decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
     decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
     decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
+    decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
     mp::SSHSession session{"theanswertoeverything", 42};
 };
 } // namespace
@@ -91,6 +93,29 @@ TEST_F(SSHProcess, specifies_stderr_correctly)
 
     expected_is_stderr = 1;
     proc.read_std_error();
+}
+
+TEST_F(SSHProcess, reading_output_returns_empty_if_channel_closed)
+{
+    REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
+
+    auto proc = session.exec("something");
+    auto output = proc.read_std_output();
+    EXPECT_TRUE(output.empty());
+}
+
+TEST_F(SSHProcess, reading_failure_returns_empty_if_channel_closed)
+{
+    int channel_closed{0};
+    REPLACE(ssh_channel_read_timeout, [&channel_closed](auto...) {
+        channel_closed = 1;
+        return -1;
+    });
+    REPLACE(ssh_channel_is_closed, [&channel_closed](auto...) { return channel_closed; });
+
+    auto proc = session.exec("something");
+    auto output = proc.read_std_output();
+    EXPECT_TRUE(output.empty());
 }
 
 TEST_F(SSHProcess, throws_on_read_errors)
