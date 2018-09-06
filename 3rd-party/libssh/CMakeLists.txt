@@ -37,7 +37,10 @@ include_directories(${LIBSSH_INCLUDE_DIR})
 include_directories(${OPENSSL_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/libssh)
 
+find_package(Threads)
+
 # libssh source needs the config.h header to be generated
+include(libssh/cmake/Modules/AddCCompilerFlag.cmake)
 include(libssh/ConfigureChecks.cmake)
 configure_file(libssh/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/libssh/config.h)
 
