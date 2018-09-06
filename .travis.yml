@@ -12,6 +12,10 @@ branches:
   - trying
   - master
 
+env:
+  global:
+  - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
+
 install:
 - sudo apt-get --yes --no-install-recommends install snapd
 - sudo snap install lxd
@@ -22,6 +26,9 @@ install:
 
 before_script:
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
+
+after_failure:
+- cat /tmp/*/trace.txt
 
 jobs:
   include:
@@ -69,3 +76,4 @@ jobs:
           REF="${TRAVIS_COMMIT}"
         fi
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
+      after_failure: ~
