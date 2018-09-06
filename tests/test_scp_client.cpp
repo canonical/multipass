@@ -152,7 +152,7 @@ TEST_F(SCPClient, throws_on_pull_file_scp_close_error)
     auto scp = make_scp_client();
 
     REPLACE(ssh_scp_init, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_scp_pull_request, [](auto...) { return SSH_SCP_REQUEST_NEWFILE; });
+    REPLACE(ssh_scp_pull_request, [](auto...) { return SSH_SCP_REQUEST_EOF; });
     REPLACE(ssh_scp_request_get_size, [](auto...) { return 100; });
     REPLACE(ssh_scp_request_get_filename, [](auto...) { return "foo"; });
     REPLACE(ssh_scp_accept_request, [](auto...) { return SSH_OK; });
