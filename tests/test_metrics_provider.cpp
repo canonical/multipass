@@ -112,8 +112,6 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
             EXPECT_TRUE(metric_obj.contains("time"));
             EXPECT_TRUE(metric_obj.contains("tags"));
 
-            EXPECT_THAT(metric_obj["key"].toString().toStdString(), Eq("host-machine-info"));
-            EXPECT_THAT(metric_obj["value"].toString().toStdString(), Eq("1"));
             // Ensure 'time' has a valid RFC3339 timestamp
             EXPECT_TRUE(QDateTime::fromString(metric_obj["time"].toString(), Qt::ISODateWithMs).isValid());
 
