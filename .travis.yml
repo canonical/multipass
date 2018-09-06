@@ -26,6 +26,7 @@ install:
 
 before_script:
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
+- sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft refresh'
 
 after_failure:
 - cat /tmp/*/trace.txt
@@ -68,6 +69,7 @@ jobs:
         -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
       - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
       install: ~
+      before_script: ~
       script:
       - |
         if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
