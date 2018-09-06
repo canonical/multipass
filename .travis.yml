@@ -19,7 +19,7 @@ env:
 install:
 - sudo apt-get --yes --no-install-recommends install snapd
 - sudo snap install lxd
-- sudo snap install snapcraft --classic
+- sudo snap install snapcraft --classic --candidate
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
