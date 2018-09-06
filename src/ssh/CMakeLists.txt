@@ -39,7 +39,9 @@ function(add_scp_client_target TARGET_NAME)
     ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
+    fmt
     libssh
+    utils
     Qt5::Core)
 endfunction()
 
