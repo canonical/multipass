@@ -349,3 +349,26 @@ TEST(Utils, validate_server_address_does_not_throw_on_good_address)
     EXPECT_NO_THROW(mp::utils::validate_server_address("unix:/tmp/a_socket"));
     EXPECT_NO_THROW(mp::utils::validate_server_address("test-server.net:123"));
 }
+
+TEST(Utils, dir_is_a_dir)
+{
+    mpt::TempDir temp_dir;
+    EXPECT_TRUE(mp::utils::is_dir(temp_dir.path().toStdString()));
+}
+
+TEST(Utils, file_is_not_a_dir)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/empty_test_file";
+    mpt::make_file_with_content(file_name, "");
+
+    EXPECT_FALSE(mp::utils::is_dir(file_name.toStdString()));
+}
+
+TEST(Utils, filename_only_is_returned)
+{
+    std::string file_name{"my_file"};
+    std::string full_path{"/tmp/foo/" + file_name};
+
+    EXPECT_THAT(mp::utils::filename_for(full_path), Eq(file_name));
+}
