@@ -45,6 +45,8 @@ enum class QuoteType
 
 QDir base_dir(const QString& path);
 multipass::Path make_dir(const QDir& a_dir, const QString& name);
+bool is_dir(const std::string& path);
+std::string filename_for(const std::string& path);
 QString make_uuid();
 std::string contents_of(const multipass::Path& file_path);
 bool has_only_digits(const std::string& value);
