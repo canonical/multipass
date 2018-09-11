@@ -51,7 +51,7 @@ mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, c
                                  const IPAddress& start, const IPAddress& end)
     : start_ip{start},
       end_ip{end},
-      data_dir{QDir(path + "/vm-ips")},
+      data_dir{QDir(path)},
       dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_name, bridge_addr, start_ip, end_ip)}
 {
 }
