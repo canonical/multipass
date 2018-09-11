@@ -189,13 +189,13 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
-std::string get_subnet(const mp::Path& data_dir, const QString& bridge_name)
+std::string get_subnet(const mp::Path& network_dir, const QString& bridge_name)
 {
     auto subnet = virtual_switch_subnet(bridge_name);
     if (!subnet.empty())
         return subnet;
 
-    QFile subnet_file{data_dir + "/vm-ips/multipass_subnet"};
+    QFile subnet_file{network_dir + "/multipass_subnet"};
     subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
     if (subnet_file.size() > 0)
         return subnet_file.readAll().trimmed().toStdString();
@@ -207,7 +207,8 @@ std::string get_subnet(const mp::Path& data_dir, const QString& bridge_name)
 
 mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
 {
-    const auto subnet = get_subnet(data_dir, bridge_name);
+    auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
+    const auto subnet = get_subnet(network_dir, bridge_name);
 
     create_virtual_switch(subnet, bridge_name);
     set_ip_forward();
@@ -216,7 +217,7 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {data_dir, bridge_name, bridge_addr, start_addr, end_addr};
+    return {network_dir, bridge_name, bridge_addr, start_addr, end_addr};
 }
 } // namespace
 
