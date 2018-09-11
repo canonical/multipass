@@ -28,6 +28,8 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto multipass_bridge_name = "mpvirtbr0";
+
 auto connect_to_libvirt_daemon()
 {
     mp::LibVirtVirtualMachineFactory::ConnectionUPtr conn{virConnectOpen("qemu:///system"), virConnectClose};
@@ -62,7 +64,7 @@ std::string enable_libvirt_network(virConnectPtr connection)
 
     if (network == nullptr)
     {
-        bridge_name = mp::backend::generate_virtual_bridge_name("mpvirtbr");
+        bridge_name = multipass_bridge_name;
         network = mp::LibVirtVirtualMachine::NetworkUPtr{
             virNetworkDefineXML(connection, generate_libvirt_bridge_xml_config(bridge_name).c_str()), virNetworkFree};
         virNetworkSetAutostart(network.get(), 1);
