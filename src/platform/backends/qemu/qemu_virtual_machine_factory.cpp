@@ -32,6 +32,8 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto multipass_bridge_name = "mpqemubr0";
+
 // An interface name can only be 15 characters, so this generates a hash of the
 // VM instance name with a "tap-" prefix and then truncates it.
 auto generate_tap_device_name(const std::string& vm_name)
@@ -222,7 +224,7 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : bridge_name{QString::fromStdString(mp::backend::generate_virtual_bridge_name("mpqemubr"))},
+    : bridge_name{QString::fromStdString(multipass_bridge_name)},
       dnsmasq_server{create_dnsmasq_server(data_dir, bridge_name)}
 {
 }
