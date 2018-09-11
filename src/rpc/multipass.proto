@@ -270,6 +270,8 @@ message StartReply {
 
 message StopRequest {
     repeated string instance_name = 1;
+    int32 time_minutes = 2;
+    bool cancel_shutdown = 3;
 }
 
 message StopReply {
