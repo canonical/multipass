@@ -437,6 +437,41 @@ TEST_F(Client, stop_cmd_fails_with_names_and_all)
     EXPECT_THAT(send_command({"stop", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, stop_cmd_fails_with_time_and_cancel)
+{
+    EXPECT_THAT(send_command({"stop", "--time", "+10", "--cancel", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, stop_cmd_succeeds_with_plus_time)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--time", "+10"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_succeeds_with_no_plus_time)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--time", "10"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_fails_with_invalid_time_prefix)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--time", "-10"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, stop_cmd_fails_with_invalid_time)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--time", "+bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, stop_cmd_fails_with_time_suffix)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--time", "+10s"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, stop_cmd_succeds_with_cancel)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
+}
+
 // trash cli tests
 TEST_F(Client, trash_cmd_fails_no_args)
 {
