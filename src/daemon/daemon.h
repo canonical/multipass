@@ -112,6 +112,7 @@ private:
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
     std::unordered_map<std::string, VirtualMachine::UPtr> deleted_instances;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
+    std::unordered_map<std::string, std::unique_ptr<QTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
