@@ -1338,7 +1338,26 @@ try // clang-format on
     for (const auto& name : instances_to_stop)
     {
         auto it = vm_instances.find(name);
-        it->second->shutdown();
+        if (request->cancel_shutdown())
+        {
+            auto entry = delayed_shutdown_instances.find(name);
+            if (entry == delayed_shutdown_instances.end())
+            {
+                continue;
+            }
+            else
+            {
+                mpl::log(mpl::Level::info, name, fmt::format("Cancelling delayed shutdown"));
+                it->second->state = VirtualMachine::State::running;
+                delayed_shutdown_instances.erase(name);
+            }
+        }
+        else
+        {
+            delayed_shutdown_instances[name] = std::make_unique<QTimer>();
+            mp::utils::shutdown_instance(it->second.get(), delayed_shutdown_instances[name].get(),
+                                         std::chrono::minutes(request->time_minutes()));
+        }
     }
 
     return grpc::Status::OK;
