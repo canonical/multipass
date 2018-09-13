@@ -270,6 +270,8 @@ void mp::utils::shutdown_instance(mp::VirtualMachine* virtual_machine, QTimer* d
         delay_shutdown_timer->setSingleShot(true);
         QObject::connect(delay_shutdown_timer, &QTimer::timeout, [virtual_machine]() { virtual_machine->shutdown(); });
 
+        virtual_machine->state = VirtualMachine::State::delayed_shutdown;
+
         delay_shutdown_timer->start(delay);
     }
     else
