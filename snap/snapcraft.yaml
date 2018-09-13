@@ -203,6 +203,7 @@ parts:
     stage-packages:
     - dmidecode
     - dnsmasq
+    - dnsmasq-utils
     - ebtables
     - libxml2
     - libyajl2
