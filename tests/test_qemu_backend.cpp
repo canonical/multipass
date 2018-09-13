@@ -18,53 +18,22 @@
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
 #include "mock_status_monitor.h"
-#include "path.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_status_monitor.h"
 #include "temp_dir.h"
 #include "temp_file.h"
+#include "test_with_mocked_bin_path.h"
 
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <gmock/gmock.h>
-
-#include <cstdlib>
-
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
-namespace
+struct QemuBackend : public mpt::TestWithMockedBinPath
 {
-void set_path(const std::string& value)
-{
-    auto ret = setenv("PATH", value.c_str(), 1);
-    if (ret != 0)
-    {
-        std::string message{"unable to modify PATH env variable err:"};
-        message.append(std::to_string(ret));
-        throw std::runtime_error(message);
-    }
-}
-} // namespace
-struct QemuBackend : public testing::Test
-{
-    void SetUp()
-    {
-        old_path = getenv("PATH");
-        std::string new_path{mpt::mock_bin_path()};
-        new_path.append(":");
-        new_path.append(old_path);
-        set_path(new_path);
-    }
-
-    void TearDown()
-    {
-        set_path(old_path);
-    }
-
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mpt::StubSSHKeyProvider key_provider;
@@ -79,7 +48,6 @@ struct QemuBackend : public testing::Test
                                                       key_provider};
     mpt::TempDir data_dir;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
-    std::string old_path;
 };
 
 TEST_F(QemuBackend, creates_in_off_state)
