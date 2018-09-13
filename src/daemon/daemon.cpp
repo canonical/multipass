@@ -867,6 +867,8 @@ try // clang-format on
                     return mp::InstanceStatus::RESTARTING;
                 case mp::VirtualMachine::State::running:
                     return mp::InstanceStatus::RUNNING;
+                case mp::VirtualMachine::State::delayed_shutdown:
+                    return mp::InstanceStatus::DELAYED_SHUTDOWN;
                 case mp::VirtualMachine::State::unknown:
                     return mp::InstanceStatus::UNKNOWN;
                 default:
@@ -913,7 +915,8 @@ try // clang-format on
             entry->set_target_path(mount.first);
         }
 
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->current_state() == mp::VirtualMachine::State::running ||
+            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};
@@ -964,6 +967,8 @@ try // clang-format on
             return mp::InstanceStatus::RESTARTING;
         case mp::VirtualMachine::State::running:
             return mp::InstanceStatus::RUNNING;
+        case mp::VirtualMachine::State::delayed_shutdown:
+            return mp::InstanceStatus::DELAYED_SHUTDOWN;
         case mp::VirtualMachine::State::unknown:
             return mp::InstanceStatus::UNKNOWN;
         default:
@@ -998,7 +1003,8 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->current_state() == mp::VirtualMachine::State::running ||
+            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
             entry->set_ipv4(vm->ipv4());
     }
 

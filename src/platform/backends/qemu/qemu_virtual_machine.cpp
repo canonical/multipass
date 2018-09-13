@@ -217,7 +217,7 @@ void mp::QemuVirtualMachine::stop()
 
 void mp::QemuVirtualMachine::shutdown()
 {
-    if (state == State::running && vm_process->processId() > 0)
+    if ((state == State::running || state == State::delayed_shutdown) && vm_process->processId() > 0)
     {
         vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();

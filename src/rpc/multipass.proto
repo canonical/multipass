@@ -148,7 +148,8 @@ message InstanceStatus {
         RESTARTING = 2;
         STOPPED = 3;
         DELETED = 4;
-        UNKNOWN = 5;
+        DELAYED_SHUTDOWN = 5;
+        UNKNOWN = 6;
     }
     Status status = 1;
 }
