@@ -12,9 +12,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-list(APPEND BACKEND_TESTS test_qemu_backend.cpp)
+list(APPEND BACKEND_TESTS
+  test_qemu_backend.cpp
+  test_dnsmasq_server.cpp)
 
 add_executable(qemu-system-x86_64
         mock_qemu_system.cpp)
@@ -24,6 +25,24 @@ set_target_properties(qemu-system-x86_64
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
         RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
         RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+add_executable(dnsmasq
+  mock_dnsmasq_server.cpp)
+
+set_target_properties(dnsmasq
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+add_executable(dhcp_release
+  mock_dhcp_release.cpp)
+
+set_target_properties(dhcp_release
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
 set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googlemock)
 set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googletest)
@@ -60,6 +79,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
+  test_with_mocked_bin_path.cpp
 
   ${BACKEND_TESTS}
 

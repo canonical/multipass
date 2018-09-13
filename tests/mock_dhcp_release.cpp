@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <iostream>
+
+#include <fstream>
+#include <string>
+
+namespace
+{
+bool should_fail(const std::string& name)
+{
+    std::string fail{".fail"};
+    return std::equal(fail.rbegin(), fail.rend(), name.rbegin());
+}
+} // namespace
 
 int main(int argc, char* argv[])
 {
-    std::string input;
-    std::cin >> input;
-    return 0;
+    if (argc != 4)
+        return EXIT_FAILURE;
+
+    // The first argument describes a file path which serves as a signal
+    // to the test using this mocked binary
+    std::string path{argv[1]};
+    std::ofstream out{path};
+    out << "called\n";
+
+    return should_fail(path) ? 1 : 0;
 }

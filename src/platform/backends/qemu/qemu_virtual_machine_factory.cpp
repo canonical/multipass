@@ -219,7 +219,7 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {network_dir, bridge_name, bridge_addr, start_addr, end_addr};
+    return {network_dir, bridge_name.toStdString(), bridge_addr, start_addr, end_addr};
 }
 } // namespace
 

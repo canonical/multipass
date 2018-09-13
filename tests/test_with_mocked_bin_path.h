@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <iostream>
 
-int main(int argc, char* argv[])
+#ifndef MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+#define MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+
+#include <gmock/gmock.h>
+
+namespace multipass
 {
-    std::string input;
-    std::cin >> input;
-    return 0;
-}
+namespace test
+{
+struct TestWithMockedBinPath : public testing::Test
+{
+    void SetUp();
+    void TearDown();
+    std::string old_path;
+};
+} // namespace test
+} // namespace multipass
+
+#endif // MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
