@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,20 +20,36 @@
 
 #include <libssh/libssh.h>
 
+#include <fmt/format.h>
+
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 namespace multipass
 {
 namespace SSH
 {
-template <typename Callable, typename Handle, typename... Args>
-static void throw_on_error(Callable&& f, Handle&& h, Args&&... args)
+template <typename Handle, typename Callable, typename... Args>
+void throw_on_error(Handle&& h, ssh_session session, const char* error_msg, Callable&& f, Args&&... args)
 {
-    auto ret = f(h.get(), std::forward<Args>(args)...);
+    const auto ret = f(h.get(), std::forward<Args>(args)...);
     if (ret != SSH_OK)
-        throw std::runtime_error(std::string("ssh: ") + std::string(ssh_get_error(h.get())));
+    {
+        throw std::runtime_error(fmt::format("{}: '{}'", error_msg, ssh_get_error(session)));
+    }
 }
+
+template <typename Handle, typename Callable, typename... Args>
+void throw_on_error(Handle&& h, const char* error_msg, Callable&& f, Args&&... args)
+{
+    // Ensure that the handle type is appropriate for ssh_get_error
+    using HandleType = typename std::remove_reference<Handle>::type;
+    using HandlePointerType = decltype(std::declval<HandleType>().get());
+    static_assert(std::is_same<ssh_session, HandlePointerType>::value, "ssh_get_error needs an ssh_session");
+
+    throw_on_error(h, h.get(), error_msg, f, std::forward<Args>(args)...);
 }
-}
+} // namespace SSH
+} // namespace multipass
 #endif // MULTIPASS_SSH_THROW_ON_ERROR_H

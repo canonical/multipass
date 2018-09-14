@@ -41,6 +41,7 @@ public:
 
 private:
     SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider* key_provider);
+    void set_option(ssh_options_e type, const void* value);
     std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
 };
 } // namespace multipass

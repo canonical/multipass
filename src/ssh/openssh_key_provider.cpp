@@ -16,8 +16,9 @@
  */
 
 #include <multipass/ssh/openssh_key_provider.h>
-
 #include <multipass/utils.h>
+
+#include <fmt/format.h>
 
 #include <QDir>
 #include <QFile>
@@ -38,7 +39,8 @@ mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
     mp::OpenSSHKeyProvider::KeyUPtr key{priv_key};
     ret = ssh_pki_export_privkey_file(priv_key, nullptr, nullptr, nullptr, priv_key_path.toStdString().c_str());
     if (ret != SSH_OK)
-        throw std::runtime_error("failed to export ssh private key to file");
+        throw std::runtime_error(
+            fmt::format("failed to export ssh private key to file '{}'", priv_key_path.toStdString()));
 
     QFile::setPermissions(priv_key_path, QFile::ReadOwner);
     return key;
@@ -58,7 +60,7 @@ mp::OpenSSHKeyProvider::KeyUPtr get_priv_key(const QDir& key_dir)
     }
     return create_priv_key(priv_key_path);
 }
-}
+} // namespace
 
 void mp::OpenSSHKeyProvider::KeyDeleter::operator()(ssh_key key)
 {
@@ -75,7 +77,8 @@ std::string mp::OpenSSHKeyProvider::private_key_as_base64() const
     QFile key_file{ssh_key_dir.filePath("id_rsa")};
     auto opened = key_file.open(QIODevice::ReadOnly);
     if (!opened)
-        throw std::runtime_error("Unable to open private key file");
+        throw std::runtime_error(
+            fmt::format("Unable to open private key file '{}'", key_file.fileName().toStdString()));
 
     auto data = key_file.readAll();
     auto data_size = static_cast<size_t>(data.length());
