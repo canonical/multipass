@@ -13,21 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
+
 #ifndef MULTIPASS_VM_IMAGE_VAULT_H
 #define MULTIPASS_VM_IMAGE_VAULT_H
 
 #include <multipass/fetch_type.h>
 #include <multipass/progress_monitor.h>
 
-#include <chrono>
 #include <functional>
 
 namespace multipass
 {
-using days = std::chrono::duration<int, std::ratio_multiply<std::ratio<24>, std::chrono::hours::period>>;
 
 class Query;
 class VMImage;
@@ -49,5 +46,5 @@ protected:
     VMImageVault(const VMImageVault&) = delete;
     VMImageVault& operator=(const VMImageVault&) = delete;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_VM_IMAGE_VAULT_H
