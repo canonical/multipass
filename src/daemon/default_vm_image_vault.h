@@ -13,13 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H
 #define MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H
 
+#include <multipass/days.h>
 #include <multipass/path.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
