@@ -39,8 +39,6 @@
 
 namespace multipass
 {
-constexpr auto metrics_url = "https://api.staging.jujucharms.com/omnibus/v4/multipass/metrics";
-
 struct DaemonConfig
 {
     const std::unique_ptr<URLDownloader> url_downloader;
