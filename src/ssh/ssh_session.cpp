@@ -17,14 +17,17 @@
 
 #include <multipass/ssh/ssh_session.h>
 
-#include <multipass/ssh/throw_on_error.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/ssh/throw_on_error.h>
 
 #include <libssh/callbacks.h>
 #include <libssh/socket.h>
 
+#include <fmt/format.h>
+
 #include <sstream>
 #include <stdexcept>
+#include <string>
 
 namespace mp = multipass;
 
@@ -33,22 +36,25 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     : session{ssh_new(), ssh_free}
 {
     if (session == nullptr)
-        throw std::runtime_error("Could not allocate ssh session");
+        throw std::runtime_error("could not allocate ssh session");
 
-    const long timeout{1};
+    const long timeout_secs{1};
     const int nodelay{1};
 
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_HOST, host.c_str());
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_PORT, &port);
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_USER, username.c_str());
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_TIMEOUT, &timeout);
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_NODELAY, &nodelay);
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
+    set_option(SSH_OPTIONS_HOST, host.c_str());
+    set_option(SSH_OPTIONS_PORT, &port);
+    set_option(SSH_OPTIONS_USER, username.c_str());
+    set_option(SSH_OPTIONS_TIMEOUT, &timeout_secs);
+    set_option(SSH_OPTIONS_NODELAY, &nodelay);
+    set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
+    set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
 
-    SSH::throw_on_error(ssh_connect, session);
+    SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
     if (key_provider)
-        SSH::throw_on_error(ssh_userauth_publickey, session, nullptr, key_provider->private_key());
+    {
+        SSH::throw_on_error(session, "ssh failed to authenticate", ssh_userauth_publickey, nullptr,
+                            key_provider->private_key());
+    }
 }
 
 mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
@@ -77,4 +83,62 @@ void mp::SSHSession::force_shutdown()
 mp::SSHSession::operator ssh_session() const
 {
     return session.get();
+}
+
+namespace
+{
+const char* name_for(ssh_options_e type)
+{
+    switch (type)
+    {
+    case SSH_OPTIONS_HOST:
+        return "host";
+    case SSH_OPTIONS_PORT:
+        return "port";
+    case SSH_OPTIONS_USER:
+        return "username";
+    case SSH_OPTIONS_TIMEOUT:
+        return "timeout";
+    case SSH_OPTIONS_NODELAY:
+        return "NODELAY";
+    case SSH_OPTIONS_CIPHERS_C_S:
+        return "client to server ciphers";
+    case SSH_OPTIONS_CIPHERS_S_C:
+        return "server to client ciphers";
+    default:
+        break;
+    }
+    return "unknown";
+}
+
+std::string as_string(ssh_options_e type, const void* value)
+{
+    switch (type)
+    {
+    case SSH_OPTIONS_HOST:
+    case SSH_OPTIONS_USER:
+    case SSH_OPTIONS_CIPHERS_C_S:
+    case SSH_OPTIONS_CIPHERS_S_C:
+        return std::string(reinterpret_cast<const char*>(value));
+    case SSH_OPTIONS_PORT:
+    case SSH_OPTIONS_NODELAY:
+        return std::to_string(*reinterpret_cast<const int*>(value));
+    case SSH_OPTIONS_TIMEOUT:
+        return std::to_string(*reinterpret_cast<const long*>(value));
+    default:
+        break;
+    }
+    return fmt::format("{}", value);
+}
+
+} // namespace
+
+void mp::SSHSession::set_option(ssh_options_e type, const void* data)
+{
+    const auto ret = ssh_options_set(session.get(), type, data);
+    if (ret != SSH_OK)
+    {
+        throw std::runtime_error(fmt::format("libssh failed to set {} option to '{}': '{}'", name_for(type),
+                                             as_string(type, data), ssh_get_error(session.get())));
+    }
 }

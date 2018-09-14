@@ -54,14 +54,15 @@ private:
     ssh_channel_callbacks_struct cb{};
 };
 
-auto make_channel(ssh_session ssh_session, const std::string& cmd)
+auto make_channel(ssh_session session, const std::string& cmd)
 {
-    if (!ssh_is_connected(ssh_session))
-        throw std::runtime_error("SSH session is not connected");
+    if (!ssh_is_connected(session))
+        throw std::runtime_error(
+            fmt::format("unable to create a channel for remote process: '{}', the SSH session is not connected", cmd));
 
-    mp::SSHProcess::ChannelUPtr channel{ssh_channel_new(ssh_session), ssh_channel_free};
-    mp::SSH::throw_on_error(ssh_channel_open_session, channel);
-    mp::SSH::throw_on_error(ssh_channel_request_exec, channel, cmd.c_str());
+    mp::SSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+    mp::SSH::throw_on_error(channel, session, "[ssh proc] failed to open session channel", ssh_channel_open_session);
+    mp::SSH::throw_on_error(channel, session, "[ssh proc] exec request failed", ssh_channel_request_exec, cmd.c_str());
     return channel;
 }
 } // namespace
@@ -87,7 +88,7 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     }
 
     if (!exit_status)
-        throw std::runtime_error(fmt::format("failed to obtain exit status for remote process: \'{}\'", cmd));
+        throw std::runtime_error(fmt::format("failed to obtain exit status for remote process: '{}'", cmd));
 
     return *exit_status;
 }
@@ -118,7 +119,6 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of returning 0 bytes
-            //
             if (ssh_channel_is_closed(channel.get()))
                 return std::string();
 
