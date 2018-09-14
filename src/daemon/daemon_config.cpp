@@ -103,8 +103,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (ssh_username.empty())
         ssh_username = "multipass";
 
-    return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
-        std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
-        std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
-        shared_logger, cache_directory, data_directory, server_address, ssh_username, connection_type});
+    return std::unique_ptr<const DaemonConfig>(
+        new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
+                         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider),
+                         std::move(client_cert_store), shared_logger, cache_directory, data_directory, server_address,
+                         ssh_username, connection_type, image_refresh_timer});
 }

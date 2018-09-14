@@ -492,8 +492,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
         }
     });
-    const std::chrono::milliseconds ms = std::chrono::hours(6);
-    source_images_maintenance_task.start(ms.count());
+    source_images_maintenance_task.start(config->image_refresh_timer);
 }
 
 grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
