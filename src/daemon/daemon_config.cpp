@@ -66,7 +66,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (data_directory.isEmpty())
         data_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     if (url_downloader == nullptr)
-        url_downloader = std::make_unique<URLDownloader>(cache_directory);
+        url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory);
     if (image_hosts.empty())

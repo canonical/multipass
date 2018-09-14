@@ -29,7 +29,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkDiskCache>
 
-#include <iostream>
+#include <chrono>
 
 class QUrl;
 class QString;
@@ -38,8 +38,8 @@ namespace multipass
 class URLDownloader
 {
 public:
-    URLDownloader() = default;
-    URLDownloader(const Path& cache_dir);
+    URLDownloader(std::chrono::milliseconds timeout);
+    URLDownloader(const Path& cache_dir, std::chrono::milliseconds timeout);
     virtual ~URLDownloader() = default;
     virtual void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                              const ProgressMonitor& monitor);
@@ -52,6 +52,7 @@ private:
 
     QNetworkAccessManager manager;
     QNetworkDiskCache network_cache;
+    std::chrono::milliseconds timeout;
 };
 }
 #endif // MULTIPASS_URL_DOWNLOADER_H
