@@ -1238,7 +1238,15 @@ try // clang-format on
         }
 
         if (it->second->current_state() == VirtualMachine::State::running)
+        {
             continue;
+        }
+        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        {
+            mpl::log(mpl::Level::info, name, fmt::format("Cancelling delayed shutdown"));
+            it->second->state = VirtualMachine::State::running;
+            delayed_shutdown_instances.erase(name);
+        }
 
         vms.push_back(name);
     }
@@ -1403,6 +1411,11 @@ try // clang-format on
     for (const auto& name : instances_to_delete)
     {
         auto it = vm_instances.find(name);
+        if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        {
+            delayed_shutdown_instances.erase(name);
+        }
+
         it->second->shutdown();
         if (purge)
         {
