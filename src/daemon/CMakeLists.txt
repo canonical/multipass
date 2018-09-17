@@ -26,8 +26,19 @@ add_library(daemon STATIC
   json_writer.cpp
   ubuntu_image_host.cpp)
 
+add_library(delayed_shutdown STATIC
+  delayed_shutdown_timer.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/delayed_shutdown_timer.h)
+
+target_link_libraries(delayed_shutdown
+  fmt
+  logger
+  Qt5::Core
+)
+
 target_link_libraries(daemon
   cert
+  delayed_shutdown
   fmt
   iso
   logger

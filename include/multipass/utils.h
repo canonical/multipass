@@ -30,7 +30,6 @@
 #include <QDir>
 #include <QString>
 #include <QStringList>
-#include <QTimer>
 
 namespace multipass
 {
@@ -66,7 +65,6 @@ void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::millisecond
                        std::function<void()> const& process_vm_events = []() { QCoreApplication::processEvents(); });
 void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                          std::function<void()> const& process_vm_events = []() { QCoreApplication::processEvents(); });
-void shutdown_instance(VirtualMachine* virtual_machine, QTimer* delay_shutdown_timer, std::chrono::minutes delay);
 
 enum class TimeoutAction
 {
