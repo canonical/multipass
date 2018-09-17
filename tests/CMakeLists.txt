@@ -61,6 +61,7 @@ add_executable(multipass_tests
   test_client_cert_store.cpp
   test_cloud_init_iso.cpp
   test_daemon.cpp
+  test_delayed_shutdown.cpp
   test_format_utils.cpp
   test_output_formatter.cpp
   test_image_vault.cpp
@@ -109,6 +110,7 @@ target_link_libraries(multipass_tests
   cert
   client
   daemon
+  delayed_shutdown
   ip_address
   iso
   metrics
