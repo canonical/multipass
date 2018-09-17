@@ -40,8 +40,7 @@ namespace
 {
 auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
 {
-    auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b)
-    {
+    auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b) {
         return a->name().length() < b->name().length();
     };
     const auto& max_elem = *std::max_element(commands.begin(), commands.end(), string_len_compare);
@@ -64,7 +63,21 @@ QString format_short_help_for(const std::vector<cmd::Command::UPtr>& commands)
     }
     return output;
 }
+
+auto verbosity_level_in(const QStringList& arguments)
+{
+    for (const QString& arg : arguments)
+    {
+        if (arg == QStringLiteral("-v") || arg == QStringLiteral("--verbose"))
+            return 1;
+        if (arg == QStringLiteral("-vv"))
+            return 2;
+        if (arg == QStringLiteral("-vvv"))
+            return 3;
+    }
+    return 0;
 }
+} // namespace
 
 mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Command::UPtr>& commands,
                          std::ostream& cout, std::ostream& cerr)
@@ -90,16 +103,7 @@ mp::ParseCode mp::ArgParser::parse()
 
     if (parser.isSet(verbose_option))
     {
-        // Need to manually count number of times it is set, QCommandLineParser doesn't do that
-        int count = 0;
-        for (const QString& arg : arguments)
-        {
-            if (arg == QStringLiteral("-v") || arg == QStringLiteral("--verbose"))
-            {
-                count++;
-            }
-        }
-        qDebug("Verbose level: %i", count); // TODO: use this how?
+        verbosity_level = verbosity_level_in(arguments);
     }
 
     help_requested = parser.isSet(help_option);
@@ -309,4 +313,9 @@ QStringList mp::ArgParser::positionalArguments() const
         positionalArguments.pop_front();
     }
     return positionalArguments;
+}
+
+int mp::ArgParser::verbosityLevel() const
+{
+    return verbosity_level;
 }

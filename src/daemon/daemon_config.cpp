@@ -49,6 +49,12 @@ std::string server_name_from(const std::string& server_address)
     return server_name;
 }
 } // namespace
+
+mp::DaemonConfig::~DaemonConfig()
+{
+    mpl::set_logger(nullptr);
+}
+
 std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 {
     // Install logger as early as possible
@@ -58,8 +64,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (logger == nullptr)
         logger = std::make_unique<mpl::StandardLogger>(verbosity_level);
 
-    std::shared_ptr<mpl::Logger> shared_logger{std::move(logger)};
-    mpl::set_logger(shared_logger);
+    auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>();
+    multiplexing_logger->add_logger(logger.get());
+    mpl::set_logger(multiplexing_logger);
 
     if (cache_directory.isEmpty())
         cache_directory = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
@@ -106,6 +113,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     return std::unique_ptr<const DaemonConfig>(
         new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
                          std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider),
-                         std::move(client_cert_store), shared_logger, cache_directory, data_directory, server_address,
-                         ssh_username, connection_type, image_refresh_timer});
+                         std::move(client_cert_store), std::move(logger), multiplexing_logger, cache_directory,
+                         data_directory, server_address, ssh_username, connection_type, image_refresh_timer});
 }

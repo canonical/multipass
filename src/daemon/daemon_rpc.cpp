@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "daemon_rpc.h"
@@ -102,63 +100,74 @@ grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchReq
     return emit on_launch(context, request, reply); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response)
+grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context, const PurgeRequest* request,
+                                  grpc::ServerWriter<PurgeReply>* response)
 {
     return emit on_purge(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context, const FindRequest* request, FindReply* response)
+grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context, const FindRequest* request,
+                                 grpc::ServerWriter<FindReply>* response)
 {
     return emit on_find(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::info(grpc::ServerContext* context, const InfoRequest* request, InfoReply* response)
+grpc::Status mp::DaemonRpc::info(grpc::ServerContext* context, const InfoRequest* request,
+                                 grpc::ServerWriter<InfoReply>* response)
 {
     return emit on_info(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context, const ListRequest* request, ListReply* response)
+grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context, const ListRequest* request,
+                                 grpc::ServerWriter<ListReply>* response)
 {
     return emit on_list(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::mount(grpc::ServerContext* context, const MountRequest* request, MountReply* response)
+grpc::Status mp::DaemonRpc::mount(grpc::ServerContext* context, const MountRequest* request,
+                                  grpc::ServerWriter<MountReply>* response)
 {
     return emit on_mount(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::recover(grpc::ServerContext* context, const RecoverRequest* request, RecoverReply* response)
+grpc::Status mp::DaemonRpc::recover(grpc::ServerContext* context, const RecoverRequest* request,
+                                    grpc::ServerWriter<RecoverReply>* response)
 {
     return emit on_recover(context, request, response); // must block until slot returns
 }
 
 grpc::Status mp::DaemonRpc::ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
-                                     SSHInfoReply* response)
+                                     grpc::ServerWriter<SSHInfoReply>* response)
 {
     return emit on_ssh_info(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::start(grpc::ServerContext* context, const StartRequest* request, StartReply* response)
+grpc::Status mp::DaemonRpc::start(grpc::ServerContext* context, const StartRequest* request,
+                                  grpc::ServerWriter<StartReply>* response)
 {
     return emit on_start(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context, const StopRequest* request, StopReply* response)
+grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context, const StopRequest* request,
+                                 grpc::ServerWriter<StopReply>* response)
 {
     return emit on_stop(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response)
+grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context, const DeleteRequest* request,
+                                  grpc::ServerWriter<DeleteReply>* response)
 {
     return emit on_delete(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response)
+grpc::Status mp::DaemonRpc::umount(grpc::ServerContext* context, const UmountRequest* request,
+                                   grpc::ServerWriter<UmountReply>* response)
 {
     return emit on_umount(context, request, response); // must block until slot returns
 }
 
-grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response)
+grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionRequest* request,
+                                    grpc::ServerWriter<VersionReply>* response)
 {
     return emit on_version(context, request, response); // must block until slot returns
 }

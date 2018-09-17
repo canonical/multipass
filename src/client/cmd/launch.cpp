@@ -167,6 +167,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
     }
 
+    request.set_verbosity_level(parser->verbosityLevel());
+
     return status;
 }
 

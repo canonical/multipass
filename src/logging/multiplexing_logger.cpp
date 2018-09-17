@@ -15,24 +15,27 @@
  *
  */
 
-#include <multipass/logging/standard_logger.h>
+#include <multipass/logging/multiplexing_logger.h>
 
-#include <multipass/utils.h>
+#include <algorithm>
 
-#include <fmt/format.h>
-
-namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mpl::StandardLogger::StandardLogger(mpl::Level level) : logging_level{level}
+void mpl::MultiplexingLogger::log(mpl::Level level, CString category, CString message) const
 {
+    std::shared_lock<decltype(mutex)> lock{mutex};
+    for (auto logger : loggers)
+        logger->log(level, category, message);
 }
 
-void mpl::StandardLogger::log(mpl::Level level, CString category, CString message) const
+void mpl::MultiplexingLogger::add_logger(const Logger* logger)
 {
-    if (level <= logging_level)
-    {
-        fmt::print(stderr, "[{}] [{}] [{}] {}\n", mp::utils::timestamp(), as_string(level).c_str(), category.c_str(),
-                   message.c_str());
-    }
+    std::lock_guard<decltype(mutex)> lock{mutex};
+    loggers.push_back(logger);
+}
+
+void mpl::MultiplexingLogger::remove_logger(const Logger* logger)
+{
+    std::lock_guard<decltype(mutex)> lock{mutex};
+    loggers.erase(std::remove(loggers.begin(), loggers.end(), logger), loggers.end());
 }

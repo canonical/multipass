@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,31 +15,31 @@
  *
  */
 
-#ifndef MULTIPASS_MOUNT_H
-#define MULTIPASS_MOUNT_H
+#ifndef MULTIPASS_MULTIPLEXING_LOGGER_H
+#define MULTIPASS_MULTIPLEXING_LOGGER_H
 
-#include <multipass/cli/command.h>
+#include "logger.h"
+
+#include <memory>
+#include <shared_mutex>
+#include <vector>
 
 namespace multipass
 {
-namespace cmd
+namespace logging
 {
-class Mount final : public Command
+class MultiplexingLogger : public Logger
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
-
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
+    void log(Level level, CString category, CString message) const override;
+    void add_logger(const Logger* logger);
+    void remove_logger(const Logger* logger);
 
 private:
-    MountRequest request;
-
-    ParseCode parse_args(ArgParser *parser) override;
-    ReturnCode install_sshfs(const std::string& instance_name, int verbosity_level);
+    mutable std::shared_timed_mutex mutex;
+    std::vector<const Logger*> loggers;
 };
-}
-}
-#endif // MULTIPASS_MOUNT_H
+} // namespace logging
+} // namespace multipass
+
+#endif // MULTIPASS_MULTIPLEXING_LOGGER_H

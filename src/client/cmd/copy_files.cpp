@@ -81,6 +81,7 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
         return return_code_for(status.error_code());
     };
 
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }
 
@@ -212,6 +213,5 @@ mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
     }
 
     destination = std::make_pair(instance_name.toStdString(), destination_path.toStdString());
-
     return ParseCode::Ok;
 }

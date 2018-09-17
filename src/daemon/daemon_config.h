@@ -22,6 +22,7 @@
 #include <multipass/cert_store.h>
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
+#include <multipass/logging/multiplexing_logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -39,6 +40,7 @@ namespace multipass
 {
 struct DaemonConfig
 {
+    ~DaemonConfig();
     const std::unique_ptr<URLDownloader> url_downloader;
     const std::unique_ptr<VirtualMachineFactory> factory;
     const std::vector<std::unique_ptr<VMImageHost>> image_hosts;
@@ -47,7 +49,8 @@ struct DaemonConfig
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     const std::unique_ptr<CertProvider> cert_provider;
     const std::unique_ptr<CertStore> client_cert_store;
-    const std::shared_ptr<logging::Logger> logger;
+    const std::unique_ptr<logging::Logger> system_logger;
+    const std::shared_ptr<logging::MultiplexingLogger> logger;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
