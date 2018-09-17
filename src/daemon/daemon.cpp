@@ -1243,8 +1243,6 @@ try // clang-format on
         }
         else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
         {
-            mpl::log(mpl::Level::info, name, fmt::format("Cancelling delayed shutdown"));
-            it->second->state = VirtualMachine::State::running;
             delayed_shutdown_instances.erase(name);
         }
 
@@ -1352,25 +1350,28 @@ try // clang-format on
     for (const auto& name : instances_to_stop)
     {
         auto it = vm_instances.find(name);
+        auto entry = delayed_shutdown_instances.find(name);
         if (request->cancel_shutdown())
         {
-            auto entry = delayed_shutdown_instances.find(name);
             if (entry == delayed_shutdown_instances.end())
             {
                 continue;
             }
             else
             {
-                mpl::log(mpl::Level::info, name, fmt::format("Cancelling delayed shutdown"));
-                it->second->state = VirtualMachine::State::running;
                 delayed_shutdown_instances.erase(name);
             }
         }
         else
         {
-            delayed_shutdown_instances[name] = std::make_unique<QTimer>();
-            mp::utils::shutdown_instance(it->second.get(), delayed_shutdown_instances[name].get(),
-                                         std::chrono::minutes(request->time_minutes()));
+            if (entry != delayed_shutdown_instances.end())
+            {
+                delayed_shutdown_instances.erase(name);
+            }
+            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(it->second.get());
+            QObject::connect(delayed_shutdown_instances[name].get(), &DelayedShutdownTimer::finished,
+                             [this, name]() { delayed_shutdown_instances.erase(name); });
+            delayed_shutdown_instances[name]->start(std::chrono::minutes(request->time_minutes()));
         }
     }
 

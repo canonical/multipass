@@ -254,28 +254,3 @@ bool mp::utils::is_dir(const std::string& path)
 {
     return QFileInfo(QString::fromStdString(path)).isDir();
 }
-
-void mp::utils::shutdown_instance(mp::VirtualMachine* virtual_machine, QTimer* delay_shutdown_timer,
-                                  std::chrono::minutes delay)
-{
-    if (virtual_machine->state == VirtualMachine::State::stopped ||
-        virtual_machine->state == VirtualMachine::State::off)
-        return;
-
-    if (delay > std::chrono::minutes(0))
-    {
-        mpl::log(mpl::Level::info, virtual_machine->vm_name,
-                 fmt::format("Shutdown request delayed for {} minute{}", delay.count(),
-                             delay > std::chrono::minutes(1) ? "s" : ""));
-        delay_shutdown_timer->setSingleShot(true);
-        QObject::connect(delay_shutdown_timer, &QTimer::timeout, [virtual_machine]() { virtual_machine->shutdown(); });
-
-        virtual_machine->state = VirtualMachine::State::delayed_shutdown;
-
-        delay_shutdown_timer->start(delay);
-    }
-    else
-    {
-        virtual_machine->shutdown();
-    }
-}

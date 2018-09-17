@@ -22,6 +22,8 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+
+#include <multipass/delayed_shutdown_timer.h>
 #include <multipass/metrics_provider.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/virtual_machine.h>
@@ -29,8 +31,6 @@
 
 #include <memory>
 #include <unordered_map>
-
-#include <QTimer>
 
 namespace multipass
 {
@@ -112,7 +112,7 @@ private:
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
     std::unordered_map<std::string, VirtualMachine::UPtr> deleted_instances;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
-    std::unordered_map<std::string, std::unique_ptr<QTimer>> delayed_shutdown_instances;
+    std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
