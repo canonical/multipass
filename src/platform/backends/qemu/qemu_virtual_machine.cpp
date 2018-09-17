@@ -163,7 +163,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
 
     QObject::connect(vm_process.get(), &QProcess::readyReadStandardError, [this]() {
         saved_error_msg = vm_process->readAllStandardError().data();
-        mpl::log(mpl::Level::error, vm_name, saved_error_msg);
+        mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
     });
 
     QObject::connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {

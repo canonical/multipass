@@ -103,6 +103,7 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
         return return_code_for(status.error_code());
     };
 
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::find, request, on_success, on_failure);
 }
 

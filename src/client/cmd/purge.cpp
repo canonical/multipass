@@ -39,6 +39,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
     };
 
     mp::PurgeRequest request;
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::purge, request, on_success, on_failure);
 }
 

@@ -57,6 +57,8 @@ public:
     void forceCommandHelp();
     void forceGeneralHelp();
 
+    int verbosityLevel() const;
+
 private:
     QString generalHelpText();
     QString helpText(cmd::Command* command);
@@ -68,6 +70,7 @@ private:
     QCommandLineParser parser;
 
     bool help_requested;
+    int verbosity_level{0};
 
     std::ostream& cout;
     std::ostream& cerr;

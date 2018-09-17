@@ -22,6 +22,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
@@ -499,6 +500,7 @@ grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchReques
                                 grpc::ServerWriter<LaunchReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<LaunchReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
     if (metrics_opt_in.opt_in_status == OptInStatus::UNKNOWN || metrics_opt_in.opt_in_status == OptInStatus::LATER)
     {
         if (++metrics_opt_in.delay_opt_in_count % 3 == 0)
@@ -646,7 +648,7 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::purge(grpc::ServerContext* context, const PurgeRequest* request,
-                               PurgeReply* response) // clang-format off
+                               grpc::ServerWriter<PurgeReply>* server) // clang-format off
 try // clang-format on
 {
     std::vector<decltype(deleted_instances)::key_type> keys_to_delete;
@@ -673,9 +675,12 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::find(grpc::ServerContext* context, const FindRequest* request,
-                              FindReply* response) // clang-format off
+                              grpc::ServerWriter<FindReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<FindReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    FindReply response;
+
     if (!request->search_string().empty())
     {
         if (!request->remote_name().empty())
@@ -717,7 +722,7 @@ try // clang-format on
                 name.resize(12);
             }
 
-            auto entry = response->add_images_info();
+            auto entry = response.add_images_info();
             entry->set_release(info.release_title.toStdString());
             entry->set_version(info.version.toStdString());
             auto alias_entry = entry->add_aliases_info();
@@ -738,7 +743,7 @@ try // clang-format on
         {
             if (!info.aliases.empty())
             {
-                auto entry = response->add_images_info();
+                auto entry = response.add_images_info();
                 for (const auto& alias : info.aliases)
                 {
                     if (!mp::platform::is_alias_supported(alias.toStdString()))
@@ -758,7 +763,7 @@ try // clang-format on
     {
         {
             auto action = [&response](const std::string& dummy, const mp::VMImageInfo& info) {
-                auto entry = response->add_images_info();
+                auto entry = response.add_images_info();
                 for (const auto& alias : info.aliases)
                 {
                     if (!mp::platform::is_alias_supported(alias.toStdString()))
@@ -787,7 +792,7 @@ try // clang-format on
                     {
                         if (!info.aliases.empty())
                         {
-                            auto entry = response->add_images_info();
+                            auto entry = response.add_images_info();
                             for (const auto& alias : info.aliases)
                             {
                                 if (!mp::platform::is_alias_supported(alias.toStdString()))
@@ -809,6 +814,7 @@ try // clang-format on
             config->image_hosts.back()->for_each_entry_do(action);
         }
     }
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -817,9 +823,12 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::info(grpc::ServerContext* context, const InfoRequest* request,
-                              InfoReply* response) // clang-format off
+                              grpc::ServerWriter<InfoReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<InfoReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    InfoReply response;
+
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_for_info;
 
@@ -849,7 +858,7 @@ try // clang-format on
             deleted = true;
         }
 
-        auto info = response->add_info();
+        auto info = response.add_info();
         auto& vm = it->second;
         info->set_name(name);
         if (deleted)
@@ -947,6 +956,8 @@ try // clang-format on
 
     if (errors.size() > 0)
         return grpc_status_for(errors);
+
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -955,9 +966,12 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::list(grpc::ServerContext* context, const ListRequest* request,
-                              ListReply* response) // clang-format off
+                              grpc::ServerWriter<ListReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<ListReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    ListReply response;
+
     auto status_for = [](mp::VirtualMachine::State state) {
         switch (state)
         {
@@ -980,7 +994,7 @@ try // clang-format on
     {
         const auto& name = instance.first;
         const auto& vm = instance.second;
-        auto entry = response->add_instances();
+        auto entry = response.add_instances();
         entry->set_name(name);
         entry->mutable_instance_status()->set_status(status_for(vm->current_state()));
 
@@ -1011,11 +1025,12 @@ try // clang-format on
     for (const auto& instance : deleted_instances)
     {
         const auto& name = instance.first;
-        auto entry = response->add_instances();
+        auto entry = response.add_instances();
         entry->set_name(name);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     }
 
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -1024,9 +1039,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::mount(grpc::ServerContext* context, const MountRequest* request,
-                               MountReply* response) // clang-format off
+                               grpc::ServerWriter<MountReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     QFileInfo source_dir(QString::fromStdString(request->source_path()));
     if (!source_dir.exists())
     {
@@ -1127,9 +1144,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::recover(grpc::ServerContext* context, const RecoverRequest* request,
-                                 RecoverReply* response) // clang-format off
+                                 grpc::ServerWriter<RecoverReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
     for (const auto& name : request->instance_name())
@@ -1172,9 +1191,12 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
-                                  SSHInfoReply* response) // clang-format off
+                                  grpc::ServerWriter<SSHInfoReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<SSHInfoReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    SSHInfoReply response;
+
     for (const auto& name : request->instance_name())
     {
         auto it = vm_instances.find(name);
@@ -1195,9 +1217,10 @@ try // clang-format on
         ssh_info.set_port(it->second->ssh_port());
         ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
         ssh_info.set_username(it->second->ssh_username());
-        (*response->mutable_ssh_info())[name] = ssh_info;
+        (*response.mutable_ssh_info())[name] = ssh_info;
     }
 
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -1206,9 +1229,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest* request,
-                               StartReply* response) // clang-format off
+                               grpc::ServerWriter<StartReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<StartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     config->factory->check_hypervisor_support();
 
     std::vector<decltype(vm_instances)::key_type> vms;
@@ -1319,9 +1344,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::stop(grpc::ServerContext* context, const StopRequest* request,
-                              StopReply* response) // clang-format off
+                              grpc::ServerWriter<StopReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_stop;
     for (const auto& name : request->instance_name())
@@ -1384,9 +1411,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
-                               DeleteReply* response) // clang-format off
+                               grpc::ServerWriter<DeleteReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_delete;
     for (const auto& name : request->instance_name())
@@ -1443,9 +1472,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::umount(grpc::ServerContext* context, const UmountRequest* request,
-                                UmountReply* response) // clang-format off
+                                grpc::ServerWriter<UmountReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<UmountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
@@ -1523,9 +1554,14 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-grpc::Status mp::Daemon::version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response)
+grpc::Status mp::Daemon::version(grpc::ServerContext* context, const VersionRequest* request,
+                                 grpc::ServerWriter<VersionReply>* server)
 {
-    response->set_version(multipass::version_string);
+    mpl::ClientLogger<VersionReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    VersionReply reply;
+    reply.set_version(multipass::version_string);
+    server->Write(reply);
     return grpc::Status::OK;
 }
 

@@ -38,6 +38,7 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         return return_code_for(status.error_code());
     };
 
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::delet, request, on_success, on_failure);
 }
 
