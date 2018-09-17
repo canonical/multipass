@@ -66,7 +66,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
 
     mpt::TempDir data_dir;
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
-    const std::string bridge_name{"dummy-bridge"};
+    const QString bridge_name{"dummy-bridge"};
     const mp::IPAddress bridge_addr{"192.168.64.1"};
     const mp::IPAddress start_addr{"192.168.64.2"};
     const mp::IPAddress end_addr{"192.168.64.254"};
@@ -105,9 +105,8 @@ TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
 TEST_F(DNSMasqServer, release_mac_releases_ip)
 {
     const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
-    const std::string name{dchp_release_called.toStdString()};
 
-    mp::DNSMasqServer dns{data_dir.path(), name, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
     make_lease_entry();
 
     dns.release_mac(hw_addr);
@@ -118,9 +117,8 @@ TEST_F(DNSMasqServer, release_mac_releases_ip)
 TEST_F(DNSMasqServer, release_mac_logs_failure_on_missing_ip)
 {
     const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
-    const std::string name{dchp_release_called.toStdString()};
 
-    mp::DNSMasqServer dns{data_dir.path(), name, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
     dns.release_mac(hw_addr);
 
     EXPECT_FALSE(QFile::exists(dchp_release_called));
@@ -130,9 +128,8 @@ TEST_F(DNSMasqServer, release_mac_logs_failure_on_missing_ip)
 TEST_F(DNSMasqServer, release_mac_logs_failures)
 {
     const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called.fail")};
-    const std::string name{dchp_release_called.toStdString()};
 
-    mp::DNSMasqServer dns{data_dir.path(), name, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
     make_lease_entry();
 
     dns.release_mac(hw_addr);

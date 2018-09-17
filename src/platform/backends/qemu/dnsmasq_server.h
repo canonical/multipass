@@ -33,8 +33,8 @@ namespace multipass
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const Path& path, const std::string& bridge_name, const IPAddress& bridge_addr,
-                  const IPAddress& start, const IPAddress& end);
+    DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr, const IPAddress& start,
+                  const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 
@@ -44,7 +44,7 @@ public:
 private:
     const QDir data_dir;
     std::unique_ptr<QProcess> dnsmasq_cmd;
-    std::string bridge_name;
+    QString bridge_name;
 };
 } // namespace multipass
 #endif // MULTIPASS_DNSMASQ_SERVER_H

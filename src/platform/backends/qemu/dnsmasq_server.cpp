@@ -28,7 +28,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto start_dnsmasq_process(const QDir& data_dir, const std::string& bridge_name, const mp::IPAddress& bridge_addr,
+auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
                            const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
 {
     auto cmd = std::make_unique<QProcess>();
@@ -40,8 +40,7 @@ auto start_dnsmasq_process(const QDir& data_dir, const std::string& bridge_name,
                QStringList() << "--keep-in-foreground"
                              << "--strict-order"
                              << "--bind-interfaces"
-                             << "--except-interface=lo"
-                             << QString("--interface=%1").arg(QString::fromStdString(bridge_name))
+                             << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                              << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
                              << "--dhcp-no-override"
                              << "--dhcp-authoritative"
@@ -56,7 +55,7 @@ auto start_dnsmasq_process(const QDir& data_dir, const std::string& bridge_name,
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const Path& path, const std::string& bridge_name, const IPAddress& bridge_addr,
+mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
                                  const IPAddress& start, const IPAddress& end)
     : data_dir{QDir(path)},
       dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_name, bridge_addr, start, end)},
@@ -115,8 +114,7 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
     QObject::connect(&dhcp_release, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
                      log_exit_status);
 
-    dhcp_release.start("dhcp_release", QStringList() << QString::fromStdString(bridge_name)
-                                                     << QString::fromStdString(ip.value().as_string())
+    dhcp_release.start("dhcp_release", QStringList() << bridge_name << QString::fromStdString(ip.value().as_string())
                                                      << QString::fromStdString(hw_addr));
 
     dhcp_release.waitForFinished();

@@ -261,7 +261,6 @@ void mp::QemuVirtualMachine::on_shutdown()
 {
     state = State::off;
     ip = nullopt;
-    dnsmasq_server->release_mac(mac_addr);
     update_state();
     monitor->on_shutdown();
 }
