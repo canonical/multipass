@@ -21,6 +21,8 @@
 
 #include <multipass/virtual_machine_factory.h>
 
+#include <unordered_map>
+
 namespace multipass
 {
 class QemuVirtualMachineFactory final : public VirtualMachineFactory
@@ -41,6 +43,7 @@ public:
 private:
     const QString bridge_name;
     DNSMasqServer dnsmasq_server;
+    std::unordered_map<std::string, std::string> name_to_mac_map;
 };
 }
 
