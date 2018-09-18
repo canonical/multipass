@@ -9,7 +9,7 @@ description: |
   of available images. More details you can find under `multipass help`.
 
 grade: devel
-confinement: classic
+confinement: strict
 
 apps:
   multipassd:
@@ -23,6 +23,19 @@ apps:
     daemon: simple
     passthrough:
       after: [libvirt-bin]
+    slots: [multipass]
+    plugs:
+      - firewall-control
+      - kvm
+      - libvirt
+      - network
+      - network-control
+      - network-manager
+      - kernel-module-control
+  # firewall-control might be too much...
+  # network-control might be too much, could try network-observe
+  # network-manager probably too much, but QtNetworking gets status by talking with NM
+  # kernel-module-control appears to be needed by "ip" which multipassd calls (capability=16?)
   multipass:
     environment:
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
@@ -30,6 +43,9 @@ apps:
       QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
+    plugs:
+      - multipass-plug
+
   libvirt-bin:
     command: bin/launch-libvirtd
     environment:
@@ -37,11 +53,20 @@ apps:
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       LC_ALL: C
     daemon: simple
+    plugs:
+      - libvirt
+
   virsh:
     command: bin/virsh
     environment:
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       LC_ALL: C
+    plugs:
+      - libvirt
+
+plugs:
+  multipass-plug: # because cannot have identical plug/slot name in same yaml.
+    interface: multipass
 
 parts:
   qtbase5-dev:
@@ -128,17 +153,27 @@ parts:
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_arm64.deb
     source-type: deb
 
+  libssl:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_arm64.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_arm64.deb
+    source-type: deb
+
   multipass:
     after:
     - qtbase5-dev
     - qtbase5-dev-tools
     - libqt5core5a
     - libqt5network5
+    - libssl
     - libvirt
     plugin: cmake
     build-packages:
     - build-essential
-    - cmake-extras
+    - try: cmake-extras
     - golang
     - libsystemd-dev
     source: .
