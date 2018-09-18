@@ -13,101 +13,48 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include <multipass/ssh/ssh_session.h>
 
-#include <multipass/ssh/throw_on_error.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/ssh/throw_on_error.h>
 
 #include <libssh/callbacks.h>
 #include <libssh/socket.h>
 
-#include <mutex>
+#include <fmt/format.h>
+
 #include <sstream>
 #include <stdexcept>
-#include <thread>
+#include <string>
 
 namespace mp = multipass;
 
-namespace
-{
-int mutex_init(void** priv)
-{
-    auto mutex = new std::mutex();
-    *priv = mutex;
-    return 0;
-}
-
-int mutex_destroy(void** lock)
-{
-    auto mutex = reinterpret_cast<std::mutex*>(*lock);
-    delete mutex;
-    return 0;
-}
-
-int mutex_lock(void** lock)
-{
-    auto mutex = reinterpret_cast<std::mutex*>(*lock);
-    mutex->lock();
-    return 0;
-}
-
-int mutex_unlock(void** lock)
-{
-    auto mutex = reinterpret_cast<std::mutex*>(*lock);
-    mutex->unlock();
-    return 0;
-}
-
-unsigned long thread_id()
-{
-    // libssh + boringSSL do not use the given thread id
-    return 0;
-}
-
-void init_ssh()
-{
-    static struct ssh_threads_callbacks_struct mutex_wrappers
-    {
-        "cpp11_mutex", mutex_init, mutex_destroy, mutex_lock, mutex_unlock, thread_id
-    };
-    ssh_threads_set_callbacks(&mutex_wrappers);
-    ssh_init();
-}
-
-auto initialize_session()
-{
-    static std::once_flag flag;
-    std::call_once(flag, init_ssh);
-
-    return ssh_new();
-}
-}
-
 mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
                            const SSHKeyProvider* key_provider)
-    : session{initialize_session(), ssh_free}
+    : session{ssh_new(), ssh_free}
 {
     if (session == nullptr)
-        throw std::runtime_error("Could not allocate ssh session");
+        throw std::runtime_error("could not allocate ssh session");
 
-    const long timeout{1};
+    const long timeout_secs{1};
     const int nodelay{1};
 
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_HOST, host.c_str());
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_PORT, &port);
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_USER, username.c_str());
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_TIMEOUT, &timeout);
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_NODELAY, &nodelay);
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
-    SSH::throw_on_error(ssh_options_set, session, SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
+    set_option(SSH_OPTIONS_HOST, host.c_str());
+    set_option(SSH_OPTIONS_PORT, &port);
+    set_option(SSH_OPTIONS_USER, username.c_str());
+    set_option(SSH_OPTIONS_TIMEOUT, &timeout_secs);
+    set_option(SSH_OPTIONS_NODELAY, &nodelay);
+    set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
+    set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
 
-    SSH::throw_on_error(ssh_connect, session);
+    SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
     if (key_provider)
-        SSH::throw_on_error(ssh_userauth_publickey, session, nullptr, key_provider->private_key());
+    {
+        SSH::throw_on_error(session, "ssh failed to authenticate", ssh_userauth_publickey, nullptr,
+                            key_provider->private_key());
+    }
 }
 
 mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
@@ -136,4 +83,62 @@ void mp::SSHSession::force_shutdown()
 mp::SSHSession::operator ssh_session() const
 {
     return session.get();
+}
+
+namespace
+{
+const char* name_for(ssh_options_e type)
+{
+    switch (type)
+    {
+    case SSH_OPTIONS_HOST:
+        return "host";
+    case SSH_OPTIONS_PORT:
+        return "port";
+    case SSH_OPTIONS_USER:
+        return "username";
+    case SSH_OPTIONS_TIMEOUT:
+        return "timeout";
+    case SSH_OPTIONS_NODELAY:
+        return "NODELAY";
+    case SSH_OPTIONS_CIPHERS_C_S:
+        return "client to server ciphers";
+    case SSH_OPTIONS_CIPHERS_S_C:
+        return "server to client ciphers";
+    default:
+        break;
+    }
+    return "unknown";
+}
+
+std::string as_string(ssh_options_e type, const void* value)
+{
+    switch (type)
+    {
+    case SSH_OPTIONS_HOST:
+    case SSH_OPTIONS_USER:
+    case SSH_OPTIONS_CIPHERS_C_S:
+    case SSH_OPTIONS_CIPHERS_S_C:
+        return std::string(reinterpret_cast<const char*>(value));
+    case SSH_OPTIONS_PORT:
+    case SSH_OPTIONS_NODELAY:
+        return std::to_string(*reinterpret_cast<const int*>(value));
+    case SSH_OPTIONS_TIMEOUT:
+        return std::to_string(*reinterpret_cast<const long*>(value));
+    default:
+        break;
+    }
+    return fmt::format("{}", value);
+}
+
+} // namespace
+
+void mp::SSHSession::set_option(ssh_options_e type, const void* data)
+{
+    const auto ret = ssh_options_set(session.get(), type, data);
+    if (ret != SSH_OK)
+    {
+        throw std::runtime_error(fmt::format("libssh failed to set {} option to '{}': '{}'", name_for(type),
+                                             as_string(type, data), ssh_get_error(session.get())));
+    }
 }

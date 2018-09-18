@@ -36,11 +36,11 @@ mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 {
     mp::SSHClient::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
 
-    mp::SSH::throw_on_error(ssh_channel_open_session, channel);
+    mp::SSH::throw_on_error(channel, session, "[ssh client] channel creation failed", ssh_channel_open_session);
 
     return channel;
 }
-}
+} // namespace
 
 mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& username,
                          const std::string& priv_key_blob)
@@ -63,9 +63,9 @@ void mp::SSHClient::connect()
 int mp::SSHClient::exec(const std::vector<std::string>& args)
 {
     if (args.empty())
-        SSH::throw_on_error(ssh_channel_request_shell, channel);
+        SSH::throw_on_error(channel, *ssh_session, "[ssh client] shell request failed", ssh_channel_request_shell);
     else
-        SSH::throw_on_error(ssh_channel_request_exec, channel,
+        SSH::throw_on_error(channel, *ssh_session, "[ssh client] exec request failed", ssh_channel_request_exec,
                             utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg).c_str());
 
     handle_ssh_events();

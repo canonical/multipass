@@ -13,20 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_DAEMON_CONFIG_H
 #define MULTIPASS_DAEMON_CONFIG_H
 
-#include <multipass/path.h>
-#include <multipass/rpc/multipass.grpc.pb.h>
-
 #include <multipass/cert_provider.h>
 #include <multipass/cert_store.h>
+#include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/name_generator.h>
+#include <multipass/path.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/url_downloader.h>
@@ -39,8 +37,6 @@
 
 namespace multipass
 {
-constexpr auto metrics_url = "https://api.staging.jujucharms.com/omnibus/v4/multipass/metrics";
-
 struct DaemonConfig
 {
     const std::unique_ptr<URLDownloader> url_downloader;
@@ -57,6 +53,7 @@ struct DaemonConfig
     const std::string server_address;
     const std::string ssh_username;
     const RpcConnectionType connection_type;
+    const std::chrono::hours image_refresh_timer;
 };
 
 struct DaemonConfigBuilder
@@ -75,6 +72,7 @@ struct DaemonConfigBuilder
     std::string server_address;
     std::string ssh_username;
     multipass::days days_to_expire{14};
+    std::chrono::hours image_refresh_timer{6};
     multipass::logging::Level verbosity_level{multipass::logging::Level::info};
     RpcConnectionType connection_type{RpcConnectionType::ssl};
 

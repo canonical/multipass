@@ -32,6 +32,8 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto multipass_bridge_name = "mpqemubr0";
+
 // An interface name can only be 15 characters, so this generates a hash of the
 // VM instance name with a "tap-" prefix and then truncates it.
 auto generate_tap_device_name(const std::string& vm_name)
@@ -189,13 +191,13 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
-std::string get_subnet(const mp::Path& data_dir, const QString& bridge_name)
+std::string get_subnet(const mp::Path& network_dir, const QString& bridge_name)
 {
     auto subnet = virtual_switch_subnet(bridge_name);
     if (!subnet.empty())
         return subnet;
 
-    QFile subnet_file{data_dir + "/vm-ips/multipass_subnet"};
+    QFile subnet_file{network_dir + "/multipass_subnet"};
     subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
     if (subnet_file.size() > 0)
         return subnet_file.readAll().trimmed().toStdString();
@@ -207,7 +209,8 @@ std::string get_subnet(const mp::Path& data_dir, const QString& bridge_name)
 
 mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
 {
-    const auto subnet = get_subnet(data_dir, bridge_name);
+    auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
+    const auto subnet = get_subnet(network_dir, bridge_name);
 
     create_virtual_switch(subnet, bridge_name);
     set_ip_forward();
@@ -216,12 +219,12 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {data_dir, bridge_name, bridge_addr, start_addr, end_addr};
+    return {network_dir, bridge_name, bridge_addr, start_addr, end_addr};
 }
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : bridge_name{QString::fromStdString(mp::backend::generate_virtual_bridge_name("mpqemubr"))},
+    : bridge_name{QString::fromStdString(multipass_bridge_name)},
       dnsmasq_server{create_dnsmasq_server(data_dir, bridge_name)}
 {
 }
@@ -237,11 +240,19 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
-    return std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor);
+    auto vm = std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor);
+
+    name_to_mac_map.emplace(desc.vm_name, desc.mac_addr);
+    return vm;
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
+    auto it = name_to_mac_map.find(name);
+    if (it != name_to_mac_map.end())
+    {
+        dnsmasq_server.release_mac(it->second);
+    }
 }
 
 mp::FetchType mp::QemuVirtualMachineFactory::fetch_type()

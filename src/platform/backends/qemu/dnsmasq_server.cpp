@@ -17,10 +17,14 @@
 
 #include "dnsmasq_server.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/utils.h>
+
+#include <fmt/format.h>
 
 #include <fstream>
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -28,6 +32,10 @@ auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, con
                            const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
 {
     auto cmd = std::make_unique<QProcess>();
+
+    QObject::connect(cmd.get(), &QProcess::readyReadStandardError,
+                     [&cmd]() { mpl::log(mpl::Level::error, "dnsmasq", cmd->readAllStandardError().data()); });
+
     cmd->start("dnsmasq",
                QStringList() << "--keep-in-foreground"
                              << "--strict-order"
@@ -49,10 +57,9 @@ auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, con
 
 mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
                                  const IPAddress& start, const IPAddress& end)
-    : start_ip{start},
-      end_ip{end},
-      data_dir{QDir(path + "/vm-ips")},
-      dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_name, bridge_addr, start_ip, end_ip)}
+    : data_dir{QDir(path)},
+      dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_name, bridge_addr, start, end)},
+      bridge_name{bridge_name}
 {
 }
 
@@ -79,4 +86,36 @@ mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_
             return mp::optional<mp::IPAddress>{fields[ipv4_idx]};
     }
     return mp::nullopt;
+}
+
+void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
+{
+    auto ip = get_ip_for(hw_addr);
+    if (!ip)
+    {
+        mpl::log(mpl::Level::warning, "dnsmasq", fmt::format("attempting to release non-existant addr: {}", hw_addr));
+        return;
+    }
+
+    QProcess dhcp_release;
+    QObject::connect(&dhcp_release, &QProcess::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
+        mpl::log(mpl::Level::warning, "dnsmasq",
+                 fmt::format("failed to release ip addr {} with mac {}", ip.value().as_string(), hw_addr));
+    });
+
+    auto log_exit_status = [&ip, &hw_addr](int exit_code, QProcess::ExitStatus exit_status) {
+        if (exit_code == 0 && exit_status == QProcess::NormalExit)
+            return;
+
+        auto msg = fmt::format("failed to release ip addr {} with mac {}, exit_code: {}", ip.value().as_string(),
+                               hw_addr, exit_code);
+        mpl::log(mpl::Level::warning, "dnsmasq", msg);
+    };
+    QObject::connect(&dhcp_release, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+                     log_exit_status);
+
+    dhcp_release.start("dhcp_release", QStringList() << bridge_name << QString::fromStdString(ip.value().as_string())
+                                                     << QString::fromStdString(hw_addr));
+
+    dhcp_release.waitForFinished();
 }

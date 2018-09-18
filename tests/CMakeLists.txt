@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
@@ -20,16 +19,37 @@ if(MSVC)
 elseif(APPLE)
   list(APPEND BACKEND_TESTS test_hyperkit_backend.cpp)
 else()
-  list(APPEND BACKEND_TESTS test_qemu_backend.cpp)
+  list(APPEND BACKEND_TESTS
+    test_qemu_backend.cpp
+    test_dnsmasq_server.cpp
+    test_with_mocked_bin_path.cpp)
 
   add_executable(qemu-system-x86_64
-          mock_qemu_system.cpp)
+    mock_qemu_system.cpp)
 
   set_target_properties(qemu-system-x86_64
-          PROPERTIES
-          RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-          RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-          RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+  add_executable(dnsmasq
+    mock_dnsmasq_server.cpp)
+
+  set_target_properties(dnsmasq
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+  add_executable(dhcp_release
+    mock_dhcp_release.cpp)
+
+  set_target_properties(dhcp_release
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 endif()
 
 set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googlemock)

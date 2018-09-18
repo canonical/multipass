@@ -52,7 +52,7 @@ enum Permissions
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel), sftp_free};
-    mp::SSH::throw_on_error(sftp_server_init, sftp_server_session);
+    mp::SSH::throw_on_error(sftp_server_session, session, "[sftp] server init failed", sftp_server_init);
     return sftp_server_session;
 }
 

@@ -15,8 +15,9 @@ apps:
   multipassd:
     command: bin/launch-multipassd
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
@@ -24,14 +25,15 @@ apps:
       after: [libvirt-bin]
   multipass:
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-    command: bin/launch-multipass
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+    command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
   libvirt-bin:
     command: bin/launch-libvirtd
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/usr/lib
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       LC_ALL: C
     daemon: simple
@@ -201,6 +203,8 @@ parts:
     stage-packages:
     - dmidecode
     - dnsmasq
+    - dnsmasq-utils
+    - ebtables
     - libxml2
     - libyajl2
     - try: [libnuma1]
@@ -252,4 +256,4 @@ parts:
 
   glue:
     plugin: dump
-    source: snap
+    source: snap-wrappers

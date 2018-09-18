@@ -12,16 +12,24 @@ branches:
   - trying
   - master
 
+env:
+  global:
+  - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
+
 install:
 - sudo apt-get --yes --no-install-recommends install snapd
 - sudo snap install lxd
-- sudo snap install snapcraft --classic
+- sudo snap install snapcraft --classic --candidate
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
 
 before_script:
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
+- sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft refresh'
+
+after_failure:
+- cat /tmp/*/trace.txt
 
 jobs:
   include:
@@ -61,6 +69,7 @@ jobs:
         -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
       - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
       install: ~
+      before_script: ~
       script:
       - |
         if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
@@ -69,3 +78,4 @@ jobs:
           REF="${TRAVIS_COMMIT}"
         fi
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
+      after_failure: ~
