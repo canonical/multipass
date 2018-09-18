@@ -31,6 +31,7 @@ public:
     {
     }
 
+    // Use this carefully, it depends on the lifetime of s
     CString(const std::string& s) : data{s.c_str()}
     {
     }

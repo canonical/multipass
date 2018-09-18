@@ -244,3 +244,13 @@ void mp::utils::validate_server_address(const std::string& address)
     if (server_name != "unix" && !mp::utils::has_only_digits(port))
         throw std::runtime_error(fmt::format("invalid port number in address '{}'", address));
 }
+
+std::string mp::utils::filename_for(const std::string& path)
+{
+    return QFileInfo(QString::fromStdString(path)).fileName().toStdString();
+}
+
+bool mp::utils::is_dir(const std::string& path)
+{
+    return QFileInfo(QString::fromStdString(path)).isDir();
+}

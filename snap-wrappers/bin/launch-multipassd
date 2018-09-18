@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+http_proxy="$(snapctl get proxy.http)"
+https_proxy="$(snapctl get proxy.https)"
+MULTIPASS_VM_DRIVER="$(snapctl get driver)"
+export http_proxy
+export https_proxy
+export MULTIPASS_VM_DRIVER
+
+exec "$SNAP/bin/multipassd"

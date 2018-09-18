@@ -70,21 +70,6 @@ std::string mp::backend::generate_random_subnet()
     throw std::runtime_error("Could not determine a subnet for networking.");
 }
 
-std::string mp::backend::generate_virtual_bridge_name(const std::string& base_name)
-{
-    std::string bridge_name;
-
-    for (auto i = 0; i < 100; ++i)
-    {
-        bridge_name = fmt::format("{}{}", base_name, i);
-
-        if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", QString::fromStdString(bridge_name)}))
-            return bridge_name;
-    }
-
-    return "";
-}
-
 void mp::backend::check_hypervisor_support()
 {
     auto arch = QSysInfo::currentCpuArchitecture();

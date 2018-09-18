@@ -15,26 +15,13 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SSH_H
-#define MULTIPASS_MOCK_SSH_H
+#ifndef MULTIPASS_DAYS_H
+#define MULTIPASS_DAYS_H
 
-#include <premock.hpp>
+#include <chrono>
+namespace multipass
+{
+using days = std::chrono::duration<int, std::ratio_multiply<std::ratio<24>, std::chrono::hours::period>>;
+}
 
-#include <libssh/callbacks.h>
-#include <libssh/libssh.h>
-
-DECL_MOCK(ssh_new);
-DECL_MOCK(ssh_connect);
-DECL_MOCK(ssh_is_connected);
-DECL_MOCK(ssh_options_set);
-DECL_MOCK(ssh_userauth_publickey);
-DECL_MOCK(ssh_channel_is_closed);
-DECL_MOCK(ssh_channel_new);
-DECL_MOCK(ssh_channel_open_session);
-DECL_MOCK(ssh_channel_request_exec);
-DECL_MOCK(ssh_channel_read_timeout);
-DECL_MOCK(ssh_channel_get_exit_status);
-DECL_MOCK(ssh_event_dopoll);
-DECL_MOCK(ssh_add_channel_callbacks);
-
-#endif // MULTIPASS_MOCK_SSH_H
+#endif // MULTIPASS_DAYS_H

@@ -46,7 +46,7 @@ struct UbuntuImageHost : public testing::Test
 
     QString host_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + "releases/"};
     QString daily_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + "daily/"};
-    mp::URLDownloader url_downloader;
+    mp::URLDownloader url_downloader{std::chrono::seconds{10}};
     std::chrono::seconds default_ttl{1};
     QString expected_location{host_url + "newest_image.img"};
     QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};

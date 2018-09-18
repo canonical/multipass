@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 function(add_ssh_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
@@ -39,7 +38,9 @@ function(add_scp_client_target TARGET_NAME)
     ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
+    fmt
     libssh
+    utils
     Qt5::Core)
 endfunction()
 
@@ -55,6 +56,7 @@ function(add_ssh_client_target TARGET_NAME)
 
   target_link_libraries(${TARGET_NAME}
     console
+    fmt
     libssh
     utils
     Qt5::Core)

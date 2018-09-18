@@ -15,26 +15,28 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SSH_H
-#define MULTIPASS_MOCK_SSH_H
+#include <fstream>
+#include <string>
 
-#include <premock.hpp>
+namespace
+{
+bool should_fail(const std::string& name)
+{
+    std::string fail{".fail"};
+    return std::equal(fail.rbegin(), fail.rend(), name.rbegin());
+}
+} // namespace
 
-#include <libssh/callbacks.h>
-#include <libssh/libssh.h>
+int main(int argc, char* argv[])
+{
+    if (argc != 4)
+        return EXIT_FAILURE;
 
-DECL_MOCK(ssh_new);
-DECL_MOCK(ssh_connect);
-DECL_MOCK(ssh_is_connected);
-DECL_MOCK(ssh_options_set);
-DECL_MOCK(ssh_userauth_publickey);
-DECL_MOCK(ssh_channel_is_closed);
-DECL_MOCK(ssh_channel_new);
-DECL_MOCK(ssh_channel_open_session);
-DECL_MOCK(ssh_channel_request_exec);
-DECL_MOCK(ssh_channel_read_timeout);
-DECL_MOCK(ssh_channel_get_exit_status);
-DECL_MOCK(ssh_event_dopoll);
-DECL_MOCK(ssh_add_channel_callbacks);
+    // The first argument describes a file path which serves as a signal
+    // to the test using this mocked binary
+    std::string path{argv[1]};
+    std::ofstream out{path};
+    out << "called\n";
 
-#endif // MULTIPASS_MOCK_SSH_H
+    return should_fail(path) ? 1 : 0;
+}

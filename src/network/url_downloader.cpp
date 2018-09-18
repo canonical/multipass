@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,15 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *              Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include <multipass/url_downloader.h>
 
-#include <fmt/format.h>
 #include <multipass/logging/log.h>
+
+#include <fmt/format.h>
 
 #include <QDir>
 #include <QEventLoop>
@@ -39,8 +37,8 @@ namespace
 {
 constexpr auto category = "url downloader";
 
-template <typename ProgressAction, typename DownloadAction, typename ErrorAction>
-QByteArray download(QNetworkAccessManager& manager, QUrl const& url, ProgressAction&& on_progress,
+template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
+QByteArray download(QNetworkAccessManager& manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
                     DownloadAction&& on_download, ErrorAction&& on_error)
 {
     QEventLoop event_loop;
@@ -63,7 +61,7 @@ QByteArray download(QNetworkAccessManager& manager, QUrl const& url, ProgressAct
         reply->abort();
     });
 
-    download_timeout.start(10000);
+    download_timeout.start(timeout);
     event_loop.exec();
     if (reply->error() != QNetworkReply::NoError)
     {
@@ -75,9 +73,13 @@ QByteArray download(QNetworkAccessManager& manager, QUrl const& url, ProgressAct
     }
     return reply->readAll();
 }
+} // namespace
+
+mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : timeout{timeout}
+{
 }
 
-mp::URLDownloader::URLDownloader(const mp::Path& cache_dir)
+mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::milliseconds timeout) : URLDownloader{timeout}
 {
     network_cache.setCacheDirectory(QDir(cache_dir).filePath("network-cache"));
     manager.setCache(&network_cache);
@@ -121,12 +123,13 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
     auto on_error = [&file]() { file.remove(); };
 
-    ::download(manager, url, progress_monitor, on_download, on_error);
+    ::download(manager, timeout, url, progress_monitor, on_download, on_error);
 }
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
-    return ::download(manager, url, [](QNetworkReply*, qint64, qint64) {}, [](QNetworkReply*, QTimer&) {}, [] {});
+    return ::download(manager, timeout, url, [](QNetworkReply*, qint64, qint64) {}, [](QNetworkReply*, QTimer&) {},
+                      [] {});
 }
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)

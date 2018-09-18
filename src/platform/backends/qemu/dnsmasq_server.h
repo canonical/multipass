@@ -39,12 +39,12 @@ public:
     ~DNSMasqServer();
 
     optional<IPAddress> get_ip_for(const std::string& hw_addr);
+    void release_mac(const std::string& hw_addr);
 
 private:
-    const IPAddress start_ip;
-    const IPAddress end_ip;
     const QDir data_dir;
     std::unique_ptr<QProcess> dnsmasq_cmd;
+    QString bridge_name;
 };
 } // namespace multipass
 #endif // MULTIPASS_DNSMASQ_SERVER_H

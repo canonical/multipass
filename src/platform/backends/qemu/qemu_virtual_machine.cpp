@@ -260,6 +260,7 @@ void mp::QemuVirtualMachine::on_error()
 void mp::QemuVirtualMachine::on_shutdown()
 {
     state = State::off;
+    ip = nullopt;
     update_state();
     monitor->on_shutdown();
 }
