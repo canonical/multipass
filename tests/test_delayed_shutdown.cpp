@@ -66,8 +66,7 @@ TEST_F(DelayedShutdown, emits_finished_with_no_timer)
     mpt::Signal finished;
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
 
-    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished,
-                     [this, &finished] { finished.signal(); });
+    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [&finished] { finished.signal(); });
 
     delayed_shutdown_timer.start(std::chrono::milliseconds::zero());
     auto finish_invoked = finished.wait_for(std::chrono::seconds(1));
