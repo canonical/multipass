@@ -42,6 +42,7 @@ public:
     void start() override;
     void stop() override;
     void shutdown() override;
+    void suspend() override;
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
@@ -56,6 +57,7 @@ private:
     void on_started();
     void on_error();
     void on_shutdown();
+    void on_suspend();
     void on_restart();
     void ensure_vm_is_running();
     multipass::optional<IPAddress> ip;

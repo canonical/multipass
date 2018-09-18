@@ -229,6 +229,11 @@ void mp::QemuVirtualMachine::shutdown()
     }
 }
 
+void mp::QemuVirtualMachine::suspend()
+{
+    monitor->on_suspend();
+}
+
 mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
 {
     return state;
@@ -263,6 +268,11 @@ void mp::QemuVirtualMachine::on_shutdown()
     ip = nullopt;
     update_state();
     monitor->on_shutdown();
+}
+
+void mp::QemuVirtualMachine::on_suspend()
+{
+    monitor->on_suspend();
 }
 
 void mp::QemuVirtualMachine::on_restart()

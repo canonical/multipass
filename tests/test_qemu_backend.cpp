@@ -70,4 +70,7 @@ TEST_F(QemuBackend, machine_sends_monitoring_events)
     EXPECT_CALL(mock_monitor, persist_state_for(_)).Times(AtLeast(1));
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
+
+    EXPECT_CALL(mock_monitor, on_suspend());
+    machine->suspend();
 }

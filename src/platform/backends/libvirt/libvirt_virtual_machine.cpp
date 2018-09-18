@@ -275,6 +275,11 @@ void mp::LibVirtVirtualMachine::shutdown()
     monitor->on_shutdown();
 }
 
+void mp::LibVirtVirtualMachine::suspend()
+{
+    monitor->on_suspend();
+}
+
 mp::VirtualMachine::State mp::LibVirtVirtualMachine::current_state()
 {
     return state;

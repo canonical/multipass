@@ -48,6 +48,7 @@ public:
     virtual void stop() = 0;
     virtual void start() = 0;
     virtual void shutdown() = 0;
+    virtual void suspend() = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
     virtual std::string ssh_hostname() = 0;
