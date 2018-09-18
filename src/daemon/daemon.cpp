@@ -1444,6 +1444,40 @@ grpc::Status mp::Daemon::suspend(grpc::ServerContext* context, const SuspendRequ
                                  grpc::ServerWriter<SuspendReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<SuspendReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    fmt::memory_buffer errors;
+    std::vector<decltype(vm_instances)::key_type> instances_to_suspend;
+    for (const auto& name : request->instance_name())
+    {
+        auto it = vm_instances.find(name);
+        if (it == vm_instances.end())
+        {
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
+                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            else
+                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
+            continue;
+        }
+        instances_to_suspend.push_back(name);
+    }
+
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
+
+    if (instances_to_suspend.empty())
+    {
+        for (auto& pair : vm_instances)
+            instances_to_suspend.push_back(pair.first);
+    }
+
+    for (const auto& name : instances_to_suspend)
+    {
+        auto it = vm_instances.find(name);
+        it->second->suspend();
+    }
+
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
