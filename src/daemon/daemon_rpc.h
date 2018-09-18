@@ -63,6 +63,8 @@ signals:
                           grpc::ServerWriter<StartReply>* response);
     grpc::Status on_stop(grpc::ServerContext* context, const StopRequest* request,
                          grpc::ServerWriter<StopReply>* response);
+    grpc::Status on_suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                            grpc::ServerWriter<SuspendReply>* response);
     grpc::Status on_delete(grpc::ServerContext* context, const DeleteRequest* request,
                            grpc::ServerWriter<DeleteReply>* response);
     grpc::Status on_umount(grpc::ServerContext* context, const UmountRequest* request,
@@ -95,6 +97,8 @@ protected:
                        grpc::ServerWriter<StartReply>* response) override;
     grpc::Status stop(grpc::ServerContext* context, const StopRequest* request,
                       grpc::ServerWriter<StopReply>* response) override;
+    grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                         grpc::ServerWriter<SuspendReply>* response) override;
     grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
                        grpc::ServerWriter<DeleteReply>* response) override;
     grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request,

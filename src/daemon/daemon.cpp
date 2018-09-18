@@ -385,6 +385,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_suspend, &daemon, &mp::Daemon::suspend, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
@@ -1432,6 +1433,17 @@ try // clang-format on
         }
     }
 
+    return grpc::Status::OK;
+}
+catch (const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
+grpc::Status mp::Daemon::suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                                 grpc::ServerWriter<SuspendReply>* server) // clang-format off
+try // clang-format on
+{
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
