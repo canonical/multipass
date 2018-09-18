@@ -69,6 +69,7 @@ protected:
     void on_resume() override;
     void on_stop() override;
     void on_shutdown() override;
+    void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name) override;
 

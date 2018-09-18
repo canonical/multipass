@@ -1618,6 +1618,10 @@ void mp::Daemon::on_stop()
 {
 }
 
+void mp::Daemon::on_suspend()
+{
+}
+
 void mp::Daemon::on_restart(const std::string& name)
 {
     auto& vm = vm_instances[name];
