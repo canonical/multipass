@@ -157,7 +157,8 @@ message InstanceStatus {
         STOPPED = 3;
         DELETED = 4;
         DELAYED_SHUTDOWN = 5;
-        UNKNOWN = 6;
+        SUSPENDED = 6;
+        UNKNOWN = 7;
     }
     Status status = 1;
 }

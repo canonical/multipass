@@ -897,6 +897,8 @@ try // clang-format on
                     return mp::InstanceStatus::RUNNING;
                 case mp::VirtualMachine::State::delayed_shutdown:
                     return mp::InstanceStatus::DELAYED_SHUTDOWN;
+                case mp::VirtualMachine::State::suspended:
+                    return mp::InstanceStatus::SUSPENDED;
                 case mp::VirtualMachine::State::unknown:
                     return mp::InstanceStatus::UNKNOWN;
                 default:
@@ -1013,6 +1015,8 @@ try // clang-format on
             return mp::InstanceStatus::RUNNING;
         case mp::VirtualMachine::State::delayed_shutdown:
             return mp::InstanceStatus::DELAYED_SHUTDOWN;
+        case mp::VirtualMachine::State::suspended:
+            return mp::InstanceStatus::SUSPENDED;
         case mp::VirtualMachine::State::unknown:
             return mp::InstanceStatus::UNKNOWN;
         default:
