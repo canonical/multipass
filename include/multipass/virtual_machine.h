@@ -65,8 +65,10 @@ public:
     const std::string vm_name;
 
 protected:
+    VirtualMachine(VirtualMachine::State state, const SSHKeyProvider& key_provider, const std::string& vm_name)
+        : state{state}, key_provider{key_provider}, vm_name{vm_name} {};
     VirtualMachine(const SSHKeyProvider& key_provider, const std::string& vm_name)
-        : state{State::off}, key_provider{key_provider}, vm_name{vm_name} {};
+        : VirtualMachine(State::off, key_provider, vm_name){};
     VirtualMachine(const VirtualMachine&) = delete;
     VirtualMachine& operator=(const VirtualMachine&) = delete;
 };

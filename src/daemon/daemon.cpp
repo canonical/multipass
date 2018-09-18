@@ -441,7 +441,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             config->vault->remove(name);
         }
 
-        if (spec.state != VirtualMachine::State::off && spec.state != VirtualMachine::State::stopped &&
+        if (spec.state == VirtualMachine::State::running &&
             vm_instances[name]->current_state() != VirtualMachine::State::running)
         {
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));

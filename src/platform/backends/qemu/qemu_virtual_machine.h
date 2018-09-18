@@ -22,9 +22,9 @@
 #include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 
+#include <QStringList>
+
 class QProcess;
-class QFile;
-class QString;
 
 namespace multipass
 {
@@ -67,8 +67,10 @@ private:
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
+    const QStringList original_args;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
+    bool delete_memory_snapshot{false};
 };
 } // namespace multipass
 
