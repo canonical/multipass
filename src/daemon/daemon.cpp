@@ -762,14 +762,15 @@ try // clang-format on
     else
     {
         {
-            auto action = [&response](const std::string& dummy, const mp::VMImageInfo& info) {
-                auto entry = response.add_images_info();
+            auto action = [&response](const std::string& remote, const mp::VMImageInfo& info) {
+                auto entry = response->add_images_info();
                 for (const auto& alias : info.aliases)
                 {
                     if (!mp::platform::is_alias_supported(alias.toStdString()))
                         return;
 
                     auto alias_entry = entry->add_aliases_info();
+                    alias_entry->set_remote_name(remote);
                     alias_entry->set_alias(alias.toStdString());
                 }
                 entry->set_release(info.release_title.toStdString());

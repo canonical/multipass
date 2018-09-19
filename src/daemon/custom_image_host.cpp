@@ -78,11 +78,64 @@ auto multipass_default_aliases(mp::URLDownloader* url_downloader)
     return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
 }
 
+auto snapcraft_default_aliases(mp::URLDownloader* url_downloader)
+{
+    std::vector<mp::VMImageInfo> default_images;
+    QString image_url{
+        "https://cloud-images.ubuntu.com/releases/16.04/release/ubuntu-16.04-server-cloudimg-amd64-disk1.img"};
+
+    {
+        auto base_image_info = base_image_info_for(url_downloader, image_url,
+                                                   "https://cloud-images.ubuntu.com/releases/16.04/release/SHA256SUMS",
+                                                   "ubuntu-16.04-server-cloudimg-amd64-disk1.img");
+        default_images.push_back(mp::VMImageInfo{{"core", "core16"},
+                                                 "snapcraft-core16",
+                                                 "snapcraft builder for core",
+                                                 true,
+                                                 image_url,
+                                                 "",
+                                                 "",
+                                                 base_image_info.hash,
+                                                 base_image_info.last_modified,
+                                                 0});
+    }
+
+    image_url = "https://cloud-images.ubuntu.com/releases/18.04/release/ubuntu-18.04-server-cloudimg-amd64.img";
+    {
+        auto base_image_info = base_image_info_for(url_downloader, image_url,
+                                                   "https://cloud-images.ubuntu.com/releases/18.04/release/SHA256SUMS",
+                                                   "ubuntu-18.04-server-cloudimg-amd64.img");
+        default_images.push_back(mp::VMImageInfo{{"core18"},
+                                                 "snapcraft-core18",
+                                                 "snapcraft builder for core18",
+                                                 true,
+                                                 image_url,
+                                                 "",
+                                                 "",
+                                                 base_image_info.hash,
+                                                 base_image_info.last_modified,
+                                                 0});
+    }
+
+    std::unordered_map<std::string, const mp::VMImageInfo*> map;
+    for (const auto& image : default_images)
+    {
+        map[image.id.toStdString()] = &image;
+        for (const auto& alias : image.aliases)
+        {
+            map[alias.toStdString()] = &image;
+        }
+    }
+
+    return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
+}
+
 auto custom_aliases(mp::URLDownloader* url_downloader)
 {
     std::unordered_map<std::string, std::unique_ptr<mp::CustomManifest>> custom_manifests;
 
     custom_manifests.emplace("", multipass_default_aliases(url_downloader));
+    custom_manifests.emplace("snapcraft", snapcraft_default_aliases(url_downloader));
 
     return custom_manifests;
 }
@@ -143,7 +196,7 @@ void mp::CustomVMImageHost::for_each_entry_do(const Action& action)
     {
         for (const auto& info : manifest.second->products)
         {
-            action("", info);
+            action(manifest.first, info);
         }
     }
 }
