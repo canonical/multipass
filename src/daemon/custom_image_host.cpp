@@ -51,6 +51,21 @@ auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image
     return BaseImageInfo{last_modified, hash};
 }
 
+auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
+{
+    std::unordered_map<std::string, const mp::VMImageInfo*> map;
+    for (const auto& image : images)
+    {
+        map[image.id.toStdString()] = &image;
+        for (const auto& alias : image.aliases)
+        {
+            map[alias.toStdString()] = &image;
+        }
+    }
+
+    return map;
+}
+
 auto multipass_default_aliases(mp::URLDownloader* url_downloader)
 {
     std::vector<mp::VMImageInfo> default_images;
@@ -73,15 +88,7 @@ auto multipass_default_aliases(mp::URLDownloader* url_downloader)
 
     default_images.push_back(core_image_info);
 
-    std::unordered_map<std::string, const mp::VMImageInfo*> map;
-    for (const auto& image : default_images)
-    {
-        map[image.id.toStdString()] = &image;
-        for (const auto& alias : image.aliases)
-        {
-            map[alias.toStdString()] = &image;
-        }
-    }
+    auto map = map_aliases_to_vm_info_for(default_images);
 
     return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
 }
@@ -127,15 +134,7 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader)
                                                  0});
     }
 
-    std::unordered_map<std::string, const mp::VMImageInfo*> map;
-    for (const auto& image : default_images)
-    {
-        map[image.id.toStdString()] = &image;
-        for (const auto& alias : image.aliases)
-        {
-            map[alias.toStdString()] = &image;
-        }
-    }
+    auto map = map_aliases_to_vm_info_for(default_images);
 
     return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
 }
