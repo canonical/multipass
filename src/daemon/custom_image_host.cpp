@@ -26,58 +26,103 @@ namespace mp = multipass;
 
 namespace
 {
-auto multipass_default_aliases(mp::URLDownloader* url_downloader)
+struct BaseImageInfo
 {
-    std::unordered_map<std::string, mp::VMImageInfo> default_aliases;
-    const QString url{"http://cdimage.ubuntu.com/ubuntu-core/16/current/ubuntu-core-16-amd64.img.xz"};
-    const auto last_modified = url_downloader->last_modified({url});
-    const auto sha256_sums =
-        url_downloader->download({"http://cdimage.ubuntu.com/ubuntu-core/16/current/SHA256SUMS"}).split('\n');
+    const QString last_modified;
+    const QString hash;
+};
+
+auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
+                         const QString& image_file)
+{
+    const auto last_modified = url_downloader->last_modified({image_url}).toString("yyyyMMdd");
+    const auto sha256_sums = url_downloader->download({hash_url}).split('\n');
     QString hash;
 
     for (const auto& line : sha256_sums)
     {
-        if (line.contains("ubuntu-core-16-amd64.img.xz"))
+        if (line.endsWith(image_file.toUtf8()))
         {
             hash = QString(line.split(' ').first());
             break;
         }
     }
 
+    return BaseImageInfo{last_modified, hash};
+}
+
+auto multipass_default_aliases(mp::URLDownloader* url_downloader)
+{
+    std::vector<mp::VMImageInfo> default_images;
+    QString image_url{"http://cdimage.ubuntu.com/ubuntu-core/16/current/ubuntu-core-16-amd64.img.xz"};
+
+    auto base_image_info =
+        base_image_info_for(url_downloader, image_url, "http://cdimage.ubuntu.com/ubuntu-core/16/current/SHA256SUMS",
+                            "ubuntu-core-16-amd64.img.xz");
     mp::VMImageInfo core_image_info{
-        {"core"}, "core-16", "Core 16", true, url, "", "", hash, last_modified.toString("yyyyMMdd"), 0};
+        {"core"}, "core-16", "Core 16", true, image_url, "", "", base_image_info.hash, base_image_info.last_modified,
+        0};
 
-    default_aliases.insert({"core", core_image_info});
+    default_images.push_back(core_image_info);
 
-    return default_aliases;
+    std::unordered_map<std::string, const mp::VMImageInfo*> map;
+    for (const auto& image : default_images)
+    {
+        map[image.id.toStdString()] = &image;
+        for (const auto& alias : image.aliases)
+        {
+            map[alias.toStdString()] = &image;
+        }
+    }
+
+    return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
+}
+
+auto custom_aliases(mp::URLDownloader* url_downloader)
+{
+    std::unordered_map<std::string, std::unique_ptr<mp::CustomManifest>> custom_manifests;
+
+    custom_manifests.emplace("", multipass_default_aliases(url_downloader));
+
+    return custom_manifests;
 }
 } // namespace
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
-    : url_downloader{downloader}, custom_image_info{multipass_default_aliases(url_downloader)}
+    : url_downloader{downloader}, custom_image_info{custom_aliases(url_downloader)}
 {
 }
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
-    auto it = custom_image_info.find(query.release);
+    auto custom_manifest = custom_image_info.find(query.remote_name);
 
-    if (it == custom_image_info.end())
+    if (custom_manifest == custom_image_info.end())
         return {};
 
-    return optional<VMImageInfo>{it->second};
+    auto it = custom_manifest->second->image_records.find(query.release);
+
+    if (it == custom_manifest->second->image_records.end())
+        return {};
+
+    return optional<VMImageInfo>{*it->second};
 }
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& query)
 {
     std::vector<mp::VMImageInfo> images;
 
-    auto it = custom_image_info.find(query.release);
+    auto custom_manifest = custom_image_info.find(query.remote_name);
 
-    if (it == custom_image_info.end())
+    if (custom_manifest == custom_image_info.end())
         return {};
 
-    images.push_back(it->second);
+    auto it = custom_manifest->second->image_records.find(query.release);
+
+    if (it == custom_manifest->second->image_records.end())
+        return {};
+
+    images.push_back(*it->second);
 
     return images;
 }
@@ -94,8 +139,11 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
 
 void mp::CustomVMImageHost::for_each_entry_do(const Action& action)
 {
-    for (const auto& info : custom_image_info)
+    for (const auto& manifest : custom_image_info)
     {
-        action("", info.second);
+        for (const auto& info : manifest.second->products)
+        {
+            action("", info);
+        }
     }
 }

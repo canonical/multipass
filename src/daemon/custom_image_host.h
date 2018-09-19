@@ -20,11 +20,21 @@
 
 #include <multipass/vm_image_host.h>
 
+#include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace multipass
 {
 class URLDownloader;
+
+struct CustomManifest
+{
+    const std::vector<VMImageInfo> products;
+    const std::unordered_map<std::string, const VMImageInfo*> image_records;
+};
+
 class CustomVMImageHost final : public VMImageHost
 {
 public:
@@ -37,7 +47,7 @@ public:
 
 private:
     URLDownloader* const url_downloader;
-    std::unordered_map<std::string, VMImageInfo> custom_image_info;
+    std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
 };
 } // namespace multipass
 #endif // MULTIPASS_CUSTOM_IMAGE_HOST
