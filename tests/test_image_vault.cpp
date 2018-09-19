@@ -49,6 +49,7 @@ struct ImageHost : public mp::VMImageHost
     mp::optional<mp::VMImageInfo> info_for(const mp::Query& query) override
     {
         return mp::optional<mp::VMImageInfo>{mp::VMImageInfo{{"default"},
+                                                             "Ubuntu",
                                                              "xenial",
                                                              "16.04 LTS",
                                                              true,
@@ -67,7 +68,7 @@ struct ImageHost : public mp::VMImageHost
 
     mp::VMImageInfo info_for_full_hash(const std::string& full_hash) override
     {
-        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
+        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
     }
 
     std::vector<mp::VMImageInfo> all_images_for(const std::string& remote_name) override

@@ -125,9 +125,10 @@ message FindReply {
         string alias = 2;
     }
     message ImageInfo {
-        string release = 1;
-        string version = 2;
-        repeated AliasInfo aliases_info = 3;
+        string os = 1;
+        string release = 2;
+        string version = 3;
+        repeated AliasInfo aliases_info = 4;
     }
     repeated ImageInfo images_info = 1;
     string log_line = 2;

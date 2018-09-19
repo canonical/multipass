@@ -59,9 +59,17 @@ auto multipass_default_aliases(mp::URLDownloader* url_downloader)
     auto base_image_info =
         base_image_info_for(url_downloader, image_url, "http://cdimage.ubuntu.com/ubuntu-core/16/current/SHA256SUMS",
                             "ubuntu-core-16-amd64.img.xz");
-    mp::VMImageInfo core_image_info{
-        {"core"}, "core-16", "Core 16", true, image_url, "", "", base_image_info.hash, base_image_info.last_modified,
-        0};
+    mp::VMImageInfo core_image_info{{"core"},
+                                    "Ubuntu",
+                                    "core-16",
+                                    "Core 16",
+                                    true,
+                                    image_url,
+                                    "",
+                                    "",
+                                    base_image_info.hash,
+                                    base_image_info.last_modified,
+                                    0};
 
     default_images.push_back(core_image_info);
 
@@ -89,6 +97,7 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader)
                                                    "https://cloud-images.ubuntu.com/releases/16.04/release/SHA256SUMS",
                                                    "ubuntu-16.04-server-cloudimg-amd64-disk1.img");
         default_images.push_back(mp::VMImageInfo{{"core", "core16"},
+                                                 "",
                                                  "snapcraft-core16",
                                                  "snapcraft builder for core",
                                                  true,
@@ -106,6 +115,7 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader)
                                                    "https://cloud-images.ubuntu.com/releases/18.04/release/SHA256SUMS",
                                                    "ubuntu-18.04-server-cloudimg-amd64.img");
         default_images.push_back(mp::VMImageInfo{{"core18"},
+                                                 "",
                                                  "snapcraft-core18",
                                                  "snapcraft builder for core18",
                                                  true,

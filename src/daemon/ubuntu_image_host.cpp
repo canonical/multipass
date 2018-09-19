@@ -52,6 +52,7 @@ auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloade
 mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
 {
     return {info.aliases,
+            info.os,
             info.release,
             info.release_title,
             info.supported,
@@ -187,7 +188,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash(const std::string& ful
 
     throw std::runtime_error(fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 
-    return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
+    return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
 }
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name)

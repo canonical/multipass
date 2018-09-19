@@ -723,6 +723,7 @@ try // clang-format on
             }
 
             auto entry = response.add_images_info();
+            entry->set_os(info.os.toStdString());
             entry->set_release(info.release_title.toStdString());
             entry->set_version(info.version.toStdString());
             auto alias_entry = entry->add_aliases_info();
@@ -754,6 +755,7 @@ try // clang-format on
                     alias_entry->set_alias(alias.toStdString());
                 }
 
+                entry->set_os(info.os.toStdString());
                 entry->set_release(info.release_title.toStdString());
                 entry->set_version(info.version.toStdString());
             }
@@ -773,6 +775,8 @@ try // clang-format on
                     alias_entry->set_remote_name(remote);
                     alias_entry->set_alias(alias.toStdString());
                 }
+
+                entry->set_os(info.os.toStdString());
                 entry->set_release(info.release_title.toStdString());
                 entry->set_version(info.version.toStdString());
             };
@@ -806,6 +810,7 @@ try // clang-format on
                             }
 
                             image_found.insert(info.release_title.toStdString());
+                            entry->set_os(info.os.toStdString());
                             entry->set_release(info.release_title.toStdString());
                             entry->set_version(info.version.toStdString());
                         }
