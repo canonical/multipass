@@ -1244,6 +1244,7 @@ try // clang-format on
         else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
         {
             delayed_shutdown_instances.erase(name);
+            continue;
         }
 
         vms.push_back(name);
