@@ -37,7 +37,7 @@ auto multipass_default_aliases(mp::URLDownloader* url_downloader)
 
     for (const auto& line : sha256_sums)
     {
-        if (line.contains("ubuntu-core-16-amd64.img.xz"))
+        if (line.endsWith("ubuntu-core-16-amd64.img.xz"))
         {
             hash = QString(line.split(' ').first());
             break;
@@ -48,6 +48,56 @@ auto multipass_default_aliases(mp::URLDownloader* url_downloader)
         {"core"}, "core-16", "Core 16", true, url, "", "", hash, last_modified.toString("yyyyMMdd"), 0};
 
     default_aliases.insert({"core", core_image_info});
+
+    // Image information on 16.04
+    const QString url_16{"https://cloud-images.ubuntu.com/releases/16.04/release/ubuntu-16.04-server-cloudimg-amd64-disk1.img"};
+    const auto last_modified = url_downloader_16->last_modified({url_16});
+    const auto sha256_sums_16 =
+        url_downloader_16->download({"https://cloud-images.ubuntu.com/releases/16.04/release/SHA256SUMS"}).split('\n');
+    QString hash_16;
+
+    for (const auto& line : sha256_sums_16)
+    {
+        if (line.endsWith("ubuntu-16.04-server-cloudimg-amd64-disk1.img"))
+        {
+            hash = QString(line.split(' ').first());
+            break;
+        }
+    }
+
+    // Image information on 18.04
+    const QString url_18{"https://cloud-images.ubuntu.com/releases/18.04/release/ubuntu-18.04-server-cloudimg-amd64.img"};
+    const auto last_modified = url_downloader_18->last_modified({url_18});
+    const auto sha256_sums_18 =
+        url_downloader_18->download({"https://cloud-images.ubuntu.com/releases/18.04/release/SHA256SUMS"}).split('\n');
+    QString hash_18;
+
+    for (const auto& line : sha256_sums_18)
+    {
+        if (line.endsWith("ubuntu-18.04-server-cloudimg-amd64.img"))
+        {
+            hash = QString(line.split(' ').first());
+            break;
+        }
+    }
+
+    // snapcraft-core
+    mp::VMImageInfo snapcraft_core_image_info{
+        {"snapcraft-core"}, "snapcraft-core16", "snapcraft builder for core", true, url_16, "", "", hash, last_modified.toString("yyyyMMdd"), 0};
+
+    default_aliases.insert({"snapcraft-core", snapcraft_core_image_info});
+
+    // snapcraft-core16
+    mp::VMImageInfo snapcraft_core16_image_info{
+        {"snapcraft-core16"}, "snapcraft-core16", "snapcraft builder for core16", true, url_16, "", "", hash, last_modified.toString("yyyyMMdd"), 0};
+
+    default_aliases.insert({"snapcraft-core16", snapcraft_core16_image_info});
+
+    // snapcraft-core18
+    mp::VMImageInfo snapcraft_core18_image_info{
+        {"snapcraft-core18"}, "snapcraft-core18", "snapcraft builder for core18", true, url_18, "", "", hash, last_modified.toString("yyyyMMdd"), 0};
+
+    default_aliases.insert({"snapcraft-core18", snapcraft_core18_image_info});
 
     return default_aliases;
 }
