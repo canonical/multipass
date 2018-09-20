@@ -20,6 +20,8 @@
 
 #include <multipass/vm_image_host.h>
 
+#include <QString>
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -42,6 +44,9 @@ class CustomVMImageHost final : public VMImageHost
 {
 public:
     CustomVMImageHost(URLDownloader* downloader);
+    // For testing
+    CustomVMImageHost(URLDownloader* downloader, const QString& path_prefix);
+
     optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
     VMImageInfo info_for_full_hash(const std::string& full_hash) override;
