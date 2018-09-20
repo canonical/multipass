@@ -22,15 +22,47 @@
 
 #include <fmt/format.h>
 
+#include <QMap>
+
 namespace mp = multipass;
 
 namespace
 {
+constexpr auto no_remote = "";
+constexpr auto snapcraft_remote = "snapcraft";
+
 struct BaseImageInfo
 {
     const QString last_modified;
     const QString hash;
 };
+
+struct CustomImageInfo
+{
+    QString url_prefix;
+    QStringList aliases;
+    QString os;
+    QString release;
+    QString release_string;
+};
+
+const QMap<QString, CustomImageInfo> multipass_image_info{
+    {{"ubuntu-core-16-amd64.img.xz"},
+     {"http://cdimage.ubuntu.com/ubuntu-core/16/current/", {"core"}, "Ubuntu", "core-16", "Core 16"}}};
+
+const QMap<QString, CustomImageInfo> snapcraft_image_info{
+    {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
+     {"http://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
+      {"core", "core16"},
+      "",
+      "snapcraft-core16",
+      "Snapcraft builder for Core 16"}},
+    {{"ubuntu-18.04-minimal-cloudimg-amd64.img"},
+     {"http://cloud-images.ubuntu.com/minimal/releases/bionic/release/",
+      {"core18"},
+      "",
+      "snapcraft-core18",
+      "Snapcraft builder for Core 18"}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
@@ -66,105 +98,35 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-auto multipass_default_aliases(mp::URLDownloader* url_downloader, const QString& path_prefix)
+auto full_image_info_for(const QMap<QString, CustomImageInfo> custom_image_info, mp::URLDownloader* url_downloader,
+                         const QString& path_prefix)
 {
     std::vector<mp::VMImageInfo> default_images;
-    QString image_url;
-    QString hash_url;
-    QString image_file{"ubuntu-core-16-amd64.img.xz"};
 
-    if (!path_prefix.isEmpty())
+    for (const auto& image_info : custom_image_info.toStdMap())
     {
-        image_url = QUrl::fromLocalFile(path_prefix + image_file).toString();
-        hash_url = QUrl::fromLocalFile(path_prefix + "SHA256SUMS").toString();
-    }
-    else
-    {
-        image_url = "http://cdimage.ubuntu.com/ubuntu-core/16/current/" + image_file;
-        hash_url = "http://cdimage.ubuntu.com/ubuntu-core/16/current/SHA256SUMS";
-    }
-
-    auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
-    mp::VMImageInfo core_image_info{{"core"},
-                                    "Ubuntu",
-                                    "core-16",
-                                    "Core 16",
-                                    true,
-                                    image_url,
-                                    "",
-                                    "",
-                                    base_image_info.hash,
-                                    base_image_info.last_modified,
-                                    0};
-
-    default_images.push_back(core_image_info);
-
-    auto map = map_aliases_to_vm_info_for(default_images);
-
-    return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
-}
-
-auto snapcraft_default_aliases(mp::URLDownloader* url_downloader, const QString& path_prefix)
-{
-    std::vector<mp::VMImageInfo> default_images;
-    QString image_url;
-    QString hash_url;
-    QString image_file;
-
-    {
-        image_file = "ubuntu-16.04-minimal-cloudimg-amd64-disk1.img";
-        if (!path_prefix.isEmpty())
-        {
-            image_url = QUrl::fromLocalFile(path_prefix + image_file).toString();
-            hash_url = QUrl::fromLocalFile(path_prefix + "SHA256SUMS").toString();
-        }
-        else
-        {
-            const QString url_prefix{"http://cloud-images.ubuntu.com/minimal/releases/xenial/release/"};
-            image_url = url_prefix + image_file;
-            hash_url = url_prefix + "SHA256SUMS";
-        }
+        auto image_file = image_info.first;
+        QString image_url{
+            (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
+            image_info.first};
+        QString hash_url{
+            (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
+            QStringLiteral("SHA256SUMS")};
 
         auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
-        default_images.push_back(mp::VMImageInfo{{"core", "core16"},
-                                                 "",
-                                                 "snapcraft-core16",
-                                                 "Snapcraft builder for Core 16",
-                                                 true,
-                                                 image_url,
-                                                 "",
-                                                 "",
-                                                 base_image_info.hash,
-                                                 base_image_info.last_modified,
-                                                 0});
-    }
+        mp::VMImageInfo full_image_info{image_info.second.aliases,
+                                        image_info.second.os,
+                                        image_info.second.release,
+                                        image_info.second.release_string,
+                                        true,
+                                        image_url,
+                                        "",
+                                        "",
+                                        base_image_info.hash,
+                                        base_image_info.last_modified,
+                                        0};
 
-    {
-        image_file = "ubuntu-18.04-minimal-cloudimg-amd64.img";
-        if (!path_prefix.isEmpty())
-        {
-            image_url = QUrl::fromLocalFile(path_prefix + image_file).toString();
-            hash_url = QUrl::fromLocalFile(path_prefix + "SHA256SUMS").toString();
-        }
-        else
-        {
-            const QString url_prefix{"http://cloud-images.ubuntu.com/minimal/releases/bionic/release/"};
-            image_url = url_prefix + image_file;
-            hash_url = url_prefix + "SHA256SUMS";
-        }
-
-        auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
-        default_images.push_back(mp::VMImageInfo{{"core18"},
-                                                 "",
-                                                 "snapcraft-core18",
-                                                 "Snapcraft builder for Core 18",
-                                                 true,
-                                                 image_url,
-                                                 "",
-                                                 "",
-                                                 base_image_info.hash,
-                                                 base_image_info.last_modified,
-                                                 0});
+        default_images.push_back(full_image_info);
     }
 
     auto map = map_aliases_to_vm_info_for(default_images);
@@ -176,8 +138,8 @@ auto custom_aliases(mp::URLDownloader* url_downloader, const QString& path_prefi
 {
     std::unordered_map<std::string, std::unique_ptr<mp::CustomManifest>> custom_manifests;
 
-    custom_manifests.emplace(mp::no_remote, multipass_default_aliases(url_downloader, path_prefix));
-    custom_manifests.emplace(mp::snapcraft_remote, snapcraft_default_aliases(url_downloader, path_prefix));
+    custom_manifests.emplace(no_remote, full_image_info_for(multipass_image_info, url_downloader, path_prefix));
+    custom_manifests.emplace(snapcraft_remote, full_image_info_for(snapcraft_image_info, url_downloader, path_prefix));
 
     return custom_manifests;
 }

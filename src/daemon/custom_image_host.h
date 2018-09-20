@@ -29,9 +29,6 @@
 
 namespace multipass
 {
-constexpr auto no_remote = "";
-constexpr auto snapcraft_remote = "snapcraft";
-
 class URLDownloader;
 
 struct CustomManifest
