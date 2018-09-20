@@ -68,8 +68,8 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core)
     auto info = *host.info_for(make_query("core", "snapcraft"));
 
     EXPECT_THAT(info.image_location,
-                Eq(QUrl::fromLocalFile(test_path + "ubuntu-16.04-server-cloudimg-amd64-disk1.img").toString()));
-    EXPECT_THAT(info.id, Eq(QString("7bb741d90f56a42bbde01633d1f6e9204693c6ae357edd42a0b363945a76812f")));
+                Eq(QUrl::fromLocalFile(test_path + "ubuntu-16.04-minimal-cloudimg-amd64-disk1.img").toString()));
+    EXPECT_THAT(info.id, Eq(QString("a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48")));
     EXPECT_THAT(info.release, Eq(QString("snapcraft-core16")));
     EXPECT_THAT(info.release_title, Eq(QString("Snapcraft builder for Core 16")));
     EXPECT_TRUE(info.supported);
@@ -83,8 +83,8 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core18)
     auto info = *host.info_for(make_query("core18", "snapcraft"));
 
     EXPECT_THAT(info.image_location,
-                Eq(QUrl::fromLocalFile(test_path + "ubuntu-18.04-server-cloudimg-amd64.img").toString()));
-    EXPECT_THAT(info.id, Eq(QString("ba081faaf5128d2855803128bbdce0c137e310d1725c6bcc3d5aaa2daa96f224")));
+                Eq(QUrl::fromLocalFile(test_path + "ubuntu-18.04-minimal-cloudimg-amd64.img").toString()));
+    EXPECT_THAT(info.id, Eq(QString("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c")));
     EXPECT_THAT(info.release, Eq(QString("snapcraft-core18")));
     EXPECT_THAT(info.release_title, Eq(QString("Snapcraft builder for Core 18")));
     EXPECT_TRUE(info.supported);
@@ -103,8 +103,8 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7"), Eq(1u));
-    EXPECT_THAT(ids.count("7bb741d90f56a42bbde01633d1f6e9204693c6ae357edd42a0b363945a76812f"), Eq(1u));
-    EXPECT_THAT(ids.count("ba081faaf5128d2855803128bbdce0c137e310d1725c6bcc3d5aaa2daa96f224"), Eq(1u));
+    EXPECT_THAT(ids.count("a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48"), Eq(1u));
+    EXPECT_THAT(ids.count("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c"), Eq(1u));
 }
 
 TEST_F(CustomImageHost, all_images_for_snapcraft_returns_two_matches)

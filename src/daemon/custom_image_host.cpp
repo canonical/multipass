@@ -112,7 +112,7 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader, const QString&
     QString image_file;
 
     {
-        image_file = "ubuntu-16.04-server-cloudimg-amd64-disk1.img";
+        image_file = "ubuntu-16.04-minimal-cloudimg-amd64-disk1.img";
         if (!path_prefix.isEmpty())
         {
             image_url = QUrl::fromLocalFile(path_prefix + image_file).toString();
@@ -120,8 +120,9 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader, const QString&
         }
         else
         {
-            image_url = "https://cloud-images.ubuntu.com/releases/16.04/release/" + image_file;
-            hash_url = "https://cloud-images.ubuntu.com/releases/16.04/release/SHA256SUMS";
+            const QString url_prefix{"http://cloud-images.ubuntu.com/minimal/releases/xenial/release/"};
+            image_url = url_prefix + image_file;
+            hash_url = url_prefix + "SHA256SUMS";
         }
 
         auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
@@ -139,7 +140,7 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader, const QString&
     }
 
     {
-        image_file = "ubuntu-18.04-server-cloudimg-amd64.img";
+        image_file = "ubuntu-18.04-minimal-cloudimg-amd64.img";
         if (!path_prefix.isEmpty())
         {
             image_url = QUrl::fromLocalFile(path_prefix + image_file).toString();
@@ -147,8 +148,9 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader, const QString&
         }
         else
         {
-            image_url = "https://cloud-images.ubuntu.com/releases/18.04/release/" + image_file;
-            hash_url = "https://cloud-images.ubuntu.com/releases/18.04/release/SHA256SUMS";
+            const QString url_prefix{"http://cloud-images.ubuntu.com/minimal/releases/bionic/release/"};
+            image_url = url_prefix + image_file;
+            hash_url = url_prefix + "SHA256SUMS";
         }
 
         auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
