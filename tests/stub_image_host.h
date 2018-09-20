@@ -49,6 +49,11 @@ struct StubVMImageHost final : public multipass::VMImageHost
     void for_each_entry_do(const Action&) override
     {
     }
+
+    std::vector<std::string> supported_remotes() override
+    {
+        return {};
+    }
 };
 }
 }

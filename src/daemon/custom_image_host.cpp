@@ -20,6 +20,8 @@
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 
+#include <fmt/format.h>
+
 #include <QString>
 
 namespace mp = multipass;
@@ -106,7 +108,7 @@ auto snapcraft_default_aliases(mp::URLDownloader* url_downloader)
         default_images.push_back(mp::VMImageInfo{{"core", "core16"},
                                                  "",
                                                  "snapcraft-core16",
-                                                 "Snapcraft builder for Core",
+                                                 "Snapcraft builder for Core 16",
                                                  true,
                                                  image_url,
                                                  "",
@@ -143,48 +145,37 @@ auto custom_aliases(mp::URLDownloader* url_downloader)
 {
     std::unordered_map<std::string, std::unique_ptr<mp::CustomManifest>> custom_manifests;
 
-    custom_manifests.emplace("", multipass_default_aliases(url_downloader));
-    custom_manifests.emplace("snapcraft", snapcraft_default_aliases(url_downloader));
+    custom_manifests.emplace(mp::no_remote, multipass_default_aliases(url_downloader));
+    custom_manifests.emplace(mp::snapcraft_remote, snapcraft_default_aliases(url_downloader));
 
     return custom_manifests;
 }
 } // namespace
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
-    : url_downloader{downloader}, custom_image_info{custom_aliases(url_downloader)}
+    : url_downloader{downloader},
+      custom_image_info{custom_aliases(url_downloader)},
+      remotes{no_remote, snapcraft_remote}
 {
 }
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
-    auto custom_manifest = custom_image_info.find(query.remote_name);
+    auto custom_manifest = manifest_from(query.remote_name);
 
-    if (custom_manifest == custom_image_info.end())
-        return {};
+    auto it = custom_manifest->image_records.find(query.release);
 
-    auto it = custom_manifest->second->image_records.find(query.release);
+    if (it == custom_manifest->image_records.end())
+        throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
 
-    if (it == custom_manifest->second->image_records.end())
-        return {};
-
-    return optional<VMImageInfo>{*it->second};
+    return *it->second;
 }
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& query)
 {
     std::vector<mp::VMImageInfo> images;
 
-    auto custom_manifest = custom_image_info.find(query.remote_name);
-
-    if (custom_manifest == custom_image_info.end())
-        return {};
-
-    auto it = custom_manifest->second->image_records.find(query.release);
-
-    if (it == custom_manifest->second->image_records.end())
-        return {};
-
-    images.push_back(*it->second);
+    images.push_back(*info_for(query));
 
     return images;
 }
@@ -196,7 +187,15 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash(const std::string& ful
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name)
 {
-    return {};
+    std::vector<mp::VMImageInfo> images;
+    auto custom_manifest = manifest_from(remote_name);
+
+    for (const auto& product : custom_manifest->products)
+    {
+        images.push_back(product);
+    }
+
+    return images;
 }
 
 void mp::CustomVMImageHost::for_each_entry_do(const Action& action)
@@ -208,4 +207,18 @@ void mp::CustomVMImageHost::for_each_entry_do(const Action& action)
             action(manifest.first, info);
         }
     }
+}
+
+std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
+{
+    return remotes;
+}
+
+mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
+{
+    auto it = custom_image_info.find(remote_name);
+    if (it == custom_image_info.end())
+        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote_name));
+
+    return it->second.get();
 }

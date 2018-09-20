@@ -45,6 +45,7 @@ public:
     VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name) override;
     void for_each_entry_do(const Action& action) override;
+    std::vector<std::string> supported_remotes() override;
 
 private:
     void update_manifest();

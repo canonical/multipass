@@ -459,6 +459,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     if (!invalid_specs.empty() || mac_addr_missing)
         persist_instances();
 
+    for (const auto& image_host : config->image_hosts)
+    {
+        for (const auto& remote : image_host->supported_remotes())
+        {
+            remote_image_host_map[remote] = image_host.get();
+        }
+    }
+
     config->vault->prune_expired_images();
 
     // Fire timer every six hours to perform maintenance on source images such as
@@ -683,24 +691,39 @@ try // clang-format on
 
     if (!request->search_string().empty())
     {
-        if (!request->remote_name().empty())
-        {
-            if (!mp::platform::is_remote_supported(request->remote_name()))
-                throw std::runtime_error(fmt::format(
-                    "{} is not a supported remote. Please use `multipass find` for list of supported images.",
-                    request->remote_name()));
-        }
-
         std::vector<VMImageInfo> vm_images_info;
-        for (const auto& image_host : config->image_hosts)
+        auto remote{request->remote_name()};
+
+        if (!remote.empty())
         {
-            auto images_info = image_host->all_info_for(
-                {"", request->search_string(), false, request->remote_name(), Query::Type::Alias});
+            if (!mp::platform::is_remote_supported(remote))
+                throw std::runtime_error(fmt::format(
+                    "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
+
+            auto it = remote_image_host_map.find(remote);
+            if (it == remote_image_host_map.end())
+                throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
+
+            auto images_info =
+                it->second->all_info_for({"", request->search_string(), false, remote, Query::Type::Alias});
 
             if (!images_info.empty())
             {
                 vm_images_info = std::move(images_info);
-                break;
+            }
+        }
+        else
+        {
+            for (const auto& image_host : config->image_hosts)
+            {
+                auto images_info =
+                    image_host->all_info_for({"", request->search_string(), false, remote, Query::Type::Alias});
+
+                if (!images_info.empty())
+                {
+                    vm_images_info = std::move(images_info);
+                    break;
+                }
             }
         }
 
@@ -727,19 +750,23 @@ try // clang-format on
             entry->set_release(info.release_title.toStdString());
             entry->set_version(info.version.toStdString());
             auto alias_entry = entry->add_aliases_info();
-            alias_entry->set_remote_name(request->remote_name());
+            alias_entry->set_remote_name(remote);
             alias_entry->set_alias(name);
         }
     }
     else if (!request->remote_name().empty())
     {
-        if (!mp::platform::is_remote_supported(request->remote_name()))
-            throw std::runtime_error(
-                fmt::format("{} is not a supported remote. Please use `multipass find` for list of supported images.",
-                            request->remote_name()));
+        const auto remote = request->remote_name();
 
-        auto vm_images_info = config->image_hosts.back()->all_images_for(request->remote_name());
+        if (!mp::platform::is_remote_supported(remote))
+            throw std::runtime_error(fmt::format(
+                "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
 
+        auto it = remote_image_host_map.find(remote);
+        if (it == remote_image_host_map.end())
+            throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
+
+        auto vm_images_info = it->second->all_images_for(remote);
         for (const auto& info : vm_images_info)
         {
             if (!info.aliases.empty())
@@ -763,26 +790,7 @@ try // clang-format on
     }
     else
     {
-        {
-            auto action = [&response](const std::string& remote, const mp::VMImageInfo& info) {
-                auto entry = response->add_images_info();
-                for (const auto& alias : info.aliases)
-                {
-                    if (!mp::platform::is_alias_supported(alias.toStdString()))
-                        return;
-
-                    auto alias_entry = entry->add_aliases_info();
-                    alias_entry->set_remote_name(remote);
-                    alias_entry->set_alias(alias.toStdString());
-                }
-
-                entry->set_os(info.os.toStdString());
-                entry->set_release(info.release_title.toStdString());
-                entry->set_version(info.version.toStdString());
-            };
-            config->image_hosts.front()->for_each_entry_do(action);
-        }
-
+        for (const auto& image_host : config->image_hosts)
         {
             std::unordered_set<std::string> image_found;
             const auto default_remote{"release"};
@@ -817,7 +825,8 @@ try // clang-format on
                     }
                 }
             };
-            config->image_hosts.back()->for_each_entry_do(action);
+
+            image_host->for_each_entry_do(action);
         }
     }
     server->Write(response);

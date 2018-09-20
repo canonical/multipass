@@ -27,6 +27,9 @@
 
 namespace multipass
 {
+constexpr auto no_remote = "";
+constexpr auto snapcraft_remote = "snapcraft";
+
 class URLDownloader;
 
 struct CustomManifest
@@ -44,10 +47,14 @@ public:
     VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name) override;
     void for_each_entry_do(const Action& action) override;
+    std::vector<std::string> supported_remotes() override;
 
 private:
+    CustomManifest* manifest_from(const std::string& remote_name);
+
     URLDownloader* const url_downloader;
     std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
+    std::vector<std::string> remotes;
 };
 } // namespace multipass
 #endif // MULTIPASS_CUSTOM_IMAGE_HOST

@@ -224,6 +224,18 @@ void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
     }
 }
 
+std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
+{
+    std::vector<std::string> supported_remotes;
+
+    for (const auto& remote : remotes)
+    {
+        supported_remotes.push_back(remote.first);
+    }
+
+    return supported_remotes;
+}
+
 void mp::UbuntuVMImageHost::update_manifest()
 {
     const auto now = std::chrono::steady_clock::now();

@@ -80,6 +80,11 @@ struct ImageHost : public mp::VMImageHost
     {
     }
 
+    std::vector<std::string> supported_remotes() override
+    {
+        return {};
+    }
+
     mpt::TempFile image;
     mpt::TempFile kernel;
     mpt::TempFile initrd;
