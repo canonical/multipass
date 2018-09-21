@@ -398,6 +398,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         {
             for (auto& record : prepared_image_records)
             {
+                if (record.second.query.remote_name != query.remote_name)
+                    continue;
+
                 const auto aliases = record.second.image.aliases;
                 if (id == record.first || std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
                 {
