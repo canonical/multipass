@@ -127,6 +127,19 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
 }
 
+TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
+{
+    mp::CustomVMImageHost host{&url_downloader, test_path};
+
+    auto supported_remotes = host.supported_remotes();
+
+    const size_t expected_size{2};
+    EXPECT_THAT(supported_remotes.size(), Eq(expected_size));
+
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "") != supported_remotes.end());
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "snapcraft") != supported_remotes.end());
+}
+
 TEST_F(CustomImageHost, invalid_image_throws_error)
 {
     mp::CustomVMImageHost host{&url_downloader, test_path};
