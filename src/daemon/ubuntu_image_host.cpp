@@ -26,7 +26,6 @@
 
 #include <fmt/format.h>
 
-#include <QTimer>
 #include <QUrl>
 
 #include <algorithm>
@@ -77,7 +76,7 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
     : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
-    QTimer::singleShot(0, [this]() {
+    manifest_single_shot.singleShot(0, [this]() {
         try
         {
             update_manifest();
