@@ -234,6 +234,7 @@ parts:
     - --sysconfdir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
     - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
     - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
+    - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ebtables
     override-build: |
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.debian.tar.xz
