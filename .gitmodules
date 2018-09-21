@@ -8,7 +8,7 @@
 	ignore = dirty
 [submodule "3rd-party/libssh/libssh"]
 	path = 3rd-party/libssh/libssh
-	url = https://github.com/albaguirre/libssh.git
+	url = git://git.libssh.org/projects/libssh.git
 [submodule "3rd-party/fmt"]
 	path = 3rd-party/fmt
 	url = https://github.com/fmtlib/fmt.git
