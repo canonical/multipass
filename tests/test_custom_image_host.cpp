@@ -140,11 +140,11 @@ TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
     EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "snapcraft") != supported_remotes.end());
 }
 
-TEST_F(CustomImageHost, invalid_image_throws_error)
+TEST_F(CustomImageHost, invalid_image_returns_false)
 {
     mp::CustomVMImageHost host{&url_downloader, test_path};
 
-    EXPECT_THROW(*host.info_for(make_query("foo", "")), std::runtime_error);
+    EXPECT_FALSE(host.info_for(make_query("foo", "")));
 }
 
 TEST_F(CustomImageHost, invalid_remote_throws_error)
