@@ -26,7 +26,6 @@
 
 #include <fmt/format.h>
 
-#include <QTimer>
 #include <QUrl>
 
 #include <algorithm>
@@ -52,6 +51,7 @@ auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloade
 mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
 {
     return {info.aliases,
+            info.os,
             info.release,
             info.release_title,
             info.supported,
@@ -76,7 +76,7 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
     : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
-    QTimer::singleShot(0, [this]() {
+    manifest_single_shot.singleShot(0, [this]() {
         try
         {
             update_manifest();
@@ -187,7 +187,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash(const std::string& ful
 
     throw std::runtime_error(fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 
-    return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
+    return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
 }
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name)
@@ -221,6 +221,18 @@ void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
                    with_location_fully_resolved(QString::fromStdString(remote_url_from(manifest.first)), product));
         }
     }
+}
+
+std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
+{
+    std::vector<std::string> supported_remotes;
+
+    for (const auto& remote : remotes)
+    {
+        supported_remotes.push_back(remote.first);
+    }
+
+    return supported_remotes;
 }
 
 void mp::UbuntuVMImageHost::update_manifest()

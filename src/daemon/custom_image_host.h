@@ -20,24 +20,43 @@
 
 #include <multipass/vm_image_host.h>
 
+#include <QString>
+
+#include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace multipass
 {
 class URLDownloader;
+
+struct CustomManifest
+{
+    const std::vector<VMImageInfo> products;
+    const std::unordered_map<std::string, const VMImageInfo*> image_records;
+};
+
 class CustomVMImageHost final : public VMImageHost
 {
 public:
     CustomVMImageHost(URLDownloader* downloader);
+    // For testing
+    CustomVMImageHost(URLDownloader* downloader, const QString& path_prefix);
+
     optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
     VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name) override;
     void for_each_entry_do(const Action& action) override;
+    std::vector<std::string> supported_remotes() override;
 
 private:
+    CustomManifest* manifest_from(const std::string& remote_name);
+
     URLDownloader* const url_downloader;
-    std::unordered_map<std::string, VMImageInfo> custom_image_info;
+    std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
+    std::vector<std::string> remotes;
 };
 } // namespace multipass
 #endif // MULTIPASS_CUSTOM_IMAGE_HOST

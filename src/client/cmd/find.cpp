@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,8 @@ std::ostream& operator<<(std::ostream& out, const multipass::FindReply::AliasInf
 
 std::ostream& operator<<(std::ostream& out, const multipass::FindReply::ImageInfo& image_info)
 {
-    out << std::setw(24) << std::left << "Ubuntu " + image_info.release() << image_info.version() << "\n";
+    out << std::setw(32) << std::left << (!image_info.os().empty() ? image_info.os() + " " : "") + image_info.release()
+        << image_info.version() << "\n";
 
     return out;
 }
@@ -55,8 +56,8 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
     auto on_success = [this](mp::FindReply& reply) {
         std::stringstream out;
 
-        out << "multipass launch …   Starts an instance of   Image version\n";
-        out << "----------------------------------------------------------\n";
+        out << "multipass launch …   Starts an instance of           Image version\n";
+        out << "------------------------------------------------------------------\n";
 
         for (const auto& info : reply.images_info())
         {

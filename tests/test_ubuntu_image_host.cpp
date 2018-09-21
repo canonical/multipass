@@ -202,6 +202,20 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
+TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
+{
+    mp::UbuntuVMImageHost host{
+        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+
+    auto supported_remotes = host.supported_remotes();
+
+    const size_t expected_size{2};
+    EXPECT_THAT(supported_remotes.size(), Eq(expected_size));
+
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "release") != supported_remotes.end());
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "daily") != supported_remotes.end());
+}
+
 TEST_F(UbuntuImageHost, invalid_remote_throws_error)
 {
     mp::UbuntuVMImageHost host{

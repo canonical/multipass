@@ -129,7 +129,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
 
             // Aliases always alias to the latest version
             const QStringList& aliases = version_string == latest_version ? product_aliases : QStringList();
-            products.push_back({aliases, release, release_title, supported, image_location, kernel_location,
+            products.push_back({aliases, "Ubuntu", release, release_title, supported, image_location, kernel_location,
                                 initrd_location, sha256, version_string, size});
         }
     }

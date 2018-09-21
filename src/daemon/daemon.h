@@ -124,6 +124,7 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
+    std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
     MetricsProvider metrics_provider;

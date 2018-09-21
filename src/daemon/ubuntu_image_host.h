@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_UBUNTU_IMAGE_HOST_H
@@ -24,6 +22,7 @@
 #include <multipass/vm_image_host.h>
 
 #include <QString>
+#include <QTimer>
 
 #include <chrono>
 #include <string>
@@ -45,6 +44,7 @@ public:
     VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name) override;
     void for_each_entry_do(const Action& action) override;
+    std::vector<std::string> supported_remotes() override;
 
 private:
     void update_manifest();
@@ -57,6 +57,7 @@ private:
     std::vector<std::pair<std::string, std::string>> remotes;
     std::string remote_url_from(const std::string& remote_name);
     QString index_path;
+    QTimer manifest_single_shot;
 };
 }
 #endif // MULTIPASS_UBUNTU_IMAGE_HOST_H
