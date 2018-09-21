@@ -163,7 +163,7 @@ mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query
     auto it = custom_manifest->image_records.find(query.release);
 
     if (it == custom_manifest->image_records.end())
-        throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
+        return nullopt;
 
     return *it->second;
 }
@@ -172,7 +172,9 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& qu
 {
     std::vector<mp::VMImageInfo> images;
 
-    images.push_back(*info_for(query));
+    auto image = info_for(query);
+    if (image != nullopt)
+        images.push_back(*image);
 
     return images;
 }

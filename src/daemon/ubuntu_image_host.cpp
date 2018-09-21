@@ -125,7 +125,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
         return with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info);
     }
 
-    throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
+    return nullopt;
 }
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& query)

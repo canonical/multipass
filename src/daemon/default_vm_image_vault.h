@@ -74,6 +74,7 @@ private:
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
     std::unordered_map<std::string, VaultRecord> instance_image_records;
+    std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };
 }
 #endif // MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H

@@ -254,6 +254,13 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
       instance_image_records{load_db(data_dir.filePath(instance_db_name))}
 {
+    for (const auto& image_host : image_hosts)
+    {
+        for (const auto& remote : image_host->supported_remotes())
+        {
+            remote_image_host_map[remote] = image_host;
+        }
+    }
 }
 
 mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
@@ -597,17 +604,31 @@ mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& 
 
 mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
 {
-    for (const auto& image_host : image_hosts)
+    if (!query.remote_name.empty())
     {
-        auto info = image_host->info_for(query);
+        auto it = remote_image_host_map.find(query.remote_name);
+        if (it == remote_image_host_map.end())
+            throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", query.remote_name));
 
-        if (info)
-        {
+        auto info = it->second->info_for(query);
+
+        if (info != nullopt)
             return *info;
+    }
+    else
+    {
+        for (const auto& image_host : image_hosts)
+        {
+            auto info = image_host->info_for(query);
+
+            if (info)
+            {
+                return *info;
+            }
         }
     }
 
-    return {};
+    throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
 }
 
 namespace
