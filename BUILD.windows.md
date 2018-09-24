@@ -10,23 +10,29 @@ Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey
 
 After chocolatey is installed you can now install the rest of the dependencies:
 
-    choco install visualcpp-build-tools cmake ninja golang nasm cmder qemu-img -yfd
+    choco install visualcpp-build-tools cmake ninja golang nasm cmder qemu-img nsis -yfd
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker.
 Search for Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable Real-time protection.
 
-### Qt5
-Install the latest stable version of Qt5.9 (5.9.1 at the moment): <http://www.qt.io/download-open-source/>.
+NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any new compiler tool updates so choco upgrade
+will report no new updates available. To update the compiler and related tooling, you will need to search for "Add or remove programs",
+find "Microsoft Visual Studio Installer" and click "Modify".
 
-In the installer, unselect everything. Install only the msvc2015 32 bit component and the msvc2017_64 component
+### Qt5
+Install the latest stable version of Qt5 (5.11.2 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
+
+In the online installer, under Qt, select MSVC 2017 64-bit.
+
+If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
 
 ### Path setup
 You'll have to manually add CMake and Qt to your account's PATH variable.
 
-Search for "Edit environment variables for your account" then edit the Path variable.
+Search for "Edit environment variables for your account" then edit your Path variable.
 Add the following:
      C:\Program Files\CMake\bin
-     C:\Qt\5.9.1\msvc2017_64\bin
+     C:\Qt\5.11.2\msvc2017_64\bin
 
 ### Cmder setup
 Cmder is a sane terminal emulator for windows, which includes git and SSH support among other things.
@@ -54,9 +60,11 @@ This will open a new terminal tab and run the VS2017 setup. CMake can now find t
     git submodule update --init --recursive
     mkdir build
     cd build
-    cmake -GNinja ../
+    cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../
     ninja
 
+This builds multipass and multipassd.
+To create an installer, run "ninja package"
 
 Running multipass
 ---------------------------------------
@@ -68,12 +76,22 @@ See: https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-st
     Press Windows Key + X, Select Windows PowerShell (Admin)
     Run "Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All"
 
-### Permissions/privileges
-multipassd needs Administrator Privileges the first time it creates a VM instance to be able to
-create a virtual network switch, assign it an IP address and create a NAT object.
+### Start the daemon (multipassd)
+    Press Windows Key + X, Select Windows PowerShell (Admin)
+    Run multipassd (for example: multipassd --logger=stderr)
+    Alternatively, you can install multipassd as a Windows Service (Run "multipassd /install")
+    To stop and uninstall the Windows service, Run "multipassd /uninstall"
 
-To avoid the need to run multipassd with Administrator Privileges after creating the network switch,
-your user account will need to be part of the Hyper-V Administrators group:
+### Run multipass
+    With the multipassd daemon now running on another shell (or as a windows service) you can now run multipass.
+    Press Windows Key + X, Select Windows PowerShell, or alternatively run cmd.exe on the search bar
+    Try "multipass help"
+
+### Permissions/privileges for multipassd
+multipassd needs Administrator privileges in order to create symlinks when using mounts and to manage Hyper-V instances.
+
+If you don't need symlink support you can run multipassd on a less privileged shell but your user account
+needs to be part of the Hyper-V Administrators group:
 
     Press Windows key + X, Select "Computer Management"
     Under System Tools->Local Users and Groups->Groups

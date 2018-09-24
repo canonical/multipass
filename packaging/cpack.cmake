@@ -39,7 +39,8 @@ set(CPACK_COMPONENT_MULTIPASS_DISPLAY_NAME "Command line tooling (multipass)")
 set(CPACK_COMPONENT_MULTIPASS_DESCRIPTION
    "Command line tool to talk to the multipass daemon")
 
-set(CPACK_COMPONENT_MULTIPASSD_REQUIRED)
+set(CPACK_COMPONENT_MULTIPASSD_REQUIRED TRUE)
+set(CPACK_COMPONENT_MULTIPASS_REQUIRED TRUE)
 
 # set default CPack Packaging options
 set(CPACK_PACKAGE_NAME              "multipass")
@@ -54,13 +55,81 @@ endif ()
 
 # set (CPACK_PACKAGE_DESCRIPTION_FILE ...)
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Easily create, control and connect to Ubuntu instances")
-set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/LICENCE.txt")
-set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/README.txt")
 set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/WELCOME.txt")
 
+if (MSVC)
+  # multipassd depends on qemu-img.exe indirectly (called to convert qcow images to VHDX format)
+  find_program(QEMU_IMG qemu-img.exe)
+  if (NOT QEMU_IMG)
+    message(FATAL_ERROR "qemu-img not found!")
+  endif()
 
+  # InstallRequiredSystemLibraries finds the VC redistributable dlls shipped with the Visual Studio compiler tools
+  # and creats an install(PROGRAMS ...) rule using the destination and component IDs setup below.
+  set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
+  set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT multipassd)
+  include(InstallRequiredSystemLibraries)
+
+  # The qemu-img path found may actually be a chocolatey generated shim.  Thankfully such shims have a command line
+  # option that returns the actual executable target of the shim.
+  execute_process(COMMAND ${QEMU_IMG} --shimgen-noop
+    OUTPUT_VARIABLE QEMU_IMG_OUTPUT)
+  string(REGEX MATCH "path to executable: (.*)[\n\r\t ]+working" QEMU_IMG_OUTPUT_REGEX_MATCH ${QEMU_IMG_OUTPUT})
+  if (CMAKE_MATCH_1)
+    set(REAL_QEMU_IMG ${CMAKE_MATCH_1})
+    string(REPLACE "\\" "/" REAL_QEMU_IMG ${REAL_QEMU_IMG})
+    string(STRIP ${REAL_QEMU_IMG} REAL_QEMU_IMG)
+  else()
+    set(REAL_QEMU_IMG ${QEMU_IMG})
+  endif()
+
+  # Finally copy the real qemu-img executable into our package
+  install(FILES "${REAL_QEMU_IMG}" DESTINATION bin COMPONENT multipassd)
+
+  # fixup_bundle determines the dependencies of the given executable and copies them into the final package.
+  # fixup_bundle assumes the copy destination is the same directory of the given executable, hence why it's pre-fixed
+  # with CMAKE_INSTALL_PREFIX as that contains the correct directory where the package is assembled.
+  # The third parameter of fixup_bundle is a directory to search for dependencies; here we assume qemu-img.exe deps
+  # are contained in the same source directory where it was copied from
+  get_filename_component(QEMU_IMG_DIR ${REAL_QEMU_IMG} DIRECTORY)
+  install(CODE "
+    include(BundleUtilities)
+    fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
+    " COMPONENT multipassd)
+
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.txt")
+  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/windows/README.txt")
+
+  # Inserts an extra page in the installer asking the user if they want to modify their users or system PATH variable
+  # This is useful to make "multipass.exe" findable on a shell
+  set(CPACK_NSIS_MODIFY_PATH ON)
+  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+
+  # The EventLog registry entries register a Multipass EventSource, which prevents the Event Viewer app complaining
+  # about missing EVENT ID sources, which makes it harder to read the log entries.
+  # The App Paths registry entries are to register multipass.exe as a valid command that can be called via ShellExecute
+  SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+    "
+    WriteRegStr HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass' 'EventMessageFile' '%SystemRoot%\\\\\\\\System32\\\\EventCreate.exe'
+    WriteRegDWORD HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass' 'TypesSupported' '7'
+    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' '' '$INSTDIR\\\\bin\\\\multipass.exe'
+    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' 'Path' '$INSTDIR\\\\bin'
+    nsExec::ExecToLog '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /install'
+    "
+  )
+
+  SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
+    "
+    nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
+    DeleteRegKey HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass'
+    DeleteRegKey HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe'
+    "
+  )
+endif()
 
 if(APPLE)
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/macos/LICENCE.txt")
+  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/macos/README.txt")
   set(CPACK_GENERATOR "productbuild")
   set(CPACK_productbuild_COMPONENT_INSTALL ON)
 
