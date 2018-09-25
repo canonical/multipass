@@ -67,3 +67,10 @@ endif(APPLE)
 install(TARGETS multipassd
   DESTINATION bin
   COMPONENT multipassd)
+
+if(MSVC)
+  install(CODE "
+    include(BundleUtilities)
+    fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/multipassd.exe\"  \"\"  \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
+    " COMPONENT multipassd)
+endif()

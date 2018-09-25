@@ -41,5 +41,12 @@ install(TARGETS multipass
   DESTINATION bin
   COMPONENT multipass)
 
+if(MSVC)
+  install(CODE "
+    include(BundleUtilities)
+    fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/multipass.exe\"  \"\"  \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
+    " COMPONENT multipass)
+endif()
+
 add_subdirectory(cmd)
 add_subdirectory(formatter)
