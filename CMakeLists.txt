@@ -44,8 +44,8 @@ endif()
 add_subdirectory(3rd-party)
 
 # Qt config
-find_package(Qt5Core)
-find_package(Qt5Network)
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Network REQUIRED)
 
 execute_process(COMMAND git describe
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
