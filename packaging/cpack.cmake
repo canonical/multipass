@@ -64,6 +64,9 @@ if (MSVC)
     message(FATAL_ERROR "qemu-img not found!")
   endif()
 
+  # make CMake prefer using the custom version of NSIS.template.in
+  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/packaging/windows")
+
   # InstallRequiredSystemLibraries finds the VC redistributable dlls shipped with the Visual Studio compiler tools
   # and creats an install(PROGRAMS ...) rule using the destination and component IDs setup below.
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
@@ -97,13 +100,15 @@ if (MSVC)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
     " COMPONENT multipassd)
 
-  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.txt")
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.rtf")
   set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/windows/README.txt")
 
   # Inserts an extra page in the installer asking the user if they want to modify their users or system PATH variable
   # This is useful to make "multipass.exe" findable on a shell
   set(CPACK_NSIS_MODIFY_PATH ON)
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+  set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/CanonicalLtd/multipass")
+  set(CPACK_NSIS_HELP_LINK "https://github.com/CanonicalLtd/multipass")
 
   # The EventLog registry entries register a Multipass EventSource, which prevents the Event Viewer app complaining
   # about missing EVENT ID sources, which makes it harder to read the log entries.

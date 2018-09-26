@@ -1,9 +1,9 @@
-# Multipass
+### Multipass
 Copyright © 2017-2018, Canonical Ltd.
 
 The open source portion is available at https://github.com/CanonicalLtd/multipass/
 
-## Open source projects used directly:
+### Open source projects used directly:
 - fmt: https://github.com/fmtlib/fmt
 - grpc: https://github.com/grpc/grpc
   - abseil-cpp: https://github.com/abseil/abseil-cpp
@@ -13,16 +13,17 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
   - gflags: https://github.com/gflags/gflags
   - protobuf: https://github.com/google/protobuf
   - zlib: https://github.com/madler/zlib
-- libssh: https://github.com/albaguirre/libssh
+- libssh: https://git.libssh.org/projects/libssh.git/
 - qt: https://www.qt.io/
 - xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
 - yaml-cpp: https://github.com/jbeder/yaml-cpp
 
-## Additional binaries used from FIXME:
-- qemu (qemu-img): FIXME
+### Additional binaries used:
+- qemu (qemu-img): https://chocolatey.org/packages/qemu-img
 
-## Licensing:
+### Licensing:
 Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
+
 - fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich
 - grpc: Apache License 2.0
 - abseil-cpp: Apache License 2.0
@@ -35,7 +36,6 @@ Below is a summary of the licensing used in the respective projects. See their s
 - gflags: BSD 3-Clause "New" or "Revised" License; Copyright (c) 2006, Google Inc.
 - protobuf: BSD 3-Clause "New" or "Revised" License; Copyright 2008 Google Inc.
 - zlib: zlib License; (C) 1995-2017 Jean-loup Gailly and Mark Adler
-- hyperkit: hyperkit License; Copyright the authors and contributors. See individual source files for details.
 - libssh:
   - GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
   - OpenSSL Exception
@@ -54,7 +54,7 @@ Below is a summary of the licensing used in the respective projects. See their s
 - pcre: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
 - qemu (qemu-img): GNU GPL Version 2 License; See AUTHORS file for Copyright information
 
-## Licenses:
+### Licenses:
 Below are the contents of all the licenses used across all the projects distributed along with Multipass.
 
 ### Apache License 2.0
