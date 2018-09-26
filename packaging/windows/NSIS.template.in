@@ -683,8 +683,7 @@ Section "-Core installation"
   Push "Contact"
   Push "@CPACK_NSIS_CONTACT@"
   Call ConditionalAddToRegisty
-  !insertmacro MUI_INSTALLOPTIONS_READ $INSTALL_DESKTOP "NSIS.InstallOptions.ini" "Field 5" "State"
-  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
+  StrCpy $INSTALL_DESKTOP 0
 
   ;Create shortcuts
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"

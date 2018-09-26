@@ -1,9 +1,9 @@
 [Settings]
-NumFields=5
+NumFields=4
 
 [Field 1]
 Type=label
-Text=By default @CPACK_PACKAGE_INSTALL_DIRECTORY@ does not add its directory to the system PATH.
+Text=To run Multipass in Powershell or cmd.exe without having to type the full installation directory, the PATH variable needs to include @CPACK_PACKAGE_NAME@
 Left=0
 Right=-1
 Top=0
@@ -11,12 +11,12 @@ Bottom=20
 
 [Field 2]
 Type=radiobutton
-Text=Do not add @CPACK_PACKAGE_NAME@ to the system PATH
+Text=Do not add @CPACK_PACKAGE_NAME@ to the PATH
 Left=0
 Right=-1
 Top=30
 Bottom=40
-State=1
+State=0
 
 [Field 3]
 Type=radiobutton
@@ -29,18 +29,9 @@ State=0
 
 [Field 4]
 Type=radiobutton
-Text=Add @CPACK_PACKAGE_NAME@ to the system PATH for current user
+Text=Add @CPACK_PACKAGE_NAME@ to the current user's PATH (Recommended)
 Left=0
 Right=-1
 Top=50
 Bottom=60
-State=0
-
-[Field 5]
-Type=CheckBox
-Text=Create @CPACK_PACKAGE_NAME@ Desktop Icon
-Left=0
-Right=-1
-Top=80
-Bottom=90
-State=0
+State=1
