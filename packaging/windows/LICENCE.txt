@@ -1,9 +1,9 @@
-# Multipass
+### Multipass
 Copyright © 2017-2018, Canonical Ltd.
 
 The open source portion is available at https://github.com/CanonicalLtd/multipass/
 
-## Open source projects used directly:
+### Open source projects used directly:
 - fmt: https://github.com/fmtlib/fmt
 - grpc: https://github.com/grpc/grpc
   - abseil-cpp: https://github.com/abseil/abseil-cpp
@@ -18,10 +18,10 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
 - xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
 - yaml-cpp: https://github.com/jbeder/yaml-cpp
 
-## Additional binaries used:
+### Additional binaries used:
 - qemu (qemu-img): https://chocolatey.org/packages/qemu-img
 
-## Licensing:
+### Licensing:
 Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
 
 - fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich
@@ -54,7 +54,7 @@ Below is a summary of the licensing used in the respective projects. See their s
 - pcre: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
 - qemu (qemu-img): GNU GPL Version 2 License; See AUTHORS file for Copyright information
 
-## Licenses:
+### Licenses:
 Below are the contents of all the licenses used across all the projects distributed along with Multipass.
 
 ### Apache License 2.0
