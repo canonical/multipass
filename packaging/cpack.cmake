@@ -107,6 +107,8 @@ if (MSVC)
   # This is useful to make "multipass.exe" findable on a shell
   set(CPACK_NSIS_MODIFY_PATH ON)
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+  set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/CanonicalLtd/multipass")
+  set(CPACK_NSIS_HELP_LINK "https://github.com/CanonicalLtd/multipass")
 
   # The EventLog registry entries register a Multipass EventSource, which prevents the Event Viewer app complaining
   # about missing EVENT ID sources, which makes it harder to read the log entries.
