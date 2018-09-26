@@ -64,6 +64,9 @@ if (MSVC)
     message(FATAL_ERROR "qemu-img not found!")
   endif()
 
+  # make CMake prefer using the custom version of NSIS.template.in
+  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/packaging/windows")
+
   # InstallRequiredSystemLibraries finds the VC redistributable dlls shipped with the Visual Studio compiler tools
   # and creats an install(PROGRAMS ...) rule using the destination and component IDs setup below.
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
