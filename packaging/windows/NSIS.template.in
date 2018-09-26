@@ -11,9 +11,7 @@
 ;Variables
 
   Var MUI_TEMP
-  Var STARTMENU_FOLDER
   Var SV_ALLUSERS
-  Var START_MENU
   Var DO_NOT_ADD_TO_PATH
   Var ADD_TO_PATH_ALL_USERS
   Var ADD_TO_PATH_CURRENT_USER
@@ -548,12 +546,6 @@ FunctionEnd
   Page custom InstallOptionsPage
   !insertmacro MUI_PAGE_DIRECTORY
 
-  ;Start Menu Folder Page Configuration
-  !define MUI_STARTMENUPAGE_REGISTRY_ROOT "SHCTX"
-  !define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
-  !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "Start Menu Folder"
-  !insertmacro MUI_PAGE_STARTMENU Application $STARTMENU_FOLDER
-
   @CPACK_NSIS_PAGE_COMPONENTS@
 
   !insertmacro MUI_PAGE_INSTFILES
@@ -686,10 +678,8 @@ Section "-Core installation"
   StrCpy $INSTALL_DESKTOP 0
 
   ;Create shortcuts
-  CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
 @CPACK_NSIS_CREATE_ICONS@
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
   ;Read a value from an InstallOptions INI file
   !insertmacro MUI_INSTALLOPTIONS_READ $DO_NOT_ADD_TO_PATH "NSIS.InstallOptions.ini" "Field 2" "State"
@@ -697,9 +687,6 @@ Section "-Core installation"
   !insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_CURRENT_USER "NSIS.InstallOptions.ini" "Field 4" "State"
 
   ; Write special uninstall registry entries
-  Push "StartMenu"
-  Push "$STARTMENU_FOLDER"
-  Call ConditionalAddToRegisty
   Push "DoNotAddToPath"
   Push "$DO_NOT_ADD_TO_PATH"
   Call ConditionalAddToRegisty
@@ -713,7 +700,6 @@ Section "-Core installation"
   Push "$INSTALL_DESKTOP"
   Call ConditionalAddToRegisty
 
-  !insertmacro MUI_STARTMENU_WRITE_END
 
 @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 
@@ -801,9 +787,6 @@ FunctionEnd
 ;Uninstaller Section
 
 Section "Uninstall"
-  ReadRegStr $START_MENU SHCTX \
-   "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "StartMenu"
-  ;MessageBox MB_OK "Start menu is in: $START_MENU"
   ReadRegStr $DO_NOT_ADD_TO_PATH SHCTX \
     "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "DoNotAddToPath"
   ReadRegStr $ADD_TO_PATH_ALL_USERS SHCTX \
@@ -840,43 +823,10 @@ Section "Uninstall"
   ; Removes all optional components
   !insertmacro SectionList "RemoveSection_CPack"
 
-  !insertmacro MUI_STARTMENU_GETFOLDER Application $MUI_TEMP
-
-  Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
 @CPACK_NSIS_DELETE_ICONS@
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
-  ;Delete empty start menu parent diretories
-  StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"
-
-  startMenuDeleteLoop:
-    ClearErrors
-    RMDir $MUI_TEMP
-    GetFullPathName $MUI_TEMP "$MUI_TEMP\.."
-
-    IfErrors startMenuDeleteLoopDone
-
-    StrCmp "$MUI_TEMP" "$SMPROGRAMS" startMenuDeleteLoopDone startMenuDeleteLoop
-  startMenuDeleteLoopDone:
-
-  ; If the user changed the shortcut, then untinstall may not work. This should
-  ; try to fix it.
-  StrCpy $MUI_TEMP "$START_MENU"
-  Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
-
-  ;Delete empty start menu parent diretories
-  StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"
-
-  secondStartMenuDeleteLoop:
-    ClearErrors
-    RMDir $MUI_TEMP
-    GetFullPathName $MUI_TEMP "$MUI_TEMP\.."
-
-    IfErrors secondStartMenuDeleteLoopDone
-
-    StrCmp "$MUI_TEMP" "$SMPROGRAMS" secondStartMenuDeleteLoopDone secondStartMenuDeleteLoop
-  secondStartMenuDeleteLoopDone:
 
   DeleteRegKey /ifempty SHCTX "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
 
