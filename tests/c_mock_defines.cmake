@@ -72,4 +72,24 @@ add_c_mocks(
   ssh_scp_accept_request
   ssh_scp_read
   ssh_scp_close
+  virConnectOpen
+  virConnectClose
+  virConnectGetCapabilities
+  virNetworkLookupByName
+  virNetworkFree
+  virNetworkDefineXML
+  virNetworkSetAutostart
+  virNetworkGetBridgeName
+  virNetworkIsActive
+  virNetworkCreate
+  virNetworkGetDHCPLeases
+  virNetworkDHCPLeaseFree
+  virDomainUndefine
+  virDomainLookupByName
+  virDomainGetXMLDesc
+  virDomainFree
+  virDomainDefineXML
+  virDomainGetState
+  virDomainCreate
+  virDomainShutdown
 )

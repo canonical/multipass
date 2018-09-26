@@ -16,16 +16,23 @@
 find_package(PkgConfig)
 pkg_check_modules(LIBVIRT libvirt REQUIRED)
 
-add_library(libvirt_backend STATIC
-  libvirt_virtual_machine_factory.cpp
-  libvirt_virtual_machine.cpp)
+function(add_libvirt_target TARGET_NAME)
+  add_library(${TARGET_NAME} STATIC
+    libvirt_virtual_machine_factory.cpp
+    libvirt_virtual_machine.cpp)
 
-target_include_directories(libvirt_backend PRIVATE ${LIBVIRT_INCLUDE_DIRS})
-target_link_libraries(libvirt_backend
-  backend_utils
-  fmt
-  ip_address
-  Qt5::Core
-  ssh
-  utils
-  ${LIBVIRT_LIBRARIES})
+  target_include_directories(${TARGET_NAME} PRIVATE ${LIBVIRT_INCLUDE_DIRS})
+  target_link_libraries(${TARGET_NAME}
+    backend_utils
+    fmt
+    ip_address
+    Qt5::Core
+    ssh
+    utils
+    ${LIBVIRT_LIBRARIES})
+endfunction()
+
+add_libvirt_target(libvirt_backend)
+if(MULTIPASS_ENABLE_TESTS)
+  add_libvirt_target(libvirt_backend_test)
+endif()
