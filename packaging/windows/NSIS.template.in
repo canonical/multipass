@@ -193,6 +193,25 @@ FunctionEnd
   !endif
 !endif
 
+; ReadNTPath
+Function ReadNTPath
+  Push $1
+  StrCmp $ADD_TO_PATH_ALL_USERS "1" ReadAllKey
+    ReadRegStr $1 ${NT_current_env} "PATH"
+    Goto DoTrim
+  ReadAllKey:
+    ReadRegStr $1 ${NT_all_env} "PATH"
+  DoTrim:
+    Push $1
+  StrCmp $1 "" ReadNTPath_done
+    Call Trim
+
+  ReadNTPath_done:
+    Exch
+    Pop $1
+
+FunctionEnd
+
 ; AddToPath - Adds the given dir to the search path.
 ;        Input - head of the stack
 ;        Note - Win9x systems requires reboot
@@ -202,11 +221,15 @@ Function AddToPath
   Push $1
   Push $2
   Push $3
+  Push $4
 
   # don't add if the path doesn't exist
   IfFileExists "$0\*.*" "" AddToPath_done
 
-  ReadEnvStr $1 PATH
+  Call ReadNTPath
+  Pop $4
+  StrCpy $1 $4
+
   ; if the path is too long for a NSIS variable NSIS will return a 0
   ; length string.  If we find that, then warn and skip any path
   ; modification as it will trash the existing path.
@@ -254,17 +277,8 @@ Function AddToPath
     Goto AddToPath_done
 
   AddToPath_NT:
-    StrCmp $ADD_TO_PATH_ALL_USERS "1" ReadAllKey
-      ReadRegStr $1 ${NT_current_env} "PATH"
-      Goto DoTrim
-    ReadAllKey:
-      ReadRegStr $1 ${NT_all_env} "PATH"
-    DoTrim:
-    StrCmp $1 "" AddToPath_NTdoIt
-      Push $1
-      Call Trim
-      Pop $1
-      StrCpy $0 "$1;$0"
+    StrCmp $4 "" AddToPath_NTdoIt
+      StrCpy $0 "$4;$0"
     AddToPath_NTdoIt:
       StrCmp $ADD_TO_PATH_ALL_USERS "1" WriteAllKey
         WriteRegExpandStr ${NT_current_env} "PATH" $0
@@ -275,6 +289,7 @@ Function AddToPath
       SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   AddToPath_done:
+    Pop $4
     Pop $3
     Pop $2
     Pop $1
