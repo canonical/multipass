@@ -3,7 +3,7 @@ NumFields=4
 
 [Field 1]
 Type=label
-Text=To run Multipass in Powershell or cmd.exe without having to type the full installation directory, the PATH variable needs to include @CPACK_PACKAGE_NAME@
+Text=To run Multipass in Powershell or cmd.exe without having to type the full installation directory, the PATH variable needs to include @CPACK_PACKAGE_NAME@.
 Left=0
 Right=-1
 Top=0
