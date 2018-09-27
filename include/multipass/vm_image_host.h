@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -40,8 +38,9 @@ public:
     virtual optional<VMImageInfo> info_for(const Query& query) = 0;
     virtual std::vector<VMImageInfo> all_info_for(const Query& query) = 0;
     virtual VMImageInfo info_for_full_hash(const std::string& full_hash) = 0;
-    virtual std::vector<VMImageInfo> all_images_for(const std::string& remonte_name) = 0;
+    virtual std::vector<VMImageInfo> all_images_for(const std::string& remote_name) = 0;
     virtual void for_each_entry_do(const Action& action) = 0;
+    virtual std::vector<std::string> supported_remotes() = 0;
 
 protected:
     VMImageHost() = default;

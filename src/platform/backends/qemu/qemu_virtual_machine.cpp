@@ -163,7 +163,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
 
     QObject::connect(vm_process.get(), &QProcess::readyReadStandardError, [this]() {
         saved_error_msg = vm_process->readAllStandardError().data();
-        mpl::log(mpl::Level::error, vm_name, saved_error_msg);
+        mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
     });
 
     QObject::connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {
@@ -217,7 +217,7 @@ void mp::QemuVirtualMachine::stop()
 
 void mp::QemuVirtualMachine::shutdown()
 {
-    if (state == State::running && vm_process->processId() > 0)
+    if ((state == State::running || state == State::delayed_shutdown) && vm_process->processId() > 0)
     {
         vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();

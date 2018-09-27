@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "list.h"
@@ -47,6 +45,7 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
     };
 
     ListRequest request;
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::list, request, on_success, on_failure);
 }
 

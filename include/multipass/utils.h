@@ -55,12 +55,13 @@ bool valid_memory_value(const QString& mem_string);
 bool valid_hostname(const QString& name_string);
 bool invalid_target_path(const QString& target_path);
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
-bool run_cmd_for_status(const QString& cmd, const QStringList& args);
-std::string run_cmd_for_output(const QString& cmd, const QStringList& args);
+bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout=30000);
+std::string run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout=30000);
 std::string& trim_end(std::string& s);
 std::string escape_char(const std::string& s, char c);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string generate_mac_address();
+std::string timestamp();
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& process_vm_events = []() { QCoreApplication::processEvents(); });
 void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,

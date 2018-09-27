@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_COMMAND_H
@@ -25,9 +23,8 @@
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
-#include <grpc++/grpc++.h>
 #include <QString>
-
+#include <grpc++/grpc++.h>
 
 namespace multipass
 {
@@ -47,27 +44,41 @@ public:
     }
     virtual ~Command() = default;
 
-    virtual ReturnCode run(ArgParser *parser) = 0;
+    virtual ReturnCode run(ArgParser* parser) = 0;
 
     virtual std::string name() const = 0;
-    virtual std::vector<std::string> aliases() const { return {name()}; };
+    virtual std::vector<std::string> aliases() const
+    {
+        return {name()};
+    };
     virtual QString short_help() const = 0;
     virtual QString description() const = 0;
 
 protected:
-    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable>
-    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success, FailureCallable&& on_failure)
+    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable,
+              typename StreamingCallback>
+    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success,
+                        FailureCallable&& on_failure, StreamingCallback&& streaming_callback)
     {
         check_return_callables(on_success, on_failure);
 
-        using ReplyType = typename std::remove_reference<typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>::type;
+        using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
+        using ReplyType = typename std::remove_reference<Arg0Type>::type;
         ReplyType reply;
 
-        auto rpc_method =
-            std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
 
         grpc::ClientContext context;
-        auto status = rpc_method(&context, request, &reply);
+        std::unique_ptr<grpc::ClientReader<ReplyType>> reader = rpc_method(&context, request);
+
+        while (reader->Read(&reply))
+        {
+            if (!reply.log_line().empty())
+                cerr << reply.log_line() << "\n";
+            streaming_callback(reply);
+        }
+
+        auto status = reader->Finish();
 
         if (status.ok())
         {
@@ -77,33 +88,13 @@ protected:
         return on_failure(status);
     }
 
-    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable, typename StreamingCallback>
-    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success, FailureCallable&& on_failure, StreamingCallback&& streaming_callback)
-    {   
-        check_return_callables(on_success, on_failure);
-
-        using ReplyType = typename std::remove_reference<typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>::type;
-        ReplyType reply;
-
-        auto rpc_method =
-            std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
-
-        grpc::ClientContext context;
-        std::unique_ptr<grpc::ClientReader<ReplyType>> reader = rpc_method(&context, request);
-
-        while (reader->Read(&reply))
-        {
-            streaming_callback(reply);
-        }
-
-        auto status = reader->Finish();
-
-        if (status.ok())
-        {   
-            return on_success(reply);
-        }
-
-        return on_failure(status);
+    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable>
+    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success,
+                        FailureCallable&& on_failure)
+    {
+        using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
+        using ReplyType = typename std::remove_reference<Arg0Type>::type;
+        return dispatch(rpc_func, request, on_success, on_failure, [](ReplyType&) {});
     }
 
     Formatter* formatter_for(std::string format)
@@ -129,7 +120,7 @@ protected:
     std::ostream& cerr;
 
 private:
-    virtual ParseCode parse_args(ArgParser *parser) = 0;
+    virtual ParseCode parse_args(ArgParser* parser) = 0;
 
     template <typename SuccessCallable, typename FailureCallable>
     void check_return_callables(SuccessCallable&& on_success, FailureCallable&& on_failure)
@@ -143,8 +134,8 @@ private:
         static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value, "");
         static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value, "");
         static_assert(std::is_same<FailureCallableArgType, grpc::Status&>::value, "");
-     }
+    }
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_COMMAND_H

@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "start.h"
@@ -84,6 +82,8 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     else
         message.append(request.instance_name().Get(0));
     spinner.start(message);
+
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
 

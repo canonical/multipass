@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -114,7 +112,7 @@ TEST_F(UbuntuImageHost, can_query_by_partial_hash)
         EXPECT_THAT(info.id, Eq(expected_id));
     }
 
-    EXPECT_THROW(*host.info_for(make_query("abcde", "release")), std::runtime_error);
+    EXPECT_FALSE(host.info_for(make_query("abcde", "release")));
 }
 
 TEST_F(UbuntuImageHost, supports_multiple_manifests)
@@ -200,6 +198,20 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
 
     const size_t expected_matches{2};
     EXPECT_THAT(images.size(), Eq(expected_matches));
+}
+
+TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
+{
+    mp::UbuntuVMImageHost host{
+        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+
+    auto supported_remotes = host.supported_remotes();
+
+    const size_t expected_size{2};
+    EXPECT_THAT(supported_remotes.size(), Eq(expected_size));
+
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "release") != supported_remotes.end());
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "daily") != supported_remotes.end());
 }
 
 TEST_F(UbuntuImageHost, invalid_remote_throws_error)

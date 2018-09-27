@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_DAEMON_H
@@ -22,6 +20,8 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+
+#include <multipass/delayed_shutdown_timer.h>
 #include <multipass/metrics_provider.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/virtual_machine.h>
@@ -29,8 +29,6 @@
 
 #include <memory>
 #include <unordered_map>
-
-#include <QTimer>
 
 namespace multipass
 {
@@ -78,29 +76,41 @@ public slots:
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
                         grpc::ServerWriter<LaunchReply>* reply) override;
 
-    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request, PurgeReply* response) override;
+    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request,
+                       grpc::ServerWriter<PurgeReply>* response) override;
 
-    grpc::Status find(grpc::ServerContext* context, const FindRequest* request, FindReply* response) override;
+    grpc::Status find(grpc::ServerContext* context, const FindRequest* request,
+                      grpc::ServerWriter<FindReply>* response) override;
 
-    grpc::Status info(grpc::ServerContext* context, const InfoRequest* request, InfoReply* response) override;
+    grpc::Status info(grpc::ServerContext* context, const InfoRequest* request,
+                      grpc::ServerWriter<InfoReply>* response) override;
 
-    grpc::Status list(grpc::ServerContext* context, const ListRequest* request, ListReply* response) override;
+    grpc::Status list(grpc::ServerContext* context, const ListRequest* request,
+                      grpc::ServerWriter<ListReply>* response) override;
 
-    grpc::Status mount(grpc::ServerContext* context, const MountRequest* request, MountReply* response) override;
+    grpc::Status mount(grpc::ServerContext* context, const MountRequest* request,
+                       grpc::ServerWriter<MountReply>* response) override;
 
-    grpc::Status recover(grpc::ServerContext* context, const RecoverRequest* request, RecoverReply* response) override;
+    grpc::Status recover(grpc::ServerContext* context, const RecoverRequest* request,
+                         grpc::ServerWriter<RecoverReply>* response) override;
 
-    grpc::Status ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request, SSHInfoReply* response) override;
+    grpc::Status ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
+                          grpc::ServerWriter<SSHInfoReply>* response) override;
 
-    grpc::Status start(grpc::ServerContext* context, const StartRequest* request, StartReply* response) override;
+    grpc::Status start(grpc::ServerContext* context, const StartRequest* request,
+                       grpc::ServerWriter<StartReply>* response) override;
 
-    grpc::Status stop(grpc::ServerContext* context, const StopRequest* request, StopReply* response) override;
+    grpc::Status stop(grpc::ServerContext* context, const StopRequest* request,
+                      grpc::ServerWriter<StopReply>* response) override;
 
-    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request, DeleteReply* response) override;
+    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
+                       grpc::ServerWriter<DeleteReply>* response) override;
 
-    grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request, UmountReply* response) override;
+    grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request,
+                        grpc::ServerWriter<UmountReply>* response) override;
 
-    grpc::Status version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response) override;
+    grpc::Status version(grpc::ServerContext* context, const VersionRequest* request,
+                         grpc::ServerWriter<VersionReply>* response) override;
 
 private:
     void persist_instances();
@@ -112,11 +122,13 @@ private:
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
     std::unordered_map<std::string, VirtualMachine::UPtr> deleted_instances;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
+    std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
+    std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
     MetricsProvider metrics_provider;
     MetricsOptInData metrics_opt_in;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_DAEMON_H

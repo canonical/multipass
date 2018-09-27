@@ -49,6 +49,7 @@ struct ImageHost : public mp::VMImageHost
     mp::optional<mp::VMImageInfo> info_for(const mp::Query& query) override
     {
         return mp::optional<mp::VMImageInfo>{mp::VMImageInfo{{"default"},
+                                                             "Ubuntu",
                                                              "xenial",
                                                              "16.04 LTS",
                                                              true,
@@ -67,7 +68,7 @@ struct ImageHost : public mp::VMImageHost
 
     mp::VMImageInfo info_for_full_hash(const std::string& full_hash) override
     {
-        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
+        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
     }
 
     std::vector<mp::VMImageInfo> all_images_for(const std::string& remote_name) override
@@ -77,6 +78,11 @@ struct ImageHost : public mp::VMImageHost
 
     void for_each_entry_do(const Action& action) override
     {
+    }
+
+    std::vector<std::string> supported_remotes() override
+    {
+        return {"release"};
     }
 
     mpt::TempFile image;
@@ -382,4 +388,41 @@ TEST_F(ImageVault, hash_mismatch_throws)
     mp::DefaultVMImageVault vault{hosts, &bad_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
                  std::runtime_error);
+}
+
+TEST_F(ImageVault, invalid_remote_throws)
+{
+    DummyURLDownloader dummy_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &dummy_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.remote_name = "foo";
+
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error);
+}
+
+TEST_F(ImageVault, invalid_image_alias_throw)
+{
+    DummyURLDownloader dummy_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &dummy_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = "foo";
+
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error);
+}
+
+TEST_F(ImageVault, valid_remote_and_alias_returns_valid_image_info)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = "default";
+    query.remote_name = "release";
+
+    mp::VMImage image;
+    EXPECT_NO_THROW(image = vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor));
+
+    EXPECT_THAT(image.original_release, Eq("16.04 LTS"));
+    EXPECT_THAT(image.id, Eq("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
 }

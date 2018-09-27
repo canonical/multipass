@@ -38,6 +38,7 @@ public:
         starting,
         restarting,
         running,
+        delayed_shutdown,
         unknown
     };
 

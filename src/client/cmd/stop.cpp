@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "stop.h"
@@ -22,6 +20,7 @@
 #include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/utils.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -54,6 +53,7 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
     else
         message.append(request.instance_name().Get(0));
     spinner.start(message);
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::stop, request, on_success, on_failure);
 }
 
@@ -75,7 +75,10 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("name", "Names of instances to stop", "<name> [<name> ...]");
 
     QCommandLineOption all_option("all", "Stop all instances");
-    parser->addOption(all_option);
+    QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
+                                   "time", "0");
+    QCommandLineOption cancel_option({"c", "cancel"}, "Cancel a pending delayed shutdown");
+    parser->addOptions({all_option, time_option, cancel_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -95,6 +98,32 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
             cerr << "s";
         cerr << " when --all option set\n";
         return ParseCode::CommandLineError;
+    }
+
+    if (parser->isSet(time_option) && parser->isSet(cancel_option))
+    {
+        cerr << "Cannot set \'time\' and \'cancel\' options at the same time\n";
+        return ParseCode::CommandLineError;
+    }
+
+    auto time = parser->value(time_option);
+
+    if (time.startsWith("+"))
+    {
+        time.remove(0, 1);
+    }
+
+    if (!mp::utils::has_only_digits(time.toStdString()))
+    {
+        cerr << "Time must be in digit form\n";
+        return ParseCode::CommandLineError;
+    }
+
+    request.set_time_minutes(time.toInt());
+
+    if (parser->isSet(cancel_option))
+    {
+        request.set_cancel_shutdown(true);
     }
 
     for (const auto& arg : parser->positionalArguments())

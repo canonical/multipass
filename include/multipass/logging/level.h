@@ -53,6 +53,11 @@ constexpr auto enum_type(Level e) noexcept
     return static_cast<std::underlying_type_t<Level>>(e);
 }
 
+constexpr Level level_from(std::underlying_type_t<Level> in)
+{
+    return static_cast<Level>(in);
+}
+
 constexpr bool operator<(Level a, Level b) noexcept
 {
     return enum_type(a) < enum_type(b);

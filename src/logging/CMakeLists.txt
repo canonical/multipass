@@ -15,8 +15,10 @@
 
 add_library(logger
   log.cpp
+  multiplexing_logger.cpp
   standard_logger.cpp)
 
 target_link_libraries(logger
   fmt
+  utils
   Qt5::Core)

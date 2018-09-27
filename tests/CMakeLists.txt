@@ -22,6 +22,7 @@ else()
   list(APPEND BACKEND_TESTS
     test_qemu_backend.cpp
     test_dnsmasq_server.cpp
+    test_libvirt_backend.cpp
     test_with_mocked_bin_path.cpp)
 
   add_executable(qemu-system-x86_64
@@ -58,6 +59,7 @@ set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletes
 add_executable(multipass_tests
   file_operations.cpp
   main.cpp
+  mock_libvirt.cpp
   mock_scp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
@@ -68,7 +70,9 @@ add_executable(multipass_tests
   test_cli_client.cpp
   test_client_cert_store.cpp
   test_cloud_init_iso.cpp
+  test_custom_image_host.cpp
   test_daemon.cpp
+  test_delayed_shutdown.cpp
   test_format_utils.cpp
   test_output_formatter.cpp
   test_image_vault.cpp
@@ -103,6 +107,8 @@ target_include_directories(multipass_tests
 )
 
 include(c_mock_defines.cmake)
+target_compile_definitions(libvirt_backend_test PRIVATE
+  ${c_mock_defines})
 target_compile_definitions(ssh_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(sshfs_mount_test PRIVATE
@@ -116,8 +122,10 @@ target_link_libraries(multipass_tests
   cert
   client
   daemon
+  delayed_shutdown
   ip_address
   iso
+  libvirt_backend_test
   metrics
   petname
   simplestreams
