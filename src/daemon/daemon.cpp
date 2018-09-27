@@ -947,12 +947,19 @@ try // clang-format on
 
             auto run_in_vm = [&session](const std::string& cmd) {
                 auto proc = session.exec(cmd);
-                if (auto exit_code = proc.exit_code() != 0)
-                    throw std::runtime_error(fmt::format("failed to run '{}', exit code:{}", cmd, exit_code));
+                if (proc.exit_code() != 0)
+                {
+                    mpl::log(mpl::Level::warning, category,
+                             fmt::format("failed to run '{}', error message: '{}'", cmd, proc.read_std_error()));
+                    return std::string{};
+                }
 
                 auto output = proc.read_std_output();
                 if (output.empty())
-                    throw std::runtime_error(fmt::format("no output after running '{}'", cmd));
+                {
+                    mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
+                    return std::string{};
+                }
 
                 return mp::utils::trim_end(output);
             };
@@ -964,8 +971,10 @@ try // clang-format on
                 run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_disk_total(
                 run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
-            info->set_current_release(run_in_vm("lsb_release -ds"));
             info->set_ipv4(vm->ipv4());
+
+            auto current_release = run_in_vm("lsb_release -ds");
+            info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
     }
 
