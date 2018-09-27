@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "version.h"
@@ -44,6 +42,7 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
     auto on_failure = [](grpc::Status& status) { return ReturnCode::Ok; };
 
     mp::VersionRequest request;
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::version, request, on_success, on_failure);
 }
 

@@ -17,20 +17,12 @@
 
 #include <multipass/logging/standard_logger.h>
 
+#include <multipass/utils.h>
+
 #include <fmt/format.h>
 
-#include <QDateTime>
-
+namespace mp = multipass;
 namespace mpl = multipass::logging;
-
-namespace
-{
-std::string timestamp()
-{
-    auto time = QDateTime::currentDateTime();
-    return time.toString(Qt::ISODateWithMs).toStdString();
-}
-} // namespace
 
 mpl::StandardLogger::StandardLogger(mpl::Level level) : logging_level{level}
 {
@@ -40,7 +32,7 @@ void mpl::StandardLogger::log(mpl::Level level, CString category, CString messag
 {
     if (level <= logging_level)
     {
-        fmt::print(stderr, "[{}] [{}] [{}] {}\n", timestamp(), as_string(level).c_str(), category.c_str(),
+        fmt::print(stderr, "[{}] [{}] [{}] {}\n", mp::utils::timestamp(), as_string(level).c_str(), category.c_str(),
                    message.c_str());
     }
 }

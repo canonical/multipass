@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include <src/client/client.h>
@@ -59,21 +57,27 @@ struct MockDaemon : public mp::Daemon
     using mp::Daemon::Daemon;
     MOCK_METHOD3(launch,
                  grpc::Status(grpc::ServerContext*, const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*));
-    MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext*, const mp::PurgeRequest*, mp::PurgeReply*));
-    MOCK_METHOD3(find,
-                 grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request, mp::FindReply* response));
-    MOCK_METHOD3(info, grpc::Status(grpc::ServerContext*, const mp::InfoRequest*, mp::InfoReply*));
-    MOCK_METHOD3(list, grpc::Status(grpc::ServerContext*, const mp::ListRequest*, mp::ListReply*));
-    MOCK_METHOD3(mount,
-                 grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request, mp::MountReply* response));
-    MOCK_METHOD3(recover, grpc::Status(grpc::ServerContext*, const mp::RecoverRequest*, mp::RecoverReply*));
-    MOCK_METHOD3(ssh_info, grpc::Status(grpc::ServerContext*, const mp::SSHInfoRequest*, mp::SSHInfoReply*));
-    MOCK_METHOD3(start, grpc::Status(grpc::ServerContext*, const mp::StartRequest*, mp::StartReply*));
-    MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext*, const mp::StopRequest*, mp::StopReply*));
-    MOCK_METHOD3(delet, grpc::Status(grpc::ServerContext*, const mp::DeleteRequest*, mp::DeleteReply*));
+    MOCK_METHOD3(purge,
+                 grpc::Status(grpc::ServerContext*, const mp::PurgeRequest*, grpc::ServerWriter<mp::PurgeReply>*));
+    MOCK_METHOD3(find, grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request,
+                                    grpc::ServerWriter<mp::FindReply>*));
+    MOCK_METHOD3(info, grpc::Status(grpc::ServerContext*, const mp::InfoRequest*, grpc::ServerWriter<mp::InfoReply>*));
+    MOCK_METHOD3(list, grpc::Status(grpc::ServerContext*, const mp::ListRequest*, grpc::ServerWriter<mp::ListReply>*));
+    MOCK_METHOD3(mount, grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request,
+                                     grpc::ServerWriter<mp::MountReply>*));
+    MOCK_METHOD3(recover,
+                 grpc::Status(grpc::ServerContext*, const mp::RecoverRequest*, grpc::ServerWriter<mp::RecoverReply>*));
+    MOCK_METHOD3(ssh_info,
+                 grpc::Status(grpc::ServerContext*, const mp::SSHInfoRequest*, grpc::ServerWriter<mp::SSHInfoReply>*));
+    MOCK_METHOD3(start,
+                 grpc::Status(grpc::ServerContext*, const mp::StartRequest*, grpc::ServerWriter<mp::StartReply>*));
+    MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext*, const mp::StopRequest*, grpc::ServerWriter<mp::StopReply>*));
+    MOCK_METHOD3(delet,
+                 grpc::Status(grpc::ServerContext*, const mp::DeleteRequest*, grpc::ServerWriter<mp::DeleteReply>*));
     MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
-                                      mp::UmountReply* response));
-    MOCK_METHOD3(version, grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, mp::VersionReply*));
+                                      grpc::ServerWriter<mp::UmountReply>* response));
+    MOCK_METHOD3(version,
+                 grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*));
 };
 
 struct StubNameGenerator : public mp::NameGenerator

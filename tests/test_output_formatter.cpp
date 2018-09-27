@@ -166,8 +166,8 @@ TEST_F(TableFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
-    auto expected_table_output = "Name                    State       IPv4             Release\n"
-                                 "foo                     RUNNING     10.168.32.2      Ubuntu 16.04 LTS\n";
+    auto expected_table_output = "Name                    State             IPv4             Release\n"
+                                 "foo                     RUNNING           10.168.32.2      Ubuntu 16.04 LTS\n";
 
     mp::TableFormatter table_formatter;
     auto output = table_formatter.format(list_reply);
@@ -179,9 +179,9 @@ TEST_F(TableFormatter, multiple_instance_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
-    auto expected_table_output = "Name                    State       IPv4             Release\n"
-                                 "bogus-instance          RUNNING     10.21.124.56     Ubuntu 16.04 LTS\n"
-                                 "bombastic               STOPPED     --               Ubuntu 18.04 LTS\n";
+    auto expected_table_output = "Name                    State             IPv4             Release\n"
+                                 "bogus-instance          RUNNING           10.21.124.56     Ubuntu 16.04 LTS\n"
+                                 "bombastic               STOPPED           --               Ubuntu 18.04 LTS\n";
 
     mp::TableFormatter table_formatter;
     auto output = table_formatter.format(list_reply);

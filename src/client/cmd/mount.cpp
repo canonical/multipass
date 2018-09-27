@@ -39,7 +39,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this, &parser](grpc::Status& status) {
         cerr << "mount failed: " << status.error_message() << "\n";
 
         if (!status.error_details().empty())
@@ -51,7 +51,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
             {
                 cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing...\n";
 
-                if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
+                if (install_sshfs(mount_error.instance_name(), parser->verbosityLevel()) == mp::ReturnCode::Ok)
                     cerr << "\n***Please re-run the mount command.\n";
             }
         }
@@ -59,6 +59,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         return return_code_for(status.error_code());
     };
 
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::mount, request, on_success, on_failure);
 }
 
@@ -193,7 +194,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     return ParseCode::Ok;
 }
 
-mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name)
+mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name, int verbosity_level)
 {
     SSHInfoRequest request;
     auto entry = request.add_instance_name();
@@ -208,5 +209,6 @@ mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name)
         return return_code_for(status.error_code());
     };
 
+    request.set_verbosity_level(verbosity_level);
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }

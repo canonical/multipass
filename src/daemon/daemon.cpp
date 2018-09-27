@@ -22,6 +22,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
@@ -458,6 +459,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     if (!invalid_specs.empty() || mac_addr_missing)
         persist_instances();
 
+    for (const auto& image_host : config->image_hosts)
+    {
+        for (const auto& remote : image_host->supported_remotes())
+        {
+            remote_image_host_map[remote] = image_host.get();
+        }
+    }
+
     config->vault->prune_expired_images();
 
     // Fire timer every six hours to perform maintenance on source images such as
@@ -499,6 +508,7 @@ grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchReques
                                 grpc::ServerWriter<LaunchReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<LaunchReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
     if (metrics_opt_in.opt_in_status == OptInStatus::UNKNOWN || metrics_opt_in.opt_in_status == OptInStatus::LATER)
     {
         if (++metrics_opt_in.delay_opt_in_count % 3 == 0)
@@ -646,7 +656,7 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::purge(grpc::ServerContext* context, const PurgeRequest* request,
-                               PurgeReply* response) // clang-format off
+                               grpc::ServerWriter<PurgeReply>* server) // clang-format off
 try // clang-format on
 {
     std::vector<decltype(deleted_instances)::key_type> keys_to_delete;
@@ -673,29 +683,47 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::find(grpc::ServerContext* context, const FindRequest* request,
-                              FindReply* response) // clang-format off
+                              grpc::ServerWriter<FindReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<FindReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    FindReply response;
+
     if (!request->search_string().empty())
     {
-        if (!request->remote_name().empty())
-        {
-            if (!mp::platform::is_remote_supported(request->remote_name()))
-                throw std::runtime_error(fmt::format(
-                    "{} is not a supported remote. Please use `multipass find` for list of supported images.",
-                    request->remote_name()));
-        }
-
         std::vector<VMImageInfo> vm_images_info;
-        for (const auto& image_host : config->image_hosts)
+        auto remote{request->remote_name()};
+
+        if (!remote.empty())
         {
-            auto images_info = image_host->all_info_for(
-                {"", request->search_string(), false, request->remote_name(), Query::Type::Alias});
+            if (!mp::platform::is_remote_supported(remote))
+                throw std::runtime_error(fmt::format(
+                    "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
+
+            auto it = remote_image_host_map.find(remote);
+            if (it == remote_image_host_map.end())
+                throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
+
+            auto images_info =
+                it->second->all_info_for({"", request->search_string(), false, remote, Query::Type::Alias});
 
             if (!images_info.empty())
             {
                 vm_images_info = std::move(images_info);
-                break;
+            }
+        }
+        else
+        {
+            for (const auto& image_host : config->image_hosts)
+            {
+                auto images_info =
+                    image_host->all_info_for({"", request->search_string(), false, remote, Query::Type::Alias});
+
+                if (!images_info.empty())
+                {
+                    vm_images_info = std::move(images_info);
+                    break;
+                }
             }
         }
 
@@ -717,28 +745,33 @@ try // clang-format on
                 name.resize(12);
             }
 
-            auto entry = response->add_images_info();
+            auto entry = response.add_images_info();
+            entry->set_os(info.os.toStdString());
             entry->set_release(info.release_title.toStdString());
             entry->set_version(info.version.toStdString());
             auto alias_entry = entry->add_aliases_info();
-            alias_entry->set_remote_name(request->remote_name());
+            alias_entry->set_remote_name(remote);
             alias_entry->set_alias(name);
         }
     }
     else if (!request->remote_name().empty())
     {
-        if (!mp::platform::is_remote_supported(request->remote_name()))
-            throw std::runtime_error(
-                fmt::format("{} is not a supported remote. Please use `multipass find` for list of supported images.",
-                            request->remote_name()));
+        const auto remote = request->remote_name();
 
-        auto vm_images_info = config->image_hosts.back()->all_images_for(request->remote_name());
+        if (!mp::platform::is_remote_supported(remote))
+            throw std::runtime_error(fmt::format(
+                "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
 
+        auto it = remote_image_host_map.find(remote);
+        if (it == remote_image_host_map.end())
+            throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
+
+        auto vm_images_info = it->second->all_images_for(remote);
         for (const auto& info : vm_images_info)
         {
             if (!info.aliases.empty())
             {
-                auto entry = response->add_images_info();
+                auto entry = response.add_images_info();
                 for (const auto& alias : info.aliases)
                 {
                     if (!mp::platform::is_alias_supported(alias.toStdString()))
@@ -749,6 +782,7 @@ try // clang-format on
                     alias_entry->set_alias(alias.toStdString());
                 }
 
+                entry->set_os(info.os.toStdString());
                 entry->set_release(info.release_title.toStdString());
                 entry->set_version(info.version.toStdString());
             }
@@ -756,23 +790,7 @@ try // clang-format on
     }
     else
     {
-        {
-            auto action = [&response](const std::string& dummy, const mp::VMImageInfo& info) {
-                auto entry = response->add_images_info();
-                for (const auto& alias : info.aliases)
-                {
-                    if (!mp::platform::is_alias_supported(alias.toStdString()))
-                        return;
-
-                    auto alias_entry = entry->add_aliases_info();
-                    alias_entry->set_alias(alias.toStdString());
-                }
-                entry->set_release(info.release_title.toStdString());
-                entry->set_version(info.version.toStdString());
-            };
-            config->image_hosts.front()->for_each_entry_do(action);
-        }
-
+        for (const auto& image_host : config->image_hosts)
         {
             std::unordered_set<std::string> image_found;
             const auto default_remote{"release"};
@@ -787,7 +805,7 @@ try // clang-format on
                     {
                         if (!info.aliases.empty())
                         {
-                            auto entry = response->add_images_info();
+                            auto entry = response.add_images_info();
                             for (const auto& alias : info.aliases)
                             {
                                 if (!mp::platform::is_alias_supported(alias.toStdString()))
@@ -800,15 +818,18 @@ try // clang-format on
                             }
 
                             image_found.insert(info.release_title.toStdString());
+                            entry->set_os(info.os.toStdString());
                             entry->set_release(info.release_title.toStdString());
                             entry->set_version(info.version.toStdString());
                         }
                     }
                 }
             };
-            config->image_hosts.back()->for_each_entry_do(action);
+
+            image_host->for_each_entry_do(action);
         }
     }
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -817,9 +838,12 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::info(grpc::ServerContext* context, const InfoRequest* request,
-                              InfoReply* response) // clang-format off
+                              grpc::ServerWriter<InfoReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<InfoReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    InfoReply response;
+
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_for_info;
 
@@ -849,7 +873,7 @@ try // clang-format on
             deleted = true;
         }
 
-        auto info = response->add_info();
+        auto info = response.add_info();
         auto& vm = it->second;
         info->set_name(name);
         if (deleted)
@@ -867,6 +891,8 @@ try // clang-format on
                     return mp::InstanceStatus::RESTARTING;
                 case mp::VirtualMachine::State::running:
                     return mp::InstanceStatus::RUNNING;
+                case mp::VirtualMachine::State::delayed_shutdown:
+                    return mp::InstanceStatus::DELAYED_SHUTDOWN;
                 case mp::VirtualMachine::State::unknown:
                     return mp::InstanceStatus::UNKNOWN;
                 default:
@@ -913,7 +939,8 @@ try // clang-format on
             entry->set_target_path(mount.first);
         }
 
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->current_state() == mp::VirtualMachine::State::running ||
+            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};
@@ -944,6 +971,8 @@ try // clang-format on
 
     if (errors.size() > 0)
         return grpc_status_for(errors);
+
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -952,9 +981,12 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::list(grpc::ServerContext* context, const ListRequest* request,
-                              ListReply* response) // clang-format off
+                              grpc::ServerWriter<ListReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<ListReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    ListReply response;
+
     auto status_for = [](mp::VirtualMachine::State state) {
         switch (state)
         {
@@ -964,6 +996,8 @@ try // clang-format on
             return mp::InstanceStatus::RESTARTING;
         case mp::VirtualMachine::State::running:
             return mp::InstanceStatus::RUNNING;
+        case mp::VirtualMachine::State::delayed_shutdown:
+            return mp::InstanceStatus::DELAYED_SHUTDOWN;
         case mp::VirtualMachine::State::unknown:
             return mp::InstanceStatus::UNKNOWN;
         default:
@@ -975,7 +1009,7 @@ try // clang-format on
     {
         const auto& name = instance.first;
         const auto& vm = instance.second;
-        auto entry = response->add_instances();
+        auto entry = response.add_instances();
         entry->set_name(name);
         entry->mutable_instance_status()->set_status(status_for(vm->current_state()));
 
@@ -998,18 +1032,20 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->current_state() == mp::VirtualMachine::State::running ||
+            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
             entry->set_ipv4(vm->ipv4());
     }
 
     for (const auto& instance : deleted_instances)
     {
         const auto& name = instance.first;
-        auto entry = response->add_instances();
+        auto entry = response.add_instances();
         entry->set_name(name);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     }
 
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -1018,9 +1054,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::mount(grpc::ServerContext* context, const MountRequest* request,
-                               MountReply* response) // clang-format off
+                               grpc::ServerWriter<MountReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     QFileInfo source_dir(QString::fromStdString(request->source_path()));
     if (!source_dir.exists())
     {
@@ -1121,9 +1159,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::recover(grpc::ServerContext* context, const RecoverRequest* request,
-                                 RecoverReply* response) // clang-format off
+                                 grpc::ServerWriter<RecoverReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
     for (const auto& name : request->instance_name())
@@ -1166,9 +1206,12 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
-                                  SSHInfoReply* response) // clang-format off
+                                  grpc::ServerWriter<SSHInfoReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<SSHInfoReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    SSHInfoReply response;
+
     for (const auto& name : request->instance_name())
     {
         auto it = vm_instances.find(name);
@@ -1189,9 +1232,10 @@ try // clang-format on
         ssh_info.set_port(it->second->ssh_port());
         ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
         ssh_info.set_username(it->second->ssh_username());
-        (*response->mutable_ssh_info())[name] = ssh_info;
+        (*response.mutable_ssh_info())[name] = ssh_info;
     }
 
+    server->Write(response);
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -1200,9 +1244,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest* request,
-                               StartReply* response) // clang-format off
+                               grpc::ServerWriter<StartReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<StartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     config->factory->check_hypervisor_support();
 
     std::vector<decltype(vm_instances)::key_type> vms;
@@ -1232,7 +1278,14 @@ try // clang-format on
         }
 
         if (it->second->current_state() == VirtualMachine::State::running)
+        {
             continue;
+        }
+        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        {
+            delayed_shutdown_instances.erase(name);
+            continue;
+        }
 
         vms.push_back(name);
     }
@@ -1306,9 +1359,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::stop(grpc::ServerContext* context, const StopRequest* request,
-                              StopReply* response) // clang-format off
+                              grpc::ServerWriter<StopReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_stop;
     for (const auto& name : request->instance_name())
@@ -1338,7 +1393,29 @@ try // clang-format on
     for (const auto& name : instances_to_stop)
     {
         auto it = vm_instances.find(name);
-        it->second->shutdown();
+        auto entry = delayed_shutdown_instances.find(name);
+        if (request->cancel_shutdown())
+        {
+            if (entry == delayed_shutdown_instances.end())
+            {
+                continue;
+            }
+            else
+            {
+                delayed_shutdown_instances.erase(name);
+            }
+        }
+        else
+        {
+            if (entry != delayed_shutdown_instances.end())
+            {
+                delayed_shutdown_instances.erase(name);
+            }
+            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(it->second.get());
+            QObject::connect(delayed_shutdown_instances[name].get(), &DelayedShutdownTimer::finished,
+                             [this, name]() { delayed_shutdown_instances.erase(name); });
+            delayed_shutdown_instances[name]->start(std::chrono::minutes(request->time_minutes()));
+        }
     }
 
     return grpc::Status::OK;
@@ -1349,9 +1426,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
-                               DeleteReply* response) // clang-format off
+                               grpc::ServerWriter<DeleteReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_delete;
     for (const auto& name : request->instance_name())
@@ -1378,6 +1457,11 @@ try // clang-format on
     for (const auto& name : instances_to_delete)
     {
         auto it = vm_instances.find(name);
+        if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        {
+            delayed_shutdown_instances.erase(name);
+        }
+
         it->second->shutdown();
         if (purge)
         {
@@ -1403,9 +1487,11 @@ catch (const std::exception& e)
 }
 
 grpc::Status mp::Daemon::umount(grpc::ServerContext* context, const UmountRequest* request,
-                                UmountReply* response) // clang-format off
+                                grpc::ServerWriter<UmountReply>* server) // clang-format off
 try // clang-format on
 {
+    mpl::ClientLogger<UmountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
@@ -1483,9 +1569,14 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-grpc::Status mp::Daemon::version(grpc::ServerContext* context, const VersionRequest* request, VersionReply* response)
+grpc::Status mp::Daemon::version(grpc::ServerContext* context, const VersionRequest* request,
+                                 grpc::ServerWriter<VersionReply>* server)
 {
-    response->set_version(multipass::version_string);
+    mpl::ClientLogger<VersionReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    VersionReply reply;
+    reply.set_version(multipass::version_string);
+    server->Write(reply);
     return grpc::Status::OK;
 }
 

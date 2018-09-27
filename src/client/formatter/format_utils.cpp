@@ -40,6 +40,9 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     case mp::InstanceStatus::RESTARTING:
         status_val = "RESTARTING";
         break;
+    case mp::InstanceStatus::DELAYED_SHUTDOWN:
+        status_val = "DELAYED SHUTDOWN";
+        break;
     default:
         status_val = "UNKNOWN";
         break;

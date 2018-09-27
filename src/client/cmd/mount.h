@@ -38,7 +38,7 @@ private:
     MountRequest request;
 
     ParseCode parse_args(ArgParser *parser) override;
-    ReturnCode install_sshfs(const std::string& instance_name);
+    ReturnCode install_sshfs(const std::string& instance_name, int verbosity_level);
 };
 }
 }

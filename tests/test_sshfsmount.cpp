@@ -16,15 +16,13 @@
  */
 
 #include "sftp_server_test_fixture.h"
+#include "signal.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 
 #include <gmock/gmock.h>
-
-#include <condition_variable>
-#include <mutex>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -33,33 +31,6 @@ using namespace testing;
 
 namespace
 {
-struct Signal
-{
-    template <typename T>
-    bool wait_for(const T& timeout)
-    {
-        std::unique_lock<std::mutex> lock{mutex};
-        return cv.wait_for(lock, timeout, [this] { return signaled; });
-    }
-
-    void wait()
-    {
-        std::unique_lock<decltype(mutex)> lock{mutex};
-        cv.wait(lock, [this] { return signaled; });
-    }
-
-    void signal()
-    {
-        std::lock_guard<decltype(mutex)> lg{mutex};
-        signaled = true;
-        cv.notify_one();
-    }
-
-    std::mutex mutex;
-    std::condition_variable cv;
-    bool signaled{false};
-};
-
 class ExitStatusMock
 {
 public:
@@ -313,7 +284,7 @@ TEST_F(SshfsMount, emits_finished_when_sftpserver_exits)
     };
     REPLACE(ssh_channel_request_exec, request_exec);
 
-    Signal client_message;
+    mpt::Signal client_message;
     auto get_client_msg = [&client_message](sftp_session) {
         client_message.wait();
         return nullptr;
@@ -322,7 +293,7 @@ TEST_F(SshfsMount, emits_finished_when_sftpserver_exits)
 
     auto sshfs_mount = make_sshfsmount();
 
-    Signal finished;
+    mpt::Signal finished;
     QObject::connect(&sshfs_mount, &mp::SshfsMount::finished, [&finished] { finished.signal(); });
 
     client_message.signal();

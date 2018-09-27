@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "recover.h"
@@ -42,6 +40,7 @@ mp::ReturnCode cmd::Recover::run(mp::ArgParser* parser)
         return return_code_for(status.error_code());
     };
 
+    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::recover, request, on_success, on_failure);
 }
 

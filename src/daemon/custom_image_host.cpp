@@ -20,64 +20,161 @@
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 
-#include <QString>
+#include <fmt/format.h>
+
+#include <QMap>
 
 namespace mp = multipass;
 
 namespace
 {
-auto multipass_default_aliases(mp::URLDownloader* url_downloader)
+constexpr auto no_remote = "";
+constexpr auto snapcraft_remote = "snapcraft";
+
+struct BaseImageInfo
 {
-    std::unordered_map<std::string, mp::VMImageInfo> default_aliases;
-    const QString url{"http://cdimage.ubuntu.com/ubuntu-core/16/current/ubuntu-core-16-amd64.img.xz"};
-    const auto last_modified = url_downloader->last_modified({url});
-    const auto sha256_sums =
-        url_downloader->download({"http://cdimage.ubuntu.com/ubuntu-core/16/current/SHA256SUMS"}).split('\n');
+    const QString last_modified;
+    const QString hash;
+};
+
+struct CustomImageInfo
+{
+    QString url_prefix;
+    QStringList aliases;
+    QString os;
+    QString release;
+    QString release_string;
+};
+
+const QMap<QString, CustomImageInfo> multipass_image_info{
+    {{"ubuntu-core-16-amd64.img.xz"},
+     {"http://cdimage.ubuntu.com/ubuntu-core/16/current/", {"core"}, "Ubuntu", "core-16", "Core 16"}}};
+
+const QMap<QString, CustomImageInfo> snapcraft_image_info{
+    {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
+     {"http://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
+      {"core", "core16"},
+      "",
+      "snapcraft-core16",
+      "Snapcraft builder for Core 16"}},
+    {{"ubuntu-18.04-minimal-cloudimg-amd64.img"},
+     {"http://cloud-images.ubuntu.com/minimal/releases/bionic/release/",
+      {"core18"},
+      "",
+      "snapcraft-core18",
+      "Snapcraft builder for Core 18"}}};
+
+auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
+                         const QString& image_file)
+{
+    const auto last_modified = url_downloader->last_modified({image_url}).toString("yyyyMMdd");
+    const auto sha256_sums = url_downloader->download({hash_url}).split('\n');
     QString hash;
 
     for (const auto& line : sha256_sums)
     {
-        if (line.contains("ubuntu-core-16-amd64.img.xz"))
+        if (line.endsWith(image_file.toUtf8()))
         {
             hash = QString(line.split(' ').first());
             break;
         }
     }
 
-    mp::VMImageInfo core_image_info{
-        {"core"}, "core-16", "Core 16", true, url, "", "", hash, last_modified.toString("yyyyMMdd"), 0};
+    return BaseImageInfo{last_modified, hash};
+}
 
-    default_aliases.insert({"core", core_image_info});
+auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
+{
+    std::unordered_map<std::string, const mp::VMImageInfo*> map;
+    for (const auto& image : images)
+    {
+        map[image.id.toStdString()] = &image;
+        for (const auto& alias : image.aliases)
+        {
+            map[alias.toStdString()] = &image;
+        }
+    }
 
-    return default_aliases;
+    return map;
+}
+
+auto full_image_info_for(const QMap<QString, CustomImageInfo> custom_image_info, mp::URLDownloader* url_downloader,
+                         const QString& path_prefix)
+{
+    std::vector<mp::VMImageInfo> default_images;
+
+    for (const auto& image_info : custom_image_info.toStdMap())
+    {
+        auto image_file = image_info.first;
+        QString image_url{
+            (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
+            image_info.first};
+        QString hash_url{
+            (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
+            QStringLiteral("SHA256SUMS")};
+
+        auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
+        mp::VMImageInfo full_image_info{image_info.second.aliases,
+                                        image_info.second.os,
+                                        image_info.second.release,
+                                        image_info.second.release_string,
+                                        true,
+                                        image_url,
+                                        "",
+                                        "",
+                                        base_image_info.hash,
+                                        base_image_info.last_modified,
+                                        0};
+
+        default_images.push_back(full_image_info);
+    }
+
+    auto map = map_aliases_to_vm_info_for(default_images);
+
+    return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
+}
+
+auto custom_aliases(mp::URLDownloader* url_downloader, const QString& path_prefix)
+{
+    std::unordered_map<std::string, std::unique_ptr<mp::CustomManifest>> custom_manifests;
+
+    custom_manifests.emplace(no_remote, full_image_info_for(multipass_image_info, url_downloader, path_prefix));
+    custom_manifests.emplace(snapcraft_remote, full_image_info_for(snapcraft_image_info, url_downloader, path_prefix));
+
+    return custom_manifests;
 }
 } // namespace
 
-mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
-    : url_downloader{downloader}, custom_image_info{multipass_default_aliases(url_downloader)}
+mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader) : CustomVMImageHost{downloader, ""}
+{
+}
+
+mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, const QString& path_prefix)
+    : url_downloader{downloader},
+      custom_image_info{custom_aliases(url_downloader, path_prefix)},
+      remotes{no_remote, snapcraft_remote}
 {
 }
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
-    auto it = custom_image_info.find(query.release);
+    auto custom_manifest = manifest_from(query.remote_name);
 
-    if (it == custom_image_info.end())
-        return {};
+    auto it = custom_manifest->image_records.find(query.release);
 
-    return optional<VMImageInfo>{it->second};
+    if (it == custom_manifest->image_records.end())
+        return nullopt;
+
+    return *it->second;
 }
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& query)
 {
     std::vector<mp::VMImageInfo> images;
 
-    auto it = custom_image_info.find(query.release);
-
-    if (it == custom_image_info.end())
-        return {};
-
-    images.push_back(it->second);
+    auto image = info_for(query);
+    if (image != nullopt)
+        images.push_back(*image);
 
     return images;
 }
@@ -89,13 +186,38 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash(const std::string& ful
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name)
 {
-    return {};
+    std::vector<mp::VMImageInfo> images;
+    auto custom_manifest = manifest_from(remote_name);
+
+    for (const auto& product : custom_manifest->products)
+    {
+        images.push_back(product);
+    }
+
+    return images;
 }
 
 void mp::CustomVMImageHost::for_each_entry_do(const Action& action)
 {
-    for (const auto& info : custom_image_info)
+    for (const auto& manifest : custom_image_info)
     {
-        action("", info.second);
+        for (const auto& info : manifest.second->products)
+        {
+            action(manifest.first, info);
+        }
     }
+}
+
+std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
+{
+    return remotes;
+}
+
+mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
+{
+    auto it = custom_image_info.find(remote_name);
+    if (it == custom_image_info.end())
+        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote_name));
+
+    return it->second.get();
 }

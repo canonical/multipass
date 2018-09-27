@@ -112,7 +112,7 @@ mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage
     {
         auto qcow2_path{mp::Path(source_image.image_path).append(".qcow2")};
         mp::utils::run_cmd_for_status(
-            "qemu-img", {QStringLiteral("convert"), "-p", "-O", "qcow2", source_image.image_path, qcow2_path});
+            "qemu-img", {QStringLiteral("convert"), "-p", "-O", "qcow2", source_image.image_path, qcow2_path}, -1);
         image.image_path = qcow2_path;
     }
 
