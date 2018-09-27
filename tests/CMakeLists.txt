@@ -15,7 +15,8 @@
 
 list(APPEND BACKEND_TESTS
   test_qemu_backend.cpp
-  test_dnsmasq_server.cpp)
+  test_dnsmasq_server.cpp
+  test_with_mocked_bin_path.cpp)
 
 add_executable(qemu-system-x86_64
         mock_qemu_system.cpp)
@@ -81,7 +82,6 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
-  test_with_mocked_bin_path.cpp
 
   ${BACKEND_TESTS}
 
