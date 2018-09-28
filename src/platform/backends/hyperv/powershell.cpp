@@ -48,7 +48,7 @@ bool mp::powershell_run(QStringList args, const std::string& name)
     });
 
     QObject::connect(&power_shell, &QProcess::readyReadStandardError, [&name, &power_shell]() {
-        mpl::log(mpl::Level::error, name, power_shell.readAllStandardError().data());
+        mpl::log(mpl::Level::warning, name, power_shell.readAllStandardError().data());
     });
 
     QObject::connect(&power_shell, &QProcess::stateChanged, [&name](QProcess::ProcessState newState) {
