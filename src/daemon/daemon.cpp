@@ -949,8 +949,10 @@ try // clang-format on
                 auto proc = session.exec(cmd);
                 if (proc.exit_code() != 0)
                 {
-                    mpl::log(mpl::Level::warning, category,
-                             fmt::format("failed to run '{}', error message: '{}'", cmd, proc.read_std_error()));
+                    auto error_msg = proc.read_std_error();
+                    mpl::log(
+                        mpl::Level::warning, category,
+                        fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
                     return std::string{};
                 }
 
