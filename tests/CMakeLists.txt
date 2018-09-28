@@ -13,7 +13,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+list(APPEND CMOCK_TARGETS
+  ssh_test
+  sshfs_mount_test
+  scp_test
+  ssh_client_test)
+
+include(c_mock_defines.cmake)
+
 list(APPEND BACKEND_TESTS
+  mock_libvirt.cpp
   test_qemu_backend.cpp
   test_dnsmasq_server.cpp
   test_libvirt_backend.cpp
@@ -46,13 +55,16 @@ set_target_properties(dhcp_release
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
+list(APPEND CMOCK_TARGETS libvirt_backend_test)
+target_compile_definitions(libvirt_backend_test PRIVATE
+    ${c_mock_defines})
+
 set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googlemock)
 set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googletest)
 
 add_executable(multipass_tests
   file_operations.cpp
   main.cpp
-  mock_libvirt.cpp
   mock_scp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
@@ -99,9 +111,6 @@ target_include_directories(multipass_tests
   PRIVATE ${MULTIPASS_GMOCK_DIR}/include
 )
 
-include(c_mock_defines.cmake)
-target_compile_definitions(libvirt_backend_test PRIVATE
-  ${c_mock_defines})
 target_compile_definitions(ssh_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(sshfs_mount_test PRIVATE
@@ -130,6 +139,7 @@ target_link_libraries(multipass_tests
   # 3rd-party
   premock
   yaml
+  ${CMOCK_TARGETS}
 )
 
 add_test(NAME multipass_tests
