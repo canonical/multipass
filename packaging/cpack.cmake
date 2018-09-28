@@ -124,11 +124,32 @@ if (MSVC)
     "
   )
 
+  # TODO: There must be a better way than hardcoding the cache and data directory here
+  # NSIS creates 32-bit installer/uninstaller applications. Windows, automatically redirects file system calls into
+  # system32 to syswow64 (the 32-bit system for windows 64 folder) for 32-bit apps unless you explicitly disable such redirection
+  # Since multipassd is a 64-bit application, it uses the real system32 folder, which is where the settings and cache
+  # directory live
+  # The directories are removed after uninstalling the service to prevent removing data while multipassd is alive.
   SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
     "
+    Var /GLOBAL REMOVE_SETTINGS_AND_CACHE
+    StrCpy $REMOVE_SETTINGS_AND_CACHE 0
+    MessageBox MB_YESNO|MB_ICONQUESTION \\\"Do you want to remove all multipass VM instances, settings and cached data?\\\" \\
+    /SD IDYES IDNO basic_uninst
+    nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipass.exe\\\" delete -p --all'
+    StrCpy $REMOVE_SETTINGS_AND_CACHE 1
+
+    basic_uninst:
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
     DeleteRegKey HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass'
     DeleteRegKey HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe'
+    StrCmp $REMOVE_SETTINGS_AND_CACHE \\\"0\\\" done_uninst
+    !include \\\"x64.nsh\\\"
+    \\\${DisableX64FSRedirection}
+    RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Local\\\\multipassd\\\"
+    RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Roaming\\\\multipassd\\\"
+    \\\${EnableX64FSRedirection}
+    done_uninst:
     "
   )
 endif()
