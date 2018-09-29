@@ -887,10 +887,10 @@ Function .onInit
   StrCmp $0 "" notwin10
   IntCmp $0 10 0 notwin10
 
-  ; Ensure it's the Fall's creators update or later, as that has Hyper-V's default network switch
+  ; Ensure its at least Windows 10 update ver 1803, which has Hyper-V's default network switch
   ReadRegStr $0 HKLM "Software\Microsoft\Windows NT\CurrentVersion" "ReleaseId"
   StrCmp $0 "" invalid_version
-  IntCmp $0 1709 0 invalid_version
+  IntCmp $0 1803 0 invalid_version
 
   ; Check it's not Windows Home since it doesn't have Hyper-V support
   ReadRegStr $0 HKLM "Software\Microsoft\Windows NT\CurrentVersion" "ProductName"
@@ -903,7 +903,7 @@ notwin10:
   Abort
 
 invalid_version:
-  MessageBox MB_OK|MB_ICONSTOP "Multipass is only supported on Windows 10 ver 1709 and above."
+  MessageBox MB_OK|MB_ICONSTOP "Multipass is only supported on Windows 10 ver 1803 and above."
   Abort
 
 iswindowshome:
