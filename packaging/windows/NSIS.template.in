@@ -731,6 +731,21 @@ Section "-Add to path"
   StrCmp $DO_NOT_ADD_TO_PATH "1" doNotAddToPath 0
     Call AddToPath
   doNotAddToPath:
+
+  ClearErrors
+  ExecWait 'DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V' $0
+  ; 3010 is the exit code returned when something needs to reboot
+  IntCmp $0 3010 0 check_hyperv_errors check_hyperv_errors
+  MessageBox MB_YESNO|MB_ICONQUESTION "Enabling Hyper-V requires a restart. Reboot now?" \
+  /SD IDYES IDNO continue_inst
+  Reboot
+
+  check_hyperv_errors:
+  IfErrors inst_failed continue_inst
+  inst_failed:
+    MessageBox MB_OK|MB_ICONSTOP "Failed to enable Hyper-V."
+    Abort
+  continue_inst:
 SectionEnd
 
 ;--------------------------------
