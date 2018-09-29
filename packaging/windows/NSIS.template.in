@@ -1,5 +1,10 @@
 ; CPack install script designed for a nmake build
 
+;-----------------------------
+;Include string functions
+!include "StrFunc.nsh"
+${StrLoc}
+
 ;--------------------------------
 ; You must define these values
 
@@ -862,6 +867,35 @@ SectionEnd
 ; "Program Files" for AllUsers, "My Documents" for JustMe...
 
 Function .onInit
+  ; Check for Windows 10 and above
+  ReadRegDWORD $0 HKLM "Software\Microsoft\Windows NT\CurrentVersion" "CurrentMajorVersionNumber"
+  StrCmp $0 "" notwin10
+  IntCmp $0 10 0 notwin10
+
+  ; Ensure it's the Fall's creators update or later, as that has Hyper-V's default network switch
+  ReadRegStr $0 HKLM "Software\Microsoft\Windows NT\CurrentVersion" "ReleaseId"
+  StrCmp $0 "" invalid_version
+  IntCmp $0 1709 0 invalid_version
+
+  ; Check it's not Windows Home since it doesn't have Hyper-V support
+  ReadRegStr $0 HKLM "Software\Microsoft\Windows NT\CurrentVersion" "ProductName"
+  StrCmp $0 "" notwin10
+  ${StrLoc} $1 $0 "Home" ">"
+  StrCmp $1 "" start_inst iswindowshome
+
+notwin10:
+  MessageBox MB_OK|MB_ICONSTOP "Multipass is only supported on Windows 10 and above."
+  Abort
+
+invalid_version:
+  MessageBox MB_OK|MB_ICONSTOP "Multipass is only supported on Windows 10 ver 1709 and above."
+  Abort
+
+iswindowshome:
+   MessageBox MB_OK|MB_ICONSTOP "Multipass utilizes Hyper-V. Windows Home versions do not support Hyper-V."
+   Abort
+
+start_inst:
   StrCmp "@CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL@" "ON" 0 inst
 
   ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "UninstallString"
@@ -870,6 +904,7 @@ Function .onInit
   MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
   "@CPACK_NSIS_PACKAGE_NAME@ is already installed. $\n$\nDo you want to uninstall the old version before installing the new one?" \
   /SD IDOK IDOK uninst
+quit_inst:
   Abort
 
 ;Run the uninstaller
