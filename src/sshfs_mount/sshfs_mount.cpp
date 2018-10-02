@@ -96,8 +96,12 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 {
     auto sshfs_proc =
         create_sshfs_process(session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'));
-    auto default_uid = std::stoi(run_cmd(session, "id -u"));
-    auto default_gid = std::stoi(run_cmd(session, "id -g"));
+
+    auto output = run_cmd(session, "id -u");
+    auto default_uid = std::stoi(output);
+    output = run_cmd(session, "id -g");
+    auto default_gid = std::stoi(output);
+
     return std::make_unique<mp::SftpServer>(std::move(session), std::move(sshfs_proc), source, gid_map, uid_map,
                                             default_uid, default_gid);
 }
