@@ -44,12 +44,6 @@ auto generate_tap_device_name(const std::string& vm_name)
     return tap_name;
 }
 
-auto virtual_switch_subnet(const QString& bridge_name)
-{
-    auto ip_cmd = QString("ip route show | grep %1 | cut -d ' ' -f1 | cut -d '.' -f1-3").arg(bridge_name);
-    return mp::utils::run_cmd_for_output("bash", {"-c", ip_cmd});
-}
-
 void create_virtual_switch(const std::string& subnet, const QString& bridge_name)
 {
     const QString dummy_name{bridge_name + "-dummy"};
@@ -191,26 +185,10 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
-std::string get_subnet(const mp::Path& network_dir, const QString& bridge_name)
-{
-    auto subnet = virtual_switch_subnet(bridge_name);
-    if (!subnet.empty())
-        return subnet;
-
-    QFile subnet_file{network_dir + "/multipass_subnet"};
-    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
-    if (subnet_file.size() > 0)
-        return subnet_file.readAll().trimmed().toStdString();
-
-    auto new_subnet = mp::backend::generate_random_subnet();
-    subnet_file.write(new_subnet.data(), new_subnet.length());
-    return new_subnet;
-}
-
 mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
-    const auto subnet = get_subnet(network_dir, bridge_name);
+    const auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
 
     create_virtual_switch(subnet, bridge_name);
     set_ip_forward();

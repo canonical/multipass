@@ -47,6 +47,12 @@ bool can_reach_gateway(const std::string& ip)
 {
     return mp::utils::run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
 }
+
+auto virtual_switch_subnet(const QString& bridge_name)
+{
+    auto ip_cmd = QString("ip route show | grep %1 | cut -d ' ' -f1 | cut -d '.' -f1-3").arg(bridge_name);
+    return mp::utils::run_cmd_for_output("bash", {"-c", ip_cmd});
+}
 }
 
 std::string mp::backend::generate_random_subnet()
@@ -68,6 +74,22 @@ std::string mp::backend::generate_random_subnet()
     }
 
     throw std::runtime_error("Could not determine a subnet for networking.");
+}
+
+std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name)
+{
+    auto subnet = virtual_switch_subnet(bridge_name);
+    if (!subnet.empty())
+        return subnet;
+
+    QFile subnet_file{network_dir + "/multipass_subnet"};
+    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
+    if (subnet_file.size() > 0)
+        return subnet_file.readAll().trimmed().toStdString();
+
+    auto new_subnet = mp::backend::generate_random_subnet();
+    subnet_file.write(new_subnet.data(), new_subnet.length());
+    return new_subnet;
 }
 
 void mp::backend::check_hypervisor_support()
