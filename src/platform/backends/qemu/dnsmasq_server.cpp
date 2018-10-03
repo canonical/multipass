@@ -31,13 +31,18 @@ namespace
 auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
                            const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
 {
+    QString pid;
+    auto snap_common = qgetenv("SNAP_COMMON");
+    if (!snap_common.isEmpty()) {
+        pid = QString("--pid-file=%1/dnsmasq.pid").arg(QString(snap_common));
+    }
     auto cmd = std::make_unique<QProcess>();
 
     QObject::connect(cmd.get(), &QProcess::readyReadStandardError,
                      [&cmd]() { mpl::log(mpl::Level::error, "dnsmasq", cmd->readAllStandardError().data()); });
 
     cmd->start("dnsmasq",
-               QStringList() << "--keep-in-foreground"
+               QStringList() << "--keep-in-foreground" << pid
                              << "--strict-order"
                              << "--bind-interfaces"
                              << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
