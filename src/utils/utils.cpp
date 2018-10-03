@@ -163,7 +163,7 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
     auto on_timeout = [virtual_machine] {
         virtual_machine->state = VirtualMachine::State::unknown;
         virtual_machine->update_state();
-        return std::runtime_error("timed out waiting for ssh service to start");
+        throw std::runtime_error("timed out waiting for instance to respond");
     };
 
     mp::utils::try_action_for(on_timeout, timeout, action);
@@ -187,7 +187,7 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
             return mp::utils::TimeoutAction::retry;
         }
     };
-    auto on_timeout = [] { return std::runtime_error("timed out waiting for cloud-init to complete"); };
+    auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
