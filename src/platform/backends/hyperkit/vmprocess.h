@@ -49,6 +49,7 @@ signals:
 private slots:
     void pty_available(const QString& pty);
     void console_output(const QByteArray& line);
+    void on_ready_read_standard_error();
 
 private:
     std::unique_ptr<QProcess> vm_process;

@@ -178,8 +178,7 @@ void mp::VMProcess::start(const VirtualMachineDescription& desc)
 
     connect(vm_process.get(), &QProcess::readyReadStandardOutput,
             [this]() { mpl::log(mpl::Level::info, vm_name, vm_process->readAllStandardOutput().constData()); });
-    connect(vm_process.get(), &QProcess::readyReadStandardError,
-            [this]() { mpl::log(mpl::Level::error, vm_name, vm_process->readAllStandardError().constData()); });
+    connect(vm_process.get(), &QProcess::readyReadStandardError, this, &mp::VMProcess::on_ready_read_standard_error);
 
     connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {
         auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
@@ -237,7 +236,7 @@ void mp::VMProcess::stop()
     vm_process.reset();
 }
 
-void multipass::VMProcess::pty_available(const QString& dir)
+void mp::VMProcess::pty_available(const QString& dir)
 {
     const QString pty = QString("%1/pty").arg(dir);
     if (QFile::exists(pty))
@@ -261,7 +260,7 @@ void multipass::VMProcess::pty_available(const QString& dir)
     }
 }
 
-void multipass::VMProcess::console_output(const QByteArray& line)
+void mp::VMProcess::console_output(const QByteArray& line)
 {
     if (!network_configured)
     {
@@ -277,6 +276,28 @@ void multipass::VMProcess::console_output(const QByteArray& line)
             mpl::log(mpl::Level::info, vm_name, fmt::format("IP address found: {}", ip_address.c_str()));
             emit ip_address_found(ip_address);
             network_configured = true;
+        }
+    }
+}
+
+void mp::VMProcess::on_ready_read_standard_error()
+{
+    // Hyperkit has no consistent error output format, so am using a naive filter to distinguish
+    // informative messages from errors.
+    const auto lines = vm_process->readAllStandardError().split('\n');
+    for (auto line : lines)
+    {
+        line = line.trimmed();
+        if (!line.isEmpty())
+        {
+            if (line.contains("[INFO]") || line.contains("fcntl(F_PUNCHHOLE)") || line.contains("rdmsr to register"))
+            {
+                mpl::log(mpl::Level::info, vm_name, line.constData());
+            }
+            else
+            {
+                mpl::log(mpl::Level::error, vm_name, line.constData());
+            }
         }
     }
 }
