@@ -129,7 +129,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     {
         num_bytes = ssh_channel_read_timeout(channel.get(), buffer.data(), buffer.size(), is_std_err, timeout);
         mpl::log(mpl::Level::debug, category,
-                 fmt::format("{}:{} {}(): num_bytes={}", __FILE__, __LINE__, __FUNCTION__, num_bytes));
+                 fmt::format("{}:{} {}(): num_bytes = {}", __FILE__, __LINE__, __FUNCTION__, num_bytes));
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of returning 0 bytes
