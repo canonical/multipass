@@ -54,7 +54,7 @@ bool mp::platform::link(const char* target, const char* link)
     return ::link(target, link) == 0;
 }
 
-bool mp::platform::is_alias_supported(const std::string& alias)
+bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
     return true;
 }
