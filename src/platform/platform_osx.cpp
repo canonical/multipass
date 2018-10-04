@@ -22,6 +22,7 @@
 
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 
+#include <unordered_map>
 #include <unordered_set>
 
 #include <QFileInfo>
@@ -34,9 +35,11 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto unlock_code{"lucky-chimp"};
-const std::unordered_set<std::string> supported_aliases{"default", "lts", "16.04",  "x",
-                                                        "xenial",  "b",   "bionic", "18.04"};
-const std::unordered_set<std::string> supported_remotes{"release"};
+const std::unordered_set<std::string> supported_release_aliases{"default", "lts", "16.04",  "x",
+                                                                "xenial",  "b",   "bionic", "18.04"};
+const std::unordered_set<std::string> supported_snapcraft_aliases{"core", "core16", "core18"};
+const std::unordered_map<std::string, std::unordered_set<std::string>> supported_remotes_aliases_map{
+    {"release", supported_release_aliases}, {"snapcraft", supported_snapcraft_aliases}};
 }
 
 std::string mp::platform::default_server_address()
@@ -66,17 +69,28 @@ bool mp::platform::link(const char* target, const char* link)
     return ::link(target, link) == 0;
 }
 
-bool mp::platform::is_alias_supported(const std::string& alias)
+bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
-    if (alias == "core")
+    if (remote.empty() && alias == "core")
         return false;
 
     if (qgetenv("MULTIPASS_UNLOCK") == unlock_code)
         return true;
 
-    if (supported_aliases.find(alias) != supported_aliases.end())
+    if (remote.empty())
     {
-        return true;
+        if (supported_release_aliases.find(alias) != supported_release_aliases.end())
+            return true;
+    }
+    else
+    {
+        auto it = supported_remotes_aliases_map.find(remote);
+
+        if (it != supported_remotes_aliases_map.end())
+        {
+            if (it->second.find(alias) != it->second.end())
+                return true;
+        }
     }
 
     return false;
@@ -87,7 +101,7 @@ bool mp::platform::is_remote_supported(const std::string& remote)
     if (remote.empty() || qgetenv("MULTIPASS_UNLOCK") == unlock_code)
         return true;
 
-    if (supported_remotes.find(remote) != supported_remotes.end())
+    if (supported_remotes_aliases_map.find(remote) != supported_remotes_aliases_map.end())
     {
         return true;
     }
