@@ -32,13 +32,13 @@
 namespace mp = multipass;
 
 mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
-                           const SSHKeyProvider* key_provider)
+                           const SSHKeyProvider* key_provider, const std::chrono::milliseconds timeout)
     : session{ssh_new(), ssh_free}
 {
     if (session == nullptr)
         throw std::runtime_error("could not allocate ssh session");
 
-    const long timeout_secs{1};
+    const long timeout_secs = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
     const int nodelay{1};
 
     set_option(SSH_OPTIONS_HOST, host.c_str());
@@ -58,12 +58,13 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
 }
 
 mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
-                           const SSHKeyProvider& key_provider)
-    : SSHSession(host, port, username, &key_provider)
+                           const SSHKeyProvider& key_provider, const std::chrono::milliseconds timeout)
+    : SSHSession(host, port, username, &key_provider, timeout)
 {
 }
 
-mp::SSHSession::SSHSession(const std::string& host, int port) : SSHSession(host, port, "ubuntu", nullptr)
+mp::SSHSession::SSHSession(const std::string& host, int port, const std::chrono::milliseconds timeout)
+    : SSHSession(host, port, "ubuntu", nullptr, timeout)
 {
 }
 

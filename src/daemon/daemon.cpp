@@ -696,13 +696,13 @@ try // clang-format on
 
         if (!remote.empty())
         {
-            if (!mp::platform::is_remote_supported(remote))
-                throw std::runtime_error(fmt::format(
-                    "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
-
             auto it = remote_image_host_map.find(remote);
             if (it == remote_image_host_map.end())
                 throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
+
+            if (!mp::platform::is_remote_supported(remote))
+                throw std::runtime_error(fmt::format(
+                    "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
 
             auto images_info =
                 it->second->all_info_for({"", request->search_string(), false, remote, Query::Type::Alias});
@@ -727,7 +727,10 @@ try // clang-format on
             }
         }
 
-        if (!mp::platform::is_alias_supported(request->search_string()))
+        if (vm_images_info.empty())
+            throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", request->search_string()));
+
+        if (!mp::platform::is_alias_supported(request->search_string(), remote))
             throw std::runtime_error(
                 fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
                             request->search_string()));
@@ -774,7 +777,7 @@ try // clang-format on
                 auto entry = response.add_images_info();
                 for (const auto& alias : info.aliases)
                 {
-                    if (!mp::platform::is_alias_supported(alias.toStdString()))
+                    if (!mp::platform::is_alias_supported(alias.toStdString(), remote))
                         continue;
 
                     auto alias_entry = entry->add_aliases_info();
@@ -808,7 +811,7 @@ try // clang-format on
                             auto entry = response.add_images_info();
                             for (const auto& alias : info.aliases)
                             {
-                                if (!mp::platform::is_alias_supported(alias.toStdString()))
+                                if (!mp::platform::is_alias_supported(alias.toStdString(), remote))
                                     return;
 
                                 auto alias_entry = entry->add_aliases_info();
@@ -949,8 +952,10 @@ try // clang-format on
                 auto proc = session.exec(cmd);
                 if (proc.exit_code() != 0)
                 {
-                    mpl::log(mpl::Level::warning, category,
-                             fmt::format("failed to run '{}', error message: '{}'", cmd, proc.read_std_error()));
+                    auto error_msg = proc.read_std_error();
+                    mpl::log(
+                        mpl::Level::warning, category,
+                        fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
                     return std::string{};
                 }
 

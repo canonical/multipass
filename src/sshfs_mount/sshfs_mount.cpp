@@ -18,6 +18,7 @@
 #include <multipass/sshfs_mount/sshfs_mount.h>
 
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 #include <multipass/utils.h>
@@ -25,9 +26,11 @@
 #include <fmt/format.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "sshfs mount";
 template <typename Callable>
 auto run_cmd(mp::SSHSession& session, std::string&& cmd, Callable&& error_handler)
 {
@@ -94,10 +97,21 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& source, co
 auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const std::string& target,
                       const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
 {
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("{}:{} {}(source = {}, target = {}, …): ", __FILE__, __LINE__, __FUNCTION__, source, target));
+
     auto sshfs_proc =
         create_sshfs_process(session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'));
-    auto default_uid = std::stoi(run_cmd(session, "id -u"));
-    auto default_gid = std::stoi(run_cmd(session, "id -g"));
+
+    auto output = run_cmd(session, "id -u");
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+    auto default_uid = std::stoi(output);
+    output = run_cmd(session, "id -g");
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+    auto default_gid = std::stoi(output);
+
     return std::make_unique<mp::SftpServer>(std::move(session), std::move(sshfs_proc), source, gid_map, uid_map,
                                             default_uid, default_gid);
 }

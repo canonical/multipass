@@ -44,11 +44,13 @@ struct CustomImageInfo
     QString os;
     QString release;
     QString release_string;
+    QString kernel_location;
+    QString initrd_location;
 };
 
 const QMap<QString, CustomImageInfo> multipass_image_info{
     {{"ubuntu-core-16-amd64.img.xz"},
-     {"http://cdimage.ubuntu.com/ubuntu-core/16/current/", {"core"}, "Ubuntu", "core-16", "Core 16"}}};
+     {"http://cdimage.ubuntu.com/ubuntu-core/16/current/", {"core"}, "Ubuntu", "core-16", "Core 16", "", ""}}};
 
 const QMap<QString, CustomImageInfo> snapcraft_image_info{
     {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
@@ -56,13 +58,21 @@ const QMap<QString, CustomImageInfo> snapcraft_image_info{
       {"core", "core16"},
       "",
       "snapcraft-core16",
-      "Snapcraft builder for Core 16"}},
+      "Snapcraft builder for Core 16",
+      "http://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
+      "ubuntu-16.04-server-cloudimg-amd64-vmlinuz-generic",
+      "http://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
+      "ubuntu-16.04-server-cloudimg-amd64-initrd-generic"}},
     {{"ubuntu-18.04-minimal-cloudimg-amd64.img"},
      {"http://cloud-images.ubuntu.com/minimal/releases/bionic/release/",
       {"core18"},
       "",
       "snapcraft-core18",
-      "Snapcraft builder for Core 18"}}};
+      "Snapcraft builder for Core 18",
+      "http://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
+      "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
+      "http://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
+      "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
@@ -71,9 +81,9 @@ auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image
     const auto sha256_sums = url_downloader->download({hash_url}).split('\n');
     QString hash;
 
-    for (const auto& line : sha256_sums)
+    for (const QString& line : sha256_sums)
     {
-        if (line.endsWith(image_file.toUtf8()))
+        if (QString(line.trimmed()).endsWith(image_file))
         {
             hash = QString(line.split(' ').first());
             break;
@@ -120,8 +130,8 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo> custom_image_info,
                                         image_info.second.release_string,
                                         true,
                                         image_url,
-                                        "",
-                                        "",
+                                        image_info.second.kernel_location,
+                                        image_info.second.initrd_location,
                                         base_image_info.hash,
                                         base_image_info.last_modified,
                                         0};
