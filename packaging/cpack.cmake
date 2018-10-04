@@ -55,7 +55,6 @@ endif ()
 
 # set (CPACK_PACKAGE_DESCRIPTION_FILE ...)
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Easily create, control and connect to Ubuntu instances")
-set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/WELCOME.txt")
 
 if (MSVC)
   # multipassd depends on qemu-img.exe indirectly (called to convert qcow images to VHDX format)
@@ -100,6 +99,7 @@ if (MSVC)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
     " COMPONENT multipassd)
 
+  set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.rtf")
   set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/windows/README.txt")
 
@@ -155,8 +155,9 @@ if (MSVC)
 endif()
 
 if(APPLE)
-  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/macos/LICENCE.txt")
-  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/macos/README.txt")
+  set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/macos/WELCOME.html")
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/macos/LICENCE.html")
+  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/macos/README.html")
   set(CPACK_GENERATOR "productbuild")
   set(CPACK_productbuild_COMPONENT_INSTALL ON)
 
