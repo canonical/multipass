@@ -19,6 +19,7 @@
 
 #include "file_operations.h"
 #include "path.h"
+#include "stub_url_downloader.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
@@ -110,21 +111,6 @@ struct TrackingURLDownloader : public mp::URLDownloader
 
     QStringList downloaded_files;
     QStringList downloaded_urls;
-};
-
-struct DummyURLDownloader : public mp::URLDownloader
-{
-    DummyURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
-    {
-    }
-    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
-                     const mp::ProgressMonitor&) override
-    {
-    }
-    QByteArray download(const QUrl& url) override
-    {
-        return {};
-    }
 };
 
 struct BadURLDownloader : public mp::URLDownloader
@@ -376,8 +362,8 @@ TEST_F(ImageVault, custom_image_url_downloads)
 
 TEST_F(ImageVault, missing_downloaded_image_throws)
 {
-    DummyURLDownloader dummy_url_downloader;
-    mp::DefaultVMImageVault vault{hosts, &dummy_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
                  std::runtime_error);
 }
@@ -392,8 +378,8 @@ TEST_F(ImageVault, hash_mismatch_throws)
 
 TEST_F(ImageVault, invalid_remote_throws)
 {
-    DummyURLDownloader dummy_url_downloader;
-    mp::DefaultVMImageVault vault{hosts, &dummy_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto query = default_query;
 
     query.remote_name = "foo";
@@ -403,8 +389,8 @@ TEST_F(ImageVault, invalid_remote_throws)
 
 TEST_F(ImageVault, invalid_image_alias_throw)
 {
-    DummyURLDownloader dummy_url_downloader;
-    mp::DefaultVMImageVault vault{hosts, &dummy_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto query = default_query;
 
     query.release = "foo";

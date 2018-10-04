@@ -18,6 +18,7 @@
 #include "src/daemon/ubuntu_image_host.h"
 
 #include "path.h"
+#include "stub_url_downloader.h"
 
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
@@ -216,8 +217,9 @@ TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
 
 TEST_F(UbuntuImageHost, invalid_remote_throws_error)
 {
+    mpt::StubURLDownloader stub_url_downloader;
     mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &stub_url_downloader, default_ttl};
 
     EXPECT_THROW(*host.info_for(make_query("xenial", "foo")), std::runtime_error);
 }
