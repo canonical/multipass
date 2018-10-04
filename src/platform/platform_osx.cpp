@@ -34,7 +34,7 @@ namespace mp = multipass;
 
 namespace
 {
-constexpr auto unlock_code{"lucky-chimp"};
+constexpr auto unlock_code{"glorious-toad"};
 const std::unordered_set<std::string> supported_release_aliases{"default", "lts", "16.04",  "x",
                                                                 "xenial",  "b",   "bionic", "18.04"};
 const std::unordered_set<std::string> supported_snapcraft_aliases{"core", "core16", "core18"};
