@@ -387,7 +387,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             throw std::runtime_error(fmt::format(
                 "{} is not a supported remote. Please use `multipass find` for supported images.", query.remote_name));
 
-        if (!mp::platform::is_alias_supported(query.release))
+        if (!mp::platform::is_alias_supported(query.release, query.remote_name))
             throw std::runtime_error(
                 fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
                             query.release));
