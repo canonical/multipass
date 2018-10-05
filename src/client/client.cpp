@@ -44,8 +44,11 @@
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
+#include <multipass/logging/log.h>
+#include <multipass/logging/standard_logger.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -138,5 +141,9 @@ int mp::Client::run(const QStringList& arguments)
     {
         return parser.returnCodeFrom(parse_status);
     }
+
+    auto logger = std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel()));
+    mpl::set_logger(logger);
+
     return parser.chosenCommand()->run(&parser);
 }
