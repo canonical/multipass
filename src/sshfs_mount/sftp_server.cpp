@@ -272,7 +272,12 @@ int mp::SftpServer::mapped_uid_for(const int uid)
 
     auto map = uid_map.find(uid);
     if (map != uid_map.end())
-        return map->second;
+    {
+        if (map->second == mp::sftp_server::default_id)
+            return default_uid;
+        else
+            return map->second;
+    }
 
     return uid;
 }
@@ -285,7 +290,12 @@ int mp::SftpServer::mapped_gid_for(const int gid)
 
     auto map = gid_map.find(gid);
     if (map != gid_map.end())
-        return map->second;
+    {
+        if (map->second == mp::sftp_server::default_id)
+            return default_gid;
+        else
+            return map->second;
+    }
 
     return gid;
 }
