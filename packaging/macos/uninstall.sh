@@ -30,7 +30,7 @@ LAUNCH_AGENT_DEST="/Library/LaunchDaemons/com.canonical.multipassd.plist"
 
 echo .
 echo "Removing the Multipass daemon launch agent:"
-launchctl unload "$LAUNCH_AGENT_DEST"
+launchctl unload -w "$LAUNCH_AGENT_DEST"
 
 if [ $DELETE_VMS -eq 1 ]; then
     echo "Removing VMs:"
