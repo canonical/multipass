@@ -44,6 +44,7 @@ rm -fv "$LAUNCH_AGENT_DEST"
 rm -fv /usr/local/bin/multipass
 
 rm -rfv "/Library/Application Support/com.canonical.multipass"
+rm -rfv "/var/root/Library/Caches/multipassd"
 
 # Bash completions
 rm -rv "/usr/local/etc/bash_completion.d/multipass"
