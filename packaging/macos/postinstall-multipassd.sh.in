@@ -7,7 +7,7 @@ LAUNCH_AGENT_DEST="$3/Library/LaunchDaemons/@MULTIPASSD_PLIST@"
 
 # Uninstall old launch agent
 if [ -f "$LAUNCH_AGENT_DEST" ]; then
-    launchctl unload "$LAUNCH_AGENT_DEST"
+    launchctl unload -w "$LAUNCH_AGENT_DEST"
     rm -fv "$LAUNCH_AGENT_DEST"
 fi
 
@@ -16,6 +16,6 @@ mkdir -p "$3/Library/Logs/Multipass" -m 755
 
 # Install launch agent
 cp -v "$LAUNCH_AGENT_SRC" "$LAUNCH_AGENT_DEST"
-launchctl load "$LAUNCH_AGENT_DEST"
+launchctl load -w "$LAUNCH_AGENT_DEST"
 
 exit 0
