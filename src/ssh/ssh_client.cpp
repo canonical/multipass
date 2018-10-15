@@ -75,7 +75,6 @@ int mp::SSHClient::exec(const std::vector<std::string>& args)
 
 void mp::SSHClient::handle_ssh_events()
 {
-    using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
 #ifndef MULTIPASS_PLATFORM_WINDOWS
     using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
     std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};

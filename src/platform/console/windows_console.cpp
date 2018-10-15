@@ -19,6 +19,8 @@
 
 #include <multipass/cli/client_platform.h>
 
+#include <winsock2.h>
+
 #include <array>
 #include <mutex>
 
@@ -82,6 +84,7 @@ mp::WindowsConsole::WindowsConsole(ssh_channel channel)
       input_handle{GetStdHandle(STD_INPUT_HANDLE)},
       output_handle{GetStdHandle(STD_OUTPUT_HANDLE)},
       channel{channel},
+      session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
       console_event_thread{[this] { monitor_console_resize(hook); }}
 {
     global_channel = channel;
@@ -107,7 +110,7 @@ void mp::WindowsConsole::setup_console()
 
 void mp::WindowsConsole::read_console()
 {
-    std::array<char, 1024> buffer;
+    std::array<char, 4096> buffer;
     int bytes_read{0};
 
     FlushConsoleInputBuffer(input_handle);
@@ -120,10 +123,14 @@ void mp::WindowsConsole::read_console()
 void mp::WindowsConsole::write_console()
 {
     DWORD write;
-    std::array<char, 1024> buffer;
+    std::array<char, 4096> buffer;
     int num_bytes{0};
+    fd_set read_set;
 
-    if (ssh_channel_poll(channel, 0) < 1)
+    FD_ZERO(&read_set);
+    FD_SET(session_socket_fd, &read_set);
+
+    if (select(0, &read_set, nullptr, nullptr, nullptr) < 1)
         return;
 
     {

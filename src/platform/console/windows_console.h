@@ -47,6 +47,7 @@ private:
     DWORD console_input_mode;
     DWORD console_output_mode;
     ssh_channel channel;
+    socket_t session_socket_fd;
     HWINEVENTHOOK hook;
     std::thread console_event_thread;
 };
