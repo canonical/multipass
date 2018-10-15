@@ -26,6 +26,8 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 
+#include <QDateTime>
+
 #include <fmt/format.h>
 #include <gmock/gmock.h>
 
@@ -198,6 +200,42 @@ bool content_match(const QString& path, const std::string& data)
         return false;
 
     return std::equal(data.begin(), data.end(), content.begin());
+}
+
+enum class Permission
+{
+    Owner,
+    Group,
+    Other
+};
+bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permission perm_type)
+{
+    uint16_t qt_perm_mask, ssh_perm_mask, qt_bitshift, ssh_bitshift;
+
+    // Comparing file permissions, sftp uses octal format: (aaabbbccc), QFileInfo uses hex format (aaaa----bbbbcccc)
+    switch (perm_type)
+    {
+    case Permission::Owner:
+        qt_perm_mask = 0x7000;
+        qt_bitshift = 12;
+        ssh_perm_mask = 0700;
+        ssh_bitshift = 6;
+        break;
+    case Permission::Group:
+        qt_perm_mask = 0x70;
+        qt_bitshift = 4;
+        ssh_perm_mask = 070;
+        ssh_bitshift = 3;
+        break;
+    case Permission::Other:
+        qt_perm_mask = 0x7;
+        qt_bitshift = 0;
+        ssh_perm_mask = 07;
+        ssh_bitshift = 0;
+        break;
+    }
+
+    return ((ssh_permissions & ssh_perm_mask) >> ssh_bitshift) == ((file.permissions() & qt_perm_mask) >> qt_bitshift);
 }
 } // namespace
 
@@ -763,6 +801,72 @@ TEST_F(SftpServer, handles_readdir)
 
     std::vector<std::string> expected_entries = {".", "..", "test-dir-entry", "test-file"};
     EXPECT_THAT(entries, ContainerEq(expected_entries));
+}
+
+TEST_F(SftpServer, handles_readdir_attributes_preserved)
+{
+    mpt::TempDir temp_dir;
+    QDir dir_entry(temp_dir.path());
+
+    const auto test_file_name = "test-file";
+    auto test_file = temp_dir.path() + "/" + test_file_name;
+    mpt::make_file_with_content(test_file, "some content for the file to give it non-zero size");
+
+    QFileDevice::Permissions expected_permissions =
+        QFileDevice::WriteOwner | QFileDevice::ExeGroup | QFileDevice::ReadOther;
+    QFile::setPermissions(test_file, expected_permissions);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto open_dir_msg = make_msg(SFTP_OPENDIR);
+    auto dir_name = name_as_char_array(temp_dir.path().toStdString());
+    open_dir_msg->filename = dir_name.data();
+
+    auto readdir_msg = make_msg(SFTP_READDIR);
+    auto readdir_msg_final = make_msg(SFTP_READDIR);
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return nullptr;
+    };
+
+    int eof_num_calls{0};
+    auto reply_status = make_reply_status(readdir_msg_final.get(), SSH_FX_EOF, eof_num_calls);
+
+    std::unique_ptr<sftp_attributes_struct, void (*)(sftp_attributes_struct*)> test_file_attrs(
+        new sftp_attributes_struct, [](sftp_attributes_struct* s) { delete s; });
+
+    auto get_test_file_attributes = [&test_file_attrs, &test_file_name](sftp_client_message msg, const char* file,
+                                                                        const char* longname, sftp_attributes attr) {
+        if (strcmp(file, test_file_name) == 0)
+        {
+            memcpy(test_file_attrs.get(), attr, sizeof(sftp_attributes_struct));
+        }
+        return SSH_OK;
+    };
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return id; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_reply_names_add, get_test_file_attributes);
+    REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
+
+    sftp.run();
+
+    EXPECT_THAT(eof_num_calls, Eq(1));
+
+    QFileInfo test_file_info(test_file);
+    EXPECT_EQ(test_file_attrs->size, (uint64_t)test_file_info.size());
+    EXPECT_EQ(test_file_attrs->gid, test_file_info.groupId());
+    EXPECT_EQ(test_file_attrs->uid, test_file_info.ownerId());
+    EXPECT_EQ(test_file_attrs->atime,
+              (uint32_t)test_file_info.lastModified().toSecsSinceEpoch()); // atime64 is zero, expected?
+
+    EXPECT_TRUE(compare_permission(test_file_attrs->permissions, test_file_info, Permission::Owner));
+    EXPECT_TRUE(compare_permission(test_file_attrs->permissions, test_file_info, Permission::Group));
+    EXPECT_TRUE(compare_permission(test_file_attrs->permissions, test_file_info, Permission::Other));
 }
 
 TEST_F(SftpServer, handles_close)

@@ -78,7 +78,7 @@ private:
     SSHSession ssh_session;
     const SftpSessionUptr sftp_server_session;
     const std::string source_path;
-    std::unordered_map<void*, std::unique_ptr<QStringList>> open_dir_handles;
+    std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
     std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
     const std::unordered_map<int, int> gid_map;
     const std::unordered_map<int, int> uid_map;
