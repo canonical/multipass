@@ -230,6 +230,9 @@ auto domain_state_for(virDomainPtr domain)
 {
     auto state{0};
 
+    if (virDomainHasManagedSaveImage(domain, 0) == 1)
+        return mp::VirtualMachine::State::suspended;
+
     virDomainGetState(domain, &state, nullptr, 0);
 
     return (state == VIR_DOMAIN_RUNNING) ? mp::VirtualMachine::State::running : mp::VirtualMachine::State::off;
@@ -249,16 +252,28 @@ mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescrip
     state = domain_state_for(domain.get());
 }
 
+mp::LibVirtVirtualMachine::~LibVirtVirtualMachine()
+{
+    update_suspend_status = false;
+
+    if (state == State::running)
+        suspend();
+}
+
 void mp::LibVirtVirtualMachine::start()
 {
     if (state == State::running)
         return;
 
-    if (virDomainCreate(domain.get()) == -1)
-        throw std::runtime_error(virGetLastErrorMessage());
+    if (state == State::suspended)
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
 
     state = State::starting;
     update_state();
+
+    if (virDomainCreate(domain.get()) == -1)
+        throw std::runtime_error(virGetLastErrorMessage());
+
     monitor->on_resume();
 }
 
@@ -269,14 +284,38 @@ void mp::LibVirtVirtualMachine::stop()
 
 void mp::LibVirtVirtualMachine::shutdown()
 {
-    virDomainShutdown(domain.get());
-    state = State::off;
-    update_state();
+    if (state == State::running || state == State::delayed_shutdown)
+    {
+        virDomainShutdown(domain.get());
+        state = State::off;
+        update_state();
+    }
+    else if (state == State::suspended)
+    {
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+    }
+
     monitor->on_shutdown();
 }
 
 void mp::LibVirtVirtualMachine::suspend()
 {
+    if (state == State::running || state == State::delayed_shutdown)
+    {
+        if (virDomainManagedSave(domain.get(), 0) < 0)
+            throw std::runtime_error(virGetLastErrorMessage());
+
+        if (update_suspend_status)
+        {
+            state = State::suspended;
+            update_state();
+        }
+    }
+    else if (state == State::off)
+    {
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+    }
+
     monitor->on_suspend();
 }
 
