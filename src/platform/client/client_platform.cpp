@@ -50,3 +50,13 @@ bool mcp::is_tty()
 {
     return (isatty(fileno(stdin)) == 1);
 }
+
+int mcp::getuid()
+{
+    return ::getuid();
+}
+
+int mcp::getgid()
+{
+    return ::getgid();
+}
