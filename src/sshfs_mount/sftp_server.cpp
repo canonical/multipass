@@ -272,7 +272,12 @@ int mp::SftpServer::mapped_uid_for(const int uid)
 
     auto map = uid_map.find(uid);
     if (map != uid_map.end())
-        return map->second;
+    {
+        if (map->second == mp::sftp_server::default_id)
+            return default_uid;
+        else
+            return map->second;
+    }
 
     return uid;
 }
@@ -285,7 +290,12 @@ int mp::SftpServer::mapped_gid_for(const int gid)
 
     auto map = gid_map.find(gid);
     if (map != gid_map.end())
-        return map->second;
+    {
+        if (map->second == mp::sftp_server::default_id)
+            return default_gid;
+        else
+            return map->second;
+    }
 
     return gid;
 }
@@ -518,7 +528,8 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
     if (!dir.isReadable())
         return reply_perm_denied(msg);
 
-    auto entry_list = std::make_unique<QStringList>(dir.entryList(QDir::AllEntries | QDir::System | QDir::Hidden));
+    auto entry_list =
+        std::make_unique<QFileInfoList>(dir.entryInfoList(QDir::AllEntries | QDir::System | QDir::Hidden));
 
     SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), entry_list.get()), ssh_string_free};
     open_dir_handles.emplace(entry_list.get(), std::move(entry_list));
@@ -554,7 +565,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
     if (dir_entries == nullptr)
         return reply_bad_handle(msg, "readdir");
 
-    if (dir_entries->isEmpty())
+    if (dir_entries->empty())
         return sftp_reply_status(msg, SSH_FX_EOF, nullptr);
 
     const auto max_num_entries_per_packet = 50;
@@ -562,7 +573,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
 
     for (int i = 0; i < num_entries; i++)
     {
-        QFileInfo entry(dir_entries->takeFirst());
+        const QFileInfo entry = dir_entries->takeFirst();
         const auto filename = entry.fileName().toStdString();
         sftp_attributes_struct attr{};
         if (entry.isSymLink())

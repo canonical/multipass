@@ -19,13 +19,24 @@
 #include "exec.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/logging/log.h>
+#include <multipass/sshfs_mount/sftp_server.h>
+
+#include <fmt/format.h>
+#include <unistd.h>
 
 #include <QDir>
 #include <QFileInfo>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
+
+namespace
+{
+constexpr auto category = "mount cmd";
+} // namespace
 
 mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 {
@@ -189,6 +200,19 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
             entry->set_host_gid(parsed_map.at(0).toInt());
             entry->set_instance_gid(parsed_map.at(1).toInt());
         }
+    }
+
+    if (!parser->isSet(uid_map) && !parser->isSet(gid_map))
+    {
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("{}:{} {}(): adding default uid/gid mapping", __FILE__, __LINE__, __FUNCTION__));
+        auto uid_entry = request.add_uid_maps();
+        uid_entry->set_host_uid(getuid());
+        uid_entry->set_instance_uid(mp::sftp_server::default_id);
+
+        auto gid_entry = request.add_gid_maps();
+        gid_entry->set_host_gid(getgid());
+        gid_entry->set_instance_gid(mp::sftp_server::default_id);
     }
 
     return ParseCode::Ok;
