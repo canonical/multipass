@@ -19,16 +19,17 @@
 #include "exec.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_platform.h>
 #include <multipass/logging/log.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 
 #include <fmt/format.h>
-#include <unistd.h>
 
 #include <QDir>
 #include <QFileInfo>
 
 namespace mp = multipass;
+namespace mcp = multipass::cli::platform;
 namespace mpl = multipass::logging;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
@@ -207,11 +208,11 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         mpl::log(mpl::Level::debug, category,
                  fmt::format("{}:{} {}(): adding default uid/gid mapping", __FILE__, __LINE__, __FUNCTION__));
         auto uid_entry = request.add_uid_maps();
-        uid_entry->set_host_uid(getuid());
+        uid_entry->set_host_uid(mcp::getuid());
         uid_entry->set_instance_uid(mp::sftp_server::default_id);
 
         auto gid_entry = request.add_gid_maps();
-        gid_entry->set_host_gid(getgid());
+        gid_entry->set_host_gid(mcp::getgid());
         gid_entry->set_instance_gid(mp::sftp_server::default_id);
     }
 
