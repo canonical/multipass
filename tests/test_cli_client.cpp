@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *
  */
 
 #include "path.h"
@@ -470,6 +468,37 @@ TEST_F(Client, stop_cmd_fails_with_time_suffix)
 TEST_F(Client, stop_cmd_succeds_with_cancel)
 {
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
+}
+
+// suspend cli tests
+TEST_F(Client, suspend_cmd_fails_no_args)
+{
+    EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, suspend_cmd_ok_with_one_arg)
+{
+    EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_succeeds_with_multiple_args)
+{
+    EXPECT_THAT(send_command({"suspend", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"suspend", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_succeeds_with_all)
+{
+    EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_fails_with_names_and_all)
+{
+    EXPECT_THAT(send_command({"suspend", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 // trash cli tests
