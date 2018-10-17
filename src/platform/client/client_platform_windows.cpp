@@ -21,6 +21,7 @@
 
 #include <io.h>
 
+namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
 
 void mcp::parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name)
@@ -49,4 +50,14 @@ void mcp::parse_copy_files_entry(const QString& entry, QString& path, QString& i
 bool mcp::is_tty()
 {
     return !(_isatty(_fileno(stdin)) == 0);
+}
+
+int mcp::getuid()
+{
+    return mp::no_id_info_available;
+}
+
+int mcp::getgid()
+{
+    return mp::no_id_info_available;
 }
