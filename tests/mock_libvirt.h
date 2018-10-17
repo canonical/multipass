@@ -42,5 +42,7 @@ DECL_MOCK(virDomainDefineXML);
 DECL_MOCK(virDomainGetState);
 DECL_MOCK(virDomainCreate);
 DECL_MOCK(virDomainShutdown);
+DECL_MOCK(virDomainManagedSave);
+DECL_MOCK(virDomainHasManagedSaveImage);
 
 #endif // MULTIPASS_MOCK_LIBVIRT_H
