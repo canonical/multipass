@@ -22,12 +22,17 @@
 
 namespace multipass
 {
+const auto default_id = -1;
+const auto no_id_info_available = -2;
+
 namespace cli
 {
 namespace platform
 {
 void parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name);
 bool is_tty();
+int getuid();
+int getgid();
 }
 }
 }
