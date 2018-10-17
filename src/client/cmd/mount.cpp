@@ -209,11 +209,11 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                  fmt::format("{}:{} {}(): adding default uid/gid mapping", __FILE__, __LINE__, __FUNCTION__));
         auto uid_entry = request.add_uid_maps();
         uid_entry->set_host_uid(mcp::getuid());
-        uid_entry->set_instance_uid(mp::sftp_server::default_id);
+        uid_entry->set_instance_uid(mp::default_id);
 
         auto gid_entry = request.add_gid_maps();
         gid_entry->set_host_gid(mcp::getgid());
-        gid_entry->set_instance_gid(mp::sftp_server::default_id);
+        gid_entry->set_instance_gid(mp::default_id);
     }
 
     return ParseCode::Ok;

@@ -30,12 +30,6 @@
 
 namespace multipass
 {
-
-namespace sftp_server
-{
-const int default_id = -1;
-} // namespace sftp_server
-
 class SSHSession;
 class SftpServer
 {

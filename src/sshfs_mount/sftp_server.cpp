@@ -17,6 +17,7 @@
 
 #include <multipass/sshfs_mount/sftp_server.h>
 
+#include <multipass/cli/client_platform.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
@@ -266,14 +267,13 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
 
 int mp::SftpServer::mapped_uid_for(const int uid)
 {
-    const auto no_id_info_available = -2;
-    if (uid == no_id_info_available)
+    if (uid == mp::no_id_info_available)
         return default_uid;
 
     auto map = uid_map.find(uid);
     if (map != uid_map.end())
     {
-        if (map->second == mp::sftp_server::default_id)
+        if (map->second == mp::default_id)
             return default_uid;
         else
             return map->second;
@@ -284,14 +284,13 @@ int mp::SftpServer::mapped_uid_for(const int uid)
 
 int mp::SftpServer::mapped_gid_for(const int gid)
 {
-    const auto no_id_info_available = -2;
-    if (gid == no_id_info_available)
+    if (gid == mp::no_id_info_available)
         return default_gid;
 
     auto map = gid_map.find(gid);
     if (map != gid_map.end())
     {
-        if (map->second == mp::sftp_server::default_id)
+        if (map->second == mp::default_id)
             return default_gid;
         else
             return map->second;
