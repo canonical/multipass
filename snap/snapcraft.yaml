@@ -8,6 +8,7 @@ description: |
   and it'll do all the setup for you. Check out `multipass find` for a list
   of available images. More details you can find under `multipass help`.
 
+base: core16
 grade: devel
 confinement: classic
 
