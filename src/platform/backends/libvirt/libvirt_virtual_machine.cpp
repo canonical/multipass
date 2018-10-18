@@ -44,7 +44,7 @@ void libvirt_error_handler(void* opaque, virErrorPtr error)
     libvirt_error = virSaveLastError();
 }
 
-auto get_instance_mac_addr(virDomainPtr domain)
+auto instance_mac_addr_for(virDomainPtr domain)
 {
     std::string mac_addr;
     std::unique_ptr<char, decltype(free)*> desc{virDomainGetXMLDesc(domain, 0), free};
@@ -65,7 +65,7 @@ auto get_instance_mac_addr(virDomainPtr domain)
     return mac_addr;
 }
 
-auto get_instance_ip(virConnectPtr connection, const std::string& mac_addr)
+auto instance_ip_for(virConnectPtr connection, const std::string& mac_addr)
 {
     mp::optional<mp::IPAddress> ip_address;
 
@@ -91,7 +91,7 @@ auto get_instance_ip(virConnectPtr connection, const std::string& mac_addr)
     return ip_address;
 }
 
-void get_parsed_memory_values(const std::string& mem_size, std::string& memory, std::string& mem_unit)
+void parsed_memory_values_for(const std::string& mem_size, std::string& memory, std::string& mem_unit)
 {
     auto mem{QString::fromStdString(mem_size)};
     QString unit;
@@ -114,7 +114,7 @@ void get_parsed_memory_values(const std::string& mem_size, std::string& memory, 
         mem_unit = "GiB";
 }
 
-auto get_host_architecture(virConnectPtr connection)
+auto host_architecture_for(virConnectPtr connection)
 {
     std::string arch;
     std::unique_ptr<char, decltype(free)*> capabilities{virConnectGetCapabilities(connection), free};
@@ -139,7 +139,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
                              const std::string& arch)
 {
     std::string memory, mem_unit;
-    get_parsed_memory_values(desc.mem_size, memory, mem_unit);
+    parsed_memory_values_for(desc.mem_size, memory, mem_unit);
 
     auto qemu_path = fmt::format("/usr/bin/qemu-system-{}", arch);
     auto snap = qgetenv("SNAP");
@@ -203,7 +203,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.mac_addr, bridge_name);
 }
 
-auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDescription& desc,
+auto domain_definition_for(virConnectPtr connection, const mp::VirtualMachineDescription& desc,
                            const std::string& bridge_name)
 {
     virSetErrorFunc(nullptr, libvirt_error_handler);
@@ -217,7 +217,7 @@ auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDes
     if (domain == nullptr)
         domain = mp::LibVirtVirtualMachine::DomainUPtr{
             virDomainDefineXML(connection,
-                               generate_xml_config_for(desc, bridge_name, get_host_architecture(connection)).c_str()),
+                               generate_xml_config_for(desc, bridge_name, host_architecture_for(connection)).c_str()),
             virDomainFree};
 
     if (domain == nullptr)
@@ -226,7 +226,7 @@ auto get_domain_definition(virConnectPtr connection, const mp::VirtualMachineDes
     return domain;
 }
 
-auto get_domain_state(virDomainPtr domain)
+auto domain_state_for(virDomainPtr domain)
 {
     auto state{0};
 
@@ -240,13 +240,13 @@ mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescrip
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor)
     : VirtualMachine{desc.key_provider, desc.vm_name},
       connection{connection},
-      domain{get_domain_definition(connection, desc, bridge_name)},
-      mac_addr{get_instance_mac_addr(domain.get())},
+      domain{domain_definition_for(connection, desc, bridge_name)},
+      mac_addr{instance_mac_addr_for(domain.get())},
       username{desc.ssh_username},
-      ip{get_instance_ip(connection, mac_addr)},
+      ip{instance_ip_for(connection, mac_addr)},
       monitor{&monitor}
 {
-    state = get_domain_state(domain.get());
+    state = domain_state_for(domain.get());
 }
 
 void mp::LibVirtVirtualMachine::start()
@@ -288,7 +288,7 @@ int mp::LibVirtVirtualMachine::ssh_port()
 std::string mp::LibVirtVirtualMachine::ssh_hostname()
 {
     auto action = [this] {
-        auto result = get_instance_ip(connection, mac_addr);
+        auto result = instance_ip_for(connection, mac_addr);
         if (result)
         {
             ip.emplace(result.value());
@@ -314,7 +314,7 @@ std::string mp::LibVirtVirtualMachine::ipv4()
 {
     if (!ip)
     {
-        auto result = get_instance_ip(connection, mac_addr);
+        auto result = instance_ip_for(connection, mac_addr);
         if (result)
             ip.emplace(result.value());
         else
