@@ -139,6 +139,11 @@ message InfoRequest {
     int32 verbosity_level = 2;
 }
 
+message MountMaps {
+    map<int32, int32> uid_map = 1;
+    map<int32, int32> gid_map = 2;
+}
+
 message MountInfo {
     message MountPaths {
         string source_path = 1;
@@ -203,16 +208,6 @@ message TargetPathInfo {
     string target_path = 2;
 }
 
-message MountUidMap {
-    int32 host_uid = 1;
-    int32 instance_uid = 2;
-}
-
-message MountGidMap {
-    int32 host_gid = 1;
-    int32 instance_gid = 2;
-}
-
 message MountError {
     enum ErrorCode {
         OK = 0;
@@ -226,9 +221,8 @@ message MountError {
 message MountRequest {
     string source_path = 1;
     repeated TargetPathInfo target_paths = 2;
-    repeated MountUidMap uid_maps = 3;
-    repeated MountGidMap gid_maps = 4;
-    int32 verbosity_level = 5;
+    MountMaps mount_maps = 3;
+    int32 verbosity_level = 4;
 }
 
 message MountReply {
