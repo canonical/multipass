@@ -41,13 +41,14 @@ Here's a set of steps to build and run your own build of multipass:
 ## Install snapcraft
 
 ```
-sudo snap install snapcraft
+sudo snap install snapcraft --classic
 ```
 
 ## Build and install the snap
 
 ```
 cd <multipass>
+git submodule update --init --recursive
 snapcraft
 snap install --dangerous --classic multipass*.snap
 ```
