@@ -177,9 +177,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
             auto parsed_map = map.split(":");
 
-            auto entry = request.add_uid_maps();
-            entry->set_host_uid(parsed_map.at(0).toInt());
-            entry->set_instance_uid(parsed_map.at(1).toInt());
+            (*request.mutable_uid_maps())[parsed_map.at(0).toInt()] = parsed_map.at(1).toInt();
         }
     }
 
@@ -197,9 +195,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
             auto parsed_map = map.split(":");
 
-            auto entry = request.add_gid_maps();
-            entry->set_host_gid(parsed_map.at(0).toInt());
-            entry->set_instance_gid(parsed_map.at(1).toInt());
+            (*request.mutable_gid_maps())[parsed_map.at(0).toInt()] = parsed_map.at(1).toInt();
         }
     }
 
@@ -207,13 +203,8 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     {
         mpl::log(mpl::Level::debug, category,
                  fmt::format("{}:{} {}(): adding default uid/gid mapping", __FILE__, __LINE__, __FUNCTION__));
-        auto uid_entry = request.add_uid_maps();
-        uid_entry->set_host_uid(mcp::getuid());
-        uid_entry->set_instance_uid(mp::default_id);
-
-        auto gid_entry = request.add_gid_maps();
-        gid_entry->set_host_gid(mcp::getgid());
-        gid_entry->set_instance_gid(mp::default_id);
+        (*request.mutable_uid_maps())[mcp::getuid()] = mp::default_id;
+        (*request.mutable_gid_maps())[mcp::getgid()] = mp::default_id;
     }
 
     return ParseCode::Ok;

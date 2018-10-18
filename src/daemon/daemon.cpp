@@ -1092,18 +1092,8 @@ try // clang-format on
                             fmt::format("source \"{}\" is not readable", request->source_path()), "");
     }
 
-    std::unordered_map<int, int> gid_map;
-    std::unordered_map<int, int> uid_map;
-
-    for (const auto& map : request->gid_maps())
-    {
-        gid_map[map.host_gid()] = map.instance_gid();
-    }
-
-    for (const auto& map : request->uid_maps())
-    {
-        uid_map[map.host_uid()] = map.instance_uid();
-    }
+    std::unordered_map<int, int> gid_map{request->gid_maps().begin(), request->gid_maps().end()};
+    std::unordered_map<int, int> uid_map{request->uid_maps().begin(), request->uid_maps().end()};
 
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
