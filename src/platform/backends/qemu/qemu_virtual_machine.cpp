@@ -176,7 +176,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
     QObject::connect(vm_process.get(), &QProcess::readyReadStandardOutput, [this]() {
         auto qmp_output = vm_process->readAllStandardOutput();
         mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output.toStdString()));
-        auto qmp_object = QJsonDocument::fromJson(qmp_output).object();
+        auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
         auto event = qmp_object["event"];
 
         if (!event.isNull())
