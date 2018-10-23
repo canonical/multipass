@@ -148,6 +148,7 @@ message MountInfo {
     message MountPaths {
         string source_path = 1;
         string target_path = 2;
+        MountMaps mount_maps = 3;
     }
     uint32 longest_path_len = 1;
     repeated MountPaths mount_paths = 2;

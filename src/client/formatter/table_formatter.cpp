@@ -81,6 +81,27 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         {
             fmt::format_to(buf, "{:<16}{:{}} => {}\n", (mount == mount_paths.cbegin()) ? "Mounts:" : " ",
                            mount->source_path(), info.mount_info().longest_path_len(), mount->target_path());
+
+            for (auto uid_map = mount->mount_maps().uid_map().cbegin(); uid_map != mount->mount_maps().uid_map().cend();
+                 ++uid_map)
+            {
+                fmt::format_to(
+                    buf, "{:>{}}{}:{}{}{}", (uid_map == mount->mount_maps().uid_map().cbegin()) ? "UID map: " : "",
+                    (uid_map == mount->mount_maps().uid_map().cbegin()) ? 29 : 0, std::to_string(uid_map->first),
+                    (uid_map->second == mp::default_id) ? "default" : std::to_string(uid_map->second),
+                    (std::next(uid_map) != mount->mount_maps().uid_map().cend()) ? ", " : "",
+                    (std::next(uid_map) == mount->mount_maps().uid_map().cend()) ? "\n" : "");
+            }
+            for (auto gid_map = mount->mount_maps().gid_map().cbegin(); gid_map != mount->mount_maps().gid_map().cend();
+                 ++gid_map)
+            {
+                fmt::format_to(
+                    buf, "{:>{}}{}:{}{}{}", (gid_map == mount->mount_maps().gid_map().cbegin()) ? "GID map: " : "",
+                    (gid_map == mount->mount_maps().gid_map().cbegin()) ? 29 : 0, std::to_string(gid_map->first),
+                    (gid_map->second == mp::default_id) ? "default" : std::to_string(gid_map->second),
+                    (std::next(gid_map) != mount->mount_maps().gid_map().cend()) ? ", " : "",
+                    (std::next(gid_map) == mount->mount_maps().gid_map().cend()) ? "\n" : "");
+            }
         }
 
         fmt::format_to(buf, "\n");
