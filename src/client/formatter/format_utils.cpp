@@ -43,6 +43,9 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     case mp::InstanceStatus::DELAYED_SHUTDOWN:
         status_val = "DELAYED SHUTDOWN";
         break;
+    case mp::InstanceStatus::SUSPENDING:
+        status_val = "SUSPENDING";
+        break;
     case mp::InstanceStatus::SUSPENDED:
         status_val = "SUSPENDED";
         break;

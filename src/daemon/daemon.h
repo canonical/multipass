@@ -116,6 +116,9 @@ public slots:
     grpc::Status version(grpc::ServerContext* context, const VersionRequest* request,
                          grpc::ServerWriter<VersionReply>* response) override;
 
+signals:
+    void suspend_finished();
+
 private:
     void persist_instances();
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,

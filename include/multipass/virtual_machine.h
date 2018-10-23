@@ -39,6 +39,7 @@ public:
         restarting,
         running,
         delayed_shutdown,
+        suspending,
         suspended,
         unknown
     };

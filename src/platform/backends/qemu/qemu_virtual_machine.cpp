@@ -201,9 +201,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
             else if (event.toString() == "RESUME")
             {
                 mpl::log(mpl::Level::info, vm_name, "VM suspended");
-                if (state == State::suspended || state == State::running)
+                if (state == State::suspending || state == State::running)
                 {
                     vm_process->kill();
+                    on_suspend();
                 }
             }
         }
@@ -255,6 +256,9 @@ void mp::QemuVirtualMachine::start()
     if (state == State::running)
         return;
 
+    if (state == State::suspending)
+        throw std::runtime_error("cannot start the instance while suspending");
+
     vm_process->setArguments(original_args);
     if (state == State::suspended)
     {
@@ -288,11 +292,13 @@ void mp::QemuVirtualMachine::shutdown()
     }
     else if ((state == State::running || state == State::delayed_shutdown) && vm_process->processId() > 0)
     {
+fmt::print("Not really killing: {}\n", vm_process->processId());
         vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();
     }
     else
     {
+fmt::print("Kill it!\n");
         vm_process->kill();
         vm_process->waitForFinished();
     }
@@ -306,7 +312,7 @@ void mp::QemuVirtualMachine::suspend()
 
         if (update_shutdown_status)
         {
-            state = State::suspended;
+            state = State::suspending;
             update_state();
 
             update_shutdown_status = false;
@@ -316,8 +322,6 @@ void mp::QemuVirtualMachine::suspend()
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
     }
-
-    monitor->on_suspend();
 }
 
 mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
@@ -358,6 +362,7 @@ void mp::QemuVirtualMachine::on_shutdown()
 
 void mp::QemuVirtualMachine::on_suspend()
 {
+    state = State::suspended;
     monitor->on_suspend();
 }
 

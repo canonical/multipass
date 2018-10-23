@@ -897,6 +897,8 @@ try // clang-format on
                     return mp::InstanceStatus::RUNNING;
                 case mp::VirtualMachine::State::delayed_shutdown:
                     return mp::InstanceStatus::DELAYED_SHUTDOWN;
+                case mp::VirtualMachine::State::suspending:
+                    return mp::InstanceStatus::SUSPENDING;
                 case mp::VirtualMachine::State::suspended:
                     return mp::InstanceStatus::SUSPENDED;
                 case mp::VirtualMachine::State::unknown:
@@ -1015,6 +1017,8 @@ try // clang-format on
             return mp::InstanceStatus::RUNNING;
         case mp::VirtualMachine::State::delayed_shutdown:
             return mp::InstanceStatus::DELAYED_SHUTDOWN;
+        case mp::VirtualMachine::State::suspending:
+            return mp::InstanceStatus::SUSPENDING;
         case mp::VirtualMachine::State::suspended:
             return mp::InstanceStatus::SUSPENDED;
         case mp::VirtualMachine::State::unknown:
@@ -1478,8 +1482,18 @@ try // clang-format on
 
     for (const auto& name : instances_to_suspend)
     {
+        QTimer timer;
+        QEventLoop event_loop;
+
+        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit);
+        QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
+
         auto it = vm_instances.find(name);
         it->second->suspend();
+
+        timer.setSingleShot(true);
+        timer.start(std::chrono::seconds(30));
+        event_loop.exec();
     }
 
     return grpc::Status::OK;
@@ -1658,6 +1672,7 @@ void mp::Daemon::on_stop()
 
 void mp::Daemon::on_suspend()
 {
+    emit suspend_finished();
 }
 
 void mp::Daemon::on_restart(const std::string& name)
