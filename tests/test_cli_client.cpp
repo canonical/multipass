@@ -472,6 +472,37 @@ TEST_F(Client, stop_cmd_succeds_with_cancel)
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
 }
 
+// restart cli tests
+TEST_F(Client, restart_cmd_fails_no_args)
+{
+    EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, restart_cmd_ok_with_one_arg)
+{
+    EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_succeeds_with_multiple_args)
+{
+    EXPECT_THAT(send_command({"restart", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"restart", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_succeeds_with_all)
+{
+    EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_fails_with_names_and_all)
+{
+    EXPECT_THAT(send_command({"restart", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 // trash cli tests
 TEST_F(Client, trash_cmd_fails_no_args)
 {
