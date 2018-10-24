@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
 
 int main(int argc, char* argv[])
 {
-    std::cout << "{\"timestamp\": {\"seconds\": 1540327234, \"microseconds\": 452626}, \"event\": \"RESUME\"}";
     std::string input;
     std::cin >> input;
     return 0;

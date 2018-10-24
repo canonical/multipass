@@ -292,13 +292,11 @@ void mp::QemuVirtualMachine::shutdown()
     }
     else if ((state == State::running || state == State::delayed_shutdown) && vm_process->processId() > 0)
     {
-fmt::print("Not really killing: {}\n", vm_process->processId());
         vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();
     }
     else
     {
-fmt::print("Kill it!\n");
         vm_process->kill();
         vm_process->waitForFinished();
     }
