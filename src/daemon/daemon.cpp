@@ -940,6 +940,15 @@ try // clang-format on
             auto entry = mount_info->add_mount_paths();
             entry->set_source_path(mount.second.source_path);
             entry->set_target_path(mount.first);
+
+            for (const auto uid_map : mount.second.uid_map)
+            {
+                (*entry->mutable_mount_maps()->mutable_uid_map())[uid_map.first] = uid_map.second;
+            }
+            for (const auto gid_map : mount.second.gid_map)
+            {
+                (*entry->mutable_mount_maps()->mutable_gid_map())[gid_map.first] = gid_map.second;
+            }
         }
 
         if (vm->current_state() == mp::VirtualMachine::State::running ||
@@ -1092,18 +1101,10 @@ try // clang-format on
                             fmt::format("source \"{}\" is not readable", request->source_path()), "");
     }
 
-    std::unordered_map<int, int> gid_map;
-    std::unordered_map<int, int> uid_map;
-
-    for (const auto& map : request->gid_maps())
-    {
-        gid_map[map.host_gid()] = map.instance_gid();
-    }
-
-    for (const auto& map : request->uid_maps())
-    {
-        uid_map[map.host_uid()] = map.instance_uid();
-    }
+    std::unordered_map<int, int> uid_map{request->mount_maps().uid_map().begin(),
+                                         request->mount_maps().uid_map().end()};
+    std::unordered_map<int, int> gid_map{request->mount_maps().gid_map().begin(),
+                                         request->mount_maps().gid_map().end()};
 
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
