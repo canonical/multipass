@@ -16,10 +16,8 @@
  */
 
 #include "restart.h"
-#include "stop.h"
-#include "start.h"
 
-#include "animated_spinner.h"
+#include <multipass/cli/argparser.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -27,7 +25,15 @@ using RpcMethod = mp::Rpc::Stub;
 
 mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
 {
-  return ReturnCode::CommandFail; // TODO
+    // TODO what it they are not there ?
+    Command * stop_cmd = parser->findCommand(QStringLiteral("stop"));
+    Command * start_cmd = parser->findCommand(QStringLiteral("start"));
+
+    // The argument sequences that are acceptable in a restart command are those
+    // that are acceptable to both stop and start commands.
+    auto stop_ret = stop_cmd->run(parser);
+    return stop_ret == ReturnCode::Ok ? start_cmd->run(parser) : stop_ret;
+    // TODO refuse stop's other params
 }
 
 std::string cmd::Restart::name() const { return "restart"; }
@@ -38,7 +44,7 @@ QString cmd::Restart::short_help() const
 }
 
 QString cmd::Restart::description() const
-{
+{ // TODO get "help restart" to work
     return QStringLiteral("Restart the named instances. Exits with return\n"
                           "code 0 when the instances restart, or with an\n"
                           "error code if any fail to restart.");
