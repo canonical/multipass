@@ -25,7 +25,7 @@ using RpcMethod = mp::Rpc::Stub;
 
 mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
 {
-    // TODO what it they are not there ?
+    // TODO what if they are not there ?
     Command * stop_cmd = parser->findCommand(QStringLiteral("stop"));
     Command * start_cmd = parser->findCommand(QStringLiteral("start"));
 
