@@ -1,7 +1,7 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -115,11 +115,11 @@ parts:
-     - cmake-extras
+@@ -142,11 +142,11 @@ parts:
+     - git
      - golang
      - libsystemd-dev
 +    - lcov
