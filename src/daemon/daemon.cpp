@@ -385,6 +385,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_suspend, &daemon, &mp::Daemon::suspend, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
@@ -440,7 +441,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             config->vault->remove(name);
         }
 
-        if (spec.state != VirtualMachine::State::off && spec.state != VirtualMachine::State::stopped &&
+        if (spec.state == VirtualMachine::State::running &&
             vm_instances[name]->current_state() != VirtualMachine::State::running)
         {
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
@@ -896,6 +897,10 @@ try // clang-format on
                     return mp::InstanceStatus::RUNNING;
                 case mp::VirtualMachine::State::delayed_shutdown:
                     return mp::InstanceStatus::DELAYED_SHUTDOWN;
+                case mp::VirtualMachine::State::suspending:
+                    return mp::InstanceStatus::SUSPENDING;
+                case mp::VirtualMachine::State::suspended:
+                    return mp::InstanceStatus::SUSPENDED;
                 case mp::VirtualMachine::State::unknown:
                     return mp::InstanceStatus::UNKNOWN;
                 default:
@@ -1021,6 +1026,10 @@ try // clang-format on
             return mp::InstanceStatus::RUNNING;
         case mp::VirtualMachine::State::delayed_shutdown:
             return mp::InstanceStatus::DELAYED_SHUTDOWN;
+        case mp::VirtualMachine::State::suspending:
+            return mp::InstanceStatus::SUSPENDING;
+        case mp::VirtualMachine::State::suspended:
+            return mp::InstanceStatus::SUSPENDED;
         case mp::VirtualMachine::State::unknown:
             return mp::InstanceStatus::UNKNOWN;
         default:
@@ -1440,6 +1449,61 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
+grpc::Status mp::Daemon::suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                                 grpc::ServerWriter<SuspendReply>* server) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger<SuspendReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    fmt::memory_buffer errors;
+    std::vector<decltype(vm_instances)::key_type> instances_to_suspend;
+    for (const auto& name : request->instance_name())
+    {
+        auto it = vm_instances.find(name);
+        if (it == vm_instances.end())
+        {
+            it = deleted_instances.find(name);
+            if (it == deleted_instances.end())
+                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            else
+                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
+            continue;
+        }
+        instances_to_suspend.push_back(name);
+    }
+
+    if (errors.size() > 0)
+        return grpc_status_for(errors);
+
+    if (instances_to_suspend.empty())
+    {
+        for (auto& pair : vm_instances)
+            instances_to_suspend.push_back(pair.first);
+    }
+
+    for (const auto& name : instances_to_suspend)
+    {
+        QTimer timer;
+        QEventLoop event_loop;
+
+        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit);
+        QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
+
+        auto it = vm_instances.find(name);
+        it->second->suspend();
+
+        timer.setSingleShot(true);
+        timer.start(std::chrono::seconds(30));
+        event_loop.exec();
+    }
+
+    return grpc::Status::OK;
+}
+catch (const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
 grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                grpc::ServerWriter<DeleteReply>* server) // clang-format off
 try // clang-format on
@@ -1605,6 +1669,11 @@ void mp::Daemon::on_resume()
 
 void mp::Daemon::on_stop()
 {
+}
+
+void mp::Daemon::on_suspend()
+{
+    emit suspend_finished();
 }
 
 void mp::Daemon::on_restart(const std::string& name)

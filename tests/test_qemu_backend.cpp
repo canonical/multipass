@@ -47,19 +47,21 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       dummy_cloud_init_iso.name(),
                                                       key_provider};
     mpt::TempDir data_dir;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
 };
 
 TEST_F(QemuBackend, creates_in_off_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
 TEST_F(QemuBackend, machine_sends_monitoring_events)
 {
-    mpt::MockVMStatusMonitor mock_monitor;
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
@@ -70,4 +72,16 @@ TEST_F(QemuBackend, machine_sends_monitoring_events)
     EXPECT_CALL(mock_monitor, persist_state_for(_)).Times(AtLeast(1));
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
+}
+
+TEST_F(QemuBackend, throws_when_starting_while_suspending)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    machine->state = mp::VirtualMachine::State::suspending;
+
+    EXPECT_THROW(machine->start(), std::runtime_error);
 }

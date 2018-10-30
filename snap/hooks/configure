@@ -12,6 +12,21 @@ driver=${driver:-QEMU}
 driver_saved=${driver_saved:-QEMU}
 
 if [[ $driver != $driver_saved ]]; then
+    /snap/bin/multipass list &>/dev/null || /bin/true
+
+    if [ $? -ne 0 ]; then
+        echo "Cannot determine status of instances. Not switching driver."
+        exit 1
+    fi
+
+    if /snap/bin/multipass list --format=csv | grep -Ev '(\+--|Name)' | grep --quiet -v 'STOPPED'; then
+        echo "All instances need to be stopped."
+        echo "Please save any data and stop the instances before proceeding:"
+        echo
+        echo "multipass stop --all"
+        exit 1
+    fi
+
     echo "$driver" > $SNAP_COMMON/driver
     snapctl restart $SNAP_NAME
 fi

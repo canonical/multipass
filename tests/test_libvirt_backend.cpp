@@ -97,12 +97,37 @@ TEST_F(LibVirtBackend, creates_in_off_state)
         std::string domain_desc{"mac"};
         return strdup(domain_desc.c_str());
     });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
     mpt::StubVMStatusMonitor stub_monitor;
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
+
+TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
+{
+    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetXMLDesc, [](auto...) {
+        std::string domain_desc{"mac"};
+        return strdup(domain_desc.c_str());
+    });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 1; });
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    mpt::StubVMStatusMonitor stub_monitor;
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));
 }
 
 TEST_F(LibVirtBackend, machine_sends_monitoring_events)
@@ -122,16 +147,113 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
     });
     REPLACE(virDomainCreate, [](auto...) { return 0; });
     REPLACE(virDomainShutdown, [](auto...) { return 0; });
+    REPLACE(virDomainManagedSave, [](auto...) { return 0; });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
-    mpt::MockVMStatusMonitor mock_monitor;
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_)).Times(AtLeast(1));
+    machine->state = mp::VirtualMachine::State::running;
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
+
+    machine->state = mp::VirtualMachine::State::running;
+    EXPECT_CALL(mock_monitor, on_suspend());
+    machine->suspend();
+}
+
+TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
+{
+    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetXMLDesc, [](auto...) {
+        std::string domain_desc{"mac"};
+        return strdup(domain_desc.c_str());
+    });
+    REPLACE(virDomainCreate, [](auto...) { return 0; });
+    REPLACE(virDomainShutdown, [](auto...) { return 0; });
+    REPLACE(virDomainManagedSave, [](auto...) { return 0; });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    machine->start();
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::starting));
+}
+
+TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_shutdown)
+{
+    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetXMLDesc, [](auto...) {
+        std::string domain_desc{"mac"};
+        return strdup(domain_desc.c_str());
+    });
+    REPLACE(virDomainCreate, [](auto...) { return 0; });
+    REPLACE(virDomainShutdown, [](auto...) { return 0; });
+    REPLACE(virDomainManagedSave, [](auto...) { return 0; });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    machine->state = mp::VirtualMachine::State::running;
+    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    machine->shutdown();
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
+
+TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
+{
+    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetXMLDesc, [](auto...) {
+        std::string domain_desc{"mac"};
+        return strdup(domain_desc.c_str());
+    });
+    REPLACE(virDomainCreate, [](auto...) { return 0; });
+    REPLACE(virDomainShutdown, [](auto...) { return 0; });
+    REPLACE(virDomainManagedSave, [](auto...) { return 0; });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    machine->state = mp::VirtualMachine::State::running;
+    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    machine->suspend();
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));
 }

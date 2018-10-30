@@ -39,6 +39,8 @@ public:
         restarting,
         running,
         delayed_shutdown,
+        suspending,
+        suspended,
         unknown
     };
 
@@ -48,6 +50,7 @@ public:
     virtual void stop() = 0;
     virtual void start() = 0;
     virtual void shutdown() = 0;
+    virtual void suspend() = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
     virtual std::string ssh_hostname() = 0;
@@ -63,8 +66,10 @@ public:
     const std::string vm_name;
 
 protected:
+    VirtualMachine(VirtualMachine::State state, const SSHKeyProvider& key_provider, const std::string& vm_name)
+        : state{state}, key_provider{key_provider}, vm_name{vm_name} {};
     VirtualMachine(const SSHKeyProvider& key_provider, const std::string& vm_name)
-        : state{State::off}, key_provider{key_provider}, vm_name{vm_name} {};
+        : VirtualMachine(State::off, key_provider, vm_name){};
     VirtualMachine(const VirtualMachine&) = delete;
     VirtualMachine& operator=(const VirtualMachine&) = delete;
 };

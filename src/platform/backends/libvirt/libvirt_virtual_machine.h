@@ -37,10 +37,12 @@ public:
 
     LibVirtVirtualMachine(const VirtualMachineDescription& desc, virConnectPtr connection,
                           const std::string& bridge_name, VMStatusMonitor& monitor);
+    ~LibVirtVirtualMachine();
 
     void start() override;
     void stop() override;
     void shutdown() override;
+    void suspend() override;
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
@@ -58,6 +60,7 @@ private:
     const std::string username;
     optional<IPAddress> ip;
     VMStatusMonitor* monitor;
+    bool update_suspend_status{true};
 };
 }
 

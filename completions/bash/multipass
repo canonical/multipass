@@ -47,7 +47,7 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="copy-files delete exec find help info launch list mount purge \
-                    recover shell start stop umount version"
+                    recover shell start stop suspend umount version"
 
     opts="--help --verbose"
     case "${cmd}" in
@@ -66,7 +66,7 @@ _multipass_complete()
         "mount")
             opts="${opts} --gid-map --uid-map"
         ;;
-        "recover"|"start"|"stop")
+        "recover"|"start"|"stop"|"suspend")
             opts="${opts} --all"
         ;;
     esac
@@ -86,11 +86,12 @@ _multipass_complete()
 
     if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
-            "connect"|"sh"|"shell"|"exec"|"stop")
+            "connect"|"sh"|"shell"|"exec"|"stop"|"suspend")
                 _multipass_instances "RUNNING"
             ;;
             "start")
                 _multipass_instances "STOPPED"
+                _multipass_instances "SUSPENDED"
             ;;
             "delete"|"info"|"umount"|"unmount")
                 _multipass_instances

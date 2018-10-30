@@ -46,6 +46,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    void suspend() override
+    {
+    }
+
     multipass::VirtualMachine::State current_state() override
     {
         return multipass::VirtualMachine::State::off;
