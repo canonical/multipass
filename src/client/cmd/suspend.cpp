@@ -43,14 +43,7 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
         return return_code_for(status.error_code());
     };
 
-    std::string message{"Suspending "};
-    if (request.instance_names().instance_name().empty())
-        message.append("all instances");
-    else if (request.instance_names().instance_name().size() > 1)
-        message.append("requested instances");
-    else
-        message.append(request.instance_names().instance_name().Get(0));
-    spinner.start(message);
+    spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::suspend, request, on_success, on_failure);
 }

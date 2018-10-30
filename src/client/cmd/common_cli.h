@@ -36,6 +36,7 @@ const QString format_option_name{"format"};
 ParseCode handle_all_option(ArgParser* parser);
 InstanceNames add_instance_names(ArgParser* parser);
 ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter);
+std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
 } // namespace cmd
 } // namespace multipass
 

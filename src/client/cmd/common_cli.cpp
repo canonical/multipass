@@ -68,3 +68,17 @@ mp::ParseCode cmd::handle_format_option(ArgParser* parser, Formatter** chosen_fo
 
     return ParseCode::Ok;
 }
+
+std::string cmd::instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name)
+{
+    std::string message{action_name};
+
+    if (instance_names.instance_name().empty())
+        message.append("all instances");
+    else if (instance_names.instance_name().size() > 1)
+        message.append("requested instances");
+    else
+        message.append(instance_names.instance_name().Get(0));
+
+    return message;
+}
