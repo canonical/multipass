@@ -26,13 +26,16 @@
 namespace multipass
 {
 class ArgParser;
+class Formatter;
 
 namespace cmd
 {
 const QString all_option_name{"all"};
+const QString format_option_name{"format"};
 
 ParseCode handle_all_option(ArgParser* parser);
 InstanceNames add_instance_names(ArgParser* parser);
+ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter);
 } // namespace cmd
 } // namespace multipass
 

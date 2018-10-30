@@ -19,7 +19,6 @@
 #define MULTIPASS_COMMAND_H
 
 #include <multipass/callable_traits.h>
-#include <multipass/cli/formatter.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
@@ -36,10 +35,8 @@ class Command
 {
 public:
     using UPtr = std::unique_ptr<Command>;
-    Command(grpc::Channel& channel, Rpc::Stub& stub,
-            std::map<std::string, std::unique_ptr<multipass::Formatter>>* formatters, std::ostream& cout,
-            std::ostream& cerr)
-        : rpc_channel{&channel}, stub{&stub}, formatters{formatters}, cout{cout}, cerr{cerr}
+    Command(grpc::Channel& channel, Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr)
+        : rpc_channel{&channel}, stub{&stub}, cout{cout}, cerr{cerr}
     {
     }
     virtual ~Command() = default;
@@ -97,14 +94,6 @@ protected:
         return dispatch(rpc_func, request, on_success, on_failure, [](ReplyType&) {});
     }
 
-    Formatter* formatter_for(std::string format)
-    {
-        auto entry = formatters->find(format);
-        if (entry != formatters->end())
-            return entry->second.get();
-        return nullptr;
-    }
-
     ReturnCode return_code_for(const grpc::StatusCode& code)
     {
         return code == grpc::StatusCode::UNAVAILABLE ? ReturnCode::DaemonFail : ReturnCode::CommandFail;
@@ -115,7 +104,6 @@ protected:
 
     grpc::Channel* rpc_channel;
     Rpc::Stub* stub;
-    std::map<std::string, std::unique_ptr<multipass::Formatter>>* formatters;
     std::ostream& cout;
     std::ostream& cerr;
 

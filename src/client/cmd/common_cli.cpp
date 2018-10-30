@@ -18,6 +18,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/format_utils.h>
 
 #include <fmt/format.h>
 
@@ -53,4 +54,17 @@ mp::InstanceNames cmd::add_instance_names(ArgParser* parser)
     }
 
     return instance_names;
+}
+
+mp::ParseCode cmd::handle_format_option(ArgParser* parser, Formatter** chosen_formatter)
+{
+    *chosen_formatter = mp::format::formatter_for(parser->value(format_option_name).toStdString());
+
+    if (*chosen_formatter == nullptr)
+    {
+        fmt::print(stderr, "Invalid format type given.\n");
+        return ParseCode::CommandLineError;
+    }
+
+    return ParseCode::Ok;
 }

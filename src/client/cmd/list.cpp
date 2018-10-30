@@ -16,10 +16,10 @@
  */
 
 #include "list.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
-#include <multipass/cli/json_formatter.h>
-#include <multipass/cli/table_formatter.h>
+#include <multipass/cli/formatter.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -90,14 +90,7 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    QString format_value{parser->value(formatOption)};
-    chosen_formatter = formatter_for(format_value.toStdString());
-
-    if (chosen_formatter == nullptr)
-    {
-        cerr << "Invalid format type given.\n";
-        status = ParseCode::CommandLineError;
-    }
+    status = handle_format_option(parser, &chosen_formatter);
 
     return status;
 }

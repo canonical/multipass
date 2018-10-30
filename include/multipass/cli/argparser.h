@@ -47,6 +47,7 @@ public:
     bool isSet(const QCommandLineOption& option) const;
 
     QString value(const QCommandLineOption& option) const;
+    QString value(const QString& option) const;
     QStringList values(const QCommandLineOption &option) const;
 
     QStringList positionalArguments() const;

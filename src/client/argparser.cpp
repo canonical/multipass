@@ -303,6 +303,11 @@ QString mp::ArgParser::value(const QCommandLineOption& option) const
     return parser.value(option);
 }
 
+QString mp::ArgParser::value(const QString& option) const
+{
+    return parser.value(option);
+}
+
 QStringList mp::ArgParser::values(const QCommandLineOption& option) const
 {
     return parser.values(option);
