@@ -1457,7 +1457,7 @@ try // clang-format on
 
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_suspend;
-    for (const auto& name : request->instance_name())
+    for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())

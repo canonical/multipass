@@ -16,6 +16,7 @@
  */
 
 #include "suspend.h"
+#include "common_cli.h"
 
 #include "animated_spinner.h"
 
@@ -43,12 +44,12 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
     };
 
     std::string message{"Suspending "};
-    if (request.instance_name().empty())
+    if (request.instance_names().instance_name().empty())
         message.append("all instances");
-    else if (request.instance_name().size() > 1)
+    else if (request.instance_names().instance_name().size() > 1)
         message.append("requested instances");
     else
-        message.append(request.instance_name().Get(0));
+        message.append(request.instance_names().instance_name().Get(0));
     spinner.start(message);
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::suspend, request, on_success, on_failure);
@@ -81,27 +82,11 @@ mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = handle_all_option(parser);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
-
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     return status;
 }

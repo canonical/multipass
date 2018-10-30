@@ -301,7 +301,7 @@ message StopReply {
 }
 
 message SuspendRequest {
-    repeated string instance_name = 1;
+    InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
 }
 
