@@ -19,6 +19,7 @@
 #define MULTIPASS_COMMON_CLI_H
 
 #include <multipass/cli/return_codes.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <QString>
 
@@ -31,6 +32,7 @@ namespace cmd
 const QString all_option_name{"all"};
 
 ParseCode handle_all_option(ArgParser* parser);
+InstanceNames add_instance_names(ArgParser* parser);
 } // namespace cmd
 } // namespace multipass
 

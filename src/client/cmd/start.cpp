@@ -76,12 +76,12 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     };
 
     std::string message{"Starting "};
-    if (request.instance_name().empty())
+    if (request.instance_names().instance_name().empty())
         message.append("all instances");
-    else if (request.instance_name().size() > 1)
+    else if (request.instance_names().instance_name().size() > 1)
         message.append("requested instances");
     else
-        message.append(request.instance_name().Get(0));
+        message.append(request.instance_names().instance_name().Get(0));
     spinner.start(message);
 
     request.set_verbosity_level(parser->verbosityLevel());
@@ -117,11 +117,7 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     return status;
 }

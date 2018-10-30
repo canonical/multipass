@@ -135,8 +135,12 @@ message FindReply {
     string log_line = 2;
 }
 
-message InfoRequest {
+message InstanceNames {
     repeated string instance_name = 1;
+}
+
+message InfoRequest {
+    InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
 }
 
@@ -240,7 +244,7 @@ message PingReply {
 }
 
 message RecoverRequest {
-    repeated string instance_name = 1;
+    InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
 }
 
@@ -277,7 +281,7 @@ message StartError {
 }
 
 message StartRequest {
-    repeated string instance_name = 1;
+    InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
 }
 
@@ -286,7 +290,7 @@ message StartReply {
 }
 
 message StopRequest {
-    repeated string instance_name = 1;
+    InstanceNames instance_names = 1;
     int32 time_minutes = 2;
     bool cancel_shutdown = 3;
     int32 verbosity_level = 4;
@@ -306,7 +310,7 @@ message SuspendReply {
 }
 
 message DeleteRequest {
-    repeated string instance_name = 1;
+    InstanceNames instance_names = 1;
     bool purge = 2;
     int32 verbosity_level = 3;
 }

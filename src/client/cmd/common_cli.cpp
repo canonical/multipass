@@ -41,3 +41,16 @@ mp::ParseCode cmd::handle_all_option(ArgParser* parser)
 
     return ParseCode::Ok;
 }
+
+mp::InstanceNames cmd::add_instance_names(ArgParser* parser)
+{
+    InstanceNames instance_names;
+
+    for (const auto& arg : parser->positionalArguments())
+    {
+        auto instance_name = instance_names.add_instance_name();
+        instance_name->append(arg.toStdString());
+    }
+
+    return instance_names;
+}

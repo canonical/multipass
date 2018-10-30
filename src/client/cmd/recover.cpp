@@ -72,11 +72,7 @@ mp::ParseCode cmd::Recover::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     return status;
 }
