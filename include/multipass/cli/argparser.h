@@ -43,6 +43,7 @@ public:
     cmd::Command* chosenCommand() const;
     cmd::Command* findCommand(const QString& command) const;
 
+    bool isSet(const QString& option) const;
     bool isSet(const QCommandLineOption& option) const;
 
     QString value(const QCommandLineOption& option) const;

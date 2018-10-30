@@ -16,6 +16,7 @@
  */
 
 #include "delete.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -62,7 +63,7 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to delete", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Delete all instances");
+    QCommandLineOption all_option(all_option_name, "Delete all instances");
     parser->addOption(all_option);
 
     QCommandLineOption purge_option({"p", "purge"}, "Purge instances immediately");
@@ -72,21 +73,9 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
-
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = handle_all_option(parser);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
     for (const auto& arg : parser->positionalArguments())
     {

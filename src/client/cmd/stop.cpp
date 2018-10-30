@@ -16,6 +16,7 @@
  */
 
 #include "stop.h"
+#include "common_cli.h"
 
 #include "animated_spinner.h"
 
@@ -74,7 +75,7 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to stop", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Stop all instances");
+    QCommandLineOption all_option(all_option_name, "Stop all instances");
     QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
                                    "time", "0");
     QCommandLineOption cancel_option({"c", "cancel"}, "Cancel a pending delayed shutdown");
@@ -84,21 +85,9 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
-
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = handle_all_option(parser);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
     if (parser->isSet(time_option) && parser->isSet(cancel_option))
     {

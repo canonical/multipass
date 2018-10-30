@@ -16,6 +16,7 @@
  */
 
 #include "start.h"
+#include "common_cli.h"
 #include "exec.h"
 
 #include "animated_spinner.h"
@@ -105,28 +106,16 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to start", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Start all instances");
+    QCommandLineOption all_option(all_option_name, "Start all instances");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
-
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = handle_all_option(parser);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
     for (const auto& arg : parser->positionalArguments())
     {

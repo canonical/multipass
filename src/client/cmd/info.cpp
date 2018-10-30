@@ -13,11 +13,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *
  */
 
 #include "info.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/json_formatter.h>
@@ -66,7 +65,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to display information about", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Display info for all instances");
+    QCommandLineOption all_option(all_option_name, "Display info for all instances");
     parser->addOption(all_option);
 
     QCommandLineOption formatOption(
@@ -81,21 +80,9 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
-
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = handle_all_option(parser);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
     for (const auto& arg : parser->positionalArguments())
     {

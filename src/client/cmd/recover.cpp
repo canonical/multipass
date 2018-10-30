@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include "recover.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -60,28 +61,16 @@ mp::ParseCode cmd::Recover::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to recover", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Recover all deleted instances");
+    QCommandLineOption all_option(all_option_name, "Recover all deleted instances");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
-
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = handle_all_option(parser);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
     for (const auto& arg : parser->positionalArguments())
     {

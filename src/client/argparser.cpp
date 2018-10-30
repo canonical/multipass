@@ -288,6 +288,11 @@ cmd::Command* mp::ArgParser::findCommand(const QString& command) const
     return nullptr;
 }
 
+bool mp::ArgParser::isSet(const QString& option) const
+{
+    return parser.isSet(option);
+}
+
 bool mp::ArgParser::isSet(const QCommandLineOption& option) const
 {
     return parser.isSet(option);
