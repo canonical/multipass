@@ -25,6 +25,14 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+mp::ReturnCode return_code_for(const grpc::StatusCode& code)
+{
+    return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
+}
+} // namespace
+
 mp::ParseCode cmd::handle_all_option(ArgParser* parser)
 {
     auto num_names = parser->positionalArguments().count();
@@ -81,4 +89,12 @@ std::string cmd::instance_action_message_for(const InstanceNames& instance_names
         message.append(instance_names.instance_name().Get(0));
 
     return message;
+}
+
+mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, const grpc::Status& status,
+                                                 const std::string& error_details)
+{
+    fmt::print(stderr, "{} failed: {}\n{}", command, status.error_message(), error_details);
+
+    return return_code_for(status.error_code());
 }

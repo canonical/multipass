@@ -34,10 +34,7 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 
     auto on_success = [](mp::DeleteReply& reply) { return mp::ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "delete failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::delet, request, on_success, on_failure);

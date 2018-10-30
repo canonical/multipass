@@ -39,10 +39,7 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "list failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), status); };
 
     ListRequest request;
     request.set_verbosity_level(parser->verbosityLevel());

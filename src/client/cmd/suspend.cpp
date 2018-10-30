@@ -39,8 +39,7 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        cerr << "suspend failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
+        return standard_failure_handler_for(name(), status);
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));

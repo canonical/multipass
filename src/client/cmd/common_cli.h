@@ -37,6 +37,8 @@ ParseCode handle_all_option(ArgParser* parser);
 InstanceNames add_instance_names(ArgParser* parser);
 ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter);
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
+ReturnCode standard_failure_handler_for(const std::string& command, const grpc::Status& status,
+                                        const std::string& error_details = std::string());
 } // namespace cmd
 } // namespace multipass
 

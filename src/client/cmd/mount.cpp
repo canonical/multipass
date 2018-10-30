@@ -16,6 +16,7 @@
  */
 
 #include "mount.h"
+#include "common_cli.h"
 #include "exec.h"
 
 #include <multipass/cli/argparser.h>
@@ -63,8 +64,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &parser](grpc::Status& status) {
-        cerr << "mount failed: " << status.error_message() << "\n";
-
+        std::string error_details;
         if (!status.error_details().empty())
         {
             mp::MountError mount_error;
@@ -72,14 +72,15 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
             if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
             {
-                cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing...\n";
+                error_details =
+                    fmt::format("The sshfs package is missing in \"{}\". Installing...\n", mount_error.instance_name());
 
                 if (install_sshfs(mount_error.instance_name(), parser->verbosityLevel()) == mp::ReturnCode::Ok)
-                    cerr << "\n***Please re-run the mount command.\n";
+                    error_details += fmt::format("\n***Please re-run the mount command.\n");
             }
         }
 
-        return return_code_for(status.error_code());
+        return standard_failure_handler_for(name(), status, error_details);
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
@@ -253,10 +254,7 @@ mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name, int v
 
     auto on_success = [this, &args](mp::SSHInfoReply& reply) { return cmd::Exec::exec_success(reply, args, cerr); };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "exec failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for("exec", status); };
 
     request.set_verbosity_level(verbosity_level);
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);

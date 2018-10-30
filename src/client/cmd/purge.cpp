@@ -16,6 +16,7 @@
  */
 
 #include "purge.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -33,10 +34,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
 
     auto on_success = [](mp::PurgeReply& reply) { return mp::ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "purge failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), status); };
 
     mp::PurgeRequest request;
     request.set_verbosity_level(parser->verbosityLevel());

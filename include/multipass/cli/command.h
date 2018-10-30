@@ -94,11 +94,6 @@ protected:
         return dispatch(rpc_func, request, on_success, on_failure, [](ReplyType&) {});
     }
 
-    ReturnCode return_code_for(const grpc::StatusCode& code)
-    {
-        return code == grpc::StatusCode::UNAVAILABLE ? ReturnCode::DaemonFail : ReturnCode::CommandFail;
-    }
-
     Command(const Command&) = delete;
     Command& operator=(const Command&) = delete;
 

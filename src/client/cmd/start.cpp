@@ -23,6 +23,8 @@
 
 #include <multipass/cli/argparser.h>
 
+#include <fmt/format.h>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
@@ -42,7 +44,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        cerr << "start failed: " << status.error_message() << "\n";
+        std::string error_details;
         if (!status.error_details().empty())
         {
             if (status.error_code() == grpc::StatusCode::ABORTED)
@@ -52,8 +54,9 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
                 if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
                 {
-                    cerr << "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                            "instance.\n";
+                    error_details = fmt::format(
+                        "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
+                        "instance.\n");
                 }
             }
             else
@@ -63,16 +66,16 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
                 if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
                 {
-                    cerr << "The sshfs package is missing in \"" << mount_error.instance_name()
-                         << "\". Installing...\n";
+                    error_details = fmt::format("The sshfs package is missing in \"{}\". Installing...\n",
+                                                mount_error.instance_name());
 
                     if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
-                        cerr << "\n***Please restart the instance to enable mount(s).\n";
+                        error_details += fmt::format("\n***Please re-run the mount command.\n");
                 }
             }
         }
 
-        return return_code_for(status.error_code());
+        return standard_failure_handler_for(name(), status, error_details);
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
@@ -124,10 +127,7 @@ mp::ReturnCode cmd::Start::install_sshfs(const std::string& instance_name)
 
     auto on_success = [this, &args](mp::SSHInfoReply& reply) { return cmd::Exec::exec_success(reply, args, cerr); };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "exec failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for("exec", status); };
 
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }
