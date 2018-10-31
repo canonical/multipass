@@ -16,6 +16,7 @@
  */
 
 #include "restart.h"
+#include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -25,24 +26,33 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-// TODO @ricab implement this just like any other command and delegate on the server
-
 mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
-{
+{   // This code should probably be factored out (for multiple commands)
     auto ret = parse_args(parser);
     if(ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
-    Command * stop_cmd = parser->findCommand(QStringLiteral("stop"));
-    Command * start_cmd = parser->findCommand(QStringLiteral("start"));
-    assert(stop_cmd && start_cmd); /* The restart command is tightly coupled
-    with stop and start commands. The alternative would require either
-    significant refactoring or code duplication. */
+    auto on_success = [](mp::RestartReply& reply) {
+        return ReturnCode::Ok;
+    };
 
-    auto stop_ret = stop_cmd->run(parser);
-    return stop_ret == ReturnCode::Ok ? start_cmd->run(parser) : stop_ret; /*
-    The argument sequences that are acceptable in a restart command are also
-    acceptable to both stop and start commands. */
+    AnimatedSpinner spinner{cout};
+    auto on_failure = [this, &spinner](grpc::Status& status) {
+        spinner.stop();
+        cerr << "restart failed: " << status.error_message() << "\n";
+        return return_code_for(status.error_code());
+    };
+
+    std::string message{"Restarting "};
+    if (request.instance_name().empty())
+        message.append("all instances");
+    else if (request.instance_name().size() > 1)
+        message.append("requested instances");
+    else
+        message.append(request.instance_name().Get(0));
+    spinner.start(message);
+    request.set_verbosity_level(parser->verbosityLevel());
+    return dispatch(&RpcMethod::restart, request, on_success, on_failure);
 }
 
 std::string cmd::Restart::name() const { return "restart"; }
@@ -87,6 +97,11 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    return ParseCode::Ok; /* We are done with checks and that is all we need in
-                             the reset command */
+    for (const auto& arg : parser->positionalArguments())
+    {
+        auto entry = request.add_instance_name();
+        entry->append(arg.toStdString());
+    }
+
+    return status;
 }
