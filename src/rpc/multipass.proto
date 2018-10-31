@@ -29,6 +29,7 @@ service Rpc {
     rpc start (StartRequest) returns (stream StartReply);
     rpc stop (StopRequest) returns (stream StopReply);
     rpc suspend (SuspendRequest) returns (stream SuspendReply);
+    // TODO @ricab add restart rpc
     rpc delet (DeleteRequest) returns (stream DeleteReply);
     rpc umount (UmountRequest) returns (stream UmountReply);
     rpc version (VersionRequest) returns (stream VersionReply);
@@ -284,6 +285,8 @@ message StartRequest {
 message StartReply {
     string log_line = 1;
 }
+
+// TODO @ricab create and use restart's request, and reply, see if starterror can be reused
 
 message StopRequest {
     repeated string instance_name = 1;

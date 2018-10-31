@@ -25,6 +25,8 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
+// TODO @ricab implement this just like any other command and delegate on the server
+
 mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);

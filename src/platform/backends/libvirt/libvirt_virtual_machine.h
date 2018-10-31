@@ -29,6 +29,7 @@ namespace multipass
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
+// TODO @ricab decide what to do about this
 class LibVirtVirtualMachine final : public VirtualMachine
 {
 public:

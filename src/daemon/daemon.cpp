@@ -375,6 +375,7 @@ auto get_metrics_opt_in(const mp::Path& data_path)
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
+    // TODO @ricab provide restart rpc
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find, Qt::BlockingQueuedConnection);
@@ -892,7 +893,7 @@ try // clang-format on
                 case mp::VirtualMachine::State::starting:
                     return mp::InstanceStatus::STARTING;
                 case mp::VirtualMachine::State::restarting:
-                    return mp::InstanceStatus::RESTARTING;
+                    return mp::InstanceStatus::RESTARTING; // TODO @ricab confirm this is enough
                 case mp::VirtualMachine::State::running:
                     return mp::InstanceStatus::RUNNING;
                 case mp::VirtualMachine::State::delayed_shutdown:
@@ -1021,7 +1022,7 @@ try // clang-format on
         case mp::VirtualMachine::State::starting:
             return mp::InstanceStatus::STARTING;
         case mp::VirtualMachine::State::restarting:
-            return mp::InstanceStatus::RESTARTING;
+            return mp::InstanceStatus::RESTARTING; // TODO @ricab confirm this is enough
         case mp::VirtualMachine::State::running:
             return mp::InstanceStatus::RUNNING;
         case mp::VirtualMachine::State::delayed_shutdown:
@@ -1504,6 +1505,8 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
+// TODO @ricab implement restart
+
 grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                grpc::ServerWriter<DeleteReply>* server) // clang-format off
 try // clang-format on
@@ -1676,6 +1679,7 @@ void mp::Daemon::on_suspend()
     emit suspend_finished();
 }
 
+// TODO @ricab hmm check how this applies and whether it is enough (no restart signal needed? - perhaps try without)
 void mp::Daemon::on_restart(const std::string& name)
 {
     auto& vm = vm_instances[name];

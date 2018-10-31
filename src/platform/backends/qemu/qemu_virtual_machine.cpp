@@ -365,7 +365,7 @@ void mp::QemuVirtualMachine::on_suspend()
 }
 
 void mp::QemuVirtualMachine::on_restart()
-{
+{   // TODO @ricab confirm this is enough
     state = State::restarting;
     update_state();
 

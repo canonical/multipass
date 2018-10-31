@@ -257,3 +257,6 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));
 }
+
+// TODO @ricab test restart also sends monitoring event
+// TODO @ricab test commands while restarting... decide what happens...

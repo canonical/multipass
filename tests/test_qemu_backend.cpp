@@ -72,6 +72,9 @@ TEST_F(QemuBackend, machine_sends_monitoring_events)
     EXPECT_CALL(mock_monitor, persist_state_for(_)).Times(AtLeast(1));
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
+
+    // TODO @ricab test restart also sends monitoring event
+    // TODO @ricab test commands while restarting... decide what happens...
 }
 
 TEST_F(QemuBackend, throws_when_starting_while_suspending)

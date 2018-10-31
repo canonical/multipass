@@ -65,6 +65,7 @@ signals:
                          grpc::ServerWriter<StopReply>* response);
     grpc::Status on_suspend(grpc::ServerContext* context, const SuspendRequest* request,
                             grpc::ServerWriter<SuspendReply>* response);
+    // TODO @ricab add and implement on_restart
     grpc::Status on_delete(grpc::ServerContext* context, const DeleteRequest* request,
                            grpc::ServerWriter<DeleteReply>* response);
     grpc::Status on_umount(grpc::ServerContext* context, const UmountRequest* request,
@@ -99,6 +100,7 @@ protected:
                       grpc::ServerWriter<StopReply>* response) override;
     grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
                          grpc::ServerWriter<SuspendReply>* response) override;
+    // TODO @ricab add and implement restart
     grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
                        grpc::ServerWriter<DeleteReply>* response) override;
     grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request,
