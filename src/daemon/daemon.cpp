@@ -1245,7 +1245,7 @@ try // clang-format on
                                 "");
         }
 
-        if (it->second->current_state() != mp::VirtualMachine::State::running)
+        if (!it->second->is_running())
         {
             return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
                                 fmt::format("instance \"{}\" is not running", name), "");
