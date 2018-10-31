@@ -107,6 +107,9 @@ public slots:
     grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
                          grpc::ServerWriter<SuspendReply>* response) override;
 
+    grpc::Status restart(grpc::ServerContext* context, const RestartRequest* request,
+                         grpc::ServerWriter<RestartReply>* response) override;
+
     grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
                        grpc::ServerWriter<DeleteReply>* response) override;
 

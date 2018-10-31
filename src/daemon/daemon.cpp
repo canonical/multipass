@@ -375,7 +375,6 @@ auto get_metrics_opt_in(const mp::Path& data_path)
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
-    // TODO @ricab provide restart rpc
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find, Qt::BlockingQueuedConnection);
@@ -387,6 +386,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_suspend, &daemon, &mp::Daemon::suspend, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_restart, &daemon, &mp::Daemon::restart, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
@@ -1266,6 +1266,12 @@ try // clang-format on
 catch (const std::exception& e)
 {
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
+grpc::Status mp::Daemon::restart(grpc::ServerContext* context, const RestartRequest* request,
+                                 grpc::ServerWriter<RestartReply>* server) // clang-format off
+{
+    return grpc::Status::OK; // TODO ricab
 }
 
 grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest* request,

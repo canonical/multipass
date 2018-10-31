@@ -161,7 +161,7 @@ struct Daemon : public Test
                 {
                     args << QString::fromStdString(arg);
                 }
-                client.run(args); // TODO @ricab needs the command on the client
+                client.run(args);
             }
             loop.quit();
         });
