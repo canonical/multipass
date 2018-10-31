@@ -69,6 +69,7 @@ protected:
     void on_resume() override;
     void on_stop() override;
     void on_shutdown() override;
+    void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name) override;
 
@@ -103,6 +104,9 @@ public slots:
     grpc::Status stop(grpc::ServerContext* context, const StopRequest* request,
                       grpc::ServerWriter<StopReply>* response) override;
 
+    grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                         grpc::ServerWriter<SuspendReply>* response) override;
+
     grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
                        grpc::ServerWriter<DeleteReply>* response) override;
 
@@ -111,6 +115,9 @@ public slots:
 
     grpc::Status version(grpc::ServerContext* context, const VersionRequest* request,
                          grpc::ServerWriter<VersionReply>* response) override;
+
+signals:
+    void suspend_finished();
 
 private:
     void persist_instances();
