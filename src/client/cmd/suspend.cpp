@@ -39,7 +39,7 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        return standard_failure_handler_for(name(), status);
+        return standard_failure_handler_for(name(), cerr, status);
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));
@@ -74,7 +74,7 @@ mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = handle_all_option(parser);
+    auto parse_code = handle_all_option(parser, cerr);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 

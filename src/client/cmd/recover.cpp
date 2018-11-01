@@ -36,7 +36,7 @@ mp::ReturnCode cmd::Recover::run(mp::ArgParser* parser)
         return mp::ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), status); };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::recover, request, on_success, on_failure);
@@ -65,7 +65,7 @@ mp::ParseCode cmd::Recover::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = handle_all_option(parser);
+    auto parse_code = handle_all_option(parser, cerr);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 

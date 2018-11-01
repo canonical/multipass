@@ -21,9 +21,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
 
-#include <fmt/format.h>
-
-#include <sstream>
+#include <fmt/ostream.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -36,18 +34,18 @@ mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 }
 } // namespace
 
-mp::ParseCode cmd::handle_all_option(ArgParser* parser)
+mp::ParseCode cmd::handle_all_option(ArgParser* parser, std::ostream& cerr)
 {
     auto num_names = parser->positionalArguments().count();
     if (num_names == 0 && !parser->isSet(all_option_name))
     {
-        fmt::print(stderr, "Name argument or --all is required\n");
+        fmt::print(cerr, "Name argument or --all is required\n");
         return ParseCode::CommandLineError;
     }
 
     if (num_names > 0 && parser->isSet(all_option_name))
     {
-        fmt::print(stderr, "Cannot specify name{} when --all option set\n", num_names > 1 ? "s" : "");
+        fmt::print(cerr, "Cannot specify name{} when --all option set\n", num_names > 1 ? "s" : "");
         return ParseCode::CommandLineError;
     }
 
@@ -67,13 +65,13 @@ mp::InstanceNames cmd::add_instance_names(ArgParser* parser)
     return instance_names;
 }
 
-mp::ParseCode cmd::handle_format_option(ArgParser* parser, Formatter** chosen_formatter)
+mp::ParseCode cmd::handle_format_option(ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr)
 {
     *chosen_formatter = mp::format::formatter_for(parser->value(format_option_name).toStdString());
 
     if (*chosen_formatter == nullptr)
     {
-        fmt::print(stderr, "Invalid format type given.\n");
+        fmt::print(cerr, "Invalid format type given.\n");
         return ParseCode::CommandLineError;
     }
 
@@ -94,20 +92,19 @@ std::string cmd::instance_action_message_for(const InstanceNames& instance_names
     return message;
 }
 
-mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, const grpc::Status& status,
-                                                 const std::string& error_details)
+mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std::ostream& cerr,
+                                                 const grpc::Status& status, const std::string& error_details)
 {
-    fmt::print(stderr, "{} failed: {}\n{}", command, status.error_message(), error_details);
+    fmt::print(cerr, "{} failed: {}\n{}", command, status.error_message(), error_details);
 
     return return_code_for(status.error_code());
 }
 
 mp::ReturnCode cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                                      Rpc::Stub* stub)
+                                      Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr)
 {
-    std::stringstream null_stream;
     std::vector<Command::UPtr> command;
-    command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, null_stream, null_stream));
+    command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, cout, cerr));
 
     auto args = QStringList() << ""
                               << "exec" << QString::fromStdString(instance_name) << "--"
@@ -115,7 +112,7 @@ mp::ReturnCode cmd::install_sshfs_for(const std::string& instance_name, int verb
                               << "bash"
                               << "-c"
                               << "apt update && apt install -y sshfs";
-    ArgParser exec_parser{args, command, null_stream, null_stream};
+    ArgParser exec_parser{args, command, cout, cerr};
     exec_parser.parse();
 
     return exec_parser.chosenCommand()->run(&exec_parser);

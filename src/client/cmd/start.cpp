@@ -69,14 +69,14 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
                     error_details = fmt::format("The sshfs package is missing in \"{}\". Installing...\n",
                                                 mount_error.instance_name());
 
-                    if (cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel,
-                                               stub) == mp::ReturnCode::Ok)
+                    if (cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub,
+                                               cout, cerr) == mp::ReturnCode::Ok)
                         error_details += fmt::format("\n***Please re-run the mount command.\n");
                 }
             }
         }
 
-        return standard_failure_handler_for(name(), status, error_details);
+        return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
@@ -109,7 +109,7 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = handle_all_option(parser);
+    auto parse_code = handle_all_option(parser, cerr);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 

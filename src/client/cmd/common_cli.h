@@ -35,14 +35,14 @@ namespace cmd
 const QString all_option_name{"all"};
 const QString format_option_name{"format"};
 
-ParseCode handle_all_option(ArgParser* parser);
+ParseCode handle_all_option(ArgParser* parser, std::ostream& cerr);
 InstanceNames add_instance_names(ArgParser* parser);
-ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter);
+ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr);
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
-ReturnCode standard_failure_handler_for(const std::string& command, const grpc::Status& status,
+ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr, const grpc::Status& status,
                                         const std::string& error_details = std::string());
 ReturnCode install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                             Rpc::Stub* stub);
+                             Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr);
 } // namespace cmd
 } // namespace multipass
 

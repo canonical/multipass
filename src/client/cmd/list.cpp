@@ -39,7 +39,7 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), status); };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     ListRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
@@ -87,7 +87,7 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    status = handle_format_option(parser, &chosen_formatter);
+    status = handle_format_option(parser, &chosen_formatter, cerr);
 
     return status;
 }

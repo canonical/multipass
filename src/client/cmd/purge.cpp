@@ -34,7 +34,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
 
     auto on_success = [](mp::PurgeReply& reply) { return mp::ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), status); };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     mp::PurgeRequest request;
     request.set_verbosity_level(parser->verbosityLevel());

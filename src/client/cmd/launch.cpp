@@ -258,7 +258,7 @@ mp::ReturnCode cmd::Launch::request_launch()
             }
         }
 
-        return standard_failure_handler_for(name(), status, error_details);
+        return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
     auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {
