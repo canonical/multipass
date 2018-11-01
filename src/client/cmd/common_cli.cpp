@@ -100,8 +100,8 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std
     return return_code_for(status.error_code());
 }
 
-mp::ReturnCode cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                                      Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr)
+void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
+                            Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr)
 {
     std::vector<Command::UPtr> command;
     command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, cout, cerr));
@@ -115,5 +115,7 @@ mp::ReturnCode cmd::install_sshfs_for(const std::string& instance_name, int verb
     ArgParser exec_parser{args, command, cout, cerr};
     exec_parser.parse();
 
-    return exec_parser.chosenCommand()->run(&exec_parser);
+    fmt::print(cerr, "The sshfs package is missing in \"{}\". Installing...\n", instance_name);
+    if (exec_parser.chosenCommand()->run(&exec_parser) == mp::ReturnCode::Ok)
+        fmt::print(cerr, "\n***Please re-run the mount command.\n");
 }

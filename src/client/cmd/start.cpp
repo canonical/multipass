@@ -23,7 +23,7 @@
 
 #include <multipass/cli/argparser.h>
 
-#include <fmt/format.h>
+#include <fmt/ostream.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -44,7 +44,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner, &parser](grpc::Status& status) {
         spinner.stop();
-        std::string error_details;
+        auto ret = standard_failure_handler_for(name(), cerr, status);
         if (!status.error_details().empty())
         {
             if (status.error_code() == grpc::StatusCode::ABORTED)
@@ -54,9 +54,9 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
                 if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
                 {
-                    error_details = fmt::format(
-                        "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                        "instance.\n");
+                    fmt::print(cerr,
+                               "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
+                               "instance.\n");
                 }
             }
             else
@@ -66,17 +66,13 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
                 if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
                 {
-                    error_details = fmt::format("The sshfs package is missing in \"{}\". Installing...\n",
-                                                mount_error.instance_name());
-
-                    if (cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub,
-                                               cout, cerr) == mp::ReturnCode::Ok)
-                        error_details += fmt::format("\n***Please re-run the mount command.\n");
+                    cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub,
+                                           cout, cerr);
                 }
             }
         }
 
-        return standard_failure_handler_for(name(), cerr, status, error_details);
+        return ret;
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
