@@ -59,6 +59,7 @@ public:
     void forceCommandHelp();
     void forceGeneralHelp();
 
+    void setVerbosityLevel(int verbosity);
     int verbosityLevel() const;
 
 private:

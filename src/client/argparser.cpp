@@ -325,6 +325,18 @@ QStringList mp::ArgParser::positionalArguments() const
     return positionalArguments;
 }
 
+void mp::ArgParser::setVerbosityLevel(int verbosity)
+{
+    if (verbosity > 3 || verbosity < 0)
+    {
+        cerr << "Verbosity level is incorrect. Must be between 0 and 3.\n";
+    }
+    else if (verbosity_level != verbosity)
+    {
+        verbosity_level = verbosity;
+    }
+}
+
 int mp::ArgParser::verbosityLevel() const
 {
     return verbosity_level;

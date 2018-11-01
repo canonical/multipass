@@ -113,6 +113,7 @@ void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_leve
                               << "-c"
                               << "apt update && apt install -y sshfs";
     ArgParser exec_parser{args, command, cout, cerr};
+    exec_parser.setVerbosityLevel(verbosity_level);
     exec_parser.parse();
 
     fmt::print(cerr, "The sshfs package is missing in \"{}\". Installing...\n", instance_name);
