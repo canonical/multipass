@@ -91,6 +91,11 @@ void mp::HyperkitVirtualMachine::shutdown()
     stop();
 }
 
+void mp::HyperkitVirtualMachine::suspend()
+{
+    throw std::runtime_error("suspend is currently not supported");
+}
+
 void mp::HyperkitVirtualMachine::on_start()
 {
     state = State::starting;
