@@ -94,6 +94,11 @@ void mp::HyperVVirtualMachine::shutdown()
     stop();
 }
 
+void mp::HyperVVirtualMachine::suspend()
+{
+    throw std::runtime_error("suspend is currently not supported");
+}
+
 mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 {
     return state;
