@@ -154,6 +154,12 @@ grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context, const StopRequest
     return emit on_stop(context, request, response); // must block until slot returns
 }
 
+grpc::Status mp::DaemonRpc::suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                                    grpc::ServerWriter<SuspendReply>* response)
+{
+    return emit on_suspend(context, request, response); // must block until slot returns
+}
+
 grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                   grpc::ServerWriter<DeleteReply>* response)
 {

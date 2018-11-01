@@ -92,4 +92,6 @@ add_c_mocks(
   virDomainGetState
   virDomainCreate
   virDomainShutdown
+  virDomainManagedSave
+  virDomainHasManagedSaveImage
 )

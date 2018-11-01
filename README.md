@@ -41,6 +41,7 @@ Here's a set of steps to build and run your own build of multipass:
 ## Build Dependencies
 
 ```
+cd <multipass>
 apt install devscripts equivs
 mk-build-deps -s sudo -i
 ```
