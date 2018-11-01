@@ -16,11 +16,14 @@
  */
 
 #include "common_cli.h"
+#include "exec.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
 
 #include <fmt/format.h>
+
+#include <sstream>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -97,4 +100,23 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, con
     fmt::print(stderr, "{} failed: {}\n{}", command, status.error_message(), error_details);
 
     return return_code_for(status.error_code());
+}
+
+mp::ReturnCode cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
+                                      Rpc::Stub* stub)
+{
+    std::stringstream null_stream;
+    std::vector<Command::UPtr> command;
+    command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, null_stream, null_stream));
+
+    auto args = QStringList() << ""
+                              << "exec" << QString::fromStdString(instance_name) << "--"
+                              << "sudo"
+                              << "bash"
+                              << "-c"
+                              << "apt update && apt install -y sshfs";
+    ArgParser exec_parser{args, command, null_stream, null_stream};
+    exec_parser.parse();
+
+    return exec_parser.chosenCommand()->run(&exec_parser);
 }

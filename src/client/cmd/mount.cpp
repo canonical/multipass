@@ -75,7 +75,8 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
                 error_details =
                     fmt::format("The sshfs package is missing in \"{}\". Installing...\n", mount_error.instance_name());
 
-                if (install_sshfs(mount_error.instance_name(), parser->verbosityLevel()) == mp::ReturnCode::Ok)
+                if (cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub) ==
+                    mp::ReturnCode::Ok)
                     error_details += fmt::format("\n***Please re-run the mount command.\n");
             }
         }
@@ -242,20 +243,4 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     }
 
     return ParseCode::Ok;
-}
-
-mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name, int verbosity_level)
-{
-    SSHInfoRequest request;
-    auto entry = request.add_instance_name();
-    entry->append(instance_name);
-
-    std::vector<std::string> args{"sudo", "bash", "-c", "apt update && apt install -y sshfs"};
-
-    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return cmd::Exec::exec_success(reply, args, cerr); };
-
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for("exec", status); };
-
-    request.set_verbosity_level(verbosity_level);
-    return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }
