@@ -15,37 +15,34 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_SERVER_H
-#define MULTIPASS_DNSMASQ_SERVER_H
+#ifndef DNSMASQ_PROCESS_H
+#define DNSMASQ_PROCESS_H
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
 
+#include "apparmored_process.h"
+
 #include <QDir>
 
-#include <memory>
-#include <string>
-
-#include "dnsmasq_process.h"
-
-namespace multipass
+class DNSMasqProcess : public AppArmoredProcess
 {
-class DNSMasqServer
-{
+    Q_OBJECT
 public:
-    DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr, const IPAddress& start,
-                  const IPAddress& end);
-    DNSMasqServer(DNSMasqServer&& other) = default;
-    ~DNSMasqServer();
+    explicit DNSMasqProcess(const QDir& data_dir, const QString& bridge_name, const multipass::IPAddress& bridge_addr,
+                    const multipass::IPAddress& start_ip, const multipass::IPAddress& end_ip);
 
-    optional<IPAddress> get_ip_for(const std::string& hw_addr);
-    void release_mac(const std::string& hw_addr);
+    QString program() const override;
+    QStringList arguments() const override;
+    QString apparmor_profile() const override;
 
 private:
     const QDir data_dir;
-    std::unique_ptr<DNSMasqProcess> dnsmasq_cmd;
-    QString bridge_name;
+    const QString bridge_name;
+    const multipass::IPAddress bridge_addr;
+    const multipass::IPAddress start_ip;
+    const multipass::IPAddress end_ip;
 };
-} // namespace multipass
-#endif // MULTIPASS_DNSMASQ_SERVER_H
+
+#endif // DNSMASQ_PROCESS_H

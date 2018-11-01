@@ -22,7 +22,7 @@
 #include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 
-class QProcess;
+class QemuProcess;
 class QFile;
 class QString;
 
@@ -64,7 +64,7 @@ private:
     const std::string username;
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
-    std::unique_ptr<QProcess> vm_process;
+    std::unique_ptr<QemuProcess> vm_process;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
 };

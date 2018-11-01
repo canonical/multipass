@@ -23,49 +23,23 @@
 #include <fmt/format.h>
 
 #include <fstream>
+
+#include "dhcp_release_process.h"
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-
-namespace
-{
-auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
-                           const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
-{
-    QString pid;
-    auto snap_common = qgetenv("SNAP_COMMON");
-    if (!snap_common.isEmpty()) {
-        pid = QString("--pid-file=%1/dnsmasq.pid").arg(QString(snap_common));
-    }
-    auto cmd = std::make_unique<QProcess>();
-
-    QObject::connect(cmd.get(), &QProcess::readyReadStandardError,
-                     [&cmd]() { mpl::log(mpl::Level::error, "dnsmasq", cmd->readAllStandardError().data()); });
-
-    cmd->start("dnsmasq",
-               QStringList() << "--keep-in-foreground" << pid
-                             << "--strict-order"
-                             << "--bind-interfaces"
-                             << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
-                             << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
-                             << "--dhcp-no-override"
-                             << "--dhcp-authoritative"
-                             << QString("--dhcp-leasefile=%1").arg(data_dir.filePath("dnsmasq.leases"))
-                             << QString("--dhcp-hostsfile=%1").arg(data_dir.filePath("dnsmasq.hosts")) << "--dhcp-range"
-                             << QString("%1,%2,infinite")
-                                    .arg(QString::fromStdString(start_ip.as_string()))
-                                    .arg(QString::fromStdString(end_ip.as_string())));
-
-    cmd->waitForStarted();
-    return cmd;
-}
-} // namespace
 
 mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
                                  const IPAddress& start, const IPAddress& end)
     : data_dir{QDir(path)},
-      dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_name, bridge_addr, start, end)},
+      dnsmasq_cmd{std::make_unique<DNSMasqProcess>(data_dir, bridge_name, bridge_addr, start, end)},
       bridge_name{bridge_name}
 {
+    QObject::connect(dnsmasq_cmd.get(), &DNSMasqProcess::readyReadStandardError,
+                     [this]() { mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_cmd->readAllStandardError().data()); });
+
+    dnsmasq_cmd->start();
+    dnsmasq_cmd->waitForStarted();
 }
 
 mp::DNSMasqServer::~DNSMasqServer()
@@ -102,8 +76,8 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
         return;
     }
 
-    QProcess dhcp_release;
-    QObject::connect(&dhcp_release, &QProcess::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
+    DHCPReleaseProcess dhcp_release(bridge_name, ip.value(), QString::fromStdString(hw_addr));
+    QObject::connect(&dhcp_release, &DHCPReleaseProcess::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
         mpl::log(mpl::Level::warning, "dnsmasq",
                  fmt::format("failed to release ip addr {} with mac {}", ip.value().as_string(), hw_addr));
     });
@@ -116,11 +90,8 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
                                hw_addr, exit_code);
         mpl::log(mpl::Level::warning, "dnsmasq", msg);
     };
-    QObject::connect(&dhcp_release, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                     log_exit_status);
+    QObject::connect(&dhcp_release, &DHCPReleaseProcess::finished, log_exit_status);
 
-    dhcp_release.start("dhcp_release", QStringList() << bridge_name << QString::fromStdString(ip.value().as_string())
-                                                     << QString::fromStdString(hw_addr));
-
+    dhcp_release.start();
     dhcp_release.waitForFinished();
 }

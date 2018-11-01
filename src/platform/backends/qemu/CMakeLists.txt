@@ -14,8 +14,14 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
+set(CMAKE_AUTOMOC ON)
+
 add_library(qemu_backend STATIC
+  apparmored_process.cpp
+  dhcp_release_process.cpp
+  dnsmasq_process.cpp
   dnsmasq_server.cpp
+  qemu_process.cpp
   qemu_virtual_machine_factory.cpp
   qemu_virtual_machine.cpp)
 

@@ -18,6 +18,7 @@
 #include "qemu_virtual_machine.h"
 
 #include "dnsmasq_server.h"
+#include "qemu_process.h"
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -35,9 +36,6 @@
 #include <QJsonObject>
 #include <QMetaEnum>
 #include <QObject>
-#include <QProcess>
-#include <QString>
-#include <QStringList>
 #include <QSysInfo>
 
 #include <thread>
@@ -47,9 +45,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
-                                          {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
-                                          {"s390x", "s390x"}};
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
                        const std::string& mac_addr)
@@ -59,47 +54,12 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    auto mem_size = QString::fromStdString(desc.mem_size);
-    if (mem_size.endsWith("B"))
-    {
-        mem_size.chop(1);
-    }
-
-    QStringList args{"--enable-kvm"};
-    // The VM image itself
-    args << "-hda" << desc.image.image_path;
-    // For the cloud-init configuration
-    args << "-drive" << QString{"file="} + desc.cloud_init_iso + QString{",if=virtio,format=raw"};
-    // Number of cpu cores
-    args << "-smp" << QString::number(desc.num_cores);
-    // Memory to use for VM
-    args << "-m" << mem_size;
-    // Create a virtual NIC in the VM
-    args << "-device" << QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1").arg(QString::fromStdString(mac_addr));
-    // Create tap device to connect to virtual bridge
-    args << "-netdev";
-    args << QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(QString::fromStdString(tap_device_name));
-    // Control interface
-    args << "-qmp"
-         << "stdio";
-    // No console
-    args << "-chardev"
-         // TODO Read and log machine output when verbose
-         << "null,id=char0"
-         << "-serial"
-         << "chardev:char0"
-         // TODO Add a debugging mode with access to console
-         << "-nographic";
-
-    auto process = std::make_unique<QProcess>();
+    auto process = std::make_unique<QemuProcess>(desc, QString::fromStdString(tap_device_name), QString::fromStdString(mac_addr));
     auto snap = qgetenv("SNAP");
     if (!snap.isEmpty())
     {
         process->setWorkingDirectory(snap.append("/qemu"));
     }
-
-    process->setProgram("qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture()));
-    process->setArguments(args);
 
     mpl::log(mpl::Level::debug, desc.vm_name,
              fmt::format("process working dir '{}'", process->workingDirectory().toStdString()));
@@ -135,11 +95,11 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       monitor{&monitor},
       vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
 {
-    QObject::connect(vm_process.get(), &QProcess::started, [this]() {
+    QObject::connect(vm_process.get(), &QemuProcess::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
         on_started();
     });
-    QObject::connect(vm_process.get(), &QProcess::readyReadStandardOutput, [this]() {
+    QObject::connect(vm_process.get(), &QemuProcess::readyReadStandardOutput, [this]() {
         auto qmp_output = QJsonDocument::fromJson(vm_process->readAllStandardOutput()).object();
         auto event = qmp_output["event"];
 
@@ -161,23 +121,23 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         }
     });
 
-    QObject::connect(vm_process.get(), &QProcess::readyReadStandardError, [this]() {
+    QObject::connect(vm_process.get(), &QemuProcess::readyReadStandardError, [this]() {
         saved_error_msg = vm_process->readAllStandardError().data();
         mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
     });
 
-    QObject::connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {
+    QObject::connect(vm_process.get(), &QemuProcess::stateChanged, [this](QProcess::ProcessState newState) {
         auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
         mpl::log(mpl::Level::info, vm_name, fmt::format("process state changed to {}", meta.valueToKey(newState)));
     });
 
-    QObject::connect(vm_process.get(), &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
+    QObject::connect(vm_process.get(), &QemuProcess::errorOccurred, [this](QProcess::ProcessError error) {
         auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
         mpl::log(mpl::Level::error, vm_name, fmt::format("process error occurred {}", meta.valueToKey(error)));
         on_error();
     });
 
-    QObject::connect(vm_process.get(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+    QObject::connect(vm_process.get(), &QemuProcess::finished,
                      [this](int exitCode, QProcess::ExitStatus exitStatus) {
                          mpl::log(mpl::Level::info, vm_name,
                                   fmt::format("process finished with exit code {}", exitCode));
