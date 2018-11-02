@@ -391,6 +391,46 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
+
+template<typename Targets, typename InstanceMap>
+grpc::Status validate_targets(const Targets& targets,
+                              const InstanceMap& vms,
+                              const InstanceMap& deleted)
+{
+    fmt::memory_buffer errors;
+    for(const auto& name : targets)
+        if(vms.find(name) == std::cend(vms))
+        {
+            if(deleted.find(name) == std::cend(deleted))
+                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            else
+                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
+        }
+
+    return errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
+}
+
+template<typename Targets, typename InstanceMap>
+auto process_targets(const Targets& targets,
+                     const InstanceMap& vms,
+                     const InstanceMap& deleted)
+-> std::pair<std::vector<typename Targets::value_type>, grpc::Status>
+{   // TODO: use this in commands that currently duplicate the same kind of code
+    auto st = validate_targets(targets, vms, deleted);
+    auto tgts = std::vector<typename Targets::value_type>{};
+
+    if(st.ok())
+    {
+        if(targets.empty())
+            for(const auto& vm_item : vms)
+                tgts.push_back(vm_item.first);
+        else
+            std::copy(std::cbegin(targets), std::cend(targets),
+                      std::back_inserter(tgts));
+    }
+
+    return std::make_pair(tgts, st);
+}
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1271,7 +1311,18 @@ catch (const std::exception& e)
 grpc::Status mp::Daemon::restart(grpc::ServerContext* context, const RestartRequest* request,
                                  grpc::ServerWriter<RestartReply>* server) // clang-format off
 {
-    return grpc::Status::OK; // TODO ricab
+    mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    const auto tgts_and_st = process_targets(request->instance_name(), vm_instances, deleted_instances);
+    const auto& tgts = tgts_and_st.first;
+    auto& st = tgts_and_st.second; // in C++17 we'd use structured bindings instead
+
+    if(!st.ok())
+        return st;
+
+    return cmd_vms(tgts, [](VirtualMachine& vm){
+        return grpc::Status::OK; // TODO @ricab
+    });
 }
 
 grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest* request,
@@ -1799,4 +1850,21 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                      [this, name, target_path]() { mount_threads[name].erase(target_path); });
 
     mount_threads[name][target_path] = std::move(sshfs_mount);
+}
+
+
+grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts,
+                                 std::function<grpc::Status(VirtualMachine&)> cmd)
+{   /* TODO: use this in commands, rather than repeating the same logic
+    std::function involves some overhead, but it should be negligible here and
+    it gives clear error messages on type mismatch (!= templated callable).
+    */
+    for(const auto& tgt : tgts)
+    {
+        auto st = cmd(*vm_instances.at(tgt));
+        if(!st.ok())
+            return st; // Fail early
+    }
+
+    return grpc::Status::OK;
 }
