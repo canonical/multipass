@@ -53,6 +53,8 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+using namespace std::chrono_literals;
+
 namespace
 {
 constexpr auto category = "daemon";
@@ -60,6 +62,7 @@ constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto uuid_file_name = "multipass-unique-id";
 constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
+constexpr auto up_timeout = 2min; // TODO: use this in places that wait for ssh to be up
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -1337,17 +1340,26 @@ try
 
     const auto tgts_and_st = process_targets(request->instance_name(), vm_instances, deleted_instances);
     const auto& tgts = tgts_and_st.first; // use structured bindings instead in C++17
-    auto& st = tgts_and_st.second;  // idem
+    auto& tgts_st = tgts_and_st.second;  // idem
 
-    if(!st.ok())
-        return st;
+    if(!tgts_st.ok())
+        return tgts_st;
 
-    return cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs& specs){
+    auto reboot_st = // no reuse of status vars to avoid assignment and enable RVO
+        cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs& specs){
         if(!vm.is_running())
             return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                                 fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
         return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), specs.ssh_username, *config->ssh_key_provider);
+    });
+
+    if(!reboot_st.ok())
+        return reboot_st;
+
+    return cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs&){
+        vm.wait_until_ssh_up(up_timeout); // block only after having restarted all of them
+        return grpc::Status::OK;
     });
 }
 catch(const std::exception& e)
@@ -1769,6 +1781,7 @@ void mp::Daemon::on_suspend()
 // TODO @ricab hmm check how this applies and whether it is enough (no restart signal needed? - perhaps try without)
 void mp::Daemon::on_restart(const std::string& name)
 {
+    // TODO @ricab cancel any delayed shutdowns for this instance (here, so that it catches restarts which ever way they are induced)
     auto& vm = vm_instances[name];
     vm->wait_until_ssh_up(std::chrono::minutes(5));
 
