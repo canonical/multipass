@@ -1345,8 +1345,12 @@ try
     if(!tgts_st.ok())
         return tgts_st;
 
-    auto reboot_st = // no reuse of status vars to avoid assignment and enable RVO
-        cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs& specs){
+    // reboot all targets
+    // no reuse of status vars to avoid assignment (and enable RVO)
+    auto reboot_st = cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs& specs){
+        if(vm.state == VirtualMachine::State::delayed_shutdown)
+            delayed_shutdown_instances.erase(vm.vm_name);
+
         if(!vm.is_running())
             return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                                 fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
@@ -1357,8 +1361,9 @@ try
     if(!reboot_st.ok())
         return reboot_st;
 
+    // wait for all the targets to be back up
     return cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs&){
-        vm.wait_until_ssh_up(up_timeout); // block only after having restarted all of them
+        vm.wait_until_ssh_up(up_timeout);
         return grpc::Status::OK;
     });
 }
@@ -1778,10 +1783,8 @@ void mp::Daemon::on_suspend()
     emit suspend_finished();
 }
 
-// TODO @ricab hmm check how this applies and whether it is enough (no restart signal needed? - perhaps try without)
 void mp::Daemon::on_restart(const std::string& name)
 {
-    // TODO @ricab cancel any delayed shutdowns for this instance (here, so that it catches restarts which ever way they are induced)
     auto& vm = vm_instances[name];
     vm->wait_until_ssh_up(std::chrono::minutes(5));
 
