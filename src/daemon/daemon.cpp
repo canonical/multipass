@@ -22,6 +22,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -58,6 +59,7 @@ constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto uuid_file_name = "multipass-unique-id";
 constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
+constexpr auto reboot_cmd = "sudo reboot";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -431,6 +433,25 @@ auto process_targets(const Targets& targets,
 
     return std::make_pair(tgts, st);
 }
+
+grpc::Status ssh_reboot(const std::string& hostname, int port,
+                        const std::string& username, const mp::SSHKeyProvider& key_provider)
+{
+    mp::SSHSession session{hostname, port, username, key_provider};
+    auto proc = session.exec(reboot_cmd);
+    try
+    {
+        auto ecode = proc.exit_code();
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Reboot command exited with code {}", ecode),
+                            proc.read_std_error()}; /* we shouldn't get this far: a
+                            successful reboot command does not return */
+    }
+    catch(const mp::ExitlessSSHProcessException&) { /* this is the expected path */ }
+
+    return grpc::Status::OK;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1310,19 +1331,28 @@ catch (const std::exception& e)
 
 grpc::Status mp::Daemon::restart(grpc::ServerContext* context, const RestartRequest* request,
                                  grpc::ServerWriter<RestartReply>* server) // clang-format off
+try
 {
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     const auto tgts_and_st = process_targets(request->instance_name(), vm_instances, deleted_instances);
-    const auto& tgts = tgts_and_st.first;
-    auto& st = tgts_and_st.second; // in C++17 we'd use structured bindings instead
+    const auto& tgts = tgts_and_st.first; // use structured bindings instead in C++17
+    auto& st = tgts_and_st.second;  // idem
 
     if(!st.ok())
         return st;
 
-    return cmd_vms(tgts, [](VirtualMachine& vm){
-        return grpc::Status::OK; // TODO @ricab
+    return cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs& specs){
+        if(!vm.is_running())
+            return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                                fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
+
+        return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), specs.ssh_username, *config->ssh_key_provider);
     });
+}
+catch(const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
 grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest* request,
@@ -1562,7 +1592,7 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-// TODO @ricab implement restart
+// TODO @ricab move restart here
 
 grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                grpc::ServerWriter<DeleteReply>* server) // clang-format off
@@ -1853,15 +1883,16 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
 }
 
 
-grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts,
-                                 std::function<grpc::Status(VirtualMachine&)> cmd)
+grpc::Status
+mp::Daemon::cmd_vms(const std::vector<std::string>& tgts,
+                    std::function<grpc::Status(VirtualMachine&, const VMSpecs&)> cmd)
 {   /* TODO: use this in commands, rather than repeating the same logic
     std::function involves some overhead, but it should be negligible here and
     it gives clear error messages on type mismatch (!= templated callable).
     */
     for(const auto& tgt : tgts)
     {
-        auto st = cmd(*vm_instances.at(tgt));
+        auto st = cmd(*vm_instances.at(tgt), vm_instance_specs.at(tgt));
         if(!st.ok())
             return st; // Fail early
     }
