@@ -91,5 +91,4 @@ TEST_F(DelayedShutdown, vm_state_running_after_cancel)
     }
 
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
-    // TODO @ricab restart should also cancel
 }

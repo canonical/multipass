@@ -49,20 +49,23 @@
 
 #include <stdexcept>
 #include <unordered_set>
+#include <functional>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-using namespace std::chrono_literals;
 
 namespace
 {
+
+using namespace std::chrono_literals;
+
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto uuid_file_name = "multipass-unique-id";
 constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
-constexpr auto up_timeout = 2min; // TODO: use this in places that wait for ssh to be up
+constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -957,7 +960,7 @@ try // clang-format on
                 case mp::VirtualMachine::State::starting:
                     return mp::InstanceStatus::STARTING;
                 case mp::VirtualMachine::State::restarting:
-                    return mp::InstanceStatus::RESTARTING; // TODO @ricab confirm this is enough
+                    return mp::InstanceStatus::RESTARTING;
                 case mp::VirtualMachine::State::running:
                     return mp::InstanceStatus::RUNNING;
                 case mp::VirtualMachine::State::delayed_shutdown:
@@ -1086,7 +1089,7 @@ try // clang-format on
         case mp::VirtualMachine::State::starting:
             return mp::InstanceStatus::STARTING;
         case mp::VirtualMachine::State::restarting:
-            return mp::InstanceStatus::RESTARTING; // TODO @ricab confirm this is enough
+            return mp::InstanceStatus::RESTARTING;
         case mp::VirtualMachine::State::running:
             return mp::InstanceStatus::RUNNING;
         case mp::VirtualMachine::State::delayed_shutdown:
@@ -1332,46 +1335,6 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-grpc::Status mp::Daemon::restart(grpc::ServerContext* context, const RestartRequest* request,
-                                 grpc::ServerWriter<RestartReply>* server) // clang-format off
-try
-{
-    mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-
-    const auto tgts_and_st = process_targets(request->instance_name(), vm_instances, deleted_instances);
-    const auto& tgts = tgts_and_st.first; // use structured bindings instead in C++17
-    auto& tgts_st = tgts_and_st.second;  // idem
-
-    if(!tgts_st.ok())
-        return tgts_st;
-
-    // reboot all targets
-    // no reuse of status vars to avoid assignment (and enable RVO)
-    auto reboot_st = cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs& specs){
-        if(vm.state == VirtualMachine::State::delayed_shutdown)
-            delayed_shutdown_instances.erase(vm.vm_name);
-
-        if(!vm.is_running())
-            return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
-                                fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
-
-        return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), specs.ssh_username, *config->ssh_key_provider);
-    });
-
-    if(!reboot_st.ok())
-        return reboot_st;
-
-    // wait for all the targets to be back up
-    return cmd_vms(tgts, [this](VirtualMachine& vm, const VMSpecs&){
-        vm.wait_until_ssh_up(up_timeout);
-        return grpc::Status::OK;
-    });
-}
-catch(const std::exception& e)
-{
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
-}
-
 grpc::Status mp::Daemon::start(grpc::ServerContext* context, const StartRequest* request,
                                grpc::ServerWriter<StartReply>* server) // clang-format off
 try // clang-format on
@@ -1609,7 +1572,37 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
 
-// TODO @ricab move restart here
+grpc::Status mp::Daemon::restart(grpc::ServerContext* context, const RestartRequest* request,
+                                 grpc::ServerWriter<RestartReply>* server) // clang-format off
+try
+{
+    mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    auto tgts_and_st = process_targets(request->instance_name(), vm_instances, deleted_instances);
+    const auto& tgts = tgts_and_st.first; // use structured bindings instead in C++17
+    auto& st = tgts_and_st.second; // idem
+
+    if(st.ok())
+    {
+        using namespace std::placeholders; // for _1, _2
+        st = cmd_vms(tgts, std::bind(&Daemon::reboot_vm, this, _1, _2)); // 1st pass to reboot all targets
+
+        if(st.ok())
+        {
+            st = cmd_vms(tgts, [this](auto& vm, const auto&){
+                vm.wait_until_ssh_up(up_timeout); // 2nd pass waits for them to be up
+                return grpc::Status::OK;
+            });
+        }
+    }
+
+    return st;
+}
+catch(const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
 
 grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                grpc::ServerWriter<DeleteReply>* server) // clang-format off
@@ -1898,6 +1891,18 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
     mount_threads[name][target_path] = std::move(sshfs_mount);
 }
 
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, const VMSpecs& specs)
+{
+    if(vm.state == VirtualMachine::State::delayed_shutdown)
+        delayed_shutdown_instances.erase(vm.vm_name);
+
+    if(!vm.is_running())
+        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                            fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
+
+    return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), specs.ssh_username, *config->ssh_key_provider);
+}
+
 
 grpc::Status
 mp::Daemon::cmd_vms(const std::vector<std::string>& tgts,
@@ -1908,7 +1913,7 @@ mp::Daemon::cmd_vms(const std::vector<std::string>& tgts,
     */
     for(const auto& tgt : tgts)
     {
-        auto st = cmd(*vm_instances.at(tgt), vm_instance_specs.at(tgt));
+        const auto st = cmd(*vm_instances.at(tgt), vm_instance_specs.at(tgt));
         if(!st.ok())
             return st; // Fail early
     }
