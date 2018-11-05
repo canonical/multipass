@@ -17,7 +17,10 @@
 
 #include "apparmored_process.h"
 
-AppArmoredProcess::AppArmoredProcess()
+namespace mp = multipass;
+
+mp::AppArmoredProcess::AppArmoredProcess(const mp::AppArmor &apparmor)
+    : apparmor{apparmor}
 {
     connect(&process, &QProcess::errorOccurred, this, &AppArmoredProcess::errorOccurred);
     connect(&process, &QProcess::started, this, &AppArmoredProcess::started);
@@ -27,83 +30,84 @@ AppArmoredProcess::AppArmoredProcess()
     connect(&process, &QProcess::stateChanged, this, &AppArmoredProcess::stateChanged);
 }
 
-AppArmoredProcess::~AppArmoredProcess()
+mp::AppArmoredProcess::~AppArmoredProcess()
 {
     // TODO: remove registered AA profile
 }
 
 // To distinguish multiple instances of the same application, use this identifier
-QString AppArmoredProcess::identifier() const
+QString mp::AppArmoredProcess::identifier() const
 {
     return QString();
 }
 
-QString AppArmoredProcess::workingDirectory() const
+QString mp::AppArmoredProcess::workingDirectory() const
 {
     return process.workingDirectory();
 }
 
-void AppArmoredProcess::setWorkingDirectory(const QString& dir)
+void mp::AppArmoredProcess::setWorkingDirectory(const QString& dir)
 {
     process.setWorkingDirectory(dir);
 }
 
-void AppArmoredProcess::start()
+void mp::AppArmoredProcess::start()
 {
-    // TODO - write the apparmor profile to disk
-    // Install the profile into the kernel, named apparmor_profile_name()
+    apparmor.load_policy(apparmor_profile());
 
     // GERRY: what do I do if not running under snap?? Or AppArmor not available??
     //process.start("aa-exec", QStringList() << "-p" << apparmor_profile_name() << "--" << program() << arguments());
+    // alternative is to hook into the QPRocess::stateChanged -> Starting signal (blocked), and call the apparmor  aa_change_onexec
+    // which hopefully (pending race conditions) will attach to the correct exec call.
     process.start(program(), arguments());
 }
 
-void AppArmoredProcess::terminate()
+void mp::AppArmoredProcess::terminate()
 {
     process.terminate();
 }
 
-void AppArmoredProcess::kill()
+void mp::AppArmoredProcess::kill()
 {
     process.kill();
 }
 
-qint64 AppArmoredProcess::processId() const
+qint64 mp::AppArmoredProcess::processId() const
 {
     return process.processId();
 }
 
-QProcess::ProcessState AppArmoredProcess::state() const
+QProcess::ProcessState mp::AppArmoredProcess::state() const
 {
     return process.state();
 }
 
-bool AppArmoredProcess::waitForStarted(int msecs)
+bool mp::AppArmoredProcess::waitForStarted(int msecs)
 {
     return process.waitForStarted(msecs);
 }
 
-bool  AppArmoredProcess::waitForFinished(int msecs)
+bool mp::AppArmoredProcess::waitForFinished(int msecs)
 {
     return process.waitForFinished(msecs);
 }
 
-qint64 AppArmoredProcess::write(const QByteArray& data)
+qint64 mp::AppArmoredProcess::write(const QByteArray& data)
 {
     return process.write(data);
 }
 
-QByteArray AppArmoredProcess::readAllStandardOutput()
+QByteArray mp::AppArmoredProcess::readAllStandardOutput()
 {
     return process.readAllStandardOutput();
 }
 
-QByteArray AppArmoredProcess::readAllStandardError()
+QByteArray mp::AppArmoredProcess::readAllStandardError()
 {
     return process.readAllStandardError();
 }
 
-const QString AppArmoredProcess::apparmor_profile_name() const
+const QString mp::AppArmoredProcess::apparmor_profile_name() const
 {
     if (!identifier().isNull()) {
         return QStringLiteral("multipass.") + identifier() + '.' + program();

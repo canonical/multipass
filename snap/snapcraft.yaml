@@ -206,6 +206,10 @@ parts:
       usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
       usr/lib/ipxe/qemu/efi-virtio.rom: qemu/efi-virtio.rom
 
+  apparmor:
+    plugin: nil
+    stage-packages: [apparmor]
+
   kvm-support:
     plugin: nil
     stage-packages:

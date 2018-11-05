@@ -29,10 +29,11 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
-                                 const IPAddress& start, const IPAddress& end)
-    : data_dir{QDir(path)},
-      dnsmasq_cmd{std::make_unique<DNSMasqProcess>(data_dir, bridge_name, bridge_addr, start, end)},
+mp::DNSMasqServer::DNSMasqServer(const mp::AppArmor& apparmor, const Path& path, const QString& bridge_name,
+                                 const mp::IPAddress& bridge_addr, const mp::IPAddress& start, const mp::IPAddress& end)
+    : apparmor{apparmor},
+      data_dir{QDir(path)},
+      dnsmasq_cmd{std::make_unique<mp::DNSMasqProcess>(apparmor, data_dir, bridge_name, bridge_addr, start, end)},
       bridge_name{bridge_name}
 {
     QObject::connect(dnsmasq_cmd.get(), &DNSMasqProcess::readyReadStandardError,
@@ -76,7 +77,7 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
         return;
     }
 
-    DHCPReleaseProcess dhcp_release(bridge_name, ip.value(), QString::fromStdString(hw_addr));
+    DHCPReleaseProcess dhcp_release(apparmor, bridge_name, ip.value(), QString::fromStdString(hw_addr));
     QObject::connect(&dhcp_release, &DHCPReleaseProcess::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
         mpl::log(mpl::Level::warning, "dnsmasq",
                  fmt::format("failed to release ip addr {} with mac {}", ip.value().as_string(), hw_addr));

@@ -19,24 +19,47 @@
 
 namespace mp = multipass;
 
-DNSMasqProcess::DNSMasqProcess(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
-                               const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
-    : data_dir(data_dir), bridge_name(bridge_name), bridge_addr(bridge_addr), start_ip(start_ip), end_ip(end_ip)
+namespace
+{
+static QString pid_file()
+{
+    QString snap_common = qgetenv("SNAP_COMMON");
+    if (!snap_common.isEmpty())
+    {
+        return QString("%1/dnsmasq.pid").arg(snap_common);
+    }
+    else
+    {
+        return QString();
+    }
+}
+
+} // namespace
+
+mp::DNSMasqProcess::DNSMasqProcess(const mp::AppArmor& apparmor, const QDir& data_dir, const QString& bridge_name,
+                                   const mp::IPAddress& bridge_addr, const mp::IPAddress& start_ip,
+                                   const mp::IPAddress& end_ip)
+    : mp::AppArmoredProcess(apparmor),
+      data_dir(data_dir),
+      bridge_name(bridge_name),
+      pid_file{::pid_file()},
+      bridge_addr(bridge_addr),
+      start_ip(start_ip),
+      end_ip(end_ip)
 {
 }
 
-QString DNSMasqProcess::program() const
+QString mp::DNSMasqProcess::program() const
 {
     return QStringLiteral("dnsmasq");
 }
 
-QStringList DNSMasqProcess::arguments() const
+QStringList mp::DNSMasqProcess::arguments() const
 {
     QString pid;
-    auto snap_common = qgetenv("SNAP_COMMON");
-    if (!snap_common.isEmpty())
+    if (!pid_file.isNull())
     {
-        pid = QString("--pid-file=%1/dnsmasq.pid").arg(QString(snap_common));
+        pid = QString("--pid-file=%1").arg(pid_file);
     }
 
     return QStringList() << "--keep-in-foreground" << pid << "--strict-order"
@@ -52,30 +75,42 @@ QStringList DNSMasqProcess::arguments() const
                                 .arg(QString::fromStdString(end_ip.as_string()));
 }
 
-QString DNSMasqProcess::apparmor_profile() const
+QString mp::DNSMasqProcess::apparmor_profile() const
 {
     QString profile_template(R"END(
-      #include <tunables/global>
-      profile %1 flags=(attach_disconnected) {
-        #include <abstractions/base>
-        #include <abstractions/dbus>
-        #include <abstractions/nameservice>
+#include <tunables/global>
+profile %1 flags=(attach_disconnected) {
+    #include <abstractions/base>
+    #include <abstractions/dbus>
+    #include <abstractions/nameservice>
 
-        capability chown,
-        capability net_bind_service,
-        capability setgid,
-        capability setuid,
-        capability dac_override,
-        capability net_admin,         # for DHCP server
-        capability net_raw,           # for DHCP server ping checks
-        network inet raw,
-        network inet6 raw,
+    capability chown,
+    capability net_bind_service,
+    capability setgid,
+    capability setuid,
+    capability dac_override,
+    capability net_admin,         # for DHCP server
+    capability net_raw,           # for DHCP server ping checks
+    network inet raw,
+    network inet6 raw,
 
-        %2 rw, # Leases file
+    # access to iface mtu needed for Router Advertisement messages in IPv6
+    # Neighbor Discovery protocol (RFC 2461)
+    @{PROC}/sys/net/ipv6/conf/*/mtu r,
 
-        /{,var/}run/*dnsmasq*.pid w,  # pid file
-      }
+    %2 rw,           # Leases file
+    %3 r,            # Hosts file
+
+    %4
+}
     )END");
 
-    return profile_template.arg(apparmor_profile_name(), data_dir.filePath("dnsmasq.leases")); // GERRY - NOT DONE
+    QString pid;
+    if (pid_file.isNull())
+    {
+        pid = QString("/{,var/}run/*dnsmasq*.pid w,  # pid file");
+    }
+
+    return profile_template.arg(apparmor_profile_name(), data_dir.filePath("dnsmasq.leases"),
+                                data_dir.filePath("dnsmasq.hosts"), pid);
 }

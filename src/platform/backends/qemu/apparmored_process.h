@@ -15,16 +15,21 @@
  *
  */
 
-#ifndef APPARMOREDPROCESS_H
-#define APPARMOREDPROCESS_H
+#ifndef MULTIPASS_APPARMORED_PROCESS_H
+#define MULTIPASS_APPARMORED_PROCESS_H
+
+#include "apparmor.h"
 
 #include <QProcess>
+
+namespace multipass
+{
 
 class AppArmoredProcess : public QObject
 {
     Q_OBJECT
 public:
-    AppArmoredProcess();
+    AppArmoredProcess(const AppArmor &apparmor);
     virtual ~AppArmoredProcess();
 
     virtual QString program() const = 0;
@@ -62,7 +67,10 @@ protected:
     const QString apparmor_profile_name() const;
 
 private:
+    const AppArmor &apparmor;
     QProcess process;
 };
 
-#endif // APPARMOREDPROCESS_H
+} // namespace multipass
+
+#endif // MULTIPASS_APPARMORED_PROCESS_H

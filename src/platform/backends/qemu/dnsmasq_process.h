@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef DNSMASQ_PROCESS_H
-#define DNSMASQ_PROCESS_H
+#ifndef MULTIPASS_DNSMASQ_PROCESS_H
+#define MULTIPASS_DNSMASQ_PROCESS_H
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
@@ -26,12 +26,16 @@
 
 #include <QDir>
 
+namespace multipass
+{
+
 class DNSMasqProcess : public AppArmoredProcess
 {
     Q_OBJECT
 public:
-    explicit DNSMasqProcess(const QDir& data_dir, const QString& bridge_name, const multipass::IPAddress& bridge_addr,
-                    const multipass::IPAddress& start_ip, const multipass::IPAddress& end_ip);
+    explicit DNSMasqProcess(const AppArmor& apparmor, const QDir& data_dir, const QString& bridge_name,
+                            const IPAddress& bridge_addr, const IPAddress& start_ip,
+                            const IPAddress& end_ip);
 
     QString program() const override;
     QStringList arguments() const override;
@@ -39,10 +43,10 @@ public:
 
 private:
     const QDir data_dir;
-    const QString bridge_name;
-    const multipass::IPAddress bridge_addr;
-    const multipass::IPAddress start_ip;
-    const multipass::IPAddress end_ip;
+    const QString bridge_name, pid_file;
+    const IPAddress bridge_addr, start_ip, end_ip;
 };
 
-#endif // DNSMASQ_PROCESS_H
+} // namespace multipass
+
+#endif // MULTIPASS_DNSMASQ_PROCESS_H

@@ -17,25 +17,27 @@
 
 #include "qemu_process.h"
 
+namespace mp = multipass;
+
 namespace
 {
 const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
                                           {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
                                           {"s390x", "s390x"}};
+} // namespace
+
+mp::QemuProcess::QemuProcess(const mp::AppArmor& apparmor, const mp::VirtualMachineDescription& desc,
+                             const QString& tap_device_name, const QString& mac_addr)
+    : AppArmoredProcess(apparmor), desc(desc), tap_device_name(tap_device_name), mac_addr(mac_addr)
+{
 }
 
-QemuProcess::QemuProcess(const multipass::VirtualMachineDescription &desc, const QString &tap_device_name, const QString &mac_addr)
-    : desc(desc)
-    , tap_device_name(tap_device_name)
-    , mac_addr(mac_addr)
-{}
-
-QString QemuProcess::program() const
+QString mp::QemuProcess::program() const
 {
     return QStringLiteral("qemu-system-") + cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
 }
 
-QStringList QemuProcess::arguments() const
+QStringList mp::QemuProcess::arguments() const
 {
     auto mem_size = QString::fromStdString(desc.mem_size);
     if (mem_size.endsWith("B"))
@@ -72,12 +74,52 @@ QStringList QemuProcess::arguments() const
     return args;
 }
 
-QString QemuProcess::apparmor_profile() const
+QString mp::QemuProcess::apparmor_profile() const
 {
-    return "";
+    QString profile_template(R"END(
+#include <tunables/global>
+profile %1 flags=(attach_disconnected) {
+    #include <abstractions/base>
+    #include <abstractions/consoles>
+    #include <abstractions/nameservice>
+
+    # required for reading disk images
+    capability dac_override,
+    capability dac_read_search,
+    capability chown,
+
+    # needed to drop privileges
+    capability setgid,
+    capability setuid,
+
+    network inet stream,
+    network inet6 stream,
+
+    /dev/net/tun rw,
+    /dev/kvm rw,
+    /dev/ptmx rw,
+    /dev/kqemu rw,
+    @{PROC}/*/status r,
+    # When qemu is signaled to terminate, it will read cmdline of signaling
+    # process for reporting purposes. Allowing read access to a process
+    # cmdline may leak sensitive information embedded in the cmdline.
+    @{PROC}/@{pid}/cmdline r,
+    # Per man(5) proc, the kernel enforces that a thread may
+    # only modify its comm value or those in its thread group.
+    owner @{PROC}/@{pid}/task/@{tid}/comm rw,
+    @{PROC}/sys/kernel/cap_last_cap r,
+    owner @{PROC}/*/auxv r,
+    @{PROC}/sys/vm/overcommit_memory r,
+
+    %2 rw, # QCow2 filesystem image
+    %3 r,  # cloud-init ISO
+}
+    )END");
+
+    return profile_template.arg(apparmor_profile_name(), desc.image.image_path, desc.cloud_init_iso);
 }
 
-QString QemuProcess::identifier() const
+QString mp::QemuProcess::identifier() const
 {
     return QString::fromStdString(desc.vm_name);
 }

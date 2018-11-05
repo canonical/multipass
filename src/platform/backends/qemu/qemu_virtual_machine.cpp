@@ -47,14 +47,14 @@ namespace
 {
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       const std::string& mac_addr)
+                       const std::string& mac_addr, const mp::AppArmor &apparmor)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    auto process = std::make_unique<QemuProcess>(desc, QString::fromStdString(tap_device_name), QString::fromStdString(mac_addr));
+    auto process = std::make_unique<mp::QemuProcess>(apparmor, desc, QString::fromStdString(tap_device_name), QString::fromStdString(mac_addr));
     auto snap = qgetenv("SNAP");
     if (!snap.isEmpty())
     {
@@ -86,14 +86,14 @@ auto qmp_execute_json(const QString& cmd)
 }
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
+                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor, const AppArmor &apparmor)
     : VirtualMachine{desc.key_provider, desc.vm_name},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
-      vm_process{make_qemu_process(desc, tap_device_name, mac_addr)}
+      vm_process{make_qemu_process(desc, tap_device_name, mac_addr, apparmor)}
 {
     QObject::connect(vm_process.get(), &QemuProcess::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");

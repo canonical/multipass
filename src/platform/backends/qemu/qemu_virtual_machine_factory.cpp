@@ -207,7 +207,8 @@ std::string get_subnet(const mp::Path& network_dir, const QString& bridge_name)
     return new_subnet;
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
+mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name,
+                                        const mp::AppArmor& apparmor)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
     const auto subnet = get_subnet(network_dir, bridge_name);
@@ -219,13 +220,13 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {network_dir, bridge_name, bridge_addr, start_addr, end_addr};
+    return {apparmor, network_dir, bridge_name, bridge_addr, start_addr, end_addr};
 }
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
     : bridge_name{QString::fromStdString(multipass_bridge_name)},
-      dnsmasq_server{create_dnsmasq_server(data_dir, bridge_name)}
+      dnsmasq_server{create_dnsmasq_server(data_dir, bridge_name, apparmor)}
 {
 }
 
@@ -240,7 +241,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
-    auto vm = std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor);
+    auto vm = std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor, apparmor);
 
     name_to_mac_map.emplace(desc.vm_name, desc.mac_addr);
     return vm;

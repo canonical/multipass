@@ -31,11 +31,12 @@
 
 namespace multipass
 {
+
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr, const IPAddress& start,
-                  const IPAddress& end);
+    DNSMasqServer(const AppArmor& apparmor, const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
+                  const IPAddress& start, const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 
@@ -43,9 +44,12 @@ public:
     void release_mac(const std::string& hw_addr);
 
 private:
+    const AppArmor& apparmor;
     const QDir data_dir;
     std::unique_ptr<DNSMasqProcess> dnsmasq_cmd;
     QString bridge_name;
 };
+
 } // namespace multipass
+
 #endif // MULTIPASS_DNSMASQ_SERVER_H

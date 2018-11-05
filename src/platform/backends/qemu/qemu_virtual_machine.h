@@ -22,13 +22,14 @@
 #include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 
-class QemuProcess;
 class QFile;
 class QString;
 
 namespace multipass
 {
+class AppArmor;
 class DNSMasqServer;
+class QemuProcess;
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
@@ -36,7 +37,7 @@ class QemuVirtualMachine final : public VirtualMachine
 {
 public:
     QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
+                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor, const AppArmor &apparmor);
     ~QemuVirtualMachine();
 
     void start() override;

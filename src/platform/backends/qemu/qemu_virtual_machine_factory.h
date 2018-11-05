@@ -17,6 +17,7 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 
+#include "apparmor.h"
 #include "dnsmasq_server.h"
 
 #include <multipass/virtual_machine_factory.h>
@@ -25,6 +26,7 @@
 
 namespace multipass
 {
+
 class QemuVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
@@ -41,6 +43,7 @@ public:
     void check_hypervisor_support() override;
 
 private:
+    const AppArmor apparmor;
     const QString bridge_name;
     DNSMasqServer dnsmasq_server;
     std::unordered_map<std::string, std::string> name_to_mac_map;

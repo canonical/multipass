@@ -17,23 +17,25 @@
 
 #include "dhcp_release_process.h"
 
-DHCPReleaseProcess::DHCPReleaseProcess(const QString& bridge_name, const multipass::IPAddress& ip,
-                                       const QString& hw_addr)
-    : bridge_name(bridge_name), ip(ip), hw_addr(hw_addr)
+namespace mp = multipass;
+
+mp::DHCPReleaseProcess::DHCPReleaseProcess(const mp::AppArmor& apparmor, const QString& bridge_name,
+                                           const mp::IPAddress& ip, const QString& hw_addr)
+    : mp::AppArmoredProcess(apparmor), bridge_name(bridge_name), ip(ip), hw_addr(hw_addr)
 {
 }
 
-QString DHCPReleaseProcess::program() const
+QString mp::DHCPReleaseProcess::program() const
 {
     return QStringLiteral("dhcp_release");
 }
 
-QStringList DHCPReleaseProcess::arguments() const
+QStringList mp::DHCPReleaseProcess::arguments() const
 {
     return QStringList() << bridge_name << QString::fromStdString(ip.as_string()) << hw_addr;
 }
 
-QString DHCPReleaseProcess::apparmor_profile() const
+QString mp::DHCPReleaseProcess::apparmor_profile() const
 {
     return "TODO!";
 }

@@ -16,7 +16,12 @@
 
 set(CMAKE_AUTOMOC ON)
 
+include(FindPkgConfig)
+#find_package(apparmor REQUIRED)
+pkg_search_module(APPARMOR apparmor)
+
 add_library(qemu_backend STATIC
+  apparmor.cpp
   apparmored_process.cpp
   dhcp_release_process.cpp
   dnsmasq_process.cpp
@@ -26,6 +31,7 @@ add_library(qemu_backend STATIC
   qemu_virtual_machine.cpp)
 
 target_link_libraries(qemu_backend
+  apparmor
   backend_utils
   fmt
   logger

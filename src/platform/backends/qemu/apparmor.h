@@ -15,33 +15,30 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_PROCESS_H
-#define MULTIPASS_QEMU_PROCESS_H
+#ifndef APPARMOR_H
+#define APPARMOR_H
 
-#include <multipass/virtual_machine_description.h>
+#include <QByteArray>
 
-#include "apparmored_process.h"
+struct aa_kernel_interface;
 
 namespace multipass
 {
 
-class QemuProcess : public AppArmoredProcess
+class AppArmor
 {
-    Q_OBJECT
 public:
-    explicit QemuProcess(const AppArmor& apparmor, const VirtualMachineDescription& desc,
-                         const QString& tap_device_name, const QString& mac_addr);
+    AppArmor();
+    ~AppArmor();
 
-    QString program() const override;
-    QStringList arguments() const override;
-    QString apparmor_profile() const override;
-    QString identifier() const override;
+    void load_policy(const QByteArray& policy) const;
+    void replace_policy(const QByteArray& policy) const;
+    void remove_policy(const QByteArray &policy_name) const;
 
 private:
-    const VirtualMachineDescription desc;
-    const QString tap_device_name, mac_addr;
+    aa_kernel_interface *aa_interface;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_QEMU_PROCESS_H
+#endif // APPARMOR_H

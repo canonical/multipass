@@ -15,18 +15,22 @@
  *
  */
 
-#ifndef DHCPRELEASEPROCESS_H
-#define DHCPRELEASEPROCESS_H
+#ifndef MULTIPASS_DHCP_RELEASE_PROCESS_H
+#define MULTIPASS_DHCP_RELEASE_PROCESS_H
 
 #include <multipass/ip_address.h>
 
 #include "apparmored_process.h"
 
+namespace multipass
+{
+
 class DHCPReleaseProcess : public AppArmoredProcess
 {
     Q_OBJECT
 public:
-    explicit DHCPReleaseProcess(const QString &bridge_name, const multipass::IPAddress &ip, const QString &hw_addr);
+    explicit DHCPReleaseProcess(const AppArmor& apparmor, const QString& bridge_name, const multipass::IPAddress& ip,
+                                const QString& hw_addr);
 
     QString program() const override;
     QStringList arguments() const override;
@@ -38,4 +42,6 @@ private:
     const QString hw_addr;
 };
 
-#endif // DHCPRELEASEPROCESS_H
+} // namespace multipass
+
+#endif // MULTIPASS_DHCP_RELEASE_PROCESS_H
