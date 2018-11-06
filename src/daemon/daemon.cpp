@@ -66,6 +66,12 @@ constexpr auto uuid_file_name = "multipass-unique-id";
 constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
+constexpr auto term_sshd_retries = 10;
+constexpr auto term_sleep_factor = 10ms;
+constexpr auto term_root_sshd_cmd = "sudo pkill -SIGTERM -P1 -f `which sshd`";
+constexpr auto kill_root_sshd_cmd = "sudo pkill -SIGKILL -P1 -f `which sshd`"; /* Once the root sshd has been killed,
+we want pkill to fail. Since the first orphaned child is adopted by ppid 1, matching by parent is not enough, hence
+the '-f `which sshd`' part. */
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -440,10 +446,37 @@ auto process_targets(const Targets& targets,
     return std::make_pair(tgts, st);
 }
 
+grpc::Status stop_accepting_ssh_connections(mp::SSHSession& session)
+{
+    assert(term_sshd_retries > 1); // we need one pkill to kill and another to confirm the process is gone
+
+    auto ecode = 0;
+
+    for(auto retry = 0;
+        retry < term_sshd_retries && ecode == 0; // notice we stop trying once there is no matching proc (ecode == 1)
+        std::this_thread::sleep_for(term_sleep_factor * retry++)) // no sleep on 1st retry, then arithmetic progression
+    {   // pkill exit codes are: 0 - match; 1 - no match; 2 - cli error; 3 - fatal error (e.g. OOM)
+        const auto& cmd = retry == term_sshd_retries - 2 ? kill_root_sshd_cmd : term_root_sshd_cmd; /*
+        Use SIGKILL on next-to-last retry (leave one retry to confirm the process is not there any longer) */
+
+        auto proc = session.exec(cmd);
+        ecode = proc.exit_code();
+        mpl::log(mpl::Level::debug, category, fmt::format("Executed '{}' over ssh. Got exit code {}", cmd, ecode));
+
+        assert(ecode != 2);
+    }
+
+    return ecode == 1 ? grpc::Status::OK : grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Could not stop sshd"};
+}
+
 grpc::Status ssh_reboot(const std::string& hostname, int port,
                         const std::string& username, const mp::SSHKeyProvider& key_provider)
 {
     mp::SSHSession session{hostname, port, username, key_provider};
+    stop_accepting_ssh_connections(session); /* This allows us to later detect when the machine
+    has finished restarting by waiting for SSH to be back up. Otherwise, there would be a race
+    condition, and we would be unable to distinguish whether it had ever been down. */
+
     auto proc = session.exec(reboot_cmd);
     try
     {
@@ -1590,7 +1623,8 @@ try
         if(st.ok())
         {
             st = cmd_vms(tgts, [this](auto& vm, const auto&){
-                vm.wait_until_ssh_up(up_timeout); // 2nd pass waits for them to be up
+                vm.wait_until_ssh_up(up_timeout); /* 2nd pass waits for them
+                (only works because SSH was manually killed before rebooting) */
                 return grpc::Status::OK;
             });
         }
@@ -1602,7 +1636,6 @@ catch(const std::exception& e)
 {
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
 }
-
 
 grpc::Status mp::Daemon::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                grpc::ServerWriter<DeleteReply>* server) // clang-format off
@@ -1900,6 +1933,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, const VMSpecs& specs)
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
+    mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
     return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), specs.ssh_username, *config->ssh_key_provider);
 }
 
