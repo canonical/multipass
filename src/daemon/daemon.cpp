@@ -1930,10 +1930,9 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, const VMSpecs& specs)
 grpc::Status
 mp::Daemon::cmd_vms(const std::vector<std::string>& tgts,
                     std::function<grpc::Status(VirtualMachine&, const VMSpecs&)> cmd)
-{   /* TODO: use this in commands, rather than repeating the same logic
+{   /* TODO: use this in commands, rather than repeating the same logic.
     std::function involves some overhead, but it should be negligible here and
-    it gives clear error messages on type mismatch (!= templated callable).
-    */
+    it gives clear error messages on type mismatch (!= templated callable). */
     for(const auto& tgt : tgts)
     {
         const auto st = cmd(*vm_instances.at(tgt), vm_instance_specs.at(tgt));
