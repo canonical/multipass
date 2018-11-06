@@ -461,7 +461,7 @@ grpc::Status stop_accepting_ssh_connections(mp::SSHSession& session)
 
         auto proc = session.exec(cmd);
         ecode = proc.exit_code();
-        mpl::log(mpl::Level::debug, category, fmt::format("Executed '{}' over ssh. Got exit code {}", cmd, ecode));
+        mpl::log(mpl::Level::debug, category, fmt::format("Executed '{}'. Got exit code {}", cmd, ecode));
 
         assert(ecode != 2);
     }
@@ -477,7 +477,9 @@ grpc::Status ssh_reboot(const std::string& hostname, int port,
     has finished restarting by waiting for SSH to be back up. Otherwise, there would be a race
     condition, and we would be unable to distinguish whether it had ever been down. */
 
+    mpl::log(mpl::Level::debug, category, fmt::format("Executing {}.", reboot_cmd));
     auto proc = session.exec(reboot_cmd);
+
     try
     {
         auto ecode = proc.exit_code();
