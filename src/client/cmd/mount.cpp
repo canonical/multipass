@@ -37,6 +37,17 @@ using RpcMethod = mp::Rpc::Stub;
 namespace
 {
 constexpr auto category = "mount cmd";
+
+auto convert_id_for(const QString& id_string)
+{
+    bool ok;
+
+    auto id = id_string.toUInt(&ok);
+    if (!ok)
+        throw std::runtime_error(id_string.toStdString() + " is an invalid id");
+
+    return id;
+}
 } // namespace
 
 mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
@@ -161,7 +172,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         }
     }
 
-    QRegExp map_matcher("^([0-9]{1,5}[:][0-9]{1,5})$");
+    QRegExp map_matcher("^([0-9]+[:][0-9]+)$");
 
     if (parser->isSet(uid_map))
     {
@@ -177,7 +188,18 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
             auto parsed_map = map.split(":");
 
-            (*request.mutable_mount_maps()->mutable_uid_map())[parsed_map.at(0).toInt()] = parsed_map.at(1).toInt();
+            try
+            {
+                auto host_uid = convert_id_for(parsed_map.at(0));
+                auto instance_uid = convert_id_for(parsed_map.at(1));
+
+                (*request.mutable_mount_maps()->mutable_uid_map())[host_uid] = instance_uid;
+            }
+            catch (const std::exception& e)
+            {
+                cerr << e.what() << "\n";
+                return ParseCode::CommandLineError;
+            }
         }
     }
 
@@ -195,7 +217,18 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
             auto parsed_map = map.split(":");
 
-            (*request.mutable_mount_maps()->mutable_gid_map())[parsed_map.at(0).toInt()] = parsed_map.at(1).toInt();
+            try
+            {
+                auto host_gid = convert_id_for(parsed_map.at(0));
+                auto instance_gid = convert_id_for(parsed_map.at(1));
+
+                (*request.mutable_mount_maps()->mutable_gid_map())[host_gid] = instance_gid;
+            }
+            catch (const std::exception& e)
+            {
+                cerr << e.what() << "\n";
+                return ParseCode::CommandLineError;
+            }
         }
     }
 
