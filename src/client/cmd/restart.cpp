@@ -20,8 +20,6 @@
 
 #include <multipass/cli/argparser.h>
 
-#include <cassert>
-
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
