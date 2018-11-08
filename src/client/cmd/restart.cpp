@@ -16,6 +16,8 @@
  */
 
 #include "restart.h"
+#include "common_cli.h"
+
 #include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
@@ -25,7 +27,7 @@ namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
 mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
-{ // This code should probably be factored out (for multiple commands)
+{
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
@@ -35,18 +37,10 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        cerr << "restart failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
+        return standard_failure_handler_for(name(), cerr, status);
     };
 
-    std::string message{"Restarting "};
-    if (request.instance_name().empty())
-        message.append("all instances");
-    else if (request.instance_name().size() > 1)
-        message.append("requested instances");
-    else
-        message.append(request.instance_name().Get(0));
-    spinner.start(message);
+    spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::restart, request, on_success, on_failure);
 }
@@ -69,37 +63,21 @@ QString cmd::Restart::description() const
 }
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
-{ // This code should probably be factored out (for multiple commands)
+{
     parser->addPositionalArgument("name", "Names of instances to restart", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Restart all instances");
+    QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
-
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     return status;
 }

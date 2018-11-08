@@ -1600,7 +1600,8 @@ try // clang-format on
 {
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    auto instances_and_status = find_requested_instances(request->instance_name(), vm_instances, deleted_instances);
+    auto instances_and_status =
+        find_requested_instances(request->instance_names().instance_name(), vm_instances, deleted_instances);
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
