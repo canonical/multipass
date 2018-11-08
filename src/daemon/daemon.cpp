@@ -464,20 +464,25 @@ grpc::Status ssh_reboot(const std::string& hostname, int port,
                         const std::string& username, const mp::SSHKeyProvider& key_provider)
 {
     mp::SSHSession session{hostname, port, username, key_provider};
-    stop_accepting_ssh_connections(session); /* This allows us to later detect when the machine
-    has finished restarting by waiting for SSH to be back up. Otherwise, there would be a race
-    condition, and we would be unable to distinguish whether it had ever been down. */
+
+    // This allows us to later detect when the machine has finished restarting by waiting for SSH to be back up.
+    // Otherwise, there would be a race condition, and we would be unable to distinguish whether it had ever been down.
+    stop_accepting_ssh_connections(session);
 
     auto proc = exec_and_log(session, reboot_cmd);
     try
     {
         auto ecode = proc.exit_code();
+
+        // we shouldn't get this far: a successful reboot command does not return
         return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
                             fmt::format("Reboot command exited with code {}", ecode),
-                            proc.read_std_error()}; /* we shouldn't get this far: a
-                            successful reboot command does not return */
+                            proc.read_std_error()};
     }
-    catch(const mp::ExitlessSSHProcessException&) { /* this is the expected path */ }
+    catch(const mp::ExitlessSSHProcessException&)
+    {
+      // this is the expected path
+    }
 
     return grpc::Status::OK;
 }
@@ -1598,7 +1603,7 @@ catch (const std::exception& e)
 
 grpc::Status mp::Daemon::restart(grpc::ServerContext* context, const RestartRequest* request,
                                  grpc::ServerWriter<RestartReply>* server) // clang-format off
-try
+try // clang-format on
 {
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
@@ -1614,8 +1619,8 @@ try
         if(status.ok())
         {
             status = cmd_vms(instances, [this](auto& vm, const auto&){
-                vm.wait_until_ssh_up(up_timeout); /* 2nd pass waits for them
-                (only works because SSH was manually killed before rebooting) */
+                // 2nd pass waits for them (only works because SSH was manually killed before rebooting)
+                vm.wait_until_ssh_up(up_timeout);
                 return grpc::Status::OK;
             });
         }
