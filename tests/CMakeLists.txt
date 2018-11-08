@@ -37,6 +37,9 @@ set_target_properties(qemu-system-x86_64
         RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
         RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
+target_link_libraries(qemu-system-x86_64
+        Qt5::Core)
+
 add_executable(dnsmasq
   mock_dnsmasq_server.cpp)
 
