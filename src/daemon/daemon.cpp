@@ -1613,14 +1613,14 @@ try // clang-format on
 
     if(status.ok())
     {
-        using namespace std::placeholders; // for _1, _2
-        status = cmd_vms(instances, std::bind(&Daemon::reboot_vm, this, _1, _2)); // 1st pass to reboot all targets
+        status = cmd_vms(instances, std::bind(&Daemon::reboot_vm, this, std::placeholders::_1)); // 1st pass to reboot all targets
 
         if(status.ok())
         {
-            status = cmd_vms(instances, [this](auto& vm, const auto&){
+            status = cmd_vms(instances, [this](auto& vm){
                 // 2nd pass waits for them (only works because SSH was manually killed before rebooting)
                 vm.wait_until_ssh_up(up_timeout);
+
                 return grpc::Status::OK;
             });
         }
@@ -1920,7 +1920,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
     mount_threads[name][target_path] = std::move(sshfs_mount);
 }
 
-grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, const VMSpecs& specs)
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 {
     if(vm.state == VirtualMachine::State::delayed_shutdown)
         delayed_shutdown_instances.erase(vm.vm_name);
@@ -1930,19 +1930,19 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, const VMSpecs& specs)
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
-    return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), specs.ssh_username, *config->ssh_key_provider);
+    return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider);
 }
 
 
 grpc::Status
 mp::Daemon::cmd_vms(const std::vector<std::string>& tgts,
-                    std::function<grpc::Status(VirtualMachine&, const VMSpecs&)> cmd)
+                    std::function<grpc::Status(VirtualMachine&)> cmd)
 {   /* TODO: use this in commands, rather than repeating the same logic.
     std::function involves some overhead, but it should be negligible here and
     it gives clear error messages on type mismatch (!= templated callable). */
     for(const auto& tgt : tgts)
     {
-        const auto st = cmd(*vm_instances.at(tgt), vm_instance_specs.at(tgt));
+        const auto st = cmd(*vm_instances.at(tgt));
         if(!st.ok())
             return st; // Fail early
     }

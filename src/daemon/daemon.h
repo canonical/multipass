@@ -127,9 +127,9 @@ private:
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                      const std::unordered_map<int, int>& uid_map);
-    grpc::Status reboot_vm(VirtualMachine& vm, const VMSpecs& specs);
-    grpc::Status cmd_vms(const std::vector<std::string>& tgts,
-                         std::function<grpc::Status(VirtualMachine&, const VMSpecs&)> cmd);
+    grpc::Status reboot_vm(VirtualMachine& vm);
+    grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
+
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
