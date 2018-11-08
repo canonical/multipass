@@ -34,7 +34,6 @@ public:
     virtual QString apparmor_profile() const = 0;
     virtual QString identifier() const = 0;
 
-protected:
     const QString apparmor_profile_name() const;
 };
 

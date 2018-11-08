@@ -27,27 +27,23 @@ namespace
 class AppArmoredProcess : public mp::Process
 {
 public:
-    AppArmoredProcess(const mp::AppArmor& apparmor,
-                                         std::unique_ptr<mp::ProcessSpec>&& process_spec)
-        : mp::Process(std::move(process_spec)), apparmor{apparmor}
+    AppArmoredProcess(const mp::AppArmor& aa, std::unique_ptr<mp::ProcessSpec>&& spec)
+        : mp::Process(std::move(spec)), apparmor{aa}
     {
+        apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
+
+        // This is the closest I can get to the exec() call in QProcess::start. Might be racey
+        QObject::connect(this, &Process::stateChanged, [this](QProcess::ProcessState state) {
+            if (state == QProcess::Starting)
+            {
+                apparmor.apply_policy_to_next_exec(process_spec->apparmor_profile_name().toLatin1());
+            }
+        });
     }
 
     ~AppArmoredProcess()
     {
-        // TODO: remove registered AA profile
-    }
-
-    void start()
-    {
-        apparmor.load_policy(process_spec->apparmor_profile());
-
-        // GERRY: what do I do if not running under snap?? Or AppArmor not available??
-        // process.start("aa-exec", QStringList() << "-p" << apparmor_profile_name() << "--" << program() <<
-        // arguments());
-        // alternative is to hook into the QPRocess::stateChanged -> Starting signal (blocked), and call the apparmor
-        // aa_change_onexec which hopefully (pending race conditions) will attach to the correct exec call.
-        mp::Process::start();
+        apparmor.remove_policy(process_spec->apparmor_profile().toLatin1());
     }
 
 private:
@@ -56,12 +52,12 @@ private:
 
 } // namespace
 
-
-
 mp::AppArmorConfinedSystem::AppArmorConfinedSystem()
-{}
+{
+}
 
-std::unique_ptr<mp::Process> mp::AppArmorConfinedSystem::create_process(std::unique_ptr<ProcessSpec> &&process_spec) const
+std::unique_ptr<mp::Process>
+mp::AppArmorConfinedSystem::create_process(std::unique_ptr<ProcessSpec>&& process_spec) const
 {
     return std::make_unique<::AppArmoredProcess>(apparmor, std::move(process_spec));
 }
