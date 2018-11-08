@@ -28,11 +28,11 @@
 #include "cmd/mount.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
+#include "cmd/restart.h"
 #include "cmd/shell.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
 #include "cmd/suspend.h"
-#include "cmd/restart.h"
 #include "cmd/umount.h"
 #include "cmd/version.h"
 

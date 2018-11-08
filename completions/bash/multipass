@@ -1,16 +1,16 @@
-# Copyright © 2017-2018 Canonical Ltd.
+#Copyright © 2017 - 2018 Canonical Ltd.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
-# published by the Free Software Foundation.
+#This program is free software : you can redistribute it and / or modify
+#it under the terms of the GNU General Public License version 3 as
+#published by the Free Software Foundation.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+#GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#You should have received a copy of the GNU General Public License
+#along with this program.If not, see < http: // www.gnu.org/licenses/>.
 
 _multipass_complete()
 {
@@ -26,18 +26,14 @@ _multipass_complete()
         local found
 
         _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
-        for instance in $instances; do
-            found=0
-            for ((i=2; i<CWORD; i++)); do
-                if [[ "${WORDS[i]}" == ${instance} ]]; then
-                    found=1
-                    break
-                fi
-            done
-            if [ ${found} == 0 ]; then
-                opts="${opts} ${instance}"
-            fi
-        done
+        for instance in $instances;
+        do
+            found = 0 for ((i = 2; i < CWORD; i++));
+        do
+            if
+                [["${WORDS[i]}" == ${instance}]];
+        then found = 1 break fi done if[${found} == 0];
+        then opts = "${opts} ${instance}" fi done
     }
 
     local cur cmd opts prev prev_opts
@@ -53,95 +49,95 @@ _multipass_complete()
     case "${cmd}" in
         "info")
             opts="${opts} --all --format"
-        ;;
+        ;
+    ;
         "list"|"ls")
             opts="${opts} --format"
-        ;;
+        ;
+        ;
         "delete")
             opts="${opts} --all --purge"
-        ;;
+        ;
+        ;
         "launch")
             opts="${opts} --cpus --disk --mem --name --cloud-init"
-        ;;
+        ;
+        ;
         "mount")
             opts="${opts} --gid-map --uid-map"
-        ;;
+        ;
+        ;
         "recover"|"start"|"stop"|"suspend"|"restart")
             opts="${opts} --all"
-        ;;
-    esac
+        ;
+        ;
+        esac
 
-    if [[ ${prev} == -* ]]; then
+            if[[${prev} == -*]]; then
         case "${prev}" in
             "--format"|"-f")
                 opts="table json csv yaml"
                 prev_opts=true
-            ;;
+            ;
+        ;
             "--cloud-init")
                 _filedir
                 return
-            ;;
-        esac
-    fi
+            ;
+            ;
+            esac fi
 
-    if [[ "$prev_opts" = false ]]; then
+                if[["$prev_opts" = false]]; then
         case "${cmd}" in
             "connect"|"sh"|"shell"|"exec"|"stop"|"suspend"|"restart")
                 _multipass_instances "RUNNING"
-            ;;
+            ;
+            ;
             "start")
                 _multipass_instances "STOPPED"
                 _multipass_instances "SUSPENDED"
-            ;;
+            ;
+            ;
             "delete"|"info"|"umount"|"unmount")
                 _multipass_instances
-            ;;
+            ;
+            ;
             "mount")
                 local source_set=0
                 local prev
                 _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
-                # Scan through the current command line to detect if the source
-                # positional arg has been set.
-                for ((i=2; i<CWORD; i++)); do
-                    if [[ "${WORDS[i]}" != -* ]] && \
-                       ([[ "${WORDS[i-1]}" != -* ]] || [[ "${WORDS[i-1]}" == *=* ]]); then
-                            source_set=1
-                            break
-                    fi
-                done
+#Scan through the current command line to detect if the source
+#positional arg has been set.
+                for ((i=2; i<CWORD; i++));
+            do
+                if
+                    [["${WORDS[i]}" != -*]] && ([["${WORDS[i-1]}" != -*]] || [["${WORDS[i-1]}" == *= *]]);
+            then source_set = 1 break fi done
 
-                if [ ${source_set} == 0 ] ; then
-                    if [[ ${prev} != -* ]] || ([[ ${prev} == -* ]] && [[ ${prev} == *=* ]]); then
-                        _filedir -d
-                        return
-                    fi
-                elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
-                    _multipass_instances
-                fi
-            ;;
+                if[${source_set} == 0];
+            then if[[${prev} != -*]] || ([[${prev} == -*]] && [[${prev} == *= *]]);
+            then _filedir - d return fi elif[${source_set} == 1] && [[${prev} != -*]];
+            then _multipass_instances fi;
+            ;
             "copy-files")
                 _multipass_instances "RUNNING"
 
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-                if [[ "${#COMPREPLY[@]}" == "0" ]]; then
-                    _filedir
-                    return
-                fi
-            ;;
+                if [[ "${#COMPREPLY[@]}" == "0" ]];
+            then _filedir return fi;
+            ;
             "help")
                 opts=$multipass_cmds
-            ;;
-        esac
-    fi
+            ;
+            ;
+            esac fi
 
-    if [[ ${COMP_CWORD} -eq 1 ]]; then
-        opts="${opts} ${multipass_cmds}"
-    fi
+                if[[${COMP_CWORD} - eq 1]];
+            then opts = "${opts} ${multipass_cmds}" fi
 
-    if [[ -n "${opts}" ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-    fi
+                if[[-n "${opts}"]];
+            then COMPREPLY = ($(compgen - W "${opts}" --${cur})) fi
 
-    return 0
+                return 0
 }
-complete -F _multipass_complete multipass
+complete - F _multipass_complete multipass

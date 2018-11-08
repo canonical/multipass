@@ -29,8 +29,7 @@ class ExitlessSSHProcessException : public std::runtime_error
 {
 public:
     ExitlessSSHProcessException(const std::string& command)
-        : runtime_error(fmt::format("failed to obtain exit status for remote process: '{}'", command))
-        , cmd{command}
+        : runtime_error(fmt::format("failed to obtain exit status for remote process: '{}'", command)), cmd{command}
     {
     }
 
@@ -41,7 +40,6 @@ public:
 
 private:
     const std::string cmd;
-
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H

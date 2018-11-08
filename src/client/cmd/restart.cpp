@@ -25,14 +25,12 @@ namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
 mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
-{   // This code should probably be factored out (for multiple commands)
+{ // This code should probably be factored out (for multiple commands)
     auto ret = parse_args(parser);
-    if(ret != ParseCode::Ok)
+    if (ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
-    auto on_success = [](mp::RestartReply& reply) {
-        return ReturnCode::Ok;
-    };
+    auto on_success = [](mp::RestartReply& reply) { return ReturnCode::Ok; };
 
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
@@ -53,7 +51,10 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::restart, request, on_success, on_failure);
 }
 
-std::string cmd::Restart::name() const { return "restart"; }
+std::string cmd::Restart::name() const
+{
+    return "restart";
+}
 
 QString cmd::Restart::short_help() const
 {
@@ -68,9 +69,8 @@ QString cmd::Restart::description() const
 }
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
-{   // This code should probably be factored out (for multiple commands)
-    parser->addPositionalArgument("name", "Names of instances to restart",
-                                  "<name> [<name> ...]");
+{ // This code should probably be factored out (for multiple commands)
+    parser->addPositionalArgument("name", "Names of instances to restart", "<name> [<name> ...]");
 
     QCommandLineOption all_option("all", "Restart all instances");
     parser->addOption(all_option);
