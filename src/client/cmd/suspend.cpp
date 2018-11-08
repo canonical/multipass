@@ -16,6 +16,7 @@
  */
 
 #include "suspend.h"
+#include "common_cli.h"
 
 #include "animated_spinner.h"
 
@@ -38,18 +39,10 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        cerr << "suspend failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
+        return standard_failure_handler_for(name(), cerr, status);
     };
 
-    std::string message{"Suspending "};
-    if (request.instance_name().empty())
-        message.append("all instances");
-    else if (request.instance_name().size() > 1)
-        message.append("requested instances");
-    else
-        message.append(request.instance_name().Get(0));
-    spinner.start(message);
+    spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::suspend, request, on_success, on_failure);
 }
@@ -81,27 +74,11 @@ mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
-
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     return status;
 }

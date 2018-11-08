@@ -16,6 +16,7 @@
 
 add_library(commands STATIC
   animated_spinner.cpp
+  common_cli.cpp
   copy_files.cpp
   launch.cpp
   purge.cpp

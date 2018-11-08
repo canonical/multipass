@@ -24,9 +24,12 @@
 
 namespace multipass
 {
+class Formatter;
+
 namespace format
 {
 std::string status_string_for(const InstanceStatus& status);
+Formatter* formatter_for(const std::string& format);
 }
 }
 #endif // MULTIPASS_FORMAT_UTILS_H

@@ -24,6 +24,8 @@
 
 namespace multipass
 {
+class Formatter;
+
 namespace cmd
 {
 class Info final : public Command

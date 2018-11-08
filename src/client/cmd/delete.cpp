@@ -16,6 +16,7 @@
  */
 
 #include "delete.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -33,10 +34,7 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 
     auto on_success = [](mp::DeleteReply& reply) { return mp::ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "delete failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::delet, request, on_success, on_failure);
@@ -62,7 +60,7 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to delete", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Delete all instances");
+    QCommandLineOption all_option(all_option_name, "Delete all instances");
     parser->addOption(all_option);
 
     QCommandLineOption purge_option({"p", "purge"}, "Purge instances immediately");
@@ -72,27 +70,11 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
-
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     if (parser->isSet(purge_option))
     {
