@@ -15,27 +15,39 @@
  *
  */
 
-#include "dhcp_release_process.h"
+#include "unconfined_system.h"
+#include "process.h"
 
 namespace mp = multipass;
 
-mp::DHCPReleaseProcess::DHCPReleaseProcess(const mp::AppArmor& apparmor, const QString& bridge_name,
-                                           const mp::IPAddress& ip, const QString& hw_addr)
-    : mp::AppArmoredProcess(apparmor), bridge_name(bridge_name), ip(ip), hw_addr(hw_addr)
+namespace
+{
+
+class UnconfinedProcess : public mp::Process
+{
+public:
+    UnconfinedProcess(std::unique_ptr<mp::ProcessSpec>&& process_spec)
+        : mp::Process(std::move(process_spec))
+    {
+    }
+
+    ~UnconfinedProcess()
+    {
+    }
+
+    void start() // GERRY - NECESSARY???
+    {
+        mp::Process::start();
+    }
+};
+
+} // namespace
+
+mp::UnconfinedSystem::UnconfinedSystem()
 {
 }
 
-QString mp::DHCPReleaseProcess::program() const
+std::unique_ptr<mp::Process> mp::UnconfinedSystem::create_process(std::unique_ptr<mp::ProcessSpec> &&process_spec) const
 {
-    return QStringLiteral("dhcp_release");
-}
-
-QStringList mp::DHCPReleaseProcess::arguments() const
-{
-    return QStringList() << bridge_name << QString::fromStdString(ip.as_string()) << hw_addr;
-}
-
-QString mp::DHCPReleaseProcess::apparmor_profile() const
-{
-    return "TODO!";
+    return std::make_unique<::UnconfinedProcess>(std::move(process_spec));
 }

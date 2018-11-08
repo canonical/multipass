@@ -15,33 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_DHCP_RELEASE_PROCESS_H
-#define MULTIPASS_DHCP_RELEASE_PROCESS_H
+#ifndef MULTIPASS_CONFINEMENT_SYSTEM_H
+#define MULTIPASS_CONFINEMENT_SYSTEM_H
 
-#include <multipass/ip_address.h>
-
-#include "apparmored_process.h"
+#include <memory>
 
 namespace multipass
 {
+class Process;
+class ProcessSpec;
 
-class DHCPReleaseProcess : public AppArmoredProcess
+class ConfinementSystem
 {
-    Q_OBJECT
 public:
-    explicit DHCPReleaseProcess(const AppArmor& apparmor, const QString& bridge_name, const multipass::IPAddress& ip,
-                                const QString& hw_addr);
+    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec> &&process_spec) const = 0;
 
-    QString program() const override;
-    QStringList arguments() const override;
-    QString apparmor_profile() const override;
-
-private:
-    const QString bridge_name;
-    const multipass::IPAddress ip;
-    const QString hw_addr;
+    ~ConfinementSystem() = default;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_DHCP_RELEASE_PROCESS_H
+#endif // MULTIPASS_CONFINEMENT_SYSTEM_H

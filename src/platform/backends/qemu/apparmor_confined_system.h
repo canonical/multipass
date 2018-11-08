@@ -15,30 +15,29 @@
  *
  */
 
-#ifndef MULTIPASS_APPARMOR_H
-#define MULTIPASS_APPARMOR_H
+#ifndef MULTIPASS_APPARMOR_CONFINED_SYSTEM_H
+#define MULTIPASS_APPARMOR_CONFINED_SYSTEM_H
 
-#include <QString>
+#include "confinement_system.h"
 
-struct aa_kernel_interface;
+#include "apparmor.h"
+#include "process_spec.h"
 
 namespace multipass
 {
 
-class AppArmor
+class AppArmorConfinedSystem : public ConfinementSystem
 {
 public:
-    AppArmor();
-    ~AppArmor();
+    AppArmorConfinedSystem();
+    virtual ~AppArmorConfinedSystem() = default;
 
-    void load_policy(const QString& aa_policy) const;
-    void replace_policy(const QString& aa_policy) const;
-    void remove_policy(const QString& aa_policy_name) const;
+    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec> &&process_spec) const override;
 
 private:
-    aa_kernel_interface* aa_interface;
+    const AppArmor apparmor;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_APPARMOR_CONFINEMENT_H
+#endif // MULTIPASS_APPARMOR_CONFINED_SYSTEM_H

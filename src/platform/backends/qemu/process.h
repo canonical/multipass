@@ -15,34 +15,33 @@
  *
  */
 
-#ifndef MULTIPASS_APPARMORED_PROCESS_H
-#define MULTIPASS_APPARMORED_PROCESS_H
+#ifndef MULTIPASS_PROCESS_H
+#define MULTIPASS_PROCESS_H
 
-#include "apparmor.h"
-
+#include "process_spec.h"
 #include <QProcess>
+
+#include <memory>
 
 namespace multipass
 {
 
-class AppArmoredProcess : public QObject
+class Process : public QObject
 {
     Q_OBJECT
 public:
-    AppArmoredProcess(const AppArmor &apparmor);
-    virtual ~AppArmoredProcess();
+    virtual ~Process();
 
-    virtual QString program() const = 0;
-    virtual QStringList arguments() const = 0;
-    virtual QString apparmor_profile() const = 0;
-    virtual QString identifier() const;
+    virtual void start();
+
+    void terminate();
+    void kill();
 
     QString workingDirectory() const;
     void setWorkingDirectory(const QString& dir);
 
-    void start();
-    void terminate();
-    void kill();
+    QString program() const;
+    QStringList arguments() const;
 
     qint64 processId() const;
     QProcess::ProcessState state() const;
@@ -64,13 +63,14 @@ signals:
     void stateChanged(QProcess::ProcessState newState);
 
 protected:
-    const QString apparmor_profile_name() const;
+    Process(std::unique_ptr<ProcessSpec> &&process_spec);
+
+    const std::unique_ptr<ProcessSpec> process_spec;
 
 private:
-    const AppArmor &apparmor;
     QProcess process;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_APPARMORED_PROCESS_H
+#endif // MULTIPASS_PROCESS_H

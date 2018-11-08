@@ -15,22 +15,20 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_PROCESS_H
-#define MULTIPASS_QEMU_PROCESS_H
+#ifndef MULTIPASS_DHCP_RELEASE_PROCESS_H
+#define MULTIPASS_DHCP_RELEASE_PROCESS_H
 
-#include <multipass/virtual_machine_description.h>
+#include <multipass/ip_address.h>
 
-#include "apparmored_process.h"
+#include "process_spec.h"
 
 namespace multipass
 {
 
-class QemuProcess : public AppArmoredProcess
+class DHCPReleaseProcessSpec : public ProcessSpec
 {
-    Q_OBJECT
 public:
-    explicit QemuProcess(const AppArmor& apparmor, const VirtualMachineDescription& desc,
-                         const QString& tap_device_name, const QString& mac_addr);
+    explicit DHCPReleaseProcessSpec(const QString& bridge_name, const multipass::IPAddress& ip, const QString& hw_addr);
 
     QString program() const override;
     QStringList arguments() const override;
@@ -38,10 +36,11 @@ public:
     QString identifier() const override;
 
 private:
-    const VirtualMachineDescription desc;
-    const QString tap_device_name, mac_addr;
+    const QString bridge_name;
+    const multipass::IPAddress ip;
+    const QString hw_addr;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_QEMU_PROCESS_H
+#endif // MULTIPASS_DHCP_RELEASE_PROCESS_H

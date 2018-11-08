@@ -15,7 +15,10 @@
  *
  */
 
-#include "qemu_process.h"
+#include "qemu_process_spec.h"
+
+#include <QHash>
+#include <QString>
 
 namespace mp = multipass;
 
@@ -26,18 +29,18 @@ const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"}, 
                                           {"s390x", "s390x"}};
 } // namespace
 
-mp::QemuProcess::QemuProcess(const mp::AppArmor& apparmor, const mp::VirtualMachineDescription& desc,
-                             const QString& tap_device_name, const QString& mac_addr)
-    : AppArmoredProcess(apparmor), desc(desc), tap_device_name(tap_device_name), mac_addr(mac_addr)
+mp::QemuProcessSpec::QemuProcessSpec(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
+                             const QString& mac_addr)
+    : desc(desc), tap_device_name(tap_device_name), mac_addr(mac_addr)
 {
 }
 
-QString mp::QemuProcess::program() const
+QString mp::QemuProcessSpec::program() const
 {
     return QStringLiteral("qemu-system-") + cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
 }
 
-QStringList mp::QemuProcess::arguments() const
+QStringList mp::QemuProcessSpec::arguments() const
 {
     auto mem_size = QString::fromStdString(desc.mem_size);
     if (mem_size.endsWith("B"))
@@ -74,7 +77,7 @@ QStringList mp::QemuProcess::arguments() const
     return args;
 }
 
-QString mp::QemuProcess::apparmor_profile() const
+QString mp::QemuProcessSpec::apparmor_profile() const
 {
     QString profile_template(R"END(
 #include <tunables/global>
@@ -119,7 +122,7 @@ profile %1 flags=(attach_disconnected) {
     return profile_template.arg(apparmor_profile_name(), desc.image.image_path, desc.cloud_init_iso);
 }
 
-QString mp::QemuProcess::identifier() const
+QString mp::QemuProcessSpec::identifier() const
 {
     return QString::fromStdString(desc.vm_name);
 }

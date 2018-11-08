@@ -27,7 +27,8 @@
 #include <memory>
 #include <string>
 
-#include "dnsmasq_process.h"
+#include "confinement_system.h"
+#include "process.h"
 
 namespace multipass
 {
@@ -35,7 +36,7 @@ namespace multipass
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const AppArmor& apparmor, const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
+    DNSMasqServer(const std::shared_ptr<ConfinementSystem>& confinement_system, const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
                   const IPAddress& start, const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
@@ -44,9 +45,9 @@ public:
     void release_mac(const std::string& hw_addr);
 
 private:
-    const AppArmor& apparmor;
+    const std::shared_ptr<ConfinementSystem> confinement_system;
     const QDir data_dir;
-    std::unique_ptr<DNSMasqProcess> dnsmasq_cmd;
+    std::unique_ptr<Process> dnsmasq_cmd;
     QString bridge_name;
 };
 

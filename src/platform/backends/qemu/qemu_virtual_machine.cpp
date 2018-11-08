@@ -17,8 +17,9 @@
 
 #include "qemu_virtual_machine.h"
 
+#include "confinement_system.h"
 #include "dnsmasq_server.h"
-#include "qemu_process.h"
+#include "qemu_process_spec.h"
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -46,15 +47,17 @@ namespace mpl = multipass::logging;
 namespace
 {
 
-auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       const std::string& mac_addr, const mp::AppArmor &apparmor)
+auto make_qemu_process(const mp::ConfinementSystem* confinement_system, const mp::VirtualMachineDescription& desc,
+                       const std::string& tap_device_name, const std::string& mac_addr)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    auto process = std::make_unique<mp::QemuProcess>(apparmor, desc, QString::fromStdString(tap_device_name), QString::fromStdString(mac_addr));
+    auto process_info = std::make_unique<mp::QemuProcessSpec>(desc, QString::fromStdString(tap_device_name),
+                                                              QString::fromStdString(mac_addr));
+    auto process = confinement_system->create_process(std::move(process_info));
     auto snap = qgetenv("SNAP");
     if (!snap.isEmpty())
     {
@@ -83,23 +86,25 @@ auto qmp_execute_json(const QString& cmd)
     qmp.insert("execute", cmd);
     return QJsonDocument(qmp).toJson();
 }
-}
+} // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor, const AppArmor &apparmor)
+mp::QemuVirtualMachine::QemuVirtualMachine(const std::shared_ptr<ConfinementSystem>& confinement_system,
+                                           const VirtualMachineDescription& desc, const std::string& tap_device_name,
+                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : VirtualMachine{desc.key_provider, desc.vm_name},
+      confinement_system{confinement_system},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
-      vm_process{make_qemu_process(desc, tap_device_name, mac_addr, apparmor)}
+      vm_process{make_qemu_process(confinement_system.get(), desc, tap_device_name, mac_addr)}
 {
-    QObject::connect(vm_process.get(), &QemuProcess::started, [this]() {
+    QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
         on_started();
     });
-    QObject::connect(vm_process.get(), &QemuProcess::readyReadStandardOutput, [this]() {
+    QObject::connect(vm_process.get(), &Process::readyReadStandardOutput, [this]() {
         auto qmp_output = QJsonDocument::fromJson(vm_process->readAllStandardOutput()).object();
         auto event = qmp_output["event"];
 
@@ -121,31 +126,29 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         }
     });
 
-    QObject::connect(vm_process.get(), &QemuProcess::readyReadStandardError, [this]() {
+    QObject::connect(vm_process.get(), &Process::readyReadStandardError, [this]() {
         saved_error_msg = vm_process->readAllStandardError().data();
         mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
     });
 
-    QObject::connect(vm_process.get(), &QemuProcess::stateChanged, [this](QProcess::ProcessState newState) {
+    QObject::connect(vm_process.get(), &Process::stateChanged, [this](QProcess::ProcessState newState) {
         auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
         mpl::log(mpl::Level::info, vm_name, fmt::format("process state changed to {}", meta.valueToKey(newState)));
     });
 
-    QObject::connect(vm_process.get(), &QemuProcess::errorOccurred, [this](QProcess::ProcessError error) {
+    QObject::connect(vm_process.get(), &Process::errorOccurred, [this](QProcess::ProcessError error) {
         auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
         mpl::log(mpl::Level::error, vm_name, fmt::format("process error occurred {}", meta.valueToKey(error)));
         on_error();
     });
 
-    QObject::connect(vm_process.get(), &QemuProcess::finished,
-                     [this](int exitCode, QProcess::ExitStatus exitStatus) {
-                         mpl::log(mpl::Level::info, vm_name,
-                                  fmt::format("process finished with exit code {}", exitCode));
-                         if (update_shutdown_status)
-                         {
-                             on_shutdown();
-                         }
-                     });
+    QObject::connect(vm_process.get(), &Process::finished, [this](int exitCode, QProcess::ExitStatus exitStatus) {
+        mpl::log(mpl::Level::info, vm_name, fmt::format("process finished with exit code {}", exitCode));
+        if (update_shutdown_status)
+        {
+            on_shutdown();
+        }
+    });
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()

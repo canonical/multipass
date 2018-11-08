@@ -15,7 +15,7 @@
  *
  */
 
-#include "dnsmasq_process.h"
+#include "dnsmasq_process_spec.h"
 
 namespace mp = multipass;
 
@@ -36,11 +36,9 @@ static QString pid_file()
 
 } // namespace
 
-mp::DNSMasqProcess::DNSMasqProcess(const mp::AppArmor& apparmor, const QDir& data_dir, const QString& bridge_name,
-                                   const mp::IPAddress& bridge_addr, const mp::IPAddress& start_ip,
-                                   const mp::IPAddress& end_ip)
-    : mp::AppArmoredProcess(apparmor),
-      data_dir(data_dir),
+mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
+                                   const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
+    : data_dir(data_dir),
       bridge_name(bridge_name),
       pid_file{::pid_file()},
       bridge_addr(bridge_addr),
@@ -49,12 +47,12 @@ mp::DNSMasqProcess::DNSMasqProcess(const mp::AppArmor& apparmor, const QDir& dat
 {
 }
 
-QString mp::DNSMasqProcess::program() const
+QString mp::DNSMasqProcessSpec::program() const
 {
     return QStringLiteral("dnsmasq");
 }
 
-QStringList mp::DNSMasqProcess::arguments() const
+QStringList mp::DNSMasqProcessSpec::arguments() const
 {
     QString pid;
     if (!pid_file.isNull())
@@ -75,7 +73,7 @@ QStringList mp::DNSMasqProcess::arguments() const
                                 .arg(QString::fromStdString(end_ip.as_string()));
 }
 
-QString mp::DNSMasqProcess::apparmor_profile() const
+QString mp::DNSMasqProcessSpec::apparmor_profile() const
 {
     QString profile_template(R"END(
 #include <tunables/global>
@@ -113,4 +111,10 @@ profile %1 flags=(attach_disconnected) {
 
     return profile_template.arg(apparmor_profile_name(), data_dir.filePath("dnsmasq.leases"),
                                 data_dir.filePath("dnsmasq.hosts"), pid);
+}
+
+QString mp::DNSMasqProcessSpec::identifier() const
+{
+    // Should only ever be one instance of DNSMasq, no need for unique identifier
+    return QString();
 }

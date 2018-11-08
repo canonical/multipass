@@ -27,17 +27,17 @@ class QString;
 
 namespace multipass
 {
-class AppArmor;
 class DNSMasqServer;
-class QemuProcess;
+class ConfinementSystem;
+class Process;
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
 class QemuVirtualMachine final : public VirtualMachine
 {
 public:
-    QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor, const AppArmor &apparmor);
+    QemuVirtualMachine(const std::shared_ptr<ConfinementSystem>& confinement_system, const VirtualMachineDescription& desc, const std::string& tap_device_name,
+                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -60,12 +60,13 @@ private:
     void on_restart();
     void ensure_vm_is_running();
     multipass::optional<IPAddress> ip;
+    const std::shared_ptr<ConfinementSystem> confinement_system;
     const std::string tap_device_name;
     const std::string mac_addr;
     const std::string username;
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
-    std::unique_ptr<QemuProcess> vm_process;
+    const std::unique_ptr<Process> vm_process;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
 };

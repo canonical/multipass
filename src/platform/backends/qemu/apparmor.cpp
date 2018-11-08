@@ -20,6 +20,8 @@
 #include <multipass/logging/log.h>
 #include <sys/apparmor.h>
 
+#include <fmt/format.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -31,11 +33,16 @@ mp::AppArmor::AppArmor() : aa_interface(nullptr)
         throw std::runtime_error("AppArmor is not enabled");
     }
 
-    ret = aa_kernel_interface_new(&aa_interface, nullptr, nullptr);
+    aa_features *features = nullptr;
+    aa_features_new_from_kernel(&features);
+
+    ret = aa_kernel_interface_new(&aa_interface, features, nullptr);
     if (ret < 0)
     {
-        throw std::runtime_error("Failed to get AppArmor kernel interface");
+        throw std::runtime_error(fmt::format("Failed to get AppArmor kernel interface: errno={} ({})", errno, strerror(errno)));
     }
+
+    aa_kernel_interface_ref(aa_interface);
 }
 
 mp::AppArmor::~AppArmor()
@@ -43,29 +50,39 @@ mp::AppArmor::~AppArmor()
     aa_kernel_interface_unref(aa_interface);
 }
 
-void mp::AppArmor::load_policy(const QByteArray& policy) const
+#include <iostream>
+
+void mp::AppArmor::load_policy(const QString& policy) const
 {
-    int ret = aa_kernel_interface_load_policy(aa_interface, policy.constData(), policy.size());
+    auto copy = policy.trimmed().toLatin1();
+    std::cout << "load policy " << qPrintable(copy) << std::endl;
+    int ret = aa_kernel_interface_load_policy(aa_interface, copy.constData(), copy.size());
     if (ret < 0)
     {
-        throw std::runtime_error("Failed to load AppArmor policy");
+        if (errno != EEXIST) { // does not already exist
+            throw std::runtime_error(fmt::format("Failed to load AppArmor policy: errno={} ({})", errno, strerror(errno)));
+        } else {
+            replace_policy(policy);
+        }
     }
 }
 
-void mp::AppArmor::replace_policy(const QByteArray& policy) const
+void mp::AppArmor::replace_policy(const QString& policy) const
 {
-    int ret = aa_kernel_interface_replace_policy(aa_interface, policy.constData(), policy.size());
+    int ret = aa_kernel_interface_replace_policy(aa_interface, policy.toLatin1().constData(), policy.toLatin1().size());
     if (ret < 0)
     {
-        throw std::runtime_error("Failed to replace AppArmor policy");
+        throw std::runtime_error(fmt::format("Failed to replace AppArmor policy errno={} ({})", errno, strerror(errno)));
     }
 }
 
-void mp::AppArmor::remove_policy(const QByteArray& policy_name) const
+void mp::AppArmor::remove_policy(const QString& policy_name) const
 {
-    int ret = aa_kernel_interface_remove_policy(aa_interface, policy_name.constData());
+    int ret = aa_kernel_interface_remove_policy(aa_interface, policy_name.toLatin1().constData());
     if (ret < 0)
     {
-        throw std::runtime_error("Failed to remove AppArmor policy");
+        if (errno != ENOENT) { // was already removed
+            throw std::runtime_error(fmt::format("Failed to remove AppArmort policy errno={} ({})", errno, strerror(errno)));
+        }
     }
 }

@@ -15,30 +15,16 @@
  *
  */
 
-#ifndef MULTIPASS_APPARMOR_H
-#define MULTIPASS_APPARMOR_H
+#include "process_spec.h"
 
-#include <QString>
+namespace mp = multipass;
 
-struct aa_kernel_interface;
-
-namespace multipass
+const QString mp::ProcessSpec::apparmor_profile_name() const
 {
+    if (!identifier().isNull()) {
+        return QStringLiteral("multipass.") + identifier() + '.' + program();
+    } else {
+        return QStringLiteral("multipass.") + program();
+    }
+}
 
-class AppArmor
-{
-public:
-    AppArmor();
-    ~AppArmor();
-
-    void load_policy(const QString& aa_policy) const;
-    void replace_policy(const QString& aa_policy) const;
-    void remove_policy(const QString& aa_policy_name) const;
-
-private:
-    aa_kernel_interface* aa_interface;
-};
-
-} // namespace multipass
-
-#endif // MULTIPASS_APPARMOR_CONFINEMENT_H
