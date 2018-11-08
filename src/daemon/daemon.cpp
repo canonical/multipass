@@ -941,14 +941,14 @@ try // clang-format on
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_for_info;
 
-    if (request->instance_name().empty())
+    if (request->instance_names().instance_name().empty())
     {
         for (auto& pair : vm_instances)
             instances_for_info.push_back(pair.first);
     }
     else
     {
-        for (const auto& name : request->instance_name())
+        for (const auto& name : request->instance_names().instance_name())
             instances_for_info.push_back(name);
     }
 
@@ -1280,7 +1280,7 @@ try // clang-format on
 
     fmt::memory_buffer errors;
     std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
-    for (const auto& name : request->instance_name())
+    for (const auto& name : request->instance_names().instance_name())
     {
         auto it = deleted_instances.find(name);
         if (it == deleted_instances.end())
@@ -1366,7 +1366,7 @@ try // clang-format on
     config->factory->check_hypervisor_support();
 
     std::vector<decltype(vm_instances)::key_type> vms;
-    for (const auto& name : request->instance_name())
+    for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
@@ -1404,7 +1404,7 @@ try // clang-format on
         vms.push_back(name);
     }
 
-    if (request->instance_name().empty())
+    if (request->instance_names().instance_name().empty())
     {
         for (auto& pair : vm_instances)
         {
@@ -1480,7 +1480,7 @@ try // clang-format on
 
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_stop;
-    for (const auto& name : request->instance_name())
+    for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
@@ -1547,7 +1547,7 @@ try // clang-format on
 
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_suspend;
-    for (const auto& name : request->instance_name())
+    for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
@@ -1635,7 +1635,7 @@ try // clang-format on
 
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_delete;
-    for (const auto& name : request->instance_name())
+    for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())

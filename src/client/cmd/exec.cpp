@@ -16,6 +16,7 @@
  */
 
 #include "exec.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/ssh/ssh_client.h>
@@ -38,10 +39,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
 
     auto on_success = [this, &args](mp::SSHInfoReply& reply) { return exec_success(reply, args, cerr); };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "exec failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);

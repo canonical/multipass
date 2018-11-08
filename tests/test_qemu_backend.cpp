@@ -58,7 +58,7 @@ TEST_F(QemuBackend, creates_in_off_state)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
-TEST_F(QemuBackend, machine_sends_monitoring_events)
+TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
@@ -69,9 +69,29 @@ TEST_F(QemuBackend, machine_sends_monitoring_events)
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_)).Times(AtLeast(1));
+    machine->state = mp::VirtualMachine::State::running;
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_));
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
+}
+
+TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+
+    machine->state = mp::VirtualMachine::State::running;
+
+    EXPECT_CALL(mock_monitor, on_suspend());
+    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    machine->suspend();
 }
 
 TEST_F(QemuBackend, throws_when_starting_while_suspending)

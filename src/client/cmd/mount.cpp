@@ -16,6 +16,7 @@
  */
 
 #include "mount.h"
+#include "common_cli.h"
 #include "exec.h"
 
 #include <multipass/cli/argparser.h>
@@ -37,6 +38,17 @@ using RpcMethod = mp::Rpc::Stub;
 namespace
 {
 constexpr auto category = "mount cmd";
+
+auto convert_id_for(const QString& id_string)
+{
+    bool ok;
+
+    auto id = id_string.toUInt(&ok);
+    if (!ok)
+        throw std::runtime_error(id_string.toStdString() + " is an invalid id");
+
+    return id;
+}
 } // namespace
 
 mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
@@ -52,8 +64,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &parser](grpc::Status& status) {
-        cerr << "mount failed: " << status.error_message() << "\n";
-
+        auto ret = standard_failure_handler_for(name(), cerr, status);
         if (!status.error_details().empty())
         {
             mp::MountError mount_error;
@@ -61,14 +72,12 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
             if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
             {
-                cerr << "The sshfs package is missing in \"" << mount_error.instance_name() << "\". Installing...\n";
-
-                if (install_sshfs(mount_error.instance_name(), parser->verbosityLevel()) == mp::ReturnCode::Ok)
-                    cerr << "\n***Please re-run the mount command.\n";
+                cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub, cout,
+                                       cerr);
             }
         }
 
-        return return_code_for(status.error_code());
+        return ret;
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
@@ -161,7 +170,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         }
     }
 
-    QRegExp map_matcher("^([0-9]{1,5}[:][0-9]{1,5})$");
+    QRegExp map_matcher("^([0-9]+[:][0-9]+)$");
 
     if (parser->isSet(uid_map))
     {
@@ -177,7 +186,18 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
             auto parsed_map = map.split(":");
 
-            (*request.mutable_mount_maps()->mutable_uid_map())[parsed_map.at(0).toInt()] = parsed_map.at(1).toInt();
+            try
+            {
+                auto host_uid = convert_id_for(parsed_map.at(0));
+                auto instance_uid = convert_id_for(parsed_map.at(1));
+
+                (*request.mutable_mount_maps()->mutable_uid_map())[host_uid] = instance_uid;
+            }
+            catch (const std::exception& e)
+            {
+                cerr << e.what() << "\n";
+                return ParseCode::CommandLineError;
+            }
         }
     }
 
@@ -195,7 +215,18 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
             auto parsed_map = map.split(":");
 
-            (*request.mutable_mount_maps()->mutable_gid_map())[parsed_map.at(0).toInt()] = parsed_map.at(1).toInt();
+            try
+            {
+                auto host_gid = convert_id_for(parsed_map.at(0));
+                auto instance_gid = convert_id_for(parsed_map.at(1));
+
+                (*request.mutable_mount_maps()->mutable_gid_map())[host_gid] = instance_gid;
+            }
+            catch (const std::exception& e)
+            {
+                cerr << e.what() << "\n";
+                return ParseCode::CommandLineError;
+            }
         }
     }
 
@@ -208,23 +239,4 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     }
 
     return ParseCode::Ok;
-}
-
-mp::ReturnCode cmd::Mount::install_sshfs(const std::string& instance_name, int verbosity_level)
-{
-    SSHInfoRequest request;
-    auto entry = request.add_instance_name();
-    entry->append(instance_name);
-
-    std::vector<std::string> args{"sudo", "bash", "-c", "apt update && apt install -y sshfs"};
-
-    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return cmd::Exec::exec_success(reply, args, cerr); };
-
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "exec failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
-
-    request.set_verbosity_level(verbosity_level);
-    return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }

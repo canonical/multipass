@@ -16,6 +16,7 @@
  */
 
 #include "umount.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -35,10 +36,7 @@ mp::ReturnCode cmd::Umount::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "umount failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::umount, request, on_success, on_failure);
