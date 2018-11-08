@@ -65,7 +65,7 @@ mp::ParseCode cmd::Recover::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = handle_all_option(parser, cerr);
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 

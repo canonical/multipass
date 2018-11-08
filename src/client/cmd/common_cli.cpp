@@ -34,7 +34,7 @@ mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 }
 } // namespace
 
-mp::ParseCode cmd::handle_all_option(ArgParser* parser, std::ostream& cerr)
+mp::ParseCode cmd::check_for_name_and_all_option_conflict(ArgParser* parser, std::ostream& cerr)
 {
     auto num_names = parser->positionalArguments().count();
     if (num_names == 0 && !parser->isSet(all_option_name))
@@ -106,7 +106,7 @@ void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_leve
     std::vector<Command::UPtr> command;
     command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, cout, cerr));
 
-    auto args = QStringList() << ""
+    auto args = QStringList() << "" // This is just a dummy string for the unnecessary binary name
                               << "exec" << QString::fromStdString(instance_name) << "--"
                               << "sudo"
                               << "bash"

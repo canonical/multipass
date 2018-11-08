@@ -35,7 +35,7 @@ namespace cmd
 const QString all_option_name{"all"};
 const QString format_option_name{"format"};
 
-ParseCode handle_all_option(ArgParser* parser, std::ostream& cerr);
+ParseCode check_for_name_and_all_option_conflict(ArgParser* parser, std::ostream& cerr);
 InstanceNames add_instance_names(ArgParser* parser);
 ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr);
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
