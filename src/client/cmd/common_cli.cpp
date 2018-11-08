@@ -34,7 +34,7 @@ mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 }
 } // namespace
 
-mp::ParseCode cmd::check_for_name_and_all_option_conflict(ArgParser* parser, std::ostream& cerr)
+mp::ParseCode cmd::check_for_name_and_all_option_conflict(mp::ArgParser* parser, std::ostream& cerr)
 {
     auto num_names = parser->positionalArguments().count();
     if (num_names == 0 && !parser->isSet(all_option_name))
@@ -52,7 +52,7 @@ mp::ParseCode cmd::check_for_name_and_all_option_conflict(ArgParser* parser, std
     return ParseCode::Ok;
 }
 
-mp::InstanceNames cmd::add_instance_names(ArgParser* parser)
+mp::InstanceNames cmd::add_instance_names(mp::ArgParser* parser)
 {
     InstanceNames instance_names;
 
@@ -65,7 +65,7 @@ mp::InstanceNames cmd::add_instance_names(ArgParser* parser)
     return instance_names;
 }
 
-mp::ParseCode cmd::handle_format_option(ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr)
+mp::ParseCode cmd::handle_format_option(mp::ArgParser* parser, mp::Formatter** chosen_formatter, std::ostream& cerr)
 {
     *chosen_formatter = mp::format::formatter_for(parser->value(format_option_name).toStdString());
 
@@ -78,7 +78,7 @@ mp::ParseCode cmd::handle_format_option(ArgParser* parser, Formatter** chosen_fo
     return ParseCode::Ok;
 }
 
-std::string cmd::instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name)
+std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_names, const std::string& action_name)
 {
     std::string message{action_name};
 
@@ -101,7 +101,7 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std
 }
 
 void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                            Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr)
+                            mp::Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr)
 {
     std::vector<Command::UPtr> command;
     command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, cout, cerr));
