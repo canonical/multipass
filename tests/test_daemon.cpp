@@ -72,6 +72,8 @@ struct MockDaemon : public mp::Daemon
     MOCK_METHOD3(start,
                  grpc::Status(grpc::ServerContext*, const mp::StartRequest*, grpc::ServerWriter<mp::StartReply>*));
     MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext*, const mp::StopRequest*, grpc::ServerWriter<mp::StopReply>*));
+    MOCK_METHOD3(suspend,
+                 grpc::Status(grpc::ServerContext*, const mp::SuspendRequest*, grpc::ServerWriter<mp::SuspendReply>*));
     MOCK_METHOD3(delet,
                  grpc::Status(grpc::ServerContext*, const mp::DeleteRequest*, grpc::ServerWriter<mp::DeleteReply>*));
     MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
@@ -189,6 +191,7 @@ TEST_F(Daemon, receives_commands)
     EXPECT_CALL(daemon, recover(_, _, _));
     EXPECT_CALL(daemon, start(_, _, _));
     EXPECT_CALL(daemon, stop(_, _, _));
+    EXPECT_CALL(daemon, suspend(_, _, _));
     EXPECT_CALL(daemon, delet(_, _, _));
     EXPECT_CALL(daemon, version(_, _, _));
     EXPECT_CALL(daemon, mount(_, _, _));
@@ -203,6 +206,7 @@ TEST_F(Daemon, receives_commands)
                    {"recover", "foo"},
                    {"start", "foo"},
                    {"stop", "foo"},
+                   {"suspend", "foo"},
                    {"version"},
                    {"find", "something"},
                    {"mount", ".", "target"},

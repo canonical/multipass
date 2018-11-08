@@ -50,6 +50,24 @@ TEST(InstanceStatusString, deleted_status_returns_DELETED)
     EXPECT_THAT(status_string, Eq("DELETED"));
 }
 
+TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
+{
+    mp::InstanceStatus status;
+    status.set_status(mp::InstanceStatus::SUSPENDING);
+    auto status_string = mp::format::status_string_for(status);
+
+    EXPECT_THAT(status_string, Eq("SUSPENDING"));
+}
+
+TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
+{
+    mp::InstanceStatus status;
+    status.set_status(mp::InstanceStatus::SUSPENDED);
+    auto status_string = mp::format::status_string_for(status);
+
+    EXPECT_THAT(status_string, Eq("SUSPENDED"));
+}
+
 TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
 {
     mp::InstanceStatus status;

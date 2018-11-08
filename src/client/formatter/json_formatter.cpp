@@ -77,8 +77,26 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         for (const auto& mount : info.mount_info().mount_paths())
         {
             QJsonObject entry;
-            entry.insert("gid_mappings", QJsonArray());
-            entry.insert("uid_mappings", QJsonArray());
+            QJsonArray mount_uids;
+            QJsonArray mount_gids;
+
+            for (const auto uid_map : mount.mount_maps().uid_map())
+            {
+                mount_uids.append(
+                    QString("%1:%2")
+                        .arg(QString::number(uid_map.first))
+                        .arg((uid_map.second == mp::default_id) ? "default" : QString::number(uid_map.second)));
+            }
+            for (const auto gid_map : mount.mount_maps().gid_map())
+            {
+                mount_gids.append(
+                    QString("%1:%2")
+                        .arg(QString::number(gid_map.first))
+                        .arg((gid_map.second == mp::default_id) ? "default" : QString::number(gid_map.second)));
+            }
+
+            entry.insert("uid_mappings", mount_uids);
+            entry.insert("gid_mappings", mount_gids);
             entry.insert("source_path", QString::fromStdString(mount.source_path()));
 
             mounts.insert(QString::fromStdString(mount.target_path()), entry);

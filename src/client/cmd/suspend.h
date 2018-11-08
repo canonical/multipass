@@ -15,30 +15,30 @@
  *
  */
 
-#ifndef MULTIPASS_FORMATTER_H
-#define MULTIPASS_FORMATTER_H
+#ifndef MULTIPASS_SUSPEND_H
+#define MULTIPASS_SUSPEND_H
 
-#include <multipass/rpc/multipass.grpc.pb.h>
-
-#include <multipass/cli/client_platform.h>
-
-#include <string>
+#include <multipass/cli/command.h>
 
 namespace multipass
 {
-constexpr auto default_id_str = "default";
-
-class Formatter
+namespace cmd
+{
+class Suspend final : public Command
 {
 public:
-    virtual ~Formatter() = default;
-    virtual std::string format(const InfoReply& reply) const = 0;
-    virtual std::string format(const ListReply& reply) const = 0;
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
 
-protected:
-    Formatter() = default;
-    Formatter(const Formatter&) = delete;
-    Formatter& operator=(const Formatter&) = delete;
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    SuspendRequest request;
+
+    ParseCode parse_args(ArgParser* parser) override;
 };
-}
-#endif // MULTIPASS_FORMATTER_H
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_SUSPEND_H

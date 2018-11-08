@@ -22,9 +22,9 @@
 #include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 
+#include <QStringList>
+
 class QProcess;
-class QFile;
-class QString;
 
 namespace multipass
 {
@@ -42,6 +42,7 @@ public:
     void start() override;
     void stop() override;
     void shutdown() override;
+    void suspend() override;
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
@@ -56,6 +57,7 @@ private:
     void on_started();
     void on_error();
     void on_shutdown();
+    void on_suspend();
     void on_restart();
     void ensure_vm_is_running();
     multipass::optional<IPAddress> ip;
@@ -65,8 +67,10 @@ private:
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
+    const QStringList original_args;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
+    bool delete_memory_snapshot{false};
 };
 } // namespace multipass
 
