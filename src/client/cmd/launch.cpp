@@ -16,10 +16,13 @@
  */
 
 #include "launch.h"
+#include "common_cli.h"
 
 #include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
+
+#include <fmt/format.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -240,20 +243,19 @@ mp::ReturnCode cmd::Launch::request_launch()
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
 
-        cerr << "failed to launch: " << status.error_message() << "\n";
-
         LaunchError launch_error;
         launch_error.ParseFromString(status.error_details());
+        std::string error_details;
 
         for (const auto& error : launch_error.error_codes())
         {
             if (error == LaunchError::INVALID_DISK_SIZE)
             {
-                cerr << "Invalid disk size value supplied: " << request.disk_space() << "\n";
+                error_details = fmt::format("Invalid disk size value supplied: {}\n", request.disk_space());
             }
             else if (error == LaunchError::INVALID_MEM_SIZE)
             {
-                cerr << "Invalid memory size value supplied: " << request.mem_size() << "\n";
+                error_details = fmt::format("Invalid memory size value supplied: {}\n", request.mem_size());
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
@@ -261,7 +263,7 @@ mp::ReturnCode cmd::Launch::request_launch()
             }
         }
 
-        return return_code_for(status.error_code());
+        return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
     auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {

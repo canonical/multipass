@@ -288,12 +288,22 @@ cmd::Command* mp::ArgParser::findCommand(const QString& command) const
     return nullptr;
 }
 
+bool mp::ArgParser::isSet(const QString& option) const
+{
+    return parser.isSet(option);
+}
+
 bool mp::ArgParser::isSet(const QCommandLineOption& option) const
 {
     return parser.isSet(option);
 }
 
 QString mp::ArgParser::value(const QCommandLineOption& option) const
+{
+    return parser.value(option);
+}
+
+QString mp::ArgParser::value(const QString& option) const
 {
     return parser.value(option);
 }
@@ -313,6 +323,18 @@ QStringList mp::ArgParser::positionalArguments() const
         positionalArguments.pop_front();
     }
     return positionalArguments;
+}
+
+void mp::ArgParser::setVerbosityLevel(int verbosity)
+{
+    if (verbosity > 3 || verbosity < 0)
+    {
+        cerr << "Verbosity level is incorrect. Must be between 0 and 3.\n";
+    }
+    else if (verbosity_level != verbosity)
+    {
+        verbosity_level = verbosity;
+    }
 }
 
 int mp::ArgParser::verbosityLevel() const
