@@ -401,13 +401,14 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
 
-template<typename Targets, typename InstanceMap>
-grpc::Status validate_targets(const Targets& targets,
-                              const InstanceMap& vms,
-                              const InstanceMap& deleted)
+template<typename Instances, typename InstanceMap>
+grpc::Status validate_instances(const Instances& instances,
+                                const InstanceMap& vms,
+                                const InstanceMap& deleted)
 {
     fmt::memory_buffer errors;
-    for(const auto& name : targets)
+    for(const auto& name : instances)
+    {
         if(vms.find(name) == std::cend(vms))
         {
             if(deleted.find(name) == std::cend(deleted))
@@ -415,30 +416,31 @@ grpc::Status validate_targets(const Targets& targets,
             else
                 fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
         }
+    }
 
     return errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
 }
 
-template<typename Targets, typename InstanceMap>
-auto process_targets(const Targets& targets,
-                     const InstanceMap& vms,
-                     const InstanceMap& deleted)
--> std::pair<std::vector<typename Targets::value_type>, grpc::Status>
+template<typename Instances, typename InstanceMap>
+auto find_requested_instances(const Instances& instances,
+                              const InstanceMap& vms,
+                              const InstanceMap& deleted)
+-> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
 {   // TODO: use this in commands that currently duplicate the same kind of code
-    auto st = validate_targets(targets, vms, deleted);
-    auto tgts = std::vector<typename Targets::value_type>{};
+    auto status = validate_instances(instances, vms, deleted);
+    auto valid_instances = std::vector<typename Instances::value_type>{};
 
-    if(st.ok())
+    if(status.ok())
     {
-        if(targets.empty())
+        if(instances.empty())
             for(const auto& vm_item : vms)
-                tgts.push_back(vm_item.first);
+                valid_instances.push_back(vm_item.first);
         else
-            std::copy(std::cbegin(targets), std::cend(targets),
-                      std::back_inserter(tgts));
+            std::copy(std::cbegin(instances), std::cend(instances),
+                      std::back_inserter(valid_instances));
     }
 
-    return std::make_pair(tgts, st);
+    return std::make_pair(valid_instances, status);
 }
 
 mp::SSHProcess exec_and_log(mp::SSHSession& session, const std::string& cmd)
@@ -1600,18 +1602,18 @@ try
 {
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    auto tgts_and_st = process_targets(request->instance_name(), vm_instances, deleted_instances);
-    const auto& tgts = tgts_and_st.first; // use structured bindings instead in C++17
-    auto& st = tgts_and_st.second; // idem
+    auto instances_and_status = find_requested_instances(request->instance_name(), vm_instances, deleted_instances);
+    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
+    auto& status = instances_and_status.second; // idem
 
-    if(st.ok())
+    if(status.ok())
     {
         using namespace std::placeholders; // for _1, _2
-        st = cmd_vms(tgts, std::bind(&Daemon::reboot_vm, this, _1, _2)); // 1st pass to reboot all targets
+        status = cmd_vms(instances, std::bind(&Daemon::reboot_vm, this, _1, _2)); // 1st pass to reboot all targets
 
-        if(st.ok())
+        if(status.ok())
         {
-            st = cmd_vms(tgts, [this](auto& vm, const auto&){
+            status = cmd_vms(instances, [this](auto& vm, const auto&){
                 vm.wait_until_ssh_up(up_timeout); /* 2nd pass waits for them
                 (only works because SSH was manually killed before rebooting) */
                 return grpc::Status::OK;
@@ -1619,7 +1621,7 @@ try
         }
     }
 
-    return st;
+    return status;
 }
 catch(const std::exception& e)
 {
