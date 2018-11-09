@@ -49,7 +49,6 @@ public:
 
 private:
     const QString name;
-    VirtualMachine::State state;
     const std::string username;
     multipass::optional<multipass::IPAddress> ip;
 };

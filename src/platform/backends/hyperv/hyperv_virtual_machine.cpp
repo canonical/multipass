@@ -50,9 +50,8 @@ catch (...)
 
 } // namespace
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc)
-    : VirtualMachine{desc.key_provider, desc.vm_name},
+    : VirtualMachine{State::off, desc.key_provider, desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
-      state{State::off},
       username{desc.ssh_username}
 {
     if (!powershell_run({"Get-VM", "-Name", name}, vm_name))
