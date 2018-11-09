@@ -79,6 +79,9 @@ QStringList mp::QemuProcessSpec::arguments() const
 
 QString mp::QemuProcessSpec::apparmor_profile() const
 {
+    const auto base_path = qgetenv("SNAP"); // Validate??
+
+    // Following profile is based on /etc/apparmor.d/abstractions/libvirt-qemu
     QString profile_template(R"END(
 #include <tunables/global>
 profile %1 flags=(attach_disconnected) {
@@ -114,12 +117,33 @@ profile %1 flags=(attach_disconnected) {
     owner @{PROC}/*/auxv r,
     @{PROC}/sys/vm/overcommit_memory r,
 
-    %2 rw, # QCow2 filesystem image
-    %3 r,  # cloud-init ISO
+    # access to firmware's etc (selectively chosen for multipass' usage)
+    %2/usr/share/seabios/** r,
+
+    # for save and resume
+    /{usr/,}bin/dash rmix,
+    /{usr/,}bin/dd rmix,
+    /{usr/,}bin/cat rmix,
+
+    # for restore
+    /{usr/,}bin/bash rmix,
+
+    # for file-posix getting limits since 9103f1ce
+    /sys/devices/**/block/*/queue/max_segments r,
+
+    # for gathering information about available host resources
+    /sys/devices/system/cpu/ r,
+    /sys/devices/system/node/ r,
+    /sys/devices/system/node/node[0-9]*/meminfo r,
+    /sys/module/vhost/parameters/max_mem_regions r,
+
+    # Disk images
+    %3 rwk,  # QCow2 filesystem image
+    %4 rwk,  # cloud-init ISO (TODO: why not read-only? qemu needs write for some reason)
 }
     )END");
 
-    return profile_template.arg(apparmor_profile_name(), desc.image.image_path, desc.cloud_init_iso);
+    return profile_template.arg(apparmor_profile_name(), base_path, desc.image.image_path, desc.cloud_init_iso);
 }
 
 QString mp::QemuProcessSpec::identifier() const

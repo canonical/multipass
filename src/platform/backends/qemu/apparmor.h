@@ -34,8 +34,6 @@ public:
     void load_policy(const QByteArray& aa_policy) const;
     void remove_policy(const QByteArray& aa_policy) const;
 
-    void apply_policy_to_next_exec(const QByteArray& policy_name) const;
-
 private:
     aa_kernel_interface* aa_interface;
 };

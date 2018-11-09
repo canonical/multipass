@@ -35,9 +35,9 @@ public:
     {
     }
 
-    void start() // GERRY - NECESSARY???
+    void start() override
     {
-        mp::Process::start();
+        start_process(process_spec->program(), process_spec->arguments());
     }
 };
 

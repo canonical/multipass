@@ -32,7 +32,7 @@ class Process : public QObject
 public:
     virtual ~Process();
 
-    virtual void start();
+    virtual void start() = 0;
 
     void terminate();
     void kill();
@@ -41,7 +41,9 @@ public:
     void setWorkingDirectory(const QString& dir);
 
     QString program() const;
+    void setProgram(const QString &program);
     QStringList arguments() const;
+    void setArguments(const QStringList &args);
 
     qint64 processId() const;
     QProcess::ProcessState state() const;
@@ -66,6 +68,8 @@ protected:
     Process(std::unique_ptr<ProcessSpec> &&process_spec);
 
     const std::unique_ptr<ProcessSpec> process_spec;
+
+    void start_process(const QString& program, const QStringList& arguments);
 
 private:
     QProcess process;

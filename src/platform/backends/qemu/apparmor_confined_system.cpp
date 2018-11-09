@@ -31,14 +31,12 @@ public:
         : mp::Process(std::move(spec)), apparmor{aa}
     {
         apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
+    }
 
-        // This is the closest I can get to the exec() call in QProcess::start. Might be racey
-        QObject::connect(this, &Process::stateChanged, [this](QProcess::ProcessState state) {
-            if (state == QProcess::Starting)
-            {
-                apparmor.apply_policy_to_next_exec(process_spec->apparmor_profile_name().toLatin1());
-            }
-        });
+    void start() override
+    {
+        start_process("aa-exec", QStringList() << "-p" << process_spec->apparmor_profile_name() << "--"
+                                               << process_spec->program() << process_spec->arguments());
     }
 
     ~AppArmoredProcess()

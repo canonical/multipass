@@ -29,13 +29,13 @@ mp::Process::Process(std::unique_ptr<ProcessSpec> &&process_spec) : process_spec
     connect(&process, &QProcess::stateChanged, this, &Process::stateChanged);
 }
 
-mp::Process::~Process()
+void multipass::Process::start_process(const QString &program, const QStringList &arguments)
 {
+    process.start(program, arguments);
 }
 
-void mp::Process::start()
+mp::Process::~Process()
 {
-    process.start(process_spec->program(), process_spec->arguments());
 }
 
 QString mp::Process::workingDirectory() const
@@ -48,9 +48,19 @@ QString mp::Process::program() const
     return process.program();
 }
 
+void multipass::Process::setProgram(const QString &program)
+{
+    process.setProgram(program);
+}
+
 QStringList mp::Process::arguments() const
 {
     return process.arguments();
+}
+
+void multipass::Process::setArguments(const QStringList &args)
+{
+    process.setArguments(args);
 }
 
 void mp::Process::setWorkingDirectory(const QString& dir)
