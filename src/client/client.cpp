@@ -28,6 +28,7 @@
 #include "cmd/mount.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
+#include "cmd/restart.h"
 #include "cmd/shell.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
@@ -93,6 +94,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
     add_command<cmd::Suspend>();
+    add_command<cmd::Restart>();
     add_command<cmd::Delete>();
     add_command<cmd::Umount>();
     add_command<cmd::Version>();

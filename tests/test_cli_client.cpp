@@ -549,6 +549,51 @@ TEST_F(Client, suspend_cmd_fails_with_names_and_all)
     EXPECT_THAT(send_command({"suspend", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+// restart cli tests
+TEST_F(Client, restart_cmd_fails_no_args)
+{
+    EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, restart_cmd_ok_with_one_arg)
+{
+    EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_succeeds_with_multiple_args)
+{
+    EXPECT_THAT(send_command({"restart", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"restart", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_succeeds_with_all)
+{
+    EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_fails_with_names_and_all)
+{
+    EXPECT_THAT(send_command({"restart", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, restart_cmd_fails_with_unknown_options)
+{
+    EXPECT_THAT(send_command({"restart", "-x", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-wrong", "--all"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-h", "--nope", "not"}), Eq(mp::ReturnCode::CommandLineError));
+
+    // Options that would be accepted by stop
+    EXPECT_THAT(send_command({"restart", "-t", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-t0", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "--time", "42", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-c", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "--cancel", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 // trash cli tests
 TEST_F(Client, trash_cmd_fails_no_args)
 {

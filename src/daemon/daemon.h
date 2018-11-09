@@ -107,6 +107,9 @@ public slots:
     grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
                          grpc::ServerWriter<SuspendReply>* response) override;
 
+    grpc::Status restart(grpc::ServerContext* context, const RestartRequest* request,
+                         grpc::ServerWriter<RestartReply>* response) override;
+
     grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
                        grpc::ServerWriter<DeleteReply>* response) override;
 
@@ -124,6 +127,9 @@ private:
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                      const std::unordered_map<int, int>& uid_map);
+    grpc::Status reboot_vm(VirtualMachine& vm);
+    grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
+
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;

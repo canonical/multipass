@@ -21,6 +21,8 @@
 
 #include <multipass/logging/log.h>
 
+#include <multipass/exceptions/exitless_sshprocess_exception.h>
+
 #include <fmt/format.h>
 #include <libssh/callbacks.h>
 
@@ -93,7 +95,7 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     }
 
     if (!exit_status)
-        throw std::runtime_error(fmt::format("failed to obtain exit status for remote process: '{}'", cmd));
+        throw ExitlessSSHProcessException{cmd};
 
     return *exit_status;
 }

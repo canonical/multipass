@@ -40,12 +40,12 @@ using namespace testing;
 
 namespace
 {
-template<typename T>
+template <typename T>
 auto fake_handle()
 {
     return reinterpret_cast<T>(0xDEADBEEF);
 }
-}
+} // namespace
 
 struct LibVirtBackend : public Test
 {
