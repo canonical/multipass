@@ -1612,7 +1612,7 @@ try // clang-format on
 
         if (status.ok())
         {
-            status = cmd_vms(instances, [this](auto& vm) {
+            status = cmd_vms(instances, [](auto& vm) {
                 // 2nd pass waits for them (only works because SSH was manually killed before rebooting)
                 vm.wait_until_ssh_up(up_timeout);
 
