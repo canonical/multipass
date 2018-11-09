@@ -41,10 +41,6 @@
 
 #include <multipass/cert_provider.h>
 #include <multipass/cli/argparser.h>
-#include <multipass/cli/csv_formatter.h>
-#include <multipass/cli/json_formatter.h>
-#include <multipass/cli/table_formatter.h>
-#include <multipass/cli/yaml_formatter.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 
@@ -53,22 +49,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-template <typename T>
-std::unique_ptr<mp::Formatter> make_entry()
-{
-    return std::make_unique<T>();
-}
-
-auto make_map()
-{
-    std::map<std::string, std::unique_ptr<mp::Formatter>> map;
-    map.emplace("table", make_entry<mp::TableFormatter>());
-    map.emplace("json", make_entry<mp::JsonFormatter>());
-    map.emplace("csv", make_entry<mp::CSVFormatter>());
-    map.emplace("yaml", make_entry<mp::YamlFormatter>());
-    return map;
-}
-
 auto make_channel(const std::string& server_address, mp::RpcConnectionType conn_type, mp::CertProvider& cert_provider)
 {
     std::shared_ptr<grpc::ChannelCredentials> creds;
@@ -96,7 +76,6 @@ mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
       rpc_channel{make_channel(config.server_address, config.conn_type, *cert_provider)},
       stub{mp::Rpc::NewStub(rpc_channel)},
-      formatters{make_map()},
       cout{config.cout},
       cerr{config.cerr}
 {
@@ -125,7 +104,7 @@ mp::Client::Client(ClientConfig& config)
 template <typename T>
 void mp::Client::add_command()
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, &formatters, cout, cerr);
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, cout, cerr);
     commands.push_back(std::move(cmd));
 }
 

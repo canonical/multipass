@@ -13,15 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *
  */
 
 #include "info.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
-#include <multipass/cli/json_formatter.h>
-#include <multipass/cli/table_formatter.h>
+#include <multipass/cli/formatter.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -41,10 +39,7 @@ mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "info failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::info, request, on_success, on_failure);
@@ -66,7 +61,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to display information about", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Display info for all instances");
+    QCommandLineOption all_option(all_option_name, "Display info for all instances");
     parser->addOption(all_option);
 
     QCommandLineOption formatOption(
@@ -81,36 +76,13 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
-
-    QString format_value{parser->value(formatOption)};
-    chosen_formatter = formatter_for(format_value.toStdString());
-
-    if (chosen_formatter == nullptr)
-    {
-        cerr << "Invalid format type given.\n";
-        status = ParseCode::CommandLineError;
-    }
+    status = handle_format_option(parser, &chosen_formatter, cerr);
 
     return status;
 }
