@@ -4,6 +4,10 @@ include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
 
 if (MSVC)
   add_compile_options(-wd5045) #Disable warning about Spectre mitigation
+  # CMake 3.13 will supposedly fix asm builds for boringssl
+  if (CMAKE_VERSION VERSION_LESS 3.13.0)
+    set (OPENSSL_NO_ASM ON)
+  endif()
 endif()
 
 # Add the subdir here to avoid polluting their cmake scope
