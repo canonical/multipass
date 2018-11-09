@@ -36,8 +36,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{desc.key_provider, desc.vm_name},
-      state{State::off},
+    : VirtualMachine{State::off, desc.key_provider, desc.vm_name},
       monitor{&monitor},
       username{desc.ssh_username},
       desc{desc},
