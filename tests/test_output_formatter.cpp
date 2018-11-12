@@ -77,10 +77,14 @@ auto construct_single_instance_info_reply()
     auto mount_entry = mount_info->add_mount_paths();
     mount_entry->set_source_path("/home/user/foo");
     mount_entry->set_target_path("foo");
+    (*mount_entry->mutable_mount_maps()->mutable_uid_map())[1000] = 1000;
+    (*mount_entry->mutable_mount_maps()->mutable_gid_map())[1000] = 1000;
 
     mount_entry = mount_info->add_mount_paths();
     mount_entry->set_source_path("/home/user/test_dir");
     mount_entry->set_target_path("test_dir");
+    (*mount_entry->mutable_mount_maps()->mutable_uid_map())[1000] = 1000;
+    (*mount_entry->mutable_mount_maps()->mutable_gid_map())[1000] = 1000;
 
     info_entry->set_load("0.45 0.51 0.15");
     info_entry->set_memory_usage("60817408");
@@ -109,6 +113,8 @@ auto construct_multiple_instances_info_reply()
     auto mount_entry = mount_info->add_mount_paths();
     mount_entry->set_source_path("/home/user/source");
     mount_entry->set_target_path("source");
+    (*mount_entry->mutable_mount_maps()->mutable_uid_map())[1000] = 501;
+    (*mount_entry->mutable_mount_maps()->mutable_gid_map())[1000] = 501;
 
     info_entry->set_load("0.03 0.10 0.15");
     info_entry->set_memory_usage("38797312");
@@ -214,7 +220,11 @@ TEST_F(TableFormatter, single_instance_info_output)
                                  "Disk usage:     1.2G out of 4.8G\n"
                                  "Memory usage:   58.0M out of 1.4G\n"
                                  "Mounts:         /home/user/foo      => foo\n"
-                                 "                /home/user/test_dir => test_dir\n";
+                                 "                    UID map: 1000:1000\n"
+                                 "                    GID map: 1000:1000\n"
+                                 "                /home/user/test_dir => test_dir\n"
+                                 "                    UID map: 1000:1000\n"
+                                 "                    GID map: 1000:1000\n";
 
     mp::TableFormatter table_formatter;
     auto output = table_formatter.format(info_reply);
@@ -234,7 +244,9 @@ TEST_F(TableFormatter, multiple_instances_info_output)
                                  "Load:           0.03 0.10 0.15\n"
                                  "Disk usage:     1.8G out of 6.3G\n"
                                  "Memory usage:   37.0M out of 1.5G\n"
-                                 "Mounts:         /home/user/source => source\n\n"
+                                 "Mounts:         /home/user/source => source\n"
+                                 "                    UID map: 1000:501\n"
+                                 "                    GID map: 1000:501\n\n"
                                  "Name:           bombastic\n"
                                  "State:          STOPPED\n"
                                  "IPv4:           --\n"
@@ -363,16 +375,20 @@ TEST_F(JsonFormatter, single_instance_info_output)
         "            \"mounts\": {\n"
         "                \"foo\": {\n"
         "                    \"gid_mappings\": [\n"
+        "                        \"1000:1000\"\n"
         "                    ],\n"
         "                    \"source_path\": \"/home/user/foo\",\n"
         "                    \"uid_mappings\": [\n"
+        "                        \"1000:1000\"\n"
         "                    ]\n"
         "                },\n"
         "                \"test_dir\": {\n"
         "                    \"gid_mappings\": [\n"
+        "                        \"1000:1000\"\n"
         "                    ],\n"
         "                    \"source_path\": \"/home/user/test_dir\",\n"
         "                    \"uid_mappings\": [\n"
+        "                        \"1000:1000\"\n"
         "                    ]\n"
         "                }\n"
         "            },\n"
@@ -421,9 +437,11 @@ TEST_F(JsonFormatter, multiple_instances_info_output)
         "            \"mounts\": {\n"
         "                \"source\": {\n"
         "                    \"gid_mappings\": [\n"
+        "                        \"1000:501\"\n"
         "                    ],\n"
         "                    \"source_path\": \"/home/user/source\",\n"
         "                    \"uid_mappings\": [\n"
+        "                        \"1000:501\"\n"
         "                    ]\n"
         "                }\n"
         "            },\n"
@@ -634,17 +652,17 @@ TEST_F(YamlFormatter, single_instance_info_output)
                            "      - 10.168.32.2\n"
                            "    mounts:\n"
                            "      foo:\n"
-                           "        - gid_mappings:\n"
-                           "            - ~\n"
-                           "          uid_mappings:\n"
-                           "            - ~\n"
-                           "          source_path: /home/user/foo\n"
+                           "        uid_mappings:\n"
+                           "          - 1000:1000\n"
+                           "        gid_mappings:\n"
+                           "          - 1000:1000\n"
+                           "        source_path: /home/user/foo\n"
                            "      test_dir:\n"
-                           "        - gid_mappings:\n"
-                           "            - ~\n"
-                           "          uid_mappings:\n"
-                           "            - ~\n"
-                           "          source_path: /home/user/test_dir\n";
+                           "        uid_mappings:\n"
+                           "          - 1000:1000\n"
+                           "        gid_mappings:\n"
+                           "          - 1000:1000\n"
+                           "        source_path: /home/user/test_dir\n";
 
     mp::YamlFormatter formatter;
     auto output = formatter.format(info_reply);
@@ -678,11 +696,11 @@ TEST_F(YamlFormatter, multiple_instances_info_output)
                            "      - 10.21.124.56\n"
                            "    mounts:\n"
                            "      source:\n"
-                           "        - gid_mappings:\n"
-                           "            - ~\n"
-                           "          uid_mappings:\n"
-                           "            - ~\n"
-                           "          source_path: /home/user/source\n"
+                           "        uid_mappings:\n"
+                           "          - 1000:501\n"
+                           "        gid_mappings:\n"
+                           "          - 1000:501\n"
+                           "        source_path: /home/user/source\n"
                            "bombastic:\n"
                            "  - state: STOPPED\n"
                            "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"

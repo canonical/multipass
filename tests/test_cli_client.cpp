@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *
  */
 
 #include "path.h"
@@ -333,7 +331,7 @@ TEST_F(Client, mount_cmd_good_absolute_source_path)
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "test-vm:test"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_good_relative_soure_path)
+TEST_F(Client, mount_cmd_good_relative_source_path)
 {
     EXPECT_THAT(send_command({"mount", "..", "test-vm:test"}), Eq(mp::ReturnCode::Ok));
 }
@@ -341,6 +339,54 @@ TEST_F(Client, mount_cmd_good_relative_soure_path)
 TEST_F(Client, mount_cmd_fails_invalid_source_path)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path_for("foo").toStdString(), "test-vm:test"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, mount_cmd_good_valid_uid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "1000:501", "test-vm:test"}),
+                Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, mount_cmd_good_valid_large_uid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "218038053:0", "test-vm:test"}),
+                Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, mount_cmd_fails_invalid_string_uid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "foo:bar", "test-vm:test"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, mount_cmd_fails_invalid_host_int_uid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "5000000000:0", "test-vm:test"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, mount_cmd_good_valid_gid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "1000:501", "test-vm:test"}),
+                Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, mount_cmd_good_valid_large_gid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "218038053:0", "test-vm:test"}),
+                Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, mount_cmd_fails_invalid_string_gid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "foo:bar", "test-vm:test"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_map)
+{
+    EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "5000000000:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
@@ -470,6 +516,82 @@ TEST_F(Client, stop_cmd_fails_with_time_suffix)
 TEST_F(Client, stop_cmd_succeds_with_cancel)
 {
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
+}
+
+// suspend cli tests
+TEST_F(Client, suspend_cmd_fails_no_args)
+{
+    EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, suspend_cmd_ok_with_one_arg)
+{
+    EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_succeeds_with_multiple_args)
+{
+    EXPECT_THAT(send_command({"suspend", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"suspend", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_succeeds_with_all)
+{
+    EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_fails_with_names_and_all)
+{
+    EXPECT_THAT(send_command({"suspend", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+// restart cli tests
+TEST_F(Client, restart_cmd_fails_no_args)
+{
+    EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, restart_cmd_ok_with_one_arg)
+{
+    EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_succeeds_with_multiple_args)
+{
+    EXPECT_THAT(send_command({"restart", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"restart", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_succeeds_with_all)
+{
+    EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_fails_with_names_and_all)
+{
+    EXPECT_THAT(send_command({"restart", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, restart_cmd_fails_with_unknown_options)
+{
+    EXPECT_THAT(send_command({"restart", "-x", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-wrong", "--all"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-h", "--nope", "not"}), Eq(mp::ReturnCode::CommandLineError));
+
+    // Options that would be accepted by stop
+    EXPECT_THAT(send_command({"restart", "-t", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-t0", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "--time", "42", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "-c", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"restart", "--cancel", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 // trash cli tests

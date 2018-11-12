@@ -16,6 +16,7 @@
  */
 
 #include "find.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -99,10 +100,7 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "find failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::find, request, on_success, on_failure);

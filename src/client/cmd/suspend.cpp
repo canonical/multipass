@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,10 @@
  *
  */
 
-#include "delete.h"
+#include "suspend.h"
 #include "common_cli.h"
+
+#include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -24,7 +26,7 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -32,39 +34,41 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::DeleteReply& reply) { return mp::ReturnCode::Ok; };
+    auto on_success = [](mp::SuspendReply& reply) { return ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    AnimatedSpinner spinner{cout};
+    auto on_failure = [this, &spinner](grpc::Status& status) {
+        spinner.stop();
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
+    spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::delet, request, on_success, on_failure);
+    return dispatch(&RpcMethod::suspend, request, on_success, on_failure);
 }
 
-std::string cmd::Delete::name() const
+std::string cmd::Suspend::name() const
 {
-    return "delete";
+    return "suspend";
 }
 
-QString cmd::Delete::short_help() const
+QString cmd::Suspend::short_help() const
 {
-    return QStringLiteral("Delete instances");
+    return QStringLiteral("Suspend running instances");
 }
 
-QString cmd::Delete::description() const
+QString cmd::Suspend::description() const
 {
-    return QStringLiteral("Delete instances, to be purged with the \"purge\" command,\n"
-                          "or recovered with the \"recover\" command.");
+    return QStringLiteral("Suspend the named instances, if running. Exits with\n"
+                          "return code 0 if successful.");
 }
 
-mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
+mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to delete", "<name> [<name> ...]");
+    parser->addPositionalArgument("name", "Names of instances to suspend", "<name> [<name> ...]");
 
-    QCommandLineOption all_option(all_option_name, "Delete all instances");
-    parser->addOption(all_option);
-
-    QCommandLineOption purge_option({"p", "purge"}, "Purge instances immediately");
-    parser->addOption(purge_option);
+    QCommandLineOption all_option("all", "Suspend all instances");
+    parser->addOptions({all_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -76,9 +80,5 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 
     request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
-    if (parser->isSet(purge_option))
-    {
-        request.set_purge(true);
-    }
     return status;
 }

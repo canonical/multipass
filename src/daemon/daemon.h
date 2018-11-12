@@ -69,6 +69,7 @@ protected:
     void on_resume() override;
     void on_stop() override;
     void on_shutdown() override;
+    void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name) override;
 
@@ -103,6 +104,12 @@ public slots:
     grpc::Status stop(grpc::ServerContext* context, const StopRequest* request,
                       grpc::ServerWriter<StopReply>* response) override;
 
+    grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                         grpc::ServerWriter<SuspendReply>* response) override;
+
+    grpc::Status restart(grpc::ServerContext* context, const RestartRequest* request,
+                         grpc::ServerWriter<RestartReply>* response) override;
+
     grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
                        grpc::ServerWriter<DeleteReply>* response) override;
 
@@ -112,11 +119,17 @@ public slots:
     grpc::Status version(grpc::ServerContext* context, const VersionRequest* request,
                          grpc::ServerWriter<VersionReply>* response) override;
 
+signals:
+    void suspend_finished();
+
 private:
     void persist_instances();
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                      const std::unordered_map<int, int>& uid_map);
+    grpc::Status reboot_vm(VirtualMachine& vm);
+    grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
+
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;

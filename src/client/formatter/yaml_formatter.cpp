@@ -20,6 +20,8 @@
 #include <multipass/cli/format_utils.h>
 #include <multipass/utils.h>
 
+#include <fmt/format.h>
+
 #include <yaml-cpp/yaml.h>
 
 #include <locale>
@@ -100,10 +102,21 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         {
             YAML::Node mount_node;
 
-            mount_node["gid_mappings"].push_back(YAML::Null);
-            mount_node["uid_mappings"].push_back(YAML::Null);
+            for (const auto uid_map : mount.mount_maps().uid_map())
+            {
+                mount_node["uid_mappings"].push_back(
+                    fmt::format("{}:{}", std::to_string(uid_map.first),
+                                (uid_map.second == mp::default_id) ? "default" : std::to_string(uid_map.second)));
+            }
+            for (const auto gid_map : mount.mount_maps().gid_map())
+            {
+                mount_node["gid_mappings"].push_back(
+                    fmt::format("{}:{}", std::to_string(gid_map.first),
+                                (gid_map.second == mp::default_id) ? "default" : std::to_string(gid_map.second)));
+            }
+
             mount_node["source_path"] = mount.source_path();
-            mounts[mount.target_path()].push_back(mount_node);
+            mounts[mount.target_path()] = mount_node;
         }
         instance_node["mounts"] = mounts;
 

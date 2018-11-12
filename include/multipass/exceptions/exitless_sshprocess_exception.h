@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,34 +13,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_START_H
-#define MULTIPASS_START_H
+#ifndef MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
+#define MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
 
-#include <multipass/cli/command.h>
+#include <fmt/format.h>
+
+#include <stdexcept>
+#include <string>
 
 namespace multipass
 {
-namespace cmd
-{
-class Start final : public Command
+class ExitlessSSHProcessException : public std::runtime_error
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ExitlessSSHProcessException(const std::string& command)
+        : runtime_error(fmt::format("failed to obtain exit status for remote process: '{}'", command)), cmd{command}
+    {
+    }
 
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
+    std::string command() const
+    {
+        return cmd;
+    }
 
 private:
-    StartRequest request;
-
-    ParseCode parse_args(ArgParser *parser) override;
+    const std::string cmd;
 };
-}
-}
-#endif // MULTIPASS_START_H
+} // namespace multipass
+#endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H

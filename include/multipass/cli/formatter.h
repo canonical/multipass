@@ -20,10 +20,14 @@
 
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <multipass/cli/client_platform.h>
+
 #include <string>
 
 namespace multipass
 {
+constexpr auto default_id_str = "default";
+
 class Formatter
 {
 public:

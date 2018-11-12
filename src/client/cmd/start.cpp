@@ -16,11 +16,14 @@
  */
 
 #include "start.h"
+#include "common_cli.h"
 #include "exec.h"
 
 #include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
+
+#include <fmt/ostream.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -39,9 +42,9 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     };
 
     AnimatedSpinner spinner{cout};
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner, &parser](grpc::Status& status) {
         spinner.stop();
-        cerr << "start failed: " << status.error_message() << "\n";
+        auto ret = standard_failure_handler_for(name(), cerr, status);
         if (!status.error_details().empty())
         {
             if (status.error_code() == grpc::StatusCode::ABORTED)
@@ -51,8 +54,9 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
                 if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
                 {
-                    cerr << "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                            "instance.\n";
+                    fmt::print(cerr,
+                               "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
+                               "instance.\n");
                 }
             }
             else
@@ -62,27 +66,16 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
                 if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
                 {
-                    cerr << "The sshfs package is missing in \"" << mount_error.instance_name()
-                         << "\". Installing...\n";
-
-                    if (install_sshfs(mount_error.instance_name()) == mp::ReturnCode::Ok)
-                        cerr << "\n***Please restart the instance to enable mount(s).\n";
+                    cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub,
+                                           cout, cerr);
                 }
             }
         }
 
-        return return_code_for(status.error_code());
+        return ret;
     };
 
-    std::string message{"Starting "};
-    if (request.instance_name().empty())
-        message.append("all instances");
-    else if (request.instance_name().size() > 1)
-        message.append("requested instances");
-    else
-        message.append(request.instance_name().Get(0));
-    spinner.start(message);
-
+    spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
@@ -105,52 +98,18 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to start", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Start all instances");
+    QCommandLineOption all_option(all_option_name, "Start all instances");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
-
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     return status;
-}
-
-mp::ReturnCode cmd::Start::install_sshfs(const std::string& instance_name)
-{
-    SSHInfoRequest request;
-    auto entry = request.add_instance_name();
-    entry->append(instance_name);
-
-    std::vector<std::string> args{"sudo", "bash", "-c", "apt update && apt install -y sshfs"};
-
-    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return cmd::Exec::exec_success(reply, args, cerr); };
-
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "exec failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
-
-    return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }

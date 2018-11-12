@@ -176,6 +176,7 @@ parts:
     build-packages:
     - build-essential
     - try: [cmake-extras]
+    - git
     - golang
     - libsystemd-dev
     source: .
@@ -192,6 +193,7 @@ parts:
 
   qemu:
     plugin: nil
+    override-pull: ""
     stage-packages:
     - on amd64: [qemu-system-x86]
     - on i386: [qemu-system-x86]
@@ -212,11 +214,11 @@ parts:
 
   kvm-support:
     plugin: nil
+    override-pull: ""
     stage-packages:
     - try: [msr-tools]
 
   libvirt:
-    source: .
     source-subdir: libvirt-1.3.1
     plugin: autotools
     build-packages:
@@ -276,12 +278,11 @@ parts:
     - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
     - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
     - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ebtables
-    override-build: |
+    override-pull: |
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.debian.tar.xz
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.dsc
       dpkg-source -x libvirt*.dsc
-      snapcraftctl build
     organize:
       # Hack to shift installed libvirt back to root of snap
       # required to ensure that pathing to files etc works at
@@ -291,6 +292,7 @@ parts:
 
   network-utils:
     plugin: nil
+    override-pull: ""
     stage-packages:
     - iproute2
     - iputils-ping

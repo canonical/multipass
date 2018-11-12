@@ -15,74 +15,69 @@
  *
  */
 
-#include "info.h"
+#include "restart.h"
 #include "common_cli.h"
 
+#include "animated_spinner.h"
+
 #include <multipass/cli/argparser.h>
-#include <multipass/cli/formatter.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
-    {
         return parser->returnCodeFrom(ret);
-    }
 
-    auto on_success = [this](mp::InfoReply& reply) {
-        cout << chosen_formatter->format(reply);
+    auto on_success = [](mp::RestartReply& reply) { return ReturnCode::Ok; };
 
-        return ReturnCode::Ok;
+    AnimatedSpinner spinner{cout};
+    auto on_failure = [this, &spinner](grpc::Status& status) {
+        spinner.stop();
+        return standard_failure_handler_for(name(), cerr, status);
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
-
+    spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::info, request, on_success, on_failure);
+    return dispatch(&RpcMethod::restart, request, on_success, on_failure);
 }
 
-std::string cmd::Info::name() const { return "info"; }
-
-QString cmd::Info::short_help() const
+std::string cmd::Restart::name() const
 {
-    return QStringLiteral("Display information about instances");
+    return "restart";
 }
 
-QString cmd::Info::description() const
+QString cmd::Restart::short_help() const
 {
-    return QStringLiteral("Display information about instances");
+    return QStringLiteral("Restart instances");
 }
 
-mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
+QString cmd::Restart::description() const
 {
-    parser->addPositionalArgument("name", "Names of instances to display information about", "<name> [<name> ...]");
+    return QStringLiteral("Restart the named instances. Exits with return\n"
+                          "code 0 when the instances restart, or with an\n"
+                          "error code if any fail to restart.");
+}
 
-    QCommandLineOption all_option(all_option_name, "Display info for all instances");
+mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
+{
+    parser->addPositionalArgument("name", "Names of instances to restart", "<name> [<name> ...]");
+
+    QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);
 
-    QCommandLineOption formatOption(
-        "format", "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        "format", "table");
-    parser->addOption(formatOption);
-
     auto status = parser->commandParse(this);
-
     if (status != ParseCode::Ok)
-    {
         return status;
-    }
 
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
     request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
-
-    status = handle_format_option(parser, &chosen_formatter, cerr);
 
     return status;
 }

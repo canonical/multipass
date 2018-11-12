@@ -16,8 +16,35 @@
  */
 
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/formatter.h>
+
+#include <multipass/cli/csv_formatter.h>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
+#include <multipass/cli/yaml_formatter.h>
 
 namespace mp = multipass;
+
+namespace
+{
+template <typename T>
+std::unique_ptr<mp::Formatter> make_entry()
+{
+    return std::make_unique<T>();
+}
+
+auto make_map()
+{
+    std::map<std::string, std::unique_ptr<mp::Formatter>> map;
+    map.emplace("table", make_entry<mp::TableFormatter>());
+    map.emplace("json", make_entry<mp::JsonFormatter>());
+    map.emplace("csv", make_entry<mp::CSVFormatter>());
+    map.emplace("yaml", make_entry<mp::YamlFormatter>());
+    return map;
+}
+
+const std::map<std::string, std::unique_ptr<mp::Formatter>> formatters{make_map()};
+} // namespace
 
 std::string mp::format::status_string_for(const mp::InstanceStatus& status)
 {
@@ -43,9 +70,23 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     case mp::InstanceStatus::DELAYED_SHUTDOWN:
         status_val = "DELAYED SHUTDOWN";
         break;
+    case mp::InstanceStatus::SUSPENDING:
+        status_val = "SUSPENDING";
+        break;
+    case mp::InstanceStatus::SUSPENDED:
+        status_val = "SUSPENDED";
+        break;
     default:
         status_val = "UNKNOWN";
         break;
     }
     return status_val;
+}
+
+mp::Formatter* mp::format::formatter_for(const std::string& format)
+{
+    auto entry = formatters.find(format);
+    if (entry != formatters.end())
+        return entry->second.get();
+    return nullptr;
 }

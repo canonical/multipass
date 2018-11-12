@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include "recover.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 
@@ -35,10 +36,7 @@ mp::ReturnCode cmd::Recover::run(mp::ArgParser* parser)
         return mp::ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
-        cerr << "recover failed: " << status.error_message() << "\n";
-        return return_code_for(status.error_code());
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::recover, request, on_success, on_failure);
@@ -60,34 +58,18 @@ mp::ParseCode cmd::Recover::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of instances to recover", "<name> [<name> ...]");
 
-    QCommandLineOption all_option("all", "Recover all deleted instances");
+    QCommandLineOption all_option(all_option_name, "Recover all deleted instances");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option))
-    {
-        cerr << "Name argument or --all is required\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    if (num_names > 0 && parser->isSet(all_option))
-    {
-        cerr << "Cannot specify name";
-        if (num_names > 1)
-            cerr << "s";
-        cerr << " when --all option set\n";
-        return ParseCode::CommandLineError;
-    }
-
-    for (const auto& arg : parser->positionalArguments())
-    {
-        auto entry = request.add_instance_name();
-        entry->append(arg.toStdString());
-    }
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
     return status;
 }
