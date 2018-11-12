@@ -139,7 +139,7 @@ profile %1 flags=(attach_disconnected) {
 
     # Disk images
     %3 rwk,  # QCow2 filesystem image
-    %4 rwk,  # cloud-init ISO (TODO: why not read-only? qemu needs write for some reason)
+    %4 rk,   # cloud-init ISO
 }
     )END");
 
