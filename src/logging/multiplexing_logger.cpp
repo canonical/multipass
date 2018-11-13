@@ -21,9 +21,15 @@
 
 namespace mpl = multipass::logging;
 
+multipass::logging::MultiplexingLogger::MultiplexingLogger(UPtr system_logger)
+    : system_logger{std::move(system_logger)}
+{
+}
+
 void mpl::MultiplexingLogger::log(mpl::Level level, CString category, CString message) const
 {
     std::shared_lock<decltype(mutex)> lock{mutex};
+    system_logger->log(level, category, message);
     for (auto logger : loggers)
         logger->log(level, category, message);
 }

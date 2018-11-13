@@ -49,7 +49,6 @@ struct DaemonConfig
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     const std::unique_ptr<CertProvider> cert_provider;
     const std::unique_ptr<CertStore> client_cert_store;
-    const std::unique_ptr<logging::Logger> system_logger;
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
