@@ -27,10 +27,10 @@ namespace multipass
 namespace backend
 {
 std::string generate_random_subnet();
-std::string generate_virtual_bridge_name(const std::string& base_name);
+std::string get_subnet(const Path& network_dir, const QString& bridge_name);
 void check_hypervisor_support();
 void resize_instance_image(const std::string& disk_space, const multipass::Path& image_path);
-std::string image_format_for(const multipass::Path& image_path);
+std::string image_format_for(const Path& image_path);
 }
 }
 #endif // MULTIPASS_BACKEND_UTILS_H

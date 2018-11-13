@@ -24,8 +24,7 @@ extern "C"
     IMPL_MOCK_DEFAULT(1, virConnectGetCapabilities);
     IMPL_MOCK_DEFAULT(2, virNetworkLookupByName);
     IMPL_MOCK_DEFAULT(1, virNetworkFree);
-    IMPL_MOCK_DEFAULT(2, virNetworkDefineXML);
-    IMPL_MOCK_DEFAULT(2, virNetworkSetAutostart);
+    IMPL_MOCK_DEFAULT(2, virNetworkCreateXML);
     IMPL_MOCK_DEFAULT(1, virNetworkGetBridgeName);
     IMPL_MOCK_DEFAULT(1, virNetworkIsActive);
     IMPL_MOCK_DEFAULT(1, virNetworkCreate);
