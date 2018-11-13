@@ -41,6 +41,11 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+const std::regex bytes_regex{"^[[:digit:]]+((B)?)$", std::regex::optimize};
+const std::regex kilobytes_regex{"^[[:digit:]]+((K)(B)?)$", std::regex::optimize};
+const std::regex megabytes_regex{"^[[:digit:]]+((M)(B)?)$", std::regex::optimize};
+const std::regex gigabytes_regex{"^[[:digit:]]+((G)(B)?)$", std::regex::optimize};
+
 auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
 {
     if (quote_type == mp::utils::QuoteType::no_quotes)
@@ -75,6 +80,50 @@ bool mp::utils::invalid_target_path(const QString& target_path)
     QRegExp matcher("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*");
 
     return matcher.exactMatch(sanitized_path);
+}
+
+int mp::utils::to_megabytes(const std::string& mem_value)
+{
+    if (std::regex_match(mem_value, bytes_regex))
+    {
+        return std::stoi(mem_value) / 1048576;
+    }
+    else if (std::regex_match(mem_value, kilobytes_regex))
+    {
+        return std::stoi(mem_value) / 1024;
+    }
+    else if (std::regex_match(mem_value, megabytes_regex))
+    {
+        return std::stoi(mem_value);
+    }
+    else if (std::regex_match(mem_value, gigabytes_regex))
+    {
+        return std::stoi(mem_value) * 1024;
+    }
+
+    return -1;
+}
+
+int mp::utils::to_gigabytes(const std::string& mem_value)
+{
+    if (std::regex_match(mem_value, bytes_regex))
+    {
+        return std::stoi(mem_value) / 1073741824;
+    }
+    else if (std::regex_match(mem_value, kilobytes_regex))
+    {
+        return std::stoi(mem_value) / 1048576;
+    }
+    else if (std::regex_match(mem_value, megabytes_regex))
+    {
+        return std::stoi(mem_value) / 1024;
+    }
+    else if (std::regex_match(mem_value, gigabytes_regex))
+    {
+        return std::stoi(mem_value);
+    }
+
+    return -1;
 }
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)

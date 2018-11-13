@@ -72,6 +72,96 @@ TEST(Utils, MM_unit_is_invalid)
     EXPECT_FALSE(mp::utils::valid_memory_value(QString("1024MM")));
 }
 
+TEST(Utils, MB_value_from_B_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1073741824B"), Eq(1024));
+}
+
+TEST(Utils, MB_value_from_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1073741824"), Eq(1024));
+}
+
+TEST(Utils, MB_value_from_KB_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1048576KB"), Eq(1024));
+}
+
+TEST(Utils, MB_value_from_K_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1048576K"), Eq(1024));
+}
+
+TEST(Utils, MB_value_from_MB_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1024MB"), Eq(1024));
+}
+
+TEST(Utils, MB_value_from_M_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1024M"), Eq(1024));
+}
+
+TEST(Utils, MB_value_from_GB_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1GB"), Eq(1024));
+}
+
+TEST(Utils, MB_value_from_G_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1G"), Eq(1024));
+}
+
+TEST(Utils, error_value_from_invalid_MB_string)
+{
+    EXPECT_THAT(mp::utils::to_megabytes("1024MM"), Eq(-1));
+}
+
+TEST(Utils, GB_value_from_B_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1073741824B"), Eq(1));
+}
+
+TEST(Utils, GB_value_from_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1073741824"), Eq(1));
+}
+
+TEST(Utils, GB_value_from_KB_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1048576KB"), Eq(1));
+}
+
+TEST(Utils, GB_value_from_K_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1048576K"), Eq(1));
+}
+
+TEST(Utils, GB_value_from_MB_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1024MB"), Eq(1));
+}
+
+TEST(Utils, GB_value_from_M_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1024M"), Eq(1));
+}
+
+TEST(Utils, GB_value_from_GB_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1GB"), Eq(1));
+}
+
+TEST(Utils, GB_value_from_G_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1G"), Eq(1));
+}
+
+TEST(Utils, error_value_from_invalid_GB_string)
+{
+    EXPECT_THAT(mp::utils::to_gigabytes("1024GG"), Eq(-1));
+}
+
 TEST(Utils, hostname_begins_with_letter_is_valid)
 {
     EXPECT_TRUE(mp::utils::valid_hostname(QString("foo")));

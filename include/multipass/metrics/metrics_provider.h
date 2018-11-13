@@ -19,6 +19,7 @@
 #define MULTIPASS_METRICS_PROVIDER_H
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/metrics/metrics_data.h>
 #include <multipass/path.h>
 
 #include <QByteArray>
@@ -39,7 +40,7 @@ public:
     MetricsProvider(const QString& metrics_url, const QString& unique_id, const Path& path);
     ~MetricsProvider();
 
-    bool send_metrics();
+    bool send_metrics(const MetricsData& metrics_data);
     void send_denied();
 
 private:

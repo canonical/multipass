@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/metrics_provider.h>
+#include <multipass/metrics/metrics_provider.h>
 #include <multipass/utils.h>
 
 #include "temp_dir.h"
@@ -59,6 +59,7 @@ struct MetricsProvider : public testing::Test
 
     mpt::TempFile metrics_file;
     mpt::TempDir metrics_dir;
+    mp::MetricsData metrics_data;
 };
 } // namespace
 
@@ -66,7 +67,7 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
 {
     const auto unique_id = mp::utils::make_uuid();
     mp::MetricsProvider metrics_provider{metrics_file.url(), unique_id, metrics_dir.path()};
-    metrics_provider.send_metrics();
+    metrics_provider.send_metrics(metrics_data);
 
     wait_for_metrics();
 
@@ -111,8 +112,6 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
             EXPECT_TRUE(metric_obj.contains("time"));
             EXPECT_TRUE(metric_obj.contains("tags"));
 
-            EXPECT_THAT(metric_obj["key"].toString().toStdString(), Eq("host-machine-info"));
-            EXPECT_THAT(metric_obj["value"].toString().toStdString(), Eq("1"));
             // Ensure 'time' has a valid RFC3339 timestamp
             EXPECT_TRUE(QDateTime::fromString(metric_obj["time"].toString(), Qt::ISODateWithMs).isValid());
 

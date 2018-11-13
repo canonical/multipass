@@ -22,7 +22,7 @@
 #include "daemon_rpc.h"
 
 #include <multipass/delayed_shutdown_timer.h>
-#include <multipass/metrics_provider.h>
+#include <multipass/metrics/metrics_provider.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
