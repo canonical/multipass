@@ -1576,7 +1576,7 @@ try // clang-format on
         QTimer timer;
         QEventLoop event_loop;
 
-        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit);
+        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
         QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
 
         auto it = vm_instances.find(name);
