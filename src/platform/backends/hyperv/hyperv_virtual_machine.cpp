@@ -48,9 +48,25 @@ catch (...)
     return mp::nullopt;
 }
 
+auto instance_state_for(const QString& name)
+{
+    std::string state;
+
+    if (mp::powershell_run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"},
+                           name.toStdString(), state))
+    {
+        if (state == "Running")
+        {
+            return mp::VirtualMachine::State::running;
+        }
+    }
+
+    return mp::VirtualMachine::State::off;
+}
 } // namespace
+
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc)
-    : VirtualMachine{State::off, desc.key_provider, desc.vm_name},
+    : VirtualMachine{desc.key_provider, desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username}
 {
@@ -67,6 +83,12 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                         "VHD", "-SwitchName", "\"Default Switch\"", "-MemoryStartupBytes", mem_size},
                        vm_name);
         powershell_run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso}, vm_name);
+
+        state = State::off;
+    }
+    else
+    {
+        state = instance_state_for(name);
     }
 }
 
@@ -77,15 +99,23 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 
 void mp::HyperVVirtualMachine::start()
 {
-    powershell_run({"Start-VM", "-Name", name}, name.toStdString());
-    state = State::running;
+    if (current_state() != State::running)
+    {
+        powershell_run({"Start-VM", "-Name", name}, name.toStdString());
+        state = State::running;
+    }
 }
 
 void mp::HyperVVirtualMachine::stop()
 {
-    powershell_run({"Stop-VM", "-Name", name}, name.toStdString());
-    state = State::stopped;
-    ip = mp::nullopt;
+    auto present_state = current_state();
+
+    if (present_state == State::running || present_state == State::delayed_shutdown)
+    {
+        powershell_run({"Stop-VM", "-Name", name}, name.toStdString());
+        state = State::stopped;
+        ip = mp::nullopt;
+    }
 }
 
 void mp::HyperVVirtualMachine::shutdown()
@@ -100,6 +130,12 @@ void mp::HyperVVirtualMachine::suspend()
 
 mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 {
+    auto present_state = instance_state_for(name);
+
+    if (state == State::delayed_shutdown && present_state == State::running)
+        return state;
+
+    state = present_state;
     return state;
 }
 
