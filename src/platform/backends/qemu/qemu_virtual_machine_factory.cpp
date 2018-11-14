@@ -103,8 +103,10 @@ void set_ip_forward()
         return;
     }
 
-    if (ip_forward.write("1") < 0) {
-        mpl::log(mpl::Level::warning, "daemon", fmt::format("Failed to write to {}", qPrintable(ip_forward.fileName())));
+    if (ip_forward.write("1") < 0)
+    {
+        mpl::log(mpl::Level::warning, "daemon",
+                 fmt::format("Failed to write to {}", qPrintable(ip_forward.fileName())));
     }
 }
 
