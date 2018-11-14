@@ -107,8 +107,11 @@ void mp::backend::resize_instance_image(const mp::ConfinementSystem* confinement
 
 mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::ConfinementSystem* confinement, const mp::Path& image_path)
 {
-    // Check if raw image file, and if so, convert to qcow2 format
-    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(image_path);
+    // Check if raw image file, and if so, convert to qcow2 format.
+    // Need to give QemuImgProcessSpec the path of the possible converted file, for confinement.
+    const auto qcow2_path{image_path + ".qcow2"};
+
+    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(image_path, qcow2_path);
     auto qemuimg_process = confinement->create_process(std::move(qemuimg_spec));
 
     auto image_info = qemuimg_process->run_and_return_output({"info", "--output=json", image_path});
@@ -116,7 +119,6 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::ConfinementSystem* 
 
     if (image_record["format"].toString() == "raw")
     {
-        auto qcow2_path{image_path + ".qcow2"};
         qemuimg_process->run_and_return_status({"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, -1);
         return qcow2_path;
     }

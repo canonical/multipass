@@ -18,8 +18,9 @@
 #include "qemuimg_process_spec.h"
 
 
-multipass::QemuImgProcessSpec::QemuImgProcessSpec(const QString &image_path)
-    : image_path{image_path}
+multipass::QemuImgProcessSpec::QemuImgProcessSpec(const QString &input_image_path, const QString& output_image_path)
+    : input_image_path{input_image_path}
+    , output_image_path{output_image_path}
 {}
 
 QString multipass::QemuImgProcessSpec::program() const
@@ -33,20 +34,17 @@ QString multipass::QemuImgProcessSpec::apparmor_profile() const
 #include <tunables/global>
 profile %1 flags=(attach_disconnected) {
     #include <abstractions/base>
-    #include <abstractions/consoles>
 
-    # required for reading disk images
-    capability dac_override,
-    #capability dac_read_search,
-    #capability chown,
-
-    # needed to drop privileges
-    #capability setgid,
-    #capability setuid,
-
-    # Disk image to operate on
-    %3 rk,  # QCow2 filesystem image
+    # Disk image(s) to operate on
+    %2 rk,
+    %3
 }
     )END");
 
-    return profile_template.arg(apparmor_profile_name(), image_path);}
+    QString optional_output_rule;
+    if (!output_image_path.isNull()) {
+        optional_output_rule = "    " + output_image_path + " rwk,";
+    }
+
+    return profile_template.arg(apparmor_profile_name(), input_image_path, optional_output_rule);
+}
