@@ -68,7 +68,6 @@ private:
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     const std::unique_ptr<Process> vm_process;
-    const QStringList original_args;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool delete_memory_snapshot{false};

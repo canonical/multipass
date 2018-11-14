@@ -16,7 +16,10 @@
  */
 
 #include <multipass/backend_utils.h>
+#include <multipass/process.h>
 #include <multipass/utils.h>
+
+#include "../qemu/qemuimg_process_spec.h" // FIXME(gerry)
 
 #include <fmt/format.h>
 
@@ -47,7 +50,7 @@ bool can_reach_gateway(const std::string& ip)
 {
     return mp::utils::run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
 }
-}
+} // namespace
 
 std::string mp::backend::generate_random_subnet()
 {
@@ -87,23 +90,38 @@ void mp::backend::check_hypervisor_support()
     }
 }
 
-void mp::backend::resize_instance_image(const std::string& disk_space, const mp::Path& image_path)
+void mp::backend::resize_instance_image(const mp::ConfinementSystem* confinement, const std::string& disk_space,
+                                        const mp::Path& image_path)
 {
     auto disk_size = QString::fromStdString(disk_space);
 
     if (disk_size.endsWith("B"))
         disk_size.chop(1);
 
-    if (!mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), image_path, disk_size}))
+    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(image_path);
+    auto qemuimg_process = confinement->create_process(std::move(qemuimg_spec));
+
+    if (!qemuimg_process->run_and_return_status({"resize", image_path, disk_size}))
         throw std::runtime_error("Cannot resize instance image");
 }
 
-std::string mp::backend::image_format_for(const mp::Path& image_path)
+mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::ConfinementSystem* confinement, const mp::Path& image_path)
 {
-    auto image_info = QString::fromStdString(
-        mp::utils::run_cmd_for_output("qemu-img", {QStringLiteral("info"), "--output=json", image_path}));
+    // Check if raw image file, and if so, convert to qcow2 format
+    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(image_path);
+    auto qemuimg_process = confinement->create_process(std::move(qemuimg_spec));
 
+    auto image_info = qemuimg_process->run_and_return_output({"info", "--output=json", image_path});
     auto image_record = QJsonDocument::fromJson(image_info.toUtf8(), nullptr).object();
 
-    return image_record["format"].toString().toStdString();
+    if (image_record["format"].toString() == "raw")
+    {
+        auto qcow2_path{image_path + ".qcow2"};
+        qemuimg_process->run_and_return_status({"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, -1);
+        return qcow2_path;
+    }
+    else
+    {
+        return image_path;
+    }
 }

@@ -38,9 +38,3 @@ QString mp::DHCPReleaseProcessSpec::apparmor_profile() const
 {
     return "TODO!";
 }
-
-QString mp::DHCPReleaseProcessSpec::identifier() const
-{
-    // Should only ever be one instance of DNSMasq, no need for unique identifier
-    return QString();
-}

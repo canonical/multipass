@@ -30,9 +30,10 @@ public:
     virtual ~ProcessSpec() = default;
 
     virtual QString program() const = 0;
-    virtual QStringList arguments() const = 0;
     virtual QString apparmor_profile() const = 0;
-    virtual QString identifier() const = 0;
+
+    virtual QStringList arguments() const;
+    virtual QString identifier() const;
 
     const QString apparmor_profile_name() const;
 };

@@ -25,5 +25,6 @@ target_link_libraries(platform
 
 add_subdirectory(backends)
 add_subdirectory(client)
+add_subdirectory(confinement)
 add_subdirectory(console)
 add_subdirectory(logger)

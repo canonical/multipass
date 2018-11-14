@@ -19,8 +19,7 @@
 #define MULTIPASS_DHCP_RELEASE_PROCESS_H
 
 #include <multipass/ip_address.h>
-
-#include "process_spec.h"
+#include <multipass/process_spec.h>
 
 namespace multipass
 {
@@ -33,7 +32,6 @@ public:
     QString program() const override;
     QStringList arguments() const override;
     QString apparmor_profile() const override;
-    QString identifier() const override;
 
 private:
     const QString bridge_name;

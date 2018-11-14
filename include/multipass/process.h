@@ -32,7 +32,10 @@ class Process : public QObject
 public:
     virtual ~Process();
 
-    virtual void start() = 0;
+    virtual void start(const QStringList& extra_arguments = QStringList()) = 0;
+
+    bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
+    QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
 
     void terminate();
     void kill();
@@ -41,9 +44,7 @@ public:
     void setWorkingDirectory(const QString& dir);
 
     QString program() const;
-    void setProgram(const QString &program);
     QStringList arguments() const;
-    void setArguments(const QStringList &args);
 
     qint64 processId() const;
     QProcess::ProcessState state() const;

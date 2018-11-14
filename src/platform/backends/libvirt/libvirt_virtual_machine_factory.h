@@ -25,6 +25,8 @@
 
 namespace multipass
 {
+class ConfinementSystem;
+
 class LibVirtVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
@@ -42,6 +44,7 @@ public:
     void check_hypervisor_support() override;
 
 private:
+    const std::shared_ptr<ConfinementSystem> confinement_system;
     ConnectionUPtr connection;
     const std::string bridge_name;
 };

@@ -18,13 +18,13 @@
 #include "dnsmasq_server.h"
 
 #include <multipass/logging/log.h>
+#include <multipass/process.h>
 #include <multipass/utils.h>
 
 #include <fmt/format.h>
 
 #include <fstream>
 
-#include "process.h"
 #include "dhcp_release_process_spec.h"
 #include "dnsmasq_process_spec.h"
 

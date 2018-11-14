@@ -18,17 +18,16 @@
 #ifndef MULTIPASS_DNSMASQ_SERVER_H
 #define MULTIPASS_DNSMASQ_SERVER_H
 
+#include <multipass/confinement_system.h>
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
+#include <multipass/process.h>
 
 #include <QDir>
 
 #include <memory>
 #include <string>
-
-#include "confinement_system.h"
-#include "process.h"
 
 namespace multipass
 {

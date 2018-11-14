@@ -16,27 +16,18 @@
 
 set(CMAKE_AUTOMOC ON)
 
-include(FindPkgConfig)
-
-pkg_search_module(APPARMOR apparmor)
-
 add_library(qemu_backend STATIC
-  apparmor.cpp
-  apparmor_confined_system.cpp
   dhcp_release_process_spec.cpp
   dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
+  qemuimg_process_spec.cpp
   qemu_process_spec.cpp
   qemu_virtual_machine_factory.cpp
-  qemu_virtual_machine.cpp
-  process.cpp
-  process_spec.cpp
-  unconfined_system.cpp
-)
+  qemu_virtual_machine.cpp)
 
 target_link_libraries(qemu_backend
-  apparmor
   backend_utils
+  confinement
   fmt
   logger
   Qt5::Core

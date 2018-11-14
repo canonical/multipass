@@ -28,10 +28,13 @@ class ProcessSpec;
 class ConfinementSystem
 {
 public:
-    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec> &&process_spec) const = 0;
+    static std::shared_ptr<ConfinementSystem> create_confinement_system();
+
+    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const = 0;
 
     ~ConfinementSystem() = default;
 };
+
 
 } // namespace multipass
 

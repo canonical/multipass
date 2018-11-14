@@ -18,9 +18,8 @@
 #ifndef MULTIPASS_QEMU_PROCESS_H
 #define MULTIPASS_QEMU_PROCESS_H
 
+#include <multipass/process_spec.h>
 #include <multipass/virtual_machine_description.h>
-
-#include "process_spec.h"
 
 namespace multipass
 {

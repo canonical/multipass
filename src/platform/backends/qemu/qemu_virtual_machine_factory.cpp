@@ -19,6 +19,7 @@
 #include "qemu_virtual_machine.h"
 
 #include <multipass/backend_utils.h>
+#include <multipass/confinement_system.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -27,9 +28,6 @@
 #include <yaml-cpp/yaml.h>
 
 #include <QTcpSocket>
-
-#include "apparmor_confined_system.h"
-#include "unconfined_system.h"
 
 namespace mp = multipass;
 
@@ -210,23 +208,6 @@ std::string get_subnet(const mp::Path& network_dir, const QString& bridge_name)
     return new_subnet;
 }
 
-std::shared_ptr<mp::ConfinementSystem> create_confinement_system()
-{
-    const auto disable_apparmor = qgetenv("DISABLE_APPARMOR");
-    if (!disable_apparmor.isNull()) {
-        return std::make_shared<mp::UnconfinedSystem>();
-    }
-
-    try
-    {
-        return std::make_shared<mp::AppArmorConfinedSystem>();
-    }
-    catch (std::exception&)
-    {
-        return std::make_shared<mp::UnconfinedSystem>();
-    }
-}
-
 mp::DNSMasqServer create_dnsmasq_server(const std::shared_ptr<mp::ConfinementSystem>& confinement_system,
                                         const mp::Path& data_dir, const QString& bridge_name)
 {
@@ -245,9 +226,8 @@ mp::DNSMasqServer create_dnsmasq_server(const std::shared_ptr<mp::ConfinementSys
 }
 } // namespace
 
-
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : confinement_system{create_confinement_system()},
+    : confinement_system{mp::ConfinementSystem::create_confinement_system()},
       bridge_name{QString::fromStdString(multipass_bridge_name)},
       dnsmasq_server{create_dnsmasq_server(confinement_system, data_dir, bridge_name)}
 {
@@ -264,7 +244,8 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
-    auto vm = std::make_unique<mp::QemuVirtualMachine>(confinement_system, desc, tap_device_name, dnsmasq_server, monitor);
+    auto vm =
+        std::make_unique<mp::QemuVirtualMachine>(confinement_system, desc, tap_device_name, dnsmasq_server, monitor);
 
     name_to_mac_map.emplace(desc.vm_name, desc.mac_addr);
     return vm;
@@ -288,13 +269,8 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 {
     VMImage image{source_image};
 
-    if (mp::backend::image_format_for(source_image.image_path) == "raw")
-    {
-        auto qcow2_path{mp::Path(source_image.image_path).append(".qcow2")};
-        mp::utils::run_cmd_for_status(
-            "qemu-img", {QStringLiteral("convert"), "-p", "-O", "qcow2", source_image.image_path, qcow2_path}, -1);
-        image.image_path = qcow2_path;
-    }
+    image.image_path =
+        mp::backend::convert_to_qcow_if_necessary(confinement_system.get(), source_image.image_path);
 
     return image;
 }
@@ -302,7 +278,7 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                            const VirtualMachineDescription& desc)
 {
-    mp::backend::resize_instance_image(desc.disk_space, instance_image.image_path);
+    mp::backend::resize_instance_image(confinement_system.get(), desc.disk_space, instance_image.image_path);
 }
 
 void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)

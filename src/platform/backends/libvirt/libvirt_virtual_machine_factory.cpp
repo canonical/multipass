@@ -19,6 +19,7 @@
 #include "libvirt_virtual_machine.h"
 
 #include <multipass/backend_utils.h>
+#include <multipass/confinement_system.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -81,10 +82,13 @@ std::string enable_libvirt_network(virConnectPtr connection)
 
     return bridge_name;
 }
-}
+
+} // namespace
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : connection{connect_to_libvirt_daemon()}, bridge_name{enable_libvirt_network(connection.get())}
+    : confinement_system{mp::ConfinementSystem::create_confinement_system()},
+      connection{connect_to_libvirt_daemon()},
+      bridge_name{enable_libvirt_network(connection.get())}
 {
 }
 
@@ -108,13 +112,8 @@ mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage
 {
     VMImage image{source_image};
 
-    if (mp::backend::image_format_for(source_image.image_path) == "raw")
-    {
-        auto qcow2_path{mp::Path(source_image.image_path).append(".qcow2")};
-        mp::utils::run_cmd_for_status(
-            "qemu-img", {QStringLiteral("convert"), "-p", "-O", "qcow2", source_image.image_path, qcow2_path}, -1);
-        image.image_path = qcow2_path;
-    }
+    image.image_path =
+        mp::backend::convert_to_qcow_if_necessary(confinement_system.get(), source_image.image_path);
 
     return image;
 }
@@ -122,7 +121,7 @@ mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage
 void mp::LibVirtVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
                                                               const VirtualMachineDescription& desc)
 {
-    mp::backend::resize_instance_image(desc.disk_space, instance_image.image_path);
+    mp::backend::resize_instance_image(confinement_system.get(), desc.disk_space, instance_image.image_path);
 }
 
 void mp::LibVirtVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config,
