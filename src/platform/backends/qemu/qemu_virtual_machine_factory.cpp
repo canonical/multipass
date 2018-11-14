@@ -19,6 +19,7 @@
 #include "qemu_virtual_machine.h"
 
 #include <multipass/backend_utils.h>
+#include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -29,6 +30,7 @@
 #include <QTcpSocket>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -87,7 +89,19 @@ void create_tap_device(const QString& tap_name, const QString& bridge_name)
 
 void set_ip_forward()
 {
-    mp::utils::run_cmd_for_status("sysctl", {"-w", "net.ipv4.ip_forward=1"});
+    // Command line equivalent: "sysctl -w net.ipv4.ip_forward=1"
+    QFile ip_forward("/proc/sys/net/ipv4/ip_forward");
+    if (!ip_forward.open(QFile::ReadWrite))
+    {
+        mpl::log(mpl::Level::warning, "daemon", fmt::format("Unable to open {}", qPrintable(ip_forward.fileName())));
+        return;
+    }
+
+    if (ip_forward.write("1") < 0)
+    {
+        mpl::log(mpl::Level::warning, "daemon",
+                 fmt::format("Failed to write to {}", qPrintable(ip_forward.fileName())));
+    }
 }
 
 void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
