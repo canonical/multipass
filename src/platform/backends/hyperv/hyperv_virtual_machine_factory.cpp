@@ -33,7 +33,7 @@ namespace mp = multipass;
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                  VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(desc);
+    return std::make_unique<mp::HyperVVirtualMachine>(desc, monitor);
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for(const std::string& name)

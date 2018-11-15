@@ -29,11 +29,12 @@ namespace multipass
 class PowerShell;
 class SSHKeyProvider;
 class VirtualMachineDescription;
+class VMStatusMonitor;
 
 class HyperVVirtualMachine final : public VirtualMachine
 {
 public:
-    HyperVVirtualMachine(const VirtualMachineDescription& desc);
+    HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor);
     ~HyperVVirtualMachine();
     void stop() override;
     void start() override;
@@ -54,6 +55,8 @@ private:
     const std::string username;
     multipass::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
+    VMStatusMonitor* monitor;
+    bool update_suspend_status{true};
 };
 } // namespace multipass
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H

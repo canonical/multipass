@@ -18,17 +18,23 @@
 #include "hyperv_virtual_machine.h"
 #include "powershell.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_status_monitor.h>
+
+#include <fmt/format.h>
 
 #include <winsock2.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
 const QString default_switch_guid{"C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"};
+const QString snapshot_name{"suspend"};
 
 mp::optional<mp::IPAddress> remote_ip(const std::string& host, int port) // clang-format off
 try // clang-format on
@@ -54,23 +60,31 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 {
     QString state;
 
+    if (power_shell->run({"Get-VMSnapshot", "-Name", snapshot_name, "-VMName", name}))
+        return mp::VirtualMachine::State::suspended;
+
     if (power_shell->run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"}, state))
     {
         if (state == "Running")
         {
             return mp::VirtualMachine::State::running;
         }
+        else if (state == "Off")
+        {
+            return mp::VirtualMachine::State::stopped;
+        }
     }
 
-    return mp::VirtualMachine::State::off;
+    return mp::VirtualMachine::State::unknown;
 }
 } // namespace
 
-mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc)
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
     : VirtualMachine{desc.key_provider, desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
-      power_shell{std::make_unique<PowerShell>(vm_name)}
+      power_shell{std::make_unique<PowerShell>(vm_name)},
+      monitor{&monitor}
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
@@ -103,11 +117,20 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 
 void mp::HyperVVirtualMachine::start()
 {
-    if (current_state() != State::running)
+    auto present_state = current_state();
+
+    if (present_state == State::running)
+        return;
+
+    if (present_state == State::suspended)
     {
-        power_shell->run({"Start-VM", "-Name", name});
-        state = State::running;
+        power_shell->run({"Restore-VMSnapshot", "-Name", snapshot_name, "-VMName", name, "-Confirm:$False"});
+        power_shell->run({"Remove-VMSnapshot", "-Name", snapshot_name, "-VMName", name, "-Confirm:$False"});
     }
+
+    power_shell->run({"Start-VM", "-Name", name}, name.toStdString());
+
+    state = State::running;
 }
 
 void mp::HyperVVirtualMachine::stop()
@@ -120,6 +143,10 @@ void mp::HyperVVirtualMachine::stop()
         state = State::stopped;
         ip = mp::nullopt;
     }
+    else if (present_state == State::suspended)
+    {
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+    }
 }
 
 void mp::HyperVVirtualMachine::shutdown()
@@ -129,7 +156,24 @@ void mp::HyperVVirtualMachine::shutdown()
 
 void mp::HyperVVirtualMachine::suspend()
 {
-    throw std::runtime_error("suspend is currently not supported");
+    auto present_state = instance_state_for(power_shell.get(), name);
+
+    if (present_state == State::running || present_state == State::delayed_shutdown)
+    {
+        power_shell->run({"Checkpoint-VM", "-Name", name, "-SnapshotName", snapshot_name});
+        power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
+
+        if (update_suspend_status)
+        {
+            state = State::suspended;
+        }
+    }
+    else if (present_state == State::off)
+    {
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+    }
+
+    monitor->on_suspend();
 }
 
 mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
