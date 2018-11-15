@@ -17,6 +17,7 @@
 
 #include <multipass/backend_utils.h>
 #include <multipass/process.h>
+#include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
 #include "../qemu/qemuimg_process_spec.h" // FIXME(gerry)
@@ -34,6 +35,7 @@
 #include <random>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -42,13 +44,38 @@ std::uniform_int_distribution<int> dist{0, 255};
 
 bool subnet_used_locally(const std::string& subnet)
 {
-    const auto ip_cmd = fmt::format("ip -4 route show | grep -q {}", subnet);
-    return mp::utils::run_cmd_for_status("bash", {"-c", ip_cmd.c_str()});
+    // CLI equivalent: ip -4 route show | grep -q ${SUBNET}
+    const auto output = QString::fromStdString(mp::utils::run_cmd_for_output("ip", {"-4", "route", "show"}));
+    return output.contains(QString::fromStdString(subnet));
 }
 
 bool can_reach_gateway(const std::string& ip)
 {
     return mp::utils::run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
+}
+
+auto virtual_switch_subnet(const QString& bridge_name)
+{
+    // CLI equivalent: ip -4 route show | grep ${BRIDGE_NAME} | cut -d ' ' -f1 | cut -d '.' -f1-3
+    QString subnet;
+
+    const auto output =
+        QString::fromStdString(mp::utils::run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
+    for (const auto& line : output)
+    {
+        if (line.contains(bridge_name))
+        {
+            subnet = line.section('.', 0, 2);
+            break;
+        }
+    }
+
+    if (subnet.isNull())
+    {
+        mpl::log(mpl::Level::info, "daemon",
+                 fmt::format("Unable to determine subnet for the {} subnet", qPrintable(bridge_name)));
+    }
+    return subnet.toStdString();
 }
 } // namespace
 
@@ -71,6 +98,22 @@ std::string mp::backend::generate_random_subnet()
     }
 
     throw std::runtime_error("Could not determine a subnet for networking.");
+}
+
+std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name)
+{
+    auto subnet = virtual_switch_subnet(bridge_name);
+    if (!subnet.empty())
+        return subnet;
+
+    QFile subnet_file{network_dir + "/multipass_subnet"};
+    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
+    if (subnet_file.size() > 0)
+        return subnet_file.readAll().trimmed().toStdString();
+
+    auto new_subnet = mp::backend::generate_random_subnet();
+    subnet_file.write(new_subnet.data(), new_subnet.length());
+    return new_subnet;
 }
 
 void mp::backend::check_hypervisor_support()

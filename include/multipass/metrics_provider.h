@@ -47,7 +47,7 @@ private:
 
     const QUrl metrics_url;
     const QString unique_id;
-    const Path& data_path;
+    const Path data_path;
     QJsonArray metric_batches;
 
     std::mutex metrics_mutex;

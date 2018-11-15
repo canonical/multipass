@@ -64,8 +64,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (logger == nullptr)
         logger = std::make_unique<mpl::StandardLogger>(verbosity_level);
 
-    auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>();
-    multiplexing_logger->add_logger(logger.get());
+    auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
     if (cache_directory.isEmpty())
@@ -113,6 +112,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     return std::unique_ptr<const DaemonConfig>(
         new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
                          std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider),
-                         std::move(client_cert_store), std::move(logger), multiplexing_logger, cache_directory,
+                         std::move(client_cert_store), multiplexing_logger, cache_directory,
                          data_directory, server_address, ssh_username, connection_type, image_refresh_timer});
 }
