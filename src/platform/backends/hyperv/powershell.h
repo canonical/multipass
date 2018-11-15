@@ -26,7 +26,7 @@
 
 namespace multipass
 {
-bool powershell_run(QStringList args, const std::string& name);
+bool powershell_run(const QStringList& args, const std::string& name, std::string& output = std::string());
 }
 
 #endif // MULTIPASS_POWERSHELL_H
