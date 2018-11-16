@@ -48,12 +48,11 @@ catch (...)
     return mp::nullopt;
 }
 
-auto instance_state_for(const QString& name)
+auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 {
     std::string state;
 
-    if (mp::powershell_run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"},
-                           name.toStdString(), state))
+    if (power_shell->run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"}, state))
     {
         if (state == "Running")
         {
@@ -68,9 +67,10 @@ auto instance_state_for(const QString& name)
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc)
     : VirtualMachine{desc.key_provider, desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
-      username{desc.ssh_username}
+      username{desc.ssh_username},
+      power_shell{std::make_unique<PowerShell>(vm_name)}
 {
-    if (!powershell_run({"Get-VM", "-Name", name}, vm_name))
+    if (!power_shell->run({"Get-VM", "-Name", name}))
     {
         auto mem_size = QString::fromStdString(desc.mem_size);
         if (mem_size.endsWith("K") || mem_size.endsWith("M") || mem_size.endsWith("G"))
@@ -79,16 +79,15 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         if (!mem_size.endsWith("B"))
             mem_size.append("MB");
 
-        powershell_run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
-                        "VHD", "-SwitchName", "\"Default Switch\"", "-MemoryStartupBytes", mem_size},
-                       vm_name);
-        powershell_run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso}, vm_name);
+        power_shell->run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
+                          "VHD", "-SwitchName", "\"Default Switch\"", "-MemoryStartupBytes", mem_size});
+        power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso});
 
         state = State::off;
     }
     else
     {
-        state = instance_state_for(name);
+        state = instance_state_for(power_shell.get(), name);
     }
 }
 
@@ -101,7 +100,7 @@ void mp::HyperVVirtualMachine::start()
 {
     if (current_state() != State::running)
     {
-        powershell_run({"Start-VM", "-Name", name}, name.toStdString());
+        power_shell->run({"Start-VM", "-Name", name});
         state = State::running;
     }
 }
@@ -112,7 +111,7 @@ void mp::HyperVVirtualMachine::stop()
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
     {
-        powershell_run({"Stop-VM", "-Name", name}, name.toStdString());
+        power_shell->run({"Stop-VM", "-Name", name});
         state = State::stopped;
         ip = mp::nullopt;
     }
@@ -130,7 +129,7 @@ void mp::HyperVVirtualMachine::suspend()
 
 mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 {
-    auto present_state = instance_state_for(name);
+    auto present_state = instance_state_for(power_shell.get(), name);
 
     if (state == State::delayed_shutdown && present_state == State::running)
         return state;
