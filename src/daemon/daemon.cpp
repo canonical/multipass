@@ -1046,7 +1046,7 @@ try // clang-format on
             }
         }
 
-        if (vm->is_running(present_state))
+        if (mp::utils::is_running(present_state))
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};
@@ -1154,7 +1154,7 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (vm->is_running(present_state))
+        if (mp::utils::is_running(present_state))
             entry->set_ipv4(vm->ipv4());
     }
 
@@ -1334,7 +1334,7 @@ try // clang-format on
                                 "");
         }
 
-        if (!it->second->is_running())
+        if (!mp::utils::is_running(it->second->current_state()))
         {
             return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
                                 fmt::format("instance \"{}\" is not running", name), "");
@@ -1920,7 +1920,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
     if (vm.state == VirtualMachine::State::delayed_shutdown)
         delayed_shutdown_instances.erase(vm.vm_name);
 
-    if (!vm.is_running())
+    if (!mp::utils::is_running(vm.current_state()))
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
