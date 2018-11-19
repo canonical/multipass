@@ -60,7 +60,6 @@ public:
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
     virtual void update_state() = 0;
-    virtual bool is_running() { return current_state() == State::running || current_state() == State::delayed_shutdown; }
 
     VirtualMachine::State state;
     const SSHKeyProvider& key_provider;
