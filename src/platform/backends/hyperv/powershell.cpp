@@ -29,13 +29,15 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-const QString unique_echo_string{"end of cmdlet"};
+const QString unique_echo_string{"cmdlet status is"};
 
 void setup_powershell(QProcess* power_shell, const QStringList& args, const std::string& name)
 {
     power_shell->setProgram("powershell.exe");
 
     power_shell->setArguments(args);
+    power_shell->setProcessChannelMode(QProcess::MergedChannels);
+
     mpl::log(mpl::Level::debug, name,
              fmt::format("powershell arguments '{}'", power_shell->arguments().join(", ").toStdString()));
 
@@ -45,10 +47,6 @@ void setup_powershell(QProcess* power_shell, const QStringList& args, const std:
 
     QObject::connect(power_shell, &QProcess::started,
                      [&name]() { mpl::log(mpl::Level::debug, name, "powershell started"); });
-
-    QObject::connect(power_shell, &QProcess::readyReadStandardError, [&name, power_shell]() {
-        mpl::log(mpl::Level::warning, name, power_shell->readAllStandardError().data());
-    });
 
     QObject::connect(power_shell, &QProcess::stateChanged, [&name](QProcess::ProcessState newState) {
         auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
@@ -83,15 +81,16 @@ mp::PowerShell::~PowerShell()
 
 bool mp::PowerShell::run(const QStringList& args, std::string& output)
 {
-    QString echo_cmdlet = QString("echo \"%1\"\n").arg(unique_echo_string);
+    QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(unique_echo_string);
     bool cmdlet_code{false};
 
+    mpl::log(mpl::Level::debug, name,
+             fmt::format("cmdlet: '{}'", args.join(" ").toStdString()));
     powershell_proc.write(args.join(" ").toUtf8() + "\n");
+
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
     powershell_proc.write(echo_cmdlet.toUtf8());
-    // Retrieve the cmdlet's exit status
-    powershell_proc.write("$?\n");
 
     QString powershell_output;
     auto cmdlet_exit_found{false};
@@ -130,6 +129,7 @@ bool mp::PowerShell::run(const QStringList& args, std::string& output)
         }
     }
 
+    mpl::log(mpl::Level::debug, name, fmt::format("cmdlet exit status is '{}'", cmdlet_code));
     return cmdlet_code;
 }
 
