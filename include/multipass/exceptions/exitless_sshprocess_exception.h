@@ -15,22 +15,31 @@
  *
  */
 
-#ifndef MULTIPASS_BACKEND_UTILS_H
-#define MULTIPASS_BACKEND_UTILS_H
+#ifndef MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
+#define MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
 
-#include <multipass/path.h>
+#include <fmt/format.h>
 
+#include <stdexcept>
 #include <string>
 
 namespace multipass
 {
-namespace backend
+class ExitlessSSHProcessException : public std::runtime_error
 {
-std::string generate_random_subnet();
-std::string get_subnet(const Path& network_dir, const QString& bridge_name);
-void check_hypervisor_support();
-void resize_instance_image(const std::string& disk_space, const multipass::Path& image_path);
-std::string image_format_for(const Path& image_path);
-}
-}
-#endif // MULTIPASS_BACKEND_UTILS_H
+public:
+    ExitlessSSHProcessException(const std::string& command)
+        : runtime_error(fmt::format("failed to obtain exit status for remote process: '{}'", command)), cmd{command}
+    {
+    }
+
+    std::string command() const
+    {
+        return cmd;
+    }
+
+private:
+    const std::string cmd;
+};
+} // namespace multipass
+#endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H

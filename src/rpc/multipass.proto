@@ -29,6 +29,7 @@ service Rpc {
     rpc start (StartRequest) returns (stream StartReply);
     rpc stop (StopRequest) returns (stream StopReply);
     rpc suspend (SuspendRequest) returns (stream SuspendReply);
+    rpc restart (RestartRequest) returns (stream RestartReply);
     rpc delet (DeleteRequest) returns (stream DeleteReply);
     rpc umount (UmountRequest) returns (stream UmountReply);
     rpc version (VersionRequest) returns (stream VersionReply);
@@ -306,6 +307,15 @@ message SuspendRequest {
 }
 
 message SuspendReply {
+    string log_line = 1;
+}
+
+message RestartRequest {
+    InstanceNames instance_names = 1;
+    int32 verbosity_level = 2;
+}
+
+message RestartReply {
     string log_line = 1;
 }
 

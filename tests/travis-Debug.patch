@@ -1,8 +1,8 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -117,9 +117,8 @@ parts:
+@@ -143,9 +143,8 @@ parts:
+     - golang
      - libsystemd-dev
-     source: .
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
 +    - -DCMAKE_BUILD_TYPE=Debug

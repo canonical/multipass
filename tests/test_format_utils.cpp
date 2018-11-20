@@ -68,6 +68,15 @@ TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
     EXPECT_THAT(status_string, Eq("SUSPENDED"));
 }
 
+TEST(InstanceStatusString, running_status_returns_RESTARTING)
+{
+    mp::InstanceStatus status;
+    status.set_status(mp::InstanceStatus::RESTARTING);
+    auto status_string = mp::format::status_string_for(status);
+
+    EXPECT_THAT(status_string, Eq("RESTARTING"));
+}
+
 TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
 {
     mp::InstanceStatus status;

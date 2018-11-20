@@ -20,6 +20,7 @@
 #include "json_writer.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/client_logger.h>
@@ -46,6 +47,7 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 
+#include <functional>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -54,10 +56,16 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+
+using namespace std::chrono_literals;
+
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto uuid_file_name = "multipass-unique-id";
 constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
+constexpr auto reboot_cmd = "sudo reboot";
+constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
+constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -386,10 +394,92 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_suspend, &daemon, &mp::Daemon::suspend, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_restart, &daemon, &mp::Daemon::restart, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
+
+template <typename Instances, typename InstanceMap>
+grpc::Status validate_instances(const Instances& instances, const InstanceMap& vms, const InstanceMap& deleted)
+{
+    fmt::memory_buffer errors;
+    for (const auto& name : instances)
+    {
+        if (vms.find(name) == std::cend(vms))
+        {
+            if (deleted.find(name) == std::cend(deleted))
+                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            else
+                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
+        }
+    }
+
+    return errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
+}
+
+template <typename Instances, typename InstanceMap>
+auto find_requested_instances(const Instances& instances, const InstanceMap& vms, const InstanceMap& deleted)
+    -> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
+{ // TODO: use this in commands that currently duplicate the same kind of code
+    auto status = validate_instances(instances, vms, deleted);
+    auto valid_instances = std::vector<typename Instances::value_type>{};
+
+    if (status.ok())
+    {
+        if (instances.empty())
+            for (const auto& vm_item : vms)
+                valid_instances.push_back(vm_item.first);
+        else
+            std::copy(std::cbegin(instances), std::cend(instances), std::back_inserter(valid_instances));
+    }
+
+    return std::make_pair(valid_instances, status);
+}
+
+mp::SSHProcess exec_and_log(mp::SSHSession& session, const std::string& cmd)
+{
+    mpl::log(mpl::Level::debug, category, fmt::format("Executing {}.", cmd));
+    return session.exec(cmd);
+}
+
+grpc::Status stop_accepting_ssh_connections(mp::SSHSession& session)
+{
+    auto proc = exec_and_log(session, stop_ssh_cmd);
+    auto ecode = proc.exit_code();
+
+    return ecode == 0 ? grpc::Status::OK
+                      : grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                     fmt::format("Could not stop sshd. '{}' exited with code {}", stop_ssh_cmd, ecode),
+                                     proc.read_std_error()};
+}
+
+grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string& username,
+                        const mp::SSHKeyProvider& key_provider)
+{
+    mp::SSHSession session{hostname, port, username, key_provider};
+
+    // This allows us to later detect when the machine has finished restarting by waiting for SSH to be back up.
+    // Otherwise, there would be a race condition, and we would be unable to distinguish whether it had ever been down.
+    stop_accepting_ssh_connections(session);
+
+    auto proc = exec_and_log(session, reboot_cmd);
+    try
+    {
+        auto ecode = proc.exit_code();
+
+        // we shouldn't get this far: a successful reboot command does not return
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Reboot command exited with code {}", ecode), proc.read_std_error()};
+    }
+    catch (const mp::ExitlessSSHProcessException&)
+    {
+        // this is the expected path
+    }
+
+    return grpc::Status::OK;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -441,8 +531,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             config->vault->remove(name);
         }
 
-        if (spec.state == VirtualMachine::State::running &&
-            vm_instances[name]->current_state() != VirtualMachine::State::running)
+        if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
         {
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
             QTimer::singleShot(0, [this, &name] {
@@ -879,6 +968,7 @@ try // clang-format on
 
         auto info = response.add_info();
         auto& vm = it->second;
+        auto present_state = vm->current_state();
         info->set_name(name);
         if (deleted)
         {
@@ -907,7 +997,7 @@ try // clang-format on
                     return mp::InstanceStatus::STOPPED;
                 }
             };
-            info->mutable_instance_status()->set_status(status_for(vm->current_state()));
+            info->mutable_instance_status()->set_status(status_for(present_state));
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -956,8 +1046,7 @@ try // clang-format on
             }
         }
 
-        if (vm->current_state() == mp::VirtualMachine::State::running ||
-            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
+        if (mp::utils::is_running(present_state))
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};
@@ -1041,9 +1130,10 @@ try // clang-format on
     {
         const auto& name = instance.first;
         const auto& vm = instance.second;
+        auto present_state = vm->current_state();
         auto entry = response.add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(status_for(vm->current_state()));
+        entry->mutable_instance_status()->set_status(status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1064,8 +1154,7 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (vm->current_state() == mp::VirtualMachine::State::running ||
-            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
+        if (mp::utils::is_running(present_state))
             entry->set_ipv4(vm->ipv4());
     }
 
@@ -1245,7 +1334,7 @@ try // clang-format on
                                 "");
         }
 
-        if (!it->second->is_running())
+        if (!mp::utils::is_running(it->second->current_state()))
         {
             return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
                                 fmt::format("instance \"{}\" is not running", name), "");
@@ -1301,11 +1390,12 @@ try // clang-format on
             continue;
         }
 
-        if (it->second->current_state() == VirtualMachine::State::running)
+        auto present_state = it->second->current_state();
+        if (present_state == VirtualMachine::State::running)
         {
             continue;
         }
-        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        else if (present_state == VirtualMachine::State::delayed_shutdown)
         {
             delayed_shutdown_instances.erase(name);
             continue;
@@ -1486,7 +1576,7 @@ try // clang-format on
         QTimer timer;
         QEventLoop event_loop;
 
-        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit);
+        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
         QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
 
         auto it = vm_instances.find(name);
@@ -1498,6 +1588,40 @@ try // clang-format on
     }
 
     return grpc::Status::OK;
+}
+catch (const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
+grpc::Status mp::Daemon::restart(grpc::ServerContext* context, const RestartRequest* request,
+                                 grpc::ServerWriter<RestartReply>* server) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    auto instances_and_status =
+        find_requested_instances(request->instance_names().instance_name(), vm_instances, deleted_instances);
+    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
+    auto& status = instances_and_status.second;         // idem
+
+    if (status.ok())
+    {
+        status = cmd_vms(instances,
+                         std::bind(&Daemon::reboot_vm, this, std::placeholders::_1)); // 1st pass to reboot all targets
+
+        if (status.ok())
+        {
+            status = cmd_vms(instances, [](auto& vm) {
+                // 2nd pass waits for them (only works because SSH was manually killed before rebooting)
+                vm.wait_until_ssh_up(up_timeout);
+
+                return grpc::Status::OK;
+            });
+        }
+    }
+
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1789,4 +1913,31 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                      [this, name, target_path]() { mount_threads[name].erase(target_path); });
 
     mount_threads[name][target_path] = std::move(sshfs_mount);
+}
+
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
+{
+    if (vm.state == VirtualMachine::State::delayed_shutdown)
+        delayed_shutdown_instances.erase(vm.vm_name);
+
+    if (!mp::utils::is_running(vm.current_state()))
+        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                            fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
+
+    mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
+    return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider);
+}
+
+grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd)
+{ /* TODO: use this in commands, rather than repeating the same logic.
+  std::function involves some overhead, but it should be negligible here and
+  it gives clear error messages on type mismatch (!= templated callable). */
+    for (const auto& tgt : tgts)
+    {
+        const auto st = cmd(*vm_instances.at(tgt));
+        if (!st.ok())
+            return st; // Fail early
+    }
+
+    return grpc::Status::OK;
 }
