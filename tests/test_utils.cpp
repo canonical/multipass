@@ -372,3 +372,24 @@ TEST(Utils, filename_only_is_returned)
 
     EXPECT_THAT(mp::utils::filename_for(full_path), Eq(file_name));
 }
+
+TEST(Utils, vm_running_returns_true)
+{
+    mp::VirtualMachine::State state = mp::VirtualMachine::State::running;
+
+    EXPECT_TRUE(mp::utils::is_running(state));
+}
+
+TEST(Utils, vm_delayed_shutdown_returns_true)
+{
+    mp::VirtualMachine::State state = mp::VirtualMachine::State::delayed_shutdown;
+
+    EXPECT_TRUE(mp::utils::is_running(state));
+}
+
+TEST(Utils, vm_stopped_returns_false)
+{
+    mp::VirtualMachine::State state = mp::VirtualMachine::State::stopped;
+
+    EXPECT_FALSE(mp::utils::is_running(state));
+}

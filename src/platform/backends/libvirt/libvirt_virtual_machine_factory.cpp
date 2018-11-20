@@ -40,9 +40,10 @@ auto connect_to_libvirt_daemon()
     return conn;
 }
 
-auto generate_libvirt_bridge_xml_config(const std::string& bridge_name)
+auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
 {
-    auto subnet = mp::backend::generate_random_subnet();
+    auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
+    auto subnet = mp::backend::get_subnet(network_dir, QString::fromStdString(bridge_name));
 
     return fmt::format("<network>\n"
                        "  <name>default</name>\n"
@@ -57,7 +58,7 @@ auto generate_libvirt_bridge_xml_config(const std::string& bridge_name)
                        bridge_name, subnet, subnet, subnet);
 }
 
-std::string enable_libvirt_network(virConnectPtr connection)
+std::string enable_libvirt_network(virConnectPtr connection, const mp::Path& data_dir)
 {
     mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection, "default"), virNetworkFree};
     std::string bridge_name;
@@ -66,8 +67,8 @@ std::string enable_libvirt_network(virConnectPtr connection)
     {
         bridge_name = multipass_bridge_name;
         network = mp::LibVirtVirtualMachine::NetworkUPtr{
-            virNetworkDefineXML(connection, generate_libvirt_bridge_xml_config(bridge_name).c_str()), virNetworkFree};
-        virNetworkSetAutostart(network.get(), 1);
+            virNetworkCreateXML(connection, generate_libvirt_bridge_xml_config(data_dir, bridge_name).c_str()),
+            virNetworkFree};
     }
     else
     {
@@ -84,7 +85,7 @@ std::string enable_libvirt_network(virConnectPtr connection)
 }
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : connection{connect_to_libvirt_daemon()}, bridge_name{enable_libvirt_network(connection.get())}
+    : connection{connect_to_libvirt_daemon()}, bridge_name{enable_libvirt_network(connection.get(), data_dir)}
 {
 }
 
@@ -92,6 +93,16 @@ mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machin
                                                                                   VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::LibVirtVirtualMachine>(desc, connection.get(), bridge_name, monitor);
+}
+
+mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
+{
+    if (bridge_name == multipass_bridge_name)
+    {
+        mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection.get(), "default"),
+                                                       virNetworkFree};
+        virNetworkDestroy(network.get());
+    }
 }
 
 void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& name)

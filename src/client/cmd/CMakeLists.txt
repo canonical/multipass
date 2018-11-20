@@ -31,6 +31,7 @@ add_library(commands STATIC
   start.cpp
   stop.cpp
   suspend.cpp
+  restart.cpp
   delete.cpp
   umount.cpp
   version.cpp

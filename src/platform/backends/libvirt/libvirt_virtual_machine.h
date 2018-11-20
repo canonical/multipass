@@ -62,6 +62,6 @@ private:
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_H

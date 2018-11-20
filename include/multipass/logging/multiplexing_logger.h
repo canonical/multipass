@@ -31,11 +31,13 @@ namespace logging
 class MultiplexingLogger : public Logger
 {
 public:
+    explicit MultiplexingLogger(UPtr system_logger);
     void log(Level level, CString category, CString message) const override;
     void add_logger(const Logger* logger);
     void remove_logger(const Logger* logger);
 
 private:
+    UPtr system_logger;
     mutable std::shared_timed_mutex mutex;
     std::vector<const Logger*> loggers;
 };

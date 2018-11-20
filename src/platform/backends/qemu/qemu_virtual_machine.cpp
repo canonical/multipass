@@ -155,7 +155,7 @@ bool instance_image_has_snapshot(const mp::Path& image_path)
 
     return false;
 }
-}
+} // namespace
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
                                            DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)

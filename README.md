@@ -5,11 +5,13 @@ of virtual machines and associated Ubuntu images to simplify development.
 
 # Getting it
 
-It's available as a classically confined snap, in the `beta` channel:
+On Linux it's available as a classically confined snap, in the `beta` channel:
 
 ```
 sudo snap install multipass --beta --classic
 ```
+
+For macOS we provide installers [on GitHub](https://github.com/CanonicalLtd/multipass/releases).
 
 # Usage
 

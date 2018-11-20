@@ -15,22 +15,30 @@
  *
  */
 
-#ifndef MULTIPASS_BACKEND_UTILS_H
-#define MULTIPASS_BACKEND_UTILS_H
+#ifndef MULTIPASS_RESTART_H
+#define MULTIPASS_RESTART_H
 
-#include <multipass/path.h>
-
-#include <string>
+#include <multipass/cli/command.h>
 
 namespace multipass
 {
-namespace backend
+namespace cmd
 {
-std::string generate_random_subnet();
-std::string get_subnet(const Path& network_dir, const QString& bridge_name);
-void check_hypervisor_support();
-void resize_instance_image(const std::string& disk_space, const multipass::Path& image_path);
-std::string image_format_for(const Path& image_path);
-}
-}
-#endif // MULTIPASS_BACKEND_UTILS_H
+class Restart final : public Command
+{
+public:
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
+
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    RestartRequest request;
+
+    ParseCode parse_args(ArgParser* parser) override;
+};
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_RESTART_H

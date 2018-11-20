@@ -31,6 +31,7 @@ public:
     using ConnectionUPtr = std::unique_ptr<virConnect, decltype(virConnectClose)*>;
 
     explicit LibVirtVirtualMachineFactory(const Path& data_dir);
+    ~LibVirtVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;

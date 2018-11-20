@@ -77,8 +77,7 @@ add_c_mocks(
   virConnectGetCapabilities
   virNetworkLookupByName
   virNetworkFree
-  virNetworkDefineXML
-  virNetworkSetAutostart
+  virNetworkCreateXML
   virNetworkGetBridgeName
   virNetworkIsActive
   virNetworkCreate
