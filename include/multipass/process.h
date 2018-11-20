@@ -66,7 +66,7 @@ signals:
     void stateChanged(QProcess::ProcessState newState);
 
 protected:
-    Process(std::unique_ptr<ProcessSpec> &&process_spec);
+    Process(std::unique_ptr<ProcessSpec>&& process_spec);
 
     const std::unique_ptr<ProcessSpec> process_spec;
 

@@ -16,8 +16,8 @@
  */
 
 #include <multipass/backend_utils.h>
-#include <multipass/process.h>
 #include <multipass/logging/log.h>
+#include <multipass/process.h>
 #include <multipass/utils.h>
 
 #include "../qemu/qemuimg_process_spec.h" // FIXME(gerry)

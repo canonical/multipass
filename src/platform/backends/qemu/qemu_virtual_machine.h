@@ -35,7 +35,8 @@ class VirtualMachineDescription;
 class QemuVirtualMachine final : public VirtualMachine
 {
 public:
-    QemuVirtualMachine(const std::shared_ptr<ConfinementSystem>& confinement_system, const VirtualMachineDescription& desc, const std::string& tap_device_name,
+    QemuVirtualMachine(const std::shared_ptr<ConfinementSystem>& confinement_system,
+                       const VirtualMachineDescription& desc, const std::string& tap_device_name,
                        DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 

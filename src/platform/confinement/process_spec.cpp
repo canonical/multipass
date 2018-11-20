@@ -19,11 +19,14 @@
 
 namespace mp = multipass;
 
+// Create Process with fixed list of arguments
 QStringList multipass::ProcessSpec::arguments() const
 {
     return QStringList();
 }
 
+// For cases when multiple instances of this process need different apparmor profiles, use this
+// identifier to distinguish them
 QString multipass::ProcessSpec::identifier() const
 {
     return QString();
@@ -31,10 +34,12 @@ QString multipass::ProcessSpec::identifier() const
 
 const QString mp::ProcessSpec::apparmor_profile_name() const
 {
-    if (!identifier().isNull()) {
+    if (!identifier().isNull())
+    {
         return QStringLiteral("multipass.") + identifier() + '.' + program();
-    } else {
+    }
+    else
+    {
         return QStringLiteral("multipass.") + program();
     }
 }
-

@@ -28,7 +28,7 @@ class QemuProcessSpec : public ProcessSpec
 {
 public:
     explicit QemuProcessSpec(const VirtualMachineDescription& desc, const QString& tap_device_name,
-                         const QString& mac_addr);
+                             const QString& mac_addr);
 
     QString program() const override;
     QStringList arguments() const override;

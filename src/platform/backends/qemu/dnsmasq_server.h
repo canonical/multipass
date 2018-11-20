@@ -35,8 +35,9 @@ namespace multipass
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const std::shared_ptr<ConfinementSystem>& confinement_system, const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
-                  const IPAddress& start, const IPAddress& end);
+    DNSMasqServer(const std::shared_ptr<ConfinementSystem>& confinement_system, const Path& path,
+                  const QString& bridge_name, const IPAddress& bridge_addr, const IPAddress& start,
+                  const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 

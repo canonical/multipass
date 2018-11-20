@@ -30,7 +30,7 @@ const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"}, 
 } // namespace
 
 mp::QemuProcessSpec::QemuProcessSpec(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
-                             const QString& mac_addr)
+                                     const QString& mac_addr)
     : desc(desc), tap_device_name(tap_device_name), mac_addr(mac_addr)
 {
 }
@@ -52,7 +52,8 @@ QStringList mp::QemuProcessSpec::arguments() const
     // The VM image itself
     args << "-hda" << desc.image.image_path;
     // For the cloud-init configuration
-    args << "-drive" << QString{"file="} + desc.cloud_init_iso + QString{",if=virtio,format=raw,snapshot=off,read-only"};
+    args << "-drive"
+         << QString{"file="} + desc.cloud_init_iso + QString{",if=virtio,format=raw,snapshot=off,read-only"};
     // Number of cpu cores
     args << "-smp" << QString::number(desc.num_cores);
     // Memory to use for VM

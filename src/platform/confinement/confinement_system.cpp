@@ -30,12 +30,5 @@ std::shared_ptr<mp::ConfinementSystem> mp::ConfinementSystem::create_confinement
         return std::make_shared<mp::UnconfinedSystem>();
     }
 
-    try
-    {
-        return std::make_shared<mp::AppArmorConfinedSystem>();
-    }
-    catch (std::exception&)
-    {
-        return std::make_shared<mp::UnconfinedSystem>();
-    }
+    return std::make_shared<mp::AppArmorConfinedSystem>();
 }

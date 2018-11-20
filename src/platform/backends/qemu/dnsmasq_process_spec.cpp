@@ -36,8 +36,9 @@ static QString pid_file()
 
 } // namespace
 
-mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
-                                   const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
+mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name,
+                                           const mp::IPAddress& bridge_addr, const mp::IPAddress& start_ip,
+                                           const mp::IPAddress& end_ip)
     : data_dir(data_dir),
       bridge_name(bridge_name),
       pid_file{::pid_file()},
@@ -111,10 +112,4 @@ profile %1 flags=(attach_disconnected) {
 
     return profile_template.arg(apparmor_profile_name(), data_dir.filePath("dnsmasq.leases"),
                                 data_dir.filePath("dnsmasq.hosts"), pid);
-}
-
-QString mp::DNSMasqProcessSpec::identifier() const
-{
-    // Should only ever be one instance of DNSMasq, no need for unique identifier
-    return QString();
 }

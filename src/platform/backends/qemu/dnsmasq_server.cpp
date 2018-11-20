@@ -33,17 +33,17 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto make_dnsmasq_process(const mp::ConfinementSystem* confinement_system, QDir data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
-                          const mp::IPAddress& start, const mp::IPAddress& end)
+auto make_dnsmasq_process(const mp::ConfinementSystem* confinement_system, QDir data_dir, const QString& bridge_name,
+                          const mp::IPAddress& bridge_addr, const mp::IPAddress& start, const mp::IPAddress& end)
 {
     auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, bridge_addr, start, end);
     return confinement_system->create_process(std::move(process_spec));
 }
 } // namespace
 
-
-mp::DNSMasqServer::DNSMasqServer(const std::shared_ptr<ConfinementSystem> &confinement_system, const Path& path, const QString& bridge_name,
-                                 const mp::IPAddress& bridge_addr, const mp::IPAddress& start, const mp::IPAddress& end)
+mp::DNSMasqServer::DNSMasqServer(const std::shared_ptr<ConfinementSystem>& confinement_system, const Path& path,
+                                 const QString& bridge_name, const mp::IPAddress& bridge_addr,
+                                 const mp::IPAddress& start, const mp::IPAddress& end)
     : confinement_system{confinement_system},
       data_dir{QDir(path)},
       dnsmasq_cmd{make_dnsmasq_process(confinement_system.get(), data_dir, bridge_name, bridge_addr, start, end)},
@@ -90,7 +90,8 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
         return;
     }
 
-    auto process_spec = std::make_unique<mp::DHCPReleaseProcessSpec>(bridge_name, ip.value(), QString::fromStdString(hw_addr));
+    auto process_spec =
+        std::make_unique<mp::DHCPReleaseProcessSpec>(bridge_name, ip.value(), QString::fromStdString(hw_addr));
     auto dhcp_release = confinement_system->create_process(std::move(process_spec));
     QObject::connect(dhcp_release.get(), &Process::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
         mpl::log(mpl::Level::warning, "dnsmasq",

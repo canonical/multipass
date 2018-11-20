@@ -31,7 +31,7 @@ public:
     AppArmorConfinedSystem();
     virtual ~AppArmorConfinedSystem() = default;
 
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec> &&process_spec) const override;
+    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const override;
 
 private:
     const AppArmor apparmor;

@@ -27,18 +27,16 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-static const auto apparmor_parser = "apparmor_parser";
-static const auto apparmor_exec = "aa-exec";
-
 namespace
 {
+static const auto apparmor_parser = "apparmor_parser";
+static const auto apparmor_exec = "aa-exec";
 
 void throw_if_binary_fails(const char* binary_name, const QStringList& arguments = QStringList())
 {
     QProcess process;
     process.start(binary_name, arguments);
-    process.waitForFinished();
-    if (process.exitCode() != 0)
+    if (!process.waitForFinished() || process.exitCode() != 0)
     {
         throw std::runtime_error(
             fmt::format("AppArmor cannot be configured, the '{}' utility failed to launch with error: {}", binary_name,
@@ -48,7 +46,7 @@ void throw_if_binary_fails(const char* binary_name, const QStringList& arguments
 
 } // namespace
 
-mp::AppArmor::AppArmor() : aa_interface(nullptr)
+mp::AppArmor::AppArmor()
 {
     int ret = aa_is_enabled();
     if (ret < 0)
@@ -59,11 +57,7 @@ mp::AppArmor::AppArmor() : aa_interface(nullptr)
     // libapparmor's profile management APIis not easy to use, handier to use apparmor_profile CLI tool
     // and aa-exec to spawn child processes. Ensure they are available
     throw_if_binary_fails(apparmor_parser, {"-V"});
-    throw_if_binary_fails(apparmor_exec);
-}
-
-mp::AppArmor::~AppArmor()
-{
+    throw_if_binary_fails(apparmor_exec, {"-h"});
 }
 
 void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
@@ -75,12 +69,12 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::info, "daemon", fmt::format("loading apparmor policy: {}", aa_policy.constData()));
+    mpl::log(mpl::Level::debug, "daemon", fmt::format("loading apparmor policy: \n{}", aa_policy.constData()));
 
     if (process.exitCode() != 0)
-    { // something went wrong
-        throw std::runtime_error(fmt::format("Failed to load AppArmor policy: errno={} ({})", process.exitCode(),
-                                             process.readAll().constData()));
+    {
+        throw std::runtime_error(fmt::format("Failed to load AppArmor policy {}: errno={} ({})", aa_policy.constData(),
+                                             process.exitCode(), process.readAll().constData()));
     }
 }
 
@@ -93,11 +87,11 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::info, "daemon", fmt::format("removing apparmor policy: {}", aa_policy.constData()));
+    mpl::log(mpl::Level::debug, "daemon", fmt::format("removing apparmor policy: \n{}", aa_policy.constData()));
 
     if (process.exitCode() != 0)
-    { // something went wrong
-        throw std::runtime_error(fmt::format("Failed to remove AppArmor policy: errno={} ({})", process.exitCode(),
-                                             process.readAll().constData()));
+    {
+        throw std::runtime_error(fmt::format("Failed to remove AppArmor policy {}: errno={} ({})",
+                                             aa_policy.constData(), process.exitCode(), process.readAll().constData()));
     }
 }

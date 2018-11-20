@@ -35,7 +35,6 @@ public:
     ~ConfinementSystem() = default;
 };
 
-
 } // namespace multipass
 
 #endif // MULTIPASS_CONFINEMENT_SYSTEM_H

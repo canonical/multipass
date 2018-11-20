@@ -20,7 +20,8 @@
 
 #include <multipass/confinement_system.h>
 
-namespace multipass {
+namespace multipass
+{
 
 class UnconfinedSystem : public ConfinementSystem
 {
@@ -28,7 +29,7 @@ public:
     UnconfinedSystem();
     virtual ~UnconfinedSystem() = default;
 
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec> &&process_spec) const override;
+    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const override;
 };
 
 } // namespace multipass

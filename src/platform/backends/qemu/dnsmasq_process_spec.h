@@ -32,12 +32,11 @@ class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
     explicit DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
-                            const IPAddress& start_ip, const IPAddress& end_ip);
+                                const IPAddress& start_ip, const IPAddress& end_ip);
 
     QString program() const override;
     QStringList arguments() const override;
     QString apparmor_profile() const override;
-    QString identifier() const override;
 
 private:
     const QDir data_dir;

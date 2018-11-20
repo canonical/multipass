@@ -20,8 +20,6 @@
 
 #include <QString>
 
-struct aa_kernel_interface;
-
 namespace multipass
 {
 
@@ -29,13 +27,9 @@ class AppArmor
 {
 public:
     AppArmor();
-    ~AppArmor();
 
     void load_policy(const QByteArray& aa_policy) const;
     void remove_policy(const QByteArray& aa_policy) const;
-
-private:
-    aa_kernel_interface* aa_interface;
 };
 
 } // namespace multipass
