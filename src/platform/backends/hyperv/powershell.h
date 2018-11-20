@@ -33,7 +33,7 @@ public:
 
     bool run(const QStringList& args, std::string& output = std::string());
 
-    static bool run_once(const QStringList& args, const std::string& name, std::string& output = std::string());
+    static bool exec(const QStringList& args, const std::string& name, std::string& output = std::string());
 
 private:
     QProcess powershell_proc;

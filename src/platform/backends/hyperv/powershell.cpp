@@ -133,7 +133,7 @@ bool mp::PowerShell::run(const QStringList& args, std::string& output)
     return cmdlet_code;
 }
 
-bool mp::PowerShell::run_once(const QStringList& args, const std::string& name, std::string& output)
+bool mp::PowerShell::exec(const QStringList& args, const std::string& name, std::string& output)
 {
     QProcess power_shell;
     setup_powershell(&power_shell, args, name);
