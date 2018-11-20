@@ -40,34 +40,21 @@ multipass help <command>
 
 Here's a set of steps to build and run your own build of multipass:
 
-## Build Dependencies
+## Install snapcraft
 
 ```
-cd <multipass>
-apt install devscripts equivs
-mk-build-deps -s sudo -i
+sudo snap install snapcraft --classic
 ```
 
-## Building
+## Build and install the snap
 
 ```
 cd <multipass>
 git submodule update --init --recursive
-mkdir build
-cd build
-cmake ../
-make
+snapcraft
+snap install --dangerous --classic multipass*.snap
 ```
 
-## Running multipass daemon and client
+## More info about building snaps
 
-```
-sudo <multipass>/build/bin/multipassd &
-<multipass>/build/bin/multipass launch --name foo
-```
-
-## Connect to a running instance
-
-```
-<multipass>/build/bin/multipass shell foo
-```
+More info about building and developing snaps can be found [here](https://docs.snapcraft.io/t/clean-build-using-lxc/4157).
