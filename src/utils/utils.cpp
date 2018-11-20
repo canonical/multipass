@@ -18,7 +18,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
-#include <multipass/virtual_machine.h>
 
 #include <fmt/format.h>
 
@@ -260,4 +259,9 @@ std::string mp::utils::timestamp()
 {
     auto time = QDateTime::currentDateTime();
     return time.toString(Qt::ISODateWithMs).toStdString();
+}
+
+bool mp::utils::is_running(const VirtualMachine::State& state)
+{
+    return state == VirtualMachine::State::running || state == VirtualMachine::State::delayed_shutdown;
 }

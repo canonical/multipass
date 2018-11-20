@@ -531,8 +531,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             config->vault->remove(name);
         }
 
-        if (spec.state == VirtualMachine::State::running &&
-            vm_instances[name]->current_state() != VirtualMachine::State::running)
+        if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
         {
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
             QTimer::singleShot(0, [this, &name] {
@@ -969,6 +968,7 @@ try // clang-format on
 
         auto info = response.add_info();
         auto& vm = it->second;
+        auto present_state = vm->current_state();
         info->set_name(name);
         if (deleted)
         {
@@ -997,7 +997,7 @@ try // clang-format on
                     return mp::InstanceStatus::STOPPED;
                 }
             };
-            info->mutable_instance_status()->set_status(status_for(vm->current_state()));
+            info->mutable_instance_status()->set_status(status_for(present_state));
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1046,8 +1046,7 @@ try // clang-format on
             }
         }
 
-        if (vm->current_state() == mp::VirtualMachine::State::running ||
-            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
+        if (mp::utils::is_running(present_state))
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};
@@ -1131,9 +1130,10 @@ try // clang-format on
     {
         const auto& name = instance.first;
         const auto& vm = instance.second;
+        auto present_state = vm->current_state();
         auto entry = response.add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(status_for(vm->current_state()));
+        entry->mutable_instance_status()->set_status(status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1154,8 +1154,7 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (vm->current_state() == mp::VirtualMachine::State::running ||
-            vm->current_state() == mp::VirtualMachine::State::delayed_shutdown)
+        if (mp::utils::is_running(present_state))
             entry->set_ipv4(vm->ipv4());
     }
 
@@ -1335,7 +1334,7 @@ try // clang-format on
                                 "");
         }
 
-        if (!it->second->is_running())
+        if (!mp::utils::is_running(it->second->current_state()))
         {
             return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
                                 fmt::format("instance \"{}\" is not running", name), "");
@@ -1391,11 +1390,12 @@ try // clang-format on
             continue;
         }
 
-        if (it->second->current_state() == VirtualMachine::State::running)
+        auto present_state = it->second->current_state();
+        if (present_state == VirtualMachine::State::running)
         {
             continue;
         }
-        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        else if (present_state == VirtualMachine::State::delayed_shutdown)
         {
             delayed_shutdown_instances.erase(name);
             continue;
@@ -1576,7 +1576,7 @@ try // clang-format on
         QTimer timer;
         QEventLoop event_loop;
 
-        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit);
+        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
         QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
 
         auto it = vm_instances.find(name);
@@ -1920,7 +1920,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
     if (vm.state == VirtualMachine::State::delayed_shutdown)
         delayed_shutdown_instances.erase(vm.vm_name);
 
-    if (!vm.is_running())
+    if (!mp::utils::is_running(vm.current_state()))
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
