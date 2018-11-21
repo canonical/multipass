@@ -38,7 +38,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    powershell_run({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
+    PowerShell::exec({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
 }
 
 mp::FetchType mp::HyperVVirtualMachineFactory::fetch_type()
@@ -83,7 +83,7 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
         auto disk_space = QString::fromStdString(desc.disk_space);
         if (disk_space.endsWith('K') || disk_space.endsWith('M') || disk_space.endsWith('G'))
             disk_space.append("B");
-        powershell_run({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_space}, desc.vm_name);
+        PowerShell::exec({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_space}, desc.vm_name);
     }
 }
 

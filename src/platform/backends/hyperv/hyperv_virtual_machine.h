@@ -26,8 +26,10 @@
 
 namespace multipass
 {
+class PowerShell;
 class SSHKeyProvider;
 class VirtualMachineDescription;
+
 class HyperVVirtualMachine final : public VirtualMachine
 {
 public:
@@ -51,6 +53,7 @@ private:
     const QString name;
     const std::string username;
     multipass::optional<multipass::IPAddress> ip;
+    std::unique_ptr<PowerShell> power_shell;
 };
 } // namespace multipass
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
