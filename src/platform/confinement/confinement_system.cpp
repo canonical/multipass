@@ -17,18 +17,23 @@
 
 #include <multipass/confinement_system.h>
 
-#include "apparmor_confined_system.h"
+#ifdef APPARMOR_ENABLED
+  #include "apparmor_confined_system.h"
+#endif
 #include "unconfined_system.h"
 
 namespace mp = multipass;
 
 std::shared_ptr<mp::ConfinementSystem> mp::ConfinementSystem::create_confinement_system()
 {
+#ifdef APPARMOR_ENABLED
     const auto disable_apparmor = qgetenv("DISABLE_APPARMOR");
     if (!disable_apparmor.isNull())
     {
         return std::make_shared<mp::UnconfinedSystem>();
     }
-
     return std::make_shared<mp::AppArmorConfinedSystem>();
+#else
+    return std::make_shared<mp::UnconfinedSystem>();
+#endif
 }

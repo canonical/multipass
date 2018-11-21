@@ -24,18 +24,7 @@ apps:
     passthrough:
       after: [libvirt-bin]
     slots: [multipass-support]
-    plugs:
-      - firewall-control
-      - home
-      - kvm
-      - libvirt
-      - network
-      - network-control
-      - kernel-module-control
-  # firewall-control might be too much...
-  # network-control might be too much, could try network-observe
-  # network-manager probably too much, but QtNetworking gets status by talking with NM
-  # kernel-module-control appears to be needed by "ip" which multipassd calls (capability=16?)
+
   multipass:
     environment:
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
@@ -64,11 +53,6 @@ apps:
       LC_ALL: C
     plugs:
       - libvirt
-
-#plugs:
-#  home-plug: # to allow multipass mount local directory into VM - no is still READ ONLY
-#    interface: home
-#    read: all
 
 parts:
   qtbase5-dev:
@@ -178,6 +162,7 @@ parts:
     - try: [cmake-extras]
     - git
     - golang
+    - libapparmor-dev
     - libsystemd-dev
     source: .
     configflags:

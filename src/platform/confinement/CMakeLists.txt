@@ -14,13 +14,7 @@
 
 set(CMAKE_AUTOMOC ON)
 
-include(FindPkgConfig)
-
-pkg_search_module(APPARMOR apparmor)
-
 add_library(confinement STATIC
-  apparmor.cpp
-  apparmor_confined_system.cpp
   confinement_system.cpp
   process.cpp
   process_spec.cpp
@@ -30,8 +24,23 @@ add_library(confinement STATIC
 )
 
 target_link_libraries(confinement
-  apparmor
   fmt
   logger
   Qt5::Core
 )
+
+# Require AppArmor support included on Linux
+if (UNIX)
+  include(FindPkgConfig)
+  pkg_search_module(APPARMOR libapparmor REQUIRED)
+  add_definitions(-DAPPARMOR_ENABLED)
+
+  target_sources(confinement PRIVATE
+    apparmor.cpp
+    apparmor_confined_system.cpp
+  )
+
+  target_link_libraries(confinement
+    apparmor
+  )
+endif(UNIX)
