@@ -81,6 +81,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
         power_shell->run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
                           "VHD", "-SwitchName", "\"Default Switch\"", "-MemoryStartupBytes", mem_size});
+        power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
         power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso});
 
         state = State::off;
