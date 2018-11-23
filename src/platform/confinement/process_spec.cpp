@@ -17,6 +17,8 @@
 
 #include <multipass/process_spec.h>
 
+#include <QFileInfo>
+
 namespace mp = multipass;
 
 // Create Process with fixed list of arguments
@@ -34,12 +36,14 @@ QString multipass::ProcessSpec::identifier() const
 
 const QString mp::ProcessSpec::apparmor_profile_name() const
 {
+    const QString executable_name = QFileInfo(program()).fileName();
+
     if (!identifier().isNull())
     {
-        return QStringLiteral("multipass.") + identifier() + '.' + program();
+        return QStringLiteral("multipass.") + identifier() + '.' + executable_name;
     }
     else
     {
-        return QStringLiteral("multipass.") + program();
+        return QStringLiteral("multipass.") + executable_name;
     }
 }

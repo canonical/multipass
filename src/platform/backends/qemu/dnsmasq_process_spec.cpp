@@ -34,6 +34,19 @@ static QString pid_file()
     }
 }
 
+static QString executable()
+{
+    QString snap_dir = qgetenv("SNAP");
+    if (!snap_dir.isEmpty())
+    {
+        return QString("%1/usr/sbin/dnsmasq").arg(snap_dir);
+    }
+    else
+    {
+        return QStringLiteral("dnsmasq");
+    }
+}
+
 } // namespace
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name,
@@ -44,13 +57,14 @@ mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& 
       pid_file{::pid_file()},
       bridge_addr(bridge_addr),
       start_ip(start_ip),
-      end_ip(end_ip)
+      end_ip(end_ip),
+      executable(::executable())
 {
 }
 
 QString mp::DNSMasqProcessSpec::program() const
 {
-    return QStringLiteral("dnsmasq");
+    return executable;
 }
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
@@ -97,10 +111,12 @@ profile %1 flags=(attach_disconnected) {
     # Neighbor Discovery protocol (RFC 2461)
     @{PROC}/sys/net/ipv6/conf/*/mtu r,
 
-    %2 rw,           # Leases file
-    %3 r,            # Hosts file
+    %2 mr,
 
-    %4
+    %3 rw,           # Leases file
+    %4 r,            # Hosts file
+
+    %5
 }
     )END");
 
@@ -110,6 +126,6 @@ profile %1 flags=(attach_disconnected) {
         pid = QString("/{,var/}run/*dnsmasq*.pid w,  # pid file");
     }
 
-    return profile_template.arg(apparmor_profile_name(), data_dir.filePath("dnsmasq.leases"),
+    return profile_template.arg(apparmor_profile_name(), executable, data_dir.filePath("dnsmasq.leases"),
                                 data_dir.filePath("dnsmasq.hosts"), pid);
 }
