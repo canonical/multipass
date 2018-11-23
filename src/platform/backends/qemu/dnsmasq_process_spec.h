@@ -42,7 +42,6 @@ private:
     const QDir data_dir;
     const QString bridge_name, pid_file;
     const IPAddress bridge_addr, start_ip, end_ip;
-    const QString executable;
 };
 
 } // namespace multipass

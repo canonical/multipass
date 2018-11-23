@@ -34,6 +34,7 @@ public:
 private:
     const QString input_image_path;
     const QString output_image_path;
+    const QString executable;
 };
 
 } // namespace multipass

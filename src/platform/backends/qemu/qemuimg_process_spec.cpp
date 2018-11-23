@@ -18,10 +18,11 @@
 #include "qemuimg_process_spec.h"
 
 
-multipass::QemuImgProcessSpec::QemuImgProcessSpec(const QString &input_image_path, const QString& output_image_path)
-    : input_image_path{input_image_path}
-    , output_image_path{output_image_path}
-{}
+multipass::QemuImgProcessSpec::QemuImgProcessSpec(const QString& input_image_path, const QString& output_image_path)
+    : input_image_path{input_image_path}, output_image_path{output_image_path}
+
+{
+}
 
 QString multipass::QemuImgProcessSpec::program() const
 {
@@ -35,16 +36,27 @@ QString multipass::QemuImgProcessSpec::apparmor_profile() const
 profile %1 flags=(attach_disconnected) {
     #include <abstractions/base>
 
+    %2
+
     # Disk image(s) to operate on
-    %2 rk,
-    %3
+    %3 rk,
+    %4
 }
     )END");
 
-    QString optional_output_rule;
-    if (!output_image_path.isNull()) {
-        optional_output_rule = "    " + output_image_path + " rwk,";
+    // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
+    QString executable;
+    const QString snap_dir = qgetenv("SNAP");
+    if (!snap_dir.isEmpty())
+    {
+        executable = QString("%1/usr/bin/qemu-img mr,").arg(snap_dir);
     }
 
-    return profile_template.arg(apparmor_profile_name(), input_image_path, optional_output_rule);
+    QString optional_output_rule;
+    if (!output_image_path.isNull())
+    {
+        optional_output_rule = output_image_path + " rwk,";
+    }
+
+    return profile_template.arg(apparmor_profile_name(), executable, input_image_path, optional_output_rule);
 }

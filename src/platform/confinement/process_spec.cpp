@@ -36,7 +36,7 @@ QString multipass::ProcessSpec::identifier() const
 
 const QString mp::ProcessSpec::apparmor_profile_name() const
 {
-    const QString executable_name = QFileInfo(program()).fileName();
+    const QString executable_name = QFileInfo(program()).fileName(); // in case full path is specified
 
     if (!identifier().isNull())
     {

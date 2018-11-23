@@ -35,20 +35,6 @@ static QString pid_file()
         return QString();
     }
 }
-
-static QString executable()
-{
-    QString snap_dir = qgetenv("SNAP");
-    if (!snap_dir.isEmpty())
-    {
-        return QString("%1/usr/sbin/dnsmasq").arg(snap_dir);
-    }
-    else
-    {
-        return QStringLiteral("dnsmasq");
-    }
-}
-
 } // namespace
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name,
@@ -59,14 +45,13 @@ mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& 
       pid_file{::pid_file()},
       bridge_addr(bridge_addr),
       start_ip(start_ip),
-      end_ip(end_ip),
-      executable(::executable())
+      end_ip(end_ip)
 {
 }
 
 QString mp::DNSMasqProcessSpec::program() const
 {
-    return executable;
+    return QStringLiteral("dnsmasq");
 }
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
@@ -117,7 +102,7 @@ profile %1 flags=(attach_disconnected) {
     # Neighbor Discovery protocol (RFC 2461)
     @{PROC}/sys/net/ipv6/conf/*/mtu r,
 
-    %3 mr,
+    %3
 
     %4 rw,           # Leases file
     %5 r,            # Hosts file
@@ -126,6 +111,15 @@ profile %1 flags=(attach_disconnected) {
 }
     )END");
 
+    // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
+    QString executable;
+    const QString snap_dir = qgetenv("SNAP");
+    if (!snap_dir.isEmpty())
+    {
+        executable = QString("%1/usr/sbin/dnsmasq mr,").arg(snap_dir);
+    }
+
+    // If multipassd not confined, we let dnsmasq decide where to create its pid file, but still need to tell apparmor
     QString pid = pid_file;
     if (pid.isNull())
     {

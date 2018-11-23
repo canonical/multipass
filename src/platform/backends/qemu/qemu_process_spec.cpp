@@ -81,8 +81,6 @@ QStringList mp::QemuProcessSpec::arguments() const
 
 QString mp::QemuProcessSpec::apparmor_profile() const
 {
-    const auto base_path = qgetenv("SNAP"); // Validate??
-
     // Following profile is based on /etc/apparmor.d/abstractions/libvirt-qemu
     QString profile_template(R"END(
 #include <tunables/global>
@@ -145,11 +143,21 @@ profile %1 flags=(attach_disconnected) {
     # Disk images
     %4 rwk,  # QCow2 filesystem image
     %5 rk,   # cloud-init ISO
+
+    %6
 }
     )END");
 
-    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), base_path,
-                                desc.image.image_path, desc.cloud_init_iso);
+    // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
+    const QString snap_dir = qgetenv("SNAP"); // validate??
+    QString executable;
+    if (!snap_dir.isEmpty())
+    {
+        executable = QString("%1/usr/bin/qemu mr,").arg(snap_dir);
+    }
+
+    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), snap_dir,
+                                desc.image.image_path, desc.cloud_init_iso, executable);
 }
 
 QString mp::QemuProcessSpec::identifier() const
