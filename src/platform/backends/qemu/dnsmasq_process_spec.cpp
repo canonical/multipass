@@ -17,6 +17,8 @@
 
 #include "dnsmasq_process_spec.h"
 
+#include <QCoreApplication>
+
 namespace mp = multipass;
 
 namespace
@@ -90,6 +92,7 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
 
 QString mp::DNSMasqProcessSpec::apparmor_profile() const
 {
+    // Profile based on https://github.com/Rafiot/apparmor-profiles/blob/master/profiles/usr.sbin.dnsmasq
     QString profile_template(R"END(
 #include <tunables/global>
 profile %1 flags=(attach_disconnected) {
@@ -107,16 +110,19 @@ profile %1 flags=(attach_disconnected) {
     network inet raw,
     network inet6 raw,
 
+    # Allow multipassd send dnsmasq signals
+    signal (receive) peer=%2,
+
     # access to iface mtu needed for Router Advertisement messages in IPv6
     # Neighbor Discovery protocol (RFC 2461)
     @{PROC}/sys/net/ipv6/conf/*/mtu r,
 
-    %2 mr,
+    %3 mr,
 
-    %3 rw,           # Leases file
-    %4 r,            # Hosts file
+    %4 rw,           # Leases file
+    %5 r,            # Hosts file
 
-    %5
+    %6
 }
     )END");
 
@@ -126,6 +132,6 @@ profile %1 flags=(attach_disconnected) {
         pid = QString("/{,var/}run/*dnsmasq*.pid w,  # pid file");
     }
 
-    return profile_template.arg(apparmor_profile_name(), executable, data_dir.filePath("dnsmasq.leases"),
+    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), executable, data_dir.filePath("dnsmasq.leases"),
                                 data_dir.filePath("dnsmasq.hosts"), pid);
 }

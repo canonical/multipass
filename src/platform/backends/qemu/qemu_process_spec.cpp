@@ -17,6 +17,7 @@
 
 #include "qemu_process_spec.h"
 
+#include <QCoreApplication>
 #include <QHash>
 #include <QString>
 
@@ -102,6 +103,9 @@ profile %1 flags=(attach_disconnected) {
     network inet stream,
     network inet6 stream,
 
+    # Allow multipassd send qemu signals
+    signal (receive) peer=%2,
+
     /dev/net/tun rw,
     /dev/kvm rw,
     /dev/ptmx rw,
@@ -119,7 +123,7 @@ profile %1 flags=(attach_disconnected) {
     @{PROC}/sys/vm/overcommit_memory r,
 
     # access to firmware's etc (selectively chosen for multipass' usage)
-    %2/usr/share/seabios/** r,
+    %3/usr/share/seabios/** r,
 
     # for save and resume
     /{usr/,}bin/dash rmix,
@@ -139,12 +143,13 @@ profile %1 flags=(attach_disconnected) {
     /sys/module/vhost/parameters/max_mem_regions r,
 
     # Disk images
-    %3 rwk,  # QCow2 filesystem image
-    %4 rk,   # cloud-init ISO
+    %4 rwk,  # QCow2 filesystem image
+    %5 rk,   # cloud-init ISO
 }
     )END");
 
-    return profile_template.arg(apparmor_profile_name(), base_path, desc.image.image_path, desc.cloud_init_iso);
+    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), base_path,
+                                desc.image.image_path, desc.cloud_init_iso);
 }
 
 QString mp::QemuProcessSpec::identifier() const
