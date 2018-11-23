@@ -122,16 +122,16 @@ profile %1 flags=(attach_disconnected) {
     %4 rw,           # Leases file
     %5 r,            # Hosts file
 
-    %6
+    %6 w,            # pid file
 }
     )END");
 
-    QString pid;
-    if (pid_file.isNull())
+    QString pid = pid_file;
+    if (pid.isNull())
     {
-        pid = QString("/{,var/}run/*dnsmasq*.pid w,  # pid file");
+        pid = "/{,var/}run/*dnsmasq*.pid";
     }
 
-    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), executable, data_dir.filePath("dnsmasq.leases"),
-                                data_dir.filePath("dnsmasq.hosts"), pid);
+    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), executable,
+                                data_dir.filePath("dnsmasq.leases"), data_dir.filePath("dnsmasq.hosts"), pid);
 }
