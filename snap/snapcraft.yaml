@@ -11,6 +11,10 @@ description: |
 grade: devel
 confinement: strict
 
+slots:
+  multipass-slot:
+    interface: multipass
+
 apps:
   multipassd:
     command: bin/launch-multipassd
@@ -21,9 +25,15 @@ apps:
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
+    restart-condition: on-failure
     passthrough:
       after: [libvirt-bin]
-    slots: [multipass-support]
+    plugs:
+      - multipass-support
+      - network-bind
+      - network-control
+      - firewall-control
+    slots: [multipass-slot]
 
   multipass:
     environment:
