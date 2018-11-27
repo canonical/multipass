@@ -102,7 +102,9 @@ profile %1 flags=(attach_disconnected) {
     # Neighbor Discovery protocol (RFC 2461)
     @{PROC}/sys/net/ipv6/conf/*/mtu r,
 
-    %3
+    # binary and its libs
+    %3/usr/sbin/dnsmasq ixr,
+    %3/{usr/,}lib/** rm,
 
     %4 rw,           # Leases file
     %5 r,            # Hosts file
@@ -112,12 +114,7 @@ profile %1 flags=(attach_disconnected) {
     )END");
 
     // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
-    QString executable;
-    const QString snap_dir = qgetenv("SNAP");
-    if (!snap_dir.isEmpty())
-    {
-        executable = QString("%1/usr/sbin/dnsmasq mr,").arg(snap_dir);
-    }
+    const QString snap_dir = qgetenv("SNAP"); // validate??
 
     // If multipassd not confined, we let dnsmasq decide where to create its pid file, but still need to tell apparmor
     QString pid = pid_file;
@@ -126,6 +123,6 @@ profile %1 flags=(attach_disconnected) {
         pid = "/{,var/}run/*dnsmasq*.pid";
     }
 
-    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), executable,
+    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), snap_dir,
                                 data_dir.filePath("dnsmasq.leases"), data_dir.filePath("dnsmasq.hosts"), pid);
 }

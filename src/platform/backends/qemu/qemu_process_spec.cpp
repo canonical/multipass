@@ -140,24 +140,20 @@ profile %1 flags=(attach_disconnected) {
     /sys/devices/system/node/node[0-9]*/meminfo r,
     /sys/module/vhost/parameters/max_mem_regions r,
 
+    # binary and its libs
+    %3/usr/bin/%4 ixr,
+    %3/{usr/,}lib/** rm,
+
     # Disk images
     %4 rwk,  # QCow2 filesystem image
     %5 rk,   # cloud-init ISO
-
-    %6
 }
     )END");
 
-    // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
     const QString snap_dir = qgetenv("SNAP"); // validate??
-    QString executable;
-    if (!snap_dir.isEmpty())
-    {
-        executable = QString("%1/usr/bin/qemu mr,").arg(snap_dir);
-    }
 
-    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), snap_dir,
-                                desc.image.image_path, desc.cloud_init_iso, executable);
+    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), snap_dir, program(),
+                                desc.image.image_path, desc.cloud_init_iso);
 }
 
 QString mp::QemuProcessSpec::identifier() const
