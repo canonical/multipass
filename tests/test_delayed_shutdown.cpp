@@ -40,6 +40,7 @@ struct DelayedShutdown : public Test
         connect.returnValue(SSH_OK);
         is_connected.returnValue(true);
         open_session.returnValue(SSH_OK);
+        request_exec.returnValue(SSH_OK);
 
         vm = std::make_unique<mpt::StubVirtualMachine>();
         vm->state = mp::VirtualMachine::State::running;
@@ -48,10 +49,12 @@ struct DelayedShutdown : public Test
     decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
     decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
     decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
+    decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
 
     mp::VirtualMachine::UPtr vm;
     mp::SSHSession session{"a", 42};
     QEventLoop loop;
+    ssh_channel_callbacks callbacks{nullptr};
 };
 
 TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
@@ -85,6 +88,20 @@ TEST_F(DelayedShutdown, emits_finished_with_no_timer)
 
 TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
 {
+    auto add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+
+    auto event_dopoll = [this](auto...) {
+        if (!callbacks)
+            return SSH_ERROR;
+        callbacks->channel_exit_status_function(nullptr, nullptr, 0, callbacks->userdata);
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
@@ -94,6 +111,20 @@ TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
 
 TEST_F(DelayedShutdown, vm_state_running_after_cancel)
 {
+    auto add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+
+    auto event_dopoll = [this](auto...) {
+        if (!callbacks)
+            return SSH_ERROR;
+        callbacks->channel_exit_status_function(nullptr, nullptr, 0, callbacks->userdata);
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
     {
         mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
         delayed_shutdown_timer.start(std::chrono::milliseconds(1));
