@@ -145,8 +145,8 @@ profile %1 flags=(attach_disconnected) {
     %3/{usr/,}lib/** rm,
 
     # Disk images
-    %4 rwk,  # QCow2 filesystem image
-    %5 rk,   # cloud-init ISO
+    %5 rwk,  # QCow2 filesystem image
+    %6 rk,   # cloud-init ISO
 }
     )END");
 
