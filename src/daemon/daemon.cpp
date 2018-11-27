@@ -1525,7 +1525,9 @@ try // clang-format on
             {
                 delayed_shutdown_instances.erase(name);
             }
-            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(it->second.get());
+            auto& vm = it->second;
+            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *config->ssh_key_provider};
+            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(vm.get(), std::move(session));
             QObject::connect(delayed_shutdown_instances[name].get(), &DelayedShutdownTimer::finished,
                              [this, name]() { delayed_shutdown_instances.erase(name); });
             delayed_shutdown_instances[name]->start(std::chrono::minutes(request->time_minutes()));

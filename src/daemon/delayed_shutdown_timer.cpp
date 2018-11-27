@@ -23,7 +23,24 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine) : virtual_machine{virtual_machine}
+namespace
+{
+std::string shutdown_message(const std::chrono::minutes& time_left)
+{
+    if (time_left > std::chrono::milliseconds::zero())
+    {
+        return fmt::format("wall The system is going down for poweroff in {} minute{}", time_left.count(),
+                           time_left > std::chrono::minutes(1) ? "s" : "");
+    }
+    else
+    {
+        return fmt::format("wall The system is going down for poweroff now");
+    }
+}
+} // namespace
+
+mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine, SSHSession&& session)
+    : virtual_machine{virtual_machine}, ssh_session{std::move(session)}
 {
 }
 
@@ -31,12 +48,13 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
 {
     if (shutdown_timer.isActive())
     {
+        ssh_session.exec("wall The system shutdown has been cancelled");
         mpl::log(mpl::Level::info, virtual_machine->vm_name, fmt::format("Cancelling delayed shutdown"));
         virtual_machine->state = VirtualMachine::State::running;
     }
 }
 
-void mp::DelayedShutdownTimer::start(std::chrono::milliseconds delay)
+void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
 {
     if (virtual_machine->state == VirtualMachine::State::stopped ||
         virtual_machine->state == VirtualMachine::State::off)
@@ -48,15 +66,30 @@ void mp::DelayedShutdownTimer::start(std::chrono::milliseconds delay)
                  fmt::format("Shutdown request delayed for {} minute{}",
                              std::chrono::duration_cast<std::chrono::minutes>(delay).count(),
                              delay > std::chrono::minutes(1) ? "s" : ""));
-        QObject::connect(&shutdown_timer, &QTimer::timeout, [this]() { shutdown_instance(); });
+        ssh_session.exec(shutdown_message(std::chrono::duration_cast<std::chrono::minutes>(delay)));
+
+        std::chrono::minutes time_elapsed{1};
+        QObject::connect(&shutdown_timer, &QTimer::timeout, [this, delay, time_elapsed]() mutable {
+            time_remaining = delay - time_elapsed;
+            ssh_session.exec(shutdown_message(std::chrono::duration_cast<std::chrono::minutes>(time_remaining)));
+            if (time_elapsed >= delay)
+            {
+                shutdown_timer.stop();
+                shutdown_instance();
+            }
+            else
+            {
+                time_elapsed += std::chrono::minutes(1);
+            }
+        });
 
         virtual_machine->state = VirtualMachine::State::delayed_shutdown;
 
-        shutdown_timer.setSingleShot(true);
-        shutdown_timer.start(delay);
+        shutdown_timer.start(std::chrono::minutes(1));
     }
     else
     {
+        ssh_session.exec(shutdown_message(std::chrono::minutes::zero()));
         shutdown_instance();
     }
 }

@@ -15,6 +15,7 @@
  *
  */
 
+#include "mock_ssh.h"
 #include "signal.h"
 #include "stub_virtual_machine.h"
 
@@ -36,18 +37,27 @@ struct DelayedShutdown : public Test
 {
     DelayedShutdown()
     {
+        connect.returnValue(SSH_OK);
+        is_connected.returnValue(true);
+        open_session.returnValue(SSH_OK);
+
         vm = std::make_unique<mpt::StubVirtualMachine>();
         vm->state = mp::VirtualMachine::State::running;
     }
 
+    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
+    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
+    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
+
     mp::VirtualMachine::UPtr vm;
+    mp::SSHSession session{"a", 42};
     QEventLoop loop;
 };
 
 TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
 {
     mpt::Signal finished;
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {
         loop.quit();
@@ -64,7 +74,7 @@ TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
 TEST_F(DelayedShutdown, emits_finished_with_no_timer)
 {
     mpt::Signal finished;
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [&finished] { finished.signal(); });
 
@@ -76,7 +86,7 @@ TEST_F(DelayedShutdown, emits_finished_with_no_timer)
 TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
 {
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
 
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
@@ -85,7 +95,7 @@ TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
 TEST_F(DelayedShutdown, vm_state_running_after_cancel)
 {
     {
-        mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
+        mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
         delayed_shutdown_timer.start(std::chrono::milliseconds(1));
         EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
     }
