@@ -41,7 +41,7 @@ profile %1 flags=(attach_disconnected) {
     %2/{usr/,}lib/** rm,
 
     # Disk image(s) to operate on
-    %3 rk,
+    %3 rwk, # image verification requires write access
     %4
 }
     )END");
