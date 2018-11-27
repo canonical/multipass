@@ -48,7 +48,7 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
 {
     if (shutdown_timer.isActive())
     {
-        ssh_session.exec("wall The system shutdown has been cancelled");
+        ssh_session.exec("wall The system shutdown has been cancelled").exit_code();
         mpl::log(mpl::Level::info, virtual_machine->vm_name, fmt::format("Cancelling delayed shutdown"));
         virtual_machine->state = VirtualMachine::State::running;
     }
@@ -68,6 +68,7 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
                              delay > std::chrono::minutes(1) ? "s" : ""));
         ssh_session.exec(shutdown_message(std::chrono::duration_cast<std::chrono::minutes>(delay)));
 
+        time_remaining = delay;
         std::chrono::minutes time_elapsed{1};
         QObject::connect(&shutdown_timer, &QTimer::timeout, [this, delay, time_elapsed]() mutable {
             time_remaining = delay - time_elapsed;
@@ -92,6 +93,11 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
         ssh_session.exec(shutdown_message(std::chrono::minutes::zero()));
         shutdown_instance();
     }
+}
+
+std::chrono::seconds mp::DelayedShutdownTimer::get_time_remaining()
+{
+    return std::chrono::duration_cast<std::chrono::minutes>(time_remaining);
 }
 
 void mp::DelayedShutdownTimer::shutdown_instance()

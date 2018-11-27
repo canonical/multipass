@@ -37,6 +37,7 @@ public:
     ~DelayedShutdownTimer();
 
     void start(const std::chrono::milliseconds delay);
+    std::chrono::seconds get_time_remaining();
 
 signals:
     void finished();
