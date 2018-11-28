@@ -1345,10 +1345,11 @@ try // clang-format on
         {
             if (delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
             {
-                return grpc::Status(
-                    grpc::StatusCode::FAILED_PRECONDITION,
-                    fmt::format("\"{}\" is in a delayed shutdown. Use 'multipass stop -c {}' to cancel.", name, name),
-                    "");
+                return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                                    fmt::format("\"{}\" is scheduled to shut down in less than a minute, use "
+                                                "'multipass stop --cancel {}' to cancel the shutdown.",
+                                                name, name),
+                                    "");
             }
         }
 
