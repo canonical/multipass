@@ -17,8 +17,6 @@
 
 #include "dnsmasq_process_spec.h"
 
-#include <QCoreApplication>
-
 namespace mp = multipass;
 
 namespace
@@ -96,7 +94,7 @@ profile %1 flags=(attach_disconnected) {
     network inet6 raw,
 
     # Allow multipassd send dnsmasq signals
-    signal (receive) peer=%2,
+    signal (receive) %2,
 
     # access to iface mtu needed for Router Advertisement messages in IPv6
     # Neighbor Discovery protocol (RFC 2461)
@@ -115,6 +113,12 @@ profile %1 flags=(attach_disconnected) {
 
     // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
     const QString snap_dir = qgetenv("SNAP"); // validate??
+    QString signal_peer;
+
+    if (!snap_dir.isEmpty()) // if snap confined, specify only multipassd can kill dnsmasq
+    {
+        signal_peer = "peer=snap.multipasss.multipassd";
+    }
 
     // If multipassd not confined, we let dnsmasq decide where to create its pid file, but still need to tell apparmor
     QString pid = pid_file;
@@ -123,6 +127,6 @@ profile %1 flags=(attach_disconnected) {
         pid = "/{,var/}run/*dnsmasq*.pid";
     }
 
-    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), snap_dir,
-                                data_dir.filePath("dnsmasq.leases"), data_dir.filePath("dnsmasq.hosts"), pid);
+    return profile_template.arg(apparmor_profile_name(), snap_dir, signal_peer, data_dir.filePath("dnsmasq.leases"),
+                                data_dir.filePath("dnsmasq.hosts"), pid);
 }
