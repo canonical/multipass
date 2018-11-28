@@ -29,6 +29,7 @@ apps:
     passthrough:
       after: [libvirt-bin]
     plugs:
+      - kvm
       - multipass-support
       - network-bind
       - network-control
