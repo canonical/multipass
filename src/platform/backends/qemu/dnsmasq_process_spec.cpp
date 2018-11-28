@@ -127,6 +127,6 @@ profile %1 flags=(attach_disconnected) {
         pid = "/{,var/}run/*dnsmasq*.pid";
     }
 
-    return profile_template.arg(apparmor_profile_name(), snap_dir, signal_peer, data_dir.filePath("dnsmasq.leases"),
+    return profile_template.arg(apparmor_profile_name(), signal_peer, snap_dir, data_dir.filePath("dnsmasq.leases"),
                                 data_dir.filePath("dnsmasq.hosts"), pid);
 }
