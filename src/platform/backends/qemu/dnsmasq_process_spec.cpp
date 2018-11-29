@@ -117,7 +117,7 @@ profile %1 flags=(attach_disconnected) {
 
     if (!snap_dir.isEmpty()) // if snap confined, specify only multipassd can kill dnsmasq
     {
-        signal_peer = "peer=snap.multipasss.multipassd";
+        signal_peer = "peer=snap.multipass.multipassd";
     }
 
     // If multipassd not confined, we let dnsmasq decide where to create its pid file, but still need to tell apparmor
