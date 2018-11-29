@@ -28,6 +28,9 @@ apps:
     restart-condition: on-failure
     passthrough:
       after: [libvirt-bin]
+      layout:
+        /usr/share/qemu
+          bind: $SNAP/qemu
     plugs:
       - kvm
       - multipass-support
