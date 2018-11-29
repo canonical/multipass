@@ -17,7 +17,6 @@
 
 #include "qemu_process_spec.h"
 
-#include <QCoreApplication>
 #include <QHash>
 #include <QString>
 
@@ -102,7 +101,7 @@ profile %1 flags=(attach_disconnected) {
     network inet6 stream,
 
     # Allow multipassd send qemu signals
-    signal (receive) peer=%2,
+    signal (receive) %2,
 
     /dev/net/tun rw,
     /dev/kvm rw,
@@ -121,7 +120,7 @@ profile %1 flags=(attach_disconnected) {
     @{PROC}/sys/vm/overcommit_memory r,
 
     # access to firmware's etc (selectively chosen for multipass' usage)
-    %3/usr/share/seabios/** r,
+    %3/qemu/* r,
 
     # for save and resume
     /{usr/,}bin/dash rmix,
@@ -151,8 +150,14 @@ profile %1 flags=(attach_disconnected) {
     )END");
 
     const QString snap_dir = qgetenv("SNAP"); // validate??
+    QString signal_peer;
 
-    return profile_template.arg(apparmor_profile_name(), QCoreApplication::applicationFilePath(), snap_dir, program(),
+    if (!snap_dir.isEmpty()) // if snap confined, specify only multipassd can kill dnsmasq
+    {
+        signal_peer = "peer=snap.multipasss.multipassd";
+    }
+
+    return profile_template.arg(apparmor_profile_name(), signal_peer, snap_dir, program(),
                                 desc.image.image_path, desc.cloud_init_iso);
 }
 
