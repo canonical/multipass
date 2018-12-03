@@ -25,7 +25,6 @@
 
 #include <fstream>
 
-#include "dhcp_release_process_spec.h"
 #include "dnsmasq_process_spec.h"
 
 namespace mp = multipass;
@@ -90,10 +89,8 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
         return;
     }
 
-    auto process_spec =
-        std::make_unique<mp::DHCPReleaseProcessSpec>(bridge_name, ip.value(), QString::fromStdString(hw_addr));
-    auto dhcp_release = confinement_system->create_process(std::move(process_spec));
-    QObject::connect(dhcp_release.get(), &Process::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
+    QProcess dhcp_release;
+    QObject::connect(&dhcp_release, &QProcess::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
         mpl::log(mpl::Level::warning, "dnsmasq",
                  fmt::format("failed to release ip addr {} with mac {}", ip.value().as_string(), hw_addr));
     });
@@ -106,8 +103,11 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
                                hw_addr, exit_code);
         mpl::log(mpl::Level::warning, "dnsmasq", msg);
     };
-    QObject::connect(dhcp_release.get(), &Process::finished, log_exit_status);
+    QObject::connect(&dhcp_release, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+                     log_exit_status);
 
-    dhcp_release->start();
-    dhcp_release->waitForFinished();
+    dhcp_release.start("dhcp_release", QStringList() << bridge_name << QString::fromStdString(ip.value().as_string())
+                                                     << QString::fromStdString(hw_addr));
+
+    dhcp_release.waitForFinished();
 }

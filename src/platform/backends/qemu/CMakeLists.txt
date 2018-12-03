@@ -17,7 +17,6 @@
 set(CMAKE_AUTOMOC ON)
 
 add_library(qemu_backend STATIC
-  dhcp_release_process_spec.cpp
   dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
   qemuimg_process_spec.cpp
