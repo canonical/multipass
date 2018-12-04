@@ -1334,17 +1334,30 @@ try // clang-format on
                                 "");
         }
 
-        if (!mp::utils::is_running(it->second->current_state()))
+        auto& vm = it->second;
+        if (!mp::utils::is_running(vm->current_state()))
         {
             return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
                                 fmt::format("instance \"{}\" is not running", name), "");
         }
 
+        if (vm->state == VirtualMachine::State::delayed_shutdown)
+        {
+            if (delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
+            {
+                return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                                    fmt::format("\"{}\" is scheduled to shut down in less than a minute, use "
+                                                "'multipass stop --cancel {}' to cancel the shutdown.",
+                                                name, name),
+                                    "");
+            }
+        }
+
         mp::SSHInfo ssh_info;
-        ssh_info.set_host(it->second->ssh_hostname());
-        ssh_info.set_port(it->second->ssh_port());
+        ssh_info.set_host(vm->ssh_hostname());
+        ssh_info.set_port(vm->ssh_port());
         ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
-        ssh_info.set_username(it->second->ssh_username());
+        ssh_info.set_username(vm->ssh_username());
         (*response.mutable_ssh_info())[name] = ssh_info;
     }
 
@@ -1525,7 +1538,9 @@ try // clang-format on
             {
                 delayed_shutdown_instances.erase(name);
             }
-            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(it->second.get());
+            auto& vm = it->second;
+            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *config->ssh_key_provider};
+            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(vm.get(), std::move(session));
             QObject::connect(delayed_shutdown_instances[name].get(), &DelayedShutdownTimer::finished,
                              [this, name]() { delayed_shutdown_instances.erase(name); });
             delayed_shutdown_instances[name]->start(std::chrono::minutes(request->time_minutes()));
