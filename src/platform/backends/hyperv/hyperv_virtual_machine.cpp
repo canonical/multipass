@@ -60,9 +60,6 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 {
     QString state;
 
-    if (power_shell->run({"Get-VMSnapshot", "-Name", snapshot_name, "-VMName", name}))
-        return mp::VirtualMachine::State::suspended;
-
     if (power_shell->run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"}, state))
     {
         if (state == "Running")
@@ -71,6 +68,9 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
         }
         else if (state == "Off")
         {
+            if (power_shell->run({"Get-VMSnapshot", "-Name", snapshot_name, "-VMName", name}))
+                return mp::VirtualMachine::State::suspended;
+
             return mp::VirtualMachine::State::stopped;
         }
     }
@@ -128,8 +128,7 @@ void mp::HyperVVirtualMachine::start()
         power_shell->run({"Remove-VMSnapshot", "-Name", snapshot_name, "-VMName", name, "-Confirm:$False"});
     }
 
-    power_shell->run({"Start-VM", "-Name", name}, name.toStdString());
-
+    power_shell->run({"Start-VM", "-Name", name});
     state = State::running;
 }
 
