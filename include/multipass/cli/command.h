@@ -21,8 +21,13 @@
 #include <multipass/callable_traits.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/utils.h>
 
+#include <QLocalSocket>
 #include <QString>
+
+#include <fmt/format.h>
+
 #include <grpc++/grpc++.h>
 
 namespace multipass
@@ -80,6 +85,24 @@ protected:
         if (status.ok())
         {
             return on_success(reply);
+        }
+        else
+        {
+            const auto tokens = multipass::utils::split(context.peer(), ":");
+            if (tokens[0] == "unix")
+            {
+                auto socket_path = tokens[1];
+                QLocalSocket multipassd_socket;
+                multipassd_socket.connectToServer(QString::fromStdString(socket_path));
+                if (!multipassd_socket.waitForConnected() &&
+                    multipassd_socket.error() == QLocalSocket::SocketAccessError)
+                {
+                    grpc::Status denied_status{
+                        grpc::StatusCode::PERMISSION_DENIED, "multipass socket accesss denied",
+                        fmt::format("Please check that your user has group permission to access '{}'", socket_path)};
+                    return on_failure(denied_status);
+                }
+            }
         }
 
         return on_failure(status);
