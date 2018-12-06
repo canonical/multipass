@@ -30,7 +30,8 @@ class ConfinementSystem;
 class QemuVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
-    explicit QemuVirtualMachineFactory(const Path& data_dir);
+    explicit QemuVirtualMachineFactory(const std::shared_ptr<ConfinementSystem>& confinement_system,
+                                       const Path& data_dir);
     ~QemuVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -48,6 +49,6 @@ private:
     DNSMasqServer dnsmasq_server;
     std::unordered_map<std::string, std::string> name_to_mac_map;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H

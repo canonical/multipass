@@ -218,8 +218,9 @@ mp::DNSMasqServer create_dnsmasq_server(const std::shared_ptr<mp::ConfinementSys
 }
 } // namespace
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : confinement_system{mp::ConfinementSystem::create_confinement_system()},
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const std::shared_ptr<ConfinementSystem>& confinement_system,
+                                                         const mp::Path& data_dir)
+    : confinement_system{confinement_system},
       bridge_name{QString::fromStdString(multipass_bridge_name)},
       dnsmasq_server{create_dnsmasq_server(confinement_system, data_dir, bridge_name)}
 {
@@ -261,8 +262,7 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 {
     VMImage image{source_image};
 
-    image.image_path =
-        mp::backend::convert_to_qcow_if_necessary(confinement_system.get(), source_image.image_path);
+    image.image_path = mp::backend::convert_to_qcow_if_necessary(confinement_system.get(), source_image.image_path);
 
     return image;
 }

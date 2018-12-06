@@ -37,9 +37,14 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
     if (driver.isEmpty() || driver == "QEMU")
-        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+    {
+        auto confinement = mp::ConfinementSystem::create_confinement_system();
+        return std::make_unique<QemuVirtualMachineFactory>(confinement, data_dir);
+    }
     else if (driver == "LIBVIRT")
+    {
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
+    }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
