@@ -29,7 +29,7 @@ apps:
     passthrough:
       after: [libvirt-bin]
       layout:
-        /usr/share/qemu
+        /usr/share/qemu:
           bind: $SNAP/qemu
     plugs:
       - kvm
