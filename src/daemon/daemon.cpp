@@ -1923,11 +1923,10 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
 
     auto sshfs_mount = std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map);
-
-    QObject::connect(sshfs_mount.get(), &SshfsMount::finished, this,
-                     [this, name, target_path]() { mount_threads[name].erase(target_path); });
-
     mount_threads[name][target_path] = std::move(sshfs_mount);
+
+    QObject::connect(mount_threads[name][target_path].get(), &SshfsMount::finished, this,
+                     [this, name, target_path]() { mount_threads[name].erase(target_path); }, Qt::QueuedConnection);
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
