@@ -60,7 +60,7 @@ void post_request(const QUrl& metrics_url, const QByteArray& body)
     if (reply->error() == QNetworkReply::ProtocolInvalidOperationError)
     {
         auto error_msg = QJsonDocument::fromJson(buff).object();
-        mpl::log(mpl::Level::error, category,
+        mpl::log(mpl::Level::info, category,
                  fmt::format("Metrics error: {} - {}", error_msg["code"].toString().toStdString(),
                              error_msg["message"].toString().toStdString()));
     }
@@ -150,7 +150,7 @@ mp::MetricsProvider::MetricsProvider(const QUrl& url, const QString& unique_id, 
               }
               catch (const std::exception& e)
               {
-                  mpl::log(mpl::Level::error, category, fmt::format("{} - Attempting to resend", e.what()));
+                  mpl::log(mpl::Level::info, category, fmt::format("{} - Attempting to resend", e.what()));
 
                   metrics_failed = true;
 
