@@ -30,7 +30,7 @@ target_link_libraries(confinement
 )
 
 # Require AppArmor support included on Linux
-if (UNIX)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   include(FindPkgConfig)
   pkg_search_module(APPARMOR libapparmor REQUIRED)
   add_definitions(-DAPPARMOR_ENABLED)
@@ -43,4 +43,4 @@ if (UNIX)
   target_link_libraries(confinement
     apparmor
   )
-endif(UNIX)
+endif()
