@@ -156,10 +156,10 @@ parts:
   libssl:
     plugin: dump
     source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_arm64.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.1_arm64.deb
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
     source-type: deb
 
   multipass:
