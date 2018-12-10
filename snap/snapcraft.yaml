@@ -1,4 +1,4 @@
-name: multipass
+name: multipass-confined
 version: 'git'
 version-script: |
   git describe
