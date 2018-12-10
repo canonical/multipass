@@ -1922,6 +1922,8 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
 
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
 
+    mpl::log(mpl::Level::info, category, fmt::format("mounting {} => {} in {}", source_path, target_path, name));
+
     auto sshfs_mount = std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map);
     mount_threads[name][target_path] = std::move(sshfs_mount);
 
