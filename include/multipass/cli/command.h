@@ -102,6 +102,13 @@ protected:
                         fmt::format("Please check that you have read/write permissions to '{}'", socket_path)};
                     return on_failure(denied_status);
                 }
+                else
+                {
+                    grpc::Status access_error_status{
+                        grpc::StatusCode::NOT_FOUND, "cannot connect to the multipass socket",
+                        fmt::format("Please ensure multipassd is running and '{}' exists", socket_path)};
+                    return on_failure(access_error_status);
+                }
             }
         }
 
