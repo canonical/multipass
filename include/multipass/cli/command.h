@@ -106,7 +106,7 @@ protected:
                 {
                     grpc::Status access_error_status{
                         grpc::StatusCode::NOT_FOUND, "cannot connect to the multipass socket",
-                        fmt::format("Please ensure multipassd is running and '{}' exists", socket_path)};
+                        fmt::format("Please ensure multipassd is running and '{}' is accessible", socket_path)};
                     return on_failure(access_error_status);
                 }
             }
