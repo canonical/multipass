@@ -166,6 +166,8 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         "    <apic/>\n"
         "    <vmport state=\'off\'/>\n"
         "  </features>\n"
+        "  <cpu mode=\'host-passthrough\'>\n"
+        "  </cpu>\n"
         "  <devices>\n"
         "    <emulator>{}</emulator>\n"
         "    <disk type=\'file\' device=\'disk\'>\n"
