@@ -98,7 +98,7 @@ protected:
                     multipassd_socket.error() == QLocalSocket::SocketAccessError)
                 {
                     grpc::Status denied_status{
-                        grpc::StatusCode::PERMISSION_DENIED, "multipass socket accesss denied",
+                        grpc::StatusCode::PERMISSION_DENIED, "multipass socket access denied",
                         fmt::format("Please check that your user has read-write permission to '{}'", socket_path)};
                     return on_failure(denied_status);
                 }
