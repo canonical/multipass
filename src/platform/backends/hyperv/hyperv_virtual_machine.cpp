@@ -22,12 +22,16 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <fmt/format.h>
+
 #include <winsock2.h>
 
 namespace mp = multipass;
 
 namespace
 {
+const QString default_switch_guid{"C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"};
+
 mp::optional<mp::IPAddress> remote_ip(const std::string& host, int port) // clang-format off
 try // clang-format on
 {
@@ -79,8 +83,12 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         if (!mem_size.endsWith("B"))
             mem_size.append("MB");
 
+        std::string default_switch_name;
+        power_shell->run({QString("(Get-VMSwitch -Id %1).Name").arg(default_switch_guid)}, default_switch_name);
+
         power_shell->run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
-                          "VHD", "-SwitchName", "\"Default Switch\"", "-MemoryStartupBytes", mem_size});
+                          "VHD", "-SwitchName", QString::fromStdString(fmt::format("\"{}\"", default_switch_name)),
+                          "-MemoryStartupBytes", mem_size});
         power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
         power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso});
 
