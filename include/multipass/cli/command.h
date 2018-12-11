@@ -99,7 +99,7 @@ protected:
                 {
                     grpc::Status denied_status{
                         grpc::StatusCode::PERMISSION_DENIED, "multipass socket access denied",
-                        fmt::format("Please check that your user has read-write permission to '{}'", socket_path)};
+                        fmt::format("Please check that you have read/write permissions to '{}'", socket_path)};
                     return on_failure(denied_status);
                 }
             }
