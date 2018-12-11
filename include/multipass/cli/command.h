@@ -88,31 +88,29 @@ protected:
         }
         else
         {
+            auto socket_address{context.peer()};
             const auto tokens = multipass::utils::split(context.peer(), ":");
             if (tokens[0] == "unix")
             {
-                auto socket_path = tokens[1];
+                socket_address = tokens[1];
                 QLocalSocket multipassd_socket;
-                multipassd_socket.connectToServer(QString::fromStdString(socket_path));
+                multipassd_socket.connectToServer(QString::fromStdString(socket_address));
                 if (!multipassd_socket.waitForConnected() &&
                     multipassd_socket.error() == QLocalSocket::SocketAccessError)
                 {
                     grpc::Status denied_status{
                         grpc::StatusCode::PERMISSION_DENIED, "multipass socket access denied",
-                        fmt::format("Please check that you have read/write permissions to '{}'", socket_path)};
+                        fmt::format("Please check that you have read/write permissions to '{}'", socket_address)};
                     return on_failure(denied_status);
                 }
-                else
-                {
-                    grpc::Status access_error_status{
-                        grpc::StatusCode::NOT_FOUND, "cannot connect to the multipass socket",
-                        fmt::format("Please ensure multipassd is running and '{}' is accessible", socket_path)};
-                    return on_failure(access_error_status);
-                }
             }
-        }
 
-        return on_failure(status);
+            grpc::Status access_error_status{
+                grpc::StatusCode::NOT_FOUND, "cannot connect to the multipass socket",
+                fmt::format("Please ensure multipassd is running and '{}' is accessible", socket_address)};
+
+            return on_failure(access_error_status);
+        }
     }
 
     template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable>
