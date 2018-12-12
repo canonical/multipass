@@ -1685,19 +1685,14 @@ try // clang-format on
             auto& sshfs_mounts = mount_threads.at(name);
             for (const auto& sshfs_mount : sshfs_mounts)
             {
-                mpl::log(mpl::Level::debug, "delete",
+                mpl::log(mpl::Level::debug, category,
                          fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, name));
                 sshfs_mount.second->stop();
             }
         }
         catch (const std::out_of_range&)
         {
-            mpl::log(mpl::Level::debug, "delete", fmt::format("No mounts to stop for instance \"{}\"", name));
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, "delete",
-                     fmt::format("Error stopping mount(s) in instance \"{}\": {}", name, e.what()));
+            mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", name));
         }
 
         it->second->shutdown();
@@ -1950,7 +1945,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
     QObject::connect(mount_threads[name][target_path].get(), &SshfsMount::finished, this,
                      [this, name, target_path]() {
                          mount_threads[name].erase(target_path);
-                         mpl::log(mpl::Level::debug, "mount",
+                         mpl::log(mpl::Level::debug, category,
                                   fmt::format("Mount '{}' in instance \"{}\" has stopped", target_path, name));
                      },
                      Qt::QueuedConnection);
