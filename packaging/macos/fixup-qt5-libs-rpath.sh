@@ -46,6 +46,7 @@ chmod -w "${TEMP_DIR}/QtNetwork.framework/Versions/5/QtNetwork"
 # Edit the binaries to point to these newly edited libs
 install_name_tool -add_rpath "$TEMP_DIR" "$BINARY_DIR/multipass"
 install_name_tool -change "/usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore" "@rpath/QtCore.framework/Versions/5/QtCore" "$BINARY_DIR/multipass"
+install_name_tool -change "/usr/local/opt/qt/lib/QtNetwork.framework/Versions/5/QtNetwork" "@rpath/QtNetwork.framework/Versions/5/QtNetwork" "$BINARY_DIR/multipass"
 
 install_name_tool -add_rpath "$TEMP_DIR" "$BINARY_DIR/multipassd"
 install_name_tool -change "/usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore" "@rpath/QtCore.framework/Versions/5/QtCore" "$BINARY_DIR/multipassd"
