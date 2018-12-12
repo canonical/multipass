@@ -31,9 +31,9 @@ public:
     explicit PowerShell(const std::string& name);
     ~PowerShell();
 
-    bool run(const QStringList& args, std::string& output = std::string());
+    bool run(const QStringList& args, QString& output = QString());
 
-    static bool exec(const QStringList& args, const std::string& name, std::string& output = std::string());
+    static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
 private:
     QProcess powershell_proc;

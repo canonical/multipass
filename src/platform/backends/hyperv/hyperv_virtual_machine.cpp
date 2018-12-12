@@ -22,8 +22,6 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <fmt/format.h>
-
 #include <winsock2.h>
 
 namespace mp = multipass;
@@ -54,7 +52,7 @@ catch (...)
 
 auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 {
-    std::string state;
+    QString state;
 
     if (power_shell->run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"}, state))
     {
@@ -83,12 +81,10 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         if (!mem_size.endsWith("B"))
             mem_size.append("MB");
 
-        std::string default_switch_name;
-        power_shell->run({QString("(Get-VMSwitch -Id %1).Name").arg(default_switch_guid)}, default_switch_name);
+        power_shell->run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)});
 
         power_shell->run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
-                          "VHD", "-SwitchName", QString::fromStdString(fmt::format("\"{}\"", default_switch_name)),
-                          "-MemoryStartupBytes", mem_size});
+                          "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size});
         power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
         power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso});
 
