@@ -112,7 +112,7 @@ mp::ParseCode mp::ArgParser::parse()
     {
         if (!parser_result)
         {
-            cerr << qPrintable(parser.errorText());
+            cerr << qPrintable(parser.errorText()) << "\n\n";
         }
         cout << qPrintable(generalHelpText());
         return (help_requested) ? ParseCode::HelpRequested : ParseCode::CommandFail;

@@ -29,6 +29,9 @@
 #include <array>
 #include <sstream>
 
+#include <cerrno>
+#include <cstring>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -94,8 +97,8 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
         rc = ssh_event_dopoll(event.get(), timeout.count());
     }
 
-    if (!exit_status)
-        throw ExitlessSSHProcessException{cmd};
+    if (!exit_status) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+        throw ExitlessSSHProcessException{cmd, rc == SSH_ERROR ? std::strerror(errno) : "timeout"};
 
     return *exit_status;
 }

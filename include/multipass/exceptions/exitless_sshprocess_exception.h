@@ -28,18 +28,11 @@ namespace multipass
 class ExitlessSSHProcessException : public std::runtime_error
 {
 public:
-    ExitlessSSHProcessException(const std::string& command)
-        : runtime_error(fmt::format("failed to obtain exit status for remote process: '{}'", command)), cmd{command}
+    ExitlessSSHProcessException(const std::string& command, const std::string& cause)
+        : runtime_error(fmt::format("failed to obtain exit status for remote process '{}': {}", command, cause))
     {
     }
 
-    std::string command() const
-    {
-        return cmd;
-    }
-
-private:
-    const std::string cmd;
 };
 } // namespace multipass
 #endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H

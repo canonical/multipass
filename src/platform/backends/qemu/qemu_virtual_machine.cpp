@@ -84,6 +84,9 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
     // Control interface
     args << "-qmp"
          << "stdio";
+    // Pass host CPU flags to VM
+    args << "-cpu"
+         << "host";
     // No console
     args << "-chardev"
          // TODO Read and log machine output when verbose
