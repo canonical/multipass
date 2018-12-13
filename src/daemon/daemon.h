@@ -128,6 +128,8 @@ private:
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                      const std::unordered_map<int, int>& uid_map);
     grpc::Status reboot_vm(VirtualMachine& vm);
+    grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
+    grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
 
     std::unique_ptr<const DaemonConfig> config;
