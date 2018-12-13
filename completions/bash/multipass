@@ -93,7 +93,7 @@ _multipass_complete()
                 _multipass_instances "STOPPED"
                 _multipass_instances "SUSPENDED"
             ;;
-            "delete"|"info"|"umount"|"unmount")
+            "delete"|"recover"|"info"|"umount"|"unmount")
                 _multipass_instances
             ;;
             "mount")
