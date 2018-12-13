@@ -49,6 +49,8 @@ namespace mpp = multipass::platform;
 
 namespace
 {
+const std::vector<std::string> supported_socket_groups{"sudo", "adm", "admin"};
+
 void set_server_permissions(const std::string& server_address)
 {
     auto tokens = mp::utils::split(server_address, ":");
@@ -59,17 +61,16 @@ void set_server_permissions(const std::string& server_address)
     if (server_name != "unix")
         return;
 
-#ifdef MULTIPASS_PLATFORM_APPLE
-    std::string group_name{"admin"};
-#else
-    std::string group_name{"sudo"};
-#endif
-    auto group = getgrnam(group_name.c_str());
-    if (!group)
-        throw std::runtime_error(fmt::format("Could not determine group id for '{}'", group_name));
+    struct group* group{nullptr};
+    for (const auto socket_group : supported_socket_groups)
+    {
+        group = getgrnam(socket_group.c_str());
+        if (group)
+            break;
+    }
 
     const auto socket_path = tokens[1];
-    if (chown(socket_path.c_str(), 0, group->gr_gid) == -1)
+    if (group && chown(socket_path.c_str(), 0, group->gr_gid) == -1)
         throw std::runtime_error("Could not set ownership of the multipass socket.");
 
     if (chmod(socket_path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) == -1)
