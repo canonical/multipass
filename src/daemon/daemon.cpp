@@ -1926,16 +1926,26 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
 {
     const auto& name = vm.vm_name;
-    delayed_shutdown_instances.erase(name);
+    const auto& state = vm.current_state();
 
-    mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
-    auto& shutdown_timer = delayed_shutdown_instances[name] =
-        std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
+    using St = VirtualMachine::State;
+    const auto skip_states = {St::off, St::stopped, St::suspended};
 
-    QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
-                     [this, name]() { delayed_shutdown_instances.erase(name); });
+    if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
+    {
+        delayed_shutdown_instances.erase(name);
 
-    shutdown_timer->start(delay);
+        mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
+        auto& shutdown_timer = delayed_shutdown_instances[name] =
+            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
+
+        QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
+                         [this, name]() { delayed_shutdown_instances.erase(name); });
+
+        shutdown_timer->start(delay);
+    }
+    else
+        mpl::log(mpl::Level::debug, category, fmt::format("instance \"{}\" does not need stopping", name));
 
     return grpc::Status::OK;
 }
