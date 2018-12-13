@@ -1285,13 +1285,11 @@ try // clang-format on
         if (it == deleted_instances.end())
         {
             it = vm_instances.find(name);
-            if (it == vm_instances.end())
+            if (it == vm_instances.end()) // noop otherwise
                 fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            else
-                fmt::format_to(errors, "instance \"{}\" has not been deleted\n", name);
-            continue;
         }
-        instances_to_recover.push_back(name);
+        else
+            instances_to_recover.push_back(name);
     }
 
     if (errors.size() > 0)
