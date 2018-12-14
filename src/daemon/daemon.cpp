@@ -400,29 +400,22 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
 
-template <typename Instances, typename InstanceMap>
-grpc::Status validate_instances(const Instances& instances, const InstanceMap& vms, const InstanceMap& deleted)
+template <typename Instances, typename InstanceMap, typename InstanceCheck>
+grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
+                                          InstanceCheck check_instance)
 {
     fmt::memory_buffer errors;
     for (const auto& name : instances)
-    {
-        if (vms.find(name) == std::cend(vms))
-        {
-            if (deleted.find(name) == std::cend(deleted))
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            else
-                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
-        }
-    }
+        fmt::format_to(errors, check_instance(name));
 
     return errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
 }
 
-template <typename Instances, typename InstanceMap>
-auto find_requested_instances(const Instances& instances, const InstanceMap& vms, const InstanceMap& deleted)
+template <typename Instances, typename InstanceMap, typename InstanceCheck>
+auto find_requested_instances(const Instances& instances, const InstanceMap& vms, InstanceCheck check_instance)
     -> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
 { // TODO: use this in commands that currently duplicate the same kind of code
-    auto status = validate_instances(instances, vms, deleted);
+    auto status = validate_requested_instances(instances, vms, check_instance);
     auto valid_instances = std::vector<typename Instances::value_type>{};
 
     if (status.ok())
@@ -1490,7 +1483,8 @@ try // clang-format on
     mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     auto instances_and_status =
-        find_requested_instances(request->instance_names().instance_name(), vm_instances, deleted_instances);
+        find_requested_instances(request->instance_names().instance_name(), vm_instances,
+                                 std::bind(&Daemon::check_instance_alive, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
@@ -1575,7 +1569,8 @@ try // clang-format on
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     auto instances_and_status =
-        find_requested_instances(request->instance_names().instance_name(), vm_instances, deleted_instances);
+        find_requested_instances(request->instance_names().instance_name(), vm_instances,
+                                 std::bind(&Daemon::check_instance_alive, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
@@ -1908,6 +1903,19 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                                   fmt::format("Mount '{}' in instance \"{}\" has stopped", target_path, name));
                      },
                      Qt::QueuedConnection);
+}
+
+std::string mp::Daemon::check_instance_alive(const std::string& instance_name) const
+{
+    if (vm_instances.find(instance_name) == std::cend(vm_instances))
+    {
+        if (deleted_instances.find(instance_name) == std::cend(deleted_instances))
+            return fmt::format("instance \"{}\" does not exist\n", instance_name);
+        else
+            return fmt::format("instance \"{}\" is deleted\n", instance_name);
+    }
+
+    return {};
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
