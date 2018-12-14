@@ -1287,6 +1287,11 @@ try // clang-format on
                 vm_instances[name] = std::move(it->second);
                 deleted_instances.erase(it);
             }
+            else
+            {
+                mpl::log(mpl::Level::debug, category,
+                         fmt::format("instance \"{}\" does not need to be recovered", name));
+            }
         }
     }
 
