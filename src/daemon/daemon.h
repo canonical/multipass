@@ -128,6 +128,7 @@ private:
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                      const std::unordered_map<int, int>& uid_map);
     std::string check_instance_alive(const std::string& instance_name) const;
+    std::string check_instance_exists(const std::string& instance_name) const;
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);

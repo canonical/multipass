@@ -1270,39 +1270,27 @@ try // clang-format on
 {
     mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    fmt::memory_buffer errors;
-    std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
-    for (const auto& name : request->instance_names().instance_name())
+    auto instances_and_status =
+            find_requested_instances(request->instance_names().instance_name(), deleted_instances,
+                                     std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
+    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
+    auto& status = instances_and_status.second;         // idem
+
+    if(status.ok())
     {
-        auto it = deleted_instances.find(name);
-        if (it == deleted_instances.end())
+        for (const auto& name : instances)
         {
-            it = vm_instances.find(name);
-            if (it == vm_instances.end()) // noop otherwise
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            auto it = deleted_instances.find(name);
+            if(it != std::end(deleted_instances))
+            {
+                it->second->shutdown(); // not sure why this is needed, but leaving it alone
+                vm_instances[name] = std::move(it->second);
+                deleted_instances.erase(it);
+            }
         }
-        else
-            instances_to_recover.push_back(name);
     }
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    if (instances_to_recover.empty())
-    {
-        for (auto& pair : deleted_instances)
-            instances_to_recover.push_back(pair.first);
-    }
-
-    for (const auto& name : instances_to_recover)
-    {
-        auto it = deleted_instances.find(name);
-        it->second->shutdown();
-        vm_instances[name] = std::move(it->second);
-        deleted_instances.erase(name);
-    }
-
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1914,6 +1902,15 @@ std::string mp::Daemon::check_instance_alive(const std::string& instance_name) c
         else
             return fmt::format("instance \"{}\" is deleted\n", instance_name);
     }
+
+    return {};
+}
+
+std::string mp::Daemon::check_instance_exists(const std::string& instance_name) const
+{
+    if(vm_instances.find(instance_name) == std::cend(vm_instances) &&
+        deleted_instances.find(instance_name) == std::cend(deleted_instances))
+        return fmt::format("instance \"{}\" does not exist\n", instance_name);
 
     return {};
 }
