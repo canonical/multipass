@@ -51,6 +51,19 @@ live-naiad              RUNNING           10.125.174.243   Ubuntu 18.04 LTS
 snapcraft-asciinema     STOPPED           --               Ubuntu Snapcraft builder for Core 18
 ```
 
+## Learn more about the VM instance you just launched
+```
+$ multipass info dancing-chipmunk
+Name:           dancing-chipmunk
+State:          RUNNING
+IPv4:           10.125.174.247
+Release:        Ubuntu 18.04.1 LTS
+Image hash:     19e9853d8267 (Ubuntu 18.04 LTS)
+Load:           0.97 0.30 0.10
+Disk usage:     1.1G out of 4.7G
+Memory usage:   85.1M out of 985.4M
+```
+
 ## Connect to a running instance
 
 ```
@@ -63,7 +76,8 @@ Welcome to Ubuntu 18.04.1 LTS (GNU/Linux 4.15.0-42-generic x86_64)
 Don't forget to logout (or Ctrl-D) or you may find yourself heading all the
 way down the Inception levels... ;)
 
-## Run commands in an instance from outside
+## Run commands inside an instance from outside
+
 ```
 $ multipass exec dancing-chipmunk -- lsb_release -a
 No LSB modules are available.
@@ -73,8 +87,32 @@ Release:         18.04
 Codename:        bionic
 ```
 
+## Stop an instance to save resources
+```
+$ multipass stop dancing-chipmunk
+```
+
+## Delete the instance
+```
+$ multipass delete dancing-chipmunk
+```
+
+It will now show up as deleted:
+```$ multipass list
+Name                    State             IPv4             Release
+snapcraft-asciinema     STOPPED           --               Ubuntu Snapcraft builder for Core 18
+dancing-chipmunk        DELETED           --               Not Available
+```
+
+And when you want to completely get rid of it:
+
+```
+$ multipass purge
+```
+
 ## Get help
 ```
+
 multipass help
 multipass help <command>
 ```
