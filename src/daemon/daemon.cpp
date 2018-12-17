@@ -1596,35 +1596,37 @@ try // clang-format on
     mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     fmt::memory_buffer errors;
-    std::vector<decltype(vm_instances)::key_type> instances_to_delete;
-    for (const auto& name : request->instance_names().instance_name())
+
+    std::vector<std::string> alive_instances_to_delete, trashed_instances_to_delete;
+
+    for(const auto& name : request->instance_names().instance_name())
     {
-        auto it = vm_instances.find(name);
-        if (it == vm_instances.end())
-        {
+        if(vm_instances.find(name) != vm_instances.end())
+            alive_instances_to_delete.push_back(name);
+        else if(deleted_instances.find(name) != deleted_instances.end())
+            trashed_instances_to_delete.push_back(name);
+        else
             fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            continue;
-        }
-        instances_to_delete.push_back(name);
     }
 
-    if (errors.size() > 0)
+    if(errors.size() > 0)
         return grpc_status_for(errors);
 
-    if (instances_to_delete.empty())
-    {
-        for (auto& pair : vm_instances)
-            instances_to_delete.push_back(pair.first);
+    if(alive_instances_to_delete.empty() && trashed_instances_to_delete.empty())
+    {   // target all instances
+        const auto get_first = [](const auto& pair) { return pair.first; };
+        std::transform(std::cbegin(vm_instances), std::cend(vm_instances), std::back_inserter(alive_instances_to_delete), get_first);
+        std::transform(std::cbegin(deleted_instances), std::cend(deleted_instances), std::back_inserter(trashed_instances_to_delete), get_first);
     }
 
     const bool purge = request->purge();
-    for (const auto& name : instances_to_delete)
+
+    for (const auto& name : alive_instances_to_delete)
     {
-        auto it = vm_instances.find(name);
-        if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
-        {
+        auto& instance = vm_instances[name];
+
+        if(instance->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
-        }
 
         try
         {
@@ -1641,7 +1643,8 @@ try // clang-format on
             mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", name));
         }
 
-        it->second->shutdown();
+        instance->shutdown();
+
         if (purge)
         {
             config->factory->remove_resources_for(name);
@@ -1650,13 +1653,23 @@ try // clang-format on
         }
         else
         {
-            deleted_instances[name] = std::move(it->second);
+            deleted_instances[name] = std::move(instance);
         }
         vm_instances.erase(name);
     }
 
     if (purge)
+    {
+        for (const auto& name : trashed_instances_to_delete)
+        {
+            config->factory->remove_resources_for(name);
+            config->vault->remove(name);
+            vm_instance_specs.erase(name);
+            deleted_instances.erase(name);
+        }
+
         persist_instances();
+    }
 
     return grpc::Status::OK;
 }
