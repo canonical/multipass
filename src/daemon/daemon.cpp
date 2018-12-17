@@ -1285,13 +1285,11 @@ try // clang-format on
         if (it == deleted_instances.end())
         {
             it = vm_instances.find(name);
-            if (it == vm_instances.end())
+            if (it == vm_instances.end()) // noop otherwise
                 fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            else
-                fmt::format_to(errors, "instance \"{}\" has not been deleted\n", name);
-            continue;
         }
-        instances_to_recover.push_back(name);
+        else
+            instances_to_recover.push_back(name);
     }
 
     if (errors.size() > 0)
@@ -1680,6 +1678,21 @@ try // clang-format on
             delayed_shutdown_instances.erase(name);
         }
 
+        try
+        {
+            auto& sshfs_mounts = mount_threads.at(name);
+            for (const auto& sshfs_mount : sshfs_mounts)
+            {
+                mpl::log(mpl::Level::debug, category,
+                         fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, name));
+                sshfs_mount.second->stop();
+            }
+        }
+        catch (const std::out_of_range&)
+        {
+            mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", name));
+        }
+
         it->second->shutdown();
         if (purge)
         {
@@ -1928,7 +1941,12 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
     mount_threads[name][target_path] = std::move(sshfs_mount);
 
     QObject::connect(mount_threads[name][target_path].get(), &SshfsMount::finished, this,
-                     [this, name, target_path]() { mount_threads[name].erase(target_path); }, Qt::QueuedConnection);
+                     [this, name, target_path]() {
+                         mount_threads[name].erase(target_path);
+                         mpl::log(mpl::Level::debug, category,
+                                  fmt::format("Mount '{}' in instance \"{}\" has stopped", target_path, name));
+                     },
+                     Qt::QueuedConnection);
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
