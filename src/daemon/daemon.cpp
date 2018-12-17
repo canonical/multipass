@@ -1270,11 +1270,11 @@ try // clang-format on
 {
     mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    auto instances_and_status =
+    const auto instances_and_status =
             find_requested_instances(request->instance_names().instance_name(), deleted_instances,
                                      std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
-    auto& status = instances_and_status.second;         // idem
+    const auto& status = instances_and_status.second;   // idem
 
     if(status.ok())
     {
