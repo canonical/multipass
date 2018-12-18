@@ -1628,21 +1628,7 @@ try // clang-format on
         if(instance->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
 
-        try
-        {
-            auto& sshfs_mounts = mount_threads.at(name);
-            for (const auto& sshfs_mount : sshfs_mounts)
-            {
-                mpl::log(mpl::Level::debug, category,
-                         fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, name));
-                sshfs_mount.second->stop();
-            }
-        }
-        catch (const std::out_of_range&)
-        {
-            mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", name));
-        }
-
+        stop_mounts_for_instance(name);
         instance->shutdown();
 
         if (purge)
@@ -1908,6 +1894,22 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                                   fmt::format("Mount '{}' in instance \"{}\" has stopped", target_path, name));
                      },
                      Qt::QueuedConnection);
+}
+
+void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
+{
+    try
+    {
+        for (auto& sshfs_mount : mount_threads.at(instance))
+        {
+            mpl::log(mpl::Level::debug, category, fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
+            sshfs_mount.second->stop();
+        }
+    }
+    catch (const std::out_of_range&)
+    {
+        mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
+    }
 }
 
 std::string mp::Daemon::check_instance_operational(const std::string& instance_name) const
