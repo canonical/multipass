@@ -1890,17 +1890,18 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
 
 void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
 {
-    try
+    auto mounts_it = mount_threads.find(instance);
+    if(mounts_it == mount_threads.end() || mounts_it->second.empty())
     {
-        for (auto& sshfs_mount : mount_threads.at(instance))
+        mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
+    }
+    else
+    {
+        for (auto& sshfs_mount : mounts_it->second)
         {
             mpl::log(mpl::Level::debug, category, fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
             sshfs_mount.second->stop();
         }
-    }
-    catch (const std::out_of_range&)
-    {
-        mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
     }
 }
 
