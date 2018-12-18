@@ -1489,63 +1489,24 @@ try // clang-format on
 {
     mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    fmt::memory_buffer errors;
-    std::vector<decltype(vm_instances)::key_type> instances_to_stop;
-    for (const auto& name : request->instance_names().instance_name())
-    {
-        auto it = vm_instances.find(name);
-        if (it == vm_instances.end())
-        {
-            it = deleted_instances.find(name);
-            if (it == deleted_instances.end())
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            else
-                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
-            continue;
-        }
-        instances_to_stop.push_back(name);
-    }
+    auto instances_and_status =
+        find_requested_instances(request->instance_names().instance_name(), vm_instances, deleted_instances);
+    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
+    auto& status = instances_and_status.second;         // idem
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    if (instances_to_stop.empty())
+    if (status.ok())
     {
-        for (auto& pair : vm_instances)
-            instances_to_stop.push_back(pair.first);
-    }
-
-    for (const auto& name : instances_to_stop)
-    {
-        auto it = vm_instances.find(name);
-        auto entry = delayed_shutdown_instances.find(name);
+        std::function<grpc::Status(VirtualMachine&)> operation;
         if (request->cancel_shutdown())
-        {
-            if (entry == delayed_shutdown_instances.end())
-            {
-                continue;
-            }
-            else
-            {
-                delayed_shutdown_instances.erase(name);
-            }
-        }
+            operation = std::bind(&Daemon::cancel_vm_shutdown, this, std::placeholders::_1);
         else
-        {
-            if (entry != delayed_shutdown_instances.end())
-            {
-                delayed_shutdown_instances.erase(name);
-            }
-            auto& vm = it->second;
-            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *config->ssh_key_provider};
-            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(vm.get(), std::move(session));
-            QObject::connect(delayed_shutdown_instances[name].get(), &DelayedShutdownTimer::finished,
-                             [this, name]() { delayed_shutdown_instances.erase(name); });
-            delayed_shutdown_instances[name]->start(std::chrono::minutes(request->time_minutes()));
-        }
+            operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
+                                  std::chrono::minutes(request->time_minutes()));
+
+        status = cmd_vms(instances, operation);
     }
 
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1960,6 +1921,45 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
     return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider);
+}
+
+grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
+{
+    const auto& name = vm.vm_name;
+    const auto& state = vm.current_state();
+
+    using St = VirtualMachine::State;
+    const auto skip_states = {St::off, St::stopped, St::suspended};
+
+    if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
+    {
+        delayed_shutdown_instances.erase(name);
+
+        mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
+        auto& shutdown_timer = delayed_shutdown_instances[name] =
+            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
+
+        QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
+                         [this, name]() { delayed_shutdown_instances.erase(name); });
+
+        shutdown_timer->start(delay);
+    }
+    else
+        mpl::log(mpl::Level::debug, category, fmt::format("instance \"{}\" does not need stopping", name));
+
+    return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
+{
+    auto it = delayed_shutdown_instances.find(vm.vm_name);
+    if (it != delayed_shutdown_instances.end())
+        delayed_shutdown_instances.erase(it);
+    else
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("no delayed shutdown to cancel on instance \"{}\"", vm.vm_name));
+
+    return grpc::Status::OK;
 }
 
 grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd)
