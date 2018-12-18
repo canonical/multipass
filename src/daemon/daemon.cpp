@@ -430,33 +430,32 @@ auto find_requested_instances(const Instances& instances, const InstanceMap& vms
     return std::make_pair(valid_instances, status);
 }
 
-template<typename Instances, typename InstanceMap>
-auto find_instances_to_delete(const Instances& instances,
-                              const InstanceMap& alive_vms,
-                              const InstanceMap& trashed_vms)
+template <typename Instances, typename InstanceMap>
+auto find_instances_to_delete(const Instances& instances, const InstanceMap& alive_vms, const InstanceMap& trashed_vms)
     -> std::tuple<std::vector<typename Instances::value_type>,
                   std::vector<typename Instances::value_type>,
                   grpc::Status>
 {
     fmt::memory_buffer errors;
-    std::vector<typename Instances::value_type> alive_instances_to_delete,
-                                                trashed_instances_to_delete;
+    std::vector<typename Instances::value_type> alive_instances_to_delete, trashed_instances_to_delete;
 
-    for(const auto& name : instances)
-        if(alive_vms.find(name) != alive_vms.end())
+    for (const auto& name : instances)
+        if (alive_vms.find(name) != alive_vms.end())
             alive_instances_to_delete.push_back(name);
-        else if(trashed_vms.find(name) != trashed_vms.end())
+        else if (trashed_vms.find(name) != trashed_vms.end())
             trashed_instances_to_delete.push_back(name);
         else
             fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
 
     auto status = errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
 
-    if(status.ok() && alive_instances_to_delete.empty() && trashed_instances_to_delete.empty())
-    {   // target all instances
+    if (status.ok() && alive_instances_to_delete.empty() && trashed_instances_to_delete.empty())
+    { // target all instances
         const auto get_first = [](const auto& pair) { return pair.first; };
-        std::transform(std::cbegin(alive_vms), std::cend(alive_vms), std::back_inserter(alive_instances_to_delete), get_first);
-        std::transform(std::cbegin(trashed_vms), std::cend(trashed_vms), std::back_inserter(trashed_instances_to_delete), get_first);
+        std::transform(std::cbegin(alive_vms), std::cend(alive_vms),
+                       std::back_inserter(alive_instances_to_delete), get_first);
+        std::transform(std::cbegin(trashed_vms), std::cend(trashed_vms),
+                       std::back_inserter(trashed_instances_to_delete), get_first);
     }
 
     return std::make_tuple(alive_instances_to_delete, trashed_instances_to_delete, status);
@@ -1629,11 +1628,12 @@ try // clang-format on
 
     auto instances_and_status =
         find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
-    const auto& alive_instances_to_delete = std::get<0>(instances_and_status);   // use structured bindings instead in C++17
+    const auto& alive_instances_to_delete =
+        std::get<0>(instances_and_status); // use structured bindings instead in C++17
     const auto& trashed_instances_to_delete = std::get<1>(instances_and_status); // idem
     const auto& status = std::get<2>(instances_and_status);                      // idem
 
-    if(status.ok())
+    if (status.ok())
     {
         const bool purge = request->purge();
 
@@ -1641,7 +1641,7 @@ try // clang-format on
         {
             auto& instance = vm_instances[name];
 
-            if(instance->current_state() == VirtualMachine::State::delayed_shutdown)
+            if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
 
             stop_mounts_for_instance(name);
@@ -1901,7 +1901,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
 void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
 {
     auto mounts_it = mount_threads.find(instance);
-    if(mounts_it == mount_threads.end() || mounts_it->second.empty())
+    if (mounts_it == mount_threads.end() || mounts_it->second.empty())
     {
         mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
     }
@@ -1909,7 +1909,8 @@ void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
     {
         for (auto& sshfs_mount : mounts_it->second)
         {
-            mpl::log(mpl::Level::debug, category, fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
+            mpl::log(mpl::Level::debug, category,
+                     fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
             sshfs_mount.second->stop();
         }
     }
