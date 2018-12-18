@@ -1632,15 +1632,10 @@ try // clang-format on
         instance->shutdown();
 
         if (purge)
-        {
-            config->factory->remove_resources_for(name);
-            config->vault->remove(name);
-            vm_instance_specs.erase(name);
-        }
+            release_resources(name);
         else
-        {
             deleted_instances[name] = std::move(instance);
-        }
+
         vm_instances.erase(name);
     }
 
@@ -1648,9 +1643,7 @@ try // clang-format on
     {
         for (const auto& name : trashed_instances_to_delete)
         {
-            config->factory->remove_resources_for(name);
-            config->vault->remove(name);
-            vm_instance_specs.erase(name);
+            release_resources(name);
             deleted_instances.erase(name);
         }
 
@@ -1903,6 +1896,13 @@ void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
             sshfs_mount.second->stop();
         }
     }
+}
+
+void mp::Daemon::release_resources(const std::string& instance)
+{
+    config->factory->remove_resources_for(instance);
+    config->vault->remove(instance);
+    vm_instance_specs.erase(instance);
 }
 
 std::string mp::Daemon::check_instance_operational(const std::string& instance_name) const
