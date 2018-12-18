@@ -1283,7 +1283,6 @@ try // clang-format on
             auto it = deleted_instances.find(name);
             if(it != std::end(deleted_instances))
             {
-                it->second->shutdown(); // not sure why this is needed, but leaving it alone
                 vm_instances[name] = std::move(it->second);
                 deleted_instances.erase(it);
             }
@@ -1477,7 +1476,7 @@ try // clang-format on
 
     auto instances_and_status =
         find_requested_instances(request->instance_names().instance_name(), vm_instances,
-                                 std::bind(&Daemon::check_instance_alive, this, std::placeholders::_1));
+                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
@@ -1563,7 +1562,7 @@ try // clang-format on
 
     auto instances_and_status =
         find_requested_instances(request->instance_names().instance_name(), vm_instances,
-                                 std::bind(&Daemon::check_instance_alive, this, std::placeholders::_1));
+                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
@@ -1898,7 +1897,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                      Qt::QueuedConnection);
 }
 
-std::string mp::Daemon::check_instance_alive(const std::string& instance_name) const
+std::string mp::Daemon::check_instance_operational(const std::string& instance_name) const
 {
     if (vm_instances.find(instance_name) == std::cend(vm_instances))
     {
