@@ -112,6 +112,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 {
+    update_suspend_status = false;
+
     if (current_state() == State::running)
         suspend();
 }
@@ -125,12 +127,15 @@ void mp::HyperVVirtualMachine::start()
 
     if (present_state == State::suspended)
     {
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
         power_shell->run({"Restore-VMSnapshot", "-Name", snapshot_name, "-VMName", name, "-Confirm:$False"});
         power_shell->run({"Remove-VMSnapshot", "-Name", snapshot_name, "-VMName", name, "-Confirm:$False"});
     }
 
+    state = State::starting;
+    update_state();
+
     power_shell->run({"Start-VM", "-Name", name});
-    state = State::running;
 }
 
 void mp::HyperVVirtualMachine::stop()
@@ -166,6 +171,7 @@ void mp::HyperVVirtualMachine::suspend()
         if (update_suspend_status)
         {
             state = State::suspended;
+            update_state();
         }
     }
     else if (present_state == State::off)
@@ -194,6 +200,7 @@ int mp::HyperVVirtualMachine::ssh_port()
 
 void mp::HyperVVirtualMachine::update_state()
 {
+    monitor->persist_state_for(vm_name);
 }
 
 std::string mp::HyperVVirtualMachine::ssh_hostname()
