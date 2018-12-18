@@ -1706,15 +1706,7 @@ try // clang-format on
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
         {
-            if (vm->current_state() == mp::VirtualMachine::State::running)
-            {
-                for (const auto& mount : mounts)
-                {
-                    auto& target_path = mount.first;
-                    stop_sshfs_for(target_path);
-                }
-            }
-
+            stop_mounts_for_instance(name);
             mounts.clear();
         }
         else
