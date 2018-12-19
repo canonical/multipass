@@ -307,7 +307,7 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
 
 auto grpc_status_for(fmt::memory_buffer& errors)
 {
-    if(!errors.size())
+    if (!errors.size())
         return grpc::Status::OK;
 
     // Remove trailing newline due to grpc adding one of it's own
@@ -1114,7 +1114,7 @@ try // clang-format on
     }
 
     auto status = grpc_status_for(errors);
-    if(status.ok())
+    if (status.ok())
         server->Write(response);
 
     return status;
@@ -1551,7 +1551,7 @@ try // clang-format on
     }
 
     auto status = grpc_status_for(errors);
-    if(status.ok())
+    if (status.ok())
     {
         if (instances_to_suspend.empty())
         {
