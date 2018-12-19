@@ -66,11 +66,12 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
         {
             return mp::VirtualMachine::State::running;
         }
+        else if (state == "Saved")
+        {
+            return mp::VirtualMachine::State::suspended;
+        }
         else if (state == "Off")
         {
-            if (power_shell->run({"Get-VMSnapshot", "-Name", snapshot_name, "-VMName", name}))
-                return mp::VirtualMachine::State::suspended;
-
             return mp::VirtualMachine::State::stopped;
         }
     }
@@ -125,13 +126,6 @@ void mp::HyperVVirtualMachine::start()
     if (present_state == State::running)
         return;
 
-    if (present_state == State::suspended)
-    {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
-        power_shell->run({"Restore-VMSnapshot", "-Name", snapshot_name, "-VMName", name, "-Confirm:$False"});
-        power_shell->run({"Remove-VMSnapshot", "-Name", snapshot_name, "-VMName", name, "-Confirm:$False"});
-    }
-
     state = State::starting;
     update_state();
 
@@ -165,8 +159,7 @@ void mp::HyperVVirtualMachine::suspend()
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
     {
-        power_shell->run({"Checkpoint-VM", "-Name", name, "-SnapshotName", snapshot_name});
-        power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
+        power_shell->run({"Save-VM", "-Name", name});
 
         if (update_suspend_status)
         {
