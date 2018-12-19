@@ -1892,7 +1892,7 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
                      [this, name, target_path]() {
                          mount_threads[name].erase(target_path);
                          mpl::log(mpl::Level::debug, category,
-                                  fmt::format("Mount '{}' in instance \"{}\" has stopped", target_path, name));
+                                  fmt::format("Mount stopped: '{}' in instance \"{}\"", target_path, name));
                      },
                      Qt::QueuedConnection);
 }
