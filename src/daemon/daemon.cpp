@@ -431,17 +431,17 @@ auto find_requested_instances(const Instances& instances, const InstanceMap& vms
 }
 
 template <typename Instances, typename InstanceMap>
-auto find_instances_to_delete(const Instances& instances, const InstanceMap& alive_vms, const InstanceMap& trashed_vms)
-    -> std::tuple<std::vector<typename Instances::value_type>,
-                  std::vector<typename Instances::value_type>,
+auto find_instances_to_delete(const Instances& instances, const InstanceMap& operational_vms,
+                              const InstanceMap& trashed_vms)
+    -> std::tuple<std::vector<typename Instances::value_type>, std::vector<typename Instances::value_type>,
                   grpc::Status>
 {
     fmt::memory_buffer errors;
-    std::vector<typename Instances::value_type> alive_instances_to_delete, trashed_instances_to_delete;
+    std::vector<typename Instances::value_type> operational_instances_to_delete, trashed_instances_to_delete;
 
     for (const auto& name : instances)
-        if (alive_vms.find(name) != alive_vms.end())
-            alive_instances_to_delete.push_back(name);
+        if (operational_vms.find(name) != operational_vms.end())
+            operational_instances_to_delete.push_back(name);
         else if (trashed_vms.find(name) != trashed_vms.end())
             trashed_instances_to_delete.push_back(name);
         else
@@ -449,16 +449,16 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ali
 
     auto status = errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
 
-    if (status.ok() && alive_instances_to_delete.empty() && trashed_instances_to_delete.empty())
+    if (status.ok() && operational_instances_to_delete.empty() && trashed_instances_to_delete.empty())
     { // target all instances
         const auto get_first = [](const auto& pair) { return pair.first; };
-        std::transform(std::cbegin(alive_vms), std::cend(alive_vms),
-                       std::back_inserter(alive_instances_to_delete), get_first);
+        std::transform(std::cbegin(operational_vms), std::cend(operational_vms),
+                       std::back_inserter(operational_instances_to_delete), get_first);
         std::transform(std::cbegin(trashed_vms), std::cend(trashed_vms),
                        std::back_inserter(trashed_instances_to_delete), get_first);
     }
 
-    return std::make_tuple(alive_instances_to_delete, trashed_instances_to_delete, status);
+    return std::make_tuple(operational_instances_to_delete, trashed_instances_to_delete, status);
 }
 
 mp::SSHProcess exec_and_log(mp::SSHSession& session, const std::string& cmd)
@@ -1628,7 +1628,7 @@ try // clang-format on
 
     auto instances_and_status =
         find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
-    const auto& alive_instances_to_delete =
+    const auto& operational_instances_to_delete =
         std::get<0>(instances_and_status); // use structured bindings instead in C++17
     const auto& trashed_instances_to_delete = std::get<1>(instances_and_status); // idem
     const auto& status = std::get<2>(instances_and_status);                      // idem
@@ -1637,7 +1637,7 @@ try // clang-format on
     {
         const bool purge = request->purge();
 
-        for (const auto& name : alive_instances_to_delete)
+        for (const auto& name : operational_instances_to_delete)
         {
             auto& instance = vm_instances[name];
 
