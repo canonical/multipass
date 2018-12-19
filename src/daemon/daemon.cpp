@@ -756,9 +756,7 @@ catch (const mp::StartException& e)
 {
     auto name = e.name();
 
-    config->factory->remove_resources_for(name);
-    config->vault->remove(name);
-    vm_instance_specs.erase(name);
+    release_resources(name);
     vm_instances.erase(name);
     persist_instances();
 
@@ -777,16 +775,12 @@ try // clang-format on
     for (auto& del : deleted_instances)
     {
         const auto& name = del.first;
-        config->factory->remove_resources_for(name);
-        config->vault->remove(name);
+        release_resources(name);
         keys_to_delete.push_back(name);
     }
 
     for (auto const& key : keys_to_delete)
-    {
         deleted_instances.erase(key);
-        vm_instance_specs.erase(key);
-    }
 
     persist_instances();
     return grpc::Status::OK;
