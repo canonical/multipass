@@ -112,7 +112,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 {
-    stop();
+    if (current_state() == State::running)
+        suspend();
 }
 
 void mp::HyperVVirtualMachine::start()
