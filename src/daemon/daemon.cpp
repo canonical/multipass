@@ -307,6 +307,9 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
 
 auto grpc_status_for(fmt::memory_buffer& errors)
 {
+    if (!errors.size())
+        return grpc::Status::OK;
+
     // Remove trailing newline due to grpc adding one of it's own
     auto error_string = fmt::to_string(errors);
     if (error_string.back() == '\n')
@@ -408,7 +411,7 @@ grpc::Status validate_requested_instances(const Instances& instances, const Inst
     for (const auto& name : instances)
         fmt::format_to(errors, check_instance(name));
 
-    return errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -447,7 +450,7 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ope
         else
             fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
 
-    auto status = errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
+    auto status = grpc_status_for(errors);
 
     if (status.ok() && operational_instances_to_delete.empty() && trashed_instances_to_delete.empty())
     { // target all instances
@@ -1110,11 +1113,11 @@ try // clang-format on
         }
     }
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
+    auto status = grpc_status_for(errors);
+    if (status.ok())
+        server->Write(response);
 
-    server->Write(response);
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1285,10 +1288,7 @@ try // clang-format on
 
     persist_instances();
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    return grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 catch (const std::exception& e)
 {
@@ -1489,10 +1489,7 @@ try // clang-format on
     if (update_instance_db)
         persist_instances();
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    return grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 catch (const std::exception& e)
 {
@@ -1553,32 +1550,33 @@ try // clang-format on
         instances_to_suspend.push_back(name);
     }
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    if (instances_to_suspend.empty())
+    auto status = grpc_status_for(errors);
+    if (status.ok())
     {
-        for (auto& pair : vm_instances)
-            instances_to_suspend.push_back(pair.first);
+        if (instances_to_suspend.empty())
+        {
+            for (auto& pair : vm_instances)
+                instances_to_suspend.push_back(pair.first);
+        }
+
+        for (const auto& name : instances_to_suspend)
+        {
+            QTimer timer;
+            QEventLoop event_loop;
+
+            QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
+            QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
+
+            auto it = vm_instances.find(name);
+            it->second->suspend();
+
+            timer.setSingleShot(true);
+            timer.start(std::chrono::seconds(30));
+            event_loop.exec();
+        }
     }
 
-    for (const auto& name : instances_to_suspend)
-    {
-        QTimer timer;
-        QEventLoop event_loop;
-
-        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
-        QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
-
-        auto it = vm_instances.find(name);
-        it->second->suspend();
-
-        timer.setSingleShot(true);
-        timer.start(std::chrono::seconds(30));
-        event_loop.exec();
-    }
-
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1740,9 +1738,7 @@ try // clang-format on
 
     persist_instances();
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-    return grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 catch (const std::exception& e)
 {
