@@ -771,18 +771,12 @@ grpc::Status mp::Daemon::purge(grpc::ServerContext* context, const PurgeRequest*
                                grpc::ServerWriter<PurgeReply>* server) // clang-format off
 try // clang-format on
 {
-    std::vector<decltype(deleted_instances)::key_type> keys_to_delete;
-    for (auto& del : deleted_instances)
-    {
-        const auto& name = del.first;
-        release_resources(name);
-        keys_to_delete.push_back(name);
-    }
+    for (const auto& del : deleted_instances)
+        release_resources(del.first);
 
-    for (auto const& key : keys_to_delete)
-        deleted_instances.erase(key);
-
+    deleted_instances.clear();
     persist_instances();
+
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
