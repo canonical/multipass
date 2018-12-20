@@ -47,7 +47,7 @@ add_subdirectory(3rd-party)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Network REQUIRED)
 
-execute_process(COMMAND git describe --dirty
+execute_process(COMMAND git describe
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                 OUTPUT_VARIABLE MULTIPASS_VERSION
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
