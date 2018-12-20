@@ -86,6 +86,10 @@ protected:
         {
             return on_success(reply);
         }
+        else if (status.error_code() != grpc::StatusCode::UNAVAILABLE)
+        {
+            return on_failure(status);
+        }
         else
         {
             auto socket_address{context.peer()};
