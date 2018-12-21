@@ -47,6 +47,7 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 
+#include <cassert>
 #include <functional>
 #include <stdexcept>
 #include <unordered_set>
@@ -224,6 +225,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto mac_addr = record["mac_addr"].toString();
         auto ssh_username = record["ssh_username"].toString();
         auto state = record["state"].toInt();
+        auto deleted = record["deleted"].toBool();
 
         if (ssh_username.isEmpty())
             ssh_username = "ubuntu";
@@ -257,7 +259,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       mac_addr.toStdString(),
                                       ssh_username.toStdString(),
                                       static_cast<mp::VirtualMachine::State>(state),
-                                      mounts};
+                                      mounts,
+                                      deleted};
     }
     return reconstructed_records;
 }
@@ -549,7 +552,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         try
         {
-            vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+            auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
+            instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
         }
         catch (const std::exception& e)
         {
@@ -560,7 +564,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
         {
+            assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
+
             QTimer::singleShot(0, [this, &name] {
                 vm_instances[name]->start();
                 on_restart(name);
@@ -736,7 +742,8 @@ try // clang-format on
                                vm_desc.mac_addr,
                                config->ssh_username,
                                VirtualMachine::State::off,
-                               {}};
+                               {},
+                               false};
     persist_instances();
 
     reply.set_create_message("Starting " + name);
@@ -1302,6 +1309,8 @@ try // clang-format on
             auto it = deleted_instances.find(name);
             if(it != std::end(deleted_instances))
             {
+                assert(vm_instance_specs[name].deleted);
+                vm_instance_specs[name].deleted = false;
                 vm_instances[name] = std::move(it->second);
                 deleted_instances.erase(it);
             }
@@ -1311,6 +1320,8 @@ try // clang-format on
                          fmt::format("instance \"{}\" does not need to be recovered", name));
             }
         }
+
+        persist_instances();
     }
 
     return status;
@@ -1625,6 +1636,8 @@ try // clang-format on
 
         for (const auto& name : operational_instances_to_delete)
         {
+            assert(!vm_instance_specs[name].deleted);
+
             auto& instance = vm_instances[name];
 
             if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
@@ -1636,7 +1649,10 @@ try // clang-format on
             if (purge)
                 release_resources(name);
             else
+            {
                 deleted_instances[name] = std::move(instance);
+                vm_instance_specs[name].deleted = true;
+            }
 
             vm_instances.erase(name);
         }
@@ -1645,12 +1661,13 @@ try // clang-format on
         {
             for (const auto& name : trashed_instances_to_delete)
             {
+                assert(vm_instance_specs[name].deleted);
                 release_resources(name);
                 deleted_instances.erase(name);
             }
-
-            persist_instances();
         }
+
+        persist_instances();
     }
 
     return status;
@@ -1813,6 +1830,7 @@ void mp::Daemon::persist_instances()
         json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
         json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
         json.insert("state", static_cast<int>(specs.state));
+        json.insert("deleted", specs.deleted);
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)
