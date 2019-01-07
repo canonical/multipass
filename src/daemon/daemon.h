@@ -48,6 +48,7 @@ struct VMSpecs
     std::string ssh_username;
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
+    bool deleted;
 };
 
 struct MetricsOptInData
