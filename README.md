@@ -25,6 +25,13 @@ multipass launch --name foo
 multipass exec foo lsb_release -a
 ```
 
+## Pass a cloud-init file to an instance
+```
+multipass launch -n foo --cloud-init cloud-config.yaml
+```
+
+See [Using cloud-init with Multipass](https://blog.ubuntu.com/2018/04/02/using-cloud-init-with-multipass) on the Ubuntu blog for more details.
+
 ## Find available images
 ```
 multipass find
