@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *
  */
 
-#include <src/client/client.h>
+#include <src/client/cli/client.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 
