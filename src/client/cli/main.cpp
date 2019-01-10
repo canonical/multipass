@@ -19,7 +19,6 @@
 
 #include "client.h"
 
-#include <multipass/cli/cli.h>
 #include <multipass/console.h>
 #include <multipass/platform.h>
 #include <multipass/ssl_cert_provider.h>
