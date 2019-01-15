@@ -44,4 +44,5 @@ target_link_libraries(commands
   ssh_client
   rpc
   Qt5::Core
+  Qt5::Network
   yaml)

@@ -47,6 +47,7 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 
+#include <cassert>
 #include <functional>
 #include <stdexcept>
 #include <unordered_set>
@@ -224,6 +225,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto mac_addr = record["mac_addr"].toString();
         auto ssh_username = record["ssh_username"].toString();
         auto state = record["state"].toInt();
+        auto deleted = record["deleted"].toBool();
 
         if (ssh_username.isEmpty())
             ssh_username = "ubuntu";
@@ -257,7 +259,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       mac_addr.toStdString(),
                                       ssh_username.toStdString(),
                                       static_cast<mp::VirtualMachine::State>(state),
-                                      mounts};
+                                      mounts,
+                                      deleted};
     }
     return reconstructed_records;
 }
@@ -307,6 +310,9 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
 
 auto grpc_status_for(fmt::memory_buffer& errors)
 {
+    if (!errors.size())
+        return grpc::Status::OK;
+
     // Remove trailing newline due to grpc adding one of it's own
     auto error_string = fmt::to_string(errors);
     if (error_string.back() == '\n')
@@ -400,29 +406,22 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version, Qt::BlockingQueuedConnection);
 }
 
-template <typename Instances, typename InstanceMap>
-grpc::Status validate_instances(const Instances& instances, const InstanceMap& vms, const InstanceMap& deleted)
+template <typename Instances, typename InstanceMap, typename InstanceCheck>
+grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
+                                          InstanceCheck check_instance)
 {
     fmt::memory_buffer errors;
     for (const auto& name : instances)
-    {
-        if (vms.find(name) == std::cend(vms))
-        {
-            if (deleted.find(name) == std::cend(deleted))
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            else
-                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
-        }
-    }
+        fmt::format_to(errors, check_instance(name));
 
-    return errors.size() ? grpc_status_for(errors) : grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 
-template <typename Instances, typename InstanceMap>
-auto find_requested_instances(const Instances& instances, const InstanceMap& vms, const InstanceMap& deleted)
+template <typename Instances, typename InstanceMap, typename InstanceCheck>
+auto find_requested_instances(const Instances& instances, const InstanceMap& vms, InstanceCheck check_instance)
     -> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
 { // TODO: use this in commands that currently duplicate the same kind of code
-    auto status = validate_instances(instances, vms, deleted);
+    auto status = validate_requested_instances(instances, vms, check_instance);
     auto valid_instances = std::vector<typename Instances::value_type>{};
 
     if (status.ok())
@@ -435,6 +434,37 @@ auto find_requested_instances(const Instances& instances, const InstanceMap& vms
     }
 
     return std::make_pair(valid_instances, status);
+}
+
+template <typename Instances, typename InstanceMap>
+auto find_instances_to_delete(const Instances& instances, const InstanceMap& operational_vms,
+                              const InstanceMap& trashed_vms)
+    -> std::tuple<std::vector<typename Instances::value_type>, std::vector<typename Instances::value_type>,
+                  grpc::Status>
+{
+    fmt::memory_buffer errors;
+    std::vector<typename Instances::value_type> operational_instances_to_delete, trashed_instances_to_delete;
+
+    for (const auto& name : instances)
+        if (operational_vms.find(name) != operational_vms.end())
+            operational_instances_to_delete.push_back(name);
+        else if (trashed_vms.find(name) != trashed_vms.end())
+            trashed_instances_to_delete.push_back(name);
+        else
+            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+
+    auto status = grpc_status_for(errors);
+
+    if (status.ok() && operational_instances_to_delete.empty() && trashed_instances_to_delete.empty())
+    { // target all instances
+        const auto get_first = [](const auto& pair) { return pair.first; };
+        std::transform(std::cbegin(operational_vms), std::cend(operational_vms),
+                       std::back_inserter(operational_instances_to_delete), get_first);
+        std::transform(std::cbegin(trashed_vms), std::cend(trashed_vms),
+                       std::back_inserter(trashed_instances_to_delete), get_first);
+    }
+
+    return std::make_tuple(operational_instances_to_delete, trashed_instances_to_delete, status);
 }
 
 mp::SSHProcess exec_and_log(mp::SSHSession& session, const std::string& cmd)
@@ -522,7 +552,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         try
         {
-            vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+            auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
+            instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
         }
         catch (const std::exception& e)
         {
@@ -533,7 +564,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
         {
+            assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
+
             QTimer::singleShot(0, [this, &name] {
                 vm_instances[name]->start();
                 on_restart(name);
@@ -709,7 +742,8 @@ try // clang-format on
                                vm_desc.mac_addr,
                                config->ssh_username,
                                VirtualMachine::State::off,
-                               {}};
+                               {},
+                               false};
     persist_instances();
 
     reply.set_create_message("Starting " + name);
@@ -732,9 +766,7 @@ catch (const mp::StartException& e)
 {
     auto name = e.name();
 
-    config->factory->remove_resources_for(name);
-    config->vault->remove(name);
-    vm_instance_specs.erase(name);
+    release_resources(name);
     vm_instances.erase(name);
     persist_instances();
 
@@ -749,22 +781,12 @@ grpc::Status mp::Daemon::purge(grpc::ServerContext* context, const PurgeRequest*
                                grpc::ServerWriter<PurgeReply>* server) // clang-format off
 try // clang-format on
 {
-    std::vector<decltype(deleted_instances)::key_type> keys_to_delete;
-    for (auto& del : deleted_instances)
-    {
-        const auto& name = del.first;
-        config->factory->remove_resources_for(name);
-        config->vault->remove(name);
-        keys_to_delete.push_back(name);
-    }
+    for (const auto& del : deleted_instances)
+        release_resources(del.first);
 
-    for (auto const& key : keys_to_delete)
-    {
-        deleted_instances.erase(key);
-        vm_instance_specs.erase(key);
-    }
-
+    deleted_instances.clear();
     persist_instances();
+
     return grpc::Status::OK;
 }
 catch (const std::exception& e)
@@ -1086,11 +1108,11 @@ try // clang-format on
         }
     }
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
+    auto status = grpc_status_for(errors);
+    if (status.ok())
+        server->Write(response);
 
-    server->Write(response);
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1261,10 +1283,7 @@ try // clang-format on
 
     persist_instances();
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    return grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 catch (const std::exception& e)
 {
@@ -1277,41 +1296,35 @@ try // clang-format on
 {
     mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    fmt::memory_buffer errors;
-    std::vector<decltype(deleted_instances)::key_type> instances_to_recover;
-    for (const auto& name : request->instance_names().instance_name())
+    const auto instances_and_status =
+            find_requested_instances(request->instance_names().instance_name(), deleted_instances,
+                                     std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
+    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
+    const auto& status = instances_and_status.second;   // idem
+
+    if(status.ok())
     {
-        auto it = deleted_instances.find(name);
-        if (it == deleted_instances.end())
+        for (const auto& name : instances)
         {
-            it = vm_instances.find(name);
-            if (it == vm_instances.end())
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            auto it = deleted_instances.find(name);
+            if(it != std::end(deleted_instances))
+            {
+                assert(vm_instance_specs[name].deleted);
+                vm_instance_specs[name].deleted = false;
+                vm_instances[name] = std::move(it->second);
+                deleted_instances.erase(it);
+            }
             else
-                fmt::format_to(errors, "instance \"{}\" has not been deleted\n", name);
-            continue;
+            {
+                mpl::log(mpl::Level::debug, category,
+                         fmt::format("instance \"{}\" does not need to be recovered", name));
+            }
         }
-        instances_to_recover.push_back(name);
+
+        persist_instances();
     }
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    if (instances_to_recover.empty())
-    {
-        for (auto& pair : deleted_instances)
-            instances_to_recover.push_back(pair.first);
-    }
-
-    for (const auto& name : instances_to_recover)
-    {
-        auto it = deleted_instances.find(name);
-        it->second->shutdown();
-        vm_instances[name] = std::move(it->second);
-        deleted_instances.erase(name);
-    }
-
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1334,17 +1347,30 @@ try // clang-format on
                                 "");
         }
 
-        if (!mp::utils::is_running(it->second->current_state()))
+        auto& vm = it->second;
+        if (!mp::utils::is_running(vm->current_state()))
         {
             return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
                                 fmt::format("instance \"{}\" is not running", name), "");
         }
 
+        if (vm->state == VirtualMachine::State::delayed_shutdown)
+        {
+            if (delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
+            {
+                return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                                    fmt::format("\"{}\" is scheduled to shut down in less than a minute, use "
+                                                "'multipass stop --cancel {}' to cancel the shutdown.",
+                                                name, name),
+                                    "");
+            }
+        }
+
         mp::SSHInfo ssh_info;
-        ssh_info.set_host(it->second->ssh_hostname());
-        ssh_info.set_port(it->second->ssh_port());
+        ssh_info.set_host(vm->ssh_hostname());
+        ssh_info.set_port(vm->ssh_port());
         ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
-        ssh_info.set_username(it->second->ssh_username());
+        ssh_info.set_username(vm->ssh_username());
         (*response.mutable_ssh_info())[name] = ssh_info;
     }
 
@@ -1462,10 +1488,7 @@ try // clang-format on
     if (update_instance_db)
         persist_instances();
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    return grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 catch (const std::exception& e)
 {
@@ -1478,61 +1501,25 @@ try // clang-format on
 {
     mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    fmt::memory_buffer errors;
-    std::vector<decltype(vm_instances)::key_type> instances_to_stop;
-    for (const auto& name : request->instance_names().instance_name())
-    {
-        auto it = vm_instances.find(name);
-        if (it == vm_instances.end())
-        {
-            it = deleted_instances.find(name);
-            if (it == deleted_instances.end())
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            else
-                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
-            continue;
-        }
-        instances_to_stop.push_back(name);
-    }
+    auto instances_and_status =
+        find_requested_instances(request->instance_names().instance_name(), vm_instances,
+                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
+    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
+    auto& status = instances_and_status.second;         // idem
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    if (instances_to_stop.empty())
+    if (status.ok())
     {
-        for (auto& pair : vm_instances)
-            instances_to_stop.push_back(pair.first);
-    }
-
-    for (const auto& name : instances_to_stop)
-    {
-        auto it = vm_instances.find(name);
-        auto entry = delayed_shutdown_instances.find(name);
+        std::function<grpc::Status(VirtualMachine&)> operation;
         if (request->cancel_shutdown())
-        {
-            if (entry == delayed_shutdown_instances.end())
-            {
-                continue;
-            }
-            else
-            {
-                delayed_shutdown_instances.erase(name);
-            }
-        }
+            operation = std::bind(&Daemon::cancel_vm_shutdown, this, std::placeholders::_1);
         else
-        {
-            if (entry != delayed_shutdown_instances.end())
-            {
-                delayed_shutdown_instances.erase(name);
-            }
-            delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(it->second.get());
-            QObject::connect(delayed_shutdown_instances[name].get(), &DelayedShutdownTimer::finished,
-                             [this, name]() { delayed_shutdown_instances.erase(name); });
-            delayed_shutdown_instances[name]->start(std::chrono::minutes(request->time_minutes()));
-        }
+            operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
+                                  std::chrono::minutes(request->time_minutes()));
+
+        status = cmd_vms(instances, operation);
     }
 
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1562,32 +1549,33 @@ try // clang-format on
         instances_to_suspend.push_back(name);
     }
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-
-    if (instances_to_suspend.empty())
+    auto status = grpc_status_for(errors);
+    if (status.ok())
     {
-        for (auto& pair : vm_instances)
-            instances_to_suspend.push_back(pair.first);
+        if (instances_to_suspend.empty())
+        {
+            for (auto& pair : vm_instances)
+                instances_to_suspend.push_back(pair.first);
+        }
+
+        for (const auto& name : instances_to_suspend)
+        {
+            QTimer timer;
+            QEventLoop event_loop;
+
+            QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
+            QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
+
+            auto it = vm_instances.find(name);
+            it->second->suspend();
+
+            timer.setSingleShot(true);
+            timer.start(std::chrono::seconds(30));
+            event_loop.exec();
+        }
     }
 
-    for (const auto& name : instances_to_suspend)
-    {
-        QTimer timer;
-        QEventLoop event_loop;
-
-        QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
-        QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
-
-        auto it = vm_instances.find(name);
-        it->second->suspend();
-
-        timer.setSingleShot(true);
-        timer.start(std::chrono::seconds(30));
-        event_loop.exec();
-    }
-
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1601,7 +1589,8 @@ try // clang-format on
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     auto instances_and_status =
-        find_requested_instances(request->instance_names().instance_name(), vm_instances, deleted_instances);
+        find_requested_instances(request->instance_names().instance_name(), vm_instances,
+                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
@@ -1634,55 +1623,54 @@ try // clang-format on
 {
     mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    fmt::memory_buffer errors;
-    std::vector<decltype(vm_instances)::key_type> instances_to_delete;
-    for (const auto& name : request->instance_names().instance_name())
+    auto instances_and_status =
+        find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
+    const auto& operational_instances_to_delete =
+        std::get<0>(instances_and_status); // use structured bindings instead in C++17
+    const auto& trashed_instances_to_delete = std::get<1>(instances_and_status); // idem
+    const auto& status = std::get<2>(instances_and_status);                      // idem
+
+    if (status.ok())
     {
-        auto it = vm_instances.find(name);
-        if (it == vm_instances.end())
+        const bool purge = request->purge();
+
+        for (const auto& name : operational_instances_to_delete)
         {
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
-            continue;
-        }
-        instances_to_delete.push_back(name);
-    }
+            assert(!vm_instance_specs[name].deleted);
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
+            auto& instance = vm_instances[name];
 
-    if (instances_to_delete.empty())
-    {
-        for (auto& pair : vm_instances)
-            instances_to_delete.push_back(pair.first);
-    }
+            if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+                delayed_shutdown_instances.erase(name);
 
-    const bool purge = request->purge();
-    for (const auto& name : instances_to_delete)
-    {
-        auto it = vm_instances.find(name);
-        if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
-        {
-            delayed_shutdown_instances.erase(name);
+            stop_mounts_for_instance(name);
+            instance->shutdown();
+
+            if (purge)
+                release_resources(name);
+            else
+            {
+                deleted_instances[name] = std::move(instance);
+                vm_instance_specs[name].deleted = true;
+            }
+
+            vm_instances.erase(name);
         }
 
-        it->second->shutdown();
         if (purge)
         {
-            config->factory->remove_resources_for(name);
-            config->vault->remove(name);
-            vm_instance_specs.erase(name);
+            for (const auto& name : trashed_instances_to_delete)
+            {
+                assert(vm_instance_specs[name].deleted);
+                release_resources(name);
+                deleted_instances.erase(name);
+            }
         }
-        else
-        {
-            deleted_instances[name] = std::move(it->second);
-        }
-        vm_instances.erase(name);
+
+        persist_instances();
     }
 
-    if (purge)
-        persist_instances();
-
-    return grpc::Status::OK;
+    return status;
 }
 catch (const std::exception& e)
 {
@@ -1731,15 +1719,7 @@ try // clang-format on
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
         {
-            if (vm->current_state() == mp::VirtualMachine::State::running)
-            {
-                for (const auto& mount : mounts)
-                {
-                    auto& target_path = mount.first;
-                    stop_sshfs_for(target_path);
-                }
-            }
-
+            stop_mounts_for_instance(name);
             mounts.clear();
         }
         else
@@ -1763,9 +1743,7 @@ try // clang-format on
 
     persist_instances();
 
-    if (errors.size() > 0)
-        return grpc_status_for(errors);
-    return grpc::Status::OK;
+    return grpc_status_for(errors);
 }
 catch (const std::exception& e)
 {
@@ -1852,6 +1830,7 @@ void mp::Daemon::persist_instances()
         json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
         json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
         json.insert("state", static_cast<int>(specs.state));
+        json.insert("deleted", specs.deleted);
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)
@@ -1907,12 +1886,65 @@ void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& 
 
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
 
+    mpl::log(mpl::Level::info, category, fmt::format("mounting {} => {} in {}", source_path, target_path, name));
+
     auto sshfs_mount = std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map);
-
-    QObject::connect(sshfs_mount.get(), &SshfsMount::finished, this,
-                     [this, name, target_path]() { mount_threads[name].erase(target_path); });
-
     mount_threads[name][target_path] = std::move(sshfs_mount);
+
+    QObject::connect(mount_threads[name][target_path].get(), &SshfsMount::finished, this,
+                     [this, name, target_path]() {
+                         mount_threads[name].erase(target_path);
+                         mpl::log(mpl::Level::debug, category,
+                                  fmt::format("Mount stopped: '{}' in instance \"{}\"", target_path, name));
+                     },
+                     Qt::QueuedConnection);
+}
+
+void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
+{
+    auto mounts_it = mount_threads.find(instance);
+    if (mounts_it == mount_threads.end() || mounts_it->second.empty())
+    {
+        mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
+    }
+    else
+    {
+        for (auto& sshfs_mount : mounts_it->second)
+        {
+            mpl::log(mpl::Level::debug, category,
+                     fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
+            sshfs_mount.second->stop();
+        }
+    }
+}
+
+void mp::Daemon::release_resources(const std::string& instance)
+{
+    config->factory->remove_resources_for(instance);
+    config->vault->remove(instance);
+    vm_instance_specs.erase(instance);
+}
+
+std::string mp::Daemon::check_instance_operational(const std::string& instance_name) const
+{
+    if (vm_instances.find(instance_name) == std::cend(vm_instances))
+    {
+        if (deleted_instances.find(instance_name) == std::cend(deleted_instances))
+            return fmt::format("instance \"{}\" does not exist\n", instance_name);
+        else
+            return fmt::format("instance \"{}\" is deleted\n", instance_name);
+    }
+
+    return {};
+}
+
+std::string mp::Daemon::check_instance_exists(const std::string& instance_name) const
+{
+    if(vm_instances.find(instance_name) == std::cend(vm_instances) &&
+        deleted_instances.find(instance_name) == std::cend(deleted_instances))
+        return fmt::format("instance \"{}\" does not exist\n", instance_name);
+
+    return {};
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
@@ -1926,6 +1958,45 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
     return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider);
+}
+
+grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
+{
+    const auto& name = vm.vm_name;
+    const auto& state = vm.current_state();
+
+    using St = VirtualMachine::State;
+    const auto skip_states = {St::off, St::stopped, St::suspended};
+
+    if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
+    {
+        delayed_shutdown_instances.erase(name);
+
+        mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
+        auto& shutdown_timer = delayed_shutdown_instances[name] =
+            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
+
+        QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
+                         [this, name]() { delayed_shutdown_instances.erase(name); });
+
+        shutdown_timer->start(delay);
+    }
+    else
+        mpl::log(mpl::Level::debug, category, fmt::format("instance \"{}\" does not need stopping", name));
+
+    return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
+{
+    auto it = delayed_shutdown_instances.find(vm.vm_name);
+    if (it != delayed_shutdown_instances.end())
+        delayed_shutdown_instances.erase(it);
+    else
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("no delayed shutdown to cancel on instance \"{}\"", vm.vm_name));
+
+    return grpc::Status::OK;
 }
 
 grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd)

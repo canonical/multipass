@@ -95,7 +95,10 @@ std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_n
 mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std::ostream& cerr,
                                                  const grpc::Status& status, const std::string& error_details)
 {
-    fmt::print(cerr, "{} failed: {}\n{}", command, status.error_message(), error_details);
+    fmt::print(cerr, "{} failed: {}\n{}", command, status.error_message(),
+               !error_details.empty()
+                   ? fmt::format("{}\n", error_details)
+                   : !status.error_details().empty() ? fmt::format("{}\n", status.error_details()) : "");
 
     return return_code_for(status.error_code());
 }

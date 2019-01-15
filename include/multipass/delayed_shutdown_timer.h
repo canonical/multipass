@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
 #define MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
 
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
 #include <QObject>
@@ -32,10 +33,11 @@ class DelayedShutdownTimer : public QObject
     Q_OBJECT
 
 public:
-    DelayedShutdownTimer(VirtualMachine* virtual_machine);
+    DelayedShutdownTimer(VirtualMachine* virtual_machine, SSHSession&& session);
     ~DelayedShutdownTimer();
 
-    void start(std::chrono::milliseconds delay);
+    void start(const std::chrono::milliseconds delay);
+    std::chrono::seconds get_time_remaining();
 
 signals:
     void finished();
@@ -45,7 +47,9 @@ private:
 
     QTimer shutdown_timer;
     VirtualMachine* virtual_machine;
+    SSHSession ssh_session;
     std::chrono::milliseconds delay;
+    std::chrono::milliseconds time_remaining;
 };
 } // namespace multipass
 #endif // MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
