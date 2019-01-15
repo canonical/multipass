@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include <multipass/platform.h>
@@ -22,6 +20,7 @@
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
+#include "platform_proprietary.h"
 
 #include <QFile>
 
@@ -136,15 +135,50 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
 
 bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
-    return true;
+    // Minimal images that the snapcraft remote uses do not work on Windows
+    if (remote == "snapcraft")
+        return false;
+
+    if (check_unlock_code())
+        return true;
+
+    if (remote.empty())
+    {
+        if (supported_release_aliases.find(alias) != supported_release_aliases.end())
+            return true;
+    }
+    else
+    {
+        auto it = supported_remotes_aliases_map.find(remote);
+
+        if (it != supported_remotes_aliases_map.end())
+        {
+            if (it->second.find(alias) != it->second.end())
+                return true;
+        }
+    }
+
+    return false;
 }
 
 bool mp::platform::is_remote_supported(const std::string& remote)
 {
-    return true;
+    // Minimal images that the snapcraft remote uses do not work on Windows
+    if (remote == "snapcraft")
+        return false;
+
+    if (remote.empty() || check_unlock_code())
+        return true;
+
+    if (supported_remotes_aliases_map.find(remote) != supported_remotes_aliases_map.end())
+    {
+        return true;
+    }
+
+    return false;
 }
 
 bool mp::platform::is_image_url_supported()
 {
-    return true;
+    return check_unlock_code();
 }
