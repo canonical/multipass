@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include <src/client/client.h>
 #include <src/daemon/daemon_rpc.h>
 
-#include <QEventLoop>
+#include <QCoreApplication>
 #include <QStringList>
 
 #include <gmock/gmock.h>
@@ -50,7 +50,10 @@ struct Client : public Test
         {
             args << QString::fromStdString(arg);
         }
-        return client.run(args);
+
+        client.run(args);
+
+        return QCoreApplication::exec();
     }
 
 #ifdef WIN32

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 
 #include <QLocalSocket>
 #include <QString>
+#include <QTimer>
 
 #include <fmt/format.h>
 
@@ -46,7 +47,7 @@ public:
     }
     virtual ~Command() = default;
 
-    virtual ReturnCode run(ArgParser* parser) = 0;
+    virtual void run(ArgParser* parser) = 0;
 
     virtual std::string name() const = 0;
     virtual std::vector<std::string> aliases() const
@@ -55,6 +56,11 @@ public:
     };
     virtual QString short_help() const = 0;
     virtual QString description() const = 0;
+
+    static void command_done(ReturnCode return_code)
+    {
+        QTimer::singleShot(0, [return_code] { QCoreApplication::exit(return_code); });
+    }
 
 protected:
     template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable,

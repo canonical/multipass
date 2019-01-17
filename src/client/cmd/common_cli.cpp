@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -120,6 +120,13 @@ void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_leve
     exec_parser.parse();
 
     fmt::print(cerr, "The sshfs package is missing in \"{}\". Installing...\n", instance_name);
-    if (exec_parser.chosenCommand()->run(&exec_parser) == mp::ReturnCode::Ok)
+
+    QEventLoop loop;
+    exec_parser.chosenCommand()->run(&exec_parser);
+
+    // Wait for the exec command to be done before continuing
+    auto return_code = loop.exec();
+
+    if (return_code == mp::ReturnCode::Ok)
         fmt::print(cerr, "\n***Please re-run the mount command.\n");
 }

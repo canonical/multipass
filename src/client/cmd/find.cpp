@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,12 +46,12 @@ std::ostream& operator<<(std::ostream& out, const multipass::FindReply::ImageInf
 }
 }
 
-mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
+void cmd::Find::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     auto on_success = [this](mp::FindReply& reply) {
@@ -103,7 +103,7 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::find, request, on_success, on_failure);
+    return command_done(dispatch(&RpcMethod::find, request, on_success, on_failure));
 }
 
 std::string cmd::Find::name() const

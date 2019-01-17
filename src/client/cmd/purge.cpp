@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,12 +24,12 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
+void cmd::Purge::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     auto on_success = [](mp::PurgeReply& reply) { return mp::ReturnCode::Ok; };
@@ -38,7 +38,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
 
     mp::PurgeRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::purge, request, on_success, on_failure);
+    return command_done(dispatch(&RpcMethod::purge, request, on_success, on_failure));
 }
 
 std::string cmd::Purge::name() const

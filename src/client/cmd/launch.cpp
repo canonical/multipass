@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,17 +44,17 @@ const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
 const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
 } // namespace
 
-mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
+void cmd::Launch::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
 
-    return request_launch();
+    return command_done(request_launch());
 }
 
 std::string cmd::Launch::name() const

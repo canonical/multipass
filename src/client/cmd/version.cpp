@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,12 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
+void cmd::Version::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     cout << "multipass  " << multipass::version_string << "\n";
@@ -43,7 +43,7 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
 
     mp::VersionRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::version, request, on_success, on_failure);
+    return command_done(dispatch(&RpcMethod::version, request, on_success, on_failure));
 }
 
 std::string cmd::Version::name() const { return "version"; }

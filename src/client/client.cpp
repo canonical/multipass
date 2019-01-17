@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,9 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
+
 #include "client.h"
 #include "cmd/copy_files.h"
 #include "cmd/delete.h"
@@ -110,7 +109,7 @@ void mp::Client::add_command()
     commands.push_back(std::move(cmd));
 }
 
-int mp::Client::run(const QStringList& arguments)
+void mp::Client::run(const QStringList& arguments)
 {
     QString description("Create, control and connect to Ubuntu instances.\n\n"
                         "This is a command line utility for multipass, a\n"
@@ -122,7 +121,7 @@ int mp::Client::run(const QStringList& arguments)
     ParseCode parse_status = parser.parse();
     if (parse_status != ParseCode::Ok)
     {
-        return parser.returnCodeFrom(parse_status);
+        return cmd::Command::command_done(parser.returnCodeFrom(parse_status));
     }
 
     auto logger = std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel()));

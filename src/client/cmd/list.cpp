@@ -25,12 +25,12 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
+void cmd::List::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     auto on_success = [this](ListReply& reply) {
@@ -43,7 +43,7 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
 
     ListRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::list, request, on_success, on_failure);
+    return command_done(dispatch(&RpcMethod::list, request, on_success, on_failure));
 }
 
 std::string cmd::List::name() const

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,12 +51,12 @@ auto convert_id_for(const QString& id_string)
 }
 } // namespace
 
-mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
+void cmd::Mount::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     auto on_success = [](mp::MountReply& reply) {
@@ -81,7 +81,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::mount, request, on_success, on_failure);
+    return command_done(dispatch(&RpcMethod::mount, request, on_success, on_failure));
 }
 
 std::string cmd::Mount::name() const { return "mount"; }

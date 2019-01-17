@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,12 +24,12 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
+void cmd::Delete::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     auto on_success = [](mp::DeleteReply& reply) { return mp::ReturnCode::Ok; };
@@ -37,7 +37,7 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::delet, request, on_success, on_failure);
+    return command_done(dispatch(&RpcMethod::delet, request, on_success, on_failure));
 }
 
 std::string cmd::Delete::name() const

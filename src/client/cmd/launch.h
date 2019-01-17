@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ class Launch final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+    void run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;

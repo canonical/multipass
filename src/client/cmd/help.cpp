@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,12 +22,12 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Help::run(mp::ArgParser* parser)
+void cmd::Help::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     cmd::Command* cmd = parser->findCommand(command);
@@ -35,13 +35,13 @@ mp::ReturnCode cmd::Help::run(mp::ArgParser* parser)
     if (cmd == nullptr)
     {
         cerr << "Error: Unkown Command: '" << qPrintable(command) << "'\n";
-        return ReturnCode::CommandLineError;
+        return command_done(ReturnCode::CommandLineError);
     }
 
     parser->forceCommandHelp();
     cmd->run(parser);
 
-    return ReturnCode::Ok;
+    return command_done(ReturnCode::Ok);
 }
 
 std::string cmd::Help::name() const { return "help"; }

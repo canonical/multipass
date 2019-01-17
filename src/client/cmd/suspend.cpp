@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,12 +26,12 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
+void cmd::Suspend::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
-        return parser->returnCodeFrom(ret);
+        return command_done(parser->returnCodeFrom(ret));
     }
 
     auto on_success = [](mp::SuspendReply& reply) { return ReturnCode::Ok; };
@@ -44,7 +44,7 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
 
     spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::suspend, request, on_success, on_failure);
+    return command_done(dispatch(&RpcMethod::suspend, request, on_success, on_failure));
 }
 
 std::string cmd::Suspend::name() const

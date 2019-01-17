@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #define MULTIPASS_CLIENT_H
 
 #include <multipass/cert_provider.h>
-#include <multipass/cli/cli.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
@@ -43,7 +42,7 @@ class Client
 {
 public:
     explicit Client(ClientConfig& context);
-    int run(const QStringList& arguments);
+    void run(const QStringList& arguments);
 
 private:
     template <typename T>
