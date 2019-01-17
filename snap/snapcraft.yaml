@@ -119,6 +119,26 @@ parts:
     stage-packages:
     - libproxy1v5
 
+  libqt5gui5:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_arm64.deb
+    source-type: deb
+    stage-packages:
+    - libdrm-dev
+
+  libqt5widgets5:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_arm64.deb
+    source-type: deb
+
   libicu:
     plugin: dump
     source:
@@ -135,6 +155,7 @@ parts:
     - libqt5core5a
     - libqt5network5
     - libvirt
+    - libqt5gui5
     plugin: cmake
     build-packages:
     - build-essential
