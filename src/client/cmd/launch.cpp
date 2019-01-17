@@ -246,15 +246,15 @@ mp::ReturnCode cmd::Launch::request_launch()
         {
             if (error == LaunchError::INVALID_DISK_SIZE)
             {
-                error_details = fmt::format("Invalid disk size value supplied: {}\n", request.disk_space());
+                error_details = fmt::format("Invalid disk size value supplied: {}", request.disk_space());
             }
             else if (error == LaunchError::INVALID_MEM_SIZE)
             {
-                error_details = fmt::format("Invalid memory size value supplied: {}\n", request.mem_size());
+                error_details = fmt::format("Invalid memory size value supplied: {}", request.mem_size());
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
-                cerr << "Invalid instance name supplied: " << request.instance_name() << "\n";
+                error_details = fmt::format("Invalid instance name supplied: {}", request.instance_name());
             }
         }
 

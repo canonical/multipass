@@ -96,6 +96,9 @@ _multipass_complete()
             "delete"|"info"|"umount"|"unmount")
                 _multipass_instances
             ;;
+            "recover")
+                _multipass_instances "DELETED"
+            ;;
             "mount")
                 local source_set=0
                 local prev

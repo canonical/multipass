@@ -50,7 +50,13 @@ struct CustomImageInfo
 
 const QMap<QString, CustomImageInfo> multipass_image_info{
     {{"ubuntu-core-16-amd64.img.xz"},
-     {"http://cdimage.ubuntu.com/ubuntu-core/16/current/", {"core"}, "Ubuntu", "core-16", "Core 16", "", ""}}};
+     {"http://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
+      {"core"},
+      "Ubuntu",
+      "core-16",
+      "Core 16",
+      "",
+      ""}}};
 
 const QMap<QString, CustomImageInfo> snapcraft_image_info{
     {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},

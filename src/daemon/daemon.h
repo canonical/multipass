@@ -48,6 +48,7 @@ struct VMSpecs
     std::string ssh_username;
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
+    bool deleted;
 };
 
 struct MetricsOptInData
@@ -127,7 +128,13 @@ private:
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                      const std::unordered_map<int, int>& uid_map);
+    void stop_mounts_for_instance(const std::string& instance);
+    void release_resources(const std::string& instance);
+    std::string check_instance_operational(const std::string& instance_name) const;
+    std::string check_instance_exists(const std::string& instance_name) const;
     grpc::Status reboot_vm(VirtualMachine& vm);
+    grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
+    grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
 
     std::unique_ptr<const DaemonConfig> config;
