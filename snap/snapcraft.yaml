@@ -1,4 +1,4 @@
-name: multipass-confined
+name: multipass
 version: 'git'
 version-script: |
   git describe
@@ -14,6 +14,11 @@ confinement: strict
 slots:
   multipass-slot:
     interface: multipass
+
+plugs:
+  all-home:
+    interface: home
+    read: all
 
 apps:
   multipassd:
@@ -48,6 +53,7 @@ apps:
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
     plugs:
+      - all-home
       - multipass
       - network
 
