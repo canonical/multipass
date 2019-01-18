@@ -196,7 +196,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const std::shared_ptr<ConfinementSyst
         }
     });
 
-    QObject::connect(vm_process.get(), &Process::finished, [this](int exitCode, QProcess::ExitStatus exitStatus) {
+    QObject::connect(vm_process.get(), qOverload<int, QProcess::ExitStatus>(&Process::finished), [this](int exitCode, QProcess::ExitStatus) {
         mpl::log(mpl::Level::info, vm_name, fmt::format("process finished with exit code {}", exitCode));
         if (update_shutdown_status)
         {

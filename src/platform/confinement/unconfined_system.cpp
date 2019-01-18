@@ -21,33 +21,11 @@
 
 namespace mp = multipass;
 
-namespace
-{
-
-class UnconfinedProcess : public mp::Process
-{
-public:
-    UnconfinedProcess(std::unique_ptr<mp::ProcessSpec>&& process_spec) : mp::Process(std::move(process_spec))
-    {
-    }
-
-    ~UnconfinedProcess()
-    {
-    }
-
-    void start(const QStringList& extra_args) override
-    {
-        start_process(process_spec->program(), process_spec->arguments() + extra_args);
-    }
-};
-
-} // namespace
-
 mp::UnconfinedSystem::UnconfinedSystem()
 {
 }
 
 std::unique_ptr<mp::Process> mp::UnconfinedSystem::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
 {
-    return std::make_unique<::UnconfinedProcess>(std::move(process_spec));
+    return std::make_unique<mp::Process>(std::move(process_spec));
 }

@@ -30,7 +30,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 static const auto apparmor_parser = "apparmor_parser";
-static const auto apparmor_exec = "aa-exec";
 
 void throw_if_binary_fails(const char* binary_name, const QStringList& arguments = QStringList())
 {
@@ -54,10 +53,9 @@ mp::AppArmor::AppArmor()
         throw std::runtime_error("AppArmor is not enabled");
     }
 
-    // libapparmor's profile management APIis not easy to use, handier to use apparmor_profile CLI tool
-    // and aa-exec to spawn child processes. Ensure they are available
+    // libapparmor's profile management API is not easy to use, it is handier to use apparmor_profile CLI tool
+    // Ensure it is available
     throw_if_binary_fails(apparmor_parser, {"-V"});
-    throw_if_binary_fails(apparmor_exec, {"-h"});
 }
 
 void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
@@ -69,7 +67,7 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::debug, "daemon", fmt::format("loading apparmor policy: \n{}", aa_policy.constData()));
+    mpl::log(mpl::Level::debug, "daemon", fmt::format("Loading AppArmor policy: \n{}", aa_policy.constData()));
 
     if (process.exitCode() != 0)
     {
@@ -87,11 +85,23 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::debug, "daemon", fmt::format("removing apparmor policy: \n{}", aa_policy.constData()));
+    mpl::log(mpl::Level::debug, "daemon", fmt::format("Removing AppArmor policy: \n{}", aa_policy.constData()));
 
     if (process.exitCode() != 0)
     {
         throw std::runtime_error(fmt::format("Failed to remove AppArmor policy {}: errno={} ({})",
                                              aa_policy.constData(), process.exitCode(), process.readAll().constData()));
+    }
+}
+
+void mp::AppArmor::next_exec_under_policy(const QByteArray& aa_policy_name) const
+{
+    int ret = aa_change_onexec(aa_policy_name.constData());
+    mpl::log(mpl::Level::debug, "daemon", fmt::format("Applying AppArmor policy: {}", aa_policy_name.constData()));
+
+    if (ret < 0)
+    {
+        throw std::runtime_error(fmt::format("Failed to apply AppArmor policy {}: errno={} ({})",
+                                             aa_policy_name.constData(), errno, strerror(errno)));
     }
 }

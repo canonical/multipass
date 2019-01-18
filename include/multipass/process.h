@@ -26,54 +26,28 @@
 namespace multipass
 {
 
-class Process : public QObject
+class Process : public QProcess
 {
     Q_OBJECT
 public:
-    virtual ~Process();
+    virtual ~Process() = default;
+    Process(std::unique_ptr<ProcessSpec>&& spec);
 
-    virtual void start(const QStringList& extra_arguments = QStringList()) = 0;
+    void start(const QStringList& extra_arguments = QStringList());
 
     bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
     QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
 
-    void terminate();
-    void kill();
-
-    QString workingDirectory() const;
-    void setWorkingDirectory(const QString& dir);
-
-    QString program() const;
-    QStringList arguments() const;
-
-    qint64 processId() const;
-    QProcess::ProcessState state() const;
-
-    bool waitForStarted(int msecs = 30000);
-    bool waitForFinished(int msecs = 30000);
-
-    qint64 write(const QByteArray& data);
-
-    QByteArray readAllStandardOutput();
-    QByteArray readAllStandardError();
-
-signals:
-    void started();
-    void errorOccurred(QProcess::ProcessError error);
-    void finished(int exit_code, QProcess::ExitStatus exit_status);
-    void readyReadStandardOutput();
-    void readyReadStandardError();
-    void stateChanged(QProcess::ProcessState newState);
-
 protected:
-    Process(std::unique_ptr<ProcessSpec>&& process_spec);
+    Process() = delete;
 
     const std::unique_ptr<ProcessSpec> process_spec;
 
-    void start_process(const QString& program, const QStringList& arguments);
-
 private:
-    QProcess process;
+    // Want to tie Process to its ProcessSpec, so hide QProcess methods that can break the connection
+    using QProcess::start;
+    using QProcess::setProgram;
+    using QProcess::setArguments;
 };
 
 } // namespace multipass

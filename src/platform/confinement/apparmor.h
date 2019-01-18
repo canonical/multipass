@@ -30,6 +30,8 @@ public:
 
     void load_policy(const QByteArray& aa_policy) const;
     void remove_policy(const QByteArray& aa_policy) const;
+
+    void next_exec_under_policy(const QByteArray& aa_policy_name) const;
 };
 
 } // namespace multipass

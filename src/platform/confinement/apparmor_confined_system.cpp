@@ -33,11 +33,19 @@ public:
         apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
     }
 
-    void start(const QStringList& extra_arguments) override
+    void setupChildProcess() final
     {
-        start_process("aa-exec", QStringList()
-                                     << "-p" << process_spec->apparmor_profile_name() << "--" << process_spec->program()
-                                     << process_spec->arguments() << extra_arguments);
+        // Drop all privileges in the child process, and enter a chroot jail.
+//      #if defined Q_OS_UNIX
+//          ::setgroups(0, 0);
+//          ::chroot("/etc/safe");
+//          ::chdir("/");
+//          ::setgid(safeGid);
+//          ::setuid(safeUid);
+//          ::umask(0);
+//      #endif
+
+        apparmor.next_exec_under_policy(process_spec->apparmor_profile_name().toLatin1());
     }
 
     ~AppArmoredProcess()
