@@ -44,8 +44,7 @@ endif()
 add_subdirectory(3rd-party)
 
 # Qt config
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Network REQUIRED)
+find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
   execute_process(COMMAND git describe --exact

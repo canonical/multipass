@@ -32,6 +32,7 @@
 #include "cmd/start.h"
 #include "cmd/stop.h"
 #include "cmd/suspend.h"
+#include "cmd/systray.h"
 #include "cmd/transfer.h"
 #include "cmd/umount.h"
 #include "cmd/version.h"
@@ -92,6 +93,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
     add_command<cmd::Suspend>();
+    add_command<cmd::Systray>();
     add_command<cmd::Transfer>();
     add_command<cmd::Restart>();
     add_command<cmd::Delete>();
