@@ -123,7 +123,7 @@ profile %1 flags=(attach_disconnected) {
     @{PROC}/sys/vm/overcommit_memory r,
 
     # access to firmware's etc (selectively chosen for multipass' usage)
-    %3/qemu/* r,
+    %4 r,
 
     # for save and resume
     /{usr/,}bin/dash rmix,
@@ -143,24 +143,32 @@ profile %1 flags=(attach_disconnected) {
     /sys/module/vhost/parameters/max_mem_regions r,
 
     # binary and its libs
-    %3/usr/bin/%4 ixr,
+    %3/usr/bin/%5 ixr,
     %3/{usr/,}lib/** rm,
 
     # Disk images
-    %5 rwk,  # QCow2 filesystem image
-    %6 rk,   # cloud-init ISO
+    %6 rwk,  # QCow2 filesystem image
+    %7 rk,   # cloud-init ISO
 }
     )END");
 
     const QString snap_dir = qgetenv("SNAP"); // validate??
-    QString signal_peer;
 
+    QString signal_peer;
     if (!snap_dir.isEmpty()) // if snap confined, specify only multipassd can kill dnsmasq
     {
         signal_peer = "peer=snap.multipass.multipassd";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, snap_dir, program(),
+    QString firmware;
+    if (!snap_dir.isEmpty()) // if snap confined, firmware in $SNAP/qemu
+    {
+        firmware = snap_dir + "/qemu/*";
+    } else {
+        firmware = "/usr/share/seabios/*";
+    }
+
+    return profile_template.arg(apparmor_profile_name(), signal_peer, snap_dir, firmware, program(),
                                 desc.image.image_path, desc.cloud_init_iso);
 }
 
