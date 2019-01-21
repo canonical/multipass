@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,12 @@
  *
  */
 
-#ifndef MULTIPASS_UNCONFINED_SYSTEM_H
-#define MULTIPASS_UNCONFINED_SYSTEM_H
+#include "process_spec.h"
 
-#include <multipass/confinement_system.h>
+namespace mp = multipass;
 
-namespace multipass
+// Create Process with fixed list of arguments
+QStringList mp::ProcessSpec::arguments() const
 {
-
-class UnconfinedSystem : public ConfinementSystem
-{
-public:
-    UnconfinedSystem();
-    virtual ~UnconfinedSystem() = default;
-
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const override;
-};
-
-} // namespace multipass
-
-#endif // MULTIPASS_UNCONFINED_SYSTEM_H
+    return QStringList();
+}

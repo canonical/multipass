@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,8 +73,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         data_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
+    if (process_factory == nullptr)
+        process_factory = platform::process_factory();
     if (factory == nullptr)
-        factory = platform::vm_backend(data_directory);
+        factory = platform::vm_backend(process_factory.get(), data_directory);
     if (image_hosts.empty())
     {
         image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get()));
@@ -110,7 +112,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         ssh_username = "multipass";
 
     return std::unique_ptr<const DaemonConfig>(
-        new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
+        new DaemonConfig{std::move(url_downloader), std::move(process_factory), std::move(factory), std::move(image_hosts), std::move(vault),
                          std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider),
                          std::move(client_cert_store), multiplexing_logger, cache_directory,
                          data_directory, server_address, ssh_username, connection_type, image_refresh_timer});

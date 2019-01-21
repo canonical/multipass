@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_BACKEND_UTILS_H
 #define MULTIPASS_BACKEND_UTILS_H
 
-#include <multipass/confinement_system.h>
 #include <multipass/path.h>
+#include <multipass/process_factory.h>
 
 #include <string>
 
@@ -30,9 +30,9 @@ namespace backend
 std::string generate_random_subnet();
 std::string get_subnet(const Path& network_dir, const QString& bridge_name);
 void check_hypervisor_support();
-void resize_instance_image(const multipass::ConfinementSystem* confinement, const std::string& disk_space,
+void resize_instance_image(const multipass::ProcessFactory* process_factory, const std::string& disk_space,
                            const multipass::Path& image_path);
-multipass::Path convert_to_qcow_if_necessary(const multipass::ConfinementSystem* confinement,
+multipass::Path convert_to_qcow_if_necessary(const multipass::ProcessFactory* process_factory,
                                              const multipass::Path& image_path);
 } // namespace backend
 } // namespace multipass

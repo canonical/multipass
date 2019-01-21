@@ -14,6 +14,8 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
+set(CMAKE_AUTOMOC ON)
+
 add_library(platform STATIC
   platform_linux.cpp
   platform_unix.cpp)
@@ -25,6 +27,6 @@ target_link_libraries(platform
 
 add_subdirectory(backends)
 add_subdirectory(client)
-add_subdirectory(confinement)
 add_subdirectory(console)
 add_subdirectory(logger)
+add_subdirectory(process)

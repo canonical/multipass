@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,21 +32,34 @@ std::string mp::platform::default_server_address()
     return {"unix:/run/multipass_socket"};
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(mp::ProcessFactory* process_factory, const mp::Path& data_dir)
 {
     auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
     if (driver.isEmpty() || driver == "QEMU")
     {
-        auto confinement = mp::ConfinementSystem::create_confinement_system();
-        return std::make_unique<QemuVirtualMachineFactory>(confinement, data_dir);
+        return std::make_unique<QemuVirtualMachineFactory>(process_factory, data_dir);
     }
     else if (driver == "LIBVIRT")
     {
-        return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
+        return std::make_unique<LibVirtVirtualMachineFactory>(process_factory, data_dir);
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
+}
+
+mp::ProcessFactory::UPtr mp::platform::process_factory()
+{
+#ifdef APPARMOR_ENABLED
+    const auto disable_apparmor = qgetenv("DISABLE_APPARMOR");
+    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+
+    if (disable_apparmor.isNull() && driver != "LIBVIRT")
+    {
+        return std::make_unique<mp::AppArmoredProcessFactory>();
+    }
+#endif
+    return std::make_unique<mp::ProcessFactory>();
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

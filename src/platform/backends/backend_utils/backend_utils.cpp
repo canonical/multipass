@@ -133,7 +133,7 @@ void mp::backend::check_hypervisor_support()
     }
 }
 
-void mp::backend::resize_instance_image(const mp::ConfinementSystem* confinement, const std::string& disk_space,
+void mp::backend::resize_instance_image(const ProcessFactory *process_factory, const std::string& disk_space,
                                         const mp::Path& image_path)
 {
     auto disk_size = QString::fromStdString(disk_space);
@@ -142,20 +142,20 @@ void mp::backend::resize_instance_image(const mp::ConfinementSystem* confinement
         disk_size.chop(1);
 
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(image_path);
-    auto qemuimg_process = confinement->create_process(std::move(qemuimg_spec));
+    auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
 
     if (!qemuimg_process->run_and_return_status({"resize", image_path, disk_size}))
         throw std::runtime_error("Cannot resize instance image");
 }
 
-mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::ConfinementSystem* confinement, const mp::Path& image_path)
+mp::Path mp::backend::convert_to_qcow_if_necessary(const ProcessFactory *process_factory, const mp::Path& image_path)
 {
     // Check if raw image file, and if so, convert to qcow2 format.
     // Need to give QemuImgProcessSpec the path of the possible converted file, for confinement.
     const auto qcow2_path{image_path + ".qcow2"};
 
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(image_path, qcow2_path);
-    auto qemuimg_process = confinement->create_process(std::move(qemuimg_spec));
+    auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
 
     auto image_info = qemuimg_process->run_and_return_output({"info", "--output=json", image_path});
     auto image_record = QJsonDocument::fromJson(image_info.toUtf8(), nullptr).object();

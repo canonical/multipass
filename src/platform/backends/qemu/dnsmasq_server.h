@@ -18,11 +18,11 @@
 #ifndef MULTIPASS_DNSMASQ_SERVER_H
 #define MULTIPASS_DNSMASQ_SERVER_H
 
-#include <multipass/confinement_system.h>
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
 #include <multipass/process.h>
+#include <multipass/process_factory.h>
 
 #include <QDir>
 
@@ -35,9 +35,8 @@ namespace multipass
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const std::shared_ptr<ConfinementSystem>& confinement_system, const Path& path,
-                  const QString& bridge_name, const IPAddress& bridge_addr, const IPAddress& start,
-                  const IPAddress& end);
+    DNSMasqServer(const ProcessFactory* process_factory, const Path& path, const QString& bridge_name,
+                  const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 
@@ -45,7 +44,7 @@ public:
     void release_mac(const std::string& hw_addr);
 
 private:
-    const std::shared_ptr<ConfinementSystem> confinement_system;
+    const ProcessFactory* process_factory;
     const QDir data_dir;
     std::unique_ptr<Process> dnsmasq_cmd;
     QString bridge_name;

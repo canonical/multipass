@@ -15,26 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_CONFINEMENT_SYSTEM_H
-#define MULTIPASS_CONFINEMENT_SYSTEM_H
+#ifndef MULTIPASS_PROCESS_SPEC_H
+#define MULTIPASS_PROCESS_SPEC_H
 
-#include <memory>
+#include <QStringList>
 
 namespace multipass
 {
-class Process;
-class ProcessSpec;
 
-class ConfinementSystem
+class ProcessSpec
 {
 public:
-    static std::shared_ptr<ConfinementSystem> create_confinement_system();
+    ProcessSpec() = default;
+    virtual ~ProcessSpec() = default;
 
-    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const = 0;
-
-    ~ConfinementSystem() = default;
+    virtual QString program() const = 0;
+    virtual QStringList arguments() const;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_CONFINEMENT_SYSTEM_H
+#endif // MULTIPASS_PROCESS_SPEC_H

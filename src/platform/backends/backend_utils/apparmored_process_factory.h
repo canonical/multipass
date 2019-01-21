@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,26 @@
  *
  */
 
-#ifndef MULTIPASS_APPARMOR_CONFINED_SYSTEM_H
-#define MULTIPASS_APPARMOR_CONFINED_SYSTEM_H
+#ifndef MULTIPASS_APPARMOR_PROCESS_FACTORY_H
+#define MULTIPASS_APPARMOR_PROCESS_FACTORY_H
 
-#include <multipass/confinement_system.h>
-
+#include <multipass/process_factory.h>
+#include "apparmored_process_spec.h"
 #include "apparmor.h"
 
 namespace multipass
 {
 
-class AppArmorConfinedSystem : public ConfinementSystem
+class ApparmoredProcessFactory : public ProcessFactory
 {
 public:
-    AppArmorConfinedSystem();
-    virtual ~AppArmorConfinedSystem() = default;
+    ApparmoredProcessFactory();
+    virtual ~ApparmoredProcessFactory() = default;
 
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const override;
+    // FIXME
+    //std::unique_ptr<Process> create_process(std::unique_ptr<multipass::ProcessSpec> &&process_spec) const override;
+
+    std::unique_ptr<Process> create_process(std::unique_ptr<multipass::ApparmoredProcessSpec> &&process_spec) const;
 
 private:
     const AppArmor apparmor;
@@ -39,4 +42,4 @@ private:
 
 } // namespace multipass
 
-#endif // MULTIPASS_APPARMOR_CONFINED_SYSTEM_H
+#endif // MULTIPASS_APPARMOR_PROCESS_FACTORY_H

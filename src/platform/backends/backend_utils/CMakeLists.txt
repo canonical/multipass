@@ -12,6 +12,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+set(CMAKE_AUTOMOC ON)
+
 add_library(backend_utils STATIC
   backend_utils.cpp)
 
@@ -19,3 +21,20 @@ target_link_libraries(backend_utils
   fmt
   utils
   Qt5::Core)
+
+# Require AppArmor support on linux
+include(FindPkgConfig)
+pkg_search_module(APPARMOR libapparmor REQUIRED)
+add_definitions(-DAPPARMOR_ENABLED)
+
+target_sources(backend_utils PRIVATE
+  apparmor.cpp
+  apparmored_process_spec.cpp
+  apparmored_process_factory.cpp
+  # Need to run MOC on these headers
+  apparmored_process_spec.h
+)
+
+target_link_libraries(backend_utils
+  apparmor
+)

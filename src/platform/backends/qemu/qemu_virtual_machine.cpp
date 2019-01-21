@@ -21,9 +21,9 @@
 #include "qemu_process_spec.h"
 #include "qemuimg_process_spec.h"
 
-#include <multipass/confinement_system.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
+#include <multipass/process_factory.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -49,7 +49,7 @@ namespace
 {
 constexpr auto suspend_tag = "suspend";
 
-auto make_qemu_process(const mp::ConfinementSystem* confinement_system, const mp::VirtualMachineDescription& desc,
+auto make_qemu_process(const mp::ProcessFactory* process_factory, const mp::VirtualMachineDescription& desc,
                        const std::string& tap_device_name, const std::string& mac_addr)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
@@ -59,7 +59,7 @@ auto make_qemu_process(const mp::ConfinementSystem* confinement_system, const mp
 
     auto process_spec = std::make_unique<mp::QemuProcessSpec>(desc, QString::fromStdString(tap_device_name),
                                                               QString::fromStdString(mac_addr));
-    auto process = confinement_system->create_process(std::move(process_spec));
+    auto process = process_factory->create_process(std::move(process_spec));
 
     auto snap = qgetenv("SNAP");
     if (!snap.isEmpty())
@@ -102,10 +102,10 @@ auto hmc_to_qmp_json(const QString& command_line)
     return QJsonDocument(qmp).toJson();
 }
 
-bool instance_image_has_snapshot(const mp::ConfinementSystem* confinement, const mp::Path& image_path)
+bool instance_image_has_snapshot(const mp::ProcessFactory* process_factory, const mp::Path& image_path)
 {
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(image_path);
-    auto qemuimg_process = confinement->create_process(std::move(qemuimg_spec));
+    auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
     auto output = qemuimg_process->run_and_return_output({"snapshot", "-l", image_path}).split('\n');
 
     for (const auto& line : output)
@@ -120,19 +120,19 @@ bool instance_image_has_snapshot(const mp::ConfinementSystem* confinement, const
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const std::shared_ptr<ConfinementSystem>& confinement_system,
-                                           const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
-    : VirtualMachine{instance_image_has_snapshot(confinement_system.get(), desc.image.image_path) ? State::suspended
-                                                                                                  : State::off,
+mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
+                                           const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
+                                           VMStatusMonitor& monitor)
+    : VirtualMachine{instance_image_has_snapshot(process_factory, desc.image.image_path) ? State::suspended
+                                                                                         : State::off,
                      desc.key_provider, desc.vm_name},
-      confinement_system{confinement_system},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
+      process_factory{process_factory},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
-      vm_process{make_qemu_process(confinement_system.get(), desc, tap_device_name, mac_addr)}
+      vm_process{make_qemu_process(process_factory, desc, tap_device_name, mac_addr)}
 {
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
@@ -196,13 +196,15 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const std::shared_ptr<ConfinementSyst
         }
     });
 
-    QObject::connect(vm_process.get(), qOverload<int, QProcess::ExitStatus>(&Process::finished), [this](int exitCode, QProcess::ExitStatus) {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("process finished with exit code {}", exitCode));
-        if (update_shutdown_status)
-        {
-            on_shutdown();
-        }
-    });
+    QObject::connect(vm_process.get(), qOverload<int, QProcess::ExitStatus>(&Process::finished),
+                     [this](int exitCode, QProcess::ExitStatus) {
+                         mpl::log(mpl::Level::info, vm_name,
+                                  fmt::format("process finished with exit code {}", exitCode));
+                         if (update_shutdown_status)
+                         {
+                             on_shutdown();
+                         }
+                     });
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()

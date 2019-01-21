@@ -17,22 +17,22 @@
 #ifndef MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
 
-#include <multipass/virtual_machine_factory.h>
-
 #include <memory>
+
+#include <multipass/virtual_machine_factory.h>
 
 #include <libvirt/libvirt.h>
 
 namespace multipass
 {
-class ConfinementSystem;
+class ProcessFactory;
 
 class LibVirtVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
     using ConnectionUPtr = std::unique_ptr<virConnect, decltype(virConnectClose)*>;
 
-    explicit LibVirtVirtualMachineFactory(const Path& data_dir);
+    explicit LibVirtVirtualMachineFactory(const ProcessFactory* process_factory, const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -45,10 +45,10 @@ public:
     void check_hypervisor_support() override;
 
 private:
-    const std::shared_ptr<ConfinementSystem> confinement_system;
+    const ProcessFactory* process_factory;
     ConnectionUPtr connection;
     const std::string bridge_name;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H

@@ -18,13 +18,14 @@
 #ifndef MULTIPASS_QEMU_PROCESS_H
 #define MULTIPASS_QEMU_PROCESS_H
 
-#include <multipass/process_spec.h>
+#include "apparmored_process_spec.h"
+
 #include <multipass/virtual_machine_description.h>
 
 namespace multipass
 {
 
-class QemuProcessSpec : public ProcessSpec
+class QemuProcessSpec : public ApparmoredProcessSpec
 {
 public:
     explicit QemuProcessSpec(const VirtualMachineDescription& desc, const QString& tap_device_name,

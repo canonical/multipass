@@ -19,9 +19,9 @@
 #include "qemu_virtual_machine.h"
 
 #include <multipass/backend_utils.h>
-#include <multipass/confinement_system.h>
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
+#include <multipass/process_factory.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -200,8 +200,8 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const std::shared_ptr<mp::ConfinementSystem>& confinement_system,
-                                        const mp::Path& data_dir, const QString& bridge_name)
+mp::DNSMasqServer create_dnsmasq_server(const mp::ProcessFactory* process_factory, const mp::Path& data_dir,
+                                        const QString& bridge_name)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
     const auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
@@ -214,15 +214,15 @@ mp::DNSMasqServer create_dnsmasq_server(const std::shared_ptr<mp::ConfinementSys
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
 
-    return {confinement_system, network_dir, bridge_name, bridge_addr, start_addr, end_addr};
+    return {process_factory, network_dir, bridge_name, bridge_addr, start_addr, end_addr};
 }
 } // namespace
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const std::shared_ptr<ConfinementSystem>& confinement_system,
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::ProcessFactory* process_factory,
                                                          const mp::Path& data_dir)
-    : confinement_system{confinement_system},
+    : process_factory{process_factory},
       bridge_name{QString::fromStdString(multipass_bridge_name)},
-      dnsmasq_server{create_dnsmasq_server(confinement_system, data_dir, bridge_name)}
+      dnsmasq_server{create_dnsmasq_server(process_factory, data_dir, bridge_name)}
 {
 }
 
@@ -237,8 +237,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
-    auto vm =
-        std::make_unique<mp::QemuVirtualMachine>(confinement_system, desc, tap_device_name, dnsmasq_server, monitor);
+    auto vm = std::make_unique<mp::QemuVirtualMachine>(process_factory, desc, tap_device_name, dnsmasq_server, monitor);
 
     name_to_mac_map.emplace(desc.vm_name, desc.mac_addr);
     return vm;
@@ -262,7 +261,7 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 {
     VMImage image{source_image};
 
-    image.image_path = mp::backend::convert_to_qcow_if_necessary(confinement_system.get(), source_image.image_path);
+    image.image_path = mp::backend::convert_to_qcow_if_necessary(process_factory, source_image.image_path);
 
     return image;
 }
@@ -270,7 +269,7 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                            const VirtualMachineDescription& desc)
 {
-    mp::backend::resize_instance_image(confinement_system.get(), desc.disk_space, instance_image.image_path);
+    mp::backend::resize_instance_image(process_factory, desc.disk_space, instance_image.image_path);
 }
 
 void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)

@@ -19,7 +19,6 @@
 #include "libvirt_virtual_machine.h"
 
 #include <multipass/backend_utils.h>
-#include <multipass/confinement_system.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -86,8 +85,9 @@ std::string enable_libvirt_network(virConnectPtr connection, const mp::Path& dat
 
 } // namespace
 
-mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : confinement_system{mp::ConfinementSystem::create_confinement_system()},
+mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const ProcessFactory* process_factory,
+                                                               const mp::Path& data_dir)
+    : process_factory{process_factory},
       connection{connect_to_libvirt_daemon()},
       bridge_name{enable_libvirt_network(connection.get(), data_dir)}
 {
@@ -123,8 +123,7 @@ mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage
 {
     VMImage image{source_image};
 
-    image.image_path =
-        mp::backend::convert_to_qcow_if_necessary(confinement_system.get(), source_image.image_path);
+    image.image_path = mp::backend::convert_to_qcow_if_necessary(process_factory, source_image.image_path);
 
     return image;
 }
@@ -132,7 +131,7 @@ mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage
 void mp::LibVirtVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
                                                               const VirtualMachineDescription& desc)
 {
-    mp::backend::resize_instance_image(confinement_system.get(), desc.disk_space, instance_image.image_path);
+    mp::backend::resize_instance_image(process_factory, desc.disk_space, instance_image.image_path);
 }
 
 void mp::LibVirtVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config,

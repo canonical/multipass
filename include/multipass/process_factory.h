@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,29 +15,27 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_SPEC_H
-#define MULTIPASS_PROCESS_SPEC_H
+#ifndef MULTIPASS_PROCESS_FACTORY_H
+#define MULTIPASS_PROCESS_FACTORY_H
 
-#include <QStringList>
+#include <memory>
 
 namespace multipass
 {
+class Process;
+class ProcessSpec;
 
-class ProcessSpec
+class ProcessFactory
 {
 public:
-    ProcessSpec() = default;
-    virtual ~ProcessSpec() = default;
+    using UPtr = std::unique_ptr<ProcessFactory>;
 
-    virtual QString program() const = 0;
-    virtual QString apparmor_profile() const = 0;
+    ProcessFactory() = default;
+    virtual ~ProcessFactory() = default;
 
-    virtual QStringList arguments() const;
-    virtual QString identifier() const;
-
-    const QString apparmor_profile_name() const;
+    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_PROCESS_SPEC_H
+#endif // MULTIPASS_PROCESS_FACTORY_H

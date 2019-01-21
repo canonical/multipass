@@ -32,20 +32,20 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto make_dnsmasq_process(const mp::ConfinementSystem* confinement_system, QDir data_dir, const QString& bridge_name,
+auto make_dnsmasq_process(const mp::ProcessFactory* process_factory, QDir data_dir, const QString& bridge_name,
                           const mp::IPAddress& bridge_addr, const mp::IPAddress& start, const mp::IPAddress& end)
 {
     auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, bridge_addr, start, end);
-    return confinement_system->create_process(std::move(process_spec));
+    return process_factory->create_process(std::move(process_spec));
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const std::shared_ptr<ConfinementSystem>& confinement_system, const Path& path,
+mp::DNSMasqServer::DNSMasqServer(const mp::ProcessFactory* process_factory, const Path& path,
                                  const QString& bridge_name, const mp::IPAddress& bridge_addr,
                                  const mp::IPAddress& start, const mp::IPAddress& end)
-    : confinement_system{confinement_system},
+    : process_factory{process_factory},
       data_dir{QDir(path)},
-      dnsmasq_cmd{make_dnsmasq_process(confinement_system.get(), data_dir, bridge_name, bridge_addr, start, end)},
+      dnsmasq_cmd{make_dnsmasq_process(process_factory, data_dir, bridge_name, bridge_addr, start, end)},
       bridge_name{bridge_name}
 {
     QObject::connect(dnsmasq_cmd.get(), &Process::readyReadStandardError,

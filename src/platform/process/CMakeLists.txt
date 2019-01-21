@@ -1,4 +1,4 @@
-# Copyright © 2018 Canonical Ltd.
+# Copyright © 2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -14,33 +14,13 @@
 
 set(CMAKE_AUTOMOC ON)
 
-add_library(confinement STATIC
-  confinement_system.cpp
+add_library(process STATIC
   process.cpp
   process_spec.cpp
-  unconfined_system.cpp
-  # we need to run moc on this header
-  ${CMAKE_SOURCE_DIR}/include/multipass/process.h
-)
+  process_factory.cpp
+  # need to run MOC on this
+  ${CMAKE_SOURCE_DIR}/include/multipass/process.h)
 
-target_link_libraries(confinement
+target_link_libraries(process
   fmt
-  logger
-  Qt5::Core
-)
-
-# Require AppArmor support included on Linux
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  include(FindPkgConfig)
-  pkg_search_module(APPARMOR libapparmor REQUIRED)
-  add_definitions(-DAPPARMOR_ENABLED)
-
-  target_sources(confinement PRIVATE
-    apparmor.cpp
-    apparmor_confined_system.cpp
-  )
-
-  target_link_libraries(confinement
-    apparmor
-  )
-endif()
+  Qt5::Core)

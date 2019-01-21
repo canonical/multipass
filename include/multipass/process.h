@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_PROCESS_H
 #define MULTIPASS_PROCESS_H
 
-#include "process_spec.h"
 #include <QProcess>
 
 #include <memory>
@@ -26,26 +25,22 @@
 namespace multipass
 {
 
+// mp::Process is a one-time use process wrapper for possibly secured utilities
 class Process : public QProcess
 {
     Q_OBJECT
 public:
     virtual ~Process() = default;
-    Process(std::unique_ptr<ProcessSpec>&& spec);
 
     void start(const QStringList& extra_arguments = QStringList());
 
     bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
     QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
 
-protected:
-    Process() = delete;
-
-    const std::unique_ptr<ProcessSpec> process_spec;
-
 private:
-    // Want to tie Process to its ProcessSpec, so hide QProcess methods that can break the connection
+    // Hide QProcess methods that may cause mis-use of this class
     using QProcess::start;
+    using QProcess::startDetached;
     using QProcess::setProgram;
     using QProcess::setArguments;
 };

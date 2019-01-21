@@ -20,7 +20,7 @@
 #include "dnsmasq_server.h"
 
 #include <multipass/virtual_machine_factory.h>
-
+#include <multipass/process_factory.h>
 #include <unordered_map>
 
 namespace multipass
@@ -30,7 +30,7 @@ class ConfinementSystem;
 class QemuVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
-    explicit QemuVirtualMachineFactory(const std::shared_ptr<ConfinementSystem>& confinement_system,
+    explicit QemuVirtualMachineFactory(const ProcessFactory *process_factory,
                                        const Path& data_dir);
     ~QemuVirtualMachineFactory();
 
@@ -44,7 +44,7 @@ public:
     void check_hypervisor_support() override;
 
 private:
-    const std::shared_ptr<ConfinementSystem> confinement_system;
+    const ProcessFactory *process_factory;
     const QString bridge_name;
     DNSMasqServer dnsmasq_server;
     std::unordered_map<std::string, std::string> name_to_mac_map;

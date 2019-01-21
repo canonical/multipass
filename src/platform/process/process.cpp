@@ -19,18 +19,12 @@
 
 namespace mp = multipass;
 
-mp::Process::Process(std::unique_ptr<ProcessSpec>&& spec) : process_spec{std::move(spec)}
-{
-    setProgram(process_spec->program());
-    setArguments(process_spec->arguments());
-}
-
-void multipass::Process::start(const QStringList &extra_arguments)
+void mp::Process::start(const QStringList& extra_arguments)
 {
     QProcess::start(program(), arguments() << extra_arguments);
 }
 
-bool multipass::Process::run_and_return_status(const QStringList& extra_arguments, const int timeout)
+bool mp::Process::run_and_return_status(const QStringList& extra_arguments, const int timeout)
 {
     start(extra_arguments);
     waitForFinished(timeout);
@@ -38,7 +32,7 @@ bool multipass::Process::run_and_return_status(const QStringList& extra_argument
     return exitStatus() == QProcess::NormalExit && exitCode() == 0;
 }
 
-QString multipass::Process::run_and_return_output(const QStringList& extra_arguments, const int timeout)
+QString mp::Process::run_and_return_output(const QStringList& extra_arguments, const int timeout)
 {
     start(extra_arguments);
     waitForFinished(timeout);

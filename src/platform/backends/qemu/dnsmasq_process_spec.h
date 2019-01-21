@@ -15,20 +15,20 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_PROCESS_H
-#define MULTIPASS_DNSMASQ_PROCESS_H
+#ifndef MULTIPASS_DNSMASQ_PROCESS_SPEC_H
+#define MULTIPASS_DNSMASQ_PROCESS_SPEC_H
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-#include <multipass/process_spec.h>
+#include "apparmored_process_spec.h"
 
 #include <QDir>
 
 namespace multipass
 {
 
-class DNSMasqProcessSpec : public ProcessSpec
+class DNSMasqProcessSpec : public ApparmoredProcessSpec
 {
 public:
     explicit DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
@@ -46,4 +46,4 @@ private:
 
 } // namespace multipass
 
-#endif // MULTIPASS_DNSMASQ_PROCESS_H
+#endif // MULTIPASS_DNSMASQ_PROCESS_SPEC_H

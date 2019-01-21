@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,28 +15,28 @@
  *
  */
 
-#ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-#define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#ifndef MULTIPASS_APPARMORED_PROCESS_SPEC_H
+#define MULTIPASS_APPARMORED_PROCESS_SPEC_H
 
-#include "../backend_utils/apparmored_process_spec.h"
+#include "../../process/process_spec.h" // GERRY FIXME
 
 namespace multipass
 {
 
-class QemuImgProcessSpec : public ApparmoredProcessSpec
+class ApparmoredProcessSpec : public ProcessSpec
 {
 public:
-    explicit QemuImgProcessSpec(const QString& input_image_path, const QString& output_image_path = QString());
+    ApparmoredProcessSpec() = default;
+    virtual ~ApparmoredProcessSpec() = default;
 
-    QString program() const override;
-    QString apparmor_profile() const override;
+    virtual QString program() const = 0;
+    virtual QString apparmor_profile() const = 0;
 
-private:
-    const QString input_image_path;
-    const QString output_image_path;
-    const QString executable;
+    virtual QString identifier() const;
+
+    const QString apparmor_profile_name() const;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#endif // MULTIPASS_APPARMORED_PROCESS_SPEC_H

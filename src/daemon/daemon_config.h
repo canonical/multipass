@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/path.h>
+#include <multipass/process_factory.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 #include <multipass/ssh/ssh_key_provider.h>
@@ -42,6 +43,7 @@ struct DaemonConfig
 {
     ~DaemonConfig();
     const std::unique_ptr<URLDownloader> url_downloader;
+    const std::unique_ptr<ProcessFactory> process_factory;
     const std::unique_ptr<VirtualMachineFactory> factory;
     const std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     const std::unique_ptr<VMImageVault> vault;
@@ -61,6 +63,7 @@ struct DaemonConfig
 struct DaemonConfigBuilder
 {
     std::unique_ptr<URLDownloader> url_downloader;
+    std::unique_ptr<ProcessFactory> process_factory;
     std::unique_ptr<VirtualMachineFactory> factory;
     std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     std::unique_ptr<VMImageVault> vault;

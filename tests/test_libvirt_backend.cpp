@@ -25,6 +25,7 @@
 #include "temp_file.h"
 
 #include <multipass/platform.h>
+#include <multipass/process_factory.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -69,6 +70,7 @@ struct LibVirtBackend : public Test
                                                       dummy_cloud_init_iso.name(),
                                                       key_provider};
     mpt::TempDir data_dir;
+    mp::ProcessFactory process_factory;
 
     decltype(MOCK(virConnectClose)) connect_close{MOCK(virConnectClose)};
     decltype(MOCK(virDomainFree)) domain_free{MOCK(virDomainFree)};
@@ -79,7 +81,7 @@ struct LibVirtBackend : public Test
 TEST_F(LibVirtBackend, failed_connection_throws)
 {
     REPLACE(virConnectOpen, [](auto...) { return nullptr; });
-    EXPECT_THROW(mp::LibVirtVirtualMachineFactory backend{data_dir.path()}, std::runtime_error);
+    EXPECT_THROW(mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path()), std::runtime_error);
 }
 
 TEST_F(LibVirtBackend, creates_in_off_state)
@@ -99,7 +101,7 @@ TEST_F(LibVirtBackend, creates_in_off_state)
     });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
-    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    mp::LibVirtVirtualMachineFactory backend{&process_factory, data_dir.path()};
     mpt::StubVMStatusMonitor stub_monitor;
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
@@ -123,7 +125,7 @@ TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
     });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 1; });
 
-    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path());
     mpt::StubVMStatusMonitor stub_monitor;
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
@@ -150,7 +152,7 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
     REPLACE(virDomainManagedSave, [](auto...) { return 0; });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
-    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path());
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
@@ -186,7 +188,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
     REPLACE(virDomainManagedSave, [](auto...) { return 0; });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
-    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path());
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
@@ -216,7 +218,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_shutdown)
     REPLACE(virDomainManagedSave, [](auto...) { return 0; });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
-    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path());
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
@@ -247,7 +249,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
     REPLACE(virDomainManagedSave, [](auto...) { return 0; });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
-    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path());
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 

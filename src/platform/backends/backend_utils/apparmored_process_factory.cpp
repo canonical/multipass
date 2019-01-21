@@ -15,9 +15,9 @@
  *
  */
 
-#include "apparmor_confined_system.h"
+#include "apparmored_process_factory.h"
+#include "apparmored_process_spec.h"
 #include <multipass/process.h>
-#include <multipass/process_spec.h>
 
 namespace mp = multipass;
 
@@ -27,23 +27,25 @@ namespace
 class AppArmoredProcess : public mp::Process
 {
 public:
-    AppArmoredProcess(const mp::AppArmor& aa, std::unique_ptr<mp::ProcessSpec>&& spec)
-        : mp::Process(std::move(spec)), apparmor{aa}
+    AppArmoredProcess(const mp::AppArmor& aa, std::unique_ptr<mp::ApparmoredProcessSpec>&& spec)
+        : process_spec{std::move(spec)}, apparmor{aa}
     {
+        QProcess::setProgram(process_spec->program());
+        QProcess::setArguments(process_spec->arguments());
         apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
     }
 
     void setupChildProcess() final
     {
         // Drop all privileges in the child process, and enter a chroot jail.
-//      #if defined Q_OS_UNIX
-//          ::setgroups(0, 0);
-//          ::chroot("/etc/safe");
-//          ::chdir("/");
-//          ::setgid(safeGid);
-//          ::setuid(safeUid);
-//          ::umask(0);
-//      #endif
+        //      #if defined Q_OS_UNIX
+        //          ::setgroups(0, 0);
+        //          ::chroot("/etc/safe");
+        //          ::chdir("/");
+        //          ::setgid(safeGid);
+        //          ::setuid(safeUid);
+        //          ::umask(0);
+        //      #endif
 
         apparmor.next_exec_under_policy(process_spec->apparmor_profile_name().toLatin1());
     }
@@ -54,17 +56,18 @@ public:
     }
 
 private:
+    const std::unique_ptr<mp::ApparmoredProcessSpec> process_spec;
     const mp::AppArmor& apparmor;
 };
 
 } // namespace
 
-mp::AppArmorConfinedSystem::AppArmorConfinedSystem()
+mp::ApparmoredProcessFactory::ApparmoredProcessFactory()
 {
 }
 
 std::unique_ptr<mp::Process>
-mp::AppArmorConfinedSystem::create_process(std::unique_ptr<ProcessSpec>&& process_spec) const
+mp::ApparmoredProcessFactory::create_process(std::unique_ptr<ApparmoredProcessSpec>&& process_spec) const
 {
     return std::make_unique<::AppArmoredProcess>(apparmor, std::move(process_spec));
 }

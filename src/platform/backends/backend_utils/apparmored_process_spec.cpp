@@ -15,17 +15,29 @@
  *
  */
 
-#include "unconfined_system.h"
+#include "apparmored_process_spec.h"
 
-#include <multipass/process.h>
+#include <QFileInfo>
 
 namespace mp = multipass;
 
-mp::UnconfinedSystem::UnconfinedSystem()
+// For cases when multiple instances of this process need different apparmor profiles, use this
+// identifier to distinguish them
+QString multipass::ApparmoredProcessSpec::identifier() const
 {
+    return QString();
 }
 
-std::unique_ptr<mp::Process> mp::UnconfinedSystem::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
+const QString mp::ApparmoredProcessSpec::apparmor_profile_name() const
 {
-    return std::make_unique<mp::Process>(std::move(process_spec));
+    const QString executable_name = QFileInfo(program()).fileName(); // in case full path is specified
+
+    if (!identifier().isNull())
+    {
+        return QStringLiteral("multipass.") + identifier() + '.' + executable_name;
+    }
+    else
+    {
+        return QStringLiteral("multipass.") + executable_name;
+    }
 }
