@@ -116,7 +116,7 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
                                             default_uid, default_gid);
 }
 
-} // namespace anonymous
+} // namespace
 
 mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)

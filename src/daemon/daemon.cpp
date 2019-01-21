@@ -518,7 +518,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
       daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
       metrics_provider{"https://api.staging.jujucharms.com/omnibus/v4/multipass/metrics",
                        get_unique_id(config->data_directory), config->data_directory},
-      metrics_opt_in{get_metrics_opt_in(config->data_directory)}
+      metrics_opt_in{get_metrics_opt_in(config->data_directory)},
+      instance_mounts(*config->ssh_key_provider)
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -1244,8 +1245,7 @@ try // clang-format on
             continue;
         }
 
-        auto entry = mount_threads.find(name);
-        if (entry != mount_threads.end() && entry->second.find(target_path) != entry->second.end())
+        if (instance_mounts.has_instance_already_mounted(name, target_path))
         {
             fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
@@ -1257,7 +1257,7 @@ try // clang-format on
         {
             try
             {
-                start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
+                instance_mounts.start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1297,17 +1297,17 @@ try // clang-format on
     mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     const auto instances_and_status =
-            find_requested_instances(request->instance_names().instance_name(), deleted_instances,
-                                     std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
+        find_requested_instances(request->instance_names().instance_name(), deleted_instances,
+                                 std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     const auto& status = instances_and_status.second;   // idem
 
-    if(status.ok())
+    if (status.ok())
     {
         for (const auto& name : instances)
         {
             auto it = deleted_instances.find(name);
-            if(it != std::end(deleted_instances))
+            if (it != std::end(deleted_instances))
             {
                 assert(vm_instance_specs[name].deleted);
                 vm_instance_specs[name].deleted = false;
@@ -1467,7 +1467,7 @@ try // clang-format on
 
             try
             {
-                start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+                instance_mounts.start_mount(vm, name, source_path, target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1643,7 +1643,7 @@ try // clang-format on
             if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
 
-            stop_mounts_for_instance(name);
+            instance_mounts.stop_all_mounts_for_instance(name);
             instance->shutdown();
 
             if (purge)
@@ -1698,36 +1698,17 @@ try // clang-format on
         auto& mounts = vm_instance_specs[name].mounts;
         auto& vm = it->second;
 
-        auto stop_sshfs_for = [this, name](const std::string& target_path) {
-            auto sshfs_mount_it = mount_threads.find(name);
-            if (sshfs_mount_it == mount_threads.end())
-            {
-                return false;
-            }
-
-            auto& sshfs_mount_map = sshfs_mount_it->second;
-            auto map_entry = sshfs_mount_map.find(target_path);
-            if (map_entry != sshfs_mount_map.end())
-            {
-                auto& sshfs_mount = map_entry->second;
-                sshfs_mount->stop();
-                return true;
-            }
-            return false;
-        };
-
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
         {
-            stop_mounts_for_instance(name);
+            instance_mounts.stop_all_mounts_for_instance(name);
             mounts.clear();
         }
         else
         {
             if (vm->current_state() == mp::VirtualMachine::State::running)
             {
-                auto found = stop_sshfs_for(target_path);
-                if (!found)
+                if (!instance_mounts.stop_mount(name, target_path))
                 {
                     fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
                 }
@@ -1795,7 +1776,7 @@ void mp::Daemon::on_restart(const std::string& name)
 
         try
         {
-            start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+            instance_mounts.start_mount(vm, name, source_path, target_path, gid_map, uid_map);
         }
         catch (const std::exception& e)
         {
@@ -1878,46 +1859,6 @@ void mp::Daemon::persist_instances()
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
-void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
-                             const std::string& target_path, const std::unordered_map<int, int>& gid_map,
-                             const std::unordered_map<int, int>& uid_map)
-{
-    auto& key_provider = *config->ssh_key_provider;
-
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
-
-    mpl::log(mpl::Level::info, category, fmt::format("mounting {} => {} in {}", source_path, target_path, name));
-
-    auto sshfs_mount = std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map);
-    mount_threads[name][target_path] = std::move(sshfs_mount);
-
-    QObject::connect(mount_threads[name][target_path].get(), &SshfsMount::finished, this,
-                     [this, name, target_path]() {
-                         mount_threads[name].erase(target_path);
-                         mpl::log(mpl::Level::debug, category,
-                                  fmt::format("Mount stopped: '{}' in instance \"{}\"", target_path, name));
-                     },
-                     Qt::QueuedConnection);
-}
-
-void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
-{
-    auto mounts_it = mount_threads.find(instance);
-    if (mounts_it == mount_threads.end() || mounts_it->second.empty())
-    {
-        mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
-    }
-    else
-    {
-        for (auto& sshfs_mount : mounts_it->second)
-        {
-            mpl::log(mpl::Level::debug, category,
-                     fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
-            sshfs_mount.second->stop();
-        }
-    }
-}
-
 void mp::Daemon::release_resources(const std::string& instance)
 {
     config->factory->remove_resources_for(instance);
@@ -1940,7 +1881,7 @@ std::string mp::Daemon::check_instance_operational(const std::string& instance_n
 
 std::string mp::Daemon::check_instance_exists(const std::string& instance_name) const
 {
-    if(vm_instances.find(instance_name) == std::cend(vm_instances) &&
+    if (vm_instances.find(instance_name) == std::cend(vm_instances) &&
         deleted_instances.find(instance_name) == std::cend(deleted_instances))
         return fmt::format("instance \"{}\" does not exist\n", instance_name);
 
@@ -1976,8 +1917,10 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
         auto& shutdown_timer = delayed_shutdown_instances[name] =
             std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
 
-        QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
-                         [this, name]() { delayed_shutdown_instances.erase(name); });
+        QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished, [this, name]() {
+            instance_mounts.stop_all_mounts_for_instance(name);
+            delayed_shutdown_instances.erase(name);
+        });
 
         shutdown_timer->start(delay);
     }

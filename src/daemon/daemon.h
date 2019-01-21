@@ -23,7 +23,7 @@
 
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/metrics_provider.h>
-#include <multipass/sshfs_mount/sshfs_mount.h>
+#include <multipass/sshfs_mount/sshfs_mounts.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -125,10 +125,6 @@ signals:
 
 private:
     void persist_instances();
-    void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
-                     const std::string& target_path, const std::unordered_map<int, int>& gid_map,
-                     const std::unordered_map<int, int>& uid_map);
-    void stop_mounts_for_instance(const std::string& instance);
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
@@ -141,7 +137,6 @@ private:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::UPtr> vm_instances;
     std::unordered_map<std::string, VirtualMachine::UPtr> deleted_instances;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
@@ -149,6 +144,7 @@ private:
     QTimer source_images_maintenance_task;
     MetricsProvider metrics_provider;
     MetricsOptInData metrics_opt_in;
+    SSHFSMounts instance_mounts;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H

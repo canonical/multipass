@@ -49,5 +49,5 @@ private:
     std::unique_ptr<SftpServer> sftp_server;
     std::thread sftp_thread;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SSHFS_MOUNT
