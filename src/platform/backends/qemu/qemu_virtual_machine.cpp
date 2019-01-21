@@ -319,9 +319,10 @@ void mp::QemuVirtualMachine::suspend()
             update_shutdown_status = false;
         }
     }
-    else if (state == State::off)
+    else if (state == State::off || state == State::suspended)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped/suspended"));
+        monitor->on_suspend();
     }
 }
 
