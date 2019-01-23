@@ -19,7 +19,7 @@
 #define MULTIPASS_BACKEND_UTILS_H
 
 #include <multipass/path.h>
-#include <multipass/process_factory.h>
+#include "process_factory.h"
 
 #include <string>
 

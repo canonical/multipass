@@ -19,11 +19,13 @@
 #define MULTIPASS_PLATFORM_H
 
 #include <multipass/logging/logger.h>
-#include <multipass/process_factory.h>
+#include <multipass/sshfs_server_config.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <libssh/sftp.h>
+#include <QProcess>
 
+#include <memory>
 #include <string>
 
 namespace multipass
@@ -31,8 +33,8 @@ namespace multipass
 namespace platform
 {
 std::string default_server_address();
-VirtualMachineFactory::UPtr vm_backend(ProcessFactory* process_factory, const Path& data_dir);
-ProcessFactory::UPtr process_factory();
+VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
+std::unique_ptr<QProcess> make_sshfs_server_process(const SSHFSServerConfig& config);
 logging::Logger::UPtr make_logger(logging::Level level);
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);

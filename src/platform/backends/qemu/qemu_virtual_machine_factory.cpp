@@ -18,10 +18,11 @@
 #include "qemu_virtual_machine_factory.h"
 #include "qemu_virtual_machine.h"
 
+#include "process_factory.h"
+
 #include <multipass/backend_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
-#include <multipass/process_factory.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 

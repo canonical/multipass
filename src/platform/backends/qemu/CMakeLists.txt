@@ -16,9 +16,6 @@
 
 set(CMAKE_AUTOMOC ON)
 
-include_directories(qemu_backend
-  ../backend_utils)
-
 add_library(qemu_backend STATIC
   dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
@@ -31,7 +28,6 @@ target_link_libraries(qemu_backend
   backend_utils
   fmt
   logger
-  process
   Qt5::Core
   Qt5::Network
   ip_address

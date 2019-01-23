@@ -15,21 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_APPARMORED_PROCESS_SPEC_H
-#define MULTIPASS_APPARMORED_PROCESS_SPEC_H
+#ifndef MULTIPASS_PROCESS_SPEC_H
+#define MULTIPASS_PROCESS_SPEC_H
 
-#include "../../process/process_spec.h" // GERRY FIXME
+#include <QString>
+#include <QProcessEnvironment>
 
 namespace multipass
 {
 
-class ApparmoredProcessSpec : public ProcessSpec
+class ProcessSpec
 {
 public:
-    ApparmoredProcessSpec() = default;
-    virtual ~ApparmoredProcessSpec() = default;
+    ProcessSpec() = default;
+    virtual ~ProcessSpec() = default;
 
     virtual QString program() const = 0;
+    virtual QStringList arguments() const;
+    virtual QProcessEnvironment environment() const;
+
     virtual QString apparmor_profile() const = 0;
 
     virtual QString identifier() const;
@@ -39,4 +43,4 @@ public:
 
 } // namespace multipass
 
-#endif // MULTIPASS_APPARMORED_PROCESS_SPEC_H
+#endif // MULTIPASS_PROCESS_SPEC_H

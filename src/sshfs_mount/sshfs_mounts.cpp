@@ -17,11 +17,11 @@
 
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/sshfs_mount/sshfs_mounts.h>
+#include <multipass/sshfs_server_config.h>
+#include <multipass/platform.h>
 
 #include <fmt/format.h>
 #include <multipass/logging/log.h>
-
-#include <QCoreApplication>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -29,17 +29,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "sshfs-mounts";
-
-QString serialise_id_map(const std::unordered_map<int, int>& id_map)
-{
-    QString out;
-    for (auto ids : id_map)
-    {
-        out += QString("%1:%2,").arg(ids.first).arg(ids.second);
-    }
-    return out;
 }
-} // namespace
 
 mp::SSHFSMounts::SSHFSMounts(const SSHKeyProvider& key_provider) : key(key_provider.private_key_as_base64())
 {
@@ -50,19 +40,18 @@ void mp::SSHFSMounts::start_mount(const mp::VirtualMachine::UPtr& vm, const std:
                                   const std::unordered_map<int, int>& gid_map,
                                   const std::unordered_map<int, int>& uid_map)
 {
-    const auto host = vm->ssh_hostname();
-    const auto port = vm->ssh_port();
-    const auto username = vm->ssh_username();
+    mp::SSHFSServerConfig config;
+    config.host = vm->ssh_hostname();
+    config.port = vm->ssh_port();
+    config.username = vm->ssh_username();
+    config.instance = instance;
+    config.target_path = target_path;
+    config.source_path = source_path;
+    config.uid_map = uid_map;
+    config.gid_map = gid_map;
 
-    auto sshfs_server_process = std::make_unique<QProcess>();
-    sshfs_server_process->setProgram(QCoreApplication::applicationDirPath() + "/sshfs_server");
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("KEY", QString::fromStdString(key)); // Add an environment variable
-    sshfs_server_process->setProcessEnvironment(env);
-    sshfs_server_process->setArguments(
-        QStringList() << QString::fromStdString(host) << QString::number(port) << QString::fromStdString(username)
-                      << QString::fromStdString(source_path) << QString::fromStdString(target_path)
-                      << serialise_id_map(uid_map) << serialise_id_map(gid_map));
+
+    auto sshfs_server_process = mp::platform::make_sshfs_server_process(config);
 
     QObject::connect(sshfs_server_process.get(), qOverload<int>(&QProcess::finished), this,
                      [this, instance, target_path](int exitCode) {
@@ -90,6 +79,7 @@ void mp::SSHFSMounts::start_mount(const mp::VirtualMachine::UPtr& vm, const std:
              fmt::format("process program '{}'", sshfs_server_process->program().toStdString()));
     mpl::log(mpl::Level::info, category,
              fmt::format("process arguments '{}'", sshfs_server_process->arguments().join(", ").toStdString()));
+
     sshfs_server_process->start(QIODevice::ReadOnly);
 
     mount_processes[instance][target_path] = std::move(sshfs_server_process);

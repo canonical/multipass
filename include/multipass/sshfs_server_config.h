@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,27 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_SPEC_H
-#define MULTIPASS_PROCESS_SPEC_H
+#ifndef MULTIPASS_SSHFS_SERVER_CONFIG_H
+#define MULTIPASS_SSHFS_SERVER_CONFIG_H
 
-#include <QStringList>
+#include <string>
+#include <unordered_map>
 
 namespace multipass
 {
 
-class ProcessSpec
+struct SSHFSServerConfig
 {
-public:
-    ProcessSpec() = default;
-    virtual ~ProcessSpec() = default;
-
-    virtual QString program() const = 0;
-    virtual QStringList arguments() const;
+    std::string host;
+    int port;
+    std::string username;
+    std::string instance;
+    std::string private_key;
+    std::string source_path;
+    std::string target_path;
+    std::unordered_map<int, int> gid_map;
+    std::unordered_map<int, int> uid_map;
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_PROCESS_SPEC_H
+#endif // MULTIPASS_SSHFS_SERVER_CONFIG_H

@@ -16,6 +16,7 @@
  */
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+#include <src/platform/backends/backend_utils/process_factory.h>
 
 #include "mock_status_monitor.h"
 #include "stub_ssh_key_provider.h"
@@ -27,7 +28,6 @@
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/process_factory.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

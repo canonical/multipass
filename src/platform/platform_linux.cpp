@@ -21,45 +21,63 @@
 
 #include <multipass/virtual_machine_factory.h>
 
+#include "backends/backend_utils/process.h"
+#include "backends/backend_utils/process_factory.h"
+#include "backends/backend_utils/sshfs_server_process_spec.h"
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 
 namespace mp = multipass;
 
+namespace
+{
+static mp::ProcessFactory::UPtr static_process_factory;
+
+mp::ProcessFactory* process_factory()
+{
+    if (!static_process_factory)
+    {
+
+#ifdef APPARMOR_ENABLED
+        const auto disable_apparmor = qgetenv("DISABLE_APPARMOR");
+        auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+
+        if (disable_apparmor.isNull() && driver != "LIBVIRT")
+        {
+            return std::make_unique<mp::AppArmoredProcessFactory>();
+        }
+#endif
+        static_process_factory = std::make_unique<mp::ProcessFactory>();
+    }
+    return static_process_factory.get();
+}
+} // namespace
+
 std::string mp::platform::default_server_address()
 {
     return {"unix:/run/multipass_socket"};
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(mp::ProcessFactory* process_factory, const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
     if (driver.isEmpty() || driver == "QEMU")
     {
-        return std::make_unique<QemuVirtualMachineFactory>(process_factory, data_dir);
+        return std::make_unique<QemuVirtualMachineFactory>(::process_factory(), data_dir);
     }
     else if (driver == "LIBVIRT")
     {
-        return std::make_unique<LibVirtVirtualMachineFactory>(process_factory, data_dir);
+        return std::make_unique<LibVirtVirtualMachineFactory>(::process_factory(), data_dir);
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
-mp::ProcessFactory::UPtr mp::platform::process_factory()
+std::unique_ptr<QProcess> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
 {
-#ifdef APPARMOR_ENABLED
-    const auto disable_apparmor = qgetenv("DISABLE_APPARMOR");
-    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
-
-    if (disable_apparmor.isNull() && driver != "LIBVIRT")
-    {
-        return std::make_unique<mp::AppArmoredProcessFactory>();
-    }
-#endif
-    return std::make_unique<mp::ProcessFactory>();
+    return ::process_factory()->create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

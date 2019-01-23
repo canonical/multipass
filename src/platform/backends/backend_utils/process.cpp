@@ -15,9 +15,18 @@
  *
  */
 
-#include <multipass/process.h>
+#include "process.h"
+#include "process_spec.h"
 
 namespace mp = multipass;
+
+mp::Process::Process(std::unique_ptr<mp::ProcessSpec> &&spec)
+    : process_spec{std::move(spec)}
+{
+    setProgram(process_spec->program());
+    setArguments(process_spec->arguments());
+    setProcessEnvironment(process_spec->environment());
+}
 
 void mp::Process::start(const QStringList& extra_arguments)
 {

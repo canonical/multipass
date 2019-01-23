@@ -20,12 +20,12 @@
 #include "dnsmasq_server.h"
 
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/process_factory.h>
 #include <unordered_map>
 
 namespace multipass
 {
 class ConfinementSystem;
+class ProcessFactory;
 
 class QemuVirtualMachineFactory final : public VirtualMachineFactory
 {

@@ -18,12 +18,13 @@
 #include "qemu_virtual_machine.h"
 
 #include "dnsmasq_server.h"
+#include "process.h"
+#include "process_factory.h"
 #include "qemu_process_spec.h"
 #include "qemuimg_process_spec.h"
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
-#include <multipass/process_factory.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>

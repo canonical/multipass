@@ -16,6 +16,7 @@
  */
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
+#include <src/platform/backends/backend_utils/process_factory.h>
 
 #include "mock_libvirt.h"
 #include "mock_status_monitor.h"
@@ -25,7 +26,6 @@
 #include "temp_file.h"
 
 #include <multipass/platform.h>
-#include <multipass/process_factory.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 

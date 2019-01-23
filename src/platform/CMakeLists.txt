@@ -25,8 +25,10 @@ target_link_libraries(platform
   libvirt_backend
   journaldlogger)
 
+include_directories(platform
+  backends/backend_utils)
+
 add_subdirectory(backends)
 add_subdirectory(client)
 add_subdirectory(console)
 add_subdirectory(logger)
-add_subdirectory(process)

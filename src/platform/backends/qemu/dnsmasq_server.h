@@ -21,16 +21,16 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-#include <multipass/process.h>
-#include <multipass/process_factory.h>
 
 #include <QDir>
+#include <QProcess>
 
 #include <memory>
 #include <string>
 
 namespace multipass
 {
+class ProcessFactory;
 
 class DNSMasqServer
 {
@@ -46,7 +46,7 @@ public:
 private:
     const ProcessFactory* process_factory;
     const QDir data_dir;
-    std::unique_ptr<Process> dnsmasq_cmd;
+    std::unique_ptr<QProcess> dnsmasq_cmd;
     QString bridge_name;
 };
 

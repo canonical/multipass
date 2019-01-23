@@ -26,7 +26,6 @@ function(add_libvirt_target TARGET_NAME)
     backend_utils
     fmt
     ip_address
-    process
     Qt5::Core
     ssh
     utils

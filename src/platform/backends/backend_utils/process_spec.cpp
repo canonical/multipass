@@ -15,20 +15,32 @@
  *
  */
 
-#include "apparmored_process_spec.h"
+#include "process_spec.h"
 
 #include <QFileInfo>
 
 namespace mp = multipass;
 
+// Create Process with these fixed arguments. Other optional arguments can be appended in Process::start()
+QStringList mp::ProcessSpec::arguments() const
+{
+    return QStringList();
+}
+
+// Set environment of child as that of this process
+QProcessEnvironment multipass::ProcessSpec::environment() const
+{
+    return QProcessEnvironment::systemEnvironment();
+}
+
 // For cases when multiple instances of this process need different apparmor profiles, use this
 // identifier to distinguish them
-QString multipass::ApparmoredProcessSpec::identifier() const
+QString multipass::ProcessSpec::identifier() const
 {
     return QString();
 }
 
-const QString mp::ApparmoredProcessSpec::apparmor_profile_name() const
+const QString mp::ProcessSpec::apparmor_profile_name() const
 {
     const QString executable_name = QFileInfo(program()).fileName(); // in case full path is specified
 

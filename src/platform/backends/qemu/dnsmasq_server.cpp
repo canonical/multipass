@@ -18,8 +18,9 @@
 #include "dnsmasq_server.h"
 
 #include <multipass/logging/log.h>
-#include <multipass/process.h>
 #include <multipass/utils.h>
+#include "process.h"
+#include "process_factory.h"
 
 #include <fmt/format.h>
 

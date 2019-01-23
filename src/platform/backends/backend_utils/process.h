@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_PROCESS_H
 #define MULTIPASS_PROCESS_H
 
+#include "process_spec.h"
 #include <QProcess>
-
 #include <memory>
 
 namespace multipass
@@ -30,6 +30,8 @@ class Process : public QProcess
 {
     Q_OBJECT
 public:
+    using UPtr = std::unique_ptr<Process>;
+
     virtual ~Process() = default;
 
     void start(const QStringList& extra_arguments = QStringList());
@@ -37,7 +39,10 @@ public:
     bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
     QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
 
-private:
+protected:
+    Process(std::unique_ptr<ProcessSpec>&& spec);
+    const std::unique_ptr<ProcessSpec> process_spec;
+
     // Hide QProcess methods that may cause mis-use of this class
     using QProcess::start;
     using QProcess::startDetached;

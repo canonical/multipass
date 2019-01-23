@@ -21,14 +21,14 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-#include "apparmored_process_spec.h"
+#include "process_spec.h"
 
 #include <QDir>
 
 namespace multipass
 {
 
-class DNSMasqProcessSpec : public ApparmoredProcessSpec
+class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
     explicit DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,

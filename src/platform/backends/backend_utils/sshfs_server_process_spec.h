@@ -15,12 +15,32 @@
  *
  */
 
+#ifndef MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
+#define MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
+
 #include "process_spec.h"
 
-namespace mp = multipass;
+#include <multipass/sshfs_server_config.h>
 
-// Create Process with fixed list of arguments
-QStringList mp::ProcessSpec::arguments() const
+namespace multipass
 {
-    return QStringList();
-}
+
+class SSHFSServerProcessSpec : public ProcessSpec
+{
+public:
+    explicit SSHFSServerProcessSpec(const SSHFSServerConfig& config);
+
+    QString program() const override;
+    QStringList arguments() const override;
+    QProcessEnvironment environment() const override;
+    QString apparmor_profile() const override;
+
+    QString identifier() const override;
+
+private:
+    const SSHFSServerConfig config;
+};
+
+} // namespace multipass
+
+#endif // MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H

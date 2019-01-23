@@ -89,6 +89,7 @@ int main(int argc, char* argv[])
         sigemptyset(&sigset);
         sigaddset(&sigset, SIGQUIT);
         sigaddset(&sigset, SIGTERM);
+        sigaddset(&sigset, SIGHUP); // under POSIX, if process group parent dies, this child should get SIGHUP
         sigprocmask(SIG_BLOCK, &sigset, nullptr);
         int sig = -1;
 

@@ -15,8 +15,8 @@
  *
  */
 
-#include <multipass/process_factory.h>
-#include <multipass/process.h>
+#include "process_factory.h"
+#include "process.h"
 #include "process_spec.h"
 
 namespace mp = multipass;
@@ -25,14 +25,8 @@ class UnsecuredProcess : public mp::Process
 {
 public:
     UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec)
-        : process_spec{std::move(spec)}
-    {
-        QProcess::setProgram(process_spec->program());
-        QProcess::setArguments(process_spec->arguments());
-    }
-
-private:
-    const std::unique_ptr<mp::ProcessSpec> process_spec;
+        : Process{std::move(spec)}
+    {}
 };
 
 

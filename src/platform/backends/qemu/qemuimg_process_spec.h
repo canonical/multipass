@@ -18,12 +18,12 @@
 #ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
 #define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
 
-#include "../backend_utils/apparmored_process_spec.h"
+#include "process_spec.h"
 
 namespace multipass
 {
 
-class QemuImgProcessSpec : public ApparmoredProcessSpec
+class QemuImgProcessSpec : public ProcessSpec
 {
 public:
     explicit QemuImgProcessSpec(const QString& input_image_path, const QString& output_image_path = QString());

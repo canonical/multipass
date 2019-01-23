@@ -16,10 +16,10 @@
  */
 
 #include <src/platform/backends/qemu/dnsmasq_server.h>
+#include <src/platform/backends/backend_utils/process_factory.h>
 
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
-#include <multipass/process_factory.h>
 
 #include "file_operations.h"
 #include "temp_dir.h"
