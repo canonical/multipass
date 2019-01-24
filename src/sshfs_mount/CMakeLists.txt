@@ -45,3 +45,7 @@ add_executable(sshfs_server
 target_link_libraries(sshfs_server
   logger
   sshfs_mount)
+
+install(TARGETS sshfs_server
+  DESTINATION bin
+  COMPONENT multipassd)
