@@ -52,7 +52,8 @@ mp::DNSMasqServer::DNSMasqServer(const mp::ProcessFactory* process_factory, cons
     QObject::connect(dnsmasq_cmd.get(), &Process::readyReadStandardError,
                      [this]() { mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_cmd->readAllStandardError().data()); });
 
-    dnsmasq_cmd->start();
+    auto p = dnsmasq_cmd.get();
+    static_cast<mp::Process*>(p)->start();
     dnsmasq_cmd->waitForStarted();
 }
 

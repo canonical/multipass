@@ -15,13 +15,11 @@
 set (CMAKE_AUTOMOC ON)
 add_library(backend_utils STATIC
   backend_utils.cpp
+  process.cpp
   process_spec.cpp
   process_factory.cpp
-  sshfs_server_process_spec.cpp
-  process.cpp)
-
-INCLUDE_DIRECTORIES(backend_utils
-  .)
+  snap_utils.cpp
+  sshfs_server_process_spec.cpp)
 
 target_link_libraries(backend_utils
   fmt

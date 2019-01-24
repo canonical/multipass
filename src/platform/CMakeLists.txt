@@ -16,6 +16,9 @@
 
 set(CMAKE_AUTOMOC ON)
 
+include(FindPkgConfig)
+pkg_search_module(APPARMOR libapparmor REQUIRED)
+
 add_library(platform STATIC
   platform_linux.cpp
   platform_unix.cpp)

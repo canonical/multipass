@@ -16,20 +16,23 @@
  */
 
 #include "qemuimg_process_spec.h"
+#include "snap_utils.h"
 
+namespace mp = multipass;
+namespace ms = multipass::snap;
 
-multipass::QemuImgProcessSpec::QemuImgProcessSpec(const QString& input_image_path, const QString& output_image_path)
+mp::QemuImgProcessSpec::QemuImgProcessSpec(const QString& input_image_path, const QString& output_image_path)
     : input_image_path{input_image_path}, output_image_path{output_image_path}
 
 {
 }
 
-QString multipass::QemuImgProcessSpec::program() const
+QString mp::QemuImgProcessSpec::program() const
 {
     return QStringLiteral("qemu-img");
 }
 
-QString multipass::QemuImgProcessSpec::apparmor_profile() const
+QString mp::QemuImgProcessSpec::apparmor_profile() const
 {
     QString profile_template(R"END(
 #include <tunables/global>
@@ -46,13 +49,11 @@ profile %1 flags=(attach_disconnected) {
 }
     )END");
 
-    const QString snap_dir = qgetenv("SNAP"); // validate??
-
     QString optional_output_rule;
     if (!output_image_path.isNull())
     {
         optional_output_rule = output_image_path + " rwk,";
     }
 
-    return profile_template.arg(apparmor_profile_name(), snap_dir, input_image_path, optional_output_rule);
+    return profile_template.arg(apparmor_profile_name(), ms::snap_dir(), input_image_path, optional_output_rule);
 }

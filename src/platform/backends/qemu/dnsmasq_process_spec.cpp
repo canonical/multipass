@@ -16,17 +16,19 @@
  */
 
 #include "dnsmasq_process_spec.h"
+#include "snap_utils.h"
+#include <signal.h>
 
 namespace mp = multipass;
+namespace ms = multipass::snap;
 
 namespace
 {
 static QString pid_file()
 {
-    QString snap_common = qgetenv("SNAP_COMMON");
-    if (!snap_common.isEmpty())
+    if (ms::is_snap_confined())
     {
-        return QString("%1/dnsmasq.pid").arg(snap_common);
+        return QString("%1/dnsmasq.pid").arg(ms::snap_common_dir());
     }
     else
     {
@@ -49,7 +51,7 @@ mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& 
 
 QString mp::DNSMasqProcessSpec::program() const
 {
-    return QStringLiteral("dnsmasq");
+    return QStringLiteral("dnsmasq"); // depend on desired binary being in $PATH
 }
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
@@ -111,22 +113,30 @@ profile %1 flags=(attach_disconnected) {
 }
     )END");
 
-    // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
-    const QString snap_dir = qgetenv("SNAP"); // validate??
-    QString signal_peer;
+    /* Customisations depending on if running inside snap or not */
+    QString root_dir;    // root directory: either "/" or $SNAP
+    QString signal_peer; // who can send kill signal to dnsmasq
 
-    if (!snap_dir.isEmpty()) // if snap confined, specify only multipassd can kill dnsmasq
+    if (ms::is_snap_confined()) // if snap confined, specify only multipassd can kill dnsmasq
     {
+        root_dir = ms::snap_dir();
         signal_peer = "peer=snap.multipass.multipassd";
     }
 
-    // If multipassd not confined, we let dnsmasq decide where to create its pid file, but still need to tell apparmor
+    // If multipassd not confined, we let dnsmasq decide where to create its pid file, but we still need to tell
+    // apparmor where that'll be
     QString pid = pid_file;
     if (pid.isNull())
     {
         pid = "/{,var/}run/*dnsmasq*.pid";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, snap_dir, data_dir.filePath("dnsmasq.leases"),
+    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, data_dir.filePath("dnsmasq.leases"),
                                 data_dir.filePath("dnsmasq.hosts"), pid);
+}
+
+// dnsmasq process ignores SIGTERM, but does shut down correctly to SIGQUIT
+int multipass::DNSMasqProcessSpec::stop_signal() const
+{
+    return SIGQUIT;
 }

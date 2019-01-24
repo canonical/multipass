@@ -21,6 +21,7 @@
 
 #include <multipass/virtual_machine_factory.h>
 
+#include "backends/backend_utils/apparmored_process_factory.h"
 #include "backends/backend_utils/process.h"
 #include "backends/backend_utils/process_factory.h"
 #include "backends/backend_utils/sshfs_server_process_spec.h"
@@ -38,17 +39,17 @@ mp::ProcessFactory* process_factory()
 {
     if (!static_process_factory)
     {
-
-#ifdef APPARMOR_ENABLED
         const auto disable_apparmor = qgetenv("DISABLE_APPARMOR");
         auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
         if (disable_apparmor.isNull() && driver != "LIBVIRT")
         {
-            return std::make_unique<mp::AppArmoredProcessFactory>();
+            static_process_factory = std::make_unique<mp::AppArmoredProcessFactory>();
         }
-#endif
-        static_process_factory = std::make_unique<mp::ProcessFactory>();
+        else
+        {
+            static_process_factory = std::make_unique<mp::ProcessFactory>();
+        }
     }
     return static_process_factory.get();
 }

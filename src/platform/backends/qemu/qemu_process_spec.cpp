@@ -17,10 +17,13 @@
 
 #include "qemu_process_spec.h"
 
+#include "snap_utils.h"
 #include <QHash>
 #include <QString>
+#include <signal.h>
 
 namespace mp = multipass;
+namespace ms = multipass::snap;
 
 namespace
 {
@@ -152,27 +155,32 @@ profile %1 flags=(attach_disconnected) {
 }
     )END");
 
-    const QString snap_dir = qgetenv("SNAP"); // validate??
+    /* Customisations depending on if running inside snap or not */
+    QString root_dir;    // root directory: either "/" or $SNAP
+    QString signal_peer; // who can send kill signal to qemu
+    QString firmware;    // location of bootloader firmware needed by qemu
 
-    QString signal_peer;
-    if (!snap_dir.isEmpty()) // if snap confined, specify only multipassd can kill dnsmasq
+    if (ms::is_snap_confined())
     {
-        signal_peer = "peer=snap.multipass.multipassd";
+        root_dir = ms::snap_dir();
+        signal_peer = "peer=snap.multipass.multipassd"; // only multipassd can send qemu signals
+        firmware = root_dir + "/qemu/*";                // if snap confined, firmware in $SNAP/qemu
     }
-
-    QString firmware;
-    if (!snap_dir.isEmpty()) // if snap confined, firmware in $SNAP/qemu
+    else
     {
-        firmware = snap_dir + "/qemu/*";
-    } else {
         firmware = "/usr/share/seabios/*";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, snap_dir, firmware, program(),
+    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, firmware, program(),
                                 desc.image.image_path, desc.cloud_init_iso);
 }
 
 QString mp::QemuProcessSpec::identifier() const
 {
     return QString::fromStdString(desc.vm_name);
+}
+
+int multipass::QemuProcessSpec::stop_signal() const
+{
+    return SIGQUIT;
 }

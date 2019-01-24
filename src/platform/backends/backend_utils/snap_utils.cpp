@@ -15,33 +15,32 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_SPEC_H
-#define MULTIPASS_PROCESS_SPEC_H
+#include "snap_utils.h"
 
-#include <QString>
-#include <QProcessEnvironment>
+namespace ms = multipass::snap;
 
-namespace multipass
+bool ms::is_snap_confined()
 {
+    // Decide if Snap confined based on if $SNAP env var is set.
+    return !snap_dir().isEmpty();
+}
 
-class ProcessSpec
+QString ms::snap_dir()
 {
-public:
-    ProcessSpec() = default;
-    virtual ~ProcessSpec() = default;
+    static QString snap_env;
+    if (snap_env.isNull())
+    {
+        snap_env = qgetenv("SNAP"); // Question - need to validate is expected dir?
+    }
+    return snap_env;
+}
 
-    virtual QString program() const = 0;
-    virtual QStringList arguments() const;
-    virtual QProcessEnvironment environment() const;
-
-    virtual QString apparmor_profile() const = 0;
-    const QString apparmor_profile_name() const;
-
-    virtual QString identifier() const;
-
-    virtual int stop_signal() const;
-};
-
-} // namespace multipass
-
-#endif // MULTIPASS_PROCESS_SPEC_H
+QString ms::snap_common_dir()
+{
+    static QString snap_common_env;
+    if (snap_common_env.isNull())
+    {
+        snap_common_env = qgetenv("SNAP_COMMON"); // Question - need to validate is expected dir?
+    }
+    return snap_common_env;
+}

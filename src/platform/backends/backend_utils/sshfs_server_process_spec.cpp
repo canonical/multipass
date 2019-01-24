@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,13 @@
 #include "sshfs_server_process_spec.h"
 
 #include <QCoreApplication>
+#include <QCryptographicHash>
+#include <QDir>
+
+#include "snap_utils.h"
 
 namespace mp = multipass;
+namespace ms = multipass::snap;
 
 namespace
 {
@@ -32,9 +37,18 @@ QString serialise_id_map(const std::unordered_map<int, int>& id_map)
     }
     return out;
 }
+
+QByteArray gen_hash(const std::string& path)
+{
+    // need to return unique name for each mount.  The target directory string will be unique,
+    // so hash it and return first 8 hex chars.
+    return QCryptographicHash::hash(QByteArray::fromStdString(path), QCryptographicHash::Sha256).toHex().left(8);
+}
+
 } // namespace
 
-mp::SSHFSServerProcessSpec::SSHFSServerProcessSpec(const SSHFSServerConfig& config) : config(config)
+mp::SSHFSServerProcessSpec::SSHFSServerProcessSpec(const SSHFSServerConfig& config)
+    : config(config), target_hash(gen_hash(config.source_path))
 {
 }
 
@@ -60,39 +74,59 @@ QProcessEnvironment mp::SSHFSServerProcessSpec::environment() const
 
 QString mp::SSHFSServerProcessSpec::apparmor_profile() const
 {
-    // Profile based on https://github.com/Rafiot/apparmor-profiles/blob/master/profiles/usr.sbin.dnsmasq
     QString profile_template(R"END(
 #include <tunables/global>
 profile %1 flags=(attach_disconnected) {
     #include <abstractions/base>
-    #include <abstractions/dbus>
     #include <abstractions/nameservice>
 
-    capability chown,
-    capability net_bind_service,
-    capability setgid,
-    capability setuid,
+    # required for reading and modifying host directories
     capability dac_override,
-    capability net_admin,         # for DHCP server
-    capability net_raw,           # for DHCP server ping checks
-    network inet raw,
-    network inet6 raw,
+    capability chown,
+    capability fsetid,
+    capability fowner,
+    capability setuid,
+    capability setgid,
+
+    # Allow multipassd send sshfs_server signals
+    signal (receive) %2,
+
+    # sshfs gathers some info about system resources
+    /sys/devices/system/node/ r,
+    /sys/devices/system/node/node[0-9]*/meminfo r,
+
+    # binary and its libs
+    %3/bin/sshfs_server ixr,
+    %3/{usr/,}lib/** rm,
+
+    # allow full access to source path on host
+    %4/ rwlk,
+    %4/** rwlk,
 }
     )END");
 
-    // If running as a snap, presuming fully confined, so need to add rule to allow mmap of binary to be launched.
-    const QString snap_dir = qgetenv("SNAP"); // validate??
-    QString signal_peer;
+    /* Customisations depending on if running inside snap or not */
+    QString root_dir; // sshfs_server is a multipass utility, is located relative to the multipassd binary if not in a
+                      // snap. If snapped, is located relative to $SNAP
+    QString signal_peer; // if snap confined, specify only multipassd can kill dnsmasq
 
-    if (!snap_dir.isEmpty()) // if snap confined, specify only multipassd can kill dnsmasq
+    if (ms::is_snap_confined())
     {
+        root_dir = ms::snap_dir();
         signal_peer = "peer=snap.multipass.multipassd";
     }
+    else
+    {
+        QDir application_dir(QCoreApplication::applicationDirPath());
+        application_dir.cdUp();
+        root_dir = application_dir.absolutePath();
+    }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, snap_dir);
+    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir,
+                                QString::fromStdString(config.source_path));
 }
 
 QString multipass::SSHFSServerProcessSpec::identifier() const
 {
-    return QString::fromStdString(config.instance);
+    return QString::fromStdString(config.instance) + "." + target_hash;
 }

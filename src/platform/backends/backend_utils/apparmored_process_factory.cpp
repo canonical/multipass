@@ -34,6 +34,8 @@ public:
 
     void setupChildProcess() final
     {
+        mp::Process::setupChildProcess();
+
         // Drop all privileges in the child process, and enter a chroot jail.
         //      #if defined Q_OS_UNIX
         //          ::setgroups(0, 0);
@@ -58,12 +60,12 @@ private:
 
 } // namespace
 
-mp::ApparmoredProcessFactory::ApparmoredProcessFactory()
+mp::AppArmoredProcessFactory::AppArmoredProcessFactory()
 {
 }
 
 std::unique_ptr<mp::Process>
-mp::ApparmoredProcessFactory::create_process(std::unique_ptr<ProcessSpec>&& process_spec) const
+mp::AppArmoredProcessFactory::create_process(std::unique_ptr<ProcessSpec>&& process_spec) const
 {
     return std::make_unique<::AppArmoredProcess>(apparmor, std::move(process_spec));
 }

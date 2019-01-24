@@ -63,12 +63,12 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    if (getenv("KEY") == nullptr)
+    const auto priv_key_blob = std::string(getenv("KEY"));
+    if (priv_key_blob.length() == 0)
     {
         std::cerr << "KEY missing" << std::endl;
         return -2;
     }
-    const auto priv_key_blob = std::string(getenv("KEY"));
     const auto host = std::string(argv[1]);
     const int port = atoi(argv[2]);
     const auto username = std::string(argv[3]);

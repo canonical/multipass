@@ -25,11 +25,11 @@
 namespace multipass
 {
 
-class ApparmoredProcessFactory : public ProcessFactory
+class AppArmoredProcessFactory : public ProcessFactory
 {
 public:
-    ApparmoredProcessFactory();
-    virtual ~ApparmoredProcessFactory() = default;
+    AppArmoredProcessFactory();
+    virtual ~AppArmoredProcessFactory() = default;
 
     std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec> &&process_spec) const override;
 

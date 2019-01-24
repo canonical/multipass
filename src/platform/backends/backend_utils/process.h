@@ -25,7 +25,7 @@
 namespace multipass
 {
 
-// mp::Process is a one-time use process wrapper for possibly secured utilities
+// mp::Process adds some guarantees that child processes are stopped, even on crash.
 class Process : public QProcess
 {
     Q_OBJECT
@@ -39,15 +39,12 @@ public:
     bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
     QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
 
+    virtual void setupChildProcess() override;
+
 protected:
     Process(std::unique_ptr<ProcessSpec>&& spec);
     const std::unique_ptr<ProcessSpec> process_spec;
-
-    // Hide QProcess methods that may cause mis-use of this class
-    using QProcess::start;
-    using QProcess::startDetached;
-    using QProcess::setProgram;
-    using QProcess::setArguments;
+    pid_t parent_pid;
 };
 
 } // namespace multipass

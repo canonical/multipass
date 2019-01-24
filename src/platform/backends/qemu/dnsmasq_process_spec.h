@@ -38,6 +38,8 @@ public:
     QStringList arguments() const override;
     QString apparmor_profile() const override;
 
+    int stop_signal() const override;
+
 private:
     const QDir data_dir;
     const QString bridge_name, pid_file;

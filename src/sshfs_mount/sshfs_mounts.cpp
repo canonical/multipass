@@ -49,7 +49,7 @@ void mp::SSHFSMounts::start_mount(const mp::VirtualMachine::UPtr& vm, const std:
     config.source_path = source_path;
     config.uid_map = uid_map;
     config.gid_map = gid_map;
-
+    config.private_key = key;
 
     auto sshfs_server_process = mp::platform::make_sshfs_server_process(config);
 
@@ -61,7 +61,7 @@ void mp::SSHFSMounts::start_mount(const mp::VirtualMachine::UPtr& vm, const std:
                                       fmt::format("Mount '{}' in instance \"{}\" has stopped", target_path, instance));
                          else
                              mpl::log(mpl::Level::debug, category,
-                                      fmt::format("Mount '{}' in instance \"{}\" has stopped unexpectedly: {}",
+                                      fmt::format("Mount '{}' in instance \"{}\" has stopped unexpectedly",
                                                   target_path, instance));
                      },
                      Qt::QueuedConnection);
@@ -70,7 +70,7 @@ void mp::SSHFSMounts::start_mount(const mp::VirtualMachine::UPtr& vm, const std:
                      [instance, target_path, process = sshfs_server_process.get()](QProcess::ProcessError) {
                          mpl::log(
                              mpl::Level::debug, category,
-                             fmt::format("There was an error with sshfs_server for instance \"{}\" for path '{}': {}",
+                             fmt::format("There was an error with sshfs_server for instance \"{}\" with path '{}': {}",
                                          instance, target_path, qPrintable(process->errorString())));
                      });
 

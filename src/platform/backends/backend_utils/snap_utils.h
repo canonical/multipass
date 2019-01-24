@@ -15,33 +15,19 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_SPEC_H
-#define MULTIPASS_PROCESS_SPEC_H
+#ifndef SNAP_UTILS_H
+#define SNAP_UTILS_H
 
 #include <QString>
-#include <QProcessEnvironment>
 
 namespace multipass
 {
-
-class ProcessSpec
+namespace snap
 {
-public:
-    ProcessSpec() = default;
-    virtual ~ProcessSpec() = default;
+bool is_snap_confined();
+QString snap_dir();
+QString snap_common_dir();
+}
+}
 
-    virtual QString program() const = 0;
-    virtual QStringList arguments() const;
-    virtual QProcessEnvironment environment() const;
-
-    virtual QString apparmor_profile() const = 0;
-    const QString apparmor_profile_name() const;
-
-    virtual QString identifier() const;
-
-    virtual int stop_signal() const;
-};
-
-} // namespace multipass
-
-#endif // MULTIPASS_PROCESS_SPEC_H
+#endif // SNAP_UTILS_H

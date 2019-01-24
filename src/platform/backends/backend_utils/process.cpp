@@ -18,10 +18,16 @@
 #include "process.h"
 #include "process_spec.h"
 
+#include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/prctl.h>
+
 namespace mp = multipass;
 
 mp::Process::Process(std::unique_ptr<mp::ProcessSpec> &&spec)
     : process_spec{std::move(spec)}
+    , parent_pid(getpid())
 {
     setProgram(process_spec->program());
     setArguments(process_spec->arguments());
@@ -47,4 +53,18 @@ QString mp::Process::run_and_return_output(const QStringList& extra_arguments, c
     waitForFinished(timeout);
 
     return readAllStandardOutput().trimmed();
+}
+
+void mp::Process::setupChildProcess()
+{
+    // Send sigterm to child when its parent process dies unexpectedly
+    int r = prctl(PR_SET_PDEATHSIG, process_spec->stop_signal());
+    if (r == -1)
+    {
+        perror(0);
+        exit(1);
+    }
+    // test in case the original parent exited just before the prctl() call
+    if (getppid() != parent_pid)
+        exit(1);
 }

@@ -39,6 +39,7 @@ public:
 
 private:
     const SSHFSServerConfig config;
+    const QByteArray target_hash;
 };
 
 } // namespace multipass
