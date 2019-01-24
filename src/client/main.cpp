@@ -45,10 +45,26 @@ std::string get_server_address()
 
     return mp::platform::default_server_address();
 }
+
+bool is_graphical_command(int argc, char* argv[])
+{
+    for (int i = 0; i < argc; ++i)
+    {
+        if (strcmp(argv[i], "systray") == 0)
+            return true;
+    }
+
+    return false;
+}
 } // namespace
 
 int main(int argc, char* argv[])
 {
+    if (!is_graphical_command(argc, argv))
+    {
+        qputenv("QT_QPA_PLATFORM", "minimal");
+    }
+
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName("multipass");
     mp::Console::setup_environment();

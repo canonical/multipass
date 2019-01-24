@@ -20,6 +20,7 @@
 
 #include <multipass/cli/command.h>
 
+#include <QFutureWatcher>
 #include <QMenu>
 #include <QObject>
 #include <QSystemTrayIcon>
@@ -47,7 +48,9 @@ private:
     ParseCode parse_args(ArgParser* parser) override;
     void create_actions();
     void create_menu();
-    void retrieve_all_instances();
+    void update_menu();
+    ListReply retrieve_all_instances();
+    void stop_instance(const std::string& instance_name);
 
     QSystemTrayIcon tray_icon;
     QMenu tray_icon_menu;
@@ -61,9 +64,8 @@ private:
     std::vector<std::unique_ptr<QMenu>> instances_menus;
     std::vector<QAction*> instances_actions;
 
-    bool worker_running{false};
-    std::mutex worker_mutex;
-    std::thread worker;
+    QFuture<ListReply> future;
+    QFutureWatcher<ListReply> watcher;
 };
 } // namespace cmd
 } // namespace multipass
