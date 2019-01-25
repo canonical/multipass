@@ -107,7 +107,7 @@ profile %1 flags=(attach_disconnected) {
     network inet6 stream,
 
     # Allow multipassd send qemu signals
-    signal (receive) %2,
+    signal (receive) peer=%2,
 
     /dev/net/tun rw,
     /dev/kvm rw,
@@ -163,11 +163,12 @@ profile %1 flags=(attach_disconnected) {
     if (ms::is_snap_confined())
     {
         root_dir = ms::snap_dir();
-        signal_peer = "peer=snap.multipass.multipassd"; // only multipassd can send qemu signals
-        firmware = root_dir + "/qemu/*";                // if snap confined, firmware in $SNAP/qemu
+        signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
+        firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
     }
     else
     {
+        signal_peer = "unconfined";
         firmware = "/usr/share/seabios/*";
     }
 

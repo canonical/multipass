@@ -82,7 +82,6 @@ QString mp::DNSMasqProcessSpec::apparmor_profile() const
 #include <tunables/global>
 profile %1 flags=(attach_disconnected) {
     #include <abstractions/base>
-    #include <abstractions/dbus>
     #include <abstractions/nameservice>
 
     capability chown,
@@ -96,7 +95,7 @@ profile %1 flags=(attach_disconnected) {
     network inet6 raw,
 
     # Allow multipassd send dnsmasq signals
-    signal (receive) %2,
+    signal (receive) peer=%2,
 
     # access to iface mtu needed for Router Advertisement messages in IPv6
     # Neighbor Discovery protocol (RFC 2461)
@@ -120,7 +119,11 @@ profile %1 flags=(attach_disconnected) {
     if (ms::is_snap_confined()) // if snap confined, specify only multipassd can kill dnsmasq
     {
         root_dir = ms::snap_dir();
-        signal_peer = "peer=snap.multipass.multipassd";
+        signal_peer = "snap.multipass.multipassd";
+    }
+    else
+    {
+        signal_peer = "unconfined";
     }
 
     // If multipassd not confined, we let dnsmasq decide where to create its pid file, but we still need to tell

@@ -80,16 +80,22 @@ profile %1 flags=(attach_disconnected) {
     #include <abstractions/base>
     #include <abstractions/nameservice>
 
-    # required for reading and modifying host directories
+    # Sshfs_server requires broad filesystem altering permissions, but only for the
+    # host directory the user has specified to be shared with the VM.
+
+    # Required for reading and searching host directories
     capability dac_override,
+    capability dac_read_search,
+    # Enables modifying of file ownership and permissions
     capability chown,
     capability fsetid,
     capability fowner,
+    # Multipass allows user to specify arbitrary uid/gid mappings
     capability setuid,
     capability setgid,
 
     # Allow multipassd send sshfs_server signals
-    signal (receive) %2,
+    signal (receive) peer=%2,
 
     # sshfs gathers some info about system resources
     /sys/devices/system/node/ r,
@@ -99,8 +105,8 @@ profile %1 flags=(attach_disconnected) {
     %3/bin/sshfs_server ixr,
     %3/{usr/,}lib/** rm,
 
-    # allow full access to source path on host
-    %4/ rwlk,
+    # allow full access just to this user-specified source directory on the host
+    %4/ rw,
     %4/** rwlk,
 }
     )END");
@@ -113,13 +119,14 @@ profile %1 flags=(attach_disconnected) {
     if (ms::is_snap_confined())
     {
         root_dir = ms::snap_dir();
-        signal_peer = "peer=snap.multipass.multipassd";
+        signal_peer = "snap.multipass.multipassd";
     }
     else
     {
         QDir application_dir(QCoreApplication::applicationDirPath());
         application_dir.cdUp();
         root_dir = application_dir.absolutePath();
+        signal_peer = "unconfined";
     }
 
     return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir,
