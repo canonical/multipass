@@ -20,13 +20,14 @@
 
 #include <multipass/cli/command.h>
 
+#include <QFutureSynchronizer>
 #include <QFutureWatcher>
 #include <QMenu>
 #include <QObject>
 #include <QSystemTrayIcon>
 
 #include <memory>
-#include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace multipass
@@ -50,6 +51,7 @@ private:
     void create_menu();
     void update_menu();
     ListReply retrieve_all_instances();
+    void start_instance(const std::string& instance_name);
     void stop_instance(const std::string& instance_name);
 
     QSystemTrayIcon tray_icon;
@@ -61,11 +63,16 @@ private:
     QAction* quit_action;
     QAction failure_action{"Failure retrieving instances"};
 
-    std::vector<std::unique_ptr<QMenu>> instances_menus;
-    std::vector<QAction*> instances_actions;
+    struct MenuEntry
+    {
+        std::unique_ptr<QMenu> instance_menu;
+        std::vector<QAction*> instance_actions;
+    };
+    std::unordered_map<std::string, MenuEntry> instances_menus;
 
-    QFuture<ListReply> future;
-    QFutureWatcher<ListReply> watcher;
+    QFuture<ListReply> list_future;
+    QFutureWatcher<ListReply> list_watcher;
+    QFutureSynchronizer<void> future_synchronizer;
 };
 } // namespace cmd
 } // namespace multipass

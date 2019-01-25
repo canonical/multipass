@@ -84,38 +84,47 @@ void cmd::Systray::update_menu()
 {
     tray_icon_menu.removeAction(retrieving_action);
 
-    auto reply = future.result();
+    auto reply = list_future.result();
+    instances_menus.clear();
+
     for (const auto& instance : reply.instances())
     {
-        auto name = instance.name();
         auto state = QString::fromStdString(mp::format::status_string_for(instance.instance_status()));
-        auto action_string = QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state);
-
-        instances_menus.push_back(std::make_unique<QMenu>(action_string));
 
         if (state != "DELETED")
         {
-            auto shell_action = instances_menus.back()->addAction("Open shell");
+            auto name = instance.name();
+            auto action_string = QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state);
+
+            instances_menus[name].instance_menu = std::make_unique<QMenu>(action_string);
+            auto& instance_menu = instances_menus.at(name).instance_menu;
+            auto& instance_actions = instances_menus.at(name).instance_actions;
+
+            instance_actions.push_back(instance_menu->addAction("Open shell"));
 
             if (state != "RUNNING")
             {
-                shell_action->setDisabled(true);
+                instance_actions.back()->setDisabled(true);
             }
 
             if (state != "STOPPED")
             {
-                instances_actions.push_back(instances_menus.back()->addAction("Stop"));
-                QObject::connect(instances_actions.back(), &QAction::triggered,
-                                 [this, name] { fmt::print("We would have stopped {}\n", name); });
+                instance_actions.push_back(instance_menu->addAction("Stop"));
+                QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
+                    fmt::print("Stopping {}\n", name);
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::stop_instance, name));
+                });
             }
             else
             {
-                instances_actions.push_back(instances_menus.back()->addAction("Start"));
-                QObject::connect(instances_actions.back(), &QAction::triggered,
-                                 [this, name] { fmt::print("We would have started {}\n", name); });
+                instance_actions.push_back(instance_menu->addAction("Start"));
+                QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
+                    fmt::print("Started {}\n", name);
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::start_instance, name));
+                });
             }
 
-            tray_icon_menu.insertMenu(about_separator, instances_menus.back().get());
+            tray_icon_menu.insertMenu(about_separator, instance_menu.get());
         }
     }
 }
@@ -126,7 +135,7 @@ void cmd::Systray::create_menu()
 
     tray_icon.setIcon(QIcon{"./ubuntu-icon.png"});
 
-    QObject::connect(&watcher, &QFutureWatcher<ListReply>::finished, this, &Systray::update_menu);
+    QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &Systray::update_menu);
 
     QObject::connect(&tray_icon_menu, &QMenu::aboutToShow, [this]() {
         if (failure_action.isVisible())
@@ -134,24 +143,20 @@ void cmd::Systray::create_menu()
             tray_icon_menu.removeAction(&failure_action);
         }
 
-        for (const auto& instance_menu : instances_menus)
-        {
-            tray_icon_menu.removeAction(instance_menu->menuAction());
-        }
-        instances_menus.clear();
-        tray_icon_menu.insertAction(about_separator, retrieving_action);
+        if (instances_menus.empty())
+            tray_icon_menu.insertAction(about_separator, retrieving_action);
 
-        if (!future.isRunning())
+        if (!list_future.isRunning())
         {
-            future = QtConcurrent::run(this, &Systray::retrieve_all_instances);
-            watcher.setFuture(future);
+            list_future = QtConcurrent::run(this, &Systray::retrieve_all_instances);
+            future_synchronizer.addFuture(list_future);
+            list_watcher.setFuture(list_future);
         }
     });
 
     // Use a singleShot here to make sure the event loop is running before the quit() runs
     QObject::connect(quit_action, &QAction::triggered, [this] {
-        if (future.isRunning())
-            future.waitForFinished();
+        future_synchronizer.waitForFinished();
         QTimer::singleShot(0, [] { QCoreApplication::quit(); });
     });
 }
@@ -178,6 +183,19 @@ mp::ListReply cmd::Systray::retrieve_all_instances()
     return list_reply;
 }
 
+void cmd::Systray::start_instance(const std::string& instance_name)
+{
+    auto on_success = [](mp::StartReply& reply) { return ReturnCode::Ok; };
+
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+
+    StartRequest request;
+    auto names = request.mutable_instance_names()->add_instance_name();
+    names->append(instance_name);
+
+    dispatch(&RpcMethod::start, request, on_success, on_failure);
+}
+
 void cmd::Systray::stop_instance(const std::string& instance_name)
 {
     auto on_success = [](mp::StopReply& reply) { return ReturnCode::Ok; };
@@ -185,7 +203,7 @@ void cmd::Systray::stop_instance(const std::string& instance_name)
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     StopRequest request;
-    auto names = request.instance_names.add_instance_name();
+    auto names = request.mutable_instance_names()->add_instance_name();
     names->append(instance_name);
 
     dispatch(&RpcMethod::stop, request, on_success, on_failure);
