@@ -49,6 +49,15 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
 
+    std::string snap_env = getenv("SNAP");
+    if (snap_env.length() > 0) {
+        // Stop libssh reading host files when running inside a $SNAP
+        std::string in_snap_config_dir = snap_env + "/etc";
+        set_option(SSH_OPTIONS_SSH_DIR, in_snap_config_dir.c_str());
+        std::string in_snap_known_hosts = in_snap_config_dir + "/known_hosts";
+        set_option(SSH_OPTIONS_KNOWNHOSTS, in_snap_known_hosts.c_str());
+    }
+
     SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
     if (key_provider)
     {
