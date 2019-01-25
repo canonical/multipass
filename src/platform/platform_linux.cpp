@@ -24,12 +24,14 @@
 #include "backends/backend_utils/apparmored_process_factory.h"
 #include "backends/backend_utils/process.h"
 #include "backends/backend_utils/process_factory.h"
+#include "backends/backend_utils/snap_utils.h"
 #include "backends/backend_utils/sshfs_server_process_spec.h"
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 
 namespace mp = multipass;
+namespace ms = multipass::snap;
 
 namespace
 {
@@ -39,10 +41,9 @@ mp::ProcessFactory* process_factory()
 {
     if (!static_process_factory)
     {
-        const auto disable_apparmor = qgetenv("DISABLE_APPARMOR");
         auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
-        if (disable_apparmor.isNull() && driver != "LIBVIRT")
+        if (!qEnvironmentVariableIsSet("DISABLE_APPARMOR") && driver != "LIBVIRT")
         {
             static_process_factory = std::make_unique<mp::AppArmoredProcessFactory>();
         }
@@ -57,7 +58,18 @@ mp::ProcessFactory* process_factory()
 
 std::string mp::platform::default_server_address()
 {
-    return {"unix:/run/multipass_socket"};
+    std::string base_dir;
+
+    // if Snap confined, client and daemon can both access $SNAP_COMMON
+    if (ms::is_snap_confined())
+    {
+        base_dir = ms::snap_common_dir().toStdString();
+    }
+    else
+    {
+        base_dir = "/run";
+    }
+    return "unix:" + base_dir + "/multipass_socket";
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
