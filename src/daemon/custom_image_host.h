@@ -22,6 +22,7 @@
 
 #include <QString>
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -52,9 +53,13 @@ public:
     std::vector<std::string> supported_remotes() override;
 
 private:
+    void update_manifest();
     CustomManifest* manifest_from(const std::string& remote_name);
+    std::chrono::seconds manifest_time_to_live;
+    std::chrono::steady_clock::time_point last_update;
 
     URLDownloader* const url_downloader;
+    const QString path_prefix;
     std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
     std::vector<std::string> remotes;
 };

@@ -167,6 +167,7 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader) : CustomVMIm
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, const QString& path_prefix)
     : url_downloader{downloader},
+      path_prefix{path_prefix},
       custom_image_info{custom_aliases(url_downloader, path_prefix)},
       remotes{no_remote, snapcraft_remote}
 {
@@ -215,6 +216,8 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
 
 void mp::CustomVMImageHost::for_each_entry_do(const Action& action)
 {
+    update_manifest();
+
     for (const auto& manifest : custom_image_info)
     {
         for (const auto& info : manifest.second->products)
@@ -229,8 +232,22 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
     return remotes;
 }
 
+void mp::CustomVMImageHost::update_manifest()
+{
+    const auto now = std::chrono::steady_clock::now();
+    if ((now - last_update) > manifest_time_to_live || custom_image_info.empty())
+    {
+        custom_image_info.clear();
+        custom_image_info = custom_aliases(url_downloader, path_prefix);
+
+        last_update = now;
+    }
+}
+
 mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
 {
+    update_manifest();
+
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
         throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote_name));
