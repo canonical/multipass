@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_platform.h>
 #include <multipass/cli/format_utils.h>
 
 #include <QEventLoop>
@@ -101,13 +102,16 @@ void cmd::Systray::update_menu()
             auto& instance_actions = instances_menus.at(name).instance_actions;
 
             instance_actions.push_back(instance_menu->addAction("Open shell"));
+            QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
+                fmt::print("Opening shell for {}\n", name);
+                mp::cli::platform::open_multipass_shell(QString::fromStdString(name));
+            });
 
             if (state != "RUNNING")
             {
                 instance_actions.back()->setDisabled(true);
             }
-
-            if (state != "STOPPED")
+            else if (state == "RUNNING")
             {
                 instance_actions.push_back(instance_menu->addAction("Stop"));
                 QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
@@ -115,7 +119,7 @@ void cmd::Systray::update_menu()
                     future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::stop_instance, name));
                 });
             }
-            else
+            else if (state == "STOPPED")
             {
                 instance_actions.push_back(instance_menu->addAction("Start"));
                 QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
