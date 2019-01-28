@@ -111,20 +111,27 @@ void cmd::Systray::update_menu()
             {
                 instance_actions.back()->setDisabled(true);
             }
-            else if (state == "RUNNING")
+
+            if (state == "RUNNING")
             {
+                instance_actions.push_back(instance_menu->addAction("Suspend"));
+                QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
+                    fmt::print("Suspending {}\n", name);
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::suspend_instance_for, name));
+                });
+
                 instance_actions.push_back(instance_menu->addAction("Stop"));
                 QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
                     fmt::print("Stopping {}\n", name);
-                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::stop_instance, name));
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::stop_instance_for, name));
                 });
             }
-            else if (state == "STOPPED")
+            else if (state == "STOPPED" || state == "SUSPENDED")
             {
                 instance_actions.push_back(instance_menu->addAction("Start"));
                 QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
                     fmt::print("Started {}\n", name);
-                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::start_instance, name));
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::start_instance_for, name));
                 });
             }
 
@@ -187,7 +194,7 @@ mp::ListReply cmd::Systray::retrieve_all_instances()
     return list_reply;
 }
 
-void cmd::Systray::start_instance(const std::string& instance_name)
+void cmd::Systray::start_instance_for(const std::string& instance_name)
 {
     auto on_success = [](mp::StartReply& reply) { return ReturnCode::Ok; };
 
@@ -200,7 +207,7 @@ void cmd::Systray::start_instance(const std::string& instance_name)
     dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
 
-void cmd::Systray::stop_instance(const std::string& instance_name)
+void cmd::Systray::stop_instance_for(const std::string& instance_name)
 {
     auto on_success = [](mp::StopReply& reply) { return ReturnCode::Ok; };
 
@@ -211,4 +218,17 @@ void cmd::Systray::stop_instance(const std::string& instance_name)
     names->append(instance_name);
 
     dispatch(&RpcMethod::stop, request, on_success, on_failure);
+}
+
+void cmd::Systray::suspend_instance_for(const std::string& instance_name)
+{
+    auto on_success = [](mp::SuspendReply& reply) { return ReturnCode::Ok; };
+
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+
+    SuspendRequest request;
+    auto names = request.mutable_instance_names()->add_instance_name();
+    names->append(instance_name);
+
+    dispatch(&RpcMethod::suspend, request, on_success, on_failure);
 }
