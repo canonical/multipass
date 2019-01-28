@@ -39,7 +39,6 @@ apps:
     plugs:
       - kvm
       - multipass-support
-      - network-bind
       - network-control
       - network-manager
       - firewall-control
