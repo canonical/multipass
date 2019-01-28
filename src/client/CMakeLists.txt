@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,8 +11,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+
+set(CMAKE_AUTORCC ON)
 
 add_library(client STATIC
   argparser.cpp
@@ -28,7 +28,8 @@ target_link_libraries(client
   Qt5::Core)
 
 add_executable(multipass
-  main.cpp)
+  main.cpp
+  resources/resources.qrc)
 
 target_link_libraries(multipass
   client)

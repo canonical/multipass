@@ -144,7 +144,7 @@ void cmd::Systray::create_menu()
 {
     tray_icon.setContextMenu(&tray_icon_menu);
 
-    tray_icon.setIcon(QIcon{"./ubuntu-icon.png"});
+    tray_icon.setIcon(QIcon{":images/ubuntu-icon.png"});
 
     QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &Systray::update_menu);
 
