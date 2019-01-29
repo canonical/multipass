@@ -231,7 +231,7 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::update_manifests_impl()
+void mp::UbuntuVMImageHost::fetch_manifests()
 {
     for (const auto& remote : remotes)
     {

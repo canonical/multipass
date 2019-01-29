@@ -233,7 +233,7 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
     return remotes;
 }
 
-void mp::CustomVMImageHost::update_manifests_impl()
+void mp::CustomVMImageHost::fetch_manifests()
 {
     custom_image_info = custom_aliases(url_downloader, path_prefix);
 }

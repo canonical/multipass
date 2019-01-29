@@ -44,7 +44,7 @@ void mp::CommonVMImageHost::update_manifests()
     if ((now - last_update) > manifest_time_to_live || empty())
     {
         clear();
-        update_manifests_impl();
+        fetch_manifests();
 
         last_update = now;
     }

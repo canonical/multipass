@@ -52,7 +52,7 @@ public:
 protected:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
-    void update_manifests_impl() override;
+    void fetch_manifests() override;
     bool empty() const override;
     void clear() override;
 
