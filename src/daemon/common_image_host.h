@@ -38,7 +38,7 @@ protected:
     virtual void for_each_entry_do_impl(const Action& action) = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;
     virtual void update_manifests_impl() = 0;
-    virtual bool empty() = 0;
+    virtual bool empty() const = 0;
     virtual void clear() = 0;
 
 private:

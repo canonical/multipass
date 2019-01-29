@@ -240,7 +240,7 @@ void mp::UbuntuVMImageHost::update_manifests_impl()
     }
 }
 
-bool mp::UbuntuVMImageHost::empty()
+bool mp::UbuntuVMImageHost::empty() const
 {
     return manifests.empty();
 }
