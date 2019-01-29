@@ -117,6 +117,26 @@ parts:
     stage-packages:
     - libproxy1v5
 
+  libqt5gui5:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_arm64.deb
+    source-type: deb
+    stage-packages:
+    - mesa-common-dev
+
+  libqt5widgets5:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_arm64.deb
+    source-type: deb
+
   libicu:
     plugin: dump
     source:
@@ -133,6 +153,26 @@ parts:
     - on i386: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
+
+  libharfbuzz0b:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_arm64.deb
+    source-type: deb
+    stage-packages:
+    - libgraphite2-3
+
+  libfreetype6:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_arm64.deb
+>>>>>>> snap: Add support for building client with systray UI
     source-type: deb
 
   multipass:
@@ -141,6 +181,10 @@ parts:
     - qtbase5-dev-tools
     - libqt5core5a
     - libqt5network5
+    - libqt5gui5
+    - libqt5widgets5
+    - libharfbuzz0b
+    - libfreetype6
     - libvirt
     plugin: cmake
     build-packages:
@@ -149,6 +193,9 @@ parts:
     - git
     - golang
     - libsystemd-dev
+    stage-packages:
+    - libgl1
+    - libpng16-16
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
