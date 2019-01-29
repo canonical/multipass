@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_CUSTOM_IMAGE_HOST
 #define MULTIPASS_CUSTOM_IMAGE_HOST
 
-#include <multipass/vm_image_host.h>
+#include "common_image_host.h"
 
 #include <QString>
 
-#include <chrono>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -38,25 +37,27 @@ struct CustomManifest
     const std::unordered_map<std::string, const VMImageInfo*> image_records;
 };
 
-class CustomVMImageHost final : public VMImageHost
+class CustomVMImageHost final : public CommonVMImageHost
 {
 public:
-    CustomVMImageHost(URLDownloader* downloader);
+    CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live);
     // For testing
-    CustomVMImageHost(URLDownloader* downloader, const QString& path_prefix);
+    CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live, const QString& path_prefix);
 
     optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
-    VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name) override;
-    void for_each_entry_do(const Action& action) override;
     std::vector<std::string> supported_remotes() override;
 
+protected:
+    void for_each_entry_do_impl(const Action& action) override;
+    VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
+    void update_manifests_impl() override;
+    bool empty() const override;
+    void clear() override;
+
 private:
-    void update_manifest();
     CustomManifest* manifest_from(const std::string& remote_name);
-    std::chrono::seconds manifest_time_to_live;
-    std::chrono::steady_clock::time_point last_update;
 
     URLDownloader* const url_downloader;
     const QString path_prefix;

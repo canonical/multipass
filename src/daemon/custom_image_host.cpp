@@ -161,12 +161,15 @@ auto custom_aliases(mp::URLDownloader* url_downloader, const QString& path_prefi
 }
 } // namespace
 
-mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader) : CustomVMImageHost{downloader, ""}
+mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
+    : CustomVMImageHost{downloader, manifest_time_to_live, ""}
 {
 }
 
-mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, const QString& path_prefix)
-    : url_downloader{downloader},
+mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live,
+                                         const QString& path_prefix)
+    : CommonVMImageHost{manifest_time_to_live},
+      url_downloader{downloader},
       path_prefix{path_prefix},
       custom_image_info{custom_aliases(url_downloader, path_prefix)},
       remotes{no_remote, snapcraft_remote}
@@ -196,7 +199,7 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& qu
     return images;
 }
 
-mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash(const std::string& full_hash)
+mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
 {
     return {};
 }
@@ -214,10 +217,8 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
     return images;
 }
 
-void mp::CustomVMImageHost::for_each_entry_do(const Action& action)
+void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
 {
-    update_manifest();
-
     for (const auto& manifest : custom_image_info)
     {
         for (const auto& info : manifest.second->products)
@@ -232,21 +233,25 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
     return remotes;
 }
 
-void mp::CustomVMImageHost::update_manifest()
+void mp::CustomVMImageHost::update_manifests_impl()
 {
-    const auto now = std::chrono::steady_clock::now();
-    if ((now - last_update) > manifest_time_to_live || custom_image_info.empty())
-    {
-        custom_image_info.clear();
-        custom_image_info = custom_aliases(url_downloader, path_prefix);
+    custom_image_info = custom_aliases(url_downloader, path_prefix);
+}
 
-        last_update = now;
-    }
+
+bool mp::CustomVMImageHost::empty() const
+{
+    return custom_image_info.empty();
+}
+
+void mp::CustomVMImageHost::clear()
+{
+    custom_image_info.clear();
 }
 
 mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
 {
-    update_manifest();
+    update_manifests();
 
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
