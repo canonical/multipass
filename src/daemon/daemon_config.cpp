@@ -32,6 +32,7 @@
 
 #include <QStandardPaths>
 
+#include <chrono>
 #include <memory>
 
 namespace mp = multipass;
@@ -39,6 +40,8 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto manifest_ttl = std::chrono::minutes{5};
+
 std::string server_name_from(const std::string& server_address)
 {
     auto tokens = mp::utils::split(server_address, ":");
@@ -77,12 +80,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         factory = platform::vm_backend(data_directory);
     if (image_hosts.empty())
     {
-        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get()));
+        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get(), manifest_ttl));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, std::string>>{
                 {mp::release_remote, "http://cloud-images.ubuntu.com/releases/"},
                 {mp::daily_remote, "http://cloud-images.ubuntu.com/daily/"}},
-            url_downloader.get(), std::chrono::minutes{5}));
+            url_downloader.get(), manifest_ttl));
     }
     if (vault == nullptr)
     {

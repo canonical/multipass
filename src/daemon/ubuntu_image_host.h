@@ -18,13 +18,12 @@
 #ifndef MULTIPASS_UBUNTU_IMAGE_HOST_H
 #define MULTIPASS_UBUNTU_IMAGE_HOST_H
 
-#include <multipass/simple_streams_manifest.h>
-#include <multipass/vm_image_host.h>
+#include "common_image_host.h"
+#include "multipass/simple_streams_manifest.h"
 
 #include <QString>
 #include <QTimer>
 
-#include <chrono>
 #include <string>
 #include <vector>
 
@@ -34,24 +33,27 @@ constexpr auto release_remote = "release";
 constexpr auto daily_remote = "daily";
 
 class URLDownloader;
-class UbuntuVMImageHost final : public VMImageHost
+class UbuntuVMImageHost final : public CommonVMImageHost
 {
 public:
     UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes, URLDownloader* downloader,
                       std::chrono::seconds manifest_time_to_live);
+
     optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<VMImageInfo> all_info_for(const Query& query) override;
-    VMImageInfo info_for_full_hash(const std::string& full_hash) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name) override;
-    void for_each_entry_do(const Action& action) override;
     std::vector<std::string> supported_remotes() override;
 
+protected:
+    void for_each_entry_do_impl(const Action& action) override;
+    VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
+    void fetch_manifests() override;
+    bool empty() const override;
+    void clear() override;
+
 private:
-    void update_manifest();
     SimpleStreamsManifest* manifest_from(const std::string& remote);
     void match_alias(const QString& key, const VMImageInfo** info, const SimpleStreamsManifest& manifest);
-    std::chrono::seconds manifest_time_to_live;
-    std::chrono::steady_clock::time_point last_update;
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, std::string>> remotes;

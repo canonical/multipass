@@ -18,6 +18,7 @@ set(CMAKE_AUTOMOC ON)
 
 add_library(daemon STATIC
   cli.cpp
+  common_image_host.cpp
   custom_image_host.cpp
   daemon.cpp
   daemon_config.cpp
