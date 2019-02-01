@@ -24,5 +24,5 @@ namespace mcp = multipass::cli::platform;
 
 void mcp::open_multipass_shell(const QString& instance_name)
 {
-    QProcess::startDetached("x-terminal-emulator", {"--execute", "multipass", "shell", instance_name});
+    QProcess::startDetached("xterm", {"-e", "multipass", "shell", instance_name});
 }

@@ -312,6 +312,18 @@ parts:
     - iputils-ping
     - libatm1
 
+  xterm:
+    plugin: nil
+    override-pull: ""
+    stage-packages:
+    - xterm
+    stage:
+    - -usr/lib/x86_64-linux-gnu/libfreetype.so.6
+    - -usr/share/doc/libfreetype6/FTL.TXT.gz
+    - -usr/share/doc/libfreetype6/TODO
+    - -usr/share/doc/libfreetype6/changelog.Debian.gz
+    - -usr/share/doc/libfreetype6/pcf/README
+
   glue:
     plugin: dump
     source: snap-wrappers
