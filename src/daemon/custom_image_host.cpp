@@ -127,7 +127,6 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
     for (const auto& image_info : custom_image_info.toStdMap())
     {
         auto image_file = image_info.first;
-        // TODO move out
         QString image_url{
             (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
                 image_info.first};
@@ -178,7 +177,7 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono:
       custom_image_info{},
       remotes{no_remote, snapcraft_remote}
 {
-    update_manifests(); // TODO try to make single shot and move up to common
+    update_manifests();
 }
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)

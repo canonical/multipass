@@ -72,7 +72,7 @@ auto key_from(const std::string& search_string)
         key = "default";
     return key;
 }
-}
+} // namespace
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
