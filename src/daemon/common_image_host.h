@@ -45,7 +45,6 @@ private:
     std::chrono::seconds manifest_time_to_live;
     std::chrono::steady_clock::time_point last_update;
     bool need_extra_update = true;
-
 };
 
 }

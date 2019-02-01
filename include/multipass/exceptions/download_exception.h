@@ -32,7 +32,6 @@ public:
         : runtime_error(fmt::format("failed to download from '{}': {}", url, cause))
     {
     }
-
 };
 } // namespace multipass
 #endif // MULTIPASS_DOWNLOAD_H

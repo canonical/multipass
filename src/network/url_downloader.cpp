@@ -17,9 +17,8 @@
 
 #include <multipass/url_downloader.h>
 
-#include <multipass/logging/log.h>
 #include <multipass/exceptions/download_exception.h>
-
+#include <multipass/logging/log.h>
 
 #include <fmt/format.h>
 
@@ -69,8 +68,7 @@ QByteArray download(QNetworkAccessManager& manager, const Time& timeout, QUrl co
     {
         on_error();
 
-        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString()
-                                                     : "Network timeout";
+        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
         throw mp::DownloadException{url.toString().toStdString(), msg};
     }
     return reply->readAll();

@@ -23,8 +23,8 @@
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
 
-#include <multipass/logging/log.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/logging/log.h>
 
 #include <fmt/format.h>
 
@@ -245,7 +245,7 @@ void mp::UbuntuVMImageHost::fetch_manifests()
             manifests.emplace_back(
                 std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
         }
-        catch(mp::DownloadException& e)
+        catch (mp::DownloadException& e)
         {
             on_manifest_update_failure(e.what());
         }

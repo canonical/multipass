@@ -26,7 +26,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-    constexpr auto category = "VMImageHost";
+constexpr auto category = "VMImageHost";
 }
 
 mp::CommonVMImageHost::CommonVMImageHost(std::chrono::seconds manifest_time_to_live)
