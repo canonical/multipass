@@ -17,7 +17,17 @@
 
 #include "common_image_host.h"
 
+#include <multipass/logging/log.h>
+
+#include <fmt/format.h>
+
 namespace mp = multipass;
+namespace mpl = multipass::logging;
+
+namespace
+{
+    constexpr auto category = "VMImageHost";
+}
 
 mp::CommonVMImageHost::CommonVMImageHost(std::chrono::seconds manifest_time_to_live)
   : manifest_time_to_live{manifest_time_to_live}, last_update{}
@@ -48,4 +58,9 @@ void mp::CommonVMImageHost::update_manifests()
 
         last_update = now;
     }
+}
+
+void mp::CommonVMImageHost::log_manifest_update_failure(const std::string& details)
+{
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not update manifest: ", details));
 }
