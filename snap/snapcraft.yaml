@@ -45,96 +45,8 @@ apps:
       LC_ALL: C
 
 parts:
-  qtbase5-dev:
-    after: [qt5-qmake-bin]
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  qtbase5-dev-tools:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  qt5-qmake:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  qt5-qmake-bin:
-    after: [qt5-qmake]
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  libqt5core5a:
-    after: [libicu]
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    stage-packages:
-    - libdouble-conversion1v5
-    - libpcre16-3
-
-  libqt5dbus5:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-
-  libqt5network5:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    stage-packages:
-    - libproxy1v5
-
-  libicu:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_arm64.deb
-    source-type: deb
-
   multipass:
     after:
-    - qtbase5-dev
-    - qtbase5-dev-tools
-    - libqt5core5a
-    - libqt5network5
     - libvirt
     plugin: cmake
     build-packages:
@@ -143,6 +55,11 @@ parts:
     - git
     - golang
     - libsystemd-dev
+    - qtbase5-dev
+    - qtbase5-dev-tools
+    stage-packages:
+    - libqt5core5a
+    - libqt5network5
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
