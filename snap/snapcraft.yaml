@@ -8,6 +8,7 @@ description: |
   and it'll do all the setup for you. Check out `multipass find` for a list
   of available images. More details you can find under `multipass help`.
 
+base: core18
 grade: devel
 confinement: classic
 
@@ -165,7 +166,7 @@ parts:
     - qemu-utils
     - libslang2
     organize:
-      usr/lib/*/pulseaudio/libpulsecommon-8.0.so: usr/lib/libpulsecommon-8.0.so
+      usr/lib/*/pulseaudio/libpulsecommon-11.1.so: usr/lib/libpulsecommon-11.1.so
       usr/share/seabios/bios-256k.bin: qemu/bios-256k.bin
       usr/share/seabios/vgabios-stdvga.bin: qemu/vgabios-stdvga.bin
       usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
@@ -178,6 +179,7 @@ parts:
     - try: [msr-tools]
 
   libvirt:
+    source: snap
     source-subdir: libvirt-1.3.1
     plugin: autotools
     build-packages:
