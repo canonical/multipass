@@ -122,6 +122,7 @@ parts:
     - iproute2
     - iputils-ping
     - libatm1
+    - libxtables12
 
   xterm:
     plugin: nil
