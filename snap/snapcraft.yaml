@@ -60,6 +60,7 @@ parts:
     stage-packages:
     - libqt5core5a
     - libqt5network5
+    - libxml2
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -127,10 +128,10 @@ parts:
     - dnsmasq-utils
     - ebtables
     - libxml2
-    - libyajl2
     - try: [libnuma1]
     - libcurl3-gnutls
     - libpciaccess0
+    - libpcap0.8
     configflags:
     - --with-qemu
     - --without-bhyve
@@ -175,6 +176,7 @@ parts:
     - iproute2
     - iputils-ping
     - libatm1
+    - libxtables12
 
   glue:
     plugin: dump
