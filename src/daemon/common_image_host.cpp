@@ -51,8 +51,10 @@ auto mp::CommonVMImageHost::info_for_full_hash(const std::string& full_hash) -> 
 void mp::CommonVMImageHost::update_manifests()
 {
     const auto now = std::chrono::steady_clock::now();
-    if ((now - last_update) > manifest_time_to_live || empty())
+    if ((now - last_update) > manifest_time_to_live || need_extra_update)
     {
+        need_extra_update = false;
+
         clear();
         fetch_manifests();
 
@@ -60,7 +62,8 @@ void mp::CommonVMImageHost::update_manifests()
     }
 }
 
-void mp::CommonVMImageHost::log_manifest_update_failure(const std::string& details)
+void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& details)
 {
+    need_extra_update = true;
     mpl::log(mpl::Level::warning, category, fmt::format("Could not update manifest: ", details));
 }

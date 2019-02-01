@@ -34,17 +34,17 @@ public:
 
 protected:
     void update_manifests();
-    void log_manifest_update_failure(const std::string& details);
+    void on_manifest_update_failure(const std::string& details);
 
     virtual void for_each_entry_do_impl(const Action& action) = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;
-    virtual bool empty() const = 0;
     virtual void clear() = 0;
     virtual void fetch_manifests() = 0;
 
 private:
     std::chrono::seconds manifest_time_to_live;
     std::chrono::steady_clock::time_point last_update;
+    bool need_extra_update = true;
 
 };
 

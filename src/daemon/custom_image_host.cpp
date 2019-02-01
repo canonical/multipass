@@ -226,8 +226,7 @@ void mp::CustomVMImageHost::fetch_manifests()
             }
             catch(mp::DownloadException& e)
             {
-                log_manifest_update_failure(e.what());
-                // TODO force update next time
+                on_manifest_update_failure(e.what());
             }
         }
 
@@ -238,11 +237,6 @@ void mp::CustomVMImageHost::fetch_manifests()
 
     custom_image_info.emplace(no_remote, full_image_info_for(multipass_image_info));
     custom_image_info.emplace(snapcraft_remote, full_image_info_for(snapcraft_image_info));
-}
-
-bool mp::CustomVMImageHost::empty() const
-{
-    return custom_image_info.empty();
 }
 
 void mp::CustomVMImageHost::clear()

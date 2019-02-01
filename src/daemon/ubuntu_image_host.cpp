@@ -243,11 +243,6 @@ void mp::UbuntuVMImageHost::fetch_manifests()
     }
 }
 
-bool mp::UbuntuVMImageHost::empty() const
-{
-    return manifests.empty();
-}
-
 void mp::UbuntuVMImageHost::clear()
 {
     manifests.clear();
