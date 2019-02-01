@@ -26,6 +26,8 @@
 
 #include <QMap>
 
+#include <functional>
+
 namespace mp = multipass;
 
 namespace
@@ -115,6 +117,52 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
 
     return map;
 }
+
+template<typename Action>
+auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
+                         const QString& path_prefix, Action on_failure)
+{
+    std::vector<mp::VMImageInfo> default_images;
+
+    for (const auto& image_info : custom_image_info.toStdMap())
+    {
+        auto image_file = image_info.first;
+        // TODO move out
+        QString image_url{
+            (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
+                image_info.first};
+        QString hash_url{
+            (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
+                QStringLiteral("SHA256SUMS")};
+
+        try
+        {
+            auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
+            mp::VMImageInfo full_image_info{image_info.second.aliases,
+                image_info.second.os,
+                image_info.second.release,
+                image_info.second.release_string,
+                true,
+                image_url,
+                image_info.second.kernel_location,
+                image_info.second.initrd_location,
+                base_image_info.hash,
+                base_image_info.last_modified,
+                0};
+
+            default_images.push_back(full_image_info);
+        }
+        catch(mp::DownloadException& e)
+        {
+            on_failure(e.what());
+        }
+    }
+
+    auto map = map_aliases_to_vm_info_for(default_images);
+
+    return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
+}
+
 } // namespace
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
@@ -192,51 +240,10 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::fetch_manifests()
 {
-    auto full_image_info_for = [this](const QMap<QString, CustomImageInfo> custom_image_info)
-    {
-        std::vector<mp::VMImageInfo> default_images;
+    static auto on_failure = std::bind(&CustomVMImageHost::on_manifest_update_failure, this, std::placeholders::_1);
 
-        for (const auto& image_info : custom_image_info.toStdMap())
-        {
-            auto image_file = image_info.first;
-            // TODO move out
-            QString image_url{
-                (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
-                    image_info.first};
-            QString hash_url{
-                (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
-                    QStringLiteral("SHA256SUMS")};
-
-            try
-            {
-                auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
-                mp::VMImageInfo full_image_info{image_info.second.aliases,
-                    image_info.second.os,
-                    image_info.second.release,
-                    image_info.second.release_string,
-                    true,
-                    image_url,
-                    image_info.second.kernel_location,
-                    image_info.second.initrd_location,
-                    base_image_info.hash,
-                    base_image_info.last_modified,
-                    0};
-
-                default_images.push_back(full_image_info);
-            }
-            catch(mp::DownloadException& e)
-            {
-                on_manifest_update_failure(e.what());
-            }
-        }
-
-        auto map = map_aliases_to_vm_info_for(default_images);
-
-        return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
-    };
-
-    custom_image_info.emplace(no_remote, full_image_info_for(multipass_image_info));
-    custom_image_info.emplace(snapcraft_remote, full_image_info_for(snapcraft_image_info));
+    custom_image_info.emplace(no_remote, full_image_info_for(multipass_image_info, url_downloader, path_prefix, on_failure));
+    custom_image_info.emplace(snapcraft_remote, full_image_info_for(snapcraft_image_info, url_downloader, path_prefix, on_failure));
 }
 
 void mp::CustomVMImageHost::clear()
