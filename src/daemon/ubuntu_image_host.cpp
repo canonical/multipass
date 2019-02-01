@@ -19,10 +19,12 @@
 
 #include "ubuntu_image_host.h"
 
-#include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
+
+#include <multipass/logging/log.h>
+#include <multipass/exceptions/download_exception.h>
 
 #include <fmt/format.h>
 
@@ -238,8 +240,15 @@ void mp::UbuntuVMImageHost::fetch_manifests()
 {
     for (const auto& remote : remotes)
     {
-        manifests.emplace_back(
-            std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+        try
+        {
+            manifests.emplace_back(
+                std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+        }
+        catch(mp::DownloadException& e)
+        {
+            on_manifest_update_failure(e.what());
+        }
     }
 }
 
