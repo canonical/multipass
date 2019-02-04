@@ -1972,7 +1972,15 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     {
         delayed_shutdown_instances.erase(name);
 
-        mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
+        mp::optional<mp::SSHSession> session{mp::nullopt};
+        try
+        {
+            session = mp::SSHSession{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
+        }
+        catch (...)
+        {
+        }
+
         auto& shutdown_timer = delayed_shutdown_instances[name] =
             std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
 
