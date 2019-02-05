@@ -74,12 +74,12 @@ auto key_from(const std::string& search_string)
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
-    : manifest_time_to_live{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
+    : CommonVMImageHost{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
     manifest_single_shot.singleShot(0, [this]() {
         try
         {
-            update_manifest();
+            update_manifests();
         }
         catch (const std::exception& e)
         {
@@ -170,10 +170,8 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     return images;
 }
 
-mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash(const std::string& full_hash)
+mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
 {
-    update_manifest();
-
     for (const auto& manifest : manifests)
     {
         for (const auto& product : manifest.second->products)
@@ -209,10 +207,8 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
     return images;
 }
 
-void mp::UbuntuVMImageHost::for_each_entry_do(const Action& action)
+void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
 {
-    update_manifest();
-
     for (const auto& manifest : manifests)
     {
         for (const auto& product : manifest.second->products)
@@ -235,25 +231,28 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::update_manifest()
+void mp::UbuntuVMImageHost::fetch_manifests()
 {
-    const auto now = std::chrono::steady_clock::now();
-    if ((now - last_update) > manifest_time_to_live || manifests.empty())
+    for (const auto& remote : remotes)
     {
-        manifests.clear();
-
-        for (const auto& remote : remotes)
-        {
-            manifests.emplace_back(
-                std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
-        }
-        last_update = now;
+        manifests.emplace_back(
+            std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
     }
+}
+
+bool mp::UbuntuVMImageHost::empty() const
+{
+    return manifests.empty();
+}
+
+void mp::UbuntuVMImageHost::clear()
+{
+    manifests.clear();
 }
 
 mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::string& remote)
 {
-    update_manifest();
+    update_manifests();
 
     auto it = std::find_if(manifests.begin(), manifests.end(),
                            [&remote](const std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>& element) {
