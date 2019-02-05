@@ -24,5 +24,6 @@ namespace mcp = multipass::cli::platform;
 
 void mcp::open_multipass_shell(const QString& instance_name)
 {
-    QProcess::startDetached("xterm", {"-e", "multipass", "shell", instance_name});
+    QProcess::startDetached(
+        "xterm", {"-title", instance_name, "-j", "-e", QString("multipass shell %1 || read").arg(instance_name)});
 }

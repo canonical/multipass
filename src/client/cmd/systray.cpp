@@ -102,7 +102,7 @@ void cmd::Systray::update_menu()
             auto& instance_actions = instances_menus.at(name).instance_actions;
 
             instance_actions.push_back(instance_menu->addAction("Open shell"));
-            QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
+            QObject::connect(instance_actions.back(), &QAction::triggered, [name] {
                 fmt::print("Opening shell for {}\n", name);
                 mp::cli::platform::open_multipass_shell(QString::fromStdString(name));
             });
@@ -137,6 +137,15 @@ void cmd::Systray::update_menu()
 
             tray_icon_menu.insertMenu(about_separator, instance_menu.get());
         }
+    }
+
+    if (instances_menus.empty())
+    {
+        about_separator->setVisible(false);
+    }
+    else
+    {
+        about_separator->setVisible(true);
     }
 }
 
@@ -175,7 +184,7 @@ void cmd::Systray::create_menu()
 mp::ListReply cmd::Systray::retrieve_all_instances()
 {
     ListReply list_reply;
-    auto on_success = [this, &list_reply](ListReply& reply) {
+    auto on_success = [&list_reply](ListReply& reply) {
         list_reply = reply;
 
         return ReturnCode::Ok;
