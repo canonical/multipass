@@ -11,10 +11,6 @@ description: |
 grade: devel
 confinement: strict
 
-slots:
-  multipass-slot:
-    interface: multipass
-
 plugs:
   all-home:
     interface: home
@@ -42,7 +38,6 @@ apps:
       - network-control
       - network-manager
       - firewall-control
-    slots: [multipass-slot]
 
   multipass:
     environment:
@@ -53,7 +48,6 @@ apps:
     completer: etc/bash_completion.d/snap.multipass
     plugs:
       - all-home
-      - multipass
       - network
 
   libvirt-bin:
