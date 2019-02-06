@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -12,36 +12,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_library(commands STATIC
-  animated_spinner.cpp
-  common_cli.cpp
-  launch.cpp
-  purge.cpp
-  exec.cpp
-  find.cpp
-  help.cpp
-  info.cpp
-  list.cpp
-  mount.cpp
-  recover.cpp
-  shell.cpp
-  start.cpp
-  stop.cpp
-  suspend.cpp
-  restart.cpp
-  delete.cpp
-  transfer.cpp
-  umount.cpp
-  version.cpp
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
-  ${PLATFORM_COMMANDS})
+add_executable(multipass-gui
+  client_gui.cpp
+  main.cpp
+  systray.cpp
+  resources/resources.qrc)
 
-target_link_libraries(commands
+target_link_libraries(multipass-gui
+  argparser
+  cert
   client_common
   client_platform
-  scp_client
-  ssh_client
+  fmt
+  formatter
+  platform
   rpc
   Qt5::Core
   Qt5::Network
-  yaml)
+  Qt5::Widgets)
+
+install(TARGETS multipass-gui
+  DESTINATION bin
+  COMPONENT multipass)

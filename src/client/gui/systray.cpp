@@ -16,9 +16,9 @@
  */
 
 #include "systray.h"
-#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_common.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/cli/format_utils.h>
 
@@ -38,11 +38,11 @@ mp::ReturnCode cmd::Systray::run(mp::ArgParser* parser)
         return ReturnCode::CommandFail;
     }
 
-    auto ret = parse_args(parser);
-    if (ret != ParseCode::Ok)
-    {
-        return parser->returnCodeFrom(ret);
-    }
+    // auto ret = parse_args(parser);
+    // if (ret != ParseCode::Ok)
+    //{
+    //    return parser->returnCodeFrom(ret);
+    //}
 
     QEventLoop loop;
 

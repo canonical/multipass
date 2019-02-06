@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_COMMON_CLI_H
 #define MULTIPASS_COMMON_CLI_H
 
+#include <multipass/cli/client_common.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>

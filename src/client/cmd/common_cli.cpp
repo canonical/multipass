@@ -29,11 +29,6 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
-mp::ReturnCode return_code_for(const grpc::StatusCode& code)
-{
-    return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
-}
-
 std::string message_box(const std::string& message)
 {
     std::string::size_type divider_length = 50;

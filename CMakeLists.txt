@@ -42,7 +42,6 @@ endif()
 add_subdirectory(3rd-party)
 
 # Qt config
-set(CMAKE_AUTORCC ON)
 find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
