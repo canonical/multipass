@@ -91,11 +91,11 @@ parts:
     - qemu-utils
     - libslang2
     organize:
-      usr/lib/*/pulseaudio/libpulsecommon-11.1.so: usr/lib/libpulsecommon-11.1.so
-      usr/share/seabios/bios-256k.bin: qemu/bios-256k.bin
-      usr/share/seabios/vgabios-stdvga.bin: qemu/vgabios-stdvga.bin
-      usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
-      usr/lib/ipxe/qemu/efi-virtio.rom: qemu/efi-virtio.rom
+      usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
+      usr/share/seabios/bios-256k.bin: qemu/
+      usr/share/seabios/vgabios-stdvga.bin: qemu/
+      usr/share/seabios/kvmvapic.bin: qemu/
+      usr/lib/ipxe/qemu/efi-virtio.rom: qemu/
 
   kvm-support:
     plugin: nil
