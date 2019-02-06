@@ -42,7 +42,8 @@ struct CustomImageHost : public Test
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
     }
 
-    mp::URLDownloader url_downloader{std::chrono::seconds{10}};
+    std::chrono::seconds timeout{10};
+    mp::URLDownloader url_downloader{timeout};
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
 };
@@ -153,4 +154,53 @@ TEST_F(CustomImageHost, invalid_remote_throws_error)
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     EXPECT_THROW(*host.info_for(make_query("core", "foo")), std::runtime_error);
+}
+
+namespace
+{
+    struct MischievousURLDownloader : public mp::URLDownloader
+    {
+        MischievousURLDownloader(std::chrono::milliseconds timeout)
+            : URLDownloader(timeout)
+        {}
+
+        void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+                         const mp::ProgressMonitor& monitor) override
+        {
+            URLDownloader::download_to(choose_url(url), file_name, size, download_type, monitor);
+        }
+
+        QByteArray download(const QUrl& url) override
+        {
+            return URLDownloader::download(choose_url(url));
+        }
+
+        QDateTime last_modified(const QUrl& url) override
+        {
+            return URLDownloader::last_modified(choose_url(url));
+        }
+
+        const QUrl& choose_url(const QUrl& url)
+        {
+            return mischiefs-- > 0 ? empty_url : url;
+        }
+
+        QUrl empty_url{};
+        int mischiefs = 0;
+    };
+}
+
+TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
+{
+    auto long_ttl = std::chrono::hours{1};
+    MischievousURLDownloader alt_downloader{timeout};
+
+    alt_downloader.mischiefs = 1000;
+    mp::CustomVMImageHost host{&alt_downloader, long_ttl, test_path};
+
+    auto query = make_query("core", "snapcraft");
+    EXPECT_FALSE(host.info_for(query));
+
+    alt_downloader.mischiefs = 0;
+    EXPECT_TRUE(host.info_for(query));
 }
