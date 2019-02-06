@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,6 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ *
  */
 
 #include "client.h"
@@ -24,7 +26,7 @@
 #include <multipass/terminal.h>
 #include <multipass/utils.h>
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <QStandardPaths>
 #include <QtGlobal>
 
@@ -43,27 +45,11 @@ std::string get_server_address()
 
     return mp::platform::default_server_address();
 }
-
-bool is_graphical_command(int argc, char* argv[])
-{
-    for (int i = 0; i < argc; ++i)
-    {
-        if (strcmp(argv[i], "systray") == 0)
-            return true;
-    }
-
-    return false;
-}
 } // namespace
 
 int main(int argc, char* argv[])
 {
-    if (!is_graphical_command(argc, argv))
-    {
-        qputenv("QT_QPA_PLATFORM", "minimal");
-    }
-
-    QApplication app(argc, argv);
+    QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("multipass");
     mp::Console::setup_environment();
     auto term = mp::Terminal::make_terminal();

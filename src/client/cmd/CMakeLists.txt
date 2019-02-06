@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(CMAKE_AUTOMOC ON)
-
 add_library(commands STATIC
   animated_spinner.cpp
   common_cli.cpp
@@ -30,7 +28,6 @@ add_library(commands STATIC
   start.cpp
   stop.cpp
   suspend.cpp
-  systray.cpp
   restart.cpp
   delete.cpp
   transfer.cpp
@@ -46,5 +43,4 @@ target_link_libraries(commands
   rpc
   Qt5::Core
   Qt5::Network
-  Qt5::Widgets
   yaml)
