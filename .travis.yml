@@ -35,8 +35,9 @@ install:
 before_script:
 - "[ ! -f tests/travis.patch ] || patch -p1 < tests/travis.patch"
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
+- sg lxd -c 'lxc remote add --protocol simplestreams ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/'
 - |
-    sg lxd -c "$( printf '/snap/bin/lxc launch ubuntu:18.04 snapcraft-multipass \
+    sg lxd -c "$( printf '/snap/bin/lxc launch ubuntu-minimal:18.04 snapcraft-multipass \
       --config user.user-data="#cloud-config\npackage_update: true" \
       --config raw.idmap="uid %s 0\ngid %s 0"' $( id -u ) $( id -g ) )"
 - sg lxd -c "/snap/bin/lxc config device add snapcraft-multipass project disk path=/root/project source=$PWD"
