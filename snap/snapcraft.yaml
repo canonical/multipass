@@ -8,6 +8,7 @@ description: |
   and it'll do all the setup for you. Check out `multipass find` for a list
   of available images. More details you can find under `multipass help`.
 
+base: core18
 grade: devel
 confinement: strict
 
@@ -60,6 +61,13 @@ apps:
     plugs:
       - libvirt
 
+  virtlogd-bin:
+    command: bin/launch-virtlogd
+    environment:
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      LC_ALL: C
+    daemon: simple
   virsh:
     command: bin/virsh
     environment:
@@ -69,106 +77,8 @@ apps:
       - libvirt
 
 parts:
-  qtbase5-dev:
-    after: [qt5-qmake-bin]
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  qtbase5-dev-tools:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  qt5-qmake:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  qt5-qmake-bin:
-    after: [qt5-qmake]
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    prime: [-*]
-
-  libqt5core5a:
-    after: [libicu]
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    stage-packages:
-    - libdouble-conversion1v5
-    - libpcre16-3
-
-  libqt5dbus5:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-
-  libqt5network5:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_arm64.deb
-    source-type: deb
-    stage-packages:
-    - libproxy1v5
-
-  libicu:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_arm64.deb
-    source-type: deb
-
-  libssl:
-    plugin: dump
-    source:
-    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_i386.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
-    source-type: deb
-
   multipass:
     after:
-    - qtbase5-dev
-    - qtbase5-dev-tools
-    - libqt5core5a
-    - libqt5network5
-    - libssl
     - libvirt
     plugin: cmake
     build-packages:
@@ -178,6 +88,12 @@ parts:
     - golang
     - libapparmor-dev
     - libsystemd-dev
+    - qtbase5-dev
+    - qtbase5-dev-tools
+    stage-packages:
+    - libqt5core5a
+    - libqt5network5
+    - libxml2
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -199,13 +115,12 @@ parts:
     - on armhf: [qemu-system-arm]
     - on arm64: [qemu-system-arm]
     - qemu-utils
-    - libslang2
     organize:
-      usr/lib/*/pulseaudio/libpulsecommon-8.0.so: usr/lib/libpulsecommon-8.0.so
-      usr/share/seabios/bios-256k.bin: qemu/bios-256k.bin
-      usr/share/seabios/vgabios-stdvga.bin: qemu/vgabios-stdvga.bin
-      usr/share/seabios/kvmvapic.bin: qemu/kvmvapic.bin
-      usr/lib/ipxe/qemu/efi-virtio.rom: qemu/efi-virtio.rom
+      usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
+      usr/share/seabios/bios-256k.bin: qemu/
+      usr/share/seabios/vgabios-stdvga.bin: qemu/
+      usr/share/seabios/kvmvapic.bin: qemu/
+      usr/lib/ipxe/qemu/efi-virtio.rom: qemu/
 
   apparmor:
     plugin: nil
@@ -219,10 +134,12 @@ parts:
     - try: [msr-tools]
 
   libvirt:
-    source-subdir: libvirt-1.3.1
+    source: snap
+    source-subdir: libvirt
     plugin: autotools
     build-packages:
     - libxml2-dev
+    - libxml2-utils
     - libxml-libxml-perl
     - libcurl4-gnutls-dev
     - libncurses5-dev
@@ -243,16 +160,17 @@ parts:
     - python-six
     - wget
     - dpkg-dev
+    - xsltproc
     stage-packages:
     - dmidecode
     - dnsmasq
     - dnsmasq-utils
     - ebtables
     - libxml2
-    - libyajl2
     - try: [libnuma1]
     - libcurl3-gnutls
     - libpciaccess0
+    - libpcap0.8
     configflags:
     - --with-qemu
     - --without-bhyve
@@ -278,11 +196,11 @@ parts:
     - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
     - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
     - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ebtables
+    - IPTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/iptables
+    - IP6TABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ip6tables
     override-pull: |
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.debian.tar.xz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.dsc
-      dpkg-source -x libvirt*.dsc
+      apt-get source libvirt
+      mv libvirt-* libvirt
     organize:
       # Hack to shift installed libvirt back to root of snap
       # required to ensure that pathing to files etc works at
@@ -295,8 +213,10 @@ parts:
     override-pull: ""
     stage-packages:
     - iproute2
+    - iptables
     - iputils-ping
     - libatm1
+    - libxtables12
 
   glue:
     plugin: dump
