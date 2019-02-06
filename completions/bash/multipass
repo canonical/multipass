@@ -71,8 +71,6 @@ _multipass_complete()
         ;;
         "find")
             opts="${opts} --show-unsupported"
-        "systray")
-            opts="${opts}"
         ;;
     esac
 
