@@ -15,8 +15,6 @@ branches:
 addons:
   snaps:
   - lxd
-  - name: snapcraft
-    classic: true
 
 env:
   global:
@@ -37,7 +35,13 @@ install:
 before_script:
 - "[ ! -f tests/travis.patch ] || patch -p1 < tests/travis.patch"
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
-- sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft refresh'
+- |
+    sg lxd -c "$( printf '/snap/bin/lxc launch ubuntu:18.04 snapcraft-multipass \
+      --config user.user-data="#cloud-config\npackage_update: true" \
+      --config raw.idmap="uid %s 0\ngid %s 0"' $( id -u ) $( id -g ) )"
+- sg lxd -c "/snap/bin/lxc config device add snapcraft-multipass project disk path=/root/project source=$PWD"
+- while ! sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- cloud-init status' | grep 'done'; do sleep 5; done
+- while ! sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- snap install snapcraft --classic'; do sleep 5; done
 
 after_failure:
 - cat /tmp/*/trace.txt
@@ -48,27 +52,25 @@ jobs:
   include:
     - env: BUILD_TYPE=RelWithDebInfo
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft'
+      - sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- sh -c "cd project; snapcraft --destructive-mode"'
 
     - env: BUILD_TYPE=Debug
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+      - sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- sh -c "cd project; snapcraft build --destructive-mode multipass"'
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
              env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
-                 /root/build_multipass/parts/multipass/build/bin/multipass_tests'
+                 LD_LIBRARY_PATH=/root/project/stage/usr/lib/x86_64-linux-gnu/:/root/project/stage/lib/
+                 /root/project/parts/multipass/build/bin/multipass_tests'
 
     - env: BUILD_TYPE=Coverage
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+      - sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- sh -c "cd project; snapcraft build --destructive-mode multipass"'
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
              env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/build_multipass/stage/usr/lib/x86_64-linux-gnu/:/root/build_multipass/stage/lib/
-                 cmake --build /root/build_multipass/parts/multipass/build --target covreport'
+                 LD_LIBRARY_PATH=/root/project/stage/usr/lib/x86_64-linux-gnu/:/root/project/stage/lib/
+                 cmake --build /root/project/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     - if: (type = pull_request AND head_repo = CanonicalLtd/multipass)
