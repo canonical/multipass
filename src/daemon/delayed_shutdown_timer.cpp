@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,19 +28,19 @@ namespace
 void write_shutdown_message(mp::optional<mp::SSHSession>& ssh_session, const std::chrono::minutes& time_left,
                             const std::string& name)
 {
-    if (ssh_session == mp::nullopt)
-        return;
-
-    if (time_left > std::chrono::milliseconds::zero())
+    if (ssh_session)
     {
-        ssh_session.value().exec(
-            fmt::format("wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
-                        "--cancel {}' to cancel the shutdown.\"",
-                        time_left.count(), time_left > std::chrono::minutes(1) ? "s" : "", name));
-    }
-    else
-    {
-        ssh_session.value().exec(fmt::format("wall The system is going down for poweroff now"));
+        if (time_left > std::chrono::milliseconds::zero())
+        {
+            ssh_session->exec(
+                fmt::format("wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
+                            "--cancel {}' to cancel the shutdown.\"",
+                            time_left.count(), time_left > std::chrono::minutes(1) ? "s" : "", name));
+        }
+        else
+        {
+            ssh_session->exec(fmt::format("wall The system is going down for poweroff now"));
+        }
     }
 }
 } // namespace
@@ -54,9 +54,11 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
 {
     if (shutdown_timer.isActive())
     {
-        // exit_code() is here to make sure the command finishes before continuing in the dtor
-        if (ssh_session != mp::nullopt)
-            ssh_session.value().exec("wall The system shutdown has been cancelled").exit_code();
+        if (ssh_session)
+        {
+            // exit_code() is here to make sure the command finishes before continuing in the dtor
+            ssh_session->exec("wall The system shutdown has been cancelled").exit_code();
+        }
         mpl::log(mpl::Level::info, virtual_machine->vm_name, fmt::format("Cancelling delayed shutdown"));
         virtual_machine->state = VirtualMachine::State::running;
     }
