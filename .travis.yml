@@ -21,6 +21,7 @@ addons:
 env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
+  - SNAPCRAFT_BUILD_ENVIRONMENT=lxd
 
 install:
 - sudo apt remove --assume-yes lxd
