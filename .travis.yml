@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 
 language: cpp
@@ -12,14 +12,18 @@ branches:
   - trying
   - master
 
+addons:
+  snaps:
+  - lxd
+  - name: snapcraft
+    classic: true
+
 env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
 
 install:
-- sudo apt-get --yes --no-install-recommends install snapd
-- sudo snap install lxd
-- sudo snap install snapcraft --classic --candidate
+- sudo apt remove --assume-yes lxd
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
