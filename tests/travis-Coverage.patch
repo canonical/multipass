@@ -1,10 +1,14 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -142,11 +142,11 @@ parts:
-     - git
-     - golang
+@@ -64,15 +64,15 @@ parts:
      - libsystemd-dev
+     - qtbase5-dev
+     - qtbase5-dev-tools
 +    - lcov
+     stage-packages:
+     - libqt5core5a
+     - libqt5network5
+     - libxml2
      source: .
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
