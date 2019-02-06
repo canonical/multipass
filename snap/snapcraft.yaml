@@ -38,6 +38,13 @@ apps:
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       LC_ALL: C
     daemon: simple
+  virtlogd-bin:
+    command: bin/launch-virtlogd
+    environment:
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      LC_ALL: C
+    daemon: simple
   virsh:
     command: bin/virsh
     environment:
@@ -98,10 +105,11 @@ parts:
 
   libvirt:
     source: snap
-    source-subdir: libvirt-1.3.1
+    source-subdir: libvirt
     plugin: autotools
     build-packages:
     - libxml2-dev
+    - libxml2-utils
     - libxml-libxml-perl
     - libcurl4-gnutls-dev
     - libncurses5-dev
@@ -122,6 +130,7 @@ parts:
     - python-six
     - wget
     - dpkg-dev
+    - xsltproc
     stage-packages:
     - dmidecode
     - dnsmasq
@@ -157,11 +166,11 @@ parts:
     - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
     - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
     - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ebtables
+    - IPTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/iptables
+    - IP6TABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ip6tables
     override-pull: |
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.debian.tar.xz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.dsc
-      dpkg-source -x libvirt*.dsc
+      apt-get source libvirt
+      mv libvirt-* libvirt
     organize:
       # Hack to shift installed libvirt back to root of snap
       # required to ensure that pathing to files etc works at
@@ -174,6 +183,7 @@ parts:
     override-pull: ""
     stage-packages:
     - iproute2
+    - iptables
     - iputils-ping
     - libatm1
     - libxtables12
