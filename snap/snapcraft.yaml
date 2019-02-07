@@ -28,6 +28,12 @@ apps:
       QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
+  gui:
+    environment:
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+    command: bin/multipass-gui
   libvirt-bin:
     command: bin/launch-libvirtd
     environment:
@@ -175,6 +181,15 @@ parts:
 >>>>>>> snap: Add support for building client with systray UI
     source-type: deb
 
+  libxcb-xinerama0:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_i386.deb
+    - on armhf: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_armhf.deb
+    - on arm64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_arm64.deb
+    source-type: deb
+
   multipass:
     after:
     - qtbase5-dev
@@ -186,6 +201,7 @@ parts:
     - libharfbuzz0b
     - libfreetype6
     - libvirt
+    - libxcb-xinerama0
     plugin: cmake
     build-packages:
     - build-essential
