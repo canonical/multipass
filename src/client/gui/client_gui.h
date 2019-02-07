@@ -18,11 +18,9 @@
 #ifndef MULTIPASS_CLIENT_GUI_H
 #define MULTIPASS_CLIENT_GUI_H
 
-#include "systray.h"
+#include "gui_cmd.h"
 
 #include <multipass/cert_provider.h>
-#include <multipass/cli/cli.h>
-#include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 
@@ -55,7 +53,7 @@ private:
     std::ostream& cout;
     std::ostream& cerr;
 
-    std::unique_ptr<cmd::Systray> systray_cmd;
+    std::unique_ptr<cmd::GuiCmd> gui_cmd;
 };
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_GUI_H

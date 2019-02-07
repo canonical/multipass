@@ -16,11 +16,6 @@
  */
 
 #include "client_gui.h"
-#include "systray.h"
-
-#include <grpcpp/grpcpp.h>
-
-#include <algorithm>
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
@@ -36,7 +31,7 @@ mp::ClientGui::ClientGui(ClientConfig& config)
       stub{mp::Rpc::NewStub(rpc_channel)},
       cout{config.cout},
       cerr{config.cerr},
-      systray_cmd{std::make_unique<cmd::Systray>(*rpc_channel, *stub, cout, cerr)}
+      gui_cmd{std::make_unique<cmd::GuiCmd>(*rpc_channel, *stub, cout, cerr)}
 {
 }
 
@@ -58,5 +53,5 @@ int mp::ClientGui::run(const QStringList& arguments)
     auto logger = std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel()));
     mpl::set_logger(logger);
 
-    return systray_cmd->run(&parser);
+    return gui_cmd->run(&parser);
 }

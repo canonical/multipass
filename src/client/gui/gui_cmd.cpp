@@ -15,7 +15,7 @@
  *
  */
 
-#include "systray.h"
+#include "gui_cmd.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
@@ -30,7 +30,7 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Systray::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
 {
     if (!QSystemTrayIcon::isSystemTrayAvailable())
     {
@@ -53,27 +53,27 @@ mp::ReturnCode cmd::Systray::run(mp::ArgParser* parser)
     return static_cast<ReturnCode>(loop.exec());
 }
 
-std::string cmd::Systray::name() const
+std::string cmd::GuiCmd::name() const
 {
-    return "systray";
+    return "";
 }
 
-QString cmd::Systray::short_help() const
+QString cmd::GuiCmd::short_help() const
 {
     return QStringLiteral("Run client in system tray");
 }
 
-QString cmd::Systray::description() const
+QString cmd::GuiCmd::description() const
 {
     return QStringLiteral("Run the client in the system tray.");
 }
 
-mp::ParseCode cmd::Systray::parse_args(mp::ArgParser* parser)
+mp::ParseCode cmd::GuiCmd::parse_args(mp::ArgParser* parser)
 {
     return parser->commandParse(this);
 }
 
-void cmd::Systray::create_actions()
+void cmd::GuiCmd::create_actions()
 {
     retrieving_action = tray_icon_menu.addAction("Retrieving instances...");
     about_separator = tray_icon_menu.addSeparator();
@@ -81,7 +81,7 @@ void cmd::Systray::create_actions()
     quit_action = tray_icon_menu.addAction("Quit");
 }
 
-void cmd::Systray::update_menu()
+void cmd::GuiCmd::update_menu()
 {
     tray_icon_menu.removeAction(retrieving_action);
 
@@ -117,13 +117,13 @@ void cmd::Systray::update_menu()
                 instance_actions.push_back(instance_menu->addAction("Suspend"));
                 QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
                     fmt::print("Suspending {}\n", name);
-                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::suspend_instance_for, name));
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::suspend_instance_for, name));
                 });
 
                 instance_actions.push_back(instance_menu->addAction("Stop"));
                 QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
                     fmt::print("Stopping {}\n", name);
-                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::stop_instance_for, name));
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, name));
                 });
             }
             else if (state == "STOPPED" || state == "SUSPENDED")
@@ -131,7 +131,7 @@ void cmd::Systray::update_menu()
                 instance_actions.push_back(instance_menu->addAction("Start"));
                 QObject::connect(instance_actions.back(), &QAction::triggered, [this, name] {
                     fmt::print("Started {}\n", name);
-                    future_synchronizer.addFuture(QtConcurrent::run(this, &Systray::start_instance_for, name));
+                    future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, name));
                 });
             }
 
@@ -149,13 +149,13 @@ void cmd::Systray::update_menu()
     }
 }
 
-void cmd::Systray::create_menu()
+void cmd::GuiCmd::create_menu()
 {
     tray_icon.setContextMenu(&tray_icon_menu);
 
     tray_icon.setIcon(QIcon{":images/ubuntu-icon.png"});
 
-    QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &Systray::update_menu);
+    QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &GuiCmd::update_menu);
 
     QObject::connect(&tray_icon_menu, &QMenu::aboutToShow, [this]() {
         if (failure_action.isVisible())
@@ -168,7 +168,7 @@ void cmd::Systray::create_menu()
 
         if (!list_future.isRunning())
         {
-            list_future = QtConcurrent::run(this, &Systray::retrieve_all_instances);
+            list_future = QtConcurrent::run(this, &GuiCmd::retrieve_all_instances);
             future_synchronizer.addFuture(list_future);
             list_watcher.setFuture(list_future);
         }
@@ -181,7 +181,7 @@ void cmd::Systray::create_menu()
     });
 }
 
-mp::ListReply cmd::Systray::retrieve_all_instances()
+mp::ListReply cmd::GuiCmd::retrieve_all_instances()
 {
     ListReply list_reply;
     auto on_success = [&list_reply](ListReply& reply) {
@@ -203,7 +203,7 @@ mp::ListReply cmd::Systray::retrieve_all_instances()
     return list_reply;
 }
 
-void cmd::Systray::start_instance_for(const std::string& instance_name)
+void cmd::GuiCmd::start_instance_for(const std::string& instance_name)
 {
     auto on_success = [](mp::StartReply& reply) { return ReturnCode::Ok; };
 
@@ -216,7 +216,7 @@ void cmd::Systray::start_instance_for(const std::string& instance_name)
     dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
 
-void cmd::Systray::stop_instance_for(const std::string& instance_name)
+void cmd::GuiCmd::stop_instance_for(const std::string& instance_name)
 {
     auto on_success = [](mp::StopReply& reply) { return ReturnCode::Ok; };
 
@@ -229,7 +229,7 @@ void cmd::Systray::stop_instance_for(const std::string& instance_name)
     dispatch(&RpcMethod::stop, request, on_success, on_failure);
 }
 
-void cmd::Systray::suspend_instance_for(const std::string& instance_name)
+void cmd::GuiCmd::suspend_instance_for(const std::string& instance_name)
 {
     auto on_success = [](mp::SuspendReply& reply) { return ReturnCode::Ok; };
 

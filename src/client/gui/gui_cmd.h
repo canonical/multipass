@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_SYSTRAY_H
-#define MULTIPASS_SYSTRAY_H
+#ifndef MULTIPASS_GUI_CMD_H
+#define MULTIPASS_GUI_CMD_H
 
 #include <multipass/cli/command.h>
 
@@ -34,7 +34,7 @@ namespace multipass
 {
 namespace cmd
 {
-class Systray final : public QObject, public Command
+class GuiCmd final : public QObject, public Command
 {
     Q_OBJECT
 public:
@@ -77,4 +77,4 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_SYSTRAY_H
+#endif // MULTIPASS_GUI_CMD_H

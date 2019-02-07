@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 
 #include "client.h"
 
-#include <multipass/cli/cli.h>
 #include <multipass/console.h>
 #include <multipass/platform.h>
 #include <multipass/ssl_cert_provider.h>

@@ -18,7 +18,7 @@ set(CMAKE_AUTORCC ON)
 add_executable(multipass-gui
   client_gui.cpp
   main.cpp
-  systray.cpp
+  gui_cmd.cpp
   resources/resources.qrc)
 
 target_link_libraries(multipass-gui
