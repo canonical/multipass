@@ -16,13 +16,13 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 add_executable(multipass-gui
+  argparser.cpp
   client_gui.cpp
   main.cpp
   gui_cmd.cpp
   resources/resources.qrc)
 
 target_link_libraries(multipass-gui
-  argparser
   cert
   client_common
   client_platform

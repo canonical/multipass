@@ -16,8 +16,8 @@
  */
 
 #include "gui_cmd.h"
+#include "argparser.h"
 
-#include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/cli/format_utils.h>
@@ -70,7 +70,7 @@ QString cmd::GuiCmd::description() const
 
 mp::ParseCode cmd::GuiCmd::parse_args(mp::ArgParser* parser)
 {
-    return parser->commandParse(this);
+    return ParseCode::Ok;
 }
 
 void cmd::GuiCmd::create_actions()

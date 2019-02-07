@@ -32,6 +32,8 @@
 
 namespace multipass
 {
+class ArgParser;
+
 namespace cmd
 {
 class GuiCmd final : public QObject, public Command

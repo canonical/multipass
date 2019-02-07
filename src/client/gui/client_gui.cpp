@@ -16,8 +16,8 @@
  */
 
 #include "client_gui.h"
+#include "argparser.h"
 
-#include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
@@ -41,7 +41,7 @@ int mp::ClientGui::run(const QStringList& arguments)
                         "This is a command line utility for multipass, a\n"
                         "service that manages Ubuntu instances.");
 
-    ArgParser parser(arguments, {}, cout, cerr);
+    ArgParser parser;
     parser.setApplicationDescription(description);
 
     // ParseCode parse_status = parser.parse();
