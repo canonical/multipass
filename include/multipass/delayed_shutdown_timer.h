@@ -33,7 +33,7 @@ class DelayedShutdownTimer : public QObject
     Q_OBJECT
 
 public:
-    DelayedShutdownTimer(VirtualMachine* virtual_machine, SSHSession&& session);
+    DelayedShutdownTimer(VirtualMachine* virtual_machine, optional<SSHSession>&& session);
     ~DelayedShutdownTimer();
 
     void start(const std::chrono::milliseconds delay);
@@ -47,7 +47,7 @@ private:
 
     QTimer shutdown_timer;
     VirtualMachine* virtual_machine;
-    SSHSession ssh_session;
+    optional<SSHSession> ssh_session;
     std::chrono::milliseconds delay;
     std::chrono::milliseconds time_remaining;
 };
