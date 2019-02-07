@@ -18,9 +18,13 @@
 #ifndef MULTIPASS_CLIENT_COMMON_H
 #define MULTIPASS_CLIENT_COMMON_H
 
-#include <multipass/cli/return_codes.h>
-#include <multipass/rpc/multipass.grpc.pb.h>
+#include <grpcpp/grpcpp.h>
 
+#include <multipass/cert_provider.h>
+#include <multipass/cli/return_codes.h>
+#include <multipass/rpc_connection_type.h>
+
+#include <memory>
 #include <string>
 
 namespace multipass
@@ -30,6 +34,11 @@ namespace cmd
 multipass::ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr,
                                                    const grpc::Status& status,
                                                    const std::string& error_details = std::string());
+}
+namespace client
+{
+std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, RpcConnectionType conn_type,
+                                            CertProvider& cert_provider);
 }
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_COMMON_H

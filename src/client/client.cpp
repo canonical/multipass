@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,9 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
+
 #include "client.h"
 #include "cmd/delete.h"
 #include "cmd/exec.h"
@@ -40,42 +39,17 @@
 
 #include <algorithm>
 
-#include <multipass/cert_provider.h>
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_common.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-namespace
-{
-auto make_channel(const std::string& server_address, mp::RpcConnectionType conn_type, mp::CertProvider& cert_provider)
-{
-    std::shared_ptr<grpc::ChannelCredentials> creds;
-    if (conn_type == mp::RpcConnectionType::ssl)
-    {
-        auto opts = grpc::SslCredentialsOptions();
-        opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
-        opts.pem_cert_chain = cert_provider.PEM_certificate();
-        opts.pem_private_key = cert_provider.PEM_signing_key();
-        creds = grpc::SslCredentials(opts);
-    }
-    else if (conn_type == mp::RpcConnectionType::insecure)
-    {
-        creds = grpc::InsecureChannelCredentials();
-    }
-    else
-    {
-        throw std::runtime_error("Unknown connection type");
-    }
-    return grpc::CreateChannel(server_address, creds);
-}
-} // namespace
-
 mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
-      rpc_channel{make_channel(config.server_address, config.conn_type, *cert_provider)},
+      rpc_channel{mp::client::make_channel(config.server_address, config.conn_type, *cert_provider)},
       stub{mp::Rpc::NewStub(rpc_channel)},
       term{config.term}
 {
