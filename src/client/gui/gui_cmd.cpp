@@ -22,7 +22,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/cli/format_utils.h>
 
-#include <QEventLoop>
+#include <QCoreApplication>
 #include <QTimer>
 #include <QtConcurrent/QtConcurrent>
 
@@ -38,13 +38,11 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
         return ReturnCode::CommandFail;
     }
 
-    QEventLoop loop;
-
     create_actions();
     create_menu();
     tray_icon.show();
 
-    return static_cast<ReturnCode>(loop.exec());
+    return static_cast<ReturnCode>(QCoreApplication::exec());
 }
 
 std::string cmd::GuiCmd::name() const

@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef ARGPARSER_H
-#define ARGPARSER_H
+#ifndef MULTIPASS_ARGPARSER_H
+#define MULTIPASS_ARGPARSER_H
 
 #include <QCommandLineParser>
 
@@ -33,4 +33,4 @@ private:
     int verbosity_level{0};
 };
 } // namespace multipass
-#endif // ARGPARSER_H
+#endif // MULTIPASS_ARGPARSER_H
