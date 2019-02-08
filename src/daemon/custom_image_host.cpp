@@ -239,7 +239,7 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::fetch_manifests()
 {
-    static auto on_failure = std::bind(&CustomVMImageHost::on_manifest_update_failure, this, std::placeholders::_1);
+    auto on_failure = std::bind(&CustomVMImageHost::on_manifest_update_failure, this, std::placeholders::_1);
 
     custom_image_info.emplace(no_remote,
                               full_image_info_for(multipass_image_info, url_downloader, path_prefix, on_failure));
