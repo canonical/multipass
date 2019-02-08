@@ -17,33 +17,30 @@
  *
  */
 
-#ifndef MULTIPASS_ANIMATED_SPINNER_H
-#define MULTIPASS_ANIMATED_SPINNER_H
+#ifndef MULTIPASS_RECOVER_H
+#define MULTIPASS_RECOVER_H
 
-#include <future>
-#include <string>
-#include <vector>
+#include <multipass/cli/command.h>
 
 namespace multipass
 {
-class AnimatedSpinner
+namespace cmd
+{
+class Recover final : public Command
 {
 public:
-    explicit AnimatedSpinner(std::ostream& cout);
-    ~AnimatedSpinner();
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
 
-    void start(const std::string& message);
-    void stop();
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
 
 private:
-    void draw();
-    const std::vector<char> spinner;
-    std::ostream& cout;
-    bool running;
-    std::mutex mutex;
-    std::condition_variable cv;
-    std::thread t;
-};
-}
+    RecoverRequest request;
 
-#endif // MULTIPASS_ANIMATED_SPINNER_H
+    ParseCode parse_args(ArgParser* parser) override;
+};
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_RECOVER_H

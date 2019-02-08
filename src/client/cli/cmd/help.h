@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_FIND_H
-#define MULTIPASS_FIND_H
+#ifndef MULTIPASS_HELP_H
+#define MULTIPASS_HELP_H
 
 #include <multipass/cli/command.h>
 
@@ -24,7 +24,7 @@ namespace multipass
 {
 namespace cmd
 {
-class Find final : public Command
+class Help final : public Command
 {
 public:
     using Command::Command;
@@ -35,10 +35,10 @@ public:
     QString description() const override;
 
 private:
-    FindRequest request;
+    QString command;
 
     ParseCode parse_args(ArgParser* parser) override;
 };
-}
-}
-#endif // MULTIPASS_FIND_H
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_HELP_H

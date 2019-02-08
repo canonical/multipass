@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_HELP_H
-#define MULTIPASS_HELP_H
+#ifndef MULTIPASS_MOUNT_H
+#define MULTIPASS_MOUNT_H
 
 #include <multipass/cli/command.h>
 
@@ -24,21 +24,21 @@ namespace multipass
 {
 namespace cmd
 {
-class Help final : public Command
+class Mount final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    QString command;
+    MountRequest request;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser) override;
 };
-}
-}
-#endif // MULTIPASS_HELP_H
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_MOUNT_H

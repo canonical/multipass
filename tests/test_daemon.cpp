@@ -15,7 +15,7 @@
  *
  */
 
-#include <src/client/client.h>
+#include <src/client/cli/client.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 #include <src/daemon/daemon_rpc.h>

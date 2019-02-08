@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef MULTIPASS_RECOVER_H
-#define MULTIPASS_RECOVER_H
+#ifndef MULTIPASS_CONNECT_H
+#define MULTIPASS_CONNECT_H
 
 #include <multipass/cli/command.h>
 
@@ -26,21 +26,22 @@ namespace multipass
 {
 namespace cmd
 {
-class Recover final : public Command
+class Shell final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
+    std::vector<std::string> aliases() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    RecoverRequest request;
+    SSHInfoRequest request;
 
     ParseCode parse_args(ArgParser *parser) override;
 };
-}
-}
-#endif // MULTIPASS_RECOVER_H
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_CONNECT_H

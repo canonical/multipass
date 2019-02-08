@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef MULTIPASS_START_H
-#define MULTIPASS_START_H
+#ifndef MULTIPASS_STOP_H
+#define MULTIPASS_STOP_H
 
 #include <multipass/cli/command.h>
 
@@ -26,21 +26,21 @@ namespace multipass
 {
 namespace cmd
 {
-class Start final : public Command
+class Stop final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    StartRequest request;
+    StopRequest request;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser) override;
 };
-}
-}
-#endif // MULTIPASS_START_H
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_STOP_H

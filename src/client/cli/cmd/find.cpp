@@ -44,7 +44,7 @@ std::ostream& operator<<(std::ostream& out, const multipass::FindReply::ImageInf
 
     return out;
 }
-}
+} // namespace
 
 mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
 {

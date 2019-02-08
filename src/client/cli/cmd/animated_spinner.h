@@ -17,30 +17,33 @@
  *
  */
 
-#ifndef MULTIPASS_STOP_H
-#define MULTIPASS_STOP_H
+#ifndef MULTIPASS_ANIMATED_SPINNER_H
+#define MULTIPASS_ANIMATED_SPINNER_H
 
-#include <multipass/cli/command.h>
+#include <future>
+#include <string>
+#include <vector>
 
 namespace multipass
 {
-namespace cmd
-{
-class Stop final : public Command
+class AnimatedSpinner
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    explicit AnimatedSpinner(std::ostream& cout);
+    ~AnimatedSpinner();
 
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
+    void start(const std::string& message);
+    void stop();
 
 private:
-    StopRequest request;
-
-    ParseCode parse_args(ArgParser *parser) override;
+    void draw();
+    const std::vector<char> spinner;
+    std::ostream& cout;
+    bool running;
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::thread t;
 };
-}
-}
-#endif // MULTIPASS_STOP_H
+} // namespace multipass
+
+#endif // MULTIPASS_ANIMATED_SPINNER_H

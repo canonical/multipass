@@ -83,7 +83,10 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     return return_code;
 }
 
-std::string cmd::Shell::name() const { return "shell"; }
+std::string cmd::Shell::name() const
+{
+    return "shell";
+}
 
 std::vector<std::string> cmd::Shell::aliases() const
 {

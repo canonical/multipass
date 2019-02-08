@@ -40,7 +40,7 @@ std::string emit_node(YAML::Node& node)
     emitter << YAML::Newline;
     return emitter.c_str();
 }
-}
+} // namespace
 std::string mp::YamlFormatter::format(const InfoReply& reply) const
 {
     YAML::Node info_node;

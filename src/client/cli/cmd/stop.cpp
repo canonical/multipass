@@ -36,9 +36,7 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::StopReply& reply) {
-        return ReturnCode::Ok;
-    };
+    auto on_success = [](mp::StopReply& reply) { return ReturnCode::Ok; };
 
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
@@ -51,7 +49,10 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::stop, request, on_success, on_failure);
 }
 
-std::string cmd::Stop::name() const { return "stop"; }
+std::string cmd::Stop::name() const
+{
+    return "stop";
+}
 
 QString cmd::Stop::short_help() const
 {

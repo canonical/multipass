@@ -31,7 +31,7 @@ void clear_line(std::ostream& out)
     out << "\r" << std::setw(80) << " ";
     out << "\r";
 }
-}
+} // namespace
 
 mp::AnimatedSpinner::AnimatedSpinner(std::ostream& cout) : spinner{'|', '/', '-', '\\'}, cout{cout}, running{false}
 {

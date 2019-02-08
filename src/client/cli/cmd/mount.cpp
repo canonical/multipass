@@ -82,7 +82,10 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::mount, request, on_success, on_failure, streaming_callback);
 }
 
-std::string cmd::Mount::name() const { return "mount"; }
+std::string cmd::Mount::name() const
+{
+    return "mount";
+}
 
 QString cmd::Mount::short_help() const
 {
@@ -106,14 +109,18 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                   "absolute path",
                                   "<target> [<target> ...]");
 
-    QCommandLineOption gid_map({"g", "gid-map"}, "A mapping of group IDs for use in the mount. "
-                                                 "File and folder ownership will be mapped from "
-                                                 "<host> to <instance> inside the instance. Can be "
-                                                 "used multiple times.", "host>:<instance");
-    QCommandLineOption uid_map({"u", "uid-map"}, "A mapping of user IDs for use in the mount. "
-                                                 "File and folder ownership will be mapped from "
-                                                 "<host> to <instance> inside the instance. Can be "
-                                                 "used multiple times.", "host>:<instance");
+    QCommandLineOption gid_map({"g", "gid-map"},
+                               "A mapping of group IDs for use in the mount. "
+                               "File and folder ownership will be mapped from "
+                               "<host> to <instance> inside the instance. Can be "
+                               "used multiple times.",
+                               "host>:<instance");
+    QCommandLineOption uid_map({"u", "uid-map"},
+                               "A mapping of user IDs for use in the mount. "
+                               "File and folder ownership will be mapped from "
+                               "<host> to <instance> inside the instance. Can be "
+                               "used multiple times.",
+                               "host>:<instance");
     parser->addOptions({gid_map, uid_map});
 
     auto status = parser->commandParse(this);

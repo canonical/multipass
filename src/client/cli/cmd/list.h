@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2018 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,28 +17,33 @@
  *
  */
 
-#ifndef MULTIPASS_VERSION_H
-#define MULTIPASS_VERSION_H
+#ifndef MULTIPASS_LIST_H
+#define MULTIPASS_LIST_H
 
 #include <multipass/cli/command.h>
 
 namespace multipass
 {
+class Formatter;
+
 namespace cmd
 {
-class Version final : public Command
+class List final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
+    std::vector<std::string> aliases() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser) override;
+
+    Formatter* chosen_formatter;
 };
-}
-}
-#endif // MULTIPASS_VERSION_H
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_LIST_H

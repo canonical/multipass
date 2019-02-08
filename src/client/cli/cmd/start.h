@@ -13,37 +13,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
+ * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
-#ifndef MULTIPASS_INFO_H
-#define MULTIPASS_INFO_H
+#ifndef MULTIPASS_START_H
+#define MULTIPASS_START_H
 
 #include <multipass/cli/command.h>
 
 namespace multipass
 {
-class Formatter;
-
 namespace cmd
 {
-class Info final : public Command
+class Start final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    InfoRequest request;
-    Formatter* chosen_formatter;
+    StartRequest request;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser) override;
 };
-}
-}
-#endif // MULTIPASS_INFO_H
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_START_H
