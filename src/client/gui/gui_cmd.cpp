@@ -38,12 +38,6 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
         return ReturnCode::CommandFail;
     }
 
-    // auto ret = parse_args(parser);
-    // if (ret != ParseCode::Ok)
-    //{
-    //    return parser->returnCodeFrom(ret);
-    //}
-
     QEventLoop loop;
 
     create_actions();
@@ -60,12 +54,12 @@ std::string cmd::GuiCmd::name() const
 
 QString cmd::GuiCmd::short_help() const
 {
-    return QStringLiteral("Run client in system tray");
+    return QStringLiteral("");
 }
 
 QString cmd::GuiCmd::description() const
 {
-    return QStringLiteral("Run the client in the system tray.");
+    return QStringLiteral("");
 }
 
 mp::ParseCode cmd::GuiCmd::parse_args(mp::ArgParser* parser)

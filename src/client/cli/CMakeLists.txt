@@ -12,25 +12,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_library(argparser STATIC
-  argparser.cpp)
-
-target_link_libraries(argparser
-  fmt
-  rpc
-  Qt5::Core
-  Qt5::Network)
-
 add_library(client STATIC
+  argparser.cpp
   client.cpp)
 
 target_link_libraries(client
-  argparser
-  cert
   commands
   fmt
   formatter
-  platform
   rpc
   Qt5::Core)
 

@@ -16,6 +16,10 @@
  */
 
 #include <multipass/cli/client_common.h>
+#include <multipass/platform.h>
+#include <multipass/utils.h>
+
+#include <QStandardPaths>
 
 #include <fmt/ostream.h>
 
@@ -62,4 +66,23 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
         throw std::runtime_error("Unknown connection type");
     }
     return grpc::CreateChannel(server_address, creds);
+}
+
+std::string mp::client::get_server_address()
+{
+    const auto address = qgetenv("MULTIPASS_SERVER_ADDRESS").toStdString();
+    if (!address.empty())
+    {
+        mp::utils::validate_server_address(address);
+        return address;
+    }
+
+    return mp::platform::default_server_address();
+}
+
+std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
+{
+    auto data_dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    auto client_cert_dir = mp::utils::make_dir(data_dir, "client-certificate");
+    return std::make_unique<mp::SSLCertProvider>(client_cert_dir);
 }

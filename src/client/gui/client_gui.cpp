@@ -37,18 +37,7 @@ mp::ClientGui::ClientGui(ClientConfig& config)
 
 int mp::ClientGui::run(const QStringList& arguments)
 {
-    QString description("Create, control and connect to Ubuntu instances.\n\n"
-                        "This is a command line utility for multipass, a\n"
-                        "service that manages Ubuntu instances.");
-
     ArgParser parser;
-    parser.setApplicationDescription(description);
-
-    // ParseCode parse_status = parser.parse();
-    // if (parse_status != ParseCode::Ok)
-    //{
-    //    return parser.returnCodeFrom(parse_status);
-    //}
 
     auto logger = std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel()));
     mpl::set_logger(logger);

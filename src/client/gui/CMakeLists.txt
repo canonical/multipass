@@ -23,12 +23,10 @@ add_executable(multipass-gui
   resources/resources.qrc)
 
 target_link_libraries(multipass-gui
-  cert
   client_common
   client_platform
   fmt
   formatter
-  platform
   rpc
   Qt5::Core
   Qt5::Network

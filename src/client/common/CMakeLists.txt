@@ -16,5 +16,8 @@ add_library(client_common STATIC
   client_common.cpp)
 
 target_link_libraries(client_common
+  cert
   fmt
-  rpc)
+  platform
+  rpc
+  Qt5::Core)

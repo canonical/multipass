@@ -23,6 +23,7 @@
 #include <multipass/cert_provider.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc_connection_type.h>
+#include <multipass/ssl_cert_provider.h>
 
 #include <memory>
 #include <string>
@@ -39,6 +40,8 @@ namespace client
 {
 std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, RpcConnectionType conn_type,
                                             CertProvider& cert_provider);
+std::string get_server_address();
+std::unique_ptr<SSLCertProvider> get_cert_provider();
 }
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_COMMON_H
