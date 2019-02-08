@@ -63,7 +63,7 @@ struct MischievousURLDownloader : public mp::URLDownloader
         return mischiefs-- > 0 ? empty_url : url;
     }
 
-    QUrl empty_url{};
+    QUrl empty_url = {};
     int mischiefs = 0;
 };
 
@@ -191,11 +191,11 @@ TEST_F(CustomImageHost, invalid_remote_throws_error)
 
 TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
 {
-    auto ttl = 1h;
+    const auto ttl = 1h; // so that updates are only retried when unsuccessful
     alt_downloader.mischiefs = 1000;
     mp::CustomVMImageHost host{&alt_downloader, ttl, test_path};
-    auto query = make_query("core", "snapcraft");
 
+    const auto query = make_query("core", "snapcraft");
     EXPECT_FALSE(host.info_for(query));
 
     alt_downloader.mischiefs = 0;
@@ -204,10 +204,10 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
 
 TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
 {
-    auto ttl = 0s; // to ensure updates are always retried
+    const auto ttl = 0s; // to ensure updates are always retried
     mp::CustomVMImageHost host{&alt_downloader, ttl, test_path};
-    auto query = make_query("core", "snapcraft");
 
+    const auto query = make_query("core", "snapcraft");
     EXPECT_TRUE(host.info_for(query));
 
     alt_downloader.mischiefs = 1000;
