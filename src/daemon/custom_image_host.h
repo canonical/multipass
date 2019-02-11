@@ -21,6 +21,7 @@
 #include "common_image_host.h"
 
 #include <QString>
+#include <QTimer>
 
 #include <memory>
 #include <string>
@@ -62,6 +63,7 @@ private:
     const QString path_prefix;
     std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
     std::vector<std::string> remotes;
+    QTimer manifest_single_shot;
 };
 } // namespace multipass
 #endif // MULTIPASS_CUSTOM_IMAGE_HOST
