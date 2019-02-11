@@ -35,6 +35,12 @@ target_link_libraries(multipass
 
 if(APPLE)
   set_target_properties( multipass PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
+
+  # Copy any framework depenencies into the install directory for packaging
+  install(CODE "
+    include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
+    " COMPONENT multipass)
 endif(APPLE)
 
 install(TARGETS multipass
