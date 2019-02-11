@@ -9,6 +9,9 @@ export MULTIPASS_VM_DRIVER
 
 set -eu
 
+# iptables needs
+export XTABLES_LIBDIR=$SNAP/usr/lib/x86_64-linux-gnu/xtables
+
 # TODO: Need to check if native deb and snap installed??
 
 exec "$SNAP/bin/multipassd" --verbosity debug --logger platform

@@ -91,6 +91,7 @@ parts:
     - qtbase5-dev
     - qtbase5-dev-tools
     stage-packages:
+    - iptables
     - libqt5core5a
     - libqt5network5
     - libxml2
@@ -115,6 +116,7 @@ parts:
     - on armhf: [qemu-system-arm]
     - on arm64: [qemu-system-arm]
     - qemu-utils
+    - libslang2
     organize:
       usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
       usr/share/seabios/bios-256k.bin: qemu/
