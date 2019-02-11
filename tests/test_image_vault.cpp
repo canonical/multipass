@@ -109,6 +109,11 @@ struct TrackingURLDownloader : public mp::URLDownloader
         return {};
     }
 
+    QDateTime last_modified(const QUrl& url) override
+    {
+        return QDateTime::currentDateTime();
+    }
+
     QStringList downloaded_files;
     QStringList downloaded_urls;
 };
