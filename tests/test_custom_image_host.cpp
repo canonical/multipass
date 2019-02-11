@@ -216,3 +216,30 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
     alt_downloader.mischiefs = 0;
     EXPECT_TRUE(host.info_for(query));
 }
+
+namespace
+{
+    int count_products(mp::CustomVMImageHost& host)
+    {
+        int ret = 0;
+        auto counting_action = [&ret](const std::string&, const mp::VMImageInfo&){ ++ret; };
+        host.for_each_entry_do(counting_action);
+
+        return ret;
+    }
+}
+
+TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
+{
+    const auto ttl = 0h;
+    mp::CustomVMImageHost host{&alt_downloader, ttl, test_path};
+
+    const auto num_prods= count_products(host);
+    EXPECT_GT(num_prods, 0);
+
+    for(int i = 0; i < num_prods; ++i)
+    {
+        alt_downloader.mischiefs = i;
+        EXPECT_EQ(count_products(host), num_prods - i);
+    }
+}
