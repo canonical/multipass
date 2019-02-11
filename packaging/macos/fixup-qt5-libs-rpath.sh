@@ -12,6 +12,9 @@
 
 set -u
 
+QT_FRAMEWORKS="QtCore QtNetwork"
+BINARIES="multipass multipassd"
+
 if [ $# -ne 1 ]; then
     echo "Argument required"
     exit 1;
@@ -30,24 +33,34 @@ fi
 TEMP_DIR="$CMAKE_BINARY_DIR/fixup-qt5-libs"
 mkdir -p "$TEMP_DIR"
 
-# QtCore
-mkdir -p "${TEMP_DIR}/QtCore.framework/Versions/5"
-cp -fv "/usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore" "${TEMP_DIR}/QtCore.framework/Versions/5/"
+# Determine all the rpaths
+RPATH_CHANGES=()
+QT_VERSION=$( basename $( readlink /usr/local/opt/qt ) )
+for framework in ${QT_FRAMEWORKS}; do
+    framework_path="${framework}.framework/Versions/5/${framework}"
+    RPATH_CHANGES+=("-change")
+    RPATH_CHANGES+=("/usr/local/Cellar/qt/${QT_VERSION}/lib/${framework_path}")
+    RPATH_CHANGES+=("@rpath/${framework_path}")
 
-# QtNetwork
-mkdir -p "${TEMP_DIR}/QtNetwork.framework/Versions/5"
-cp -fv "/usr/local/opt/qt/lib/QtNetwork.framework/Versions/5/QtNetwork" "${TEMP_DIR}/QtNetwork.framework/Versions/5/"
-chmod +w "${TEMP_DIR}/QtNetwork.framework/Versions/5/QtNetwork"
-install_name_tool -change "/usr/local/Cellar/qt/5.11.1/lib/QtCore.framework/Versions/5/QtCore" \
-    "@rpath/QtCore.framework/Versions/5/QtCore" \
-    "${TEMP_DIR}/QtNetwork.framework/Versions/5/QtNetwork"
-chmod -w "${TEMP_DIR}/QtNetwork.framework/Versions/5/QtNetwork"
+    RPATH_CHANGES+=("-change")
+    RPATH_CHANGES+=("/usr/local/opt/qt/lib/${framework_path}")
+    RPATH_CHANGES+=("@rpath/${framework_path}")
+done
+
+# Fix the libaries to use rpath
+for framework in ${QT_FRAMEWORKS}; do
+    framework_dir="${framework}.framework/Versions/5"
+    framework_path="${framework_dir}/${framework}"
+    mkdir -p "${TEMP_DIR}/${framework_dir}"
+    cp -fv "/usr/local/opt/qt/lib/${framework_path}" \
+           "${TEMP_DIR}/${framework_dir}"
+    chmod +w "${TEMP_DIR}/${framework_path}"
+    install_name_tool "${RPATH_CHANGES[@]}" "${TEMP_DIR}/${framework_path}"
+    chmod -w "${TEMP_DIR}/${framework_path}"
+done
 
 # Edit the binaries to point to these newly edited libs
-install_name_tool -add_rpath "$TEMP_DIR" "$BINARY_DIR/multipass"
-install_name_tool -change "/usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore" "@rpath/QtCore.framework/Versions/5/QtCore" "$BINARY_DIR/multipass"
-install_name_tool -change "/usr/local/opt/qt/lib/QtNetwork.framework/Versions/5/QtNetwork" "@rpath/QtNetwork.framework/Versions/5/QtNetwork" "$BINARY_DIR/multipass"
-
-install_name_tool -add_rpath "$TEMP_DIR" "$BINARY_DIR/multipassd"
-install_name_tool -change "/usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore" "@rpath/QtCore.framework/Versions/5/QtCore" "$BINARY_DIR/multipassd"
-install_name_tool -change "/usr/local/opt/qt/lib/QtNetwork.framework/Versions/5/QtNetwork" "@rpath/QtNetwork.framework/Versions/5/QtNetwork" "$BINARY_DIR/multipassd"
+for binary in ${BINARIES}; do
+    install_name_tool -add_rpath "${TEMP_DIR}" "${BINARY_DIR}/${binary}"
+    install_name_tool "${RPATH_CHANGES[@]}" "${BINARY_DIR}/${binary}"
+done
