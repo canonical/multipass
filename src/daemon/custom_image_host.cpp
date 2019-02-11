@@ -21,7 +21,6 @@
 #include <multipass/url_downloader.h>
 
 #include <multipass/exceptions/download_exception.h>
-#include <multipass/logging/log.h>
 
 #include <fmt/format.h>
 
@@ -30,11 +29,9 @@
 #include <functional>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto category = "image_host";
 constexpr auto no_remote = "";
 constexpr auto snapcraft_remote = "snapcraft";
 
@@ -180,19 +177,6 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono:
       custom_image_info{},
       remotes{no_remote, snapcraft_remote}
 {
-    QObject::connect(&manifest_single_shot, &QTimer::timeout, [this]() {
-        try
-        {
-            update_manifests();
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, e.what());
-        }
-    });
-
-    manifest_single_shot.setSingleShot(true);
-    manifest_single_shot.start(0);
 }
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)

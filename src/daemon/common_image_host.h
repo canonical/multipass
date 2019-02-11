@@ -20,6 +20,8 @@
 
 #include "multipass/vm_image_host.h"
 
+#include <QTimer>
+
 #include <chrono>
 
 namespace multipass
@@ -45,6 +47,7 @@ private:
     std::chrono::seconds manifest_time_to_live;
     std::chrono::steady_clock::time_point last_update;
     bool need_extra_update = true;
+    QTimer manifest_single_shot;
 };
 
 }
