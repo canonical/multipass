@@ -12,5 +12,5 @@
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
      override-build: |
+       update-ccache-symlinks
        snapcraftctl build
-       set -e
