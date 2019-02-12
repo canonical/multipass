@@ -321,6 +321,10 @@ void mp::QemuVirtualMachine::start()
         update_shutdown_status = true;
         delete_memory_snapshot = true;
     }
+    else
+    {
+        monitor->update_metadata_for(vm_name, get_metadata());
+    }
 
     vm_process->start();
     auto started = vm_process->waitForStarted();
@@ -360,7 +364,6 @@ void mp::QemuVirtualMachine::suspend()
     {
         vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
 
-        monitor->update_metadata_for(vm_name, get_metadata());
         if (update_shutdown_status)
         {
             state = State::suspending;
