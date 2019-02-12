@@ -23,7 +23,7 @@
 #include <multipass/path.h>
 
 #include <QDir>
-#include <QProcess>
+#include "../backend_utils/process.h"  //FIXME(gerry)
 
 #include <memory>
 #include <string>
@@ -46,7 +46,7 @@ public:
 private:
     const ProcessFactory* process_factory;
     const QDir data_dir;
-    std::unique_ptr<QProcess> dnsmasq_cmd;
+    std::unique_ptr<Process> dnsmasq_cmd;
     QString bridge_name;
 };
 

@@ -19,6 +19,7 @@
 
 #include <multipass/platform.h>
 
+#include <multipass/logging/log.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/backend_utils/apparmored_process_factory.h"
@@ -32,9 +33,11 @@
 
 namespace mp = multipass;
 namespace ms = multipass::snap;
+namespace mpl = multipass::logging;
 
 namespace
 {
+auto category = "security";
 static mp::ProcessFactory::UPtr static_process_factory;
 
 mp::ProcessFactory* process_factory()
@@ -45,10 +48,12 @@ mp::ProcessFactory* process_factory()
 
         if (!qEnvironmentVariableIsSet("DISABLE_APPARMOR") && driver != "LIBVIRT")
         {
+            mpl::log(mpl::Level::info, category, "AppArmor enabled");
             static_process_factory = std::make_unique<mp::AppArmoredProcessFactory>();
         }
         else
         {
+            mpl::log(mpl::Level::info, category, "Warning: AppArmor disabled");
             static_process_factory = std::make_unique<mp::ProcessFactory>();
         }
     }

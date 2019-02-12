@@ -36,24 +36,34 @@ QString mp::QemuImgProcessSpec::apparmor_profile() const
 {
     QString profile_template(R"END(
 #include <tunables/global>
-profile %1 flags=(attach_disconnected) {
+ profile %1 flags=(attach_disconnected) {
     #include <abstractions/base>
 
+    %2
+    capability dac_read_search, # GERRY only unconfined?
+    capability dac_override,
+
     # binary and its libs
-    %2/usr/bin/qemu-img ixr,
-    %2/{usr/,}lib/** rm,
+    %3/usr/bin/qemu-img ixr,
+    %3/{usr/,}lib/** rm,
 
     # Disk image(s) to operate on
-    %3 rwk, # image verification requires write access
-    %4
+    %4 rwk, # image verification requires write access
+    %5
 }
     )END");
 
-    QString optional_output_rule;
+    QString optional_output_rule, extra_capabilities;
     if (!output_image_path.isNull())
     {
         optional_output_rule = output_image_path + " rwk,";
     }
 
-    return profile_template.arg(apparmor_profile_name(), ms::snap_dir(), input_image_path, optional_output_rule);
+    if (!ms::is_snap_confined())
+    {
+        // FIXME - unclear why this is required when not snap confined
+        extra_capabilities = "capability dac_read_search,\n    capability dac_override,";
+    }
+
+    return profile_template.arg(apparmor_profile_name(), extra_capabilities, ms::snap_dir(), input_image_path, optional_output_rule);
 }

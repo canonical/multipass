@@ -57,14 +57,5 @@ QString mp::Process::run_and_return_output(const QStringList& extra_arguments, c
 
 void mp::Process::setupChildProcess()
 {
-    // Send sigterm to child when its parent process dies unexpectedly
-    int r = prctl(PR_SET_PDEATHSIG, process_spec->stop_signal());
-    if (r == -1)
-    {
-        perror(0);
-        exit(1);
-    }
-    // test in case the original parent exited just before the prctl() call
-    if (getppid() != parent_pid)
-        exit(1);
+    // for post fork
 }

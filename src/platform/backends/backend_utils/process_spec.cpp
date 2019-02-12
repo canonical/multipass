@@ -18,7 +18,6 @@
 #include "process_spec.h"
 
 #include <QFileInfo>
-#include <signal.h>
 
 namespace mp = multipass;
 
@@ -39,12 +38,6 @@ QProcessEnvironment multipass::ProcessSpec::environment() const
 QString multipass::ProcessSpec::identifier() const
 {
     return QString();
-}
-
-// Signal to send child that will make it shutdown
-int multipass::ProcessSpec::stop_signal() const
-{
-    return SIGTERM;
 }
 
 const QString mp::ProcessSpec::apparmor_profile_name() const

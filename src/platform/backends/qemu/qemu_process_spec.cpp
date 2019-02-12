@@ -181,7 +181,3 @@ QString mp::QemuProcessSpec::identifier() const
     return QString::fromStdString(desc.vm_name);
 }
 
-int multipass::QemuProcessSpec::stop_signal() const
-{
-    return SIGQUIT;
-}

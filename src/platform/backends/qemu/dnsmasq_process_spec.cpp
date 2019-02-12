@@ -17,7 +17,6 @@
 
 #include "dnsmasq_process_spec.h"
 #include "snap_utils.h"
-#include <signal.h>
 
 namespace mp = multipass;
 namespace ms = multipass::snap;
@@ -89,6 +88,7 @@ profile %1 flags=(attach_disconnected) {
     capability setgid,
     capability setuid,
     capability dac_override,
+    capability dac_read_search,
     capability net_admin,         # for DHCP server
     capability net_raw,           # for DHCP server ping checks
     network inet raw,
@@ -136,10 +136,4 @@ profile %1 flags=(attach_disconnected) {
 
     return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, data_dir.filePath("dnsmasq.leases"),
                                 data_dir.filePath("dnsmasq.hosts"), pid);
-}
-
-// dnsmasq process ignores SIGTERM, but does shut down correctly to SIGQUIT
-int multipass::DNSMasqProcessSpec::stop_signal() const
-{
-    return SIGQUIT;
 }
