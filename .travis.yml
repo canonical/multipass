@@ -31,6 +31,7 @@ install:
   echo -e "#cloud-config\npackages: [ccache]" | sg lxd -c '/snap/bin/lxc profile set default user.user-data -'
 - sg lxd -c '/snap/bin/lxc profile set default environment.PATH /usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
 - sg lxd -c "/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache"
+- ccache --max-size=5G
 
 before_script:
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
