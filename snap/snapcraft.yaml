@@ -45,6 +45,8 @@ apps:
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+      # XDG_DATA_HOME maps to QStandardPaths::AppDataLocation, where client cert is put. Want it to be shared across snap version.
+      XDG_DATA_HOME: $SNAP_COMMON/data
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
     plugs:
