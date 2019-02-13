@@ -154,7 +154,7 @@ TEST_F(CustomImageHost, invalid_remote_throws_error)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
-    EXPECT_THROW(*host.info_for(make_query("core", "foo")), std::runtime_error);
+    EXPECT_THROW(host.info_for(make_query("core", "foo")), std::runtime_error);
 }
 
 TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
@@ -164,7 +164,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
     mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
 
     const auto query = make_query("core", "snapcraft");
-    EXPECT_FALSE(host.info_for(query));
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
 
     url_downloader.mischiefs = 0;
     EXPECT_TRUE(host.info_for(query));
@@ -179,7 +179,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
     EXPECT_TRUE(host.info_for(query));
 
     url_downloader.mischiefs = 1000;
-    EXPECT_FALSE(host.info_for(query));
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
 
     url_downloader.mischiefs = 0;
     EXPECT_TRUE(host.info_for(query));
@@ -187,13 +187,13 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
 
 namespace
 {
-    int count_products(mp::CustomVMImageHost& host)
+    int count_remotes(mp::CustomVMImageHost& host)
     {
-        int ret = 0;
-        auto counting_action = [&ret](const std::string&, const mp::VMImageInfo&){ ++ret; };
+        std::unordered_set<std::string> remotes;
+        auto counting_action = [&remotes](const std::string& remote, const mp::VMImageInfo&){ remotes.insert(remote); };
         host.for_each_entry_do(counting_action);
 
-        return ret;
+        return remotes.size();
     }
 }
 
@@ -202,12 +202,12 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
     const auto ttl = 0h;
     mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
 
-    const auto num_prods= count_products(host);
-    EXPECT_GT(num_prods, 0);
+    const auto num_remotes = count_remotes(host);
+    EXPECT_GT(num_remotes, 0);
 
-    for(int i = 0; i < num_prods; ++i)
+    for(int i = 0; i < num_remotes; ++i)
     {
         url_downloader.mischiefs = i;
-        EXPECT_EQ(count_products(host), num_prods - i);
+        EXPECT_EQ(count_remotes(host), num_remotes - i);
     }
 }

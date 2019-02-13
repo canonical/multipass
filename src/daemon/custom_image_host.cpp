@@ -26,7 +26,7 @@
 
 #include <QMap>
 
-#include <functional>
+#include <utility>
 
 namespace mp = multipass;
 
@@ -118,9 +118,8 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-template <typename Action>
 auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
-                         const QString& path_prefix, Action on_failure)
+                         const QString& path_prefix)
 {
     std::vector<mp::VMImageInfo> default_images;
 
@@ -132,29 +131,22 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
             image_info.first};
         QString hash_url{
             (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
-            QStringLiteral("SHA256SUMS")};
+                QStringLiteral("SHA256SUMS")};
 
-        try
-        {
-            auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
-            mp::VMImageInfo full_image_info{image_info.second.aliases,
-                                            image_info.second.os,
-                                            image_info.second.release,
-                                            image_info.second.release_string,
-                                            true,
-                                            image_url,
-                                            image_info.second.kernel_location,
-                                            image_info.second.initrd_location,
-                                            base_image_info.hash,
-                                            base_image_info.last_modified,
-                                            0};
+        auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
+        mp::VMImageInfo full_image_info{image_info.second.aliases,
+                                        image_info.second.os,
+                                        image_info.second.release,
+                                        image_info.second.release_string,
+                                        true,
+                                        image_url,
+                                        image_info.second.kernel_location,
+                                        image_info.second.initrd_location,
+                                        base_image_info.hash,
+                                        base_image_info.last_modified,
+                                        0};
 
-            default_images.push_back(full_image_info);
-        }
-        catch (mp::DownloadException& e)
-        {
-            on_failure(e.what());
-        }
+        default_images.push_back(full_image_info);
     }
 
     auto map = map_aliases_to_vm_info_for(default_images);
@@ -238,12 +230,18 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::fetch_manifests()
 {
-    auto on_failure = std::bind(&CustomVMImageHost::on_manifest_update_failure, this, std::placeholders::_1);
-
-    custom_image_info.emplace(no_remote,
-                              full_image_info_for(multipass_image_info, url_downloader, path_prefix, on_failure));
-    custom_image_info.emplace(snapcraft_remote,
-                              full_image_info_for(snapcraft_image_info, url_downloader, path_prefix, on_failure));
+    for(const auto& spec : {std::make_pair(no_remote, multipass_image_info),
+                            std::make_pair(snapcraft_remote, snapcraft_image_info)})
+    {
+        try
+        {
+            custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader, path_prefix));
+        }
+        catch(mp::DownloadException& e)
+        {
+            on_manifest_update_failure(e.what());
+        }
+    }
 }
 
 void mp::CustomVMImageHost::clear()
