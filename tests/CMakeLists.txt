@@ -108,6 +108,7 @@ add_executable(multipass_tests
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/backend_utils
   PRIVATE ${MULTIPASS_GTEST_DIR}
   PRIVATE ${MULTIPASS_GTEST_DIR}/include
   PRIVATE ${MULTIPASS_GMOCK_DIR}
@@ -132,7 +133,7 @@ target_link_libraries(multipass_tests
   iso
   libvirt_backend_test
   metrics
-  petname
+  platform
   simplestreams
   scp_test
   ssh_test

@@ -18,6 +18,7 @@ add_library(backend_utils STATIC
   process.cpp
   process_spec.cpp
   process_factory.cpp
+  qemuimg_process_spec.cpp
   sshfs_server_process_spec.cpp)
 
 target_link_libraries(backend_utils

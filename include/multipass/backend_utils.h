@@ -19,12 +19,13 @@
 #define MULTIPASS_BACKEND_UTILS_H
 
 #include <multipass/path.h>
-#include "process_factory.h"
 
 #include <string>
 
 namespace multipass
 {
+class ProcessFactory;
+
 namespace backend
 {
 std::string generate_random_subnet();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include <multipass/path.h>
 
 #include <QDir>
-#include "../backend_utils/process.h"  //FIXME(gerry)
+#include "process.h"
 
 #include <memory>
 #include <string>
