@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 
 language: cpp
@@ -12,24 +12,36 @@ branches:
   - trying
   - master
 
+addons:
+  snaps:
+  - lxd
+  - name: snapcraft
+    classic: true
+
 env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
 
 install:
-- sudo apt-get --yes --no-install-recommends install snapd
-- sudo snap install lxd
-- sudo snap install snapcraft --classic --candidate
+- sudo apt remove --assume-yes lxd
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
+- |
+  echo -e "#cloud-config\npackages: [ccache]" | sg lxd -c '/snap/bin/lxc profile set default user.user-data -'
+- sg lxd -c '/snap/bin/lxc profile set default environment.PATH /usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+- sg lxd -c "/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache"
+- ccache --max-size=5G
 
 before_script:
+- "[ ! -f tests/travis.patch ] || patch -p1 < tests/travis.patch"
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
 - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft refresh'
 
 after_failure:
 - cat /tmp/*/trace.txt
+
+cache: ccache
 
 jobs:
   include:
@@ -79,3 +91,4 @@ jobs:
         fi
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
       after_failure: ~
+      cache: ~

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_OPTIONAL_H
@@ -25,8 +23,8 @@
 #include <optional>
 namespace multipass
 {
-using std::optional;
 using std::nullopt;
+using std::optional;
 }
 
 #elif __has_include(<experimental/optional>)
@@ -34,8 +32,8 @@ using std::nullopt;
 #include <experimental/optional>
 namespace multipass
 {
-using std::experimental::optional;
 using std::experimental::nullopt;
+using std::experimental::optional;
 }
 
 #else

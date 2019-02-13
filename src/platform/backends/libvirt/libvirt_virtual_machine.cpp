@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <QDir>
 #include <QXmlStreamReader>
 
 #include <fmt/format.h>
@@ -142,10 +143,13 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
     parsed_memory_values_for(desc.mem_size, memory, mem_unit);
 
     auto qemu_path = fmt::format("/usr/bin/qemu-system-{}", arch);
+
     auto snap = qgetenv("SNAP");
     if (!snap.isEmpty())
     {
-        qemu_path = fmt::format("{}{}", snap.toStdString(), qemu_path);
+        auto snap_path = QDir(snap);
+        snap_path.cd("../current");
+        qemu_path = fmt::format("{}{}", snap_path.path().toStdString(), qemu_path);
     }
 
     return fmt::format(

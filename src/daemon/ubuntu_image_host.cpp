@@ -76,7 +76,7 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
     : CommonVMImageHost{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
-    manifest_single_shot.singleShot(0, [this]() {
+    QObject::connect(&manifest_single_shot, &QTimer::timeout, [this]() {
         try
         {
             update_manifests();
@@ -86,6 +86,9 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
             mpl::log(mpl::Level::error, category, e.what());
         }
     });
+
+    manifest_single_shot.setSingleShot(true);
+    manifest_single_shot.start(0);
 }
 
 mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
