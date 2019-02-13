@@ -1,6 +1,6 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -148,6 +148,7 @@ parts:
+@@ -74,6 +74,7 @@ parts:
      - -DCMAKE_INSTALL_PREFIX=/
      - -DMULTIPASS_ENABLE_TESTS=off
      override-build: |
@@ -8,10 +8,10 @@
        snapcraftctl build
        set -e
        mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
-@@ -242,6 +243,9 @@ parts:
-       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.debian.tar.xz
-       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.24.dsc
-       dpkg-source -x libvirt*.dsc
+@@ -171,6 +172,9 @@ parts:
+     override-pull: |
+       apt-get source libvirt
+       mv libvirt-* libvirt
 +    override-build: |
 +      update-ccache-symlinks
 +      snapcraftctl build
