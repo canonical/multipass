@@ -15,19 +15,19 @@
  *
  */
 
-#ifndef SNAP_UTILS_H
-#define SNAP_UTILS_H
+#ifndef MULTIPASS_SNAP_UTILS_H
+#define MULTIPASS_SNAP_UTILS_H
 
 #include <QString>
 
 namespace multipass
 {
-namespace snap
+namespace utils
 {
 bool is_snap_confined();
 QString snap_dir();
 QString snap_common_dir();
-} // namespace snap
+} // namespace utils
 } // namespace multipass
 
-#endif // SNAP_UTILS_H
+#endif // MULTIPASS_SNAP_UTILS_H

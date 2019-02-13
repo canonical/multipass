@@ -19,6 +19,7 @@
 
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
+#include <multipass/snap_utils.h>
 
 #include <libssh/callbacks.h>
 #include <libssh/socket.h>
@@ -30,6 +31,7 @@
 #include <string>
 
 namespace mp = multipass;
+namespace mu = multipass::utils;
 
 mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
                            const SSHKeyProvider* key_provider, const std::chrono::milliseconds timeout)
@@ -49,10 +51,9 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
 
-    std::string snap_env = getenv("SNAP");
-    if (snap_env.length() > 0) {
+    if (mu::is_snap_confined()) {
         // Stop libssh reading host files when running inside a $SNAP
-        std::string in_snap_config_dir = snap_env + "/etc";
+        std::string in_snap_config_dir = mu::snap_dir().toStdString() + "/etc";
         set_option(SSH_OPTIONS_SSH_DIR, in_snap_config_dir.c_str());
         std::string in_snap_known_hosts = in_snap_config_dir + "/known_hosts";
         set_option(SSH_OPTIONS_KNOWNHOSTS, in_snap_known_hosts.c_str());

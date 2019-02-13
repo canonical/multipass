@@ -15,17 +15,17 @@
  *
  */
 
-#include "snap_utils.h"
+#include <multipass/snap_utils.h>
 
-namespace ms = multipass::snap;
+namespace mu = multipass::utils;
 
-bool ms::is_snap_confined()
+bool mu::is_snap_confined()
 {
     // Decide if Snap confined based on if $SNAP env var is set.
     return !snap_dir().isEmpty();
 }
 
-QString ms::snap_dir()
+QString mu::snap_dir()
 {
     static QString snap_env;
     if (snap_env.isNull())
@@ -35,7 +35,7 @@ QString ms::snap_dir()
     return snap_env;
 }
 
-QString ms::snap_common_dir()
+QString mu::snap_common_dir()
 {
     static QString snap_common_env;
     if (snap_common_env.isNull())

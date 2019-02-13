@@ -16,18 +16,18 @@
  */
 
 #include "dnsmasq_process_spec.h"
-#include "snap_utils.h"
+#include <multipass/snap_utils.h>
 
 namespace mp = multipass;
-namespace ms = multipass::snap;
+namespace mu = multipass::utils;
 
 namespace
 {
 static QString pid_file()
 {
-    if (ms::is_snap_confined())
+    if (mu::is_snap_confined())
     {
-        return QString("%1/dnsmasq.pid").arg(ms::snap_common_dir());
+        return QString("%1/dnsmasq.pid").arg(mu::snap_common_dir());
     }
     else
     {
@@ -116,9 +116,9 @@ profile %1 flags=(attach_disconnected) {
     QString root_dir;    // root directory: either "/" or $SNAP
     QString signal_peer; // who can send kill signal to dnsmasq
 
-    if (ms::is_snap_confined()) // if snap confined, specify only multipassd can kill dnsmasq
+    if (mu::is_snap_confined()) // if snap confined, specify only multipassd can kill dnsmasq
     {
-        root_dir = ms::snap_dir();
+        root_dir = mu::snap_dir();
         signal_peer = "snap.multipass.multipassd";
     }
     else

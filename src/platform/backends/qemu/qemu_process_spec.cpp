@@ -17,13 +17,12 @@
 
 #include "qemu_process_spec.h"
 
-#include "snap_utils.h"
+#include <multipass/snap_utils.h>
 #include <QHash>
 #include <QString>
-#include <signal.h>
 
 namespace mp = multipass;
-namespace ms = multipass::snap;
+namespace mu = multipass::utils;
 
 namespace
 {
@@ -160,9 +159,9 @@ profile %1 flags=(attach_disconnected) {
     QString signal_peer; // who can send kill signal to qemu
     QString firmware;    // location of bootloader firmware needed by qemu
 
-    if (ms::is_snap_confined())
+    if (mu::is_snap_confined())
     {
-        root_dir = ms::snap_dir();
+        root_dir = mu::snap_dir();
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
         firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
     }

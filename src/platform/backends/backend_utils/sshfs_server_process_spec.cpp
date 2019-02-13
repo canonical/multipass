@@ -21,10 +21,10 @@
 #include <QCryptographicHash>
 #include <QDir>
 
-#include "snap_utils.h"
+#include <multipass/snap_utils.h>
 
 namespace mp = multipass;
-namespace ms = multipass::snap;
+namespace mu = multipass::utils;
 
 namespace
 {
@@ -116,9 +116,9 @@ profile %1 flags=(attach_disconnected) {
                       // snap. If snapped, is located relative to $SNAP
     QString signal_peer; // if snap confined, specify only multipassd can kill dnsmasq
 
-    if (ms::is_snap_confined())
+    if (mu::is_snap_confined())
     {
-        root_dir = ms::snap_dir();
+        root_dir = mu::snap_dir();
         signal_peer = "snap.multipass.multipassd";
     }
     else

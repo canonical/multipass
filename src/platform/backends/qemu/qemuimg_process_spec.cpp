@@ -16,15 +16,10 @@
  */
 
 #include "qemuimg_process_spec.h"
-#include "snap_utils.h"
-
-#include <sys/types.h>
-#include <grp.h>
-#include <pwd.h>
-#include <unistd.h>
+#include <multipass/snap_utils.h>
 
 namespace mp = multipass;
-namespace ms = multipass::snap;
+namespace mu = multipass::utils;
 
 mp::QemuImgProcessSpec::QemuImgProcessSpec(const QString& input_image_path, const QString& output_image_path)
     : input_image_path{input_image_path}, output_image_path{output_image_path}
@@ -62,13 +57,13 @@ QString mp::QemuImgProcessSpec::apparmor_profile() const
         optional_output_rule = output_image_path + " rwk,";
     }
 
-    if (!ms::is_snap_confined())
+    if (!mu::is_snap_confined())
     {
         // FIXME - unclear why this is required when not snap confined
         extra_capabilities = "capability dac_read_search,\n    capability dac_override,";
     }
 
-    return profile_template.arg(apparmor_profile_name(), extra_capabilities, ms::snap_dir(), input_image_path, optional_output_rule);
+    return profile_template.arg(apparmor_profile_name(), extra_capabilities, mu::snap_dir(), input_image_path, optional_output_rule);
 }
 
 void mp::QemuImgProcessSpec::setup_child_process() const

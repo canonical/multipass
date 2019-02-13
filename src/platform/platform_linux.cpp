@@ -21,19 +21,19 @@
 
 #include <multipass/logging/log.h>
 #include <multipass/virtual_machine_factory.h>
+#include <multipass/snap_utils.h>
 
 #include "backends/backend_utils/apparmored_process_factory.h"
 #include "backends/backend_utils/process.h"
 #include "backends/backend_utils/process_factory.h"
-#include "backends/backend_utils/snap_utils.h"
 #include "backends/backend_utils/sshfs_server_process_spec.h"
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 
 namespace mp = multipass;
-namespace ms = multipass::snap;
 namespace mpl = multipass::logging;
+namespace mu = multipass::utils;
 
 namespace
 {
@@ -66,9 +66,9 @@ std::string mp::platform::default_server_address()
     std::string base_dir;
 
     // if Snap confined, client and daemon can both access $SNAP_COMMON
-    if (ms::is_snap_confined())
+    if (mu::is_snap_confined())
     {
-        base_dir = ms::snap_common_dir().toStdString();
+        base_dir = mu::snap_common_dir().toStdString();
     }
     else
     {

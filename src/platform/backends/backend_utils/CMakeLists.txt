@@ -18,7 +18,6 @@ add_library(backend_utils STATIC
   process.cpp
   process_spec.cpp
   process_factory.cpp
-  snap_utils.cpp
   sshfs_server_process_spec.cpp)
 
 target_link_libraries(backend_utils
