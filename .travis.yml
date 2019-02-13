@@ -79,6 +79,7 @@ jobs:
       git:
         submodules: false
       sudo: false
+      addons: ~
       before_install:
       - openssl aes-256-cbc -K $encrypted_8d49841daf21_key -iv $encrypted_8d49841daf21_iv
         -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
