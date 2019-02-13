@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1972,7 +1972,17 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     {
         delayed_shutdown_instances.erase(name);
 
-        mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
+        mp::optional<mp::SSHSession> session;
+        try
+        {
+            session = mp::SSHSession{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
+        }
+
         auto& shutdown_timer = delayed_shutdown_instances[name] =
             std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
 

@@ -1,7 +1,6 @@
 Source: multipass
 Build-Depends: build-essential,
                cmake,
-               cmake-extras,
                golang,
                google-mock,
                libvirt-dev,

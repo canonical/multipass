@@ -43,13 +43,14 @@ struct CustomImageHost : public Test
     }
 
     mp::URLDownloader url_downloader{std::chrono::seconds{10}};
+    std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
 };
 } // namespace
 
 TEST_F(CustomImageHost, returns_expected_data_for_core)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     auto info = *host.info_for(make_query("core", ""));
 
@@ -63,7 +64,7 @@ TEST_F(CustomImageHost, returns_expected_data_for_core)
 
 TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     auto info = *host.info_for(make_query("core", "snapcraft"));
 
@@ -78,7 +79,7 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core)
 
 TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core18)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     auto info = *host.info_for(make_query("core18", "snapcraft"));
 
@@ -93,7 +94,7 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core18)
 
 TEST_F(CustomImageHost, iterates_over_all_entries)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
@@ -109,7 +110,7 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
 
 TEST_F(CustomImageHost, all_images_for_snapcraft_returns_two_matches)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     auto images = host.all_images_for("snapcraft");
 
@@ -119,7 +120,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_two_matches)
 
 TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     auto images_info = host.all_info_for(make_query("core16", "snapcraft"));
 
@@ -129,7 +130,7 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 
 TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     auto supported_remotes = host.supported_remotes();
 
@@ -142,14 +143,14 @@ TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
 
 TEST_F(CustomImageHost, invalid_image_returns_false)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     EXPECT_FALSE(host.info_for(make_query("foo", "")));
 }
 
 TEST_F(CustomImageHost, invalid_remote_throws_error)
 {
-    mp::CustomVMImageHost host{&url_downloader, test_path};
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     EXPECT_THROW(*host.info_for(make_query("core", "foo")), std::runtime_error);
 }
