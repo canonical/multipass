@@ -131,7 +131,7 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
             image_info.first};
         QString hash_url{
             (path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString()) +
-                QStringLiteral("SHA256SUMS")};
+            QStringLiteral("SHA256SUMS")};
 
         auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
         mp::VMImageInfo full_image_info{image_info.second.aliases,
@@ -230,14 +230,14 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::fetch_manifests()
 {
-    for(const auto& spec : {std::make_pair(no_remote, multipass_image_info),
-                            std::make_pair(snapcraft_remote, snapcraft_image_info)})
+    for (const auto& spec :
+         {std::make_pair(no_remote, multipass_image_info), std::make_pair(snapcraft_remote, snapcraft_image_info)})
     {
         try
         {
             custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader, path_prefix));
         }
-        catch(mp::DownloadException& e)
+        catch (mp::DownloadException& e)
         {
             on_manifest_update_failure(e.what());
         }

@@ -28,7 +28,7 @@ namespace mpt = multipass::test;
 size_t mpt::count_remotes(VMImageHost& host)
 {
     std::set<std::string> remotes;
-    auto counting_action = [&remotes](const std::string& remote, const VMImageInfo&){ remotes.insert(remote); };
+    auto counting_action = [&remotes](const std::string& remote, const VMImageInfo&) { remotes.insert(remote); };
     host.for_each_entry_do(counting_action);
 
     return remotes.size();

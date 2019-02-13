@@ -144,7 +144,7 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 
     event_loop.exec();
 
-    if(reply->error() != QNetworkReply::NoError)
+    if (reply->error() != QNetworkReply::NoError)
         throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
 
     return reply->header(QNetworkRequest::LastModifiedHeader).toDateTime();

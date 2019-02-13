@@ -44,6 +44,7 @@ private:
 
     QUrl empty_url = {};
 };
-}} // namespace multipass::test
+} // namespace test
+} // namespace multipass
 
 #endif /* MULTIPASS_MISCHIEVOUS_URL_DOWNLOADER_H */

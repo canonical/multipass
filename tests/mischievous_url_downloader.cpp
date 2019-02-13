@@ -19,9 +19,9 @@
 
 namespace mpt = multipass::test;
 
-mpt::MischievousURLDownloader::MischievousURLDownloader(std::chrono::milliseconds timeout)
-    : URLDownloader(timeout)
-{}
+mpt::MischievousURLDownloader::MischievousURLDownloader(std::chrono::milliseconds timeout) : URLDownloader(timeout)
+{
+}
 
 void mpt::MischievousURLDownloader::download_to(const QUrl& url, const QString& file_name, int64_t size,
                                                 const int download_type, const ProgressMonitor& monitor)

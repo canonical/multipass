@@ -26,6 +26,7 @@ class VMImageHost;
 namespace test
 {
 size_t count_remotes(VMImageHost& host);
-}} // namespace multipass::test
+}
+} // namespace multipass
 
 #endif /* MULTIPASS_IMAGE_HOST_REMOTE_COUNT_H */

@@ -28,8 +28,8 @@
 
 #include <gmock/gmock.h>
 
-#include <unordered_set>
 #include <cstddef>
+#include <unordered_set>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -209,8 +209,10 @@ TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
     const size_t expected_size{2};
     EXPECT_THAT(supported_remotes.size(), Eq(expected_size));
 
-    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), release_remote_spec.first) != supported_remotes.end());
-    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), daily_remote_spec.first) != supported_remotes.end());
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), release_remote_spec.first) !=
+                supported_remotes.end());
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), daily_remote_spec.first) !=
+                supported_remotes.end());
 }
 
 TEST_F(UbuntuImageHost, invalid_remote_throws_error)
@@ -257,7 +259,7 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
     const auto num_remotes = mpt::count_remotes(host);
     EXPECT_GT(num_remotes, 0u);
 
-    for(size_t i = 0; i < num_remotes; ++i)
+    for (size_t i = 0; i < num_remotes; ++i)
     {
         url_downloader.mischiefs = i;
         EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
