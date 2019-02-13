@@ -21,7 +21,6 @@
 #include "mischievous_url_downloader.h"
 
 #include <multipass/query.h>
-#include <multipass/url_downloader.h>
 
 #include <QUrl>
 
@@ -45,8 +44,7 @@ struct CustomImageHost : public Test
     }
 
     std::chrono::seconds timeout{10};
-    mp::URLDownloader url_downloader{timeout};
-    mpt::MischievousURLDownloader alt_downloader{timeout};
+    mpt::MischievousURLDownloader url_downloader{timeout};
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
 };
@@ -162,28 +160,28 @@ TEST_F(CustomImageHost, invalid_remote_throws_error)
 TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
 {
     const auto ttl = 1h; // so that updates are only retried when unsuccessful
-    alt_downloader.mischiefs = 1000;
-    mp::CustomVMImageHost host{&alt_downloader, ttl, test_path};
+    url_downloader.mischiefs = 1000;
+    mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
 
     const auto query = make_query("core", "snapcraft");
     EXPECT_FALSE(host.info_for(query));
 
-    alt_downloader.mischiefs = 0;
+    url_downloader.mischiefs = 0;
     EXPECT_TRUE(host.info_for(query));
 }
 
 TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
 {
     const auto ttl = 0s; // to ensure updates are always retried
-    mp::CustomVMImageHost host{&alt_downloader, ttl, test_path};
+    mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
 
     const auto query = make_query("core", "snapcraft");
     EXPECT_TRUE(host.info_for(query));
 
-    alt_downloader.mischiefs = 1000;
+    url_downloader.mischiefs = 1000;
     EXPECT_FALSE(host.info_for(query));
 
-    alt_downloader.mischiefs = 0;
+    url_downloader.mischiefs = 0;
     EXPECT_TRUE(host.info_for(query));
 }
 
@@ -202,14 +200,14 @@ namespace
 TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
 {
     const auto ttl = 0h;
-    mp::CustomVMImageHost host{&alt_downloader, ttl, test_path};
+    mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
 
     const auto num_prods= count_products(host);
     EXPECT_GT(num_prods, 0);
 
     for(int i = 0; i < num_prods; ++i)
     {
-        alt_downloader.mischiefs = i;
+        url_downloader.mischiefs = i;
         EXPECT_EQ(count_products(host), num_prods - i);
     }
 }
