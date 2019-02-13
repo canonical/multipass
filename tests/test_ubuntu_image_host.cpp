@@ -33,6 +33,7 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 
 using namespace testing;
+using namespace std::literals::chrono_literals;
 
 namespace
 {
@@ -216,4 +217,60 @@ TEST_F(UbuntuImageHost, invalid_remote_throws_error)
     mp::UbuntuVMImageHost host{all_remote_specs, &stub_url_downloader, default_ttl};
 
     EXPECT_THROW(*host.info_for(make_query("xenial", "foo")), std::runtime_error);
+}
+
+TEST_F(UbuntuImageHost, handles_and_recovers_from_initial_network_failure)
+{
+    const auto ttl = 1h; // so that updates are only retried when unsuccessful
+    url_downloader.mischiefs = 1000;
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, ttl};
+
+    const auto query = make_query("xenial", release_remote_spec.first);
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
+
+    url_downloader.mischiefs = 0;
+    EXPECT_TRUE(host.info_for(query));
+}
+
+TEST_F(UbuntuImageHost, handles_and_recovers_from_later_network_failure)
+{
+    const auto ttl = 0s; // to ensure updates are always retried
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, ttl};
+
+    const auto query = make_query("xenial", release_remote_spec.first);
+    EXPECT_TRUE(host.info_for(query));
+
+    url_downloader.mischiefs = 1000;
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
+
+    url_downloader.mischiefs = 0;
+    EXPECT_TRUE(host.info_for(query));
+}
+
+
+namespace
+{
+    int count_remotes(mp::UbuntuVMImageHost& host)
+    {
+        std::unordered_set<std::string> remotes;
+        auto counting_action = [&remotes](const std::string& remote, const mp::VMImageInfo&){ remotes.insert(remote); };
+        host.for_each_entry_do(counting_action);
+
+        return remotes.size();
+    }
+}
+
+TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
+{
+    const auto ttl = 0h;
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, ttl};
+
+    const auto num_remotes = count_remotes(host);
+    EXPECT_GT(num_remotes, 0);
+
+    for(int i = 0; i < num_remotes; ++i)
+    {
+        url_downloader.mischiefs = i;
+        EXPECT_EQ(count_remotes(host), num_remotes - i);
+    }
 }
