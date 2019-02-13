@@ -44,7 +44,6 @@ public:
 protected:
     Process(std::unique_ptr<ProcessSpec>&& spec);
     const std::unique_ptr<ProcessSpec> process_spec;
-    pid_t parent_pid;
 };
 
 } // namespace multipass

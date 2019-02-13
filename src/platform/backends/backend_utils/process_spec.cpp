@@ -53,3 +53,15 @@ const QString mp::ProcessSpec::apparmor_profile_name() const
         return QStringLiteral("multipass.") + executable_name;
     }
 }
+
+// Commands here are run after fork() and before execve(), allowing drop of privileges, etc.
+void mp::ProcessSpec::setup_child_process() const
+{
+    // Example: Drop all privileges in the child process, and enter a chroot jail.
+    //     ::setgroups(0, 0);
+    //     ::chroot("/etc/safe");
+    //     ::chdir("/");
+    //     ::setgid(safeGid);
+    //     ::setuid(safeUid);
+    //     ::umask(0);
+}

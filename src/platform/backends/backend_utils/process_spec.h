@@ -38,6 +38,8 @@ public:
     const QString apparmor_profile_name() const;
 
     virtual QString identifier() const;
+
+    virtual void setup_child_process() const;
 };
 
 } // namespace multipass

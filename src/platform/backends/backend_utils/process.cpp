@@ -18,20 +18,34 @@
 #include "process.h"
 #include "process_spec.h"
 
-#include <signal.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/prctl.h>
+#include <multipass/logging/log.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
+
+namespace {
+    std::string processErrorToString(QProcess::ProcessError error)
+    {
+        switch(error)
+        {
+            case QProcess::FailedToStart: return "Process failed to start";
+            case QProcess::Crashed: return "Process crashed";
+            case QProcess::Timedout: return "waitFor..() timed out, process state unchanged";
+            case QProcess::WriteError: return "Process write error";
+            case QProcess::ReadError: return "Process read error";
+            case QProcess::UnknownError: return "Unknown error occurred";
+            default: return ""; // REMOVEME
+        }
+    }
+} // namespace
 
 mp::Process::Process(std::unique_ptr<mp::ProcessSpec> &&spec)
     : process_spec{std::move(spec)}
-    , parent_pid(getpid())
 {
     setProgram(process_spec->program());
     setArguments(process_spec->arguments());
     setProcessEnvironment(process_spec->environment());
+    setProcessChannelMode(QProcess::ForwardedChannels);
 }
 
 void mp::Process::start(const QStringList& extra_arguments)
@@ -42,7 +56,11 @@ void mp::Process::start(const QStringList& extra_arguments)
 bool mp::Process::run_and_return_status(const QStringList& extra_arguments, const int timeout)
 {
     start(extra_arguments);
-    waitForFinished(timeout);
+    if (!waitForFinished(timeout))
+    {
+        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), processErrorToString(error()));
+        return false;
+    }
 
     return exitStatus() == QProcess::NormalExit && exitCode() == 0;
 }
@@ -50,12 +68,14 @@ bool mp::Process::run_and_return_status(const QStringList& extra_arguments, cons
 QString mp::Process::run_and_return_output(const QStringList& extra_arguments, const int timeout)
 {
     start(extra_arguments);
-    waitForFinished(timeout);
-
+    if (!waitForFinished(timeout))
+    {
+        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), processErrorToString(error()));
+    }
     return readAllStandardOutput().trimmed();
 }
 
 void mp::Process::setupChildProcess()
 {
-    // for post fork
+    process_spec->setup_child_process();
 }

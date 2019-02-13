@@ -36,16 +36,6 @@ public:
     {
         mp::Process::setupChildProcess();
 
-        // Drop all privileges in the child process, and enter a chroot jail.
-        //      #if defined Q_OS_UNIX
-        //          ::setgroups(0, 0);
-        //          ::chroot("/etc/safe");
-        //          ::chdir("/");
-        //          ::setgid(safeGid);
-        //          ::setuid(safeUid);
-        //          ::umask(0);
-        //      #endif
-
         apparmor.next_exec_under_policy(process_spec->apparmor_profile_name().toLatin1());
     }
 
