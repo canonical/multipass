@@ -68,6 +68,7 @@ set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletes
 add_executable(multipass_tests
   file_operations.cpp
   main.cpp
+  mischievous_url_downloader.cpp
   mock_scp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp

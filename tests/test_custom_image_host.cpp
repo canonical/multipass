@@ -18,6 +18,7 @@
 #include "src/daemon/custom_image_host.h"
 
 #include "path.h"
+#include "mischievous_url_downloader.h"
 
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
@@ -36,37 +37,6 @@ using namespace std::literals::chrono_literals;
 
 namespace
 {
-struct MischievousURLDownloader : public mp::URLDownloader
-{
-    MischievousURLDownloader(std::chrono::milliseconds timeout)
-        : URLDownloader(timeout)
-    {}
-
-    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
-                     const mp::ProgressMonitor& monitor) override
-    {
-        URLDownloader::download_to(choose_url(url), file_name, size, download_type, monitor);
-    }
-
-    QByteArray download(const QUrl& url) override
-    {
-        return URLDownloader::download(choose_url(url));
-    }
-
-    QDateTime last_modified(const QUrl& url) override
-    {
-        return URLDownloader::last_modified(choose_url(url));
-    }
-
-    const QUrl& choose_url(const QUrl& url)
-    {
-        return mischiefs-- > 0 ? empty_url : url;
-    }
-
-    QUrl empty_url = {};
-    int mischiefs = 0;
-};
-
 struct CustomImageHost : public Test
 {
     mp::Query make_query(std::string release, std::string remote)
@@ -76,7 +46,7 @@ struct CustomImageHost : public Test
 
     std::chrono::seconds timeout{10};
     mp::URLDownloader url_downloader{timeout};
-    MischievousURLDownloader alt_downloader{timeout};
+    mpt::MischievousURLDownloader alt_downloader{timeout};
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
 };
