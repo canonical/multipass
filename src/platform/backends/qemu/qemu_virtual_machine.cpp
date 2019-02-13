@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@
 #include <QString>
 #include <QStringList>
 #include <QSysInfo>
+#include <QTemporaryFile>
 
 #include <thread>
 
@@ -51,6 +52,21 @@ const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"}, 
                                           {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
                                           {"s390x", "s390x"}};
 constexpr auto suspend_tag = "suspend";
+constexpr auto default_machine_type = "pc-i440fx-xenial";
+
+auto set_qemu_exec()
+{
+    auto process = std::make_unique<QProcess>();
+    auto snap = qgetenv("SNAP");
+    if (!snap.isEmpty())
+    {
+        process->setWorkingDirectory(snap.append("/qemu"));
+    }
+
+    process->setProgram("qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture()));
+
+    return process;
+}
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
                        const std::string& mac_addr)
@@ -96,14 +112,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::str
          // TODO Add a debugging mode with access to console
          << "-nographic";
 
-    auto process = std::make_unique<QProcess>();
-    auto snap = qgetenv("SNAP");
-    if (!snap.isEmpty())
-    {
-        process->setWorkingDirectory(snap.append("/qemu"));
-    }
-
-    process->setProgram("qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture()));
+    auto process = set_qemu_exec();
     process->setArguments(args);
 
     mpl::log(mpl::Level::debug, desc.vm_name,
@@ -157,6 +166,34 @@ bool instance_image_has_snapshot(const mp::Path& image_path)
     }
 
     return false;
+}
+
+auto get_qemu_machine_type()
+{
+    QTemporaryFile dump_file;
+    if (!dump_file.open())
+    {
+        return QString();
+    }
+
+    auto process = set_qemu_exec();
+    process->setArguments({"-nographic", "-dump-vmstate", dump_file.fileName()});
+    process->start();
+    process->waitForFinished();
+
+    auto vmstate = QJsonDocument::fromJson(dump_file.readAll()).object();
+
+    auto machine_type = vmstate["vmschkmachine"].toObject()["Name"].toString();
+    return machine_type;
+}
+
+auto get_metadata()
+{
+    QJsonObject metadata;
+
+    metadata["machine_type"] = get_qemu_machine_type();
+
+    return metadata;
 }
 } // namespace
 
@@ -265,12 +302,28 @@ void mp::QemuVirtualMachine::start()
     vm_process->setArguments(original_args);
     if (state == State::suspended)
     {
+        auto metadata = monitor->retrieve_metadata_for(vm_name);
+
+        auto machine_type = metadata["machine_type"].toString();
+
+        if (machine_type.isNull())
+        {
+            mpl::log(mpl::Level::info, vm_name,
+                     fmt::format("Cannot determine QEMU machine type. Defaulting to '{}'.", default_machine_type));
+            machine_type = default_machine_type;
+        }
+
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
         auto args = vm_process->arguments();
         args << "-loadvm" << suspend_tag;
+        args << "-machine" << machine_type;
         vm_process->setArguments(args);
         update_shutdown_status = true;
         delete_memory_snapshot = true;
+    }
+    else
+    {
+        monitor->update_metadata_for(vm_name, get_metadata());
     }
 
     vm_process->start();

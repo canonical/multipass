@@ -226,6 +226,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto ssh_username = record["ssh_username"].toString();
         auto state = record["state"].toInt();
         auto deleted = record["deleted"].toBool();
+        auto metadata = record["metadata"].toObject();
 
         if (ssh_username.isEmpty())
             ssh_username = "ubuntu";
@@ -260,7 +261,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       ssh_username.toStdString(),
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
-                                      deleted};
+                                      deleted,
+                                      metadata};
     }
     return reconstructed_records;
 }
@@ -743,7 +745,8 @@ try // clang-format on
                                config->ssh_username,
                                VirtualMachine::State::off,
                                {},
-                               false};
+                               false,
+                               QJsonObject()};
     persist_instances();
 
     reply.set_create_message("Starting " + name);
@@ -1820,6 +1823,18 @@ void mp::Daemon::persist_state_for(const std::string& name)
     persist_instances();
 }
 
+void mp::Daemon::update_metadata_for(const std::string& name, const QJsonObject& metadata)
+{
+    vm_instance_specs[name].metadata = metadata;
+
+    persist_instances();
+}
+
+QJsonObject mp::Daemon::retrieve_metadata_for(const std::string& name)
+{
+    return vm_instance_specs[name].metadata;
+}
+
 void mp::Daemon::persist_instances()
 {
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
@@ -1831,6 +1846,7 @@ void mp::Daemon::persist_instances()
         json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
         json.insert("state", static_cast<int>(specs.state));
         json.insert("deleted", specs.deleted);
+        json.insert("metadata", specs.metadata);
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)
