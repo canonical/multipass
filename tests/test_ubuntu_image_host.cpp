@@ -17,9 +17,10 @@
 
 #include "src/daemon/ubuntu_image_host.h"
 
+#include "image_host_remote_count.h"
+#include "mischievous_url_downloader.h"
 #include "path.h"
 #include "stub_url_downloader.h"
-#include "mischievous_url_downloader.h"
 
 #include <multipass/query.h>
 
@@ -28,6 +29,7 @@
 #include <gmock/gmock.h>
 
 #include <unordered_set>
+#include <cstddef>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -247,30 +249,17 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_later_network_failure)
     EXPECT_TRUE(host.info_for(query));
 }
 
-
-namespace
-{
-    int count_remotes(mp::UbuntuVMImageHost& host)
-    {
-        std::unordered_set<std::string> remotes;
-        auto counting_action = [&remotes](const std::string& remote, const mp::VMImageInfo&){ remotes.insert(remote); };
-        host.for_each_entry_do(counting_action);
-
-        return remotes.size();
-    }
-}
-
 TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
 {
     const auto ttl = 0h;
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, ttl};
 
-    const auto num_remotes = count_remotes(host);
-    EXPECT_GT(num_remotes, 0);
+    const auto num_remotes = mpt::count_remotes(host);
+    EXPECT_GT(num_remotes, 0u);
 
-    for(int i = 0; i < num_remotes; ++i)
+    for(size_t i = 0; i < num_remotes; ++i)
     {
         url_downloader.mischiefs = i;
-        EXPECT_EQ(count_remotes(host), num_remotes - i);
+        EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
     }
 }
