@@ -19,17 +19,12 @@ addons:
 env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
-  - SNAPCRAFT_BUILD_ENVIRONMENT=lxd
 
 install:
 - sudo apt remove --assume-yes lxd
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
-- |
-  echo -e "#cloud-config\npackages: [ccache]" | sg lxd -c '/snap/bin/lxc profile set default user.user-data -'
-- sg lxd -c '/snap/bin/lxc profile set default environment.PATH /usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
-- sg lxd -c "/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache"
 - ccache --max-size=5G
 
 before_script:
@@ -38,9 +33,11 @@ before_script:
 - sg lxd -c 'lxc remote add --protocol simplestreams ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/'
 - |
     sg lxd -c "$( printf '/snap/bin/lxc launch ubuntu-minimal:18.04 snapcraft-multipass \
-      --config user.user-data="#cloud-config\npackage_update: true" \
+      --config user.user-data="#cloud-config\npackages: [ccache]" \
+      --config environment.PATH="/usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin" \
       --config raw.idmap="uid %s 0\ngid %s 0"' $( id -u ) $( id -g ) )"
-- sg lxd -c "/snap/bin/lxc config device add snapcraft-multipass project disk path=/root/project source=$PWD"
+- sg lxd -c "/snap/bin/lxc config device add snapcraft-multipass project disk source=$PWD path=/root/project"
+- sg lxd -c "/snap/bin/lxc config device add snapcraft-multipass ccache disk source=${HOME}/.ccache/ path=/root/.ccache"
 - while ! sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- cloud-init status' | grep 'done'; do sleep 5; done
 - while ! sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- snap install snapcraft --classic'; do sleep 5; done
 
