@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,30 +23,6 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-namespace
-{
-std::string processErrorToString(QProcess::ProcessError error)
-{
-    switch (error)
-    {
-    case QProcess::FailedToStart:
-        return "Process failed to start";
-    case QProcess::Crashed:
-        return "Process crashed";
-    case QProcess::Timedout:
-        return "waitFor..() timed out, process state unchanged";
-    case QProcess::WriteError:
-        return "Process write error";
-    case QProcess::ReadError:
-        return "Process read error";
-    case QProcess::UnknownError:
-        return "Unknown error occurred";
-    default:
-        return ""; // REMOVEME
-    }
-}
-} // namespace
-
 mp::Process::Process(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}
 {
     setProgram(process_spec->program());
@@ -65,7 +41,7 @@ bool mp::Process::run_and_return_status(const QStringList& extra_arguments, cons
     start(extra_arguments);
     if (!waitForFinished(timeout))
     {
-        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), processErrorToString(error()));
+        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), qPrintable(errorString()));
         return false;
     }
 
@@ -77,7 +53,7 @@ QString mp::Process::run_and_return_output(const QStringList& extra_arguments, c
     start(extra_arguments);
     if (!waitForFinished(timeout))
     {
-        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), processErrorToString(error()));
+        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), qPrintable(errorString()));
     }
     return readAllStandardOutput().trimmed();
 }
