@@ -255,7 +255,7 @@ mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remo
 
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
-        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote_name));
+        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
 
     return it->second.get();
 }
