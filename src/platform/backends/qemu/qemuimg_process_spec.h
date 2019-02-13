@@ -31,6 +31,8 @@ public:
     QString program() const override;
     QString apparmor_profile() const override;
 
+    void setup_child_process() const override;
+
 private:
     const QString input_image_path;
     const QString output_image_path;

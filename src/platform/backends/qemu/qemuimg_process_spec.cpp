@@ -18,6 +18,11 @@
 #include "qemuimg_process_spec.h"
 #include "snap_utils.h"
 
+#include <sys/types.h>
+#include <grp.h>
+#include <pwd.h>
+#include <unistd.h>
+
 namespace mp = multipass;
 namespace ms = multipass::snap;
 
@@ -40,8 +45,6 @@ QString mp::QemuImgProcessSpec::apparmor_profile() const
     #include <abstractions/base>
 
     %2
-    capability dac_read_search, # GERRY only unconfined?
-    capability dac_override,
 
     # binary and its libs
     %3/usr/bin/qemu-img ixr,
@@ -66,4 +69,21 @@ QString mp::QemuImgProcessSpec::apparmor_profile() const
     }
 
     return profile_template.arg(apparmor_profile_name(), extra_capabilities, ms::snap_dir(), input_image_path, optional_output_rule);
+}
+
+void mp::QemuImgProcessSpec::setup_child_process() const
+{
+    // TODO: can drop privileges, but need to change permissions on {input,output}_image_path files to match.
+
+    // Run as <USER>
+    // auto user = ::getpwnam("nobody");
+    // if (user)
+    // {
+    //     //::setgroups(0, 0);
+    //     ::setuid(user->pw_uid);
+    //     ::setgid(user->pw_gid);
+    // }
+
+    // Forbid creation of executable files
+    //::umask(0666);
 }
