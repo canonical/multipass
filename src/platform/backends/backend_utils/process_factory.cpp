@@ -24,11 +24,10 @@ namespace mp = multipass;
 class UnsecuredProcess : public mp::Process
 {
 public:
-    UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec)
-        : Process{std::move(spec)}
-    {}
+    UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : Process{std::move(spec)}
+    {
+    }
 };
-
 
 // This is the default ProcessFactory that creates a Process with no security mechanisms enabled
 std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const

@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_APPARMOR_PROCESS_FACTORY_H
 #define MULTIPASS_APPARMOR_PROCESS_FACTORY_H
 
+#include "apparmor.h"
 #include "process_factory.h"
 #include "process_spec.h"
-#include "apparmor.h"
 
 namespace multipass
 {
@@ -31,7 +31,7 @@ public:
     AppArmoredProcessFactory();
     virtual ~AppArmoredProcessFactory() = default;
 
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec> &&process_spec) const override;
+    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const override;
 
 private:
     const AppArmor apparmor;

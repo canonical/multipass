@@ -19,8 +19,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
-#include "process.h"
 #include "../qemu/qemuimg_process_spec.h" // FIXME(gerry)
+#include "process.h"
 
 #include <fmt/format.h>
 
@@ -133,7 +133,7 @@ void mp::backend::check_hypervisor_support()
     }
 }
 
-void mp::backend::resize_instance_image(const ProcessFactory *process_factory, const std::string& disk_space,
+void mp::backend::resize_instance_image(const ProcessFactory* process_factory, const std::string& disk_space,
                                         const mp::Path& image_path)
 {
     auto disk_size = QString::fromStdString(disk_space);
@@ -148,7 +148,7 @@ void mp::backend::resize_instance_image(const ProcessFactory *process_factory, c
         throw std::runtime_error("Cannot resize instance image");
 }
 
-mp::Path mp::backend::convert_to_qcow_if_necessary(const ProcessFactory *process_factory, const mp::Path& image_path)
+mp::Path mp::backend::convert_to_qcow_if_necessary(const ProcessFactory* process_factory, const mp::Path& image_path)
 {
     // Check if raw image file, and if so, convert to qcow2 format.
     // Need to give QemuImgProcessSpec the path of the possible converted file, for confinement.

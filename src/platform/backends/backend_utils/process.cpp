@@ -23,24 +23,31 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-namespace {
-    std::string processErrorToString(QProcess::ProcessError error)
+namespace
+{
+std::string processErrorToString(QProcess::ProcessError error)
+{
+    switch (error)
     {
-        switch(error)
-        {
-            case QProcess::FailedToStart: return "Process failed to start";
-            case QProcess::Crashed: return "Process crashed";
-            case QProcess::Timedout: return "waitFor..() timed out, process state unchanged";
-            case QProcess::WriteError: return "Process write error";
-            case QProcess::ReadError: return "Process read error";
-            case QProcess::UnknownError: return "Unknown error occurred";
-            default: return ""; // REMOVEME
-        }
+    case QProcess::FailedToStart:
+        return "Process failed to start";
+    case QProcess::Crashed:
+        return "Process crashed";
+    case QProcess::Timedout:
+        return "waitFor..() timed out, process state unchanged";
+    case QProcess::WriteError:
+        return "Process write error";
+    case QProcess::ReadError:
+        return "Process read error";
+    case QProcess::UnknownError:
+        return "Unknown error occurred";
+    default:
+        return ""; // REMOVEME
     }
+}
 } // namespace
 
-mp::Process::Process(std::unique_ptr<mp::ProcessSpec> &&spec)
-    : process_spec{std::move(spec)}
+mp::Process::Process(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}
 {
     setProgram(process_spec->program());
     setArguments(process_spec->arguments());

@@ -27,7 +27,7 @@ namespace snap
 bool is_snap_confined();
 QString snap_dir();
 QString snap_common_dir();
-}
-}
+} // namespace snap
+} // namespace multipass
 
 #endif // SNAP_UTILS_H

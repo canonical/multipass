@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_PROCESS_SPEC_H
 #define MULTIPASS_PROCESS_SPEC_H
 
-#include <QString>
 #include <QProcessEnvironment>
+#include <QString>
 
 namespace multipass
 {
