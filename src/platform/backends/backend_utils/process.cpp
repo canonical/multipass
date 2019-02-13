@@ -52,7 +52,7 @@ mp::Process::Process(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std
     setProgram(process_spec->program());
     setArguments(process_spec->arguments());
     setProcessEnvironment(process_spec->environment());
-    setProcessChannelMode(QProcess::ForwardedChannels);
+    setProcessChannelMode(QProcess::ForwardedErrorChannel); // default to forwarding child stderr to console
 }
 
 void mp::Process::start(const QStringList& extra_arguments)
