@@ -38,9 +38,13 @@ before_script:
 - sg lxd -c "/snap/bin/lxc config device add snapcraft-multipass ccache disk source=${HOME}/.ccache/ path=/root/.ccache"
 - while ! sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- cloud-init status' | grep 'done'; do sleep 5; done
 - while ! sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- snap install snapcraft --classic'; do sleep 5; done
+- ccache --zero-stats
 
 after_failure:
 - cat /tmp/*/trace.txt
+
+after_success:
+- ccache --show-stats
 
 cache: ccache
 
@@ -89,5 +93,6 @@ jobs:
           REF="${TRAVIS_COMMIT}"
         fi
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
+      after_success: ~
       after_failure: ~
       cache: ~
