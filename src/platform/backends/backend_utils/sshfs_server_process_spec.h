@@ -37,8 +37,6 @@ public:
 
     QString identifier() const override;
 
-    void setup_child_process() const override;
-
 private:
     const SSHFSServerConfig config;
     const QByteArray target_hash;

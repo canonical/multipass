@@ -137,23 +137,3 @@ QString mp::SSHFSServerProcessSpec::identifier() const
 {
     return QString::fromStdString(config.instance) + "." + target_hash;
 }
-
-void mp::SSHFSServerProcessSpec::setup_child_process() const
-{
-    // Inform kernel to send sigquit this child when its parent process (multipassd) dies unexpectedly
-    // IMPORTANT NOTE: if child calls setuid/gid, this prctl state is cleared by the kernel. So this will
-    // not work for dnsmasq for instance, but does work for sshfs_server.
-
-    // EVEN IMPORTANT NOTE: the libapparmor call aa_change_onexec resets this on exec, so this code
-    // does not work with AppArmor. To fix, beed a way to re-set this after apparmor. "setpriv" from sys-utils
-    // can, should copy how it does it..
-    // const int r = prctl(PR_SET_PDEATHSIG, SIGQUIT);
-    // if (r == -1)
-    // {
-    //     perror(0);
-    //     exit(1);
-    // }
-    // // test in case the original parent exited just before the prctl() call
-    // if (getppid() != ::daemon_pid)
-    //     exit(1);
-}
