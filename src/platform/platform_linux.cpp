@@ -31,6 +31,8 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 
+#include <unistd.h> // for setpgid()
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
@@ -44,6 +46,7 @@ mp::ProcessFactory* process_factory()
 {
     if (!static_process_factory)
     {
+        setpgid(0, 0); // create own process group
         auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
         if (!qEnvironmentVariableIsSet("DISABLE_APPARMOR") && driver != "LIBVIRT")

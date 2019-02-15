@@ -23,6 +23,7 @@
 #include <multipass/sshfs_mount/sshfs_mount.h>
 
 #include <signal.h>
+#include <sys/prctl.h>
 
 namespace mp = multipass;
 
@@ -57,6 +58,8 @@ std::unordered_map<int, int> deserialise_id_map(const char* in)
 
 int main(int argc, char* argv[])
 {
+    prctl(PR_SET_PDEATHSIG, SIGHUP); // ensure if parent dies, this process gets the SIGHUP signal
+
     if (argc != 8)
     {
         std::cerr << "Incorrect arguments" << std::endl;
@@ -90,7 +93,7 @@ int main(int argc, char* argv[])
         sigemptyset(&sigset);
         sigaddset(&sigset, SIGQUIT);
         sigaddset(&sigset, SIGTERM);
-        sigaddset(&sigset, SIGHUP); // under POSIX, if process group parent dies, this child should get SIGHUP
+        sigaddset(&sigset, SIGHUP);
         sigprocmask(SIG_BLOCK, &sigset, nullptr);
         int sig = -1;
 
