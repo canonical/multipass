@@ -144,10 +144,6 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
     if (users.IsSequence())
         users.push_back("default");
 
-    auto packages = user_data_config["packages"];
-    if (packages.IsSequence())
-        packages.push_back("sshfs");
-
     auto keys = user_data_config["ssh_authorized_keys"];
     if (keys.IsSequence())
         keys.push_back(vendor_config["ssh_authorized_keys"][0]);
