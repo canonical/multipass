@@ -44,12 +44,27 @@ public:
     using Command::Command;
     ReturnCode run(ArgParser* parser) override;
 
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
+    std::string name() const override
+    {
+        return "";
+    };
+
+    QString short_help() const override
+    {
+        return "";
+    };
+
+    QString description() const override
+    {
+        return "";
+    };
 
 private:
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser) override
+    {
+        return ParseCode::Ok;
+    };
+
     void create_actions();
     void create_menu();
     void update_menu();

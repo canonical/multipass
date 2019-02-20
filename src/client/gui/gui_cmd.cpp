@@ -23,7 +23,6 @@
 #include <multipass/cli/format_utils.h>
 
 #include <QCoreApplication>
-#include <QTimer>
 #include <QtConcurrent/QtConcurrent>
 
 namespace mp = multipass;
@@ -43,26 +42,6 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     tray_icon.show();
 
     return static_cast<ReturnCode>(QCoreApplication::exec());
-}
-
-std::string cmd::GuiCmd::name() const
-{
-    return "";
-}
-
-QString cmd::GuiCmd::short_help() const
-{
-    return QStringLiteral("");
-}
-
-QString cmd::GuiCmd::description() const
-{
-    return QStringLiteral("");
-}
-
-mp::ParseCode cmd::GuiCmd::parse_args(mp::ArgParser* parser)
-{
-    return ParseCode::Ok;
 }
 
 void cmd::GuiCmd::create_actions()
