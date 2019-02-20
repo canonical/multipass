@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_UTILS_H
 #define MULTIPASS_UTILS_H
 
+#include <multipass/logging/level.h>
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 
@@ -62,6 +63,9 @@ std::string escape_char(const std::string& s, char c);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string generate_mac_address();
 std::string timestamp();
+void process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message);
+bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                          const QString& category, multipass::logging::Level level = multipass::logging::Level::debug);
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& process_vm_events = []() { });

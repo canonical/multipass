@@ -265,3 +265,34 @@ bool mp::utils::is_running(const VirtualMachine::State& state)
 {
     return state == VirtualMachine::State::running || state == VirtualMachine::State::delayed_shutdown;
 }
+
+void mp::utils::process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message)
+{
+    QProcess process;
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(program, arguments);
+    process.waitForFinished();
+
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    {
+        throw std::runtime_error(fmt::format(message.toStdString(), process.readAllStandardOutput().toStdString()));
+    }
+}
+
+bool mp::utils::process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                                     const QString& category, mpl::Level level)
+{
+    QProcess process;
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(program, arguments);
+    process.waitForFinished();
+
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    {
+        mpl::log(level, category.toStdString(),
+                 fmt::format(message.toStdString(), process.readAllStandardOutput().toStdString()));
+        return false;
+    }
+
+    return true;
+}
