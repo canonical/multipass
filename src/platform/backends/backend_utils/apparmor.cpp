@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,10 @@
 #include "apparmor.h"
 
 #include <multipass/logging/log.h>
+#include <multipass/snap_utils.h>
 #include <sys/apparmor.h>
 
+#include <QDir>
 #include <QProcess>
 
 #include <fmt/format.h>
@@ -43,9 +45,27 @@ void throw_if_binary_fails(const char* binary_name, const QStringList& arguments
     }
 }
 
+QStringList generate_extra_apparmor_args()
+{
+    if (mp::utils::is_snap_confined())
+    {
+        QString apparmor_cache_dir = mp::utils::snap_common_dir() + "/apparmor.d/cache/multipass";
+        QDir cache_dir;
+        if (cache_dir.mkpath(apparmor_cache_dir)) {
+            return {"-WL", apparmor_cache_dir}; // write profiles to local cache
+        }
+        else
+        {
+            mpl::log(mpl::Level::debug, "daemon", "Failed to create cache directory for AppArmor - disabling caching");
+        }
+    }
+    return {"-W"};
+}
+
 } // namespace
 
 mp::AppArmor::AppArmor()
+    : apparmor_args{generate_extra_apparmor_args()}
 {
     int ret = aa_is_enabled();
     if (ret < 0)
@@ -61,7 +81,7 @@ mp::AppArmor::AppArmor()
 void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
 {
     QProcess process;
-    process.start(apparmor_parser, {"--abort-on-error", "-r"}); // inserts new or replaces existing
+    process.start(apparmor_parser, apparmor_args + QStringList({"--abort-on-error", "-r"})); // inserts new or replaces existing
     process.waitForStarted();
     process.write(aa_policy);
     process.closeWriteChannel();
@@ -79,7 +99,7 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
 void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
 {
     QProcess process;
-    process.start(apparmor_parser, {"-R"});
+    process.start(apparmor_parser, apparmor_args + QStringList("-R"));
     process.waitForStarted();
     process.write(aa_policy);
     process.closeWriteChannel();

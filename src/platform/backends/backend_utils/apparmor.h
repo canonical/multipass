@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_APPARMOR_H
 #define MULTIPASS_APPARMOR_H
 
-#include <QString>
+#include <QStringList>
 
 namespace multipass
 {
@@ -32,6 +32,8 @@ public:
     void remove_policy(const QByteArray& aa_policy) const;
 
     void next_exec_under_policy(const QByteArray& aa_policy_name) const;
+private:
+    const QStringList apparmor_args;
 };
 
 } // namespace multipass
