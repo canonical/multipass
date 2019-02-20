@@ -20,9 +20,13 @@
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 
+#include <multipass/exceptions/download_exception.h>
+
 #include <fmt/format.h>
 
 #include <QMap>
+
+#include <utility>
 
 namespace mp = multipass;
 
@@ -114,7 +118,7 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-auto full_image_info_for(const QMap<QString, CustomImageInfo> custom_image_info, mp::URLDownloader* url_downloader,
+auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
                          const QString& path_prefix)
 {
     std::vector<mp::VMImageInfo> default_images;
@@ -150,15 +154,6 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo> custom_image_info,
     return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
 }
 
-auto custom_aliases(mp::URLDownloader* url_downloader, const QString& path_prefix)
-{
-    std::unordered_map<std::string, std::unique_ptr<mp::CustomManifest>> custom_manifests;
-
-    custom_manifests.emplace(no_remote, full_image_info_for(multipass_image_info, url_downloader, path_prefix));
-    custom_manifests.emplace(snapcraft_remote, full_image_info_for(snapcraft_image_info, url_downloader, path_prefix));
-
-    return custom_manifests;
-}
 } // namespace
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
@@ -171,7 +166,7 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono:
     : CommonVMImageHost{manifest_time_to_live},
       url_downloader{downloader},
       path_prefix{path_prefix},
-      custom_image_info{custom_aliases(url_downloader, path_prefix)},
+      custom_image_info{},
       remotes{no_remote, snapcraft_remote}
 {
 }
@@ -235,13 +230,18 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::fetch_manifests()
 {
-    custom_image_info = custom_aliases(url_downloader, path_prefix);
-}
-
-
-bool mp::CustomVMImageHost::empty() const
-{
-    return custom_image_info.empty();
+    for (const auto& spec :
+         {std::make_pair(no_remote, multipass_image_info), std::make_pair(snapcraft_remote, snapcraft_image_info)})
+    {
+        try
+        {
+            custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader, path_prefix));
+        }
+        catch (mp::DownloadException& e)
+        {
+            on_manifest_update_failure(e.what());
+        }
+    }
 }
 
 void mp::CustomVMImageHost::clear()
@@ -255,7 +255,7 @@ mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remo
 
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
-        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote_name));
+        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
 
     return it->second.get();
 }

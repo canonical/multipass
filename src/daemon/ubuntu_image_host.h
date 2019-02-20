@@ -22,7 +22,6 @@
 #include "multipass/simple_streams_manifest.h"
 
 #include <QString>
-#include <QTimer>
 
 #include <string>
 #include <vector>
@@ -48,7 +47,6 @@ protected:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
     void fetch_manifests() override;
-    bool empty() const override;
     void clear() override;
 
 private:
@@ -59,7 +57,6 @@ private:
     std::vector<std::pair<std::string, std::string>> remotes;
     std::string remote_url_from(const std::string& remote_name);
     QString index_path;
-    QTimer manifest_single_shot;
 };
 }
 #endif // MULTIPASS_UBUNTU_IMAGE_HOST_H
