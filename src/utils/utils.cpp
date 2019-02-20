@@ -139,6 +139,8 @@ std::string mp::utils::generate_mac_address()
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                   std::function<void()> const& process_vm_events)
 {
+    mpl::log(mpl::Level::debug, virtual_machine->vm_name,
+             fmt::format("Trying SSH on {}:{}", virtual_machine->ssh_hostname(), virtual_machine->ssh_port()));
     auto action = [virtual_machine, &process_vm_events] {
         process_vm_events();
         try
