@@ -25,6 +25,7 @@
 #include <QMenu>
 #include <QObject>
 #include <QSystemTrayIcon>
+#include <QTimer>
 
 #include <memory>
 #include <unordered_map>
@@ -52,7 +53,9 @@ private:
     void create_actions();
     void create_menu();
     void update_menu();
+    void initiate_menu_layout();
     ListReply retrieve_all_instances();
+    void set_menu_actions_for(const std::string& instance_name, const QString& state);
     void start_instance_for(const std::string& instance_name);
     void suspend_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
@@ -66,16 +69,18 @@ private:
     QAction* quit_action;
     QAction failure_action{"Failure retrieving instances"};
 
-    struct MenuEntry
+    struct InstanceEntry
     {
-        std::unique_ptr<QMenu> instance_menu;
-        std::vector<QAction*> instance_actions;
+        QString state;
+        std::unique_ptr<QMenu> menu;
     };
-    std::unordered_map<std::string, MenuEntry> instances_menus;
+    std::unordered_map<std::string, InstanceEntry> instances_entries;
 
     QFuture<ListReply> list_future;
     QFutureWatcher<ListReply> list_watcher;
     QFutureSynchronizer<void> future_synchronizer;
+
+    QTimer menu_update_timer;
 };
 } // namespace cmd
 } // namespace multipass
