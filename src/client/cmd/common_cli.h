@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,8 +41,6 @@ ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter, 
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
 ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr, const grpc::Status& status,
                                         const std::string& error_details = std::string());
-void install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                       Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr);
 } // namespace cmd
 } // namespace multipass
 

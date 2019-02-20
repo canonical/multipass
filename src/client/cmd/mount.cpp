@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
 
 #include "mount.h"
 #include "common_cli.h"
-#include "exec.h"
 
+#include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/logging/log.h>
@@ -59,29 +59,24 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::MountReply& reply) {
+    mp::AnimatedSpinner spinner{cout};
+
+    auto on_success = [&spinner](mp::MountReply& reply) {
+        spinner.stop();
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &parser](grpc::Status& status) {
-        auto ret = standard_failure_handler_for(name(), cerr, status);
-        if (!status.error_details().empty())
-        {
-            mp::MountError mount_error;
-            mount_error.ParseFromString(status.error_details());
+    auto on_failure = [this, &spinner](grpc::Status& status) {
+        spinner.stop();
 
-            if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
-            {
-                cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub, cout,
-                                       cerr);
-            }
-        }
-
-        return ret;
+        return standard_failure_handler_for(name(), cerr, status);
     };
 
+    auto streaming_callback = [&spinner](mp::MountReply& reply) { spinner.start(reply.mount_message()); };
+
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::mount, request, on_success, on_failure);
+
+    return dispatch(&RpcMethod::mount, request, on_success, on_failure, streaming_callback);
 }
 
 std::string cmd::Mount::name() const { return "mount"; }
