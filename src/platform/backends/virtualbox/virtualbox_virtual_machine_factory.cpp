@@ -1,0 +1,122 @@
+/*
+ * Copyright (C) 2019 Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "virtualbox_virtual_machine_factory.h"
+#include "virtualbox_virtual_machine.h"
+
+#include <multipass/logging/log.h>
+#include <multipass/utils.h>
+#include <multipass/virtual_machine_description.h>
+
+#include <fmt/format.h>
+#include <yaml-cpp/yaml.h>
+
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QProcess>
+#include <QRegularExpression>
+
+namespace mp = multipass;
+namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
+
+namespace
+{
+constexpr auto category = "virtualbox factory";
+}
+
+mp::VirtualMachine::UPtr
+mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                            VMStatusMonitor& monitor)
+{
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc, monitor);
+}
+
+void mp::VirtualBoxVirtualMachineFactory::remove_resources_for(const std::string& name)
+{
+    QRegularExpression cloudinit_re("\"SATA_0-1-0\"=\"(?!emptydrive)(.+)\"");
+
+    QProcess vminfo;
+    vminfo.start("VBoxManage", {"showvminfo", QString::fromStdString(name), "--machinereadable"});
+    vminfo.waitForFinished();
+    auto vminfo_output = QString::fromUtf8(vminfo.readAllStandardOutput());
+
+    auto cloudinit_match = cloudinit_re.match(vminfo_output);
+
+    mpu::process_log_on_error("VBoxManage", {"controlvm", QString::fromStdString(name), "poweroff"},
+                              "Could not power off VM: {}", QString::fromStdString(name), mpl::Level::warning);
+    mpu::process_log_on_error("VBoxManage", {"unregistervm", QString::fromStdString(name), "--delete"},
+                              "Could not unregister VM: {}", QString::fromStdString(name), mpl::Level::error);
+
+    if (cloudinit_match.hasMatch())
+    {
+        mpu::process_log_on_error("VBoxManage", {"closemedium", "dvd", cloudinit_match.captured(1)},
+                                  "Could not unregister cloud-init medium: {}", QString::fromStdString(name),
+                                  mpl::Level::warning);
+    }
+    else
+    {
+        mpl::log(mpl::Level::warning, name, "Could not find the cloud-init ISO path for removal.");
+    }
+}
+
+mp::FetchType mp::VirtualBoxVirtualMachineFactory::fetch_type()
+{
+    return mp::FetchType::ImageOnly;
+}
+
+mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
+{
+    QFileInfo source_file{source_image.image_path};
+    auto vdi_file = QString("%1/%2.vdi").arg(source_file.path()).arg(source_file.completeBaseName());
+
+    QStringList convert_args({"convert", "-O", "vdi", source_image.image_path, vdi_file});
+
+    mpu::process_throw_on_error(QCoreApplication::applicationDirPath() + "/qemu-img", convert_args,
+                                "Conversion of image to VDI failed with error: {}", category);
+
+    if (!QFile::exists(vdi_file))
+    {
+        throw std::runtime_error("vdi image file is missing");
+    }
+
+    auto prepared_image = source_image;
+    prepared_image.image_path = vdi_file;
+    return prepared_image;
+}
+
+void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
+                                                                 const VirtualMachineDescription& desc)
+{
+    // Need to generate a new medium UUID
+    mpu::process_throw_on_error("VBoxManage", {"internalcommands", "sethduuid", instance_image.image_path},
+                                "Could not generate a new UUID: {}");
+
+    mpu::process_log_on_error(
+        "VBoxManage",
+        {"modifyhd", instance_image.image_path, "--resize", QString::number(desc.disk_space.in_megabytes())},
+        "Could not resize image: {}", QString::fromStdString(desc.vm_name), mpl::Level::warning);
+}
+
+void mp::VirtualBoxVirtualMachineFactory::configure(const std::string& /* name */, YAML::Node& /* meta_config */,
+                                                    YAML::Node& /* user_config */)
+{
+}
+
+void mp::VirtualBoxVirtualMachineFactory::check_hypervisor_support()
+{
+}

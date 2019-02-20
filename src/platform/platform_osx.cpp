@@ -19,6 +19,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
+#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "platform_proprietary.h"
 #include <github_update_prompt.h>
 
@@ -36,7 +37,22 @@ std::string mp::platform::default_server_address()
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    return std::make_unique<HyperkitVirtualMachineFactory>();
+    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+
+    if (driver.isEmpty() || driver == "HYPERKIT")
+        return std::make_unique<HyperkitVirtualMachineFactory>();
+    else if (driver == "VIRTUALBOX")
+    {
+        qputenv("PATH", qgetenv("PATH") + ":/usr/local/bin"); /*
+          This is where the Virtualbox installer puts things, and relying on PATH
+          allows the user to do something about it, if the binaries are not found
+          there.
+        */
+
+        return std::make_unique<VirtualBoxVirtualMachineFactory>();
+    }
+
+    throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

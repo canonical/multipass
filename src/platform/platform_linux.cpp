@@ -25,6 +25,7 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "backends/shared/linux/process.h"
 #include "backends/shared/linux/process_factory.h"
+#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
 
@@ -57,6 +58,8 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         return std::make_unique<QemuVirtualMachineFactory>(::process_factory(), data_dir);
     else if (driver == "LIBVIRT")
         return std::make_unique<LibVirtVirtualMachineFactory>(::process_factory(), data_dir);
+    else if (driver == "VIRTUALBOX")
+        return std::make_unique<VirtualBoxVirtualMachineFactory>();
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
 }

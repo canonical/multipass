@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -12,16 +12,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-if(MSVC)
-  add_subdirectory(hyperv)
-elseif(APPLE)
-  add_subdirectory(hyperkit)
-else()
-  add_subdirectory(shared/linux)
-  add_subdirectory(libvirt)
-  add_subdirectory(qemu)
-endif()
+add_library(virtualbox_backend STATIC
+  virtualbox_virtual_machine.cpp
+  virtualbox_virtual_machine_factory.cpp)
 
-add_subdirectory(virtualbox)
+target_link_libraries(virtualbox_backend
+  Qt5::Core
+  fmt
+  ip_address
+  logger
+  ssh
+  utils
+  yaml)
