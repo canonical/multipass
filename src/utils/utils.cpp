@@ -56,7 +56,7 @@ QDir mp::utils::base_dir(const QString& path)
 
 bool mp::utils::valid_memory_value(const QString& mem_string)
 {
-    QRegExp matcher("\\d+((K|M|G)(B){0,1}){0,1}$");
+    QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
 
     return matcher.exactMatch(mem_string);
 }
