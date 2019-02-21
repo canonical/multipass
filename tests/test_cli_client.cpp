@@ -25,6 +25,7 @@
 
 #include <QEventLoop>
 #include <QStringList>
+#include <QTemporaryFile>
 
 #include <gmock/gmock.h>
 
@@ -62,6 +63,21 @@ struct Client : public Test
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
     mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store};
+};
+
+class CleanerUpper
+{
+public:
+    CleanerUpper(std::function<void()> func) : m_func(func)
+    {
+    }
+    ~CleanerUpper()
+    {
+        m_func();
+    }
+
+private:
+    std::function<void()> m_func;
 };
 
 // Tests for no postional args given
@@ -202,6 +218,45 @@ TEST_F(Client, launch_cmd_custom_image_file_ok)
 TEST_F(Client, launch_cmd_custom_image_http_ok)
 {
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_with_valid_file_is_ok)
+{
+    QTemporaryFile tmpfile; // file is auto-deleted when this goes out of scope
+    tmpfile.open();
+    tmpfile.write("password: passw0rd"); // need some YAML
+    tmpfile.close();
+    EXPECT_THAT(send_command({"launch", "--cloud-init", qPrintable(tmpfile.fileName())}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_with_missing_file)
+{
+    EXPECT_THAT(send_command({"launch", "--cloud-init", "/definitely/missing-file"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_fails_no_value)
+{
+    EXPECT_THAT(send_command({"launch", "--cloud-init"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
+{
+    QTemporaryFile tmpfile; // file is auto-deleted when this goes out of scope
+    tmpfile.open();
+    tmpfile.write("password: passw0rd"); // need some YAML
+    tmpfile.close();
+
+    int stdin_copy = dup(0); // take copy of stdin FD
+
+    freopen(qPrintable(tmpfile.fileName()), "r", stdin); // close stdin FD, reopen backed by tmpfile
+
+    CleanerUpper cleanup([&stdin_copy]() {
+        dup2(stdin_copy, 0); // restore stdin
+        close(stdin_copy);
+    });
+
+    EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests
