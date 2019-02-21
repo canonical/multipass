@@ -32,44 +32,92 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
-TEST(Utils, KB_is_valid)
+TEST(Utils, KB_is_valid_memory_value)
 {
     EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024KB")));
 }
 
-TEST(Utils, K_is_valid)
+TEST(Utils, K_is_valid_memory_value)
 {
     EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024K")));
 }
 
-TEST(Utils, MB_is_valid)
+TEST(Utils, MB_is_valid_memory_value)
 {
     EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024MB")));
 }
 
-TEST(Utils, M_is_valid)
+TEST(Utils, M_is_valid_memory_value)
 {
     EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024M")));
 }
 
-TEST(Utils, GB_is_valid)
+TEST(Utils, GB_is_valid_memory_value)
 {
     EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024GB")));
 }
 
-TEST(Utils, G_is_valid)
+TEST(Utils, G_is_valid_memory_value)
 {
     EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024G")));
 }
 
-TEST(Utils, no_unit_is_valid)
+TEST(Utils, no_unit_is_valid_memory_value)
 {
     EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024")));
 }
 
-TEST(Utils, MM_unit_is_invalid)
+TEST(Utils, B_is_valid_memory_value)
+{
+    EXPECT_TRUE(mp::utils::valid_memory_value(QString("123B")));
+}
+
+TEST(Utils, memory_value_units_may_be_smallcase)
+{
+    EXPECT_TRUE(mp::utils::valid_memory_value(QString("42b")));
+    EXPECT_TRUE(mp::utils::valid_memory_value(QString("42mb")));
+    EXPECT_TRUE(mp::utils::valid_memory_value(QString("42kB")));
+    EXPECT_TRUE(mp::utils::valid_memory_value(QString("42g")));
+}
+
+TEST(Utils, BB_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::valid_memory_value(QString("321BB")));
+}
+
+TEST(Utils, BK_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::valid_memory_value(QString("321BK")));
+}
+
+TEST(Utils, MM_unit_is_invalid_memory_value)
 {
     EXPECT_FALSE(mp::utils::valid_memory_value(QString("1024MM")));
+}
+
+TEST(Utils, KM_unit_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::valid_memory_value(QString("1024KM")));
+}
+
+TEST(Utils, GK_unit_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::valid_memory_value(QString("1024GK")));
+}
+
+TEST(Utils, only_unit_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::valid_memory_value(QString("K")));
+}
+
+TEST(Utils, empty_string_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::valid_memory_value(QString("")));
+}
+
+TEST(Utils, decimal_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::valid_memory_value(QString("123.321K")));
 }
 
 TEST(Utils, hostname_begins_with_letter_is_valid)
