@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ struct VMSpecs
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
+    QJsonObject metadata;
 };
 
 struct MetricsOptInData
@@ -73,6 +74,8 @@ protected:
     void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name) override;
+    void update_metadata_for(const std::string& name, const QJsonObject& metadata) override;
+    QJsonObject retrieve_metadata_for(const std::string& name) override;
 
 public slots:
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,

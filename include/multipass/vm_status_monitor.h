@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,14 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_VM_STATUS_MONITOR_H
 #define MULTIPASS_VM_STATUS_MONITOR_H
 
 #include <string>
+
+#include <QJsonObject>
 
 namespace multipass
 {
@@ -34,6 +34,8 @@ public:
     virtual void on_suspend() = 0;
     virtual void on_restart(const std::string& name) = 0;
     virtual void persist_state_for(const std::string& name) = 0;
+    virtual void update_metadata_for(const std::string& name, const QJsonObject& metadata) = 0;
+    virtual QJsonObject retrieve_metadata_for(const std::string& name) = 0;
 
 protected:
     VMStatusMonitor() = default;

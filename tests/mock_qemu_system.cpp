@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,10 @@
 int main(int argc, char* argv[])
 {
     std::string input;
+
+    if (strcmp(argv[1], "-dump-vmstate") == 0)
+        return 0;
+
     while (true)
     {
         char c;
