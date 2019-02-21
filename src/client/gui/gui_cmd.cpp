@@ -92,9 +92,8 @@ void cmd::GuiCmd::update_menu()
             else if (instance_state != state)
             {
                 auto& instance_menu = instances_entries.at(name).menu;
-                auto action_string = QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state);
 
-                instance_menu->setTitle(action_string);
+                instance_menu->setTitle(QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state));
                 instance_menu->clear();
                 set_menu_actions_for(name, state);
                 instances_entries[name].state = state;
@@ -105,9 +104,8 @@ void cmd::GuiCmd::update_menu()
 
         if (state != "DELETED")
         {
-            auto action_string = QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state);
-
-            instances_entries[name].menu = std::make_unique<QMenu>(action_string);
+            instances_entries[name].menu =
+                std::make_unique<QMenu>(QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state));
             set_menu_actions_for(name, state);
             instances_entries[name].state = state;
         }
@@ -190,7 +188,6 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const Q
 
     instance_menu->addAction("Open shell");
     QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
-        fmt::print("Opening shell for {}\n", instance_name);
         mp::cli::platform::open_multipass_shell(QString::fromStdString(instance_name));
     });
 
@@ -203,13 +200,11 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const Q
     {
         instance_menu->addAction("Suspend");
         QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
-            fmt::print("Suspending {}\n", instance_name);
             future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::suspend_instance_for, instance_name));
         });
 
         instance_menu->addAction("Stop");
         QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
-            fmt::print("Stopping {}\n", instance_name);
             future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, instance_name));
         });
     }
@@ -217,7 +212,6 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const Q
     {
         instance_menu->addAction("Start");
         QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
-            fmt::print("Started {}\n", instance_name);
             future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, instance_name));
         });
     }
