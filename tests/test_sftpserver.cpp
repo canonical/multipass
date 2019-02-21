@@ -1342,4 +1342,4 @@ INSTANTIATE_TEST_SUITE_P(
         MessageAndReply{SFTP_EXTENDED, SSH_FX_FAILURE}),
     string_for_param);
 
-}
+} // namespace
