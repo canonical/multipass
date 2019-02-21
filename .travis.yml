@@ -47,7 +47,7 @@ jobs:
   include:
     - env: BUILD_TYPE=RelWithDebInfo
       script:
-      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft'
+      - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft --debug'
 
     - env: BUILD_TYPE=Debug
       script:
