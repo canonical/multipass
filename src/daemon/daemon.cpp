@@ -750,10 +750,6 @@ try // clang-format on
     vm->start();
     vm->wait_until_ssh_up(std::chrono::minutes(5));
 
-    reply.set_create_message("Waiting for initialization to complete");
-    server->Write(reply);
-    vm->wait_for_cloud_init(std::chrono::minutes(5));
-
     reply.set_vm_instance_name(name);
     server->Write(reply);
 
