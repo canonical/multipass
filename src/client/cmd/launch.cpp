@@ -165,9 +165,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             const QString& cloudInitFile = parser->value(cloudInitOption);
             if (cloudInitFile == "-")
             {
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-                _setmode(_fileno(stdin), _O_BINARY);
-#endif
+                mcp::prepare_stdin_for_read();
                 QByteArray content;
                 char arr[1024];
                 while (!std::cin.eof())
