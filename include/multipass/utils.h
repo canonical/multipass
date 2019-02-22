@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #define MULTIPASS_UTILS_H
 
 #include <multipass/path.h>
+#include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 
 #include <chrono>
@@ -51,8 +52,8 @@ QString make_uuid();
 std::string contents_of(const multipass::Path& file_path);
 bool has_only_digits(const std::string& value);
 void validate_server_address(const std::string& value);
-bool valid_memory_value(const QString& mem_string);
-bool valid_hostname(const QString& name_string);
+optional<std::string> normalize_memory_value(const std::string& mem_value);
+bool valid_hostname(const std::string& name_string);
 bool invalid_target_path(const QString& target_path);
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
 bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout=30000);
