@@ -176,42 +176,42 @@ TEST(Utils, decimal_is_invalid_memory_value)
 
 TEST(Utils, hostname_begins_with_letter_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("foo")));
+    EXPECT_TRUE(mp::utils::valid_hostname("foo"));
 }
 
 TEST(Utils, hostname_single_letter_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("f")));
+    EXPECT_TRUE(mp::utils::valid_hostname("f"));
 }
 
 TEST(Utils, hostname_contains_digit_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("foo1")));
+    EXPECT_TRUE(mp::utils::valid_hostname("foo1"));
 }
 
 TEST(Utils, hostname_contains_hyphen_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("foo-bar")));
+    EXPECT_TRUE(mp::utils::valid_hostname("foo-bar"));
 }
 
 TEST(Utils, hostname_begins_with_digit_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("1foo")));
+    EXPECT_FALSE(mp::utils::valid_hostname("1foo"));
 }
 
 TEST(Utils, hostname_single_digit_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("1")));
+    EXPECT_FALSE(mp::utils::valid_hostname("1"));
 }
 
 TEST(Utils, hostname_contains_underscore_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("foo_bar")));
+    EXPECT_FALSE(mp::utils::valid_hostname("foo_bar"));
 }
 
 TEST(Utils, hostname_contains_special_character_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("foo!")));
+    EXPECT_FALSE(mp::utils::valid_hostname("foo!"));
 }
 
 TEST(Utils, path_root_invalid)

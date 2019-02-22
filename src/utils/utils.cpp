@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cctype>
 #include <fstream>
 #include <random>
@@ -54,18 +55,41 @@ QDir mp::utils::base_dir(const QString& path)
     return info.absoluteDir();
 }
 
-bool mp::utils::valid_memory_value(const QString& mem_string)
+auto mp::utils::normalize_memory_value(const std::string& mem_value) -> optional<std::string>
 {
+    static constexpr auto kilo = 1024LL;
+
     QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
 
-    return matcher.exactMatch(mem_string);
+    if(matcher.exactMatch(QString::fromStdString(mem_value)))
+    {
+        auto val = std::stoll(matcher.cap(1).toStdString()); // value is in the second capture (1st one is the whole match)
+        const auto unit = matcher.cap(2); // unit in the third capture (idem)
+        if(!unit.isEmpty())
+        {
+            switch(unit.front().toLower().toLatin1())
+            {
+            case 'g': val *= kilo;
+                [[fallthrough]]; // absent break on purpose
+            case 'm': val *= kilo;
+                [[fallthrough]]; // absent break on purpose
+            case 'k': val *= kilo;
+                break;
+            default: assert(false && "Shouldn't be here (invalid unit)");
+            }
+        }
+
+        return std::to_string(val) + "B";
+    }
+
+    return {};
 }
 
-bool mp::utils::valid_hostname(const QString& name_string)
+bool mp::utils::valid_hostname(const std::string& name_string)
 {
     QRegExp matcher("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
 
-    return matcher.exactMatch(name_string);
+    return matcher.exactMatch(QString::fromStdString(name_string));
 }
 
 bool mp::utils::invalid_target_path(const QString& target_path)
