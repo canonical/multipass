@@ -433,8 +433,6 @@ void mp::QemuVirtualMachine::on_restart()
 
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
-    QCoreApplication::processEvents();
-
     if (vm_process->state() == QProcess::NotRunning)
         throw mp::StartException(vm_name, saved_error_msg);
 }
