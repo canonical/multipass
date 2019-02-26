@@ -15,8 +15,8 @@
  *
  */
 
-#include "path.h"
 #include "mock_stdcin.h"
+#include "path.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
 

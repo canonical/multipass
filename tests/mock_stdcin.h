@@ -24,25 +24,25 @@
 class MockStdCin
 {
 public:
-	MockStdCin(const std::string &s)
-	{
-		fake_cin << s;
+    MockStdCin(const std::string& s)
+    {
+        fake_cin << s;
 
-		// Backup and replace std::cin's streambuffer
-		cin_backup = std::cin.rdbuf();
-		std::streambuf *psbuf = fake_cin.rdbuf();
-		std::cin.rdbuf(psbuf); // assign streambuf to cin
-	}
+        // Backup and replace std::cin's streambuffer
+        cin_backup = std::cin.rdbuf();
+        std::streambuf* psbuf = fake_cin.rdbuf();
+        std::cin.rdbuf(psbuf); // assign streambuf to cin
+    }
 
-	~MockStdCin()
-	{
-		// Restore cin's original streanbuffer
-		std::cin.rdbuf(cin_backup);
-	}
+    ~MockStdCin()
+    {
+        // Restore cin's original streanbuffer
+        std::cin.rdbuf(cin_backup);
+    }
 
 private:
-	std::streambuf *cin_backup;
-	std::stringstream fake_cin;
+    std::streambuf* cin_backup;
+    std::stringstream fake_cin;
 };
 
 #endif // MULTIPASS_MOCK_STDCIN_H
