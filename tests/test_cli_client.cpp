@@ -16,6 +16,7 @@
  */
 
 #include "path.h"
+#include "mock_stdcin.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
 
@@ -242,19 +243,7 @@ TEST_F(Client, launch_cmd_cloudinit_option_fails_no_value)
 
 TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
 {
-    QTemporaryFile tmpfile; // file is auto-deleted when this goes out of scope
-    tmpfile.open();
-    tmpfile.write("password: passw0rd"); // need some YAML
-    tmpfile.close();
-
-    int stdin_copy = dup(0); // take copy of stdin FD
-
-    freopen(qPrintable(tmpfile.fileName()), "r", stdin); // close stdin FD, reopen backed by tmpfile
-
-    CleanerUpper cleanup([&stdin_copy]() {
-        dup2(stdin_copy, 0); // restore stdin
-        close(stdin_copy);
-    });
+    MockStdCin cin("password: passw0rd");
 
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}), Eq(mp::ReturnCode::Ok));
 }
