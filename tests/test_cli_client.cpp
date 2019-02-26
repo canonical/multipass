@@ -66,21 +66,6 @@ struct Client : public Test
     mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store};
 };
 
-class CleanerUpper
-{
-public:
-    CleanerUpper(std::function<void()> func) : m_func(func)
-    {
-    }
-    ~CleanerUpper()
-    {
-        m_func();
-    }
-
-private:
-    std::function<void()> m_func;
-};
-
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
 {
