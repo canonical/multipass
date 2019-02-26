@@ -42,6 +42,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
+#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
