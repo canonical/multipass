@@ -285,16 +285,16 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     auto instance_name = request->instance_name();
     auto option_errors = mp::LaunchError{};
 
-    const auto opt_mem_size = mp::utils::normalize_memory_value(mem_size.empty() ? "1G" : mem_size);
-    const auto opt_disk_space = mp::utils::normalize_memory_value(disk_space.empty() ? "5G" : disk_space);
+    const auto opt_mem_size = mp::utils::in_bytes(mem_size.empty() ? "1G" : mem_size);
+    const auto opt_disk_space = mp::utils::in_bytes(disk_space.empty() ? "5G" : disk_space);
 
     if(opt_mem_size)
-        mem_size = *opt_mem_size;
+        mem_size = mp::utils::in_bytes_string(*opt_mem_size);
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
 
     if(opt_disk_space)
-        disk_space = *opt_disk_space;
+        disk_space = mp::utils::in_bytes_string(*opt_disk_space);
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
 
