@@ -129,29 +129,19 @@ struct Daemon : public Test
         return mock_factory_ptr;
     }
 
-    void send_command(const std::vector<std::string>& command)
+    void send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream, std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
-        send_command(command, null_stream);
-    }
-
-    void send_command(const std::vector<std::string>& command, std::ostream& cout)
-    {
-        send_commands({command}, cout);
-    }
-
-    void send_commands(const std::vector<std::vector<std::string>>& commands)
-    {
-        send_commands(commands, null_stream);
+        send_commands({command}, cout, cerr, cin);
     }
 
     // "commands" is a vector of commands that includes necessary positional arguments, ie,
     // "start foo"
-    void send_commands(std::vector<std::vector<std::string>> commands, std::ostream& cout)
+    void send_commands(std::vector<std::vector<std::string>> commands, std::ostream& cout = trash_stream, std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
         // Commands need to be sent from a thread different from that the QEventLoop is on.
         // Event loop is started/stopped to ensure all signals are delivered
-        mp::AutoJoinThread t([this, &commands, &cout] {
-            mpt::StubTerminal term(cout);
+        mp::AutoJoinThread t([this, &commands, &cout, &cerr, &cin] {
+            mpt::StubTerminal term(cout, cerr, cin);
             mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
                                            std::make_unique<mpt::StubCertProvider>(), &term};
             mp::Client client{client_config};
@@ -175,8 +165,11 @@ struct Daemon : public Test
     mpt::TempDir cache_dir;
     mpt::TempDir data_dir;
     mp::DaemonConfigBuilder config_builder;
-    std::stringstream null_stream;
+    static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
+
+std::stringstream Daemon::trash_stream; // replace with inline in C++17
+
 
 TEST_F(Daemon, receives_commands)
 {
@@ -437,7 +430,7 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
     const auto& opt_value = std::get<1>(param);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
-    send_command({"launch", opt_name, opt_value}, stream);
+    send_command({"launch", opt_name, opt_value}, std::cout, stream);
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk")), HasSubstr("minimum")));
 }
