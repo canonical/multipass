@@ -43,135 +43,140 @@ namespace
 TEST(Utils, KB_memory_value_can_be_normalized)
 {
     constexpr auto val = 1024;
-    const auto result = mp::utils::normalize_memory_value(std::to_string(val) + "KB");
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "KB");
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * kilo) + "B");
+    EXPECT_EQ(*result, val * kilo);
 }
 
 TEST(Utils, K_memory_value_can_be_normalized)
 {
     constexpr auto val = 1024;
-    const auto result = mp::utils::normalize_memory_value(std::to_string(val) + "K");
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "K");
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * kilo) + "B");
+    EXPECT_EQ(*result, val * kilo);
 }
 
 TEST(Utils, MB_memory_value_can_be_normalized)
 {
     constexpr auto val = 1024;
-    const auto result = mp::utils::normalize_memory_value(std::to_string(val) + "MB");
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "MB");
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * mega) + "B");
+    EXPECT_EQ(*result, val * mega);
 }
 
 TEST(Utils, M_memory_value_can_be_normalized)
 {
     constexpr auto val = 1;
-    const auto result = mp::utils::normalize_memory_value(std::to_string(val) + "M");
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "M");
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * mega) + "B");
+    EXPECT_EQ(*result, val * mega);
 }
 
 TEST(Utils, GB_memory_value_can_be_normalized)
 {
     constexpr auto val = 1024;
-    const auto result = mp::utils::normalize_memory_value(std::to_string(val) + "GB");
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "GB");
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * giga) + "B");
+    EXPECT_EQ(*result, val * giga);
 }
 
 TEST(Utils, G_memory_value_can_be_normalized)
 {
     constexpr auto val = 5;
-    const auto result = mp::utils::normalize_memory_value(std::to_string(val) + "G");
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "G");
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * giga) + "B");
+    EXPECT_EQ(*result, val * giga);
 }
 
 TEST(Utils, no_unit_memory_value_can_be_normalized)
 {
     constexpr auto val = 1024;
-    const auto result = mp::utils::normalize_memory_value(std::to_string(val));
+    const auto result = mp::utils::in_bytes(std::to_string(val));
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val) + "B");
+    EXPECT_EQ(*result, val);
 }
 
 TEST(Utils, B_memory_value_can_be_normalized)
 {
     constexpr auto val = 123;
-    const auto valstr = std::to_string(val) + "B";
-    const auto result = mp::utils::normalize_memory_value(valstr);
+    const auto valstr = mp::utils::in_bytes_string(val);
+    const auto result = mp::utils::in_bytes(valstr);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, valstr);
+    EXPECT_EQ(*result, val);
 }
 
 TEST(Utils, memory_value_units_may_be_smallcase)
 {
     constexpr auto val = 42;
-    auto result = mp::utils::normalize_memory_value(std::to_string(val) + "b");
+    auto result = mp::utils::in_bytes(std::to_string(val) + "b");
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val) + "B");
+    EXPECT_EQ(*result, val);
 
-    result = mp::utils::normalize_memory_value(std::to_string(val) + "mb");
+    result = mp::utils::in_bytes(std::to_string(val) + "mb");
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * mega) + "B");
+    EXPECT_EQ(*result, val * mega);
 
-    result = mp::utils::normalize_memory_value(std::to_string(val) + "kB");
+    result = mp::utils::in_bytes(std::to_string(val) + "kB");
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * kilo) + "B");
+    EXPECT_EQ(*result, val * kilo);
 
-    result = mp::utils::normalize_memory_value(std::to_string(val) + "g");
+    result = mp::utils::in_bytes(std::to_string(val) + "g");
     EXPECT_TRUE(result);
-    EXPECT_EQ(*result, std::to_string(val * giga) + "B");
+    EXPECT_EQ(*result, val * giga);
 }
 
 TEST(Utils, BB_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value("321BB"));
+    EXPECT_FALSE(mp::utils::in_bytes("321BB"));
 }
 
 TEST(Utils, BK_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value("321BK"));
+    EXPECT_FALSE(mp::utils::in_bytes("321BK"));
 }
 
 TEST(Utils, MM_unit_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value("1024MM"));
+    EXPECT_FALSE(mp::utils::in_bytes("1024MM"));
 }
 
 TEST(Utils, KM_unit_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value("1024KM"));
+    EXPECT_FALSE(mp::utils::in_bytes("1024KM"));
 }
 
 TEST(Utils, GK_unit_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value("1024GK"));
+    EXPECT_FALSE(mp::utils::in_bytes("1024GK"));
 }
 
 TEST(Utils, only_unit_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value("K"));
+    EXPECT_FALSE(mp::utils::in_bytes("K"));
 }
 
 TEST(Utils, empty_string_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value(""));
+    EXPECT_FALSE(mp::utils::in_bytes(""));
 }
 
 TEST(Utils, decimal_is_invalid_memory_value)
 {
-    EXPECT_FALSE(mp::utils::normalize_memory_value("123.321K"));
+    EXPECT_FALSE(mp::utils::in_bytes("123.321K"));
+}
+
+TEST(Utils, bytes_correctly_expressed_as_string)
+{
+    EXPECT_EQ(mp::utils::in_bytes_string(56565), "56565B");
 }
 
 TEST(Utils, hostname_begins_with_letter_is_valid)

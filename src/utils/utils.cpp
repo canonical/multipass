@@ -55,7 +55,7 @@ QDir mp::utils::base_dir(const QString& path)
     return info.absoluteDir();
 }
 
-auto mp::utils::normalize_memory_value(const std::string& mem_value) -> optional<std::string>
+auto mp::utils::in_bytes(const std::string& mem_value) -> optional<long long>
 {
     static constexpr auto kilo = 1024LL;
 
@@ -79,10 +79,15 @@ auto mp::utils::normalize_memory_value(const std::string& mem_value) -> optional
             }
         }
 
-        return std::to_string(val) + "B";
+        return val;
     }
 
     return {};
+}
+
+std::string mp::utils::in_bytes_string(long long bytes)
+{
+    return std::to_string(bytes) + "B";
 }
 
 bool mp::utils::valid_hostname(const std::string& name_string)
