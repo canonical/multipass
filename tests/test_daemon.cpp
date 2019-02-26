@@ -403,11 +403,11 @@ TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config)
 
 namespace
 {
-struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::string>
+struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
 {
 };
 
-struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::string>
+struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string,std::string>>
 {
 };
 
@@ -416,17 +416,12 @@ TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
-    send_command({"launch", "--mem", GetParam()});
-}
-
-TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_disk)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
+    const auto param = GetParam();
+    const auto& opt_name = std::get<0>(param);
+    const auto& opt_value = std::get<1>(param);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
-    send_command({"launch", "--disk", GetParam()});
+    send_command({"launch", opt_name, opt_value});
 }
 
 TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
@@ -435,25 +430,20 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
+    const auto param = GetParam();
+    const auto& opt_name = std::get<0>(param);
+    const auto& opt_value = std::get<1>(param);
 
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect no call
-    send_command({"launch", "--mem", GetParam()}, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("memory"), HasSubstr("minimum")));
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
+    send_command({"launch", opt_name, opt_value}, stream);
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk")), HasSubstr("minimum")));
 }
 
-TEST_P(MinSpaceViolatedSuite, refuses_launch_with_disk_below_threshold)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    std::stringstream stream;
-
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect no call
-    send_command({"launch", "--disk", GetParam()}, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("memory"), HasSubstr("minimum")));
-}
-
-INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite, Values("1024m", "2Gb", "987654321"));
-INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite, Values("0", "0B", "0GB", "123B", "42kb", "100"));
+INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite, Combine(Values("--mem", "--disk"),
+                                                                 Values("1024m", "2Gb", "987654321")));
+// INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite, Values("1024m", "2Gb", "987654321"));
+INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite, Combine(Values("--mem", "--disk"),
+                                                                Values("0", "0B", "0GB", "123B", "42kb", "100")));
 
 } // namespace
