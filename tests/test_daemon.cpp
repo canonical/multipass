@@ -400,3 +400,60 @@ TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config)
 
     send_command({"launch"});
 }
+
+namespace
+{
+struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::string>
+{
+};
+
+struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::string>
+{
+};
+
+TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    send_command({"launch", "--mem", GetParam()});
+}
+
+TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_disk)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    send_command({"launch", "--disk", GetParam()});
+}
+
+TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect no call
+    send_command({"launch", "--mem", GetParam()}, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("memory"), HasSubstr("minimum")));
+}
+
+TEST_P(MinSpaceViolatedSuite, refuses_launch_with_disk_below_threshold)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect no call
+    send_command({"launch", "--disk", GetParam()}, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("memory"), HasSubstr("minimum")));
+}
+
+INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite, Values("1024m", "2Gb", "987654321"));
+INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite, Values("0", "0B", "0GB", "123B", "42kb", "100"));
+
+} // namespace
