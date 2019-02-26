@@ -20,6 +20,7 @@
 #include "json_writer.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/constants.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
@@ -69,6 +70,8 @@ constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
+const auto normalized_min_mem = mp::utils::in_bytes(mp::min_memory_size);
+const auto normalized_min_disk = mp::utils::in_bytes(mp::min_disk_size);
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -288,12 +291,12 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     const auto opt_mem_size = mp::utils::in_bytes(mem_size.empty() ? "1G" : mem_size);
     const auto opt_disk_space = mp::utils::in_bytes(disk_space.empty() ? "5G" : disk_space);
 
-    if(opt_mem_size)
+    if(opt_mem_size && *opt_mem_size >= normalized_min_mem)
         mem_size = mp::utils::in_bytes_string(*opt_mem_size);
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
 
-    if(opt_disk_space)
+    if(opt_disk_space && *opt_disk_space >= normalized_min_disk)
         disk_space = mp::utils::in_bytes_string(*opt_disk_space);
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
