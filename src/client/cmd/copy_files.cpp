@@ -24,11 +24,20 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QTemporaryFile>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
+
+namespace
+{
+const char* teplateMask{"temp"};
+const char* templateSymbol{"-"};
+const char* stdin_path {"/dev/stdin"};
+const char* stdout_path{"/dev/stdout"};
+}
 
 mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
 {
@@ -42,6 +51,31 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
         // TODO: mainly for testing - need a better way to test parsing
         if (reply.ssh_info().empty())
             return ReturnCode::Ok;
+
+        // NOTE: need temp file before pushing copy to an instance, because we need to know size of file
+        QTemporaryFile temp_file;
+        if (sources.size() == 1)
+        {
+            auto& source = sources.front();
+            if (source.second == stdin_path)
+            {
+                if (stdin_path == source.second)
+                {
+                    temp_file.setFileTemplate(teplateMask);
+                    if (!temp_file.open())
+                        return ReturnCode::CommandFail;
+
+                    QTextStream in_stream(stdin);
+                    QTextStream out_stream(&temp_file);
+
+                    while (!in_stream.atEnd())
+                        out_stream << in_stream.readAll();
+
+                    source.second = temp_file.fileName().toStdString();
+                }
+
+            }
+        }
 
         for (const auto& source : sources)
         {
@@ -119,6 +153,41 @@ mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    const bool allow_templates = (parser->positionalArguments().count() == 2);
+    if (allow_templates)
+    {
+        const auto arguments = parser->positionalArguments();
+        const auto is_valid_template = !std::all_of(arguments.begin(), arguments.end(), [](const QString& argument)
+        {
+            return (templateSymbol == argument);
+        });
+
+        if (!is_valid_template)
+        {
+            cerr << "Only one occurence of template allowed\n";
+            return ParseCode::CommandLineError;
+        }
+    }
+
+    const auto source_code = parse_sources(parser, allow_templates);
+    if (ParseCode::Ok != source_code)
+        return source_code;
+
+    const auto destination_code = parse_destination(parser, allow_templates);
+    if (ParseCode::Ok != destination_code)
+        return destination_code;
+
+    if (request.instance_name().empty())
+    {
+        cerr << "An instance name is needed for either source or destination\n";
+        return ParseCode::CommandLineError;
+    }
+
+    return ParseCode::Ok;
+}
+
+multipass::ParseCode cmd::CopyFiles::parse_sources(multipass::ArgParser *parser, bool allow_templates)
+{
     for (auto i = 0; i < parser->positionalArguments().count() - 1; ++i)
     {
         auto source_entry = parser->positionalArguments().at(i);
@@ -130,6 +199,12 @@ mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
         {
             cerr << "Invalid source path given\n";
             return ParseCode::CommandLineError;
+        }
+
+        if (allow_templates && templateSymbol == source_path)
+        {
+            sources.emplace_back("", stdin_path);
+            return ParseCode::Ok;
         }
 
         if (instance_name.isEmpty())
@@ -162,10 +237,21 @@ mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
         sources.emplace_back(instance_name.toStdString(), source_path.toStdString());
     }
 
+    return ParseCode::Ok;
+}
+
+multipass::ParseCode cmd::CopyFiles::parse_destination(multipass::ArgParser *parser, bool allow_templates)
+{
     auto destination_entry = parser->positionalArguments().last();
     QString destination_path, instance_name;
 
     mcp::parse_copy_files_entry(destination_entry, destination_path, instance_name);
+    if (allow_templates && templateSymbol == destination_path)
+    {
+        destination = std::make_pair("", stdout_path);
+        return ParseCode::Ok;
+    }
+
     if (instance_name.isEmpty())
     {
         QFileInfo destination(destination_path);
@@ -202,12 +288,6 @@ mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
 
         auto entry = request.add_instance_name();
         entry->append(instance_name.toStdString());
-    }
-
-    if (request.instance_name().empty())
-    {
-        cerr << "An instance name is needed for either source or destination\n";
-        return ParseCode::CommandLineError;
     }
 
     destination = std::make_pair(instance_name.toStdString(), destination_path.toStdString());
