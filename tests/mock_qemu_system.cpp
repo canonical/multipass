@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 {
     std::string input;
 
-    if (strcmp(argv[1], "-dump-vmstate") == 0)
+    if (strcmp(argv[2], "-dump-vmstate") == 0)
         return 0;
 
     while (true)
