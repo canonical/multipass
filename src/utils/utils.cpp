@@ -61,21 +61,26 @@ auto mp::utils::in_bytes(const std::string& mem_value) -> optional<long long>
 
     QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
 
-    if(matcher.exactMatch(QString::fromStdString(mem_value)))
+    if (matcher.exactMatch(QString::fromStdString(mem_value)))
     {
-        auto val = std::stoll(matcher.cap(1).toStdString()); // value is in the second capture (1st one is the whole match)
-        const auto unit = matcher.cap(2); // unit in the third capture (idem)
-        if(!unit.isEmpty())
+        auto val =
+            std::stoll(matcher.cap(1).toStdString()); // value is in the second capture (1st one is the whole match)
+        const auto unit = matcher.cap(2);             // unit in the third capture (idem)
+        if (!unit.isEmpty())
         {
-            switch(unit.front().toLower().toLatin1())
+            switch (unit.front().toLower().toLatin1())
             {
-            case 'g': val *= kilo;
+            case 'g':
+                val *= kilo;
                 [[fallthrough]]; // absent break on purpose
-            case 'm': val *= kilo;
+            case 'm':
+                val *= kilo;
                 [[fallthrough]]; // absent break on purpose
-            case 'k': val *= kilo;
+            case 'k':
+                val *= kilo;
                 break;
-            default: assert(false && "Shouldn't be here (invalid unit)");
+            default:
+                assert(false && "Shouldn't be here (invalid unit)");
             }
         }
 

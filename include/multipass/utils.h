@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_UTILS_H
 #define MULTIPASS_UTILS_H
 
-#include <multipass/path.h>
 #include <multipass/optional.h>
+#include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 
 #include <chrono>
