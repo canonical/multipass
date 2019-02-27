@@ -33,8 +33,8 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
-const char* teplateMask{"temp"};
-const char* templateSymbol{"-"};
+const char* teplate_mask{"temp"};
+const char* template_symbol{"-"};
 const char* stdin_path {"/dev/stdin"};
 const char* stdout_path{"/dev/stdout"};
 }
@@ -61,7 +61,7 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
             {
                 if (stdin_path == source.second)
                 {
-                    temp_file.setFileTemplate(teplateMask);
+                    temp_file.setFileTemplate(teplate_mask);
                     if (!temp_file.open())
                         return ReturnCode::CommandFail;
 
@@ -164,7 +164,7 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
         const auto arguments = parser->positionalArguments();
         const auto is_valid_template = !std::all_of(arguments.begin(), arguments.end(), [](const QString& argument)
         {
-            return (templateSymbol == argument);
+            return (template_symbol == argument);
         });
 
         if (!is_valid_template)
@@ -206,7 +206,7 @@ multipass::ParseCode cmd::Transfer::parse_sources(multipass::ArgParser *parser, 
             return ParseCode::CommandLineError;
         }
 
-        if (allow_templates && templateSymbol == source_path)
+        if (allow_templates && template_symbol == source_path)
         {
             sources.emplace_back("", stdin_path);
             return ParseCode::Ok;
@@ -251,7 +251,7 @@ multipass::ParseCode cmd::Transfer::parse_destination(multipass::ArgParser *pars
     QString destination_path, instance_name;
 
     mcp::parse_transfer_entry(destination_entry, destination_path, instance_name);
-    if (allow_templates && templateSymbol == destination_path)
+    if (allow_templates && template_symbol == destination_path)
     {
         destination = std::make_pair("", stdout_path);
         return ParseCode::Ok;
