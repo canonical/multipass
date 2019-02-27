@@ -247,11 +247,15 @@ mp::ReturnCode cmd::Launch::request_launch()
         {
             if (error == LaunchError::INVALID_DISK_SIZE)
             {
-                error_details = fmt::format("Invalid disk size value supplied: {}. Note that a minimum of {} is required.", request.disk_space(), min_disk_size);
+                error_details =
+                    fmt::format("Invalid disk size value supplied: {}. Note that a minimum of {} is required.",
+                                request.disk_space(), min_disk_size);
             }
             else if (error == LaunchError::INVALID_MEM_SIZE)
             {
-                error_details = fmt::format("Invalid memory size value supplied: {}. Note that a minimum of {} is required.", request.mem_size(), min_memory_size);
+                error_details =
+                    fmt::format("Invalid memory size value supplied: {}. Note that a minimum of {} is required.",
+                                request.mem_size(), min_memory_size);
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {

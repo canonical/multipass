@@ -20,8 +20,8 @@
 
 namespace multipass
 {
-    constexpr auto min_memory_size = "128M";
-    constexpr auto min_disk_size = "512M";
-}
+constexpr auto min_memory_size = "128M";
+constexpr auto min_disk_size = "512M";
+} // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

@@ -35,9 +35,9 @@ using namespace testing;
 
 namespace
 {
-    constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overflow if we used less than 8 bytes here
-    constexpr auto mega = kilo * kilo;
-    constexpr auto giga = kilo * mega;
+constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overflow if we used less than 8 bytes here
+constexpr auto mega = kilo * kilo;
+constexpr auto giga = kilo * mega;
 }
 
 TEST(Utils, KB_memory_value_can_be_normalized)

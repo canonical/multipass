@@ -403,7 +403,7 @@ struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tu
 {
 };
 
-struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string,std::string>>
+struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
 {
 };
 
@@ -436,9 +436,9 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
                 AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk")), HasSubstr("minimum")));
 }
 
-INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite, Combine(Values("--mem", "--disk"),
-                                                                 Values("1024m", "2Gb", "987654321")));
-INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite, Combine(Values("--mem", "--disk"),
-                                                                Values("0", "0B", "0GB", "123B", "42kb", "100")));
+INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
+                         Combine(Values("--mem", "--disk"), Values("1024m", "2Gb", "987654321")));
+INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite,
+                         Combine(Values("--mem", "--disk"), Values("0", "0B", "0GB", "123B", "42kb", "100")));
 
 } // namespace

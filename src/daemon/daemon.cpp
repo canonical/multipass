@@ -291,18 +291,17 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     const auto opt_mem_size = mp::utils::in_bytes(mem_size.empty() ? "1G" : mem_size);
     const auto opt_disk_space = mp::utils::in_bytes(disk_space.empty() ? "5G" : disk_space);
 
-    if(opt_mem_size && *opt_mem_size >= normalized_min_mem)
+    if (opt_mem_size && *opt_mem_size >= normalized_min_mem)
         mem_size = mp::utils::in_bytes_string(*opt_mem_size);
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
 
-    if(opt_disk_space && *opt_disk_space >= normalized_min_disk)
+    if (opt_disk_space && *opt_disk_space >= normalized_min_disk)
         disk_space = mp::utils::in_bytes_string(*opt_disk_space);
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
 
-    if(!request->instance_name().empty() &&
-       !mp::utils::valid_hostname(request->instance_name()))
+    if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
     return make_tuple(mem_size, disk_space, instance_name, option_errors);
@@ -673,8 +672,8 @@ try // clang-format on
         metrics_provider.send_metrics();
 
     auto mem_disk_name_and_errors = validate_create_arguments(request);
-    auto mem_size = std::get<0>(mem_disk_name_and_errors); // use structured bindings instead in C++17
-    auto disk_space = std::get<1>(mem_disk_name_and_errors); // use structured bindings instead in C++17
+    auto mem_size = std::get<0>(mem_disk_name_and_errors);      // use structured bindings instead in C++17
+    auto disk_space = std::get<1>(mem_disk_name_and_errors);    // use structured bindings instead in C++17
     auto instance_name = std::get<2>(mem_disk_name_and_errors); // use structured bindings instead in C++17
     auto option_errors = std::get<3>(mem_disk_name_and_errors); // use structured bindings instead in C++17
 
@@ -742,9 +741,9 @@ try // clang-format on
             break;
         }
     }
-    auto vm_desc =
-        to_machine_desc(request, name, mem_size, disk_space, mac_addr, config->ssh_username, vm_image, meta_data_cloud_init_config,
-                        user_data_cloud_init_config, vendor_data_cloud_init_config, *config->ssh_key_provider);
+    auto vm_desc = to_machine_desc(request, name, mem_size, disk_space, mac_addr, config->ssh_username, vm_image,
+                                   meta_data_cloud_init_config, user_data_cloud_init_config,
+                                   vendor_data_cloud_init_config, *config->ssh_key_provider);
 
     config->factory->prepare_instance_image(vm_image, vm_desc);
 
