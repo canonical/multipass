@@ -16,6 +16,7 @@ addons:
   snaps:
   - lxd
   - name: snapcraft
+    channel: edge
     classic: true
 
 env:
