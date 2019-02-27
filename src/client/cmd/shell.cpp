@@ -37,6 +37,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     // We can assume the first array entry since `shell` only uses one instance
     // at a time
     auto instance_name = request.instance_name()[0];
+
     auto on_success = [this](mp::SSHInfoReply& reply) {
         // TODO: mainly for testing - need a better way to test parsing
         if (reply.ssh_info().empty())
@@ -64,13 +65,14 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &instance_name](grpc::Status& status) {
-        auto ret = standard_failure_handler_for(name(), cerr, status);
         if (status.error_code() == grpc::StatusCode::ABORTED)
         {
             return start_instance_for(instance_name);
         }
-
-        return ret;
+        else
+        {
+            return standard_failure_handler_for(name(), cerr, status);
+        }
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
