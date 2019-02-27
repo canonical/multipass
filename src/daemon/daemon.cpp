@@ -1300,11 +1300,9 @@ try // clang-format on
 {
     mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    const auto instances_and_status =
-            find_requested_instances(request->instance_names().instance_name(), deleted_instances,
-                                     std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
-    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
-    const auto& status = instances_and_status.second;   // idem
+    const auto [instances, status] =
+        find_requested_instances(request->instance_names().instance_name(), deleted_instances,
+                                 std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
 
     if(status.ok())
     {
@@ -1505,11 +1503,9 @@ try // clang-format on
 {
     mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    auto instances_and_status =
+    auto [instances, status] =
         find_requested_instances(request->instance_names().instance_name(), vm_instances,
                                  std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
-    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
-    auto& status = instances_and_status.second;         // idem
 
     if (status.ok())
     {
@@ -1592,11 +1588,9 @@ try // clang-format on
 {
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    auto instances_and_status =
+    auto [instances, status] =
         find_requested_instances(request->instance_names().instance_name(), vm_instances,
                                  std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
-    const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
-    auto& status = instances_and_status.second;         // idem
 
     if (status.ok())
     {
@@ -1627,12 +1621,8 @@ try // clang-format on
 {
     mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    auto instances_and_status =
+    const auto [operational_instances_to_delete, trashed_instances_to_delete, status] =
         find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
-    const auto& operational_instances_to_delete =
-        std::get<0>(instances_and_status); // use structured bindings instead in C++17
-    const auto& trashed_instances_to_delete = std::get<1>(instances_and_status); // idem
-    const auto& status = std::get<2>(instances_and_status);                      // idem
 
     if (status.ok())
     {
