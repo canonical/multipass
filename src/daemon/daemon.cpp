@@ -678,15 +678,15 @@ try // clang-format on
     if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
         metrics_provider.send_metrics();
 
-    auto [mem_size, disk_space, instance_name, option_errors] = validate_create_arguments(request);
+    auto checked_args = validate_create_arguments(request);
 
-    if (!option_errors.error_codes().empty())
+    if (!checked_args.option_errors.error_codes().empty())
     {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
-                            option_errors.SerializeAsString());
+                            checked_args.option_errors.SerializeAsString());
     }
 
-    auto name = name_from(instance_name, *config->name_generator, vm_instances);
+    auto name = name_from(checked_args.instance_name, *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
@@ -744,9 +744,10 @@ try // clang-format on
             break;
         }
     }
-    auto vm_desc = to_machine_desc(request, name, mem_size, disk_space, mac_addr, config->ssh_username, vm_image,
-                                   meta_data_cloud_init_config, user_data_cloud_init_config,
-                                   vendor_data_cloud_init_config, *config->ssh_key_provider);
+    auto vm_desc =
+        to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr, config->ssh_username,
+                        vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
+                        vendor_data_cloud_init_config, *config->ssh_key_provider);
 
     config->factory->prepare_instance_image(vm_image, vm_desc);
 
