@@ -304,7 +304,14 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    return make_tuple(mem_size, disk_space, instance_name, option_errors);
+    struct CheckedArguments
+    {
+        std::string mem_size;
+        std::string disk_space;
+        std::string instance_name;
+        mp::LaunchError option_errors;
+    } ret{mem_size, disk_space, instance_name, option_errors};
+    return ret;
 }
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
@@ -671,11 +678,7 @@ try // clang-format on
     if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
         metrics_provider.send_metrics();
 
-    auto mem_disk_name_and_errors = validate_create_arguments(request);
-    auto mem_size = std::get<0>(mem_disk_name_and_errors);      // use structured bindings instead in C++17
-    auto disk_space = std::get<1>(mem_disk_name_and_errors);    // use structured bindings instead in C++17
-    auto instance_name = std::get<2>(mem_disk_name_and_errors); // use structured bindings instead in C++17
-    auto option_errors = std::get<3>(mem_disk_name_and_errors); // use structured bindings instead in C++17
+    auto [mem_size, disk_space, instance_name, option_errors] = validate_create_arguments(request);
 
     if (!option_errors.error_codes().empty())
     {
