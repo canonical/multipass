@@ -287,11 +287,11 @@ void mp::LibVirtVirtualMachine::start()
         {
             error_string = fmt::format("Unable to start suspended instance due to incompatible save image.\n"
                                        "Please use the following steps to recover:\n"
-                                       "  1. snap revert multipass\n"
+                                       "  1. snap refresh multipass --channel core16/beta\n"
                                        "  2. multipass start {}\n"
                                        "  3. Save any data in the instance\n"
                                        "  4. multipass stop {}\n"
-                                       "  5. snap refresh multipass\n"
+                                       "  5. snap refresh multipass --channel beta\n"
                                        "  6. multipass start {}\n",
                                        vm_name, vm_name, vm_name);
         }
