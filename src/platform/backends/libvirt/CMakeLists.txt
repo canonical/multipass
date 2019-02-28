@@ -23,10 +23,10 @@ function(add_libvirt_target TARGET_NAME)
 
   target_include_directories(${TARGET_NAME} PRIVATE ${LIBVIRT_INCLUDE_DIRS})
   target_link_libraries(${TARGET_NAME}
-    backend_utils
     fmt
     ip_address
     Qt5::Core
+    shared_linux
     ssh
     utils
     ${LIBVIRT_LIBRARIES})

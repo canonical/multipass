@@ -18,11 +18,13 @@
 #include "qemu_virtual_machine_factory.h"
 #include "qemu_virtual_machine.h"
 
-#include <multipass/backend_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
+
+#include "backend_utils.h"
+#include "process_factory.h"
 
 #include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
@@ -199,7 +201,8 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
             "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
+mp::DNSMasqServer create_dnsmasq_server(const mp::ProcessFactory* process_factory, const mp::Path& data_dir,
+                                        const QString& bridge_name)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
     const auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
@@ -211,13 +214,15 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {network_dir, bridge_name, bridge_addr, start_addr, end_addr};
+    return {process_factory, network_dir, bridge_name, bridge_addr, start_addr, end_addr};
 }
 } // namespace
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : bridge_name{QString::fromStdString(multipass_bridge_name)},
-      dnsmasq_server{create_dnsmasq_server(data_dir, bridge_name)}
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const ProcessFactory* process_factory,
+                                                         const mp::Path& data_dir)
+    : process_factory{process_factory},
+      bridge_name{QString::fromStdString(multipass_bridge_name)},
+      dnsmasq_server{create_dnsmasq_server(process_factory, data_dir, bridge_name)}
 {
 }
 
@@ -232,7 +237,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
     auto tap_device_name = generate_tap_device_name(desc.vm_name);
     create_tap_device(QString::fromStdString(tap_device_name), bridge_name);
 
-    auto vm = std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor);
+    auto vm = std::make_unique<mp::QemuVirtualMachine>(process_factory, desc, tap_device_name, dnsmasq_server, monitor);
 
     name_to_mac_map.emplace(desc.vm_name, desc.mac_addr);
     return vm;
@@ -255,22 +260,14 @@ mp::FetchType mp::QemuVirtualMachineFactory::fetch_type()
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     VMImage image{source_image};
-
-    if (mp::backend::image_format_for(source_image.image_path) == "raw")
-    {
-        auto qcow2_path{mp::Path(source_image.image_path).append(".qcow2")};
-        mp::utils::run_cmd_for_status(
-            "qemu-img", {QStringLiteral("convert"), "-p", "-O", "qcow2", source_image.image_path, qcow2_path}, -1);
-        image.image_path = qcow2_path;
-    }
-
+    image.image_path = mp::backend::convert_to_qcow_if_necessary(process_factory, source_image.image_path);
     return image;
 }
 
 void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                            const VirtualMachineDescription& desc)
 {
-    mp::backend::resize_instance_image(desc.disk_space, instance_image.image_path);
+    mp::backend::resize_instance_image(process_factory, desc.disk_space, instance_image.image_path);
 }
 
 void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)

@@ -23,6 +23,9 @@ target_link_libraries(platform
   libvirt_backend
   journaldlogger)
 
+include_directories(platform
+  backends/shared_linux)
+
 add_subdirectory(backends)
 add_subdirectory(client)
 add_subdirectory(console)

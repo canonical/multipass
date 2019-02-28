@@ -15,9 +15,13 @@
  *
  */
 
-#include <multipass/backend_utils.h>
+#include "backend_utils.h"
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
+
+#include "process.h"
+#include "process_factory.h"
+#include "qemuimg_process_spec.h"
 
 #include <fmt/format.h>
 
@@ -130,23 +134,48 @@ void mp::backend::check_hypervisor_support()
     }
 }
 
-void mp::backend::resize_instance_image(const std::string& disk_space, const mp::Path& image_path)
+void mp::backend::resize_instance_image(const ProcessFactory* process_factory, const std::string& disk_space,
+                                        const mp::Path& image_path)
 {
     auto disk_size = QString::fromStdString(disk_space);
 
     if (disk_size.endsWith("B"))
         disk_size.chop(1);
 
-    if (!mp::utils::run_cmd_for_status("qemu-img", {QStringLiteral("resize"), image_path, disk_size}))
+    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>();
+    auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
+
+    if (!qemuimg_process->run_and_return_status({"resize", image_path, disk_size}))
         throw std::runtime_error("Cannot resize instance image");
 }
 
-std::string mp::backend::image_format_for(const mp::Path& image_path)
+mp::Path mp::backend::convert_to_qcow_if_necessary(const ProcessFactory* process_factory, const mp::Path& image_path)
 {
-    auto image_info = QString::fromStdString(
-        mp::utils::run_cmd_for_output("qemu-img", {QStringLiteral("info"), "--output=json", image_path}));
+    // Check if raw image file, and if so, convert to qcow2 format.
+    const auto qcow2_path{image_path + ".qcow2"};
 
+    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>();
+    auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
+
+    auto image_info = qemuimg_process->run_and_return_output({"info", "--output=json", image_path});
     auto image_record = QJsonDocument::fromJson(image_info.toUtf8(), nullptr).object();
 
-    return image_record["format"].toString().toStdString();
+    if (image_record["format"].toString() == "raw")
+    {
+        qemuimg_process->run_and_return_status({"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, -1);
+        return qcow2_path;
+    }
+    else
+    {
+        return image_path;
+    }
+}
+
+QString mp::backend::cpu_arch()
+{
+    const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
+                                              {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
+                                              {"s390x", "s390x"}};
+
+    return cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
 }

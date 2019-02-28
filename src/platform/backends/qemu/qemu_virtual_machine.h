@@ -29,14 +29,15 @@ class QProcess;
 namespace multipass
 {
 class DNSMasqServer;
+class ProcessFactory;
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
 class QemuVirtualMachine final : public VirtualMachine
 {
 public:
-    QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
+    QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
+                       const std::string& tap_device_name, DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -64,6 +65,7 @@ private:
     const std::string tap_device_name;
     const std::string mac_addr;
     const std::string username;
+    const ProcessFactory* process_factory;
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;

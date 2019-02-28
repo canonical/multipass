@@ -17,7 +17,7 @@
 
 #include "libvirt_virtual_machine.h"
 
-#include <multipass/backend_utils.h>
+#include "backend_utils.h"
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
