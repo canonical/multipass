@@ -1352,8 +1352,7 @@ try // clang-format on
         auto& vm = it->second;
         if (!mp::utils::is_running(vm->current_state()))
         {
-            return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
-                                fmt::format("instance \"{}\" is not running", name), "");
+            return grpc::Status(grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name));
         }
 
         if (vm->state == VirtualMachine::State::delayed_shutdown)

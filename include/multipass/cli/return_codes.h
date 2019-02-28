@@ -31,7 +31,8 @@ enum ReturnCode
     Ok = 0,
     CommandLineError = 1,
     CommandFail = 2,
-    DaemonFail = 3
+    DaemonFail = 3,
+    Retry = 4
 };
 } // namespace multipass
 
