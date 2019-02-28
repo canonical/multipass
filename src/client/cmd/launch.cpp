@@ -90,7 +90,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption memOption({"m", "mem"}, "Amount of memory to allocate in bytes, or with K, M, G suffix", "mem",
                                  "1024"); // In MB's
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
-    QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration", "file");
+    QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
+                                       "file");
     parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption});
 
     auto status = parser->commandParse(this);
@@ -160,7 +161,29 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         try
         {
-            auto node = YAML::LoadFile(parser->value(cloudInitOption).toStdString());
+            YAML::Node node;
+            const QString& cloudInitFile = parser->value(cloudInitOption);
+            if (cloudInitFile == "-")
+            {
+                if (!mcp::is_tty())
+                {
+                    throw std::runtime_error("cannot read from stdin without a TTY");
+                }
+                mcp::prepare_stdin_for_read();
+                QByteArray content;
+                char arr[1024];
+                while (!std::cin.eof())
+                {
+                    std::cin.read(arr, sizeof(arr));
+                    int s = std::cin.gcount();
+                    content.append(arr, s);
+                }
+                node = YAML::Load(content.toStdString());
+            }
+            else
+            {
+                node = YAML::LoadFile(cloudInitFile.toStdString());
+            }
             request.set_cloud_init_user_data(YAML::Dump(node));
         }
         catch (const std::exception& e)
