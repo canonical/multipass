@@ -72,7 +72,10 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    auto streaming_callback = [&spinner](mp::MountReply& reply) { spinner.start(reply.mount_message()); };
+    auto streaming_callback = [&spinner](mp::MountReply& reply) {
+        spinner.stop();
+        spinner.start(reply.mount_message());
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
 

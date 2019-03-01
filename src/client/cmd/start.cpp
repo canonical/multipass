@@ -44,22 +44,18 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner, &parser](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
         auto ret = standard_failure_handler_for(name(), cerr, status);
-        if (!status.error_details().empty())
+        if (status.error_code() == grpc::StatusCode::ABORTED && !status.error_details().empty())
         {
-            if (status.error_code() == grpc::StatusCode::ABORTED)
-            {
-                mp::StartError start_error;
-                start_error.ParseFromString(status.error_details());
+            mp::StartError start_error;
+            start_error.ParseFromString(status.error_details());
 
-                if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
-                {
-                    fmt::print(cerr,
-                               "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                               "instance.\n");
-                }
+            if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
+            {
+                fmt::print(cerr, "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
+                                 "instance.\n");
             }
         }
 

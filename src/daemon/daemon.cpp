@@ -68,6 +68,7 @@ constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
+constexpr auto max_install_sshfs_retries = 3;
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -2049,7 +2050,7 @@ void mp::Daemon::install_sshfs(const VirtualMachine::UPtr& vm, const std::string
     mpl::log(mpl::Level::info, category, fmt::format("Installing sshfs in \'{}\'", name));
 
     int retries{0};
-    while (++retries <= 3)
+    while (++retries <= max_install_sshfs_retries)
     {
         try
         {
@@ -2071,6 +2072,6 @@ void mp::Daemon::install_sshfs(const VirtualMachine::UPtr& vm, const std::string
         }
     }
 
-    if (retries > 3)
+    if (retries > max_install_sshfs_retries)
         throw mp::SSHFSMissingError();
 }
