@@ -61,7 +61,12 @@ void check_sshfs_is_running(mp::SSHSession& session, mp::SSHProcess& sshfs_proce
 
 void check_sshfs_exists(mp::SSHSession& session)
 {
-    auto error_handler = [](mp::SSHProcess&) { throw mp::SSHFSMissingError(); };
+    auto error_handler = [](mp::SSHProcess& proc) {
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Unable to determine if 'sshfs' is installed: {}", proc.read_std_error()));
+        throw mp::SSHFSMissingError();
+    };
+
     run_cmd(session, "which sshfs", error_handler);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Christopher James Halse Rogers <christopher.halse.rogers@cannoical.com>
- *
  */
 #ifndef MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
 #define MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
@@ -27,9 +25,7 @@ constexpr auto base_cloud_init_config = "growpart:\n"
                                         "    ignore_growroot_disabled: false\n"
                                         "users:\n"
                                         "    - default\n"
-                                        "manage_etc_hosts: true\n"
-                                        "packages:\n"
-                                        "    - sshfs\n";
+                                        "manage_etc_hosts: true\n";
 }
 
 #endif // MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
