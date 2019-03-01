@@ -67,7 +67,7 @@ auto mp::utils::in_bytes(const std::string& mem_value) -> optional<long long>
         const auto unit = matcher.cap(2);             // unit in the third capture (idem)
         if (!unit.isEmpty())
         {
-            switch (unit.front().toLower().toLatin1())
+            switch (unit.at(0).toLower().toLatin1())
             {
             case 'g':
                 val *= kilo;
