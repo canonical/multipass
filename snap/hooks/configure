@@ -1,5 +1,12 @@
 #!/bin/bash -e
 
+needs_restart=false
+config_file="$SNAP_COMMON/snap_config"
+
+if [[ -a $config_file ]]; then
+    source $config_file
+fi
+
 driver="$(snapctl get driver)"
 
 if [[ -n $driver && ! $driver =~ (LIBVIRT|QEMU) ]]; then
@@ -7,7 +14,12 @@ if [[ -n $driver && ! $driver =~ (LIBVIRT|QEMU) ]]; then
     exit 1
 fi
 
-driver_saved="$(cat $SNAP_COMMON/driver)" || true
+driver_file="$SNAP_COMMON/driver"
+
+if [[ ! -v driver_saved ]]; then
+    driver_saved="$(cat $driver_file)" || true
+fi
+
 driver=${driver:-QEMU}
 driver_saved=${driver_saved:-QEMU}
 
@@ -27,6 +39,34 @@ if [[ $driver != $driver_saved ]]; then
         exit 1
     fi
 
-    echo "$driver" > $SNAP_COMMON/driver
+    driver_saved=$driver
+    needs_restart=true
+fi
+
+http_proxy="$(snapctl get proxy.http)"
+
+if [[ $http_proxy != $http_proxy_saved ]]; then
+    http_proxy_saved=$http_proxy
+    needs_restart=true
+fi
+
+https_proxy="$(snapctl get proxy.https)"
+
+if [[ $https_proxy != $https_proxy_saved ]]; then
+    https_proxy_saved=$https_proxy
+    needs_restart=true
+fi
+
+{
+    echo "driver_saved=${driver_saved}"
+    echo "http_proxy_saved=${http_proxy_saved}"
+    echo "https_proxy_saved=${https_proxy_saved}"
+} > "${config_file}"
+
+if [[ $needs_restart = true ]]; then
     snapctl restart $SNAP_NAME
+fi
+
+if [[ -a $driver_file ]]; then
+    rm $driver_file
 fi
