@@ -21,6 +21,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/ssh/scp_client.h>
+#include <multipass/ssh/sftp_client.h>
 
 #include <QDir>
 #include <QFileInfo>
@@ -33,14 +34,13 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
-const char* teplate_mask{"temp"};
-const char* template_symbol{"-"};
-const char* stdin_path {"/dev/stdin"};
+const char template_symbol{'-'};
 const char* stdout_path{"/dev/stdout"};
 }
 
 mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 {
+    streaming_enabled = false;
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
@@ -51,31 +51,6 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
         // TODO: mainly for testing - need a better way to test parsing
         if (reply.ssh_info().empty())
             return ReturnCode::Ok;
-
-        // NOTE: need temp file before pushing copy to an instance, because we need to know size of file
-        QTemporaryFile temp_file;
-        if (sources.size() == 1)
-        {
-            auto& source = sources.front();
-            if (source.second == stdin_path)
-            {
-                if (stdin_path == source.second)
-                {
-                    temp_file.setFileTemplate(teplate_mask);
-                    if (!temp_file.open())
-                        return ReturnCode::CommandFail;
-
-                    QTextStream in_stream(stdin);
-                    QTextStream out_stream(&temp_file);
-
-                    while (!in_stream.atEnd())
-                        out_stream << in_stream.readAll();
-
-                    source.second = temp_file.fileName().toStdString();
-                }
-
-            }
-        }
 
         for (const auto& source : sources)
         {
@@ -96,6 +71,15 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 
             try
             {
+                // NOTE: asked only for streaming, but also has
+                // functionality for pushing and pulling files
+                if (streaming_enabled)
+                {
+                    mp::SFTPClient sftp_client{host, port, username, priv_key_blob};
+                    sftp_client.stream_file(destination.second);
+                    continue;
+                }
+
                 mp::SCPClient scp_client{host, port, username, priv_key_blob};
                 if (!destination.first.empty())
                     scp_client.push_file(source.second, destination.second);
@@ -208,7 +192,8 @@ multipass::ParseCode cmd::CopyFiles::parse_sources(multipass::ArgParser *parser,
 
         if (allow_templates && template_symbol == source_path)
         {
-            sources.emplace_back("", stdin_path);
+            streaming_enabled = true;
+            sources.emplace_back(instance_name.toStdString(), "");
             return ParseCode::Ok;
         }
 
