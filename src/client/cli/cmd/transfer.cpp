@@ -25,7 +25,6 @@
 
 #include <QDir>
 #include <QFileInfo>
-#include <QTemporaryFile>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
