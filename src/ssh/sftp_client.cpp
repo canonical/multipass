@@ -36,6 +36,7 @@ namespace mp = multipass;
 namespace
 {
 constexpr int file_mode = 0664;
+constexpr int package_size = 10;
 const std::string stream_file_name{"stream_output.dat"};
 
 using SFTPUPtr = std::unique_ptr<sftp_session_struct, void (*)(sftp_session)>;
@@ -163,15 +164,16 @@ void mp::SFTPClient::stream_file(const std::string &destination_path)
     SSH::throw_on_error(sftp, *ssh_session, "[sftp stream] open failed", sftp_get_error);
 
     QTextStream in_stream(stdin);
-    QString text = in_stream.readAll();
-    QByteArray data = text.toUtf8();
-
-    int total{0};
+    QString text;
+    QByteArray data;
     do
     {
-        total += sftp_write(file_handle, data.data(), data.size());
+        text = in_stream.read(package_size);
+        data = text.toUtf8();
+
+        sftp_write(file_handle, data.data(), data.size());
         SSH::throw_on_error(sftp, *ssh_session, "[sftp push] remote write failed", sftp_get_error);
-    } while (total < data.size());
+    } while (!in_stream.atEnd());
 
     sftp_close(file_handle);
     SSH::throw_on_error(sftp, *ssh_session, "[sftp push] close failed", sftp_get_error);
