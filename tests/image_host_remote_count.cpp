@@ -23,9 +23,10 @@
 #include <set>
 #include <string>
 
+namespace mp = multipass;
 namespace mpt = multipass::test;
 
-size_t mpt::count_remotes(VMImageHost& host)
+size_t mpt::count_remotes(mp::VMImageHost& host)
 {
     std::set<std::string> remotes;
     auto counting_action = [&remotes](const std::string& remote, const VMImageInfo&) { remotes.insert(remote); };
