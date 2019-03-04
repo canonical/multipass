@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_CONSOLE_H
 #define MULTIPASS_CONSOLE_H
 
+#include <multipass/terminal.h>
 #include <libssh/libssh.h>
 
 #include <array>
@@ -43,7 +44,7 @@ public:
     virtual void write_console() = 0;
     virtual void exit_console() = 0;
 
-    static UPtr make_console(ssh_channel channel);
+    static UPtr make_console(ssh_channel channel, Terminal& term);
     static void setup_environment();
 
 protected:

@@ -36,15 +36,16 @@ mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 } // namespace
 
 mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& username,
-                         const std::string& priv_key_blob)
-    : SSHClient{std::make_unique<mp::SSHSession>(host, port, username, mp::SSHClientKeyProvider(priv_key_blob))}
+                         const std::string& priv_key_blob, ConsoleCreator console_creator)
+    : SSHClient{std::make_unique<mp::SSHSession>(host, port, username, mp::SSHClientKeyProvider(priv_key_blob)),
+                console_creator}
 {
 }
 
-mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, Console::UPtr console)
+mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_creator)
     : ssh_session{std::move(ssh_session)},
       channel{make_channel(*this->ssh_session)},
-      console{(console == nullptr) ? Console::make_console(channel.get()) : std::move(console)}
+      console{console_creator(channel.get())}
 {
 }
 

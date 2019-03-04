@@ -32,6 +32,7 @@
 #include "stub_image_host.h"
 #include "stub_logger.h"
 #include "stub_ssh_key_provider.h"
+#include "stub_terminal.h"
 #include "stub_virtual_machine_factory.h"
 #include "stub_vm_image_vault.h"
 #include "temp_dir.h"
@@ -150,8 +151,9 @@ struct Daemon : public Test
         // Commands need to be sent from a thread different from that the QEventLoop is on.
         // Event loop is started/stopped to ensure all signals are delivered
         mp::AutoJoinThread t([this, &commands, &cout] {
+            mpt::StubTerminal term(cout);
             mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                           std::make_unique<mpt::StubCertProvider>(), cout, std::cerr};
+                                           std::make_unique<mpt::StubCertProvider>(), term};
             mp::Client client{client_config};
             for (const auto& command : commands)
             {

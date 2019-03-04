@@ -30,7 +30,6 @@ namespace cli
 namespace platform
 {
 void parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name);
-bool is_tty();
 int getuid();
 int getgid();
 void prepare_stdin_for_read();

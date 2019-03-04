@@ -35,9 +35,11 @@ class SSHClient
 {
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
+    using ConsoleCreator = std::function<Console::UPtr(ssh_channel_struct*)>;
 
-    SSHClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob);
-    SSHClient(SSHSessionUPtr ssh_session, Console::UPtr console = nullptr);
+    SSHClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob,
+              ConsoleCreator console_creator);
+    SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_creator);
 
     int exec(const std::vector<std::string>& args);
     void connect();
@@ -49,5 +51,5 @@ private:
     ChannelUPtr channel;
     Console::UPtr console;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SSH_CLIENT_H

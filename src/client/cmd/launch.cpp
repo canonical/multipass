@@ -165,7 +165,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             const QString& cloudInitFile = parser->value(cloudInitOption);
             if (cloudInitFile == "-")
             {
-                if (!mcp::is_tty())
+                if (!term.cin_is_tty())
                 {
                     throw std::runtime_error("cannot read from stdin without a TTY");
                 }
@@ -207,7 +207,7 @@ mp::ReturnCode cmd::Launch::request_launch()
 
         if (reply.metrics_pending())
         {
-            if (mcp::is_tty())
+            if (term.cin_is_tty())
             {
                 cout << "One quick question before we launch … Would you like to help\n"
                      << "the Multipass developers, by sending anonymous usage data?\n"

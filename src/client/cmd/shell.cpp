@@ -53,7 +53,8 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 
         try
         {
-            mp::SSHClient ssh_client{host, port, username, priv_key_blob};
+            auto console_creator = [this](auto channel) { return Console::make_console(channel, term); };
+            mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
             ssh_client.connect();
         }
         catch (const std::exception& e)

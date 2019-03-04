@@ -59,9 +59,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::MountReply& reply) {
-        return ReturnCode::Ok;
-    };
+    auto on_success = [](mp::MountReply& reply) { return ReturnCode::Ok; };
 
     auto on_failure = [this, &parser](grpc::Status& status) {
         auto ret = standard_failure_handler_for(name(), cerr, status);
@@ -72,8 +70,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
             if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
             {
-                cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub, cout,
-                                       cerr);
+                cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub, term);
             }
         }
 
@@ -84,7 +81,10 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::mount, request, on_success, on_failure);
 }
 
-std::string cmd::Mount::name() const { return "mount"; }
+std::string cmd::Mount::name() const
+{
+    return "mount";
+}
 
 QString cmd::Mount::short_help() const
 {
@@ -108,14 +108,18 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                   "absolute path",
                                   "<target> [<target> ...]");
 
-    QCommandLineOption gid_map({"g", "gid-map"}, "A mapping of group IDs for use in the mount. "
-                                                 "File and folder ownership will be mapped from "
-                                                 "<host> to <instance> inside the instance. Can be "
-                                                 "used multiple times.", "host>:<instance");
-    QCommandLineOption uid_map({"u", "uid-map"}, "A mapping of user IDs for use in the mount. "
-                                                 "File and folder ownership will be mapped from "
-                                                 "<host> to <instance> inside the instance. Can be "
-                                                 "used multiple times.", "host>:<instance");
+    QCommandLineOption gid_map({"g", "gid-map"},
+                               "A mapping of group IDs for use in the mount. "
+                               "File and folder ownership will be mapped from "
+                               "<host> to <instance> inside the instance. Can be "
+                               "used multiple times.",
+                               "host>:<instance");
+    QCommandLineOption uid_map({"u", "uid-map"},
+                               "A mapping of user IDs for use in the mount. "
+                               "File and folder ownership will be mapped from "
+                               "<host> to <instance> inside the instance. Can be "
+                               "used multiple times.",
+                               "host>:<instance");
     parser->addOptions({gid_map, uid_map});
 
     auto status = parser->commandParse(this);

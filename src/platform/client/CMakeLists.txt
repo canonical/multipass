@@ -13,6 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(client_platform STATIC
-  client_platform.cpp)
+  client_platform.cpp
+  terminal.cpp)
 
 target_link_libraries(client_platform Qt5::Core)

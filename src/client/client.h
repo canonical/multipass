@@ -19,6 +19,7 @@
 #define MULTIPASS_CLIENT_H
 
 #include <multipass/cert_provider.h>
+#include <multipass/terminal.h>
 #include <multipass/cli/cli.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -35,8 +36,7 @@ struct ClientConfig
     const std::string server_address;
     const RpcConnectionType conn_type;
     std::unique_ptr<CertProvider> cert_provider;
-    std::ostream& cout;
-    std::ostream& cerr;
+    Terminal &term;
 };
 
 class Client
@@ -54,8 +54,7 @@ private:
 
     std::vector<cmd::Command::UPtr> commands;
 
-    std::ostream& cout;
-    std::ostream& cerr;
+    Terminal& term;
 };
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_H

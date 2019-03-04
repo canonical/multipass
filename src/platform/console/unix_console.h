@@ -19,6 +19,7 @@
 #define MULTIPASS_UNIX_CONSOLE_H
 
 #include <multipass/console.h>
+#include <multipass/terminal.h>
 
 #include <libssh/libssh.h>
 
@@ -33,7 +34,7 @@ class WindowChangedSignalHandler;
 class UnixConsole final : public Console
 {
 public:
-    explicit UnixConsole(ssh_channel channel);
+    explicit UnixConsole(ssh_channel channel, Terminal& term);
     ~UnixConsole();
 
     void read_console() override{};
@@ -46,7 +47,7 @@ private:
     void setup_console();
     void restore_console();
 
-    bool interactive{false};
+    Terminal& term;
     struct termios saved_terminal;
 
     std::unique_ptr<WindowChangedSignalHandler> handler;

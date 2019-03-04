@@ -36,7 +36,7 @@ public:
     QString short_help() const override;
     QString description() const override;
 
-    static ReturnCode exec_success(const SSHInfoReply& reply, const std::vector<std::string>& args, std::ostream& cerr);
+    static ReturnCode exec_success(const SSHInfoReply& reply, const std::vector<std::string>& args, Terminal& term);
 
 private:
     SSHInfoRequest request;
