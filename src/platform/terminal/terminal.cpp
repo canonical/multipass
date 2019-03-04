@@ -15,33 +15,12 @@
  *
  */
 
-#ifndef MULTIPASS_TERMINAL_H
-#define MULTIPASS_TERMINAL_H
+#include "unix_terminal.h"
+#include <multipass/terminal.h>
 
-#include <istream>
-#include <memory>
-#include <ostream>
+namespace mp = multipass;
 
-namespace multipass
+mp::Terminal::UPtr mp::Terminal::make_terminal()
 {
-class Terminal
-{
-public:
-    virtual ~Terminal();
-
-    virtual std::istream& cin() = 0;
-    virtual std::ostream& cout() = 0;
-    virtual std::ostream& cerr() = 0;
-
-    virtual int cin_fd() const = 0;
-    virtual bool cin_is_tty() const = 0;
-
-    virtual int cout_fd() const = 0;
-    virtual bool cout_is_tty() const = 0;
-
-    using UPtr = std::unique_ptr<Terminal>;
-    static UPtr make_terminal();
-};
-} // namespace multipass
-
-#endif // MULTIPASS_TERMINAL_H
+    return std::make_unique<UnixTerminal>();
+}
