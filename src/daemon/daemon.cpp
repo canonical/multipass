@@ -1563,6 +1563,8 @@ try // clang-format on
 
         for (const auto& name : instances_to_suspend)
         {
+            stop_mounts_for_instance(name);
+
             QTimer timer;
             QEventLoop event_loop;
 
