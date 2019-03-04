@@ -47,7 +47,7 @@ struct Client : public Test
     {
         mpt::StubTerminal term(cout);
         mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                       std::make_unique<mpt::StubCertProvider>(), term};
+                                       std::make_unique<mpt::StubCertProvider>(), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 

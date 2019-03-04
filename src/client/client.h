@@ -36,7 +36,7 @@ struct ClientConfig
     const std::string server_address;
     const RpcConnectionType conn_type;
     std::unique_ptr<CertProvider> cert_provider;
-    Terminal &term;
+    Terminal *term;
 };
 
 class Client
@@ -54,7 +54,7 @@ private:
 
     std::vector<cmd::Command::UPtr> commands;
 
-    Terminal& term;
+    Terminal* term;
 };
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_H

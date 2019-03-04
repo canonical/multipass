@@ -19,6 +19,7 @@
 
 #include <multipass/auto_join_thread.h>
 #include <multipass/platform_unix.h>
+#include <multipass/terminal.h>
 
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -80,15 +81,15 @@ private:
     mp::AutoJoinThread signal_handling_thread;
 };
 
-mp::UnixConsole::UnixConsole(ssh_channel channel, Terminal& term)
-    : term{term}, handler{std::make_unique<WindowChangedSignalHandler>(channel, term.cout_fd())}
+mp::UnixConsole::UnixConsole(ssh_channel channel, Terminal* term)
+    : term{term}, handler{std::make_unique<WindowChangedSignalHandler>(channel, term->cout_fd())}
 {
     setup_console();
 
-    if (term.cout_is_tty())
+    if (term->cout_is_tty())
     {
         ssh_channel_request_pty(channel);
-        change_ssh_pty_size(channel, term.cout_fd());
+        change_ssh_pty_size(channel, term->cout_fd());
     }
 }
 
@@ -104,21 +105,21 @@ void mp::UnixConsole::setup_environment()
 
 void mp::UnixConsole::setup_console()
 {
-    if (term.cin_is_tty())
+    if (term->cin_is_tty())
     {
         struct termios terminal_local;
 
-        tcgetattr(term.cin_fd(), &terminal_local);
+        tcgetattr(term->cin_fd(), &terminal_local);
         saved_terminal = terminal_local;
         cfmakeraw(&terminal_local);
-        tcsetattr(term.cin_fd(), TCSANOW, &terminal_local);
+        tcsetattr(term->cin_fd(), TCSANOW, &terminal_local);
     }
 }
 
 void mp::UnixConsole::restore_console()
 {
-    if (term.cin_is_tty())
+    if (term->cin_is_tty())
     {
-        tcsetattr(term.cin_fd(), TCSANOW, &saved_terminal);
+        tcsetattr(term->cin_fd(), TCSANOW, &saved_terminal);
     }
 }

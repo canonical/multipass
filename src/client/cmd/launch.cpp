@@ -165,17 +165,17 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             const QString& cloudInitFile = parser->value(cloudInitOption);
             if (cloudInitFile == "-")
             {
-                if (!term.cin_is_tty())
+                if (!term->cin_is_tty())
                 {
                     throw std::runtime_error("cannot read from stdin without a TTY");
                 }
                 mcp::prepare_stdin_for_read();
                 QByteArray content;
                 char arr[1024];
-                while (!std::cin.eof())
+                while (!term->cin().eof())
                 {
-                    std::cin.read(arr, sizeof(arr));
-                    int s = std::cin.gcount();
+                    term->cin().read(arr, sizeof(arr));
+                    int s = term->cin().gcount();
                     content.append(arr, s);
                 }
                 node = YAML::Load(content.toStdString());
@@ -207,7 +207,7 @@ mp::ReturnCode cmd::Launch::request_launch()
 
         if (reply.metrics_pending())
         {
-            if (term.cin_is_tty())
+            if (term->cin_is_tty())
             {
                 cout << "One quick question before we launch … Would you like to help\n"
                      << "the Multipass developers, by sending anonymous usage data?\n"

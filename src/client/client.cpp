@@ -115,7 +115,7 @@ int mp::Client::run(const QStringList& arguments)
                         "This is a command line utility for multipass, a\n"
                         "service that manages Ubuntu instances.");
 
-    ArgParser parser(arguments, commands, term.cout(), term.cerr());
+    ArgParser parser(arguments, commands, term->cout(), term->cerr());
     parser.setApplicationDescription(description);
 
     ParseCode parse_status = parser.parse();

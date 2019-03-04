@@ -104,7 +104,7 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std
 }
 
 void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                            mp::Rpc::Stub* stub, Terminal& term)
+                            mp::Rpc::Stub* stub, Terminal* term)
 {
     std::vector<Command::UPtr> command;
     command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, term));
@@ -115,11 +115,11 @@ void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_leve
                               << "bash"
                               << "-c"
                               << "apt update && apt install -y sshfs";
-    ArgParser exec_parser{args, command, term.cout(), term.cerr()};
+    ArgParser exec_parser{args, command, term->cout(), term->cerr()};
     exec_parser.setVerbosityLevel(verbosity_level);
     exec_parser.parse();
 
-    fmt::print(term.cerr(), "The sshfs package is missing in \"{}\". Installing...\n", instance_name);
+    fmt::print(term->cerr(), "The sshfs package is missing in \"{}\". Installing...\n", instance_name);
     if (exec_parser.chosenCommand()->run(&exec_parser) == mp::ReturnCode::Ok)
-        fmt::print(term.cerr(), "\n***Please re-run the mount command.\n");
+        fmt::print(term->cerr(), "\n***Please re-run the mount command.\n");
 }

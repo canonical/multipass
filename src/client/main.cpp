@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     auto client_cert_dir = mp::utils::make_dir(data_dir, "client-certificate");
     auto cert_provider = std::make_unique<mp::SSLCertProvider>(client_cert_dir);
 
-    mp::ClientConfig config{get_server_address(), mp::RpcConnectionType::ssl, std::move(cert_provider), term};
+    mp::ClientConfig config{get_server_address(), mp::RpcConnectionType::ssl, std::move(cert_provider), &term};
     mp::Client client{config};
 
     return client.run(QCoreApplication::arguments());

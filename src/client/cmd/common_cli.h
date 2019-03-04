@@ -43,7 +43,7 @@ std::string instance_action_message_for(const InstanceNames& instance_names, con
 ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr, const grpc::Status& status,
                                         const std::string& error_details = std::string());
 void install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                       Rpc::Stub* stub, Terminal& term);
+                       Rpc::Stub* stub, Terminal *term);
 } // namespace cmd
 } // namespace multipass
 
