@@ -25,7 +25,6 @@ target_link_libraries(client
   formatter
   platform
   rpc
-  terminal
   Qt5::Core)
 
 add_executable(multipass

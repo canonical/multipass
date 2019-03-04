@@ -81,7 +81,7 @@ private:
     mp::AutoJoinThread signal_handling_thread;
 };
 
-mp::UnixConsole::UnixConsole(ssh_channel channel, Terminal* term)
+mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term)
     : term{term}, handler{std::make_unique<WindowChangedSignalHandler>(channel, term->cout_fd())}
 {
     setup_console();

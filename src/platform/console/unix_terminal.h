@@ -22,20 +22,16 @@
 
 namespace multipass
 {
-class UnixTerminal
+class UnixTerminal : public Terminal
 {
 public:
-    virtual ~UnixTerminal();
+    virtual ~UnixTerminal() = default;
 
-    virtual std::istream& cin() override;
-    virtual std::ostream& cout() override;
-    virtual std::ostream& cerr() override;
+    int cin_fd() const;
+    bool cin_is_tty() const override;
 
-    virtual int cin_fd() const override;
-    virtual bool cin_is_tty() const override;
-
-    virtual int cout_fd() const override;
-    virtual bool cout_is_tty() const override;
+    int cout_fd() const;
+    bool cout_is_tty() const override;
 };
 } // namespace multipass
 

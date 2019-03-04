@@ -27,16 +27,13 @@ namespace multipass
 class Terminal
 {
 public:
-    virtual ~Terminal();
+    virtual ~Terminal() = default;
 
-    virtual std::istream& cin() = 0;
-    virtual std::ostream& cout() = 0;
-    virtual std::ostream& cerr() = 0;
+    virtual std::istream& cin();
+    virtual std::ostream& cout();
+    virtual std::ostream& cerr();
 
-    virtual int cin_fd() const = 0;
     virtual bool cin_is_tty() const = 0;
-
-    virtual int cout_fd() const = 0;
     virtual bool cout_is_tty() const = 0;
 
     using UPtr = std::unique_ptr<Terminal>;

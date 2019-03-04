@@ -49,19 +49,11 @@ public:
         return cout_stream;
     }
 
-    int cin_fd() const override
-    {
-        return -1;
-    }
     bool cin_is_tty() const override
     {
         return true;
     }
 
-    int cout_fd() const override
-    {
-        return -1;
-    }
     bool cout_is_tty() const override
     {
         return true;

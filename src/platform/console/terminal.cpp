@@ -16,9 +16,8 @@
  */
 
 #include "unix_terminal.h"
-
+#include <multipass/terminal.h>
 #include <iostream>
-#include <unistd.h>
 
 namespace mp = multipass;
 
@@ -31,41 +30,23 @@ namespace mp = multipass;
  * Therefore the mix of std C++ and C apis here is an unfortunate but IMO
  * least worst way of doing what we need.
  */
-mp::UnixTerminal::~UnixTerminal()
+
+mp::Terminal::UPtr mp::Terminal::make_terminal()
 {
+    return std::make_unique<UnixTerminal>();
 }
 
-std::istream& mp::UnixTerminal::cin()
+std::istream& mp::Terminal::cin()
 {
     return std::cin;
 }
 
-std::ostream& mp::UnixTerminal::cout()
+std::ostream& mp::Terminal::cout()
 {
     return std::cout;
 }
 
-std::ostream& mp::UnixTerminal::cerr()
+std::ostream& mp::Terminal::cerr()
 {
     return std::cerr;
-}
-
-int mp::UnixTerminal::cin_fd() const
-{
-    return fileno(stdin);
-}
-
-bool mp::UnixTerminal::cin_is_tty() const
-{
-    return (isatty(cin_fd()) == 1);
-}
-
-int multipass::UnixTerminal::cout_fd() const
-{
-    return fileno(stdout);
-}
-
-bool multipass::UnixTerminal::cout_is_tty() const
-{
-    return (isatty(cout_fd()) == 1);
 }

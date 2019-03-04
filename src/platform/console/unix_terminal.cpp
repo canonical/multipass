@@ -16,11 +16,29 @@
  */
 
 #include "unix_terminal.h"
-#include <multipass/terminal.h>
+
+#include <iostream>
+#include <unistd.h>
 
 namespace mp = multipass;
 
-mp::Terminal::UPtr mp::Terminal::make_terminal()
+
+int mp::UnixTerminal::cin_fd() const
 {
-    return std::make_unique<UnixTerminal>();
+    return fileno(stdin);
+}
+
+bool mp::UnixTerminal::cin_is_tty() const
+{
+    return (isatty(cin_fd()) == 1);
+}
+
+int multipass::UnixTerminal::cout_fd() const
+{
+    return fileno(stdout);
+}
+
+bool multipass::UnixTerminal::cout_is_tty() const
+{
+    return (isatty(cout_fd()) == 1);
 }
