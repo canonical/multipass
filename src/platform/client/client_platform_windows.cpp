@@ -19,6 +19,7 @@
 
 #include <QFileInfo>
 
+#include <fcntl.h>
 #include <io.h>
 
 namespace mp = multipass;
@@ -60,4 +61,9 @@ int mcp::getuid()
 int mcp::getgid()
 {
     return mp::no_id_info_available;
+}
+
+void mcp::prepare_stdin_for_read()
+{
+    _setmode(_fileno(stdin), _O_BINARY);
 }
