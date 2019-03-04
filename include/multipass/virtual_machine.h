@@ -58,7 +58,6 @@ public:
     virtual std::string ipv4() = 0;
     virtual std::string ipv6() = 0;
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
-    virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
     virtual void update_state() = 0;
 
     VirtualMachine::State state;

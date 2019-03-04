@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,21 +17,24 @@
 
 #include "src/daemon/custom_image_host.h"
 
+#include "image_host_remote_count.h"
+#include "mischievous_url_downloader.h"
 #include "path.h"
 
 #include <multipass/query.h>
-#include <multipass/url_downloader.h>
 
 #include <QUrl>
 
 #include <gmock/gmock.h>
 
+#include <cstddef>
 #include <unordered_set>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
 using namespace testing;
+using namespace std::literals::chrono_literals;
 
 namespace
 {
@@ -42,7 +45,8 @@ struct CustomImageHost : public Test
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
     }
 
-    mp::URLDownloader url_downloader{std::chrono::seconds{10}};
+    std::chrono::seconds timeout{10};
+    mpt::MischievousURLDownloader url_downloader{timeout};
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
 };
@@ -152,5 +156,48 @@ TEST_F(CustomImageHost, invalid_remote_throws_error)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
-    EXPECT_THROW(*host.info_for(make_query("core", "foo")), std::runtime_error);
+    EXPECT_THROW(host.info_for(make_query("core", "foo")), std::runtime_error);
+}
+
+TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
+{
+    const auto ttl = 1h; // so that updates are only retried when unsuccessful
+    url_downloader.mischiefs = 1000;
+    mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
+
+    const auto query = make_query("core", "snapcraft");
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
+
+    url_downloader.mischiefs = 0;
+    EXPECT_TRUE(host.info_for(query));
+}
+
+TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
+{
+    const auto ttl = 0s; // to ensure updates are always retried
+    mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
+
+    const auto query = make_query("core", "snapcraft");
+    EXPECT_TRUE(host.info_for(query));
+
+    url_downloader.mischiefs = 1000;
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
+
+    url_downloader.mischiefs = 0;
+    EXPECT_TRUE(host.info_for(query));
+}
+
+TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
+{
+    const auto ttl = 0h;
+    mp::CustomVMImageHost host{&url_downloader, ttl, test_path};
+
+    const auto num_remotes = mpt::count_remotes(host);
+    EXPECT_GT(num_remotes, 0u);
+
+    for (size_t i = 0; i < num_remotes; ++i)
+    {
+        url_downloader.mischiefs = i;
+        EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
+    }
 }

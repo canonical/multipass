@@ -433,8 +433,6 @@ void mp::QemuVirtualMachine::on_restart()
 
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
-    QCoreApplication::processEvents();
-
     if (vm_process->state() == QProcess::NotRunning)
         throw mp::StartException(vm_name, saved_error_msg);
 }
@@ -499,11 +497,4 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
         vm_process->write(hmc_to_qmp_json("delvm " + QString::fromStdString(suspend_tag)));
         delete_memory_snapshot = false;
     }
-}
-
-void mp::QemuVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
-{
-    auto process_vm_events = [this] { ensure_vm_is_running(); };
-
-    mp::utils::wait_for_cloud_init(this, timeout, process_vm_events);
 }

@@ -19,10 +19,11 @@
 
 #include "ubuntu_image_host.h"
 
-#include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
+
+#include <multipass/exceptions/download_exception.h>
 
 #include <fmt/format.h>
 
@@ -32,11 +33,9 @@
 #include <unordered_set>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto category = "image_host";
 constexpr auto index_path = "streams/v1/index.json";
 
 auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader)
@@ -70,25 +69,12 @@ auto key_from(const std::string& search_string)
         key = "default";
     return key;
 }
-}
+} // namespace
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
     : CommonVMImageHost{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
-    QObject::connect(&manifest_single_shot, &QTimer::timeout, [this]() {
-        try
-        {
-            update_manifests();
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, e.what());
-        }
-    });
-
-    manifest_single_shot.setSingleShot(true);
-    manifest_single_shot.start(0);
 }
 
 mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
@@ -238,14 +224,16 @@ void mp::UbuntuVMImageHost::fetch_manifests()
 {
     for (const auto& remote : remotes)
     {
-        manifests.emplace_back(
-            std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+        try
+        {
+            manifests.emplace_back(
+                std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+        }
+        catch (mp::DownloadException& e)
+        {
+            on_manifest_update_failure(e.what());
+        }
     }
-}
-
-bool mp::UbuntuVMImageHost::empty() const
-{
-    return manifests.empty();
 }
 
 void mp::UbuntuVMImageHost::clear()
@@ -263,7 +251,7 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
                            });
 
     if (it == manifests.cend())
-        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
+        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote));
 
     return it->second.get();
 }

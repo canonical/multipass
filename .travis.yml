@@ -6,11 +6,9 @@ language: cpp
 git:
   depth: false
 
-branches:
-  only:
-  - staging
-  - trying
-  - master
+if: |
+  branch IN (staging, trying, master)
+  OR type = pull_request
 
 addons:
   snaps:

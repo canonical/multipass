@@ -1303,7 +1303,9 @@ TEST_P(Stat, handles)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-INSTANTIATE_TEST_CASE_P(SftpServer, Stat, ::testing::Values(SFTP_LSTAT, SFTP_STAT), string_for_message);
+namespace
+{
+INSTANTIATE_TEST_SUITE_P(SftpServer, Stat, ::testing::Values(SFTP_LSTAT, SFTP_STAT), string_for_message);
 
 TEST_P(WhenInvalidMessageReceived, replies_failure)
 {
@@ -1333,7 +1335,7 @@ TEST_P(WhenInvalidMessageReceived, replies_failure)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     SftpServer, WhenInvalidMessageReceived,
     ::testing::Values(
         MessageAndReply{SFTP_BAD_MESSAGE, SSH_FX_OP_UNSUPPORTED}, MessageAndReply{SFTP_CLOSE, SSH_FX_BAD_MESSAGE},
@@ -1345,3 +1347,5 @@ INSTANTIATE_TEST_CASE_P(
         MessageAndReply{SFTP_RENAME, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_SETSTAT, SSH_FX_NO_SUCH_FILE},
         MessageAndReply{SFTP_EXTENDED, SSH_FX_FAILURE}),
     string_for_param);
+
+} // namespace

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,21 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#include "image_host_remote_count.h"
 
-#include <QString>
+#include <multipass/vm_image_host.h>
+#include <multipass/vm_image_info.h>
 
-namespace multipass
-{
-const auto default_id = -1;
-const auto no_id_info_available = -2;
+#include <set>
+#include <string>
 
-namespace cli
+namespace mpt = multipass::test;
+
+size_t mpt::count_remotes(VMImageHost& host)
 {
-namespace platform
-{
-void parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name);
-bool is_tty();
-int getuid();
-int getgid();
-void prepare_stdin_for_read();
+    std::set<std::string> remotes;
+    auto counting_action = [&remotes](const std::string& remote, const VMImageInfo&) { remotes.insert(remote); };
+    host.for_each_entry_do(counting_action);
+
+    return remotes.size();
 }
-}
-}
-#endif // MULTIPASS_CLIENT_PLATFORM_H
