@@ -17,6 +17,7 @@
 
 #include "mischievous_url_downloader.h"
 
+namespace mp = multipass;
 namespace mpt = multipass::test;
 
 mpt::MischievousURLDownloader::MischievousURLDownloader(std::chrono::milliseconds timeout) : URLDownloader(timeout)
@@ -24,7 +25,7 @@ mpt::MischievousURLDownloader::MischievousURLDownloader(std::chrono::millisecond
 }
 
 void mpt::MischievousURLDownloader::download_to(const QUrl& url, const QString& file_name, int64_t size,
-                                                const int download_type, const ProgressMonitor& monitor)
+                                                const int download_type, const mp::ProgressMonitor& monitor)
 {
     URLDownloader::download_to(choose_url(url), file_name, size, download_type, monitor);
 }

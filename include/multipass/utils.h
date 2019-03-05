@@ -65,8 +65,6 @@ std::string timestamp();
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& process_vm_events = []() { });
-void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                         std::function<void()> const& process_vm_events = []() { });
 
 enum class TimeoutAction
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,47 +37,39 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::StartReply& reply) {
+    AnimatedSpinner spinner{cout};
+
+    auto on_success = [&spinner](mp::StartReply& reply) {
+        spinner.stop();
         return ReturnCode::Ok;
     };
 
-    AnimatedSpinner spinner{cout};
-    auto on_failure = [this, &spinner, &parser](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
         auto ret = standard_failure_handler_for(name(), cerr, status);
-        if (!status.error_details().empty())
+        if (status.error_code() == grpc::StatusCode::ABORTED && !status.error_details().empty())
         {
-            if (status.error_code() == grpc::StatusCode::ABORTED)
-            {
-                mp::StartError start_error;
-                start_error.ParseFromString(status.error_details());
+            mp::StartError start_error;
+            start_error.ParseFromString(status.error_details());
 
-                if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
-                {
-                    fmt::print(cerr,
-                               "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                               "instance.\n");
-                }
-            }
-            else
+            if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
             {
-                mp::MountError mount_error;
-                mount_error.ParseFromString(status.error_details());
-
-                if (mount_error.error_code() == mp::MountError::SSHFS_MISSING)
-                {
-                    cmd::install_sshfs_for(mount_error.instance_name(), parser->verbosityLevel(), rpc_channel, stub,
-                                           term);
-                }
+                fmt::print(cerr, "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
+                                 "instance.\n");
             }
         }
 
         return ret;
     };
 
+    auto streaming_callback = [&spinner](mp::StartReply& reply) {
+        spinner.stop();
+        spinner.start(reply.start_message());
+    };
+
     spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::start, request, on_success, on_failure);
+    return dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback);
 }
 
 std::string cmd::Start::name() const { return "start"; }
