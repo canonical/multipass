@@ -1573,13 +1573,11 @@ try // clang-format on
                 instances_to_suspend.push_back(pair.first);
         }
 
-        for (const auto& name : instances_to_suspend)
-        {
-            stop_mounts_for_instance(name);
-
-            auto it = vm_instances.find(name);
-            it->second->suspend();
-        }
+        status = cmd_vms(instances_to_suspend, [this](auto& vm) {
+            stop_mounts_for_instance(vm.vm_name);
+            vm.suspend();
+            return grpc::Status::OK;
+        });
     }
 
     return status;
