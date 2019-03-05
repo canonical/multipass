@@ -624,43 +624,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
 
-grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
-                                grpc::ServerWriter<LaunchReply>* server) // clang-format off
-try // clang-format on
-{
-    mpl::ClientLogger<LaunchReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-    if (metrics_opt_in.opt_in_status == OptInStatus::UNKNOWN || metrics_opt_in.opt_in_status == OptInStatus::LATER)
-    {
-        if (++metrics_opt_in.delay_opt_in_count % 3 == 0)
-        {
-            metrics_opt_in.opt_in_status = OptInStatus::PENDING;
-            persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
-
-            LaunchReply reply;
-            reply.set_metrics_pending(true);
-            server->Write(reply);
-
-            return grpc::Status::OK;
-        }
-
-        persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
-    }
-    else if (metrics_opt_in.opt_in_status == OptInStatus::PENDING)
-    {
-        if (request->opt_in_reply().opt_in_status() != OptInStatus::UNKNOWN)
-        {
-            metrics_opt_in.opt_in_status = request->opt_in_reply().opt_in_status();
-            persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
-
-            if (metrics_opt_in.opt_in_status == OptInStatus::DENIED)
-                metrics_provider.send_denied();
-        }
-    }
-
-    if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
-        metrics_provider.send_metrics();
-
-    auto name = name_from(request, *config->name_generator, vm_instances);
+grpc::Status mp::Daemon::create(grpc::ServerContext* context, const LaunchRequest* request,
+                                grpc::ServerWriter<LaunchReply>* server,
+                                const std::string& name) // TODO @ricab rename request/reply
+{                                                        // TODO @ricab try catch when making this a slot
+    // TODO @ricab construct client logger when linking to grpc
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
@@ -744,17 +712,62 @@ try // clang-format on
                                QJsonObject()};
     persist_instances();
 
-    reply.set_create_message("Starting " + name);
-    server->Write(reply);
-
-    auto& vm = vm_instances[name];
-    vm->start();
-    vm->wait_until_ssh_up(std::chrono::minutes(5));
-
-    reply.set_vm_instance_name(name);
-    server->Write(reply);
-
     return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
+                                grpc::ServerWriter<LaunchReply>* server) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger<LaunchReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    if (metrics_opt_in.opt_in_status == OptInStatus::UNKNOWN || metrics_opt_in.opt_in_status == OptInStatus::LATER)
+    {
+        if (++metrics_opt_in.delay_opt_in_count % 3 == 0)
+        {
+            metrics_opt_in.opt_in_status = OptInStatus::PENDING;
+            persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
+
+            LaunchReply reply;
+            reply.set_metrics_pending(true);
+            server->Write(reply);
+
+            return grpc::Status::OK;
+        }
+
+        persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
+    }
+    else if (metrics_opt_in.opt_in_status == OptInStatus::PENDING)
+    {
+        if (request->opt_in_reply().opt_in_status() != OptInStatus::UNKNOWN)
+        {
+            metrics_opt_in.opt_in_status = request->opt_in_reply().opt_in_status();
+            persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
+
+            if (metrics_opt_in.opt_in_status == OptInStatus::DENIED)
+                metrics_provider.send_denied();
+        }
+    }
+
+    if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
+        metrics_provider.send_metrics();
+
+    auto name = name_from(request, *config->name_generator, vm_instances);
+    auto status = create(context, request, server, name);
+    if (status.ok())
+    {
+        LaunchReply reply;
+        reply.set_create_message("Starting " + name);
+        server->Write(reply);
+
+        auto& vm = vm_instances[name];
+        vm->start();
+        vm->wait_until_ssh_up(std::chrono::minutes(5));
+
+        reply.set_vm_instance_name(name);
+        server->Write(reply);
+    }
+
+    return status;
 }
 catch (const mp::StartException& e)
 {

@@ -124,6 +124,9 @@ public slots:
                          grpc::ServerWriter<VersionReply>* response) override;
 
 private:
+    grpc::Status create(grpc::ServerContext* context, const LaunchRequest* request,
+                        grpc::ServerWriter<LaunchReply>* server,
+                        const std::string& name); // TODO @ricab rename request/reply
     void persist_instances();
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
