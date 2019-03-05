@@ -86,7 +86,7 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term)
 {
     setup_console();
 
-    if (term->cout_is_tty())
+    if (term->cout_is_live())
     {
         ssh_channel_request_pty(channel);
         change_ssh_pty_size(channel, term->cout_fd());
@@ -105,7 +105,7 @@ void mp::UnixConsole::setup_environment()
 
 void mp::UnixConsole::setup_console()
 {
-    if (term->cin_is_tty())
+    if (term->cin_is_live())
     {
         struct termios terminal_local;
 
@@ -118,7 +118,7 @@ void mp::UnixConsole::setup_console()
 
 void mp::UnixConsole::restore_console()
 {
-    if (term->cin_is_tty())
+    if (term->cin_is_live())
     {
         tcsetattr(term->cin_fd(), TCSANOW, &saved_terminal);
     }

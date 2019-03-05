@@ -194,7 +194,7 @@ mp::ReturnCode cmd::Launch::request_launch()
 
         if (reply.metrics_pending())
         {
-            if (term->cin_is_tty())
+            if (term->cin_is_live())
             {
                 cout << "One quick question before we launch … Would you like to help\n"
                      << "the Multipass developers, by sending anonymous usage data?\n"

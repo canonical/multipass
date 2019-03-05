@@ -28,7 +28,7 @@ int mp::UnixTerminal::cin_fd() const
     return fileno(stdin);
 }
 
-bool mp::UnixTerminal::cin_is_tty() const
+bool mp::UnixTerminal::cin_is_live() const
 {
     return (isatty(cin_fd()) == 1);
 }
@@ -38,7 +38,7 @@ int multipass::UnixTerminal::cout_fd() const
     return fileno(stdout);
 }
 
-bool multipass::UnixTerminal::cout_is_tty() const
+bool multipass::UnixTerminal::cout_is_live() const
 {
     return (isatty(cout_fd()) == 1);
 }

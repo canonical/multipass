@@ -34,8 +34,8 @@ public:
     virtual std::ostream& cout();
     virtual std::ostream& cerr();
 
-    virtual bool cin_is_tty() const = 0;
-    virtual bool cout_is_tty() const = 0;
+    virtual bool cin_is_live() const = 0;
+    virtual bool cout_is_live() const = 0;
 
     virtual std::string read_all_cin();
 

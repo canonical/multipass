@@ -28,10 +28,10 @@ public:
     virtual ~UnixTerminal() = default;
 
     int cin_fd() const;
-    bool cin_is_tty() const override;
+    bool cin_is_live() const override;
 
     int cout_fd() const;
-    bool cout_is_tty() const override;
+    bool cout_is_live() const override;
 };
 } // namespace multipass
 

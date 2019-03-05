@@ -49,12 +49,12 @@ public:
         return cout_stream;
     }
 
-    bool cin_is_tty() const override
+    bool cin_is_live() const override
     {
         return true;
     }
 
-    bool cout_is_tty() const override
+    bool cout_is_live() const override
     {
         return true;
     }

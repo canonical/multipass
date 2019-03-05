@@ -53,7 +53,7 @@ std::ostream& mp::Terminal::cerr()
 
 std::string mp::Terminal::read_all_cin()
 {
-    if (!cin_is_tty())
+    if (!cin_is_live())
     {
         throw std::runtime_error("cannot read from stdin without a TTY");
     }
