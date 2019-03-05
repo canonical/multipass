@@ -50,3 +50,21 @@ std::ostream& mp::Terminal::cerr()
 {
     return std::cerr;
 }
+
+std::string mp::Terminal::read_all_cin()
+{
+    if (!cin_is_tty())
+    {
+        throw std::runtime_error("cannot read from stdin without a TTY");
+    }
+
+    std::string content;
+    char arr[1024];
+    while (!cin().eof())
+    {
+        cin().read(arr, sizeof(arr));
+        int s = cin().gcount();
+        content.append(arr, s);
+    }
+    return content;
+}

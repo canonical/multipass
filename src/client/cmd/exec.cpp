@@ -61,7 +61,7 @@ QString cmd::Exec::description() const
 }
 
 mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std::vector<std::string>& args,
-                                       Terminal* term)
+                                       mp::Terminal* term)
 {
     // TODO: mainly for testing - need a better way to test parsing
     if (reply.ssh_info().empty())

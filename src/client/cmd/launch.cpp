@@ -165,20 +165,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             const QString& cloudInitFile = parser->value(cloudInitOption);
             if (cloudInitFile == "-")
             {
-                if (!term->cin_is_tty())
-                {
-                    throw std::runtime_error("cannot read from stdin without a TTY");
-                }
-                mcp::prepare_stdin_for_read();
-                QByteArray content;
-                char arr[1024];
-                while (!term->cin().eof())
-                {
-                    term->cin().read(arr, sizeof(arr));
-                    int s = term->cin().gcount();
-                    content.append(arr, s);
-                }
-                node = YAML::Load(content.toStdString());
+                node = YAML::Load(term->read_all_cin());
             }
             else
             {

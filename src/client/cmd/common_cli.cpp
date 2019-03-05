@@ -104,7 +104,7 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std
 }
 
 void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                            mp::Rpc::Stub* stub, Terminal* term)
+                            mp::Rpc::Stub* stub, mp::Terminal* term)
 {
     std::vector<Command::UPtr> command;
     command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, term));

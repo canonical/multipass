@@ -23,6 +23,7 @@
 
 #include <libssh/libssh.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>

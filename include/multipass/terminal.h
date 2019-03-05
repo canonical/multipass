@@ -21,6 +21,7 @@
 #include <istream>
 #include <memory>
 #include <ostream>
+#include <string>
 
 namespace multipass
 {
@@ -35,6 +36,8 @@ public:
 
     virtual bool cin_is_tty() const = 0;
     virtual bool cout_is_tty() const = 0;
+
+    virtual std::string read_all_cin();
 
     using UPtr = std::unique_ptr<Terminal>;
     static UPtr make_terminal();
