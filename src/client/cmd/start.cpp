@@ -37,7 +37,9 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::StartReply& reply) { return ReturnCode::Ok; };
+    auto on_success = [](mp::StartReply& reply) {
+        return ReturnCode::Ok;
+    };
 
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner, &parser](grpc::Status& status) {
@@ -78,10 +80,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
 
-std::string cmd::Start::name() const
-{
-    return "start";
-}
+std::string cmd::Start::name() const { return "start"; }
 
 QString cmd::Start::short_help() const
 {

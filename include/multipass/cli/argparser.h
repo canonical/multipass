@@ -48,7 +48,7 @@ public:
 
     QString value(const QCommandLineOption& option) const;
     QString value(const QString& option) const;
-    QStringList values(const QCommandLineOption& option) const;
+    QStringList values(const QCommandLineOption &option) const;
 
     QStringList positionalArguments() const;
 
@@ -75,7 +75,8 @@ private:
     bool help_requested;
     int verbosity_level{0};
 
-    std::ostream &cout, &cerr;
+    std::ostream& cout;
+    std::ostream& cerr;
 };
 } // namespace multipass
 #endif // ARGPARSER_H
