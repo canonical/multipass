@@ -71,7 +71,6 @@ private:
     void initiate_menu_layout();
     ListReply retrieve_all_instances();
     void set_menu_actions_for(const std::string& instance_name, const QString& state);
-    void start_instance_for(const std::string& instance_name);
     void suspend_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
 

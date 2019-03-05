@@ -191,11 +191,6 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const Q
         mp::cli::platform::open_multipass_shell(QString::fromStdString(instance_name));
     });
 
-    if (state != "RUNNING")
-    {
-        instance_menu->actions().back()->setDisabled(true);
-    }
-
     if (state == "RUNNING")
     {
         instance_menu->addAction("Suspend");
@@ -208,28 +203,8 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const Q
             future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, instance_name));
         });
     }
-    else if (state == "STOPPED" || state == "SUSPENDED")
-    {
-        instance_menu->addAction("Start");
-        QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
-            future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, instance_name));
-        });
-    }
 
     tray_icon_menu.insertMenu(about_separator, instance_menu.get());
-}
-
-void cmd::GuiCmd::start_instance_for(const std::string& instance_name)
-{
-    auto on_success = [](mp::StartReply& reply) { return ReturnCode::Ok; };
-
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
-
-    StartRequest request;
-    auto names = request.mutable_instance_names()->add_instance_name();
-    names->append(instance_name);
-
-    dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
 
 void cmd::GuiCmd::stop_instance_for(const std::string& instance_name)
