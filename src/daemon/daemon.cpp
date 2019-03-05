@@ -1573,23 +1573,11 @@ try // clang-format on
                 instances_to_suspend.push_back(pair.first);
         }
 
-        for (const auto& name : instances_to_suspend)
-        {
-            stop_mounts_for_instance(name);
-
-            QTimer timer;
-            QEventLoop event_loop;
-
-            QObject::connect(this, &Daemon::suspend_finished, &event_loop, &QEventLoop::quit, Qt::QueuedConnection);
-            QObject::connect(&timer, &QTimer::timeout, &event_loop, &QEventLoop::quit);
-
-            auto it = vm_instances.find(name);
-            it->second->suspend();
-
-            timer.setSingleShot(true);
-            timer.start(std::chrono::seconds(30));
-            event_loop.exec();
-        }
+        status = cmd_vms(instances_to_suspend, [this](auto& vm) {
+            this->stop_mounts_for_instance(vm.vm_name);
+            vm.suspend();
+            return grpc::Status::OK;
+        });
     }
 
     return status;
@@ -1792,7 +1780,6 @@ void mp::Daemon::on_stop()
 
 void mp::Daemon::on_suspend()
 {
-    emit suspend_finished();
 }
 
 void mp::Daemon::on_restart(const std::string& name)
