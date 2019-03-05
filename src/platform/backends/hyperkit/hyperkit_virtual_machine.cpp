@@ -172,8 +172,3 @@ void mp::HyperkitVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds tim
 {
     mp::utils::wait_until_ssh_up(this, timeout);
 }
-
-void mp::HyperkitVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
-{
-    mp::utils::wait_for_cloud_init(this, timeout);
-}

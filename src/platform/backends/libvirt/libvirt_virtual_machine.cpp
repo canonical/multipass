@@ -384,11 +384,6 @@ void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds time
     mp::utils::wait_until_ssh_up(this, timeout);
 }
 
-void mp::LibVirtVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
-{
-    mp::utils::wait_for_cloud_init(this, timeout);
-}
-
 void mp::LibVirtVirtualMachine::update_state()
 {
     monitor->persist_state_for(vm_name);

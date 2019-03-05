@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,22 +17,25 @@
 
 #include "src/daemon/ubuntu_image_host.h"
 
+#include "image_host_remote_count.h"
+#include "mischievous_url_downloader.h"
 #include "path.h"
 #include "stub_url_downloader.h"
 
 #include <multipass/query.h>
-#include <multipass/url_downloader.h>
 
 #include <QUrl>
 
 #include <gmock/gmock.h>
 
+#include <cstddef>
 #include <unordered_set>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
 using namespace testing;
+using namespace std::literals::chrono_literals;
 
 namespace
 {
@@ -45,7 +48,10 @@ struct UbuntuImageHost : public testing::Test
 
     QString host_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + "releases/"};
     QString daily_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + "daily/"};
-    mp::URLDownloader url_downloader{std::chrono::seconds{10}};
+    std::pair<std::string, std::string> release_remote_spec = {"release", host_url.toStdString()};
+    std::pair<std::string, std::string> daily_remote_spec = {"daily", daily_url.toStdString()};
+    std::vector<std::pair<std::string, std::string>> all_remote_specs = {release_remote_spec, daily_remote_spec};
+    mpt::MischievousURLDownloader url_downloader{std::chrono::seconds{10}};
     std::chrono::seconds default_ttl{1};
     QString expected_location{host_url + "newest_image.img"};
     QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
@@ -54,9 +60,9 @@ struct UbuntuImageHost : public testing::Test
 
 TEST_F(UbuntuImageHost, returns_expected_info)
 {
-    mp::UbuntuVMImageHost host{{{"release", host_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
 
-    auto info = *host.info_for(make_query("xenial", "release"));
+    auto info = *host.info_for(make_query("xenial", release_remote_spec.first));
 
     EXPECT_THAT(info.image_location, Eq(expected_location));
     EXPECT_THAT(info.id, Eq(expected_id));
@@ -64,9 +70,9 @@ TEST_F(UbuntuImageHost, returns_expected_info)
 
 TEST_F(UbuntuImageHost, uses_default_on_unspecified_release)
 {
-    mp::UbuntuVMImageHost host{{{"release", host_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
 
-    auto info = *host.info_for(make_query("", "release"));
+    auto info = *host.info_for(make_query("", release_remote_spec.first));
 
     EXPECT_THAT(info.image_location, Eq(expected_location));
     EXPECT_THAT(info.id, Eq(expected_id));
@@ -74,7 +80,7 @@ TEST_F(UbuntuImageHost, uses_default_on_unspecified_release)
 
 TEST_F(UbuntuImageHost, iterates_over_all_entries)
 {
-    mp::UbuntuVMImageHost host{{{"release", host_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
 
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
@@ -91,15 +97,15 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
 
 TEST_F(UbuntuImageHost, can_query_by_hash)
 {
-    mp::UbuntuVMImageHost host{{{"release", host_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
     const auto expected_id = "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac";
-    auto info = *host.info_for(make_query(expected_id, "release"));
+    auto info = *host.info_for(make_query(expected_id, release_remote_spec.first));
     EXPECT_THAT(info.id, Eq(expected_id));
 }
 
 TEST_F(UbuntuImageHost, can_query_by_partial_hash)
 {
-    mp::UbuntuVMImageHost host{{{"release", host_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
     const auto expected_id = "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac";
 
     QStringList short_hashes;
@@ -109,27 +115,26 @@ TEST_F(UbuntuImageHost, can_query_by_partial_hash)
 
     for (const auto& hash : short_hashes)
     {
-        auto info = *host.info_for(make_query(hash.toStdString(), "release"));
+        auto info = *host.info_for(make_query(hash.toStdString(), release_remote_spec.first));
         EXPECT_THAT(info.id, Eq(expected_id));
     }
 
-    EXPECT_FALSE(host.info_for(make_query("abcde", "release")));
+    EXPECT_FALSE(host.info_for(make_query("abcde", release_remote_spec.first)));
 }
 
 TEST_F(UbuntuImageHost, supports_multiple_manifests)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     QString daily_expected_location{daily_url + "newest-artful.img"};
     QString daily_expected_id{"c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a"};
 
-    auto info = *host.info_for(make_query("artful", "daily"));
+    auto info = *host.info_for(make_query("artful", daily_remote_spec.first));
 
     EXPECT_THAT(info.image_location, Eq(daily_expected_location));
     EXPECT_THAT(info.id, Eq(daily_expected_id));
 
-    auto xenial_info = *host.info_for(make_query("xenial", "release"));
+    auto xenial_info = *host.info_for(make_query("xenial", release_remote_spec.first));
 
     EXPECT_THAT(xenial_info.image_location, Eq(expected_location));
     EXPECT_THAT(xenial_info.id, Eq(expected_id));
@@ -137,13 +142,12 @@ TEST_F(UbuntuImageHost, supports_multiple_manifests)
 
 TEST_F(UbuntuImageHost, looks_for_aliases_before_hashes)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     QString daily_expected_location{daily_url + "newest-artful.img"};
     QString daily_expected_id{"c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a"};
 
-    auto info = *host.info_for(make_query("a", "daily"));
+    auto info = *host.info_for(make_query("a", daily_remote_spec.first));
 
     EXPECT_THAT(info.image_location, Eq(daily_expected_location));
     EXPECT_THAT(info.id, Eq(daily_expected_id));
@@ -151,10 +155,9 @@ TEST_F(UbuntuImageHost, looks_for_aliases_before_hashes)
 
 TEST_F(UbuntuImageHost, all_info_release_returns_multiple_hash_matches)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    auto images_info = host.all_info_for(make_query("1", "release"));
+    auto images_info = host.all_info_for(make_query("1", release_remote_spec.first));
 
     const size_t expected_matches{2};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
@@ -162,18 +165,16 @@ TEST_F(UbuntuImageHost, all_info_release_returns_multiple_hash_matches)
 
 TEST_F(UbuntuImageHost, all_info_daily_no_matches_throws_error)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    EXPECT_THROW(host.all_info_for(make_query("1", "daily")), std::runtime_error);
+    EXPECT_THROW(host.all_info_for(make_query("1", daily_remote_spec.first)), std::runtime_error);
 }
 
 TEST_F(UbuntuImageHost, all_info_release_returns_one_alias_match)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    auto images_info = host.all_info_for(make_query("xenial", "release"));
+    auto images_info = host.all_info_for(make_query("xenial", release_remote_spec.first));
 
     const size_t expected_matches{1};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
@@ -181,10 +182,9 @@ TEST_F(UbuntuImageHost, all_info_release_returns_one_alias_match)
 
 TEST_F(UbuntuImageHost, all_images_for_release_returns_four_matches)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    auto images = host.all_images_for("release");
+    auto images = host.all_images_for(release_remote_spec.first);
 
     const size_t expected_matches{4};
     EXPECT_THAT(images.size(), Eq(expected_matches));
@@ -192,10 +192,9 @@ TEST_F(UbuntuImageHost, all_images_for_release_returns_four_matches)
 
 TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    auto images = host.all_images_for("daily");
+    auto images = host.all_images_for(daily_remote_spec.first);
 
     const size_t expected_matches{2};
     EXPECT_THAT(images.size(), Eq(expected_matches));
@@ -203,23 +202,66 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
 
 TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
 {
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     auto supported_remotes = host.supported_remotes();
 
     const size_t expected_size{2};
     EXPECT_THAT(supported_remotes.size(), Eq(expected_size));
 
-    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "release") != supported_remotes.end());
-    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "daily") != supported_remotes.end());
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), release_remote_spec.first) !=
+                supported_remotes.end());
+    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), daily_remote_spec.first) !=
+                supported_remotes.end());
 }
 
 TEST_F(UbuntuImageHost, invalid_remote_throws_error)
 {
     mpt::StubURLDownloader stub_url_downloader;
-    mp::UbuntuVMImageHost host{
-        {{"release", host_url.toStdString()}, {"daily", daily_url.toStdString()}}, &stub_url_downloader, default_ttl};
+    mp::UbuntuVMImageHost host{all_remote_specs, &stub_url_downloader, default_ttl};
 
     EXPECT_THROW(*host.info_for(make_query("xenial", "foo")), std::runtime_error);
+}
+
+TEST_F(UbuntuImageHost, handles_and_recovers_from_initial_network_failure)
+{
+    const auto ttl = 1h; // so that updates are only retried when unsuccessful
+    url_downloader.mischiefs = 1000;
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, ttl};
+
+    const auto query = make_query("xenial", release_remote_spec.first);
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
+
+    url_downloader.mischiefs = 0;
+    EXPECT_TRUE(host.info_for(query));
+}
+
+TEST_F(UbuntuImageHost, handles_and_recovers_from_later_network_failure)
+{
+    const auto ttl = 0s; // to ensure updates are always retried
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, ttl};
+
+    const auto query = make_query("xenial", release_remote_spec.first);
+    EXPECT_TRUE(host.info_for(query));
+
+    url_downloader.mischiefs = 1000;
+    EXPECT_THROW(host.info_for(query), std::runtime_error);
+
+    url_downloader.mischiefs = 0;
+    EXPECT_TRUE(host.info_for(query));
+}
+
+TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
+{
+    const auto ttl = 0h;
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, ttl};
+
+    const auto num_remotes = mpt::count_remotes(host);
+    EXPECT_GT(num_remotes, 0u);
+
+    for (size_t i = 0; i < num_remotes; ++i)
+    {
+        url_downloader.mischiefs = i;
+        EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
+    }
 }

@@ -42,6 +42,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
+#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -67,6 +68,7 @@ constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
+constexpr auto max_install_sshfs_retries = 3;
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -142,10 +144,6 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
     auto users = user_data_config["users"];
     if (users.IsSequence())
         users.push_back("default");
-
-    auto packages = user_data_config["packages"];
-    if (packages.IsSequence())
-        packages.push_back("sshfs");
 
     auto keys = user_data_config["ssh_authorized_keys"];
     if (keys.IsSequence())
@@ -303,11 +301,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
 {
-    mp::MountError mount_error;
-    mount_error.set_error_code(mp::MountError::SSHFS_MISSING);
-    mount_error.set_instance_name(instance_name);
-
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Mount failed", mount_error.SerializeAsString());
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                        fmt::format("Error enabling mount support in '{}'", instance_name));
 }
 
 auto grpc_status_for(fmt::memory_buffer& errors)
@@ -755,10 +750,6 @@ try // clang-format on
     auto& vm = vm_instances[name];
     vm->start();
     vm->wait_until_ssh_up(std::chrono::minutes(5));
-
-    reply.set_create_message("Waiting for initialization to complete");
-    server->Write(reply);
-    vm->wait_for_cloud_init(std::chrono::minutes(5));
 
     reply.set_vm_instance_name(name);
     server->Write(reply);
@@ -1264,7 +1255,18 @@ try // clang-format on
             }
             catch (const mp::SSHFSMissingError&)
             {
-                return grpc_status_for_mount_error(name);
+                try
+                {
+                    MountReply mount_reply;
+                    mount_reply.set_mount_message("Enabling support for mounting");
+                    server->Write(mount_reply);
+                    install_sshfs(vm, name);
+                    start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
+                }
+                catch (const mp::SSHFSMissingError&)
+                {
+                    return grpc_status_for_mount_error(name);
+                }
             }
             catch (const std::exception& e)
             {
@@ -1353,8 +1355,7 @@ try // clang-format on
         auto& vm = it->second;
         if (!mp::utils::is_running(vm->current_state()))
         {
-            return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
-                                fmt::format("instance \"{}\" is not running", name), "");
+            return grpc::Status(grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name));
         }
 
         if (vm->state == VirtualMachine::State::delayed_shutdown)
@@ -1474,7 +1475,18 @@ try // clang-format on
             }
             catch (const mp::SSHFSMissingError&)
             {
-                return grpc_status_for_mount_error(name);
+                try
+                {
+                    StartReply start_reply;
+                    start_reply.set_start_message("Enabling support for mounting");
+                    server->Write(start_reply);
+                    install_sshfs(vm, name);
+                    start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+                }
+                catch (const mp::SSHFSMissingError&)
+                {
+                    return grpc_status_for_mount_error(name);
+                }
             }
             catch (const std::exception& e)
             {
@@ -2037,4 +2049,39 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     }
 
     return grpc::Status::OK;
+}
+
+void mp::Daemon::install_sshfs(const VirtualMachine::UPtr& vm, const std::string& name)
+{
+    auto& key_provider = *config->ssh_key_provider;
+
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
+
+    mpl::log(mpl::Level::info, category, fmt::format("Installing sshfs in \'{}\'", name));
+
+    int retries{0};
+    while (++retries <= max_install_sshfs_retries)
+    {
+        try
+        {
+            auto proc = session.exec("sudo apt update && sudo apt install -y sshfs");
+            if (proc.exit_code(std::chrono::minutes(5)) != 0)
+            {
+                auto error_msg = proc.read_std_error();
+                mpl::log(mpl::Level::warning, category,
+                         fmt::format("Failed to install 'sshfs', error message: '{}'", mp::utils::trim_end(error_msg)));
+            }
+            else
+            {
+                break;
+            }
+        }
+        catch (const mp::ExitlessSSHProcessException&)
+        {
+            mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'sshfs' in '{}'", name));
+        }
+    }
+
+    if (retries > max_install_sshfs_retries)
+        throw mp::SSHFSMissingError();
 }

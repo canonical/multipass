@@ -15,6 +15,7 @@
  *
  */
 
+#include "mock_stdcin.h"
 #include "path.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
@@ -25,6 +26,7 @@
 
 #include <QEventLoop>
 #include <QStringList>
+#include <QTemporaryFile>
 
 #include <gmock/gmock.h>
 
@@ -210,6 +212,33 @@ TEST_F(Client, launch_cmd_custom_image_http_ok)
 #else
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
 #endif
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_with_valid_file_is_ok)
+{
+    QTemporaryFile tmpfile; // file is auto-deleted when this goes out of scope
+    tmpfile.open();
+    tmpfile.write("password: passw0rd"); // need some YAML
+    tmpfile.close();
+    EXPECT_THAT(send_command({"launch", "--cloud-init", qPrintable(tmpfile.fileName())}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_with_missing_file)
+{
+    EXPECT_THAT(send_command({"launch", "--cloud-init", "/definitely/missing-file"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_fails_no_value)
+{
+    EXPECT_THAT(send_command({"launch", "--cloud-init"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
+{
+    MockStdCin cin("password: passw0rd");
+
+    EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests

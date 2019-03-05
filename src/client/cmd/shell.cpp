@@ -18,6 +18,7 @@
 #include "shell.h"
 #include "common_cli.h"
 
+#include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/ssh/ssh_client.h>
 
@@ -32,6 +33,10 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     {
         return parser->returnCodeFrom(ret);
     }
+
+    // We can assume the first array entry since `shell` only uses one instance
+    // at a time
+    auto instance_name = request.instance_name()[0];
 
     auto on_success = [this](mp::SSHInfoReply& reply) {
         // TODO: mainly for testing - need a better way to test parsing
@@ -59,10 +64,23 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this, &instance_name](grpc::Status& status) {
+        if (status.error_code() == grpc::StatusCode::ABORTED)
+        {
+            return start_instance_for(instance_name);
+        }
+        else
+        {
+            return standard_failure_handler_for(name(), cerr, status);
+        }
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
+    ReturnCode return_code;
+    while ((return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)) == ReturnCode::Retry)
+        ;
+
+    return return_code;
 }
 
 std::string cmd::Shell::name() const { return "shell"; }
@@ -110,4 +128,26 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     }
 
     return status;
+}
+
+mp::ReturnCode cmd::Shell::start_instance_for(const std::string& instance_name)
+{
+    AnimatedSpinner spinner{cout};
+    auto on_success = [this, &spinner](mp::StartReply& reply) {
+        spinner.stop();
+        cout << '\r' << std::flush;
+        return ReturnCode::Retry;
+    };
+
+    auto on_failure = [this, &spinner](grpc::Status& status) {
+        spinner.stop();
+        return standard_failure_handler_for(name(), cerr, status);
+    };
+
+    StartRequest request;
+    auto names = request.mutable_instance_names()->add_instance_name();
+    names->append(instance_name);
+
+    spinner.start(fmt::format("Starting {}", instance_name));
+    return dispatch(&RpcMethod::start, request, on_success, on_failure);
 }

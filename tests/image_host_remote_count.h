@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,18 +14,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
-#define MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
+
+#ifndef MULTIPASS_IMAGE_HOST_REMOTE_COUNT_H
+#define MULTIPASS_IMAGE_HOST_REMOTE_COUNT_H
+
+#include <cstddef>
 
 namespace multipass
 {
-constexpr auto base_cloud_init_config = "growpart:\n"
-                                        "    mode: auto\n"
-                                        "    devices: [\"/\"]\n"
-                                        "    ignore_growroot_disabled: false\n"
-                                        "users:\n"
-                                        "    - default\n"
-                                        "manage_etc_hosts: true\n";
+class VMImageHost;
+namespace test
+{
+size_t count_remotes(VMImageHost& host);
 }
+} // namespace multipass
 
-#endif // MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
+#endif /* MULTIPASS_IMAGE_HOST_REMOTE_COUNT_H */

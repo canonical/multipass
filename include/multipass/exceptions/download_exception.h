@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,18 +14,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
-#define MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
+
+#ifndef MULTIPASS_DOWNLOAD_H
+#define MULTIPASS_DOWNLOAD_H
+
+#include <fmt/format.h>
+
+#include <stdexcept>
+#include <string>
 
 namespace multipass
 {
-constexpr auto base_cloud_init_config = "growpart:\n"
-                                        "    mode: auto\n"
-                                        "    devices: [\"/\"]\n"
-                                        "    ignore_growroot_disabled: false\n"
-                                        "users:\n"
-                                        "    - default\n"
-                                        "manage_etc_hosts: true\n";
-}
-
-#endif // MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
+class DownloadException : public std::runtime_error
+{
+public:
+    DownloadException(const std::string& url, const std::string& cause)
+        : runtime_error(fmt::format("failed to download from '{}': {}", url, cause))
+    {
+    }
+};
+} // namespace multipass
+#endif // MULTIPASS_DOWNLOAD_H

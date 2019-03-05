@@ -27,7 +27,6 @@
 #include <thread>
 #include <vector>
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QString>
 #include <QStringList>
@@ -65,9 +64,7 @@ std::string generate_mac_address();
 std::string timestamp();
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                       std::function<void()> const& process_vm_events = []() { QCoreApplication::processEvents(); });
-void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                         std::function<void()> const& process_vm_events = []() { QCoreApplication::processEvents(); });
+                       std::function<void()> const& process_vm_events = []() { });
 
 enum class TimeoutAction
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,25 +101,4 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std
                    : !status.error_details().empty() ? fmt::format("{}\n", status.error_details()) : "");
 
     return return_code_for(status.error_code());
-}
-
-void cmd::install_sshfs_for(const std::string& instance_name, int verbosity_level, grpc::Channel* rpc_channel,
-                            mp::Rpc::Stub* stub, std::ostream& cout, std::ostream& cerr)
-{
-    std::vector<Command::UPtr> command;
-    command.push_back(std::make_unique<Exec>(*rpc_channel, *stub, cout, cerr));
-
-    auto args = QStringList() << "" // This is just a dummy string for the unnecessary binary name
-                              << "exec" << QString::fromStdString(instance_name) << "--"
-                              << "sudo"
-                              << "bash"
-                              << "-c"
-                              << "apt update && apt install -y sshfs";
-    ArgParser exec_parser{args, command, cout, cerr};
-    exec_parser.setVerbosityLevel(verbosity_level);
-    exec_parser.parse();
-
-    fmt::print(cerr, "The sshfs package is missing in \"{}\". Installing...\n", instance_name);
-    if (exec_parser.chosenCommand()->run(&exec_parser) == mp::ReturnCode::Ok)
-        fmt::print(cerr, "\n***Please re-run the mount command.\n");
 }

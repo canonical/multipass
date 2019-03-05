@@ -17,6 +17,7 @@
 
 #include <multipass/url_downloader.h>
 
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 
 #include <fmt/format.h>
@@ -43,6 +44,7 @@ QByteArray download(QNetworkAccessManager& manager, const Time& timeout, QUrl co
 {
     QEventLoop event_loop;
     QTimer download_timeout;
+    download_timeout.setInterval(timeout);
 
     QNetworkRequest request{url};
     request.setRawHeader("Connection", "Keep-Alive");
@@ -61,15 +63,14 @@ QByteArray download(QNetworkAccessManager& manager, const Time& timeout, QUrl co
         reply->abort();
     });
 
-    download_timeout.start(timeout);
+    download_timeout.start();
     event_loop.exec();
     if (reply->error() != QNetworkReply::NoError)
     {
         on_error();
-        if (!download_timeout.isActive())
-            throw std::runtime_error("Network timeout");
-        else
-            throw std::runtime_error(reply->errorString().toStdString());
+
+        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
+        throw mp::DownloadException{url.toString().toStdString(), msg};
     }
     return reply->readAll();
 }
@@ -118,7 +119,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
                      fmt::format("error writing image: {}", file.errorString().toStdString()));
             reply->abort();
         }
-        download_timeout.start(10000);
+        download_timeout.start();
     };
 
     auto on_error = [&file]() { file.remove(); };
@@ -128,8 +129,11 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
-    return ::download(manager, timeout, url, [](QNetworkReply*, qint64, qint64) {}, [](QNetworkReply*, QTimer&) {},
-                      [] {});
+    // This will connect to the QNetworkReply::readReady signal and when emitted,
+    // reset the timer.
+    auto on_download = [](QNetworkReply* reply, QTimer& download_timeout) { download_timeout.start(); };
+
+    return ::download(manager, timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {});
 }
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)
@@ -143,6 +147,9 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
     QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
 
     event_loop.exec();
+
+    if (reply->error() != QNetworkReply::NoError)
+        throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
 
     return reply->header(QNetworkRequest::LastModifiedHeader).toDateTime();
 }
