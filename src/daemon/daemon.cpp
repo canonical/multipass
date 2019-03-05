@@ -386,6 +386,7 @@ auto get_metrics_opt_in(const mp::Path& data_path)
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
+    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find, Qt::BlockingQueuedConnection);
@@ -624,16 +625,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
 
-grpc::Status mp::Daemon::create(grpc::ServerContext* context, const LaunchRequest* request,
-                                grpc::ServerWriter<LaunchReply>* server,
-                                const std::string& name) // TODO @ricab rename request/reply
-{                                                        // TODO @ricab try catch when making this a slot
-    // TODO @ricab construct client logger when linking to grpc
-
+// TODO @ricab move below
+grpc::Status mp::Daemon::create_aux(grpc::ServerContext* context, const CreateRequest* request,
+                                    grpc::ServerWriter<CreateReply>* server, const std::string& name)
+{
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
-        LaunchError create_error;
-        create_error.add_error_codes(LaunchError::INSTANCE_EXISTS);
+        CreateError create_error;
+        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
 
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" already exists", name),
                             create_error.SerializeAsString());
@@ -652,14 +651,14 @@ grpc::Status mp::Daemon::create(grpc::ServerContext* context, const LaunchReques
     }
 
     auto progress_monitor = [server](int progress_type, int percentage) {
-        LaunchReply create_reply;
+        CreateReply create_reply;
         create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
-        create_reply.mutable_launch_progress()->set_type((LaunchProgress::ProgressTypes)progress_type);
+        create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
         return server->Write(create_reply);
     };
 
     auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
-        LaunchReply reply;
+        CreateReply reply;
         reply.set_create_message("Preparing image for " + name);
         server->Write(reply);
 
@@ -668,7 +667,7 @@ grpc::Status mp::Daemon::create(grpc::ServerContext* context, const LaunchReques
 
     auto fetch_type = config->factory->fetch_type();
 
-    LaunchReply reply;
+    CreateReply reply;
     reply.set_create_message("Creating " + name);
     server->Write(reply);
     auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
@@ -715,6 +714,18 @@ grpc::Status mp::Daemon::create(grpc::ServerContext* context, const LaunchReques
     return grpc::Status::OK;
 }
 
+grpc::Status mp::Daemon::create(grpc::ServerContext* context, const CreateRequest* request,
+                                grpc::ServerWriter<CreateReply>* server) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger<CreateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    return create_aux(context, request, server, name_from(request, *config->name_generator, vm_instances));
+}
+catch (const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
 grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
                                 grpc::ServerWriter<LaunchReply>* server) // clang-format off
 try // clang-format on
@@ -752,7 +763,7 @@ try // clang-format on
         metrics_provider.send_metrics();
 
     auto name = name_from(request, *config->name_generator, vm_instances);
-    auto status = create(context, request, server, name);
+    auto status = create_aux(context, request, server, name);
     if (status.ok())
     {
         LaunchReply reply;

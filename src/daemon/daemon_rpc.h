@@ -31,6 +31,11 @@
 
 namespace multipass
 {
+using CreateRequest = LaunchRequest;
+using CreateReply = LaunchReply;
+using CreateError = LaunchError;
+using CreateProgress = LaunchProgress;
+
 struct DaemonConfig;
 class DaemonRpc : public QObject, public multipass::Rpc::Service
 {
@@ -43,6 +48,8 @@ public:
 
 signals:
     // All these signals must be connected to with a BlockingQueuedConnection!!!
+    grpc::Status on_create(grpc::ServerContext* context, const CreateRequest* request,
+                           grpc::ServerWriter<CreateReply>* reply);
     grpc::Status on_launch(grpc::ServerContext* context, const LaunchRequest* request,
                            grpc::ServerWriter<LaunchReply>* reply);
     grpc::Status on_purge(grpc::ServerContext* context, const PurgeRequest* request,
@@ -79,6 +86,8 @@ private:
     const std::unique_ptr<grpc::Server> server;
 
 protected:
+    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
+                        grpc::ServerWriter<CreateReply>* reply) override;
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
                         grpc::ServerWriter<LaunchReply>* reply) override;
     grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request,

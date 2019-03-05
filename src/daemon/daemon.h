@@ -78,6 +78,9 @@ protected:
     QJsonObject retrieve_metadata_for(const std::string& name) override;
 
 public slots:
+    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
+                        grpc::ServerWriter<CreateReply>* reply) override;
+
     grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
                         grpc::ServerWriter<LaunchReply>* reply) override;
 
@@ -124,9 +127,6 @@ public slots:
                          grpc::ServerWriter<VersionReply>* response) override;
 
 private:
-    grpc::Status create(grpc::ServerContext* context, const LaunchRequest* request,
-                        grpc::ServerWriter<LaunchReply>* server,
-                        const std::string& name); // TODO @ricab rename request/reply
     void persist_instances();
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
@@ -135,6 +135,8 @@ private:
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
+    grpc::Status create_aux(grpc::ServerContext* context, const CreateRequest* request,
+                            grpc::ServerWriter<CreateReply>* server, const std::string& name);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
