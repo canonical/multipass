@@ -32,7 +32,6 @@ namespace platform
 void parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name);
 int getuid();
 int getgid();
-void prepare_stdin_for_read();
 }
 }
 }

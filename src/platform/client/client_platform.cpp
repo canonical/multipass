@@ -55,8 +55,3 @@ int mcp::getgid()
 {
     return ::getgid();
 }
-
-void mcp::prepare_stdin_for_read()
-{
-    // NO-OP
-}
