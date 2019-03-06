@@ -31,7 +31,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto make_dnsmasq_process(const mp::ProcessFactory* process_factory, QDir data_dir, const QString& bridge_name,
+auto make_dnsmasq_process(const mp::ProcessFactory* process_factory, const mp::Path& data_dir, const QString& bridge_name,
                           const mp::IPAddress& bridge_addr, const mp::IPAddress& start, const mp::IPAddress& end)
 {
     auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, bridge_addr, start, end);
@@ -39,9 +39,9 @@ auto make_dnsmasq_process(const mp::ProcessFactory* process_factory, QDir data_d
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const ProcessFactory* process_factory, const Path& path, const QString& bridge_name,
+mp::DNSMasqServer::DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir, const QString& bridge_name,
                                  const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end)
-    : data_dir{QDir(path)},
+    : data_dir{data_dir},
       dnsmasq_cmd{make_dnsmasq_process(process_factory, data_dir, bridge_name, bridge_addr, start, end)},
       bridge_name{bridge_name}
 {

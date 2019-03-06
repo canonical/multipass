@@ -19,14 +19,10 @@
 
 namespace mp = multipass;
 
-mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QDir& data_dir, const QString& bridge_name,
+mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir, const QString& bridge_name,
                                            const mp::IPAddress& bridge_addr, const mp::IPAddress& start_ip,
                                            const mp::IPAddress& end_ip)
-    : data_dir(data_dir),
-      bridge_name(bridge_name),
-      bridge_addr(bridge_addr),
-      start_ip(start_ip),
-      end_ip(end_ip)
+    : data_dir(data_dir), bridge_name(bridge_name), bridge_addr(bridge_addr), start_ip(start_ip), end_ip(end_ip)
 {
 }
 
@@ -37,14 +33,14 @@ QString mp::DNSMasqProcessSpec::program() const
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
 {
-    return QStringList() << "--keep-in-foreground" << "--strict-order"
+    return QStringList() << "--keep-in-foreground"
+                         << "--strict-order"
                          << "--bind-interfaces"
                          << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                          << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
                          << "--dhcp-no-override"
-                         << "--dhcp-authoritative"
-                         << QString("--dhcp-leasefile=%1").arg(data_dir.filePath("dnsmasq.leases"))
-                         << QString("--dhcp-hostsfile=%1").arg(data_dir.filePath("dnsmasq.hosts")) << "--dhcp-range"
+                         << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
+                         << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir) << "--dhcp-range"
                          << QString("%1,%2,infinite")
                                 .arg(QString::fromStdString(start_ip.as_string()))
                                 .arg(QString::fromStdString(end_ip.as_string()));

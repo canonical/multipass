@@ -35,7 +35,7 @@ class ProcessFactory;
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const ProcessFactory* process_factory, const Path& path, const QString& bridge_name,
+    DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir, const QString& bridge_name,
                   const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
