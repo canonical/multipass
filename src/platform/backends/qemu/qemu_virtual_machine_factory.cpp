@@ -23,8 +23,8 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
-#include "backend_utils.h"
-#include "process_factory.h"
+#include <backend_utils.h>
+#include <process_factory.h>
 
 #include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
