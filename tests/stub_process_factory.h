@@ -53,4 +53,4 @@ class StubProcessFactory : public ProcessFactory
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_STUB_LOGGER_H
+#endif // MULTIPASS_STUB_PROCESS_FACTORY_H
