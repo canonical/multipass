@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,30 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#include "unix_terminal.h"
 
-#include <QString>
+#include <iostream>
+#include <unistd.h>
 
-namespace multipass
-{
-const auto default_id = -1;
-const auto no_id_info_available = -2;
+namespace mp = multipass;
 
-namespace cli
+
+int mp::UnixTerminal::cin_fd() const
 {
-namespace platform
+    return fileno(stdin);
+}
+
+bool mp::UnixTerminal::cin_is_live() const
 {
-void parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name);
-int getuid();
-int getgid();
+    return (isatty(cin_fd()) == 1);
 }
+
+int multipass::UnixTerminal::cout_fd() const
+{
+    return fileno(stdout);
 }
+
+bool multipass::UnixTerminal::cout_is_live() const
+{
+    return (isatty(cout_fd()) == 1);
 }
-#endif // MULTIPASS_CLIENT_PLATFORM_H

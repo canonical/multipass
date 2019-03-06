@@ -37,7 +37,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     for (int i = 1; i < parser->positionalArguments().size(); ++i)
         args.push_back(parser->positionalArguments().at(i).toStdString());
 
-    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return exec_success(reply, args, cerr); };
+    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return exec_success(reply, args, term); };
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
@@ -61,7 +61,7 @@ QString cmd::Exec::description() const
 }
 
 mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std::vector<std::string>& args,
-                                       std::ostream& cerr)
+                                       mp::Terminal* term)
 {
     // TODO: mainly for testing - need a better way to test parsing
     if (reply.ssh_info().empty())
@@ -75,12 +75,13 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
 
     try
     {
-        mp::SSHClient ssh_client{host, port, username, priv_key_blob};
+        auto console_creator = [&term](auto channel) { return Console::make_console(channel, term); };
+        mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
         return static_cast<mp::ReturnCode>(ssh_client.exec(args));
     }
     catch (const std::exception& e)
     {
-        cerr << "exec failed: " << e.what() << "\n";
+        term->cerr() << "exec failed: " << e.what() << "\n";
         return ReturnCode::CommandFail;
     }
 }

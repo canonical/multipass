@@ -370,6 +370,7 @@ void mp::QemuVirtualMachine::suspend()
             update_state();
 
             update_shutdown_status = false;
+            vm_process->waitForFinished();
         }
     }
     else if (state == State::off || state == State::suspended)

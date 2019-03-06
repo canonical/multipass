@@ -20,7 +20,9 @@ add_library(console STATIC
 else()
 add_library(console STATIC
     console.cpp
-    unix_console.cpp)
+    terminal.cpp
+    unix_console.cpp
+    unix_terminal.cpp)
 endif()
 
 target_link_libraries(console

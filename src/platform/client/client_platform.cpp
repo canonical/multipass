@@ -46,11 +46,6 @@ void mcp::parse_copy_files_entry(const QString& entry, QString& path, QString& i
     }
 }
 
-bool mcp::is_tty()
-{
-    return (isatty(fileno(stdin)) == 1);
-}
-
 int mcp::getuid()
 {
     return ::getuid();
@@ -59,9 +54,4 @@ int mcp::getuid()
 int mcp::getgid()
 {
     return ::getgid();
-}
-
-void mcp::prepare_stdin_for_read()
-{
-    // NO-OP
 }

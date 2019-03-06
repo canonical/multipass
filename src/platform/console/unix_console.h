@@ -26,14 +26,16 @@
 
 #include <csignal>
 #include <termios.h>
+#include "unix_terminal.h"
 
 namespace multipass
 {
 class WindowChangedSignalHandler;
+
 class UnixConsole final : public Console
 {
 public:
-    explicit UnixConsole(ssh_channel channel);
+    explicit UnixConsole(ssh_channel channel, UnixTerminal *term);
     ~UnixConsole();
 
     void read_console() override{};
@@ -46,10 +48,10 @@ private:
     void setup_console();
     void restore_console();
 
-    bool interactive{false};
+    UnixTerminal* term;
     struct termios saved_terminal;
 
     std::unique_ptr<WindowChangedSignalHandler> handler;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_UNIX_CONSOLE_H

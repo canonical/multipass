@@ -20,6 +20,7 @@
 
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/terminal.h>
 
 #include <QString>
 

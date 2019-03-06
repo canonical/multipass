@@ -24,6 +24,8 @@
 
 namespace multipass
 {
+class Terminal;
+
 class Console
 {
 public:
@@ -41,7 +43,7 @@ public:
     virtual void write_console() = 0;
     virtual void exit_console() = 0;
 
-    static UPtr make_console(ssh_channel channel);
+    static UPtr make_console(ssh_channel channel, Terminal* term);
     static void setup_environment();
 
 protected:
@@ -49,5 +51,5 @@ protected:
     Console(const Console&) = delete;
     Console& operator=(const Console&) = delete;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_CONSOLE_H

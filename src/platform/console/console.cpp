@@ -16,21 +16,23 @@
  */
 
 #include <multipass/console.h>
+#include <multipass/terminal.h>
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
 #include "windows_console.h"
 #else
 #include "unix_console.h"
+#include "unix_terminal.h"
 #endif
 
 namespace mp = multipass;
 
-mp::Console::UPtr mp::Console::make_console(ssh_channel channel)
+mp::Console::UPtr mp::Console::make_console(ssh_channel channel, Terminal* term)
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     return std::make_unique<WindowsConsole>(channel);
 #else
-    return std::make_unique<UnixConsole>(channel);
+    return std::make_unique<UnixConsole>(channel, static_cast<UnixTerminal*>(term));
 #endif
 }
 

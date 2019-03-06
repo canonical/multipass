@@ -40,7 +40,8 @@ struct SSHClient : public testing::Test
 
     mp::SSHClient make_ssh_client()
     {
-        return {std::make_unique<mp::SSHSession>("a", 42), std::make_unique<mpt::StubConsole>()};
+        auto console_creator = [](auto /*channel*/) { return std::make_unique<mpt::StubConsole>(); };
+        return {std::make_unique<mp::SSHSession>("a", 42), console_creator};
     }
 
     decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};

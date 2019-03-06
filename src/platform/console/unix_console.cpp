@@ -18,24 +18,23 @@
 #include "unix_console.h"
 
 #include <multipass/auto_join_thread.h>
-#include <multipass/cli/client_platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/terminal.h>
 
 #include <sys/ioctl.h>
 #include <unistd.h>
 
 namespace mp = multipass;
-namespace mcp = multipass::cli::platform;
 
 namespace
 {
 const std::vector<int> blocked_sigs{SIGWINCH, SIGUSR1};
 mp::Console::ConsoleGeometry last_geometry{0, 0};
 
-void change_ssh_pty_size(ssh_channel channel)
+void change_ssh_pty_size(ssh_channel channel, int cout_fd)
 {
     struct winsize win = {0, 0, 0, 0};
-    ioctl(fileno(stdout), TIOCGWINSZ, &win);
+    ioctl(cout_fd, TIOCGWINSZ, &win);
 
     if (last_geometry.rows != win.ws_row || last_geometry.columns != win.ws_col)
     {
@@ -50,8 +49,8 @@ void change_ssh_pty_size(ssh_channel channel)
 class mp::WindowChangedSignalHandler
 {
 public:
-    explicit WindowChangedSignalHandler(ssh_channel channel)
-        : signal_handling_thread{[this, channel] { monitor_signals(channel); }}
+    explicit WindowChangedSignalHandler(ssh_channel channel, int cout_fd)
+        : signal_handling_thread{[this, channel, cout_fd] { monitor_signals(channel, cout_fd); }}
     {
     }
 
@@ -60,7 +59,7 @@ public:
         pthread_kill(signal_handling_thread.thread.native_handle(), SIGUSR1);
     }
 
-    void monitor_signals(ssh_channel channel)
+    void monitor_signals(ssh_channel channel, int cout_fd)
     {
         auto sigset{mp::platform::make_sigset(blocked_sigs)};
 
@@ -71,7 +70,7 @@ public:
 
             if (sig == SIGWINCH)
             {
-                change_ssh_pty_size(channel);
+                change_ssh_pty_size(channel, cout_fd);
             }
             else
                 break;
@@ -82,15 +81,15 @@ private:
     mp::AutoJoinThread signal_handling_thread;
 };
 
-mp::UnixConsole::UnixConsole(ssh_channel channel)
-    : interactive{mcp::is_tty()}, handler{std::make_unique<WindowChangedSignalHandler>(channel)}
+mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term)
+    : term{term}, handler{std::make_unique<WindowChangedSignalHandler>(channel, term->cout_fd())}
 {
     setup_console();
 
-    if (interactive)
+    if (term->cout_is_live())
     {
         ssh_channel_request_pty(channel);
-        change_ssh_pty_size(channel);
+        change_ssh_pty_size(channel, term->cout_fd());
     }
 }
 
@@ -106,21 +105,21 @@ void mp::UnixConsole::setup_environment()
 
 void mp::UnixConsole::setup_console()
 {
-    if (interactive)
+    if (term->cin_is_live())
     {
         struct termios terminal_local;
 
-        tcgetattr(fileno(stdin), &terminal_local);
+        tcgetattr(term->cin_fd(), &terminal_local);
         saved_terminal = terminal_local;
         cfmakeraw(&terminal_local);
-        tcsetattr(fileno(stdin), TCSANOW, &terminal_local);
+        tcsetattr(term->cin_fd(), TCSANOW, &terminal_local);
     }
 }
 
 void mp::UnixConsole::restore_console()
 {
-    if (interactive)
+    if (term->cin_is_live())
     {
-        tcsetattr(fileno(stdin), TCSANOW, &saved_terminal);
+        tcsetattr(term->cin_fd(), TCSANOW, &saved_terminal);
     }
 }
