@@ -19,6 +19,7 @@
 #include "path.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
+#include "stub_terminal.h"
 
 #include <multipass/logging/log.h>
 #include <src/client/client.h>
@@ -38,13 +39,15 @@ struct Client : public Test
 {
     int send_command(const std::vector<std::string>& command)
     {
+        std::stringstream null_stream;
         return send_command(command, null_stream);
     }
 
-    int send_command(const std::vector<std::string>& command, std::ostream& cout)
+    int send_command(const std::vector<std::string>& command, std::ostream &cout)
     {
+        mpt::StubTerminal term(cout);
         mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                       std::make_unique<mpt::StubCertProvider>(), cout, null_stream};
+                                       std::make_unique<mpt::StubCertProvider>(), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -60,7 +63,6 @@ struct Client : public Test
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
-    std::stringstream null_stream;
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
     mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store};
@@ -685,5 +687,6 @@ TEST_F(Client, help_cmd_create_same_create_cmd_help)
     std::stringstream create_cmd_help;
     send_command({"launch", "-h"}, create_cmd_help);
 
+    EXPECT_THAT(help_cmd_create.str(), Ne(""));
     EXPECT_THAT(help_cmd_create.str(), Eq(create_cmd_help.str()));
 }

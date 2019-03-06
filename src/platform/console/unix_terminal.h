@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,24 @@
  *
  */
 
-#include <multipass/console.h>
+#ifndef MULTIPASS_UNIX_TERMINAL_H
+#define MULTIPASS_UNIX_TERMINAL_H
+
 #include <multipass/terminal.h>
 
-#include "unix_console.h"
-#include "unix_terminal.h"
-
-namespace mp = multipass;
-
-mp::Console::UPtr mp::Console::make_console(ssh_channel channel, Terminal* term)
+namespace multipass
 {
-    return std::make_unique<UnixConsole>(channel, static_cast<UnixTerminal*>(term));
-}
-
-void mp::Console::setup_environment()
+class UnixTerminal : public Terminal
 {
-    UnixConsole::setup_environment();
-}
+public:
+    virtual ~UnixTerminal() = default;
+
+    int cin_fd() const;
+    bool cin_is_live() const override;
+
+    int cout_fd() const;
+    bool cout_is_live() const override;
+};
+} // namespace multipass
+
+#endif // MULTIPASS_UNIX_TERMINAL_H

@@ -15,7 +15,9 @@
 
 add_library(console STATIC
     console.cpp
-    unix_console.cpp)
+    terminal.cpp
+    unix_console.cpp
+    unix_terminal.cpp)
 
 target_link_libraries(console
   client_platform

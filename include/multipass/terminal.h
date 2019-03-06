@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,35 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#ifndef MULTIPASS_TERMINAL_H
+#define MULTIPASS_TERMINAL_H
 
-#include <QString>
+#include <istream>
+#include <memory>
+#include <ostream>
+#include <string>
 
 namespace multipass
 {
-const auto default_id = -1;
-const auto no_id_info_available = -2;
+class Terminal
+{
+public:
+    virtual ~Terminal() = default;
 
-namespace cli
-{
-namespace platform
-{
-void parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name);
-int getuid();
-int getgid();
-}
-}
-}
-#endif // MULTIPASS_CLIENT_PLATFORM_H
+    virtual std::istream& cin();
+    virtual std::ostream& cout();
+    virtual std::ostream& cerr();
+
+    virtual bool cin_is_live() const = 0;
+    virtual bool cout_is_live() const = 0;
+
+    bool is_live() const;
+
+    virtual std::string read_all_cin();
+
+    using UPtr = std::unique_ptr<Terminal>;
+    static UPtr make_terminal();
+};
+} // namespace multipass
+
+#endif // MULTIPASS_TERMINAL_H

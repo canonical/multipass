@@ -30,19 +30,19 @@ class Exec final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
 
-    static ReturnCode exec_success(const SSHInfoReply& reply, const std::vector<std::string>& args, std::ostream& cerr);
+    static ReturnCode exec_success(const SSHInfoReply& reply, const std::vector<std::string>& args, Terminal* term);
 
 private:
     SSHInfoRequest request;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser) override;
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_EXEC_H

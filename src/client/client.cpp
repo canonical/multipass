@@ -77,8 +77,7 @@ mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
       rpc_channel{make_channel(config.server_address, config.conn_type, *cert_provider)},
       stub{mp::Rpc::NewStub(rpc_channel)},
-      cout{config.cout},
-      cerr{config.cerr}
+      term{config.term}
 {
     add_command<cmd::CopyFiles>();
     add_command<cmd::Launch>();
@@ -106,7 +105,7 @@ mp::Client::Client(ClientConfig& config)
 template <typename T>
 void mp::Client::add_command()
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, cout, cerr);
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term);
     commands.push_back(std::move(cmd));
 }
 
@@ -116,7 +115,7 @@ int mp::Client::run(const QStringList& arguments)
                         "This is a command line utility for multipass, a\n"
                         "service that manages Ubuntu instances.");
 
-    ArgParser parser(arguments, commands, cout, cerr);
+    ArgParser parser(arguments, commands, term->cout(), term->cerr());
     parser.setApplicationDescription(description);
 
     ParseCode parse_status = parser.parse();

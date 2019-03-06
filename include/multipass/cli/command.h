@@ -21,6 +21,7 @@
 #include <multipass/callable_traits.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/terminal.h>
 #include <multipass/utils.h>
 
 #include <QLocalSocket>
@@ -40,8 +41,8 @@ class Command
 {
 public:
     using UPtr = std::unique_ptr<Command>;
-    Command(grpc::Channel& channel, Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr)
-        : rpc_channel{&channel}, stub{&stub}, cout{cout}, cerr{cerr}
+    Command(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term)
+        : rpc_channel{&channel}, stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
     {
     }
     virtual ~Command() = default;
@@ -131,6 +132,7 @@ protected:
 
     grpc::Channel* rpc_channel;
     Rpc::Stub* stub;
+    Terminal* term;
     std::ostream& cout;
     std::ostream& cerr;
 
