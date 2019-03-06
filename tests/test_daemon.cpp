@@ -209,7 +209,7 @@ TEST_F(Daemon, receives_commands)
                    {"umount", "instance"}});
 }
 
-TEST_F(Daemon, creates_virtual_machines)
+TEST_F(Daemon, launches_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -218,7 +218,7 @@ TEST_F(Daemon, creates_virtual_machines)
     send_command({"launch"});
 }
 
-TEST_F(Daemon, on_creation_hooks_up_platform_prepare_source_image)
+TEST_F(Daemon, on_launch_hooks_up_platform_prepare_source_image)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -227,7 +227,7 @@ TEST_F(Daemon, on_creation_hooks_up_platform_prepare_source_image)
     send_command({"launch"});
 }
 
-TEST_F(Daemon, on_creation_hooks_up_platform_prepare_instance_image)
+TEST_F(Daemon, on_launch_hooks_up_platform_prepare_instance_image)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -246,7 +246,7 @@ TEST_F(Daemon, provides_version)
     EXPECT_THAT(stream.str(), HasSubstr(mp::version_string));
 }
 
-TEST_F(Daemon, generates_name_when_client_does_not_provide_one)
+TEST_F(Daemon, generates_name_on_launch_when_client_does_not_provide_one)
 {
     const std::string expected_name{"pied-piper-valley"};
 
@@ -340,7 +340,7 @@ MATCHER_P(YAMLNodeContainsSequence, key, "")
     return arg[key].IsSequence();
 }
 
-TEST_F(Daemon, default_cloud_init_grows_root_fs)
+TEST_F(Daemon, default_cloud_init_grows_root_fs_on_launch)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -380,7 +380,7 @@ private:
 };
 } // namespace
 
-TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config)
+TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config_on_launch)
 {
     auto mock_factory = use_a_mock_vm_factory();
     std::string expected_key{"thisitnotansshkeyactually"};
