@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_STUB_PROCESS_FACTORY_H
 #define MULTIPASS_STUB_PROCESS_FACTORY_H
 
-#include <src/platform/backends/shared_linux/process.h>
-#include <src/platform/backends/shared_linux/process_factory.h>
+#include <src/platform/backends/shared/linux/process.h>
+#include <src/platform/backends/shared/linux/process_factory.h>
 
 namespace multipass
 {

@@ -23,8 +23,8 @@
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
-#include "backends/shared_linux/process.h"
-#include "backends/shared_linux/process_factory.h"
+#include "backends/shared/linux/process.h"
+#include "backends/shared/linux/process_factory.h"
 #include "logger/journald_logger.h"
 
 namespace mp = multipass;

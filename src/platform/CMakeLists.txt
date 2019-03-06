@@ -24,7 +24,7 @@ target_link_libraries(platform
   journaldlogger)
 
 include_directories(platform
-  backends/shared_linux)
+  backends/shared/linux)
 
 add_subdirectory(backends)
 add_subdirectory(client)

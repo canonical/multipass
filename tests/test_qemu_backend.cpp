@@ -16,7 +16,7 @@
  */
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
-#include <src/platform/backends/shared_linux/process_factory.h>
+#include <src/platform/backends/shared/linux/process_factory.h>
 
 #include "mock_status_monitor.h"
 #include "stub_ssh_key_provider.h"
