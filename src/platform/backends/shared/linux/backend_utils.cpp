@@ -152,6 +152,7 @@ void mp::backend::resize_instance_image(const ProcessFactory* process_factory, c
 mp::Path mp::backend::convert_to_qcow_if_necessary(const ProcessFactory* process_factory, const mp::Path& image_path)
 {
     // Check if raw image file, and if so, convert to qcow2 format.
+    // TODO: we could support converting from other the image formats that qemu-img can deal with
     const auto qcow2_path{image_path + ".qcow2"};
 
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>();
