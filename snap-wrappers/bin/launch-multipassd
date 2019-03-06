@@ -3,8 +3,15 @@
 http_proxy="$(snapctl get proxy.http)"
 https_proxy="$(snapctl get proxy.https)"
 MULTIPASS_VM_DRIVER="$(snapctl get driver)"
-export http_proxy
-export https_proxy
+
+if [ -n "$http_proxy" ]; then
+    export http_proxy
+fi
+
+if [ -n "$https_proxy" ]; then
+    export https_proxy
+fi
+
 export MULTIPASS_VM_DRIVER
 
 exec "$SNAP/bin/multipassd" --verbosity debug --logger platform
