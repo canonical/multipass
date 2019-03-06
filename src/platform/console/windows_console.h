@@ -28,10 +28,12 @@
 
 namespace multipass
 {
+class WindowsTerminal;
+
 class WindowsConsole final : public Console
 {
 public:
-    WindowsConsole(ssh_channel channel);
+    WindowsConsole(ssh_channel channel, WindowsTerminal* term);
 
     void read_console() override;
     void write_console() override;
@@ -51,5 +53,5 @@ private:
     HWINEVENTHOOK hook;
     std::thread console_event_thread;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_WINDOWS_CONSOLE_H

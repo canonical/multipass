@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,31 +15,36 @@
  *
  */
 
-#include <multipass/console.h>
-#include <multipass/terminal.h>
-
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-#include "windows_console.h"
 #include "windows_terminal.h"
-#else
-#include "unix_console.h"
-#include "unix_terminal.h"
-#endif
+
+#include <iostream>
+#include <fcntl.h>
+#include <io.h>
 
 namespace mp = multipass;
 
-mp::Console::UPtr mp::Console::make_console(ssh_channel channel, Terminal* term)
+HANDLE mp::WindowsTerminal::cin_handle() const
 {
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-    return std::make_unique<WindowsConsole>(channel, static_cast<WindowsTerminal*>(term));
-#else
-    return std::make_unique<UnixConsole>(channel, static_cast<UnixTerminal*>(term));
-#endif
+    return GetStdHandle(STD_INPUT_HANDLE);
 }
 
-void mp::Console::setup_environment()
+bool mp::WindowsTerminal::cin_is_live() const
 {
-#ifndef MULTIPASS_PLATFORM_WINDOWS
-    UnixConsole::setup_environment();
-#endif
+    return !(_isatty(_fileno(stdin)) == 0);
+}
+
+HANDLE mp::WindowsTerminal::cout_handle() const
+{
+    return GetStdHandle(STD_OUTPUT_HANDLE);
+}
+
+bool mp::WindowsTerminal::cout_is_live() const
+{
+    return !(_isatty(_fileno(stdout)) == 0);
+}
+
+std::string mp::WindowsTerminal::read_all_cin()
+{
+    _setmode(_fileno(stdin), _O_BINARY);
+    return mp::Terminal::read_all_cin();
 }

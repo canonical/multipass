@@ -13,14 +13,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+add_library(console STATIC
+  console.cpp
+  terminal.cpp)
+
 if(MSVC)
-add_library(console STATIC
-    console.cpp
-    windows_console.cpp)
+  target_sources(console PRIVATE
+    windows_console.cpp
+    windows_terminal.cpp)
 else()
-add_library(console STATIC
-    console.cpp
-    terminal.cpp
+  target_sources(console PRIVATE
     unix_console.cpp
     unix_terminal.cpp)
 endif()

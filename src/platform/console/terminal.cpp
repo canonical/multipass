@@ -15,8 +15,12 @@
  *
  */
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include "windows_terminal.h"
+#else
 #include "unix_terminal.h"
-#include <multipass/terminal.h>
+#endif
+
 #include <iostream>
 
 namespace mp = multipass;
@@ -33,7 +37,11 @@ namespace mp = multipass;
 
 mp::Terminal::UPtr mp::Terminal::make_terminal()
 {
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    return std::make_unique<WindowsTerminal>();
+#else
     return std::make_unique<UnixTerminal>();
+#endif
 }
 
 std::istream& mp::Terminal::cin()

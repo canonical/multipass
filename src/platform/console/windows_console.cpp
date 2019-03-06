@@ -16,6 +16,7 @@
  */
 
 #include "windows_console.h"
+#include "windows_terminal.h"
 
 #include <multipass/cli/client_platform.h>
 
@@ -79,10 +80,10 @@ void monitor_console_resize(HWINEVENTHOOK& hook)
 }
 } // namespace
 
-mp::WindowsConsole::WindowsConsole(ssh_channel channel)
-    : interactive{mcp::is_tty()},
-      input_handle{GetStdHandle(STD_INPUT_HANDLE)},
-      output_handle{GetStdHandle(STD_OUTPUT_HANDLE)},
+mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal *term)
+    : interactive{term->cout_is_live()},
+      input_handle{term->cin_handle()},
+      output_handle{term->cout_handle()},
       channel{channel},
       session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
       console_event_thread{[this] { monitor_console_resize(hook); }}
