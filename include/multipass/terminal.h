@@ -37,6 +37,8 @@ public:
     virtual bool cin_is_live() const = 0;
     virtual bool cout_is_live() const = 0;
 
+    bool is_live() const;
+
     virtual std::string read_all_cin();
 
     using UPtr = std::unique_ptr<Terminal>;

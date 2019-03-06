@@ -51,6 +51,11 @@ std::ostream& mp::Terminal::cerr()
     return std::cerr;
 }
 
+bool mp::Terminal::is_live() const
+{
+    return cin_is_live() && cout_is_live();
+}
+
 std::string mp::Terminal::read_all_cin()
 {
     if (!cin_is_live())
