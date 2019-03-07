@@ -28,6 +28,7 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <future>
 #include <memory>
 #include <unordered_map>
 
@@ -60,7 +61,7 @@ struct MetricsOptInData
 };
 
 struct DaemonConfig;
-class Daemon : public QObject, public multipass::Rpc::Service, public multipass::VMStatusMonitor
+class Daemon : public QObject, public multipass::VMStatusMonitor
 {
     Q_OBJECT
 public:
@@ -82,50 +83,50 @@ public slots:
     grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
                         grpc::ServerWriter<CreateReply>* reply) override;
 
-    grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
-                        grpc::ServerWriter<LaunchReply>* reply) override;
+    void launch(grpc::ServerContext* context, const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
+                std::promise<grpc::Status>* status_promise);
 
-    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request,
-                       grpc::ServerWriter<PurgeReply>* response) override;
+    void purge(grpc::ServerContext* context, const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* response,
+               std::promise<grpc::Status>* status_promise);
 
-    grpc::Status find(grpc::ServerContext* context, const FindRequest* request,
-                      grpc::ServerWriter<FindReply>* response) override;
+    void find(grpc::ServerContext* context, const FindRequest* request, grpc::ServerWriter<FindReply>* response,
+              std::promise<grpc::Status>* status_promise);
 
-    grpc::Status info(grpc::ServerContext* context, const InfoRequest* request,
-                      grpc::ServerWriter<InfoReply>* response) override;
+    void info(grpc::ServerContext* context, const InfoRequest* request, grpc::ServerWriter<InfoReply>* response,
+              std::promise<grpc::Status>* status_promise);
 
-    grpc::Status list(grpc::ServerContext* context, const ListRequest* request,
-                      grpc::ServerWriter<ListReply>* response) override;
+    void list(grpc::ServerContext* context, const ListRequest* request, grpc::ServerWriter<ListReply>* response,
+              std::promise<grpc::Status>* status_promise);
 
-    grpc::Status mount(grpc::ServerContext* context, const MountRequest* request,
-                       grpc::ServerWriter<MountReply>* response) override;
+    void mount(grpc::ServerContext* context, const MountRequest* request, grpc::ServerWriter<MountReply>* response,
+               std::promise<grpc::Status>* status_promise);
 
-    grpc::Status recover(grpc::ServerContext* context, const RecoverRequest* request,
-                         grpc::ServerWriter<RecoverReply>* response) override;
+    void recover(grpc::ServerContext* context, const RecoverRequest* request,
+                 grpc::ServerWriter<RecoverReply>* response, std::promise<grpc::Status>* status_promise);
 
-    grpc::Status ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
-                          grpc::ServerWriter<SSHInfoReply>* response) override;
+    void ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
+                  grpc::ServerWriter<SSHInfoReply>* response, std::promise<grpc::Status>* status_promise);
 
-    grpc::Status start(grpc::ServerContext* context, const StartRequest* request,
-                       grpc::ServerWriter<StartReply>* response) override;
+    void start(grpc::ServerContext* context, const StartRequest* request, grpc::ServerWriter<StartReply>* response,
+               std::promise<grpc::Status>* status_promise);
 
-    grpc::Status stop(grpc::ServerContext* context, const StopRequest* request,
-                      grpc::ServerWriter<StopReply>* response) override;
+    void stop(grpc::ServerContext* context, const StopRequest* request, grpc::ServerWriter<StopReply>* response,
+              std::promise<grpc::Status>* status_promise);
 
-    grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
-                         grpc::ServerWriter<SuspendReply>* response) override;
+    void suspend(grpc::ServerContext* context, const SuspendRequest* request,
+                 grpc::ServerWriter<SuspendReply>* response, std::promise<grpc::Status>* status_promise);
 
-    grpc::Status restart(grpc::ServerContext* context, const RestartRequest* request,
-                         grpc::ServerWriter<RestartReply>* response) override;
+    void restart(grpc::ServerContext* context, const RestartRequest* request,
+                 grpc::ServerWriter<RestartReply>* response, std::promise<grpc::Status>* status_promise);
 
-    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
-                       grpc::ServerWriter<DeleteReply>* response) override;
+    void delet(grpc::ServerContext* context, const DeleteRequest* request, grpc::ServerWriter<DeleteReply>* response,
+               std::promise<grpc::Status>* status_promise);
 
-    grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request,
-                        grpc::ServerWriter<UmountReply>* response) override;
+    void umount(grpc::ServerContext* context, const UmountRequest* request, grpc::ServerWriter<UmountReply>* response,
+                std::promise<grpc::Status>* status_promise);
 
-    grpc::Status version(grpc::ServerContext* context, const VersionRequest* request,
-                         grpc::ServerWriter<VersionReply>* response) override;
+    void version(grpc::ServerContext* context, const VersionRequest* request,
+                 grpc::ServerWriter<VersionReply>* response, std::promise<grpc::Status>* status_promise);
 
 private:
     void persist_instances();
