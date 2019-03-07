@@ -39,6 +39,8 @@ public:
     QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
 
 protected:
+    void run_and_wait_until_finished(const QStringList& extra_arguments = QStringList(), const int timeout = 30000);
+
     Process(std::unique_ptr<ProcessSpec>&& spec);
     const std::unique_ptr<ProcessSpec> process_spec;
 };

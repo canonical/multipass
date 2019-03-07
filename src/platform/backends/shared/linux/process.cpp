@@ -41,22 +41,21 @@ void mp::Process::start(const QStringList& extra_arguments)
 
 bool mp::Process::run_and_return_status(const QStringList& extra_arguments, const int timeout)
 {
-    start(extra_arguments);
-    if (!waitForFinished(timeout))
-    {
-        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), qPrintable(errorString()));
-        return false;
-    }
-
+    run_and_wait_until_finished(extra_arguments, timeout);
     return exitStatus() == QProcess::NormalExit && exitCode() == 0;
 }
 
 QString mp::Process::run_and_return_output(const QStringList& extra_arguments, const int timeout)
 {
+    run_and_wait_until_finished(extra_arguments, timeout);
+    return readAllStandardOutput().trimmed();
+}
+
+void mp::Process::run_and_wait_until_finished(const QStringList& extra_arguments, const int timeout)
+{
     start(extra_arguments);
-    if (!waitForFinished(timeout))
+    if (!waitForFinished(timeout) || exitStatus() != QProcess::NormalExit)
     {
         mpl::log(mpl::Level::info, qPrintable(process_spec->program()), qPrintable(errorString()));
     }
-    return readAllStandardOutput().trimmed();
 }
