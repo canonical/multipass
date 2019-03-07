@@ -17,8 +17,6 @@
 
 #include "qemu_vm_process_spec.h"
 
-#include <QHash>
-#include <QString>
 #include <shared/linux/backend_utils.h>
 
 namespace mp = multipass;
