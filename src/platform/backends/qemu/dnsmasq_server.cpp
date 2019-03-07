@@ -18,10 +18,10 @@
 #include "dnsmasq_server.h"
 
 #include "dnsmasq_process_spec.h"
-#include "process.h"
-#include "process_factory.h"
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
+#include <shared/linux/process.h>
+#include <shared/linux/process_factory.h>
 
 #include <fmt/format.h>
 
@@ -31,16 +31,18 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto make_dnsmasq_process(const mp::ProcessFactory* process_factory, const mp::Path& data_dir, const QString& bridge_name,
-                          const mp::IPAddress& bridge_addr, const mp::IPAddress& start, const mp::IPAddress& end)
+auto make_dnsmasq_process(const mp::ProcessFactory* process_factory, const mp::Path& data_dir,
+                          const QString& bridge_name, const mp::IPAddress& bridge_addr, const mp::IPAddress& start,
+                          const mp::IPAddress& end)
 {
     auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, bridge_addr, start, end);
     return process_factory->create_process(std::move(process_spec));
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir, const QString& bridge_name,
-                                 const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end)
+mp::DNSMasqServer::DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir,
+                                 const QString& bridge_name, const IPAddress& bridge_addr, const IPAddress& start,
+                                 const IPAddress& end)
     : data_dir{data_dir},
       dnsmasq_cmd{make_dnsmasq_process(process_factory, data_dir, bridge_name, bridge_addr, start, end)},
       bridge_name{bridge_name}

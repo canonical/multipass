@@ -17,11 +17,11 @@
 
 #include "qemu_virtual_machine.h"
 
-#include <backend_utils.h>
-#include <process.h>
-#include <process_factory.h>
 #include "dnsmasq_server.h"
 #include "qemu_vm_process_spec.h"
+#include <shared/linux/backend_utils.h>
+#include <shared/linux/process.h>
+#include <shared/linux/process_factory.h>
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>

@@ -15,13 +15,12 @@
  *
  */
 
-#include <backend_utils.h>
+#include "backend_utils.h"
+#include "process.h"
+#include "process_factory.h"
+#include "qemuimg_process_spec.h"
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
-
-#include <process.h>
-#include <process_factory.h>
-#include <qemuimg_process_spec.h>
 
 #include <fmt/format.h>
 

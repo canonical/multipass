@@ -18,9 +18,9 @@
 #include "libvirt_virtual_machine_factory.h"
 #include "libvirt_virtual_machine.h"
 
-#include <backend_utils.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
+#include <shared/linux/backend_utils.h>
 
 #include <fmt/format.h>
 

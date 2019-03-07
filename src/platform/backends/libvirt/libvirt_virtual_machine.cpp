@@ -17,13 +17,13 @@
 
 #include "libvirt_virtual_machine.h"
 
-#include <backend_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
+#include <shared/linux/backend_utils.h>
 
 #include <QDir>
 #include <QXmlStreamReader>

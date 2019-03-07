@@ -15,7 +15,7 @@
  *
  */
 
-#include "process_spec.h"
+#include <shared/linux/process_spec.h>
 
 #include <QFileInfo>
 

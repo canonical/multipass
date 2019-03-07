@@ -21,7 +21,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-#include "process_spec.h"
+#include <shared/linux/process_spec.h>
 
 namespace multipass
 {

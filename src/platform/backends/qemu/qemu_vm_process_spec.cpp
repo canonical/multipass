@@ -17,15 +17,14 @@
 
 #include "qemu_vm_process_spec.h"
 
-#include <backend_utils.h>
 #include <QHash>
 #include <QString>
+#include <shared/linux/backend_utils.h>
 
 namespace mp = multipass;
 
-
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
-                                     const QString& mac_addr)
+                                         const QString& mac_addr)
     : desc(desc), tap_device_name(tap_device_name), mac_addr(mac_addr)
 {
 }
@@ -84,7 +83,7 @@ QString mp::QemuVMProcessSpec::working_directory() const
     return QString();
 }
 
-multipass::logging::Level multipass::QemuVMProcessSpec::error_log_level() const
+mp::logging::Level mp::QemuVMProcessSpec::error_log_level() const
 {
     // Qemu prints to stderr even under normal operation
     return logging::Level::warning;
