@@ -16,6 +16,7 @@
  */
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+#include <src/platform/backends/shared/linux/process_factory.h>
 
 #include "mock_status_monitor.h"
 #include "stub_ssh_key_provider.h"
@@ -36,6 +37,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 {
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
+    mp::ProcessFactory process_factory; // want to launch actual processes
     mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{2,
                                                       "3M",
@@ -52,7 +54,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 TEST_F(QemuBackend, creates_in_off_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{&process_factory, data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
@@ -61,7 +63,7 @@ TEST_F(QemuBackend, creates_in_off_state)
 TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{&process_factory, data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
@@ -79,7 +81,7 @@ TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
 TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{&process_factory, data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
@@ -97,7 +99,7 @@ TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
 TEST_F(QemuBackend, throws_when_starting_while_suspending)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{&process_factory, data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 

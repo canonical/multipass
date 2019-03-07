@@ -25,12 +25,14 @@
 
 namespace multipass
 {
+class ProcessFactory;
+
 class LibVirtVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
     using ConnectionUPtr = std::unique_ptr<virConnect, decltype(virConnectClose)*>;
 
-    explicit LibVirtVirtualMachineFactory(const Path& data_dir);
+    explicit LibVirtVirtualMachineFactory(const ProcessFactory* process_factory, const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -43,9 +45,10 @@ public:
     void check_hypervisor_support() override;
 
 private:
+    const ProcessFactory* process_factory;
     ConnectionUPtr connection;
     const std::string bridge_name;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H

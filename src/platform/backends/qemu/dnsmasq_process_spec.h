@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,38 +15,33 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_SERVER_H
-#define MULTIPASS_DNSMASQ_SERVER_H
+#ifndef MULTIPASS_DNSMASQ_PROCESS_SPEC_H
+#define MULTIPASS_DNSMASQ_PROCESS_SPEC_H
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-
-#include <QDir>
-#include <QProcess>
-
-#include <memory>
-#include <string>
+#include <shared/linux/process_spec.h>
 
 namespace multipass
 {
-class ProcessFactory;
 
-class DNSMasqServer
+class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
-    DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir, const QString& bridge_name,
-                  const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end);
-    DNSMasqServer(DNSMasqServer&& other) = default;
-    ~DNSMasqServer();
+    explicit DNSMasqProcessSpec(const Path& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
+                                const IPAddress& start_ip, const IPAddress& end_ip);
 
-    optional<IPAddress> get_ip_for(const std::string& hw_addr);
-    void release_mac(const std::string& hw_addr);
+    QString program() const override;
+    QStringList arguments() const override;
+    logging::Level error_log_level() const override;
 
 private:
-    const QDir data_dir;
-    std::unique_ptr<QProcess> dnsmasq_cmd;
-    QString bridge_name;
+    const Path data_dir;
+    const QString bridge_name;
+    const IPAddress bridge_addr, start_ip, end_ip;
 };
+
 } // namespace multipass
-#endif // MULTIPASS_DNSMASQ_SERVER_H
+
+#endif // MULTIPASS_DNSMASQ_PROCESS_SPEC_H
