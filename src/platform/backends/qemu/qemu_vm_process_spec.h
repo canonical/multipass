@@ -34,7 +34,6 @@ public:
     QString program() const override;
     QStringList arguments() const override;
     QString working_directory() const override;
-    logging::Level error_log_level() const override;
 
 private:
     const VirtualMachineDescription desc;

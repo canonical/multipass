@@ -45,3 +45,9 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
                                 .arg(QString::fromStdString(start_ip.as_string()))
                                 .arg(QString::fromStdString(end_ip.as_string()));
 }
+
+mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
+{
+    // dnsmasq only complains if something really wrong
+    return mp::logging::Level::error;
+}

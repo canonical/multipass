@@ -34,6 +34,7 @@ public:
 
     QString program() const override;
     QStringList arguments() const override;
+    logging::Level error_log_level() const override;
 
 private:
     const Path data_dir;

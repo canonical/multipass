@@ -41,5 +41,5 @@ QString mp::ProcessSpec::working_directory() const
 // Set what multipass logging level the stderr of the child process should have
 mpl::Level mp::ProcessSpec::error_log_level() const
 {
-    return mpl::Level::error;
+    return mpl::Level::warning;
 }
