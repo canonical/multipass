@@ -73,8 +73,10 @@ jobs:
                  cmake --build /root/project/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
-    - if: (type = pull_request AND head_repo = CanonicalLtd/multipass)
-          OR (type != pull_request AND repo = CanonicalLtd/multipass)
+    - if: |
+        repo = CanonicalLtd/multipass
+               AND (type != pull_request
+                    OR head_repo = repo)
       env: BUILD_TYPE=macOS
       git:
         submodules: false
