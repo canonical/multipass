@@ -17,8 +17,6 @@
 
 #include <shared/linux/process_spec.h>
 
-#include <QFileInfo>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
