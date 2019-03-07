@@ -31,7 +31,9 @@ mp::Process::Process(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std
     if (!process_spec->working_directory().isNull())
         setWorkingDirectory(process_spec->working_directory());
 
-    setProcessChannelMode(QProcess::ForwardedErrorChannel); // default to forwarding child stderr to console
+    QObject::connect(this, &Process::readyReadStandardError, [this]() {
+        mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(readAllStandardError()));
+    });
 }
 
 void mp::Process::start(const QStringList& extra_arguments)
@@ -56,6 +58,6 @@ void mp::Process::run_and_wait_until_finished(const QStringList& extra_arguments
     start(extra_arguments);
     if (!waitForFinished(timeout) || exitStatus() != QProcess::NormalExit)
     {
-        mpl::log(mpl::Level::info, qPrintable(process_spec->program()), qPrintable(errorString()));
+        mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(errorString()));
     }
 }

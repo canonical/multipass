@@ -45,9 +45,6 @@ mp::DNSMasqServer::DNSMasqServer(const ProcessFactory* process_factory, const Pa
       dnsmasq_cmd{make_dnsmasq_process(process_factory, data_dir, bridge_name, bridge_addr, start, end)},
       bridge_name{bridge_name}
 {
-    QObject::connect(dnsmasq_cmd.get(), &Process::readyReadStandardError,
-                     [this]() { mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_cmd->readAllStandardError().data()); });
-
     dnsmasq_cmd->start();
 }
 
