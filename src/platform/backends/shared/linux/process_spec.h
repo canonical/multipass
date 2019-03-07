@@ -21,6 +21,8 @@
 #include <QProcessEnvironment>
 #include <QString>
 
+#include <multipass/logging/level.h>
+
 namespace multipass
 {
 
@@ -34,6 +36,8 @@ public:
     virtual QStringList arguments() const;
     virtual QProcessEnvironment environment() const;
     virtual QString working_directory() const;
+
+    virtual logging::Level error_log_level() const;
 };
 
 } // namespace multipass

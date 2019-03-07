@@ -32,7 +32,8 @@ mp::Process::Process(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std
         setWorkingDirectory(process_spec->working_directory());
 
     QObject::connect(this, &Process::readyReadStandardError, [this]() {
-        mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(readAllStandardError()));
+        mpl::log(process_spec->error_log_level(), qPrintable(process_spec->program()),
+                 qPrintable(readAllStandardError()));
     });
 }
 

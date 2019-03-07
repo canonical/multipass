@@ -83,3 +83,9 @@ QString mp::QemuVMProcessSpec::working_directory() const
         return snap.append("/qemu");
     return QString();
 }
+
+multipass::logging::Level multipass::QemuVMProcessSpec::error_log_level() const
+{
+    // Qemu prints to stderr even under normal operation
+    return logging::Level::warning;
+}

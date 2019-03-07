@@ -20,6 +20,7 @@
 #include <QFileInfo>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 // Create Process with these fixed arguments. Other optional arguments can be appended in Process::start()
 QStringList mp::ProcessSpec::arguments() const
@@ -37,4 +38,10 @@ QProcessEnvironment mp::ProcessSpec::environment() const
 QString mp::ProcessSpec::working_directory() const
 {
     return QString();
+}
+
+// Set what multipass logging level the stderr of the child process should have
+mpl::Level mp::ProcessSpec::error_log_level() const
+{
+    return mpl::Level::error;
 }
