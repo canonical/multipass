@@ -10,17 +10,12 @@ if: |
   branch IN (staging, trying, master)
   OR type = pull_request
 
-addons:
-  snaps:
-  - lxd
-  - name: snapcraft
-    classic: true
-
 env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
 
 install:
+- exit 0
 - sudo apt remove --assume-yes lxd
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
@@ -32,6 +27,7 @@ install:
 - ccache --max-size=5G
 
 before_script:
+- exit 0
 - "[ ! -f tests/travis.patch ] || patch -p1 < tests/travis.patch"
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
 - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft refresh'
@@ -45,10 +41,12 @@ jobs:
   include:
     - env: BUILD_TYPE=RelWithDebInfo
       script:
+      - exit 0
       - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft'
 
     - env: BUILD_TYPE=Debug
       script:
+      - exit 0
       - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
       - sg lxd -c
@@ -59,6 +57,7 @@ jobs:
 
     - env: BUILD_TYPE=Coverage
       script:
+      - exit 0
       - sg lxd -c 'env PATH=/snap/bin:$PATH SNAPCRAFT_BUILD_ENVIRONMENT=lxd /snap/bin/snapcraft build multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
       - sg lxd -c
@@ -81,6 +80,7 @@ jobs:
       install: ~
       before_script: ~
       script:
+      - exit 1
       - |
         if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
           REF="+refs/pull/${TRAVIS_PULL_REQUEST}/merge"
