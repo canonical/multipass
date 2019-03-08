@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cctype>
 #include <fstream>
 #include <random>
@@ -54,18 +55,52 @@ QDir mp::utils::base_dir(const QString& path)
     return info.absoluteDir();
 }
 
-bool mp::utils::valid_memory_value(const QString& mem_string)
+auto mp::utils::in_bytes(const std::string& mem_value) -> optional<long long>
 {
-    QRegExp matcher("\\d+((K|M|G)(B){0,1}){0,1}$");
+    static constexpr auto kilo = 1024LL;
+    static constexpr auto mega = kilo * kilo;
+    static constexpr auto giga = mega * kilo;
 
-    return matcher.exactMatch(mem_string);
+    QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
+
+    if (matcher.exactMatch(QString::fromStdString(mem_value)))
+    {
+        auto val = matcher.cap(1).toLongLong(); // value is in the second capture (1st one is the whole match)
+        const auto unit = matcher.cap(2);       // unit in the third capture (idem)
+        if (!unit.isEmpty())
+        {
+            switch (unit.at(0).toLower().toLatin1())
+            {
+            case 'g':
+                val *= giga;
+                break;
+            case 'm':
+                val *= mega;
+                break;
+            case 'k':
+                val *= kilo;
+                break;
+            default:
+                assert(false && "Shouldn't be here (invalid unit)");
+            }
+        }
+
+        return val;
+    }
+
+    return {};
 }
 
-bool mp::utils::valid_hostname(const QString& name_string)
+std::string mp::utils::in_bytes_string(long long bytes)
+{
+    return std::to_string(bytes) + "B";
+}
+
+bool mp::utils::valid_hostname(const std::string& name_string)
 {
     QRegExp matcher("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
 
-    return matcher.exactMatch(name_string);
+    return matcher.exactMatch(QString::fromStdString(name_string));
 }
 
 bool mp::utils::invalid_target_path(const QString& target_path)

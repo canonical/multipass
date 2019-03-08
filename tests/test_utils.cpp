@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,90 +26,197 @@
 #include <gtest/gtest.h>
 
 #include <sstream>
+#include <string>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
 using namespace testing;
 
-TEST(Utils, KB_is_valid)
+namespace
 {
-    EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024KB")));
+constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overflow if we used less than 8 bytes here
+constexpr auto mega = kilo * kilo;
+constexpr auto giga = kilo * mega;
 }
 
-TEST(Utils, K_is_valid)
+TEST(Utils, KB_memory_value_can_be_normalized)
 {
-    EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024K")));
+    constexpr auto val = 1024;
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "KB");
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * kilo);
 }
 
-TEST(Utils, MB_is_valid)
+TEST(Utils, K_memory_value_can_be_normalized)
 {
-    EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024MB")));
+    constexpr auto val = 1024;
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "K");
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * kilo);
 }
 
-TEST(Utils, M_is_valid)
+TEST(Utils, MB_memory_value_can_be_normalized)
 {
-    EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024M")));
+    constexpr auto val = 1024;
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "MB");
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * mega);
 }
 
-TEST(Utils, GB_is_valid)
+TEST(Utils, M_memory_value_can_be_normalized)
 {
-    EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024GB")));
+    constexpr auto val = 1;
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "M");
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * mega);
 }
 
-TEST(Utils, G_is_valid)
+TEST(Utils, GB_memory_value_can_be_normalized)
 {
-    EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024G")));
+    constexpr auto val = 1024;
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "GB");
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * giga);
 }
 
-TEST(Utils, no_unit_is_valid)
+TEST(Utils, G_memory_value_can_be_normalized)
 {
-    EXPECT_TRUE(mp::utils::valid_memory_value(QString("1024")));
+    constexpr auto val = 5;
+    const auto result = mp::utils::in_bytes(std::to_string(val) + "G");
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * giga);
 }
 
-TEST(Utils, MM_unit_is_invalid)
+TEST(Utils, no_unit_memory_value_can_be_normalized)
 {
-    EXPECT_FALSE(mp::utils::valid_memory_value(QString("1024MM")));
+    constexpr auto val = 1024;
+    const auto result = mp::utils::in_bytes(std::to_string(val));
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val);
+}
+
+TEST(Utils, B_memory_value_can_be_normalized)
+{
+    constexpr auto val = 123;
+    const auto valstr = mp::utils::in_bytes_string(val);
+    const auto result = mp::utils::in_bytes(valstr);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val);
+}
+
+TEST(Utils, memory_value_units_may_be_smallcase)
+{
+    constexpr auto val = 42;
+    auto result = mp::utils::in_bytes(std::to_string(val) + "b");
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val);
+
+    result = mp::utils::in_bytes(std::to_string(val) + "mb");
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * mega);
+
+    result = mp::utils::in_bytes(std::to_string(val) + "kB");
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * kilo);
+
+    result = mp::utils::in_bytes(std::to_string(val) + "g");
+    EXPECT_TRUE(result);
+    EXPECT_EQ(*result, val * giga);
+}
+
+TEST(Utils, BB_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes("321BB"));
+}
+
+TEST(Utils, BK_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes("321BK"));
+}
+
+TEST(Utils, MM_unit_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes("1024MM"));
+}
+
+TEST(Utils, KM_unit_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes("1024KM"));
+}
+
+TEST(Utils, GK_unit_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes("1024GK"));
+}
+
+TEST(Utils, only_unit_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes("K"));
+}
+
+TEST(Utils, empty_string_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes(""));
+}
+
+TEST(Utils, decimal_is_invalid_memory_value)
+{
+    EXPECT_FALSE(mp::utils::in_bytes("123.321K"));
+}
+
+TEST(Utils, bytes_correctly_expressed_as_string)
+{
+    EXPECT_EQ(mp::utils::in_bytes_string(56565), "56565B");
 }
 
 TEST(Utils, hostname_begins_with_letter_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("foo")));
+    EXPECT_TRUE(mp::utils::valid_hostname("foo"));
 }
 
 TEST(Utils, hostname_single_letter_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("f")));
+    EXPECT_TRUE(mp::utils::valid_hostname("f"));
 }
 
 TEST(Utils, hostname_contains_digit_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("foo1")));
+    EXPECT_TRUE(mp::utils::valid_hostname("foo1"));
 }
 
 TEST(Utils, hostname_contains_hyphen_is_valid)
 {
-    EXPECT_TRUE(mp::utils::valid_hostname(QString("foo-bar")));
+    EXPECT_TRUE(mp::utils::valid_hostname("foo-bar"));
 }
 
 TEST(Utils, hostname_begins_with_digit_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("1foo")));
+    EXPECT_FALSE(mp::utils::valid_hostname("1foo"));
 }
 
 TEST(Utils, hostname_single_digit_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("1")));
+    EXPECT_FALSE(mp::utils::valid_hostname("1"));
 }
 
 TEST(Utils, hostname_contains_underscore_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("foo_bar")));
+    EXPECT_FALSE(mp::utils::valid_hostname("foo_bar"));
 }
 
 TEST(Utils, hostname_contains_special_character_is_invalid)
 {
-    EXPECT_FALSE(mp::utils::valid_hostname(QString("foo!")));
+    EXPECT_FALSE(mp::utils::valid_hostname("foo!"));
 }
 
 TEST(Utils, path_root_invalid)
