@@ -65,8 +65,8 @@ auto mp::utils::in_bytes(const std::string& mem_value) -> optional<long long>
 
     if (matcher.exactMatch(QString::fromStdString(mem_value)))
     {
-        auto val = matcher.cap(1).toLongLong();       // value is in the second capture (1st one is the whole match)
-        const auto unit = matcher.cap(2);             // unit in the third capture (idem)
+        auto val = matcher.cap(1).toLongLong(); // value is in the second capture (1st one is the whole match)
+        const auto unit = matcher.cap(2);       // unit in the third capture (idem)
         if (!unit.isEmpty())
         {
             switch (unit.at(0).toLower().toLatin1())

@@ -39,7 +39,8 @@ using namespace testing;
 
 struct Client : public Test
 {
-    int send_command(const std::vector<std::string>& command, std::ostream &cout = trash_stream, std::ostream &cerr = trash_stream, std::istream &cin = trash_stream)
+    int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
+                     std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
         mpt::StubTerminal term(cout, cerr, cin);
         mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,

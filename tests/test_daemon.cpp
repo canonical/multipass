@@ -129,14 +129,16 @@ struct Daemon : public Test
         return mock_factory_ptr;
     }
 
-    void send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream, std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
+    void send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
+                      std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
         send_commands({command}, cout, cerr, cin);
     }
 
     // "commands" is a vector of commands that includes necessary positional arguments, ie,
     // "start foo"
-    void send_commands(std::vector<std::vector<std::string>> commands, std::ostream& cout = trash_stream, std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
+    void send_commands(std::vector<std::vector<std::string>> commands, std::ostream& cout = trash_stream,
+                       std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
         // Commands need to be sent from a thread different from that the QEventLoop is on.
         // Event loop is started/stopped to ensure all signals are delivered
@@ -169,7 +171,6 @@ struct Daemon : public Test
 };
 
 std::stringstream Daemon::trash_stream; // replace with inline in C++17
-
 
 TEST_F(Daemon, receives_commands)
 {
