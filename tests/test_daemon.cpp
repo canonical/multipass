@@ -18,8 +18,10 @@
 #include <src/client/client.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
+#include <src/daemon/daemon_rpc.h>
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/cli/command.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -83,6 +85,8 @@ struct MockDaemon : public mp::Daemon
                                       grpc::ServerWriter<mp::UmountReply>* response));
     MOCK_METHOD3(version,
                  grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*));
+    MOCK_METHOD3(create,
+                 grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*));
 };
 
 struct StubNameGenerator : public mp::NameGenerator
@@ -96,6 +100,50 @@ struct StubNameGenerator : public mp::NameGenerator
     }
     std::string name;
 };
+
+class TestCreate final : public mp::cmd::Command
+{
+public:
+    using Command::Command;
+    mp::ReturnCode run(mp::ArgParser* /*unused*/) override
+    {
+        return mp::ReturnCode::Retry; // TODO
+    }
+
+    std::string name() const override
+    {
+        return "test_create";
+    }
+
+    QString short_help() const override
+    {
+        return {};
+    }
+
+    QString description() const override
+    {
+        return {};
+    }
+
+private:
+    mp::ParseCode parse_args(mp::ArgParser* /*unused*/) override
+    {
+        return mp::ParseCode::Ok;
+    }
+
+    mp::CreateRequest request;
+};
+
+class TestClient : public mp::Client
+{
+public:
+    explicit TestClient(mp::ClientConfig& context) : mp::Client{context}
+    {
+        add_command<TestCreate>();
+        sort_commands();
+    }
+};
+
 } // namespace
 
 struct Daemon : public Test
@@ -146,7 +194,7 @@ struct Daemon : public Test
             mpt::StubTerminal term(cout, cerr, cin);
             mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
                                            std::make_unique<mpt::StubCertProvider>(), &term};
-            mp::Client client{client_config};
+            TestClient client{client_config};
             for (const auto& command : commands)
             {
                 QStringList args = QStringList() << "multipass_test";
@@ -191,6 +239,7 @@ TEST_F(Daemon, receives_commands)
     EXPECT_CALL(daemon, version(_, _, _));
     EXPECT_CALL(daemon, mount(_, _, _));
     EXPECT_CALL(daemon, umount(_, _, _));
+    EXPECT_CALL(daemon, create(_, _, _));
 
     send_commands({{"launch", "foo"},
                    {"delete", "foo"},
@@ -206,7 +255,8 @@ TEST_F(Daemon, receives_commands)
                    {"version"},
                    {"find", "something"},
                    {"mount", ".", "target"},
-                   {"umount", "instance"}});
+                   {"umount", "instance"},
+                   {"test_create", "foo"}});
 }
 
 TEST_F(Daemon, launches_virtual_machines)
