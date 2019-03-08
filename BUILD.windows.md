@@ -10,7 +10,7 @@ Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey
 
 After chocolatey is installed you can now install the rest of the dependencies:
 
-    choco install visualcpp-build-tools cmake ninja golang nasm cmder qemu-img nsis -yfd
+    choco install visualcpp-build-tools cmake ninja golang yasm cmder qemu-img nsis -yfd
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker.
 Search for Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable Real-time protection.
@@ -18,6 +18,16 @@ Search for Windows Defender Security Center, go to Virus & threat protection, th
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any new compiler tool updates so choco upgrade
 will report no new updates available. To update the compiler and related tooling, you will need to search for "Add or remove programs",
 find "Microsoft Visual Studio Installer" and click "Modify".
+
+### Assembler
+Previously, nasm had been used to build crypto modules in the boringssl module of grpc.  However, there is a CMake bug that passes compiler options to nasm and nasm is unable to handle these options and fails.
+
+yasm in another assembler that works and will only output a warning on these options and continue building.  We will be using yasm from now on, so nasm will need to be removed and yasm will need to be installed.
+
+    choco uninstall nasm -y
+    choco install yasm -y
+
+You made need to clean your build directory and run cmake again to pick up the yasm assembler path.
 
 ### Qt5
 Install the latest stable version of Qt5 (5.11.2 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
