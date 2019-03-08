@@ -17,8 +17,11 @@
 
 #include "dnsmasq_server.h"
 
+#include "dnsmasq_process_spec.h"
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
+#include <shared/linux/process.h>
+#include <shared/linux/process_factory.h>
 
 #include <fmt/format.h>
 
@@ -28,39 +31,23 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto start_dnsmasq_process(const QDir& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
-                           const mp::IPAddress& start_ip, const mp::IPAddress& end_ip)
+auto make_dnsmasq_process(const mp::ProcessFactory* process_factory, const mp::Path& data_dir,
+                          const QString& bridge_name, const mp::IPAddress& bridge_addr, const mp::IPAddress& start,
+                          const mp::IPAddress& end)
 {
-    auto cmd = std::make_unique<QProcess>();
-
-    QObject::connect(cmd.get(), &QProcess::readyReadStandardError,
-                     [&cmd]() { mpl::log(mpl::Level::error, "dnsmasq", cmd->readAllStandardError().data()); });
-
-    cmd->start("dnsmasq",
-               QStringList() << "--keep-in-foreground"
-                             << "--strict-order"
-                             << "--bind-interfaces"
-                             << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
-                             << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
-                             << "--dhcp-no-override"
-                             << "--dhcp-authoritative"
-                             << QString("--dhcp-leasefile=%1").arg(data_dir.filePath("dnsmasq.leases"))
-                             << QString("--dhcp-hostsfile=%1").arg(data_dir.filePath("dnsmasq.hosts")) << "--dhcp-range"
-                             << QString("%1,%2,infinite")
-                                    .arg(QString::fromStdString(start_ip.as_string()))
-                                    .arg(QString::fromStdString(end_ip.as_string())));
-
-    cmd->waitForStarted();
-    return cmd;
+    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, bridge_addr, start, end);
+    return process_factory->create_process(std::move(process_spec));
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const Path& path, const QString& bridge_name, const IPAddress& bridge_addr,
-                                 const IPAddress& start, const IPAddress& end)
-    : data_dir{QDir(path)},
-      dnsmasq_cmd{start_dnsmasq_process(data_dir, bridge_name, bridge_addr, start, end)},
+mp::DNSMasqServer::DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir,
+                                 const QString& bridge_name, const IPAddress& bridge_addr, const IPAddress& start,
+                                 const IPAddress& end)
+    : data_dir{data_dir},
+      dnsmasq_cmd{make_dnsmasq_process(process_factory, data_dir, bridge_name, bridge_addr, start, end)},
       bridge_name{bridge_name}
 {
+    dnsmasq_cmd->start();
 }
 
 mp::DNSMasqServer::~DNSMasqServer()

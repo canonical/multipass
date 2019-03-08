@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,21 +11,21 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 add_library(qemu_backend STATIC
+  dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
+  qemu_vm_process_spec.cpp
   qemu_virtual_machine_factory.cpp
   qemu_virtual_machine.cpp)
 
 target_link_libraries(qemu_backend
-  backend_utils
   fmt
   logger
   Qt5::Core
   Qt5::Network
   ip_address
+  shared_linux
   ssh
   utils
   yaml)

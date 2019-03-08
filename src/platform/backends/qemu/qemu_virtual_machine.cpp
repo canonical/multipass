@@ -18,6 +18,10 @@
 #include "qemu_virtual_machine.h"
 
 #include "dnsmasq_server.h"
+#include "qemu_vm_process_spec.h"
+#include <shared/linux/backend_utils.h>
+#include <shared/linux/process.h>
+#include <shared/linux/process_factory.h>
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -48,72 +52,20 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
-                                          {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
-                                          {"s390x", "s390x"}};
 constexpr auto suspend_tag = "suspend";
 constexpr auto default_machine_type = "pc-i440fx-xenial";
 
-auto set_qemu_exec()
-{
-    auto process = std::make_unique<QProcess>();
-    auto snap = qgetenv("SNAP");
-    if (!snap.isEmpty())
-    {
-        process->setWorkingDirectory(snap.append("/qemu"));
-    }
-
-    process->setProgram("qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture()));
-
-    return process;
-}
-
-auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       const std::string& mac_addr)
+auto make_qemu_process(const mp::ProcessFactory* process_factory, const mp::VirtualMachineDescription& desc,
+                       const std::string& tap_device_name, const std::string& mac_addr)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    auto mem_size = QString::fromStdString(desc.mem_size);
-    if (mem_size.endsWith("B"))
-    {
-        mem_size.chop(1);
-    }
-
-    QStringList args{"--enable-kvm"};
-    // The VM image itself
-    args << "-hda" << desc.image.image_path;
-    // For the cloud-init configuration
-    args << "-drive"
-         << QString{"file="} + desc.cloud_init_iso + QString{",if=virtio,format=raw,snapshot=off,read-only"};
-    // Number of cpu cores
-    args << "-smp" << QString::number(desc.num_cores);
-    // Memory to use for VM
-    args << "-m" << mem_size;
-    // Create a virtual NIC in the VM
-    args << "-device" << QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1").arg(QString::fromStdString(mac_addr));
-    // Create tap device to connect to virtual bridge
-    args << "-netdev";
-    args << QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(QString::fromStdString(tap_device_name));
-    // Control interface
-    args << "-qmp"
-         << "stdio";
-    // Pass host CPU flags to VM
-    args << "-cpu"
-         << "host";
-    // No console
-    args << "-chardev"
-         // TODO Read and log machine output when verbose
-         << "null,id=char0"
-         << "-serial"
-         << "chardev:char0"
-         // TODO Add a debugging mode with access to console
-         << "-nographic";
-
-    auto process = set_qemu_exec();
-    process->setArguments(args);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, QString::fromStdString(tap_device_name),
+                                                                QString::fromStdString(mac_addr));
+    auto process = process_factory->create_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name,
              fmt::format("process working dir '{}'", process->workingDirectory().toStdString()));
@@ -176,10 +128,11 @@ auto get_qemu_machine_type()
         return QString();
     }
 
-    auto process = set_qemu_exec();
-    process->setArguments({"-nographic", "-dump-vmstate", dump_file.fileName()});
-    process->start();
-    process->waitForFinished();
+    QProcess process;
+    process.setProgram("qemu-system-" + mp::backend::cpu_arch());
+    process.setArguments({"-nographic", "-dump-vmstate", dump_file.fileName()});
+    process.start();
+    process.waitForFinished();
 
     auto vmstate = QJsonDocument::fromJson(dump_file.readAll()).object();
 
@@ -197,16 +150,18 @@ auto get_metadata()
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
+mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
+                                           const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
+                                           VMStatusMonitor& monitor)
     : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off,
                      desc.key_provider, desc.vm_name},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
+      process_factory{process_factory},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
-      vm_process{make_qemu_process(desc, tap_device_name, mac_addr)},
+      vm_process{make_qemu_process(process_factory, desc, tap_device_name, mac_addr)},
       original_args{vm_process->arguments()}
 {
     QObject::connect(vm_process.get(), &QProcess::started, [this]() {
