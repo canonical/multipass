@@ -36,6 +36,9 @@ else()
     journaldlogger)
 endif()
 
+include_directories(platform
+  backends)
+
 add_subdirectory(backends)
 add_subdirectory(client)
 add_subdirectory(console)

@@ -24,13 +24,16 @@
 
 namespace multipass
 {
+class ProcessFactory;
+
 namespace backend
 {
 std::string generate_random_subnet();
 std::string get_subnet(const Path& network_dir, const QString& bridge_name);
 void check_hypervisor_support();
-void resize_instance_image(const std::string& disk_space, const multipass::Path& image_path);
-std::string image_format_for(const Path& image_path);
+void resize_instance_image(const ProcessFactory* process_factory, const std::string& disk_space, const multipass::Path& image_path);
+Path convert_to_qcow_if_necessary(const ProcessFactory* process_factory, const Path& image_path);
+QString cpu_arch();
 }
 }
 #endif // MULTIPASS_BACKEND_UTILS_H

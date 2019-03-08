@@ -25,10 +25,12 @@
 
 namespace multipass
 {
+class ProcessFactory;
+
 class QemuVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
-    explicit QemuVirtualMachineFactory(const Path& data_dir);
+    explicit QemuVirtualMachineFactory(const ProcessFactory* process_factory, const Path& data_dir);
     ~QemuVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -41,10 +43,11 @@ public:
     void check_hypervisor_support() override;
 
 private:
+    const ProcessFactory* process_factory;
     const QString bridge_name;
     DNSMasqServer dnsmasq_server;
     std::unordered_map<std::string, std::string> name_to_mac_map;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
