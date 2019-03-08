@@ -58,6 +58,8 @@ QDir mp::utils::base_dir(const QString& path)
 auto mp::utils::in_bytes(const std::string& mem_value) -> optional<long long>
 {
     static constexpr auto kilo = 1024LL;
+    static constexpr auto mega = kilo * kilo;
+    static constexpr auto giga = mega * kilo;
 
     QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
 
@@ -70,11 +72,11 @@ auto mp::utils::in_bytes(const std::string& mem_value) -> optional<long long>
             switch (unit.at(0).toLower().toLatin1())
             {
             case 'g':
-                val *= kilo;
-                [[fallthrough]]; // absent break on purpose
+                val *= giga;
+                break;
             case 'm':
-                val *= kilo;
-                [[fallthrough]]; // absent break on purpose
+                val *= mega;
+                break;
             case 'k':
                 val *= kilo;
                 break;
