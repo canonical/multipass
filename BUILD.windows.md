@@ -20,14 +20,15 @@ will report no new updates available. To update the compiler and related tooling
 find "Microsoft Visual Studio Installer" and click "Modify".
 
 ### Assembler
-Previously, nasm had been used to build crypto modules in the boringssl module of grpc.  However, there is a CMake bug that passes compiler options to nasm and nasm is unable to handle these options and fails.
+Previously, nasm had been used to build crypto modules in the boringssl module of grpc. However, there is a CMake bug that passes compiler options to nasm and nasm is unable to handle these options and fails.
 
-yasm in another assembler that works and will only output a warning on these options and continue building.  We will be using yasm from now on, so nasm will need to be removed and yasm will need to be installed.
+yasm is another assembler that works and will only output a warning on these options and continue building. We will be using yasm from now on, so nasm will need to be removed and yasm will need to be installed.
 
     choco uninstall nasm -y
+    C:\Program Files\NASM\Uninstall.exe
     choco install yasm -y
 
-You made need to clean your build directory and run cmake again to pick up the yasm assembler path.
+You may need to clean your build directory and run cmake again to pick up the yasm assembler path.
 
 ### Qt5
 Install the latest stable version of Qt5 (5.11.2 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
