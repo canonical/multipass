@@ -263,6 +263,15 @@ TEST_F(Daemon, receives_commands)
                    {"umount", "instance"}});
 }
 
+TEST_F(Daemon, creates_virtual_machines)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    send_command({"test_create"});
+}
+
 TEST_F(Daemon, launches_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -272,6 +281,15 @@ TEST_F(Daemon, launches_virtual_machines)
     send_command({"launch"});
 }
 
+TEST_F(Daemon, on_creation_hooks_up_platform_prepare_source_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, prepare_source_image(_));
+    send_command({"test_create"});
+}
+
 TEST_F(Daemon, on_launch_hooks_up_platform_prepare_source_image)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -279,6 +297,15 @@ TEST_F(Daemon, on_launch_hooks_up_platform_prepare_source_image)
 
     EXPECT_CALL(*mock_factory, prepare_source_image(_));
     send_command({"launch"});
+}
+
+TEST_F(Daemon, on_creation_hooks_up_platform_prepare_instance_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
+    send_command({"test_create"});
 }
 
 TEST_F(Daemon, on_launch_hooks_up_platform_prepare_instance_image)
@@ -298,6 +325,19 @@ TEST_F(Daemon, provides_version)
     send_command({"version"}, stream);
 
     EXPECT_THAT(stream.str(), HasSubstr(mp::version_string));
+}
+
+TEST_F(Daemon, generates_name_on_creation_when_client_does_not_provide_one)
+{
+    const std::string expected_name{"pied-piper-valley"};
+
+    config_builder.name_generator = std::make_unique<StubNameGenerator>(expected_name);
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"test_create"}, stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr(expected_name));
 }
 
 TEST_F(Daemon, generates_name_on_launch_when_client_does_not_provide_one)
