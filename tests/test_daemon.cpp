@@ -283,6 +283,14 @@ struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<st
 {
 };
 
+struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
+{
+};
+
+struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -458,16 +466,6 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
     send_command({GetParam()});
 }
 
-INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
-
-struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
-{
-};
-
-struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
-{
-};
-
 TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -497,6 +495,7 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
                 AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk")), HasSubstr("minimum")));
 }
 
+INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
                          Combine(Values("--mem", "--disk"), Values("1024m", "2Gb", "987654321")));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite,
