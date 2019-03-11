@@ -86,7 +86,7 @@ struct MockDaemon : public mp::Daemon
     MOCK_METHOD3(version,
                  grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*));
     MOCK_METHOD3(create,
-                 grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*));
+                 grpc::Status(grpc::ServerContext*, const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*));
 };
 
 struct StubNameGenerator : public mp::NameGenerator
@@ -105,9 +105,13 @@ class TestCreate final : public mp::cmd::Command
 {
 public:
     using Command::Command;
-    mp::ReturnCode run(mp::ArgParser* /*unused*/) override
+    mp::ReturnCode run(mp::ArgParser* /*parser*/) override
     {
-        return mp::ReturnCode::Retry; // TODO
+        auto on_success = [](mp::CreateReply& /*reply*/) { return mp::ReturnCode::Ok; };
+        auto on_failure = [](grpc::Status& /*status*/) { return mp::ReturnCode::CommandFail; };
+        auto streaming_callback = [](mp::CreateReply& /*reply*/) { /*pass*/ };
+
+        return dispatch(&mp::Rpc::Stub::create, request, on_success, on_failure, streaming_callback);
     }
 
     std::string name() const override
@@ -126,7 +130,7 @@ public:
     }
 
 private:
-    mp::ParseCode parse_args(mp::ArgParser* /*unused*/) override
+    mp::ParseCode parse_args(mp::ArgParser* /*parser*/) override
     {
         return mp::ParseCode::Ok;
     }
