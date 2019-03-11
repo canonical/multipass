@@ -460,6 +460,28 @@ TEST_F(Daemon, default_cloud_init_grows_root_fs_on_launch)
     send_command({"launch"});
 }
 
+TEST_F(Daemon, default_cloud_init_grows_root_fs_on_creation)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, configure(_, _, _))
+        .WillOnce(Invoke([](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
+            EXPECT_THAT(user_config, YAMLNodeContainsMap("growpart"));
+
+            if (user_config["growpart"])
+            {
+                auto const& growpart_stanza = user_config["growpart"];
+
+                EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("mode", "auto"));
+                EXPECT_THAT(growpart_stanza, YAMLNodeContainsStringArray("devices", std::vector<std::string>({"/"})));
+                EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("ignore_growroot_disabled", "false"));
+            }
+        }));
+
+    send_command({"test_create"});
+}
+
 namespace
 {
 class DummyKeyProvider : public mpt::StubSSHKeyProvider
@@ -493,6 +515,23 @@ TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config_on_launch)
         }));
 
     send_command({"launch"});
+}
+
+TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config_on_creation)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    std::string expected_key{"thisitnotansshkeyactually"};
+    config_builder.ssh_key_provider = std::make_unique<DummyKeyProvider>(expected_key);
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, configure(_, _, _))
+        .WillOnce(Invoke([&expected_key](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
+            ASSERT_THAT(user_config, YAMLNodeContainsSequence("ssh_authorized_keys"));
+            auto const& ssh_keys_stanza = user_config["ssh_authorized_keys"];
+            EXPECT_THAT(ssh_keys_stanza, YAMLNodeContainsSubString(expected_key));
+        }));
+
+    send_command({"test_create"});
 }
 
 namespace
