@@ -116,105 +116,105 @@ grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchReq
                                    grpc::ServerWriter<LaunchReply>* reply)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_launch, this, context, request, reply, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_launch, this, request, reply, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context, const PurgeRequest* request,
                                   grpc::ServerWriter<PurgeReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_purge, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_purge, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context, const FindRequest* request,
                                  grpc::ServerWriter<FindReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_find, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_find, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::info(grpc::ServerContext* context, const InfoRequest* request,
                                  grpc::ServerWriter<InfoReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_info, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_info, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context, const ListRequest* request,
                                  grpc::ServerWriter<ListReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_list, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_list, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::mount(grpc::ServerContext* context, const MountRequest* request,
                                   grpc::ServerWriter<MountReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_mount, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_mount, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::recover(grpc::ServerContext* context, const RecoverRequest* request,
                                     grpc::ServerWriter<RecoverReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_recover, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_recover, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
                                      grpc::ServerWriter<SSHInfoReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_ssh_info, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_ssh_info, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::start(grpc::ServerContext* context, const StartRequest* request,
                                   grpc::ServerWriter<StartReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_start, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_start, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context, const StopRequest* request,
                                  grpc::ServerWriter<StopReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_stop, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_stop, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::suspend(grpc::ServerContext* context, const SuspendRequest* request,
                                     grpc::ServerWriter<SuspendReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_suspend, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_suspend, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::restart(grpc::ServerContext* context, const RestartRequest* request,
                                     grpc::ServerWriter<RestartReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_restart, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_restart, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                   grpc::ServerWriter<DeleteReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_delete, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_delete, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::umount(grpc::ServerContext* context, const UmountRequest* request,
                                    grpc::ServerWriter<UmountReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_umount, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_umount, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionRequest* request,
                                     grpc::ServerWriter<VersionReply>* response)
 {
     return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_version, this, context, request, response, std::placeholders::_1));
+        std::bind(&DaemonRpc::on_version, this, request, response, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response)
