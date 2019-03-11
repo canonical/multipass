@@ -267,60 +267,6 @@ TEST_F(Daemon, receives_commands)
                    {"umount", "instance"}});
 }
 
-TEST_F(Daemon, creates_virtual_machines)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
-    send_command({"test_create"});
-}
-
-TEST_F(Daemon, launches_virtual_machines)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
-    send_command({"launch"});
-}
-
-TEST_F(Daemon, on_creation_hooks_up_platform_prepare_source_image)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(*mock_factory, prepare_source_image(_));
-    send_command({"test_create"});
-}
-
-TEST_F(Daemon, on_launch_hooks_up_platform_prepare_source_image)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(*mock_factory, prepare_source_image(_));
-    send_command({"launch"});
-}
-
-TEST_F(Daemon, on_creation_hooks_up_platform_prepare_instance_image)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
-    send_command({"test_create"});
-}
-
-TEST_F(Daemon, on_launch_hooks_up_platform_prepare_instance_image)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
-    send_command({"launch"});
-}
-
 TEST_F(Daemon, provides_version)
 {
     mp::Daemon daemon{config_builder.build()};
@@ -331,20 +277,40 @@ TEST_F(Daemon, provides_version)
     EXPECT_THAT(stream.str(), HasSubstr(mp::version_string));
 }
 
-TEST_F(Daemon, generates_name_on_creation_when_client_does_not_provide_one)
+namespace
 {
-    const std::string expected_name{"pied-piper-valley"};
+struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<std::string>
+{
+};
 
-    config_builder.name_generator = std::make_unique<StubNameGenerator>(expected_name);
+TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
+{
+    auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream stream;
-    send_command({"test_create"}, stream);
-
-    EXPECT_THAT(stream.str(), HasSubstr(expected_name));
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    send_command({GetParam()});
 }
 
-TEST_F(Daemon, generates_name_on_launch_when_client_does_not_provide_one)
+TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_source_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, prepare_source_image(_));
+    send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_instance_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
+    send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, generates_name_on_creation_when_client_does_not_provide_one)
 {
     const std::string expected_name{"pied-piper-valley"};
 
@@ -352,7 +318,7 @@ TEST_F(Daemon, generates_name_on_launch_when_client_does_not_provide_one)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
-    send_command({"launch"}, stream);
+    send_command({GetParam()}, stream);
 
     EXPECT_THAT(stream.str(), HasSubstr(expected_name));
 }
@@ -438,7 +404,7 @@ MATCHER_P(YAMLNodeContainsSequence, key, "")
     return arg[key].IsSequence();
 }
 
-TEST_F(Daemon, default_cloud_init_grows_root_fs_on_launch)
+TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -457,33 +423,9 @@ TEST_F(Daemon, default_cloud_init_grows_root_fs_on_launch)
             }
         }));
 
-    send_command({"launch"});
+    send_command({GetParam()});
 }
 
-TEST_F(Daemon, default_cloud_init_grows_root_fs_on_creation)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(*mock_factory, configure(_, _, _))
-        .WillOnce(Invoke([](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
-            EXPECT_THAT(user_config, YAMLNodeContainsMap("growpart"));
-
-            if (user_config["growpart"])
-            {
-                auto const& growpart_stanza = user_config["growpart"];
-
-                EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("mode", "auto"));
-                EXPECT_THAT(growpart_stanza, YAMLNodeContainsStringArray("devices", std::vector<std::string>({"/"})));
-                EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("ignore_growroot_disabled", "false"));
-            }
-        }));
-
-    send_command({"test_create"});
-}
-
-namespace
-{
 class DummyKeyProvider : public mpt::StubSSHKeyProvider
 {
 public:
@@ -498,9 +440,8 @@ public:
 private:
     std::string key;
 };
-} // namespace
 
-TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config_on_launch)
+TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
 {
     auto mock_factory = use_a_mock_vm_factory();
     std::string expected_key{"thisitnotansshkeyactually"};
@@ -514,28 +455,11 @@ TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config_on_launch)
             EXPECT_THAT(ssh_keys_stanza, YAMLNodeContainsSubString(expected_key));
         }));
 
-    send_command({"launch"});
+    send_command({GetParam()});
 }
 
-TEST_F(Daemon, adds_ssh_keys_to_cloud_init_config_on_creation)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    std::string expected_key{"thisitnotansshkeyactually"};
-    config_builder.ssh_key_provider = std::make_unique<DummyKeyProvider>(expected_key);
-    mp::Daemon daemon{config_builder.build()};
+INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 
-    EXPECT_CALL(*mock_factory, configure(_, _, _))
-        .WillOnce(Invoke([&expected_key](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
-            ASSERT_THAT(user_config, YAMLNodeContainsSequence("ssh_authorized_keys"));
-            auto const& ssh_keys_stanza = user_config["ssh_authorized_keys"];
-            EXPECT_THAT(ssh_keys_stanza, YAMLNodeContainsSubString(expected_key));
-        }));
-
-    send_command({"test_create"});
-}
-
-namespace
-{
 struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
 {
 };
