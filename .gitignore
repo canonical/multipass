@@ -5,3 +5,9 @@ CMakeLists.txt.user
 # only care about the encrypted file
 /tools/bot-data/*
 /tools/bot-data.tar.xz
+
+# snapcraft build artifacts
+parts
+prime
+stage
+snap/.snapcraft/state
