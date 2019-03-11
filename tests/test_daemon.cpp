@@ -46,6 +46,7 @@
 #include <QCoreApplication>
 
 #include <memory>
+#include <ostream>
 #include <sstream>
 #include <string>
 
@@ -109,7 +110,10 @@ public:
     {
         auto on_success = [](mp::CreateReply& /*reply*/) { return mp::ReturnCode::Ok; };
         auto on_failure = [](grpc::Status& /*status*/) { return mp::ReturnCode::CommandFail; };
-        auto streaming_callback = [](mp::CreateReply& /*reply*/) { /*pass*/ };
+        auto streaming_callback = [this](mp::CreateReply& reply)
+        {
+            cout << reply.create_message() << std::endl;
+        };
 
         return dispatch(&mp::Rpc::Stub::create, request, on_success, on_failure, streaming_callback);
     }
