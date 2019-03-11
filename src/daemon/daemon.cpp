@@ -20,6 +20,7 @@
 #include "json_writer.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/constants.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
@@ -52,6 +53,7 @@
 #include <functional>
 #include <stdexcept>
 #include <unordered_set>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -69,6 +71,8 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 constexpr auto max_install_sshfs_retries = 3;
+const auto normalized_min_mem = mp::utils::in_bytes(mp::min_memory_size);
+const auto normalized_min_disk = mp::utils::in_bytes(mp::min_disk_size);
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -151,24 +155,22 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
+                                              const std::string& mem_size, const std::string& disk_space,
                                               const std::string& mac_addr, const std::string& ssh_username,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
                                               YAML::Node& user_data_config, YAML::Node& vendor_data_config,
                                               const mp::SSHKeyProvider& key_provider)
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
-    const auto mem_size = request->mem_size().empty() ? "1G" : request->mem_size();
-    const auto disk_size = request->disk_space().empty() ? "5G" : request->disk_space();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_size, name, mac_addr, ssh_username, image, cloud_init_iso, key_provider};
+    return {num_cores, mem_size, disk_space, name, mac_addr, ssh_username, image, cloud_init_iso, key_provider};
 }
 
 template <typename T>
-auto name_from(const mp::LaunchRequest* request, mp::NameGenerator& name_gen, const T& currently_used_names)
+auto name_from(const std::string& requested_name, mp::NameGenerator& name_gen, const T& currently_used_names)
 {
-    auto requested_name = request->instance_name();
     if (requested_name.empty())
     {
         auto name = name_gen.make_name();
@@ -278,25 +280,35 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
 
 auto validate_create_arguments(const mp::LaunchRequest* request)
 {
-    mp::LaunchError launch_error;
+    auto mem_size = request->mem_size();
+    auto disk_space = request->disk_space();
+    auto instance_name = request->instance_name();
+    auto option_errors = mp::LaunchError{};
 
-    if (!request->disk_space().empty() && !mp::utils::valid_memory_value(QString::fromStdString(request->disk_space())))
+    const auto opt_mem_size = mp::utils::in_bytes(mem_size.empty() ? "1G" : mem_size);
+    const auto opt_disk_space = mp::utils::in_bytes(disk_space.empty() ? "5G" : disk_space);
+
+    if (opt_mem_size && *opt_mem_size >= normalized_min_mem)
+        mem_size = mp::utils::in_bytes_string(*opt_mem_size);
+    else
+        option_errors.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
+
+    if (opt_disk_space && *opt_disk_space >= normalized_min_disk)
+        disk_space = mp::utils::in_bytes_string(*opt_disk_space);
+    else
+        option_errors.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
+
+    if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
+        option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
+
+    struct CheckedArguments
     {
-        launch_error.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
-    }
-
-    if (!request->mem_size().empty() && !mp::utils::valid_memory_value(QString::fromStdString(request->mem_size())))
-    {
-        launch_error.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
-    }
-
-    if (!request->instance_name().empty() &&
-        !mp::utils::valid_hostname(QString::fromStdString(request->instance_name())))
-    {
-        launch_error.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
-    }
-
-    return launch_error;
+        std::string mem_size;
+        std::string disk_space;
+        std::string instance_name;
+        mp::LaunchError option_errors;
+    } ret{mem_size, disk_space, instance_name, option_errors};
+    return ret;
 }
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
@@ -1886,7 +1898,16 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateRequest* request,
                                    grpc::ServerWriter<CreateReply>* server, bool start)
 {
-    auto name = name_from(request, *config->name_generator, vm_instances);
+    auto checked_args = validate_create_arguments(request);
+
+    if (!checked_args.option_errors.error_codes().empty())
+    {
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
+                            checked_args.option_errors.SerializeAsString());
+    }
+
+    auto name = name_from(checked_args.instance_name, *config->name_generator, vm_instances);
+
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
         CreateError create_error;
@@ -1899,14 +1920,6 @@ grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateReq
     auto query = query_from(request, name);
 
     config->factory->check_hypervisor_support();
-
-    auto option_errors = validate_create_arguments(request);
-
-    if (!option_errors.error_codes().empty())
-    {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
-                            option_errors.SerializeAsString());
-    }
 
     auto progress_monitor = [server](int progress_type, int percentage) {
         CreateReply create_reply;
@@ -1952,8 +1965,9 @@ grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateReq
         }
     }
     auto vm_desc =
-        to_machine_desc(request, name, mac_addr, config->ssh_username, vm_image, meta_data_cloud_init_config,
-                        user_data_cloud_init_config, vendor_data_cloud_init_config, *config->ssh_key_provider);
+        to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr, config->ssh_username,
+                        vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
+                        vendor_data_cloud_init_config, *config->ssh_key_provider);
 
     config->factory->prepare_instance_image(vm_image, vm_desc);
 

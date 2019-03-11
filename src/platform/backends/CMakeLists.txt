@@ -14,6 +14,6 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_subdirectory(backend_utils)
+add_subdirectory(shared/linux)
 add_subdirectory(libvirt)
 add_subdirectory(qemu)

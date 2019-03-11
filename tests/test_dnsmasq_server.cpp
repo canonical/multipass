@@ -21,6 +21,7 @@
 #include <multipass/logging/logger.h>
 
 #include "file_operations.h"
+#include "stub_process_factory.h"
 #include "temp_dir.h"
 #include "test_with_mocked_bin_path.h"
 
@@ -66,6 +67,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
 
     mpt::TempDir data_dir;
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
+    mpt::StubProcessFactory process_factory;
     const QString bridge_name{"dummy-bridge"};
     const mp::IPAddress bridge_addr{"192.168.64.1"};
     const mp::IPAddress start_addr{"192.168.64.2"};
@@ -78,12 +80,12 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
 } // namespace
 TEST_F(DNSMasqServer, starts_dnsmasq_process)
 {
-    EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, bridge_addr, start_addr, end_addr));
+    EXPECT_NO_THROW(mp::DNSMasqServer dns(&process_factory, data_dir.path(), bridge_name, bridge_addr, start_addr, end_addr));
 }
 
 TEST_F(DNSMasqServer, finds_ip)
 {
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{&process_factory, data_dir.path(), bridge_name, bridge_addr, start_addr, end_addr};
     make_lease_entry();
 
     auto ip = dns.get_ip_for(hw_addr);
@@ -94,7 +96,7 @@ TEST_F(DNSMasqServer, finds_ip)
 
 TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
 {
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{&process_factory, data_dir.path(), bridge_name, bridge_addr, start_addr, end_addr};
 
     const std::string hw_addr{"00:01:02:03:04:05"};
     auto ip = dns.get_ip_for(hw_addr);
@@ -106,7 +108,7 @@ TEST_F(DNSMasqServer, release_mac_releases_ip)
 {
     const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
 
-    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{&process_factory, data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
     make_lease_entry();
 
     dns.release_mac(hw_addr);
@@ -118,7 +120,7 @@ TEST_F(DNSMasqServer, release_mac_logs_failure_on_missing_ip)
 {
     const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
 
-    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{&process_factory, data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
     dns.release_mac(hw_addr);
 
     EXPECT_FALSE(QFile::exists(dchp_release_called));
@@ -129,7 +131,7 @@ TEST_F(DNSMasqServer, release_mac_logs_failures)
 {
     const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called.fail")};
 
-    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
+    mp::DNSMasqServer dns{&process_factory, data_dir.path(), dchp_release_called, bridge_addr, start_addr, end_addr};
     make_lease_entry();
 
     dns.release_mac(hw_addr);
