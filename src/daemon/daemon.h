@@ -136,7 +136,7 @@ private:
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
     grpc::Status create_vm(grpc::ServerContext* context, const CreateRequest* request,
-                           grpc::ServerWriter<CreateReply>* server, const std::string& name);
+                           grpc::ServerWriter<CreateReply>* server, bool start);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);

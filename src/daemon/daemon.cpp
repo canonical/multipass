@@ -630,7 +630,7 @@ grpc::Status mp::Daemon::create(grpc::ServerContext* context, const CreateReques
 try // clang-format on
 {
     mpl::ClientLogger<CreateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-    return create_vm(context, request, server, name_from(request, *config->name_generator, vm_instances));
+    return create_vm(context, request, server, /*start=*/false);
 }
 catch (const std::exception& e)
 {
@@ -673,23 +673,7 @@ try // clang-format on
     if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
         metrics_provider.send_metrics();
 
-    auto name = name_from(request, *config->name_generator, vm_instances);
-    auto status = create_vm(context, request, server, name);
-    if (status.ok())
-    {
-        LaunchReply reply;
-        reply.set_create_message("Starting " + name);
-        server->Write(reply);
-
-        auto& vm = vm_instances[name];
-        vm->start();
-        vm->wait_until_ssh_up(std::chrono::minutes(5));
-
-        reply.set_vm_instance_name(name);
-        server->Write(reply);
-    }
-
-    return status;
+    return create_vm(context, request, server, /*start=*/true);;
 }
 catch (const mp::StartException& e)
 {
@@ -1900,8 +1884,9 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 }
 
 grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateRequest* request,
-                                   grpc::ServerWriter<CreateReply>* server, const std::string& name)
+                                   grpc::ServerWriter<CreateReply>* server, bool start)
 {
+    auto name = name_from(request, *config->name_generator, vm_instances);
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
         CreateError create_error;
@@ -1983,6 +1968,20 @@ grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateReq
                                false,
                                QJsonObject()};
     persist_instances();
+
+    if (start)
+    {
+        LaunchReply reply;
+        reply.set_create_message("Starting " + name);
+        server->Write(reply);
+
+        auto& vm = vm_instances[name];
+        vm->start();
+        vm->wait_until_ssh_up(std::chrono::minutes(5));
+
+        reply.set_vm_instance_name(name);
+        server->Write(reply);
+    }
 
     return grpc::Status::OK;
 }
