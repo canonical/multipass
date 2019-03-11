@@ -283,11 +283,11 @@ struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<st
 {
 };
 
-struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
+struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string, std::string>>
 {
 };
 
-struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
+struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string, std::string>>
 {
 };
 
@@ -472,11 +472,12 @@ TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
     mp::Daemon daemon{config_builder.build()};
 
     const auto param = GetParam();
-    const auto& opt_name = std::get<0>(param);
-    const auto& opt_value = std::get<1>(param);
+    const auto& cmd = std::get<0>(param);
+    const auto& opt_name = std::get<1>(param);
+    const auto& opt_value = std::get<2>(param);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
-    send_command({"launch", opt_name, opt_value});
+    send_command({cmd, opt_name, opt_value});
 }
 
 TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
@@ -486,19 +487,20 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
 
     std::stringstream stream;
     const auto param = GetParam();
-    const auto& opt_name = std::get<0>(param);
-    const auto& opt_value = std::get<1>(param);
+    const auto& cmd = std::get<0>(param);
+    const auto& opt_name = std::get<1>(param);
+    const auto& opt_value = std::get<2>(param);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
-    send_command({"launch", opt_name, opt_value}, std::cout, stream);
+    send_command({cmd, opt_name, opt_value}, std::cout, stream);
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk")), HasSubstr("minimum")));
 }
 
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
-                         Combine(Values("--mem", "--disk"), Values("1024m", "2Gb", "987654321")));
+                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"), Values("1024m", "2Gb", "987654321")));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite,
-                         Combine(Values("--mem", "--disk"), Values("0", "0B", "0GB", "123B", "42kb", "100")));
+                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"), Values("0", "0B", "0GB", "123B", "42kb", "100")));
 
 } // namespace
