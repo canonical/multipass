@@ -58,6 +58,8 @@ namespace
 struct MockDaemon : public mp::Daemon
 {
     using mp::Daemon::Daemon;
+    MOCK_METHOD3(create,
+                 grpc::Status(grpc::ServerContext*, const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*));
     MOCK_METHOD3(launch,
                  grpc::Status(grpc::ServerContext*, const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*));
     MOCK_METHOD3(purge,
@@ -85,8 +87,6 @@ struct MockDaemon : public mp::Daemon
                                       grpc::ServerWriter<mp::UmountReply>* response));
     MOCK_METHOD3(version,
                  grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*));
-    MOCK_METHOD3(create,
-                 grpc::Status(grpc::ServerContext*, const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*));
 };
 
 struct StubNameGenerator : public mp::NameGenerator
@@ -228,6 +228,7 @@ TEST_F(Daemon, receives_commands)
 {
     MockDaemon daemon{config_builder.build()};
 
+    EXPECT_CALL(daemon, create(_, _, _));
     EXPECT_CALL(daemon, launch(_, _, _));
     EXPECT_CALL(daemon, purge(_, _, _));
     EXPECT_CALL(daemon, find(_, _, _));
@@ -243,9 +244,9 @@ TEST_F(Daemon, receives_commands)
     EXPECT_CALL(daemon, version(_, _, _));
     EXPECT_CALL(daemon, mount(_, _, _));
     EXPECT_CALL(daemon, umount(_, _, _));
-    EXPECT_CALL(daemon, create(_, _, _));
 
-    send_commands({{"launch", "foo"},
+    send_commands({{"test_create", "foo"},
+                   {"launch", "foo"},
                    {"delete", "foo"},
                    {"exec", "foo", "--", "cmd"},
                    {"info", "foo"},
@@ -259,8 +260,7 @@ TEST_F(Daemon, receives_commands)
                    {"version"},
                    {"find", "something"},
                    {"mount", ".", "target"},
-                   {"umount", "instance"},
-                   {"test_create", "foo"}});
+                   {"umount", "instance"}});
 }
 
 TEST_F(Daemon, launches_virtual_machines)
