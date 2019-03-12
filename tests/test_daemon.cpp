@@ -21,6 +21,7 @@
 #include <src/daemon/daemon_rpc.h>
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
@@ -106,16 +107,39 @@ class TestCreate final : public mp::cmd::Command
 {
 public:
     using Command::Command;
-    mp::ReturnCode run(mp::ArgParser* /*parser*/) override
+    mp::ReturnCode run(mp::ArgParser* parser) override
     {
         auto on_success = [](mp::CreateReply& /*reply*/) { return mp::ReturnCode::Ok; };
-        auto on_failure = [](grpc::Status& /*status*/) { return mp::ReturnCode::CommandFail; };
+        auto on_failure = [this](grpc::Status& status)
+        {
+            mp::CreateError create_error;
+            create_error.ParseFromString(status.error_details());
+            const auto errors = create_error.error_codes();
+
+            cerr << "fail: ";
+            if(errors.size() == 1)
+            {
+                const auto& error = errors[0];
+                if(error == mp::CreateError::INVALID_DISK_SIZE)
+                    cerr << "disk";
+                else if(error == mp::CreateError::INVALID_MEM_SIZE)
+                    cerr << "memory";
+                else
+                    cerr << "?";
+            }
+
+            return mp::ReturnCode::CommandFail;
+        };
+
         auto streaming_callback = [this](mp::CreateReply& reply)
         {
             cout << reply.create_message() << std::endl;
         };
 
-        return dispatch(&mp::Rpc::Stub::create, request, on_success, on_failure, streaming_callback);
+        auto ret = parse_args(parser);
+        return ret == mp::ParseCode::Ok
+                   ? dispatch(&mp::Rpc::Stub::create, request, on_success, on_failure, streaming_callback)
+                   : parser->returnCodeFrom(ret);
     }
 
     std::string name() const override
@@ -134,9 +158,23 @@ public:
     }
 
 private:
-    mp::ParseCode parse_args(mp::ArgParser* /*parser*/) override
+    mp::ParseCode parse_args(mp::ArgParser* parser) override
     {
-        return mp::ParseCode::Ok;
+        QCommandLineOption diskOption("disk", "", "disk", "");
+        QCommandLineOption memOption("mem", "", "mem", "");
+        parser->addOptions({diskOption, memOption});
+
+        auto status = parser->commandParse(this);
+        if (status == mp::ParseCode::Ok)
+        {
+            if (parser->isSet(memOption))
+                request.set_mem_size(parser->value(memOption).toStdString());
+
+            if (parser->isSet(diskOption))
+                request.set_disk_space(parser->value(diskOption).toStdString());
+        }
+
+        return status;
     }
 
     mp::CreateRequest request;
@@ -493,8 +531,7 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
     send_command({cmd, opt_name, opt_value}, std::cout, stream);
-    EXPECT_THAT(stream.str(),
-                AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk")), HasSubstr("minimum")));
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk"))));
 }
 
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
