@@ -101,6 +101,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
+  test_memory_size.cpp
 
   ${BACKEND_TESTS}
 
