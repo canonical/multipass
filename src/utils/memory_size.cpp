@@ -89,30 +89,30 @@ long long mp::MemorySize::in_gigabytes() const noexcept
 
 bool mp::operator==(const MemorySize &a, const MemorySize &b)
 {
-    return false; // TODO @ricab
+    return a.bytes == b.bytes;
 }
 
 bool mp::operator!=(const MemorySize &a, const MemorySize &b)
 {
-    return false; // TODO @ricab
+    return a.bytes != b.bytes;
 }
 
 bool mp::operator<(const MemorySize &a, const MemorySize &b)
 {
-    return false; // TODO @ricab
+    return a.bytes < b.bytes;
 }
 
 bool mp::operator>(const MemorySize &a, const MemorySize &b)
 {
-    return false; // TODO @ricab
+    return a.bytes > b.bytes;
 }
 
 bool mp::operator<=(const MemorySize &a, const MemorySize &b)
 {
-    return false; // TODO @ricab
+    return a.bytes <= b.bytes;
 }
 
 bool mp::operator>=(const MemorySize &a, const MemorySize &b)
 {
-    return false; // TODO @ricab
+    return a.bytes >= b.bytes;
 }
