@@ -152,6 +152,37 @@ TEST(MemorySize, converts0ToG)
     EXPECT_EQ(mp::MemorySize{"0G"}.in_gigabytes(), 0LL);
 }
 
+TEST(MemorySize, convertsHigherUnitToK)
+{
+    constexpr auto val = 694;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_kilobytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_kilobytes(), val * mega);
+}
+
+TEST(MemorySize, convertsHigherUnitToM)
+{
+    constexpr auto val = 653;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_megabytes(), val * kilo);
+}
+
+TEST(MemorySize, convertsLowerUnitToKWhenExactMultiple)
+{
+    constexpr auto val = 2;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val * kilo)}.in_kilobytes(), val);
+}
+
+TEST(MemorySize, convertsLowerUnitToMWhenExactMultiple)
+{
+    constexpr auto val = 456;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val * giga)}.in_megabytes(), val * kilo);
+}
+
+TEST(MemorySize, convertsLowerUnitToGWhenExactMultiple)
+{
+    constexpr auto val = 99;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val * giga)}.in_gigabytes(), val);
+}
+
 TEST(MemorySize, interpretsSmallcaseUnits)
 {
     constexpr auto val = 42;
