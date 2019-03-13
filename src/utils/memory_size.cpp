@@ -73,15 +73,15 @@ long long mp::MemorySize::in_bytes() const noexcept
 
 long long mp::MemorySize::in_kilobytes() const noexcept
 {
-    return 0LL; // TODO @ricab
+    return 123LL; // TODO @ricab
 }
 
 long long mp::MemorySize::in_megabytes() const noexcept
 {
-    return 0LL; // TODO @ricab
+    return 123LL; // TODO @ricab
 }
 
 long long mp::MemorySize::in_gigabytes() const noexcept
 {
-    return 0LL; // TODO @ricab
+    return 123LL; // TODO @ricab
 }

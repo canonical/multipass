@@ -137,6 +137,21 @@ TEST(MemorySize, interprets0G)
     EXPECT_EQ(size.in_bytes(), val);
 }
 
+TEST(MemorySize, converts0ToK)
+{
+    EXPECT_EQ(mp::MemorySize{"0"}.in_kilobytes(), 0LL);
+}
+
+TEST(MemorySize, converts0ToM)
+{
+    EXPECT_EQ(mp::MemorySize{"0B"}.in_megabytes(), 0LL);
+}
+
+TEST(MemorySize, converts0ToG)
+{
+    EXPECT_EQ(mp::MemorySize{"0G"}.in_gigabytes(), 0LL);
+}
+
 TEST(MemorySize, interpretsSmallcaseUnits)
 {
     constexpr auto val = 42;
