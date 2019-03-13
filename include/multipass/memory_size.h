@@ -25,7 +25,14 @@ namespace multipass
 class MemorySize
 {
 public:
-    MemorySize(const std::string& val);
+    friend bool operator==(const MemorySize &a, const MemorySize &b);
+    friend bool operator!=(const MemorySize &a, const MemorySize &b);
+    friend bool operator<(const MemorySize &a, const MemorySize &b);
+    friend bool operator>(const MemorySize &a, const MemorySize &b);
+    friend bool operator<=(const MemorySize &a, const MemorySize &b);
+    friend bool operator>=(const MemorySize &a, const MemorySize &b);
+
+    explicit MemorySize(const std::string& val);
     long long in_bytes() const noexcept;
     long long in_kilobytes() const noexcept;
     long long in_megabytes() const noexcept;
@@ -34,6 +41,14 @@ public:
 private:
     long long bytes;
 };
+
+bool operator==(const MemorySize &a, const MemorySize &b);
+bool operator!=(const MemorySize &a, const MemorySize &b);
+bool operator<(const MemorySize &a, const MemorySize &b);
+bool operator>(const MemorySize &a, const MemorySize &b);
+bool operator<=(const MemorySize &a, const MemorySize &b);
+bool operator>=(const MemorySize &a, const MemorySize &b);
+
 } // namespace multipass
 
 #endif // MULTIPASS_MEMORY_SIZE_H

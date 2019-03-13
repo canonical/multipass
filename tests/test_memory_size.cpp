@@ -210,6 +210,57 @@ TEST(MemorySize, interpretsSmallcaseUnits)
     EXPECT_EQ(mp::MemorySize{std::to_string(val) + "g"}.in_gigabytes(), val);
 }
 
+TEST(MemorySize, canCompareEqual)
+{
+    mp::MemorySize x{"999"};
+    EXPECT_EQ(x, x);
+    EXPECT_EQ(x, mp::MemorySize{x});
+    EXPECT_EQ(mp::MemorySize{"2048"}, mp::MemorySize{"2k"});
+    EXPECT_EQ(mp::MemorySize{"2g"}, mp::MemorySize{"2048M"});
+    EXPECT_EQ(mp::MemorySize{"2g"}, mp::MemorySize{"2048M"});
+    EXPECT_EQ(mp::MemorySize{"0m"}, mp::MemorySize{"0k"});
+}
+
+TEST(MemorySize, canCompareNotEqual)
+{
+    EXPECT_NE(mp::MemorySize{"2048b"}, mp::MemorySize{"2g"});
+    EXPECT_NE(mp::MemorySize{"42g"}, mp::MemorySize{"42m"});
+    EXPECT_NE(mp::MemorySize{"123"}, mp::MemorySize{"321"});
+    EXPECT_NE(mp::MemorySize{"2352346"}, mp::MemorySize{"0"});
+}
+
+TEST(MemorySize, canCompareGreater)
+{
+    EXPECT_GT(mp::MemorySize{"2048b"}, mp::MemorySize{"2"});
+    EXPECT_GT(mp::MemorySize{"42g"}, mp::MemorySize{"42m"});
+    EXPECT_GT(mp::MemorySize{"1234"}, mp::MemorySize{"321"});
+    EXPECT_GT(mp::MemorySize{"2352346"}, mp::MemorySize{"0"});
+}
+
+TEST(MemorySize, canCompareGreaterEqual)
+{
+    EXPECT_GE(mp::MemorySize{"2048b"}, mp::MemorySize{"2"});
+    EXPECT_GE(mp::MemorySize{"0m"}, mp::MemorySize{"0k"});
+    EXPECT_GE(mp::MemorySize{"76"}, mp::MemorySize{"76"});
+    EXPECT_GE(mp::MemorySize{"7k"}, mp::MemorySize{"6k"});
+}
+
+TEST(MemorySize, canCompareLess)
+{
+    EXPECT_LT(mp::MemorySize{"2047b"}, mp::MemorySize{"2k"});
+    EXPECT_LT(mp::MemorySize{"42g"}, mp::MemorySize{"420g"});
+    EXPECT_LT(mp::MemorySize{"123"}, mp::MemorySize{"321"});
+    EXPECT_LT(mp::MemorySize{"2352346"}, mp::MemorySize{"55g"});
+}
+
+TEST(MemorySize, canCompareLessEqual)
+{
+    EXPECT_LE(mp::MemorySize{"2"}, mp::MemorySize{"2048b"});
+    EXPECT_LE(mp::MemorySize{"0k"}, mp::MemorySize{"0m"});
+    EXPECT_LE(mp::MemorySize{"76"}, mp::MemorySize{"76"});
+    EXPECT_LE(mp::MemorySize{"6k"}, mp::MemorySize{"7k"});
+}
+
 TEST(MemorySize, rejectsBB)
 {
     EXPECT_THROW(mp::MemorySize{"321BB"}, mp::InvalidMemorySizeException);

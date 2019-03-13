@@ -85,3 +85,34 @@ long long mp::MemorySize::in_gigabytes() const noexcept
 {
     return bytes / giga; // integer division to floor
 }
+
+
+bool mp::operator==(const MemorySize &a, const MemorySize &b)
+{
+    return false; // TODO @ricab
+}
+
+bool mp::operator!=(const MemorySize &a, const MemorySize &b)
+{
+    return false; // TODO @ricab
+}
+
+bool mp::operator<(const MemorySize &a, const MemorySize &b)
+{
+    return false; // TODO @ricab
+}
+
+bool mp::operator>(const MemorySize &a, const MemorySize &b)
+{
+    return false; // TODO @ricab
+}
+
+bool mp::operator<=(const MemorySize &a, const MemorySize &b)
+{
+    return false; // TODO @ricab
+}
+
+bool mp::operator>=(const MemorySize &a, const MemorySize &b)
+{
+    return false; // TODO @ricab
+}
