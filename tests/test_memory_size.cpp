@@ -97,6 +97,46 @@ TEST(MemorySize, interpretsB)
     EXPECT_EQ(size.in_bytes(), val);
 }
 
+TEST(MemorySize, interprets0)
+{
+    constexpr auto val = 0;
+    const auto size = mp::MemorySize{std::to_string(val)};
+
+    EXPECT_EQ(size.in_bytes(), val);
+}
+
+TEST(MemorySize, interprets0B)
+{
+    constexpr auto val = 0;
+    const auto size = mp::MemorySize{std::to_string(val) + "B"};
+
+    EXPECT_EQ(size.in_bytes(), val);
+}
+
+TEST(MemorySize, interprets0K)
+{
+    constexpr auto val = 0;
+    const auto size = mp::MemorySize{std::to_string(val) + "K"};
+
+    EXPECT_EQ(size.in_bytes(), val);
+}
+
+TEST(MemorySize, interprets0M)
+{
+    constexpr auto val = 0;
+    const auto size = mp::MemorySize{std::to_string(val) + "M"};
+
+    EXPECT_EQ(size.in_bytes(), val);
+}
+
+TEST(MemorySize, interprets0G)
+{
+    constexpr auto val = 0;
+    const auto size = mp::MemorySize{std::to_string(val) + "G"};
+
+    EXPECT_EQ(size.in_bytes(), val);
+}
+
 TEST(MemorySize, interpretsSmallcaseUnits)
 {
     constexpr auto val = 42;
