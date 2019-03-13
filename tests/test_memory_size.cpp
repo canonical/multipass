@@ -183,6 +183,24 @@ TEST(MemorySize, convertsLowerUnitToGWhenExactMultiple)
     EXPECT_EQ(mp::MemorySize{std::to_string(val * giga)}.in_gigabytes(), val);
 }
 
+TEST(MemorySize, convertsLowerUnitToKByFlooringWhenNotMultiple)
+{
+    EXPECT_EQ(mp::MemorySize{"1234B"}.in_kilobytes(), 1);
+    EXPECT_EQ(mp::MemorySize{"33B"}.in_kilobytes(), 0);
+}
+
+TEST(MemorySize, convertsLowerUnitToMByFlooringWhenNotMultiple)
+{
+    EXPECT_EQ(mp::MemorySize{"5555K"}.in_megabytes(), 5);
+    EXPECT_EQ(mp::MemorySize{"5555B"}.in_megabytes(), 0);
+}
+
+TEST(MemorySize, convertsLowerUnitToGByFlooringWhenNotMultiple)
+{
+    EXPECT_EQ(mp::MemorySize{"2047M"}.in_gigabytes(), 1);
+    EXPECT_EQ(mp::MemorySize{"2047K"}.in_gigabytes(), 0);
+}
+
 TEST(MemorySize, interpretsSmallcaseUnits)
 {
     constexpr auto val = 42;
@@ -230,6 +248,5 @@ TEST(MemorySize, rejectsEmptyString)
 TEST(MemorySize, rejectsDecimal)
 {
     EXPECT_THROW(mp::MemorySize{"123.321K"}, mp::InvalidMemorySizeException);
+    EXPECT_THROW(mp::MemorySize{"123.321"}, mp::InvalidMemorySizeException);
 }
-
-// TODO @ricab converts to other sizes with proper floor behavior
