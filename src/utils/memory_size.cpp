@@ -25,12 +25,12 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto kilo = 1024LL;
+constexpr auto mega = kilo * kilo;
+constexpr auto giga = mega * kilo;
+
 long long in_bytes(const std::string& mem_value)
 {
-    static constexpr auto kilo = 1024LL;
-    static constexpr auto mega = kilo * kilo;
-    static constexpr auto giga = mega * kilo;
-
     QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
 
     if (matcher.exactMatch(QString::fromStdString(mem_value)))
@@ -73,15 +73,15 @@ long long mp::MemorySize::in_bytes() const noexcept
 
 long long mp::MemorySize::in_kilobytes() const noexcept
 {
-    return 123LL; // TODO @ricab
+    return bytes / kilo; // integer division to floor
 }
 
 long long mp::MemorySize::in_megabytes() const noexcept
 {
-    return 123LL; // TODO @ricab
+    return bytes / mega; // integer division to floor
 }
 
 long long mp::MemorySize::in_gigabytes() const noexcept
 {
-    return 123LL; // TODO @ricab
+    return bytes / giga; // integer division to floor
 }
