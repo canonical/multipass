@@ -31,6 +31,9 @@
 #include <future>
 #include <memory>
 #include <unordered_map>
+#include <vector>
+
+#include <QFutureWatcher>
 
 namespace multipass
 {
@@ -144,6 +147,20 @@ private:
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
     void install_sshfs(const VirtualMachine::UPtr& vm, const std::string& name);
+
+    struct AsyncOperationStatus
+    {
+        grpc::Status status;
+        std::promise<grpc::Status>* status_promise;
+    };
+
+    AsyncOperationStatus async_wait_for_ssh(const VirtualMachine::UPtr& vm, std::promise<grpc::Status>* status_promise);
+    template <typename Reply>
+    AsyncOperationStatus async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* server,
+                                                             const std::vector<std::string>& vms,
+                                                             std::promise<grpc::Status>* status_promise);
+    void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
+    std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;

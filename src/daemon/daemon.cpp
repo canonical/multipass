@@ -49,6 +49,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QtConcurrent/QtConcurrent>
 
 #include <cassert>
 #include <functional>
@@ -1399,64 +1400,16 @@ try // clang-format on
         }
     }
 
-    // Start them all first before we go and do a blocking wait_until_ssh_up call
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
         it->second->start();
     }
 
-    bool update_instance_db{false};
-    fmt::memory_buffer errors;
-    for (const auto& name : vms)
-    {
-        auto it = vm_instances.find(name);
-        auto& vm = it->second;
-        auto& mounts = vm_instance_specs[name].mounts;
-
-        vm->wait_until_ssh_up(std::chrono::minutes(2));
-
-        std::vector<std::string> invalid_mounts;
-        for (const auto& mount_entry : mounts)
-        {
-            auto& target_path = mount_entry.first;
-            auto& source_path = mount_entry.second.source_path;
-            auto& uid_map = mount_entry.second.uid_map;
-            auto& gid_map = mount_entry.second.gid_map;
-
-            try
-            {
-                start_mount(vm, name, source_path, target_path, gid_map, uid_map);
-            }
-            catch (const mp::SSHFSMissingError&)
-            {
-                try
-                {
-                    StartReply start_reply;
-                    start_reply.set_start_message("Enabling support for mounting");
-                    server->Write(start_reply);
-                    install_sshfs(vm, name);
-                    start_mount(vm, name, source_path, target_path, gid_map, uid_map);
-                }
-                catch (const mp::SSHFSMissingError&)
-                {
-                    status_promise->set_value(grpc_status_for_mount_error(name));
-                }
-            }
-            catch (const std::exception& e)
-            {
-                fmt::format_to(errors, "Removing \"{}\": {}", target_path, e.what());
-                invalid_mounts.push_back(target_path);
-            }
-        }
-
-        update_instance_db = !invalid_mounts.empty();
-        for (const auto& invalid_mount : invalid_mounts)
-            mounts.erase(invalid_mount);
-    }
-
-    if (update_instance_db)
-        persist_instances();
+    async_future_watchers.emplace_back(std::make_unique<QFutureWatcher<AsyncOperationStatus>>());
+    auto& future_watcher = async_future_watchers.back();
+    QObject::connect(future_watcher.get(), &QFutureWatcher<AsyncOperationStatus>::finished,
+                     [this, &future_watcher]() { finish_async_operation(future_watcher->future()); });
 
     if (config->update_prompt->is_time_to_show())
     {
@@ -1465,7 +1418,8 @@ try // clang-format on
         server->Write(start_reply);
     }
 
-    status_promise->set_value(grpc_status_for(errors));
+    future_watcher->setFuture(
+        QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<StartReply>, server, vms, status_promise));
 }
 catch (const std::exception& e)
 {
@@ -2024,14 +1978,18 @@ grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateReq
 
         auto& vm = vm_instances[name];
         vm->start();
-        vm->wait_until_ssh_up(std::chrono::minutes(5));
 
         reply.set_vm_instance_name(name);
         config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
         server->Write(reply);
-    }
 
-    status_promise->set_value(grpc::Status::OK);
+        async_future_watchers.emplace_back(std::make_unique<QFutureWatcher<AsyncOperationStatus>>());
+        auto& future_watcher = async_future_watchers.back();
+        QObject::connect(future_watcher.get(), &QFutureWatcher<AsyncOperationStatus>::finished,
+                         [this, &future_watcher]() { finish_async_operation(future_watcher->future()); });
+
+        future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ssh, std::ref(vm), status_promise));
+    }
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
@@ -2143,4 +2101,92 @@ void mp::Daemon::install_sshfs(const VirtualMachine::UPtr& vm, const std::string
 
     if (retries > max_install_sshfs_retries)
         throw mp::SSHFSMissingError();
+}
+
+mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ssh(const VirtualMachine::UPtr& vm,
+                                                                std::promise<grpc::Status>* status_promise)
+{
+    try
+    {
+        vm->wait_until_ssh_up(up_timeout);
+    }
+    catch (const std::exception& e)
+    {
+        return {grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""), status_promise};
+    }
+
+    return {grpc::Status::OK, status_promise};
+}
+
+template <typename Reply>
+mp::Daemon::AsyncOperationStatus
+mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* server, const std::vector<std::string>& vms,
+                                                std::promise<grpc::Status>* status_promise)
+{
+    fmt::memory_buffer errors;
+    for (const auto& name : vms)
+    {
+        auto it = vm_instances.find(name);
+        auto& vm = it->second;
+        auto& mounts = vm_instance_specs[name].mounts;
+
+        async_wait_for_ssh(vm, nullptr);
+
+        std::vector<std::string> invalid_mounts;
+        for (const auto& mount_entry : mounts)
+        {
+            auto& target_path = mount_entry.first;
+            auto& source_path = mount_entry.second.source_path;
+            auto& uid_map = mount_entry.second.uid_map;
+            auto& gid_map = mount_entry.second.gid_map;
+
+            try
+            {
+                start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+            }
+            catch (const mp::SSHFSMissingError&)
+            {
+                try
+                {
+                    StartReply start_reply;
+                    start_reply.set_start_message("Enabling support for mounting");
+                    server->Write(start_reply);
+                    install_sshfs(vm, name);
+                    start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+                }
+                catch (const mp::SSHFSMissingError&)
+                {
+                    fmt::format_to(errors, "Error enabling mount support in '{}'", name);
+                    break;
+                }
+            }
+            catch (const std::exception& e)
+            {
+                fmt::format_to(errors, "Removing \"{}\": {}", target_path, e.what());
+                invalid_mounts.push_back(target_path);
+            }
+        }
+    }
+
+    return {grpc_status_for(errors), status_promise};
+}
+
+void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_future)
+{
+    auto it = std::find_if(async_future_watchers.begin(), async_future_watchers.end(),
+                           [&async_future](const std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>& watcher) {
+                               return watcher->future() == async_future;
+                           });
+
+    if (it != async_future_watchers.end())
+    {
+        async_future_watchers.erase(it);
+    }
+
+    auto async_op_result = async_future.result();
+
+    if (!async_op_result.status.ok())
+        persist_instances();
+
+    async_op_result.status_promise->set_value(async_op_result.status);
 }
