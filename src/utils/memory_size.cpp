@@ -23,13 +23,52 @@
 
 namespace mp = multipass;
 
-mp::MemorySize::MemorySize(const std::string& val) : bytes{0LL} // TODO @ricab
+namespace
+{
+long long in_bytes(const std::string& mem_value)
+{
+    static constexpr auto kilo = 1024LL;
+    static constexpr auto mega = kilo * kilo;
+    static constexpr auto giga = mega * kilo;
+
+    QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
+
+    if (matcher.exactMatch(QString::fromStdString(mem_value)))
+    {
+        auto val = matcher.cap(1).toLongLong(); // value is in the second capture (1st one is the whole match)
+        const auto unit = matcher.cap(2);       // unit in the third capture (idem)
+        if (!unit.isEmpty())
+        {
+            switch (unit.at(0).toLower().toLatin1())
+            {
+            case 'g':
+                val *= giga;
+                break;
+            case 'm':
+                val *= mega;
+                break;
+            case 'k':
+                val *= kilo;
+                break;
+            default:
+                assert(false && "Shouldn't be here (invalid unit)");
+            }
+        }
+
+        return val;
+    }
+
+    throw mp::InvalidMemorySizeException{mem_value};
+}
+} // namespace
+
+mp::MemorySize::MemorySize(const std::string& val) : bytes{::in_bytes(val)}
 {
 }
 
 long long mp::MemorySize::in_bytes() const noexcept
 {
-    return 0LL; // TODO @ricab
+    return bytes;
 }
 
 long long mp::MemorySize::in_kilobytes() const noexcept
