@@ -278,7 +278,26 @@ void mp::LibVirtVirtualMachine::start()
     update_state();
 
     if (virDomainCreate(domain.get()) == -1)
-        throw std::runtime_error(virGetLastErrorMessage());
+    {
+        state = State::suspended;
+        update_state();
+
+        std::string error_string{virGetLastErrorMessage()};
+        if (error_string.find("virtio-net-pci.rom: 0x80000 in != 0x40000") != std::string::npos)
+        {
+            error_string = fmt::format("Unable to start suspended instance due to incompatible save image.\n"
+                                       "Please use the following steps to recover:\n"
+                                       "  1. snap refresh multipass --channel core16/beta\n"
+                                       "  2. multipass start {}\n"
+                                       "  3. Save any data in the instance\n"
+                                       "  4. multipass stop {}\n"
+                                       "  5. snap refresh multipass --channel beta\n"
+                                       "  6. multipass start {}\n",
+                                       vm_name, vm_name, vm_name);
+        }
+
+        throw std::runtime_error(error_string);
+    }
 
     monitor->on_resume();
 }
