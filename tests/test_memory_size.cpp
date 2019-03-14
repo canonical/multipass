@@ -33,6 +33,11 @@ constexpr auto mega = kilo * kilo;
 constexpr auto giga = kilo * mega;
 } // namespace
 
+TEST(MemorySize, defaultConstructsToZero)
+{
+    EXPECT_EQ(mp::MemorySize{}.in_bytes(), 0LL);
+}
+
 TEST(MemorySize, interpretsKB)
 {
     constexpr auto val = 1024;
@@ -215,6 +220,7 @@ TEST(MemorySize, canCompareEqual)
     mp::MemorySize x{"999"};
     EXPECT_EQ(x, x);
     EXPECT_EQ(x, mp::MemorySize{x});
+    EXPECT_EQ(mp::MemorySize{}, mp::MemorySize{"0B"});
     EXPECT_EQ(mp::MemorySize{"2048"}, mp::MemorySize{"2k"});
     EXPECT_EQ(mp::MemorySize{"2g"}, mp::MemorySize{"2048M"});
     EXPECT_EQ(mp::MemorySize{"2g"}, mp::MemorySize{"2048M"});

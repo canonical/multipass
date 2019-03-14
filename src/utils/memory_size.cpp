@@ -62,6 +62,10 @@ long long in_bytes(const std::string& mem_value)
 }
 } // namespace
 
+mp::MemorySize::MemorySize() : bytes{0LL}
+{
+}
+
 mp::MemorySize::MemorySize(const std::string& val) : bytes{::in_bytes(val)}
 {
 }

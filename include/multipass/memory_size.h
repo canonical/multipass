@@ -32,6 +32,7 @@ public:
     friend bool operator<=(const MemorySize &a, const MemorySize &b);
     friend bool operator>=(const MemorySize &a, const MemorySize &b);
 
+    MemorySize();
     explicit MemorySize(const std::string& val);
     long long in_bytes() const noexcept;
     long long in_kilobytes() const noexcept;

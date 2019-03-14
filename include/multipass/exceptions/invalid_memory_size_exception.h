@@ -29,7 +29,7 @@ class InvalidMemorySizeException : public std::runtime_error
 {
 public:
     InvalidMemorySizeException(const std::string& val)
-        : runtime_error(fmt::format("{} is not a valid memory size value", val))
+        : runtime_error(fmt::format("{} is not a valid memory size", val))
     {
     }
 };
