@@ -2097,13 +2097,10 @@ mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ssh_all(const std::v
         auto it = vm_instances.find(name);
         auto& vm = it->second;
 
-        try
+        auto ssh_status = async_wait_for_ssh_for(vm, nullptr);
+        if (!ssh_status.status.ok())
         {
-            async_wait_for_ssh_for(vm, nullptr);
-        }
-        catch (const std::exception& e)
-        {
-            fmt::format_to(errors, "Error starting '{}': {}", name, e.what());
+            fmt::format_to(errors, "Error starting '{}': {}", name, ssh_status.status.error_message());
             continue;
         }
     }
@@ -2123,13 +2120,10 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* serve
         auto& vm = it->second;
         auto& mounts = vm_instance_specs[name].mounts;
 
-        try
+        auto ssh_status = async_wait_for_ssh_for(vm, nullptr);
+        if (!ssh_status.status.ok())
         {
-            async_wait_for_ssh_for(vm, nullptr);
-        }
-        catch (const std::exception& e)
-        {
-            fmt::format_to(errors, "Error starting '{}': {}", name, e.what());
+            fmt::format_to(errors, "Error starting '{}': {}", name, ssh_status.status.error_message());
             continue;
         }
 

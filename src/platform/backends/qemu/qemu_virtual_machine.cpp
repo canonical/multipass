@@ -230,7 +230,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
                      [this](int exitCode, QProcess::ExitStatus exitStatus) {
                          mpl::log(mpl::Level::info, vm_name,
                                   fmt::format("process finished with exit code {}", exitCode));
-                         if (update_shutdown_status)
+                         if (update_shutdown_status || state == State::starting)
                          {
                              on_shutdown();
                          }
@@ -308,6 +308,9 @@ void mp::QemuVirtualMachine::shutdown()
     }
     else
     {
+        if (state == State::starting)
+            update_shutdown_status = false;
+
         vm_process->kill();
         vm_process->waitForFinished();
     }
@@ -365,6 +368,16 @@ void mp::QemuVirtualMachine::on_error()
 
 void mp::QemuVirtualMachine::on_shutdown()
 {
+    state_mutex.lock();
+
+    if (state == State::starting)
+    {
+        saved_error_msg = "shutdown called while starting";
+        state_wait.wait(&state_mutex);
+    }
+
+    state_mutex.unlock();
+
     state = State::off;
     ip = nullopt;
     update_state();
@@ -389,8 +402,14 @@ void mp::QemuVirtualMachine::on_restart()
 
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
+    state_mutex.lock();
     if (vm_process->state() == QProcess::NotRunning)
+    {
+        state_wait.notify_all();
+        state_mutex.unlock();
         throw mp::StartException(vm_name, saved_error_msg);
+    }
+    state_mutex.unlock();
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname()
