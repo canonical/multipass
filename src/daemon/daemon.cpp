@@ -283,7 +283,7 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
     {
         return mp::MemorySize{val};
     }
-    catch(mp::InvalidMemorySizeException& /*unused*/)
+    catch (mp::InvalidMemorySizeException& /*unused*/)
     {
         return mp::nullopt;
     }
