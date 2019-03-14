@@ -20,6 +20,7 @@
 #ifndef MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
 #define MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
 
+#include <multipass/memory_size.h>
 #include <multipass/vm_image.h>
 #include <string>
 
@@ -32,8 +33,8 @@ public:
     using MBytes = size_t;
 
     int num_cores;
-    std::string mem_size;
-    std::string disk_space;
+    MemorySize mem_size;
+    MemorySize disk_space;
     std::string vm_name;
     std::string mac_addr;
     std::string ssh_username;

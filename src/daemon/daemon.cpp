@@ -155,7 +155,7 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
-                                              const std::string& mem_size, const std::string& disk_space,
+                                              const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
                                               const std::string& mac_addr, const std::string& ssh_username,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
                                               YAML::Node& user_data_config, YAML::Node& vendor_data_config,
@@ -255,8 +255,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         reconstructed_records[key] = {num_cores,
-                                      mem_size.toStdString(),
-                                      disk_space.toStdString(),
+                                      mp::MemorySize{mem_size.toStdString()},
+                                      mp::MemorySize{disk_space.toStdString()},
                                       mac_addr.toStdString(),
                                       ssh_username.toStdString(),
                                       static_cast<mp::VirtualMachine::State>(state),
@@ -1854,8 +1854,8 @@ void mp::Daemon::persist_instances()
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
         QJsonObject json;
         json.insert("num_cores", specs.num_cores);
-        json.insert("mem_size", QString::fromStdString(specs.mem_size));
-        json.insert("disk_space", QString::fromStdString(specs.disk_space));
+        json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
+        json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
         json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
         json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
         json.insert("state", static_cast<int>(specs.state));
