@@ -25,6 +25,7 @@
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -62,8 +63,8 @@ struct LibVirtBackend : public Test
     mpt::StubProcessFactory process_factory;
     mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{2,
-                                                      "3M",
-                                                      "",
+                                                      mp::MemorySize{"3M"},
+                                                      mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
                                                       "",
                                                       "",
