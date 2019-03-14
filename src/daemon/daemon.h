@@ -154,12 +154,16 @@ private:
         std::promise<grpc::Status>* status_promise;
     };
 
-    AsyncOperationStatus async_wait_for_ssh(const VirtualMachine::UPtr& vm, std::promise<grpc::Status>* status_promise);
+    AsyncOperationStatus async_wait_for_ssh_for(const VirtualMachine::UPtr& vm,
+                                                std::promise<grpc::Status>* status_promise);
+    AsyncOperationStatus async_wait_for_ssh_all(const std::vector<std::string>& vms,
+                                                std::promise<grpc::Status>* status_promise);
     template <typename Reply>
     AsyncOperationStatus async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* server,
                                                              const std::vector<std::string>& vms,
                                                              std::promise<grpc::Status>* status_promise);
     void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
+    QFutureWatcher<AsyncOperationStatus>* create_future_watcher();
     std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
 
     std::unique_ptr<const DaemonConfig> config;
