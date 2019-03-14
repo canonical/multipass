@@ -25,6 +25,7 @@
 #include "temp_file.h"
 #include "test_with_mocked_bin_path.h"
 
+#include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -40,8 +41,8 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     mp::ProcessFactory process_factory; // want to launch actual processes
     mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{2,
-                                                      "3M",
-                                                      "",
+                                                      mp::MemorySize{"3M"},
+                                                      mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
                                                       "",
                                                       "",
