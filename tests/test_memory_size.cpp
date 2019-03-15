@@ -21,6 +21,8 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <tuple>
+#include <vector>
 
 namespace mp = multipass;
 
@@ -31,115 +33,77 @@ namespace
 constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overflow if we used only 4bytes here
 constexpr auto mega = kilo * kilo;
 constexpr auto giga = kilo * mega;
+
+struct TestMemorySize : public TestWithParam<std::tuple<long long, std::string, long long>>
+{
+    struct UnitSpec
+    {
+        std::vector<std::string> suffixes;
+        long long factor;
+
+        auto gen_unit_args() const
+        {
+            std::vector<std::tuple<std::string, long long>> ret;
+            for(const auto& suffix : suffixes)
+                ret.emplace_back(suffix, factor);
+
+            return ret;
+        }
+    };
+
+    static auto generate_unit_args()
+    {
+        const UnitSpec byte_unit{{"", "b", "B"}, 1LL};
+        const UnitSpec kilo_unit{{"k", "kb", "kB", "Kb", "KB", "K"}, kilo};
+        const UnitSpec mega_unit{{"m", "mb", "mB", "Mb", "MB", "M"}, mega};
+        const UnitSpec giga_unit{{"g", "gb", "gB", "Gb", "GB", "G"}, giga};
+
+        auto args = byte_unit.gen_unit_args();
+        const auto kilo_args = kilo_unit.gen_unit_args();
+        const auto mega_args = mega_unit.gen_unit_args();
+        const auto giga_args = giga_unit.gen_unit_args();
+
+        args.insert(std::end(args), std::cbegin(kilo_args), std::cend(kilo_args));
+        args.insert(std::end(args), std::cbegin(mega_args), std::cend(mega_args));
+        args.insert(std::end(args), std::cbegin(giga_args), std::cend(giga_args));
+
+        return args;
+    }
+
+    static auto generate_args()
+    {
+        const auto values = {0LL, 1LL, 42LL, 1023LL, 1024LL, 2048LL, 2049LL};
+        const auto unit_args = generate_unit_args();
+        std::vector<std::tuple<long long, std::string, long long>> ret;
+
+        for(auto val : values)
+            for(const auto& uarg : unit_args)
+                ret.emplace_back(val, get<0>(uarg), get<1>(uarg));
+
+        return ret;
+    }
+};
+
+
+
 } // namespace
+
+TEST_P(TestMemorySize, interpretsValidFormats)
+{
+    auto param = GetParam();
+    const auto val = get<0>(param);
+    const auto unit = get<1>(param);
+    const auto factor = get<2>(param);
+
+    const auto size = mp::MemorySize{std::to_string(val) + unit};
+    EXPECT_EQ(size.in_bytes(), val * factor);
+}
+
+INSTANTIATE_TEST_SUITE_P(Utils, TestMemorySize, ValuesIn(TestMemorySize::generate_args()));
 
 TEST(MemorySize, defaultConstructsToZero)
 {
     EXPECT_EQ(mp::MemorySize{}.in_bytes(), 0LL);
-}
-
-TEST(MemorySize, interpretsKB)
-{
-    constexpr auto val = 1024;
-    const auto size = mp::MemorySize{std::to_string(val) + "KB"};
-
-    EXPECT_EQ(size.in_bytes(), val * kilo);
-}
-
-TEST(MemorySize, interpretsK)
-{
-    constexpr auto val = 1024;
-    const auto size = mp::MemorySize{std::to_string(val) + "K"};
-
-    EXPECT_EQ(size.in_bytes(), val * kilo);
-}
-
-TEST(MemorySize, interpretsMB)
-{
-    constexpr auto val = 1024;
-    const auto size = mp::MemorySize{std::to_string(val) + "MB"};
-
-    EXPECT_EQ(size.in_bytes(), val * mega);
-}
-
-TEST(MemorySize, interpretsM)
-{
-    constexpr auto val = 1;
-    const auto size = mp::MemorySize{std::to_string(val) + "M"};
-
-    EXPECT_EQ(size.in_bytes(), val * mega);
-}
-
-TEST(MemorySize, interpretsGB)
-{
-    constexpr auto val = 1024;
-    const auto size = mp::MemorySize{std::to_string(val) + "GB"};
-
-    EXPECT_EQ(size.in_bytes(), val * giga);
-}
-
-TEST(MemorySize, interpretsG)
-{
-    constexpr auto val = 5;
-    const auto size = mp::MemorySize{std::to_string(val) + "G"};
-
-    EXPECT_EQ(size.in_bytes(), val * giga);
-}
-
-TEST(MemorySize, interpretsNoUnit)
-{
-    constexpr auto val = 1024;
-    const auto size = mp::MemorySize{std::to_string(val)};
-
-    EXPECT_EQ(size.in_bytes(), val);
-}
-
-TEST(MemorySize, interpretsB)
-{
-    constexpr auto val = 123;
-    const auto size = mp::MemorySize{std::to_string(val) + "B"};
-
-    EXPECT_EQ(size.in_bytes(), val);
-}
-
-TEST(MemorySize, interprets0)
-{
-    constexpr auto val = 0;
-    const auto size = mp::MemorySize{std::to_string(val)};
-
-    EXPECT_EQ(size.in_bytes(), val);
-}
-
-TEST(MemorySize, interprets0B)
-{
-    constexpr auto val = 0;
-    const auto size = mp::MemorySize{std::to_string(val) + "B"};
-
-    EXPECT_EQ(size.in_bytes(), val);
-}
-
-TEST(MemorySize, interprets0K)
-{
-    constexpr auto val = 0;
-    const auto size = mp::MemorySize{std::to_string(val) + "K"};
-
-    EXPECT_EQ(size.in_bytes(), val);
-}
-
-TEST(MemorySize, interprets0M)
-{
-    constexpr auto val = 0;
-    const auto size = mp::MemorySize{std::to_string(val) + "M"};
-
-    EXPECT_EQ(size.in_bytes(), val);
-}
-
-TEST(MemorySize, interprets0G)
-{
-    constexpr auto val = 0;
-    const auto size = mp::MemorySize{std::to_string(val) + "G"};
-
-    EXPECT_EQ(size.in_bytes(), val);
 }
 
 TEST(MemorySize, converts0ToK)
@@ -204,15 +168,6 @@ TEST(MemorySize, convertsLowerUnitToGByFlooringWhenNotMultiple)
 {
     EXPECT_EQ(mp::MemorySize{"2047M"}.in_gigabytes(), 1);
     EXPECT_EQ(mp::MemorySize{"2047K"}.in_gigabytes(), 0);
-}
-
-TEST(MemorySize, interpretsSmallcaseUnits)
-{
-    constexpr auto val = 42;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "b"}.in_bytes(), val);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "mb"}.in_megabytes(), val);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "kB"}.in_kilobytes(), val);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "g"}.in_gigabytes(), val);
 }
 
 TEST(MemorySize, canCompareEqual)
