@@ -34,7 +34,7 @@ constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overfl
 constexpr auto mega = kilo * kilo;
 constexpr auto giga = kilo * mega;
 
-struct TestMemorySize : public TestWithParam<std::tuple<long long, std::string, long long>>
+struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, std::string, long long>>
 {
     struct UnitSpec
     {
@@ -84,11 +84,13 @@ struct TestMemorySize : public TestWithParam<std::tuple<long long, std::string, 
     }
 };
 
-
+struct TestBadMemorySizeFormats : public TestWithParam<std::string>
+{
+};
 
 } // namespace
 
-TEST_P(TestMemorySize, interpretsValidFormats)
+TEST_P(TestGoodMemorySizeFormats, interpretsValidFormats)
 {
     auto param = GetParam();
     const auto val = get<0>(param);
@@ -99,7 +101,13 @@ TEST_P(TestMemorySize, interpretsValidFormats)
     EXPECT_EQ(size.in_bytes(), val * factor);
 }
 
-INSTANTIATE_TEST_SUITE_P(Utils, TestMemorySize, ValuesIn(TestMemorySize::generate_args()));
+TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
+{
+    EXPECT_THROW(mp::MemorySize{GetParam()}, mp::InvalidMemorySizeException);
+}
+
+INSTANTIATE_TEST_SUITE_P(Utils, TestGoodMemorySizeFormats, ValuesIn(TestGoodMemorySizeFormats::generate_args()));
+INSTANTIATE_TEST_SUITE_P(Utils, TestBadMemorySizeFormats, Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321K", "123.321"));
 
 TEST(MemorySize, defaultConstructsToZero)
 {
@@ -220,45 +228,4 @@ TEST(MemorySize, canCompareLessEqual)
     EXPECT_LE(mp::MemorySize{"0k"}, mp::MemorySize{"0m"});
     EXPECT_LE(mp::MemorySize{"76"}, mp::MemorySize{"76"});
     EXPECT_LE(mp::MemorySize{"6k"}, mp::MemorySize{"7k"});
-}
-
-TEST(MemorySize, rejectsBB)
-{
-    EXPECT_THROW(mp::MemorySize{"321BB"}, mp::InvalidMemorySizeException);
-}
-
-TEST(MemorySize, rejectsBK)
-{
-    EXPECT_THROW(mp::MemorySize{"321BK"}, mp::InvalidMemorySizeException);
-}
-
-TEST(MemorySize, rejectsMM)
-{
-    EXPECT_THROW(mp::MemorySize{"1024MM"}, mp::InvalidMemorySizeException);
-}
-
-TEST(MemorySize, rejectsKM)
-{
-    EXPECT_THROW(mp::MemorySize{"1024KM"}, mp::InvalidMemorySizeException);
-}
-
-TEST(MemorySize, rejectsGK)
-{
-    EXPECT_THROW(mp::MemorySize{"1024GK"}, mp::InvalidMemorySizeException);
-}
-
-TEST(MemorySize, rejectsOnlyUnit)
-{
-    EXPECT_THROW(mp::MemorySize{"K"}, mp::InvalidMemorySizeException);
-}
-
-TEST(MemorySize, rejectsEmptyString)
-{
-    EXPECT_THROW(mp::MemorySize{""}, mp::InvalidMemorySizeException);
-}
-
-TEST(MemorySize, rejectsDecimal)
-{
-    EXPECT_THROW(mp::MemorySize{"123.321K"}, mp::InvalidMemorySizeException);
-    EXPECT_THROW(mp::MemorySize{"123.321"}, mp::InvalidMemorySizeException);
 }
