@@ -31,7 +31,7 @@ constexpr auto giga = mega * kilo;
 
 long long in_bytes(const std::string& mem_value)
 {
-    QRegExp matcher("^(\\d+)([KMG])?B?$", Qt::CaseInsensitive);
+    QRegExp matcher("(\\d+)([KMG])?B?", Qt::CaseInsensitive);
 
     if (matcher.exactMatch(QString::fromStdString(mem_value)))
     {
