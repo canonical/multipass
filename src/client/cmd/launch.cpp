@@ -86,10 +86,16 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                   "format.\n",
                                   "[[<remote:>]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"}, "Number of CPUs to allocate", "cpus", "1");
-    QCommandLineOption diskOption({"d", "disk"}, "Disk space to allocate in bytes, or with K, M, G suffix", "disk",
-                                  "default");
-    QCommandLineOption memOption({"m", "mem"}, "Amount of memory to allocate in bytes, or with K, M, G suffix", "mem",
-                                 "1024"); // In MB's
+    QCommandLineOption diskOption({"d", "disk"},
+                                  QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
+                                                                     "bytes, or with K, M, G suffix. Minimum: {}.",
+                                                                     min_disk_size)),
+                                  "disk", "default");
+    QCommandLineOption memOption({"m", "mem"},
+                                 QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
+                                                                    "in bytes, or with K, M, G suffix. Mimimum: {}.",
+                                                                    min_memory_size)),
+                                 "mem", "1024"); // In MB's
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
