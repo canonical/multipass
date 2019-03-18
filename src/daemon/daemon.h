@@ -22,6 +22,7 @@
 #include "daemon_rpc.h"
 
 #include <multipass/delayed_shutdown_timer.h>
+#include <multipass/memory_size.h>
 #include <multipass/metrics_provider.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/virtual_machine.h>
@@ -42,8 +43,8 @@ struct VMMount
 struct VMSpecs
 {
     int num_cores;
-    std::string mem_size;
-    std::string disk_space;
+    MemorySize mem_size;
+    MemorySize disk_space;
     std::string mac_addr;
     std::string ssh_username;
     VirtualMachine::State state;

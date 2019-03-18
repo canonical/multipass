@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 namespace multipass
 {
+class MemorySize;
 class ProcessFactory;
 
 namespace backend
@@ -31,7 +32,8 @@ namespace backend
 std::string generate_random_subnet();
 std::string get_subnet(const Path& network_dir, const QString& bridge_name);
 void check_hypervisor_support();
-void resize_instance_image(const ProcessFactory* process_factory, const std::string& disk_space, const multipass::Path& image_path);
+void resize_instance_image(const ProcessFactory* process_factory, const MemorySize& disk_space,
+                           const multipass::Path& image_path);
 Path convert_to_qcow_if_necessary(const ProcessFactory* process_factory, const Path& image_path);
 QString cpu_arch();
 }

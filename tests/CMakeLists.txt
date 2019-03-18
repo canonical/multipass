@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -101,6 +101,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
+  test_memory_size.cpp
 
   ${BACKEND_TESTS}
 

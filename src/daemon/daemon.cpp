@@ -22,6 +22,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/client_logger.h>
@@ -71,8 +72,6 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 constexpr auto max_install_sshfs_retries = 3;
-const auto normalized_min_mem = mp::utils::in_bytes(mp::min_memory_size);
-const auto normalized_min_disk = mp::utils::in_bytes(mp::min_disk_size);
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -155,7 +154,7 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
-                                              const std::string& mem_size, const std::string& disk_space,
+                                              const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
                                               const std::string& mac_addr, const std::string& ssh_username,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
                                               YAML::Node& user_data_config, YAML::Node& vendor_data_config,
@@ -255,8 +254,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         reconstructed_records[key] = {num_cores,
-                                      mem_size.toStdString(),
-                                      disk_space.toStdString(),
+                                      mp::MemorySize{mem_size.toStdString()},
+                                      mp::MemorySize{disk_space.toStdString()},
                                       mac_addr.toStdString(),
                                       ssh_username.toStdString(),
                                       static_cast<mp::VirtualMachine::State>(state),
@@ -278,23 +277,40 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
 
+auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
+{
+    try
+    {
+        return mp::MemorySize{val};
+    }
+    catch (mp::InvalidMemorySizeException& /*unused*/)
+    {
+        return mp::nullopt;
+    }
+}
+
 auto validate_create_arguments(const mp::LaunchRequest* request)
 {
-    auto mem_size = request->mem_size();
-    auto disk_space = request->disk_space();
+    static const auto min_mem = try_mem_size(mp::min_memory_size);
+    static const auto min_disk = try_mem_size(mp::min_disk_size);
+    assert(min_mem && min_disk);
+
+    auto mem_size_str = request->mem_size();
+    auto disk_space_str = request->disk_space();
     auto instance_name = request->instance_name();
     auto option_errors = mp::LaunchError{};
 
-    const auto opt_mem_size = mp::utils::in_bytes(mem_size.empty() ? "1G" : mem_size);
-    const auto opt_disk_space = mp::utils::in_bytes(disk_space.empty() ? "5G" : disk_space);
+    const auto opt_mem_size = try_mem_size(mem_size_str.empty() ? "1G" : mem_size_str);
+    const auto opt_disk_space = try_mem_size(disk_space_str.empty() ? "5G" : disk_space_str);
 
-    if (opt_mem_size && *opt_mem_size >= normalized_min_mem)
-        mem_size = mp::utils::in_bytes_string(*opt_mem_size);
+    mp::MemorySize mem_size{}, disk_space{};
+    if (opt_mem_size && *opt_mem_size >= min_mem)
+        mem_size = *opt_mem_size;
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
 
-    if (opt_disk_space && *opt_disk_space >= normalized_min_disk)
-        disk_space = mp::utils::in_bytes_string(*opt_disk_space);
+    if (opt_disk_space && *opt_disk_space >= min_disk)
+        disk_space = *opt_disk_space;
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
 
@@ -303,8 +319,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
 
     struct CheckedArguments
     {
-        std::string mem_size;
-        std::string disk_space;
+        mp::MemorySize mem_size;
+        mp::MemorySize disk_space;
         std::string instance_name;
         mp::LaunchError option_errors;
     } ret{mem_size, disk_space, instance_name, option_errors};
@@ -1772,8 +1788,8 @@ void mp::Daemon::persist_instances()
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
         QJsonObject json;
         json.insert("num_cores", specs.num_cores);
-        json.insert("mem_size", QString::fromStdString(specs.mem_size));
-        json.insert("disk_space", QString::fromStdString(specs.disk_space));
+        json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
+        json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
         json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
         json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
         json.insert("state", static_cast<int>(specs.state));
