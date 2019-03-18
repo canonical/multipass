@@ -31,21 +31,18 @@
 
 #include <gmock/gmock.h>
 
+#include <sstream>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
 struct Client : public Test
 {
-    int send_command(const std::vector<std::string>& command)
+    int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
+                     std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
-        std::stringstream null_stream;
-        return send_command(command, null_stream);
-    }
-
-    int send_command(const std::vector<std::string>& command, std::ostream &cout)
-    {
-        mpt::StubTerminal term(cout);
+        mpt::StubTerminal term(cout, cerr, cin);
         mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
                                        std::make_unique<mpt::StubCertProvider>(), &term};
         mp::Client client{client_config};
@@ -66,7 +63,10 @@ struct Client : public Test
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
     mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store};
+    static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
+
+std::stringstream Client::trash_stream; // replace with inline in C++17
 
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
@@ -238,9 +238,10 @@ TEST_F(Client, launch_cmd_cloudinit_option_fails_no_value)
 
 TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
 {
-    MockStdCin cin("password: passw0rd");
+    MockStdCin cin("password: passw0rd"); // no effect since terminal encapsulation of streams
 
-    EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}), Eq(mp::ReturnCode::Ok));
+    std::stringstream ss;
+    EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests

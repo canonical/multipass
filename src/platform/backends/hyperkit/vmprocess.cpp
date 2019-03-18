@@ -87,12 +87,15 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
         ::chmod(qPrintable(log_directory.path()), 0755);
     }
 
+    auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
+    `hyperkit --help`, under `-m` option; including suffix to avoid relying on default unit */
+
     QStringList args;
     args <<
         // Number of cpu cores
         "-c" << QString::number(desc.num_cores) <<
         // Memory to use for VM
-        "-m" << QString::fromStdString(desc.mem_size) <<
+        "-m" << mem_size <<
         // RTC keeps UTC
         "-u" <<
         // ACPI tables

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
+#include <multipass/constants.h>
 
 #include <fmt/format.h>
 
@@ -85,10 +86,16 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                   "format.\n",
                                   "[[<remote:>]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"}, "Number of CPUs to allocate", "cpus", "1");
-    QCommandLineOption diskOption({"d", "disk"}, "Disk space to allocate in bytes, or with K, M, G suffix", "disk",
-                                  "default");
-    QCommandLineOption memOption({"m", "mem"}, "Amount of memory to allocate in bytes, or with K, M, G suffix", "mem",
-                                 "1024"); // In MB's
+    QCommandLineOption diskOption({"d", "disk"},
+                                  QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
+                                                                     "bytes, or with K, M, G suffix. Minimum: {}.",
+                                                                     min_disk_size)),
+                                  "disk", "default");
+    QCommandLineOption memOption({"m", "mem"},
+                                 QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
+                                                                    "in bytes, or with K, M, G suffix. Mimimum: {}.",
+                                                                    min_memory_size)),
+                                 "mem", "1024"); // In MB's
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
@@ -261,11 +268,11 @@ mp::ReturnCode cmd::Launch::request_launch()
         {
             if (error == LaunchError::INVALID_DISK_SIZE)
             {
-                error_details = fmt::format("Invalid disk size value supplied: {}", request.disk_space());
+                error_details = fmt::format("Invalid disk size value supplied: {}.", request.disk_space());
             }
             else if (error == LaunchError::INVALID_MEM_SIZE)
             {
-                error_details = fmt::format("Invalid memory size value supplied: {}", request.mem_size());
+                error_details = fmt::format("Invalid memory size value supplied: {}.", request.mem_size());
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {

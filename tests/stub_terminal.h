@@ -28,17 +28,15 @@ namespace test
 class StubTerminal : public multipass::Terminal
 {
 public:
-    StubTerminal()
-        : cout_stream{null_stream}
+    StubTerminal(std::ostream& cout, std::ostream& cerr, std::istream& cin)
+        : cout_stream{cout}, cerr_stream{cerr}, cin_stream{cin}
     {}
-    StubTerminal(std::ostream& cout)
-        : cout_stream{cout}
-    {}
+
     ~StubTerminal() override = default;
 
     std::istream& cin() override
     {
-        return null_stream;
+        return cin_stream;
     }
     std::ostream& cout() override
     {
@@ -46,7 +44,7 @@ public:
     }
     std::ostream& cerr() override
     {
-        return cout_stream;
+        return cerr_stream;
     }
 
     bool cin_is_live() const override
@@ -59,8 +57,9 @@ public:
         return true;
     }
 private:
-    std::stringstream null_stream;
     std::ostream &cout_stream;
+    std::ostream& cerr_stream;
+    std::istream& cin_stream;
 };
 
 } // namespace test

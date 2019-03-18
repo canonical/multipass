@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,34 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
-#define MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
+#ifndef MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H
+#define MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H
 
-#include <multipass/memory_size.h>
-#include <multipass/vm_image.h>
+#include <fmt/format.h>
+
+#include <stdexcept>
 #include <string>
 
 namespace multipass
 {
-class SSHKeyProvider;
-class VirtualMachineDescription
+class InvalidMemorySizeException : public std::runtime_error
 {
 public:
-    using MBytes = size_t;
-
-    int num_cores;
-    MemorySize mem_size;
-    MemorySize disk_space;
-    std::string vm_name;
-    std::string mac_addr;
-    std::string ssh_username;
-    VMImage image;
-    Path cloud_init_iso;
-    const SSHKeyProvider& key_provider;
+    InvalidMemorySizeException(const std::string& val)
+        : runtime_error(fmt::format("{} is not a valid memory size", val))
+    {
+    }
 };
-}
-#endif // MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
+} // namespace multipass
+#endif // MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H

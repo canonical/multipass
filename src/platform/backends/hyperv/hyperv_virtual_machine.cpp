@@ -89,12 +89,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
-        auto mem_size = QString::fromStdString(desc.mem_size);
-        if (mem_size.endsWith("K") || mem_size.endsWith("M") || mem_size.endsWith("G"))
-            mem_size.append("B");
-
-        if (!mem_size.endsWith("B"))
-            mem_size.append("MB");
+        auto mem_size = QString::number(desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
+        `-MemoryStartupBytes` option; */
 
         power_shell->run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)});
 
