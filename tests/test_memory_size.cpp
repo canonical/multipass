@@ -106,8 +106,8 @@ TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
     EXPECT_THROW(mp::MemorySize{GetParam()}, mp::InvalidMemorySizeException);
 }
 
-INSTANTIATE_TEST_SUITE_P(Utils, TestGoodMemorySizeFormats, ValuesIn(TestGoodMemorySizeFormats::generate_args()));
-INSTANTIATE_TEST_SUITE_P(Utils, TestBadMemorySizeFormats, Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321K", "123.321"));
+INSTANTIATE_TEST_SUITE_P(MemorySize, TestGoodMemorySizeFormats, ValuesIn(TestGoodMemorySizeFormats::generate_args()));
+INSTANTIATE_TEST_SUITE_P(MemorySize, TestBadMemorySizeFormats, Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321K", "123.321"));
 
 TEST(MemorySize, defaultConstructsToZero)
 {
