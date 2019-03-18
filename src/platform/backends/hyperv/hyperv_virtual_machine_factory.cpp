@@ -78,13 +78,8 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
 void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                              const VirtualMachineDescription& desc)
 {
-    if (!desc.disk_space.empty())
-    {
-        auto disk_space = QString::fromStdString(desc.disk_space);
-        if (disk_space.endsWith('K') || disk_space.endsWith('M') || disk_space.endsWith('G'))
-            disk_space.append("B");
-        PowerShell::exec({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_space}, desc.vm_name);
-    }
+    auto disk_size = QString::number(desc.disk_space.in_bytes()); // format documented in `Help(Resize-VHD)`
+    PowerShell::exec({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size}, desc.vm_name);
 }
 
 void mp::HyperVVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config,

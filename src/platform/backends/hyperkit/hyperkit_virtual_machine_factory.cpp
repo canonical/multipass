@@ -99,16 +99,15 @@ mp::VMImage mp::HyperkitVirtualMachineFactory::prepare_source_image(const VMImag
 void mp::HyperkitVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                                const VirtualMachineDescription& desc)
 {
-    if (!desc.disk_space.empty())
-    {
-        QProcess resize_image;
+    QProcess resize_image;
 
-        QStringList resize_image_args(
-            {QStringLiteral("resize"), instance_image.image_path, QString::fromStdString(desc.disk_space)});
+    auto disk_size =
+        QString::number(desc.disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
 
-        resize_image.start(QCoreApplication::applicationDirPath() + "/qemu-img", resize_image_args);
-        resize_image.waitForFinished();
-    }
+    QStringList resize_image_args({QStringLiteral("resize"), instance_image.image_path, disk_size});
+
+    resize_image.start(QCoreApplication::applicationDirPath() + "/qemu-img", resize_image_args);
+    resize_image.waitForFinished();
 }
 
 void mp::HyperkitVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config,
