@@ -92,29 +92,6 @@ auto instance_ip_for(virConnectPtr connection, const std::string& mac_addr)
     return ip_address;
 }
 
-void parsed_memory_values_for(const std::string& mem_size, std::string& memory, std::string& mem_unit)
-{
-    auto mem{QString::fromStdString(mem_size)};
-    QString unit;
-
-    for (const auto& c : mem)
-    {
-        if (c.isDigit())
-            memory.append(1, c.toLatin1());
-        else if (c.isLetter())
-            unit.append(c);
-    }
-
-    if (unit.isEmpty())
-        mem_unit = "b";
-    else if (unit.startsWith("K"))
-        mem_unit = "KiB";
-    else if (unit.startsWith("M"))
-        mem_unit = "MiB";
-    else if (unit.startsWith("G"))
-        mem_unit = "GiB";
-}
-
 auto host_architecture_for(virConnectPtr connection)
 {
     std::string arch;
@@ -139,8 +116,9 @@ auto host_architecture_for(virConnectPtr connection)
 auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
                              const std::string& arch)
 {
-    std::string memory, mem_unit;
-    parsed_memory_values_for(desc.mem_size, memory, mem_unit);
+    static constexpr auto mem_unit = "k"; // see https://libvirt.org/formatdomain.html#elementsMemoryAllocation
+    const auto memory = desc.mem_size.in_kilobytes(); /* floored here, but then "[...] the value will be rounded up to
+    the nearest kibibyte by libvirt, and may be further rounded to the granularity supported by the hypervisor [...]" */
 
     auto qemu_path = fmt::format("/usr/bin/qemu-system-{}", arch);
 

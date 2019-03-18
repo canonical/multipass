@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -432,8 +432,7 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
     send_command({"launch", opt_name, opt_value}, std::cout, stream);
-    EXPECT_THAT(stream.str(),
-                AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk")), HasSubstr("minimum")));
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk"))));
 }
 
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,

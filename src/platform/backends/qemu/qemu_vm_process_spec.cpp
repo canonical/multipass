@@ -34,11 +34,8 @@ QString mp::QemuVMProcessSpec::program() const
 
 QStringList mp::QemuVMProcessSpec::arguments() const
 {
-    auto mem_size = QString::fromStdString(desc.mem_size);
-    if (mem_size.endsWith("B"))
-    {
-        mem_size.chop(1);
-    }
+    auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
+    `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
     QStringList args{"--enable-kvm"};
     // The VM image itself

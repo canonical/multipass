@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include "process_factory.h"
 #include "qemuimg_process_spec.h"
 #include <multipass/logging/log.h>
+#include <multipass/memory_size.h>
 #include <multipass/utils.h>
 
 #include <fmt/format.h>
@@ -133,14 +134,10 @@ void mp::backend::check_hypervisor_support()
     }
 }
 
-void mp::backend::resize_instance_image(const ProcessFactory* process_factory, const std::string& disk_space,
+void mp::backend::resize_instance_image(const ProcessFactory* process_factory, const MemorySize& disk_space,
                                         const mp::Path& image_path)
 {
-    auto disk_size = QString::fromStdString(disk_space);
-
-    if (disk_size.endsWith("B"))
-        disk_size.chop(1);
-
+    auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>();
     auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
 
