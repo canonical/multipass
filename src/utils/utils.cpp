@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cctype>
 #include <fstream>
 #include <random>
@@ -54,18 +55,11 @@ QDir mp::utils::base_dir(const QString& path)
     return info.absoluteDir();
 }
 
-bool mp::utils::valid_memory_value(const QString& mem_string)
-{
-    QRegExp matcher("\\d+((K|M|G)(B){0,1}){0,1}$");
-
-    return matcher.exactMatch(mem_string);
-}
-
-bool mp::utils::valid_hostname(const QString& name_string)
+bool mp::utils::valid_hostname(const std::string& name_string)
 {
     QRegExp matcher("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
 
-    return matcher.exactMatch(name_string);
+    return matcher.exactMatch(QString::fromStdString(name_string));
 }
 
 bool mp::utils::invalid_target_path(const QString& target_path)

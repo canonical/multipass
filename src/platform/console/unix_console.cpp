@@ -86,7 +86,7 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term)
 {
     setup_console();
 
-    if (term->cout_is_live())
+    if (term->cin_is_live())
     {
         ssh_channel_request_pty(channel);
         change_ssh_pty_size(channel, term->cout_fd());
