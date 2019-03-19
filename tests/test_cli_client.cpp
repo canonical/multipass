@@ -37,6 +37,47 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace
+{
+struct MockDaemonRpc : public mp::DaemonRpc
+{
+    using mp::DaemonRpc::DaemonRpc; // ctor
+
+    MOCK_METHOD3(create, grpc::Status(grpc::ServerContext* context, const mp::CreateRequest* request,
+                                      grpc::ServerWriter<mp::CreateReply>* reply));
+    MOCK_METHOD3(launch, grpc::Status(grpc::ServerContext* context, const mp::LaunchRequest* request,
+                                      grpc::ServerWriter<mp::LaunchReply>* reply));
+    MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext* context, const mp::PurgeRequest* request,
+                                     grpc::ServerWriter<mp::PurgeReply>* response));
+    MOCK_METHOD3(find, grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request,
+                                    grpc::ServerWriter<mp::FindReply>* response));
+    MOCK_METHOD3(info, grpc::Status(grpc::ServerContext* context, const mp::InfoRequest* request,
+                                    grpc::ServerWriter<mp::InfoReply>* response));
+    MOCK_METHOD3(list, grpc::Status(grpc::ServerContext* context, const mp::ListRequest* request,
+                                    grpc::ServerWriter<mp::ListReply>* response));
+    MOCK_METHOD3(mount, grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request,
+                                     grpc::ServerWriter<mp::MountReply>* response));
+    MOCK_METHOD3(recover, grpc::Status(grpc::ServerContext* context, const mp::RecoverRequest* request,
+                                       grpc::ServerWriter<mp::RecoverReply>* response));
+    MOCK_METHOD3(ssh_info, grpc::Status(grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                                        grpc::ServerWriter<mp::SSHInfoReply>* response));
+    MOCK_METHOD3(start, grpc::Status(grpc::ServerContext* context, const mp::StartRequest* request,
+                                     grpc::ServerWriter<mp::StartReply>* response));
+    MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext* context, const mp::StopRequest* request,
+                                    grpc::ServerWriter<mp::StopReply>* response));
+    MOCK_METHOD3(suspend, grpc::Status(grpc::ServerContext* context, const mp::SuspendRequest* request,
+                                       grpc::ServerWriter<mp::SuspendReply>* response));
+    MOCK_METHOD3(restart, grpc::Status(grpc::ServerContext* context, const mp::RestartRequest* request,
+                                       grpc::ServerWriter<mp::RestartReply>* response));
+    MOCK_METHOD3(delet, grpc::Status(grpc::ServerContext* context, const mp::DeleteRequest* request,
+                                     grpc::ServerWriter<mp::DeleteReply>* response));
+    MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
+                                      grpc::ServerWriter<mp::UmountReply>* response));
+    MOCK_METHOD3(version, grpc::Status(grpc::ServerContext* context, const mp::VersionRequest* request,
+                                       grpc::ServerWriter<mp::VersionReply>* response));
+    MOCK_METHOD3(ping, grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
+};
+
 struct Client : public Test
 {
     int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
@@ -62,7 +103,7 @@ struct Client : public Test
 #endif
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
-    mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store};
+    StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store}; // strict to fail on unexpected calls
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
 
@@ -690,4 +731,5 @@ TEST_F(Client, help_cmd_create_same_create_cmd_help)
 
     EXPECT_THAT(help_cmd_create.str(), Ne(""));
     EXPECT_THAT(help_cmd_create.str(), Eq(create_cmd_help.str()));
+}
 }
