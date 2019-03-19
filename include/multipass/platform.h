@@ -21,6 +21,7 @@
 #define MULTIPASS_PLATFORM_H
 
 #include <multipass/logging/logger.h>
+#include <multipass/update_prompt.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <libssh/sftp.h>
@@ -34,6 +35,7 @@ namespace platform
 std::string default_server_address();
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
+UpdatePrompt::UPtr make_update_prompt();
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);
 bool link(const char* target, const char* link);
@@ -43,5 +45,5 @@ bool is_alias_supported(const std::string& alias, const std::string& remote);
 bool is_remote_supported(const std::string& remote);
 bool is_image_url_supported();
 } // namespace platform
-}
+} // namespace multipass
 #endif // MULTIPASS_PLATFORM_H

@@ -199,7 +199,11 @@ mp::ReturnCode cmd::Launch::request_launch()
     auto on_success = [this, &spinner](mp::LaunchReply& reply) {
         spinner.stop();
 
-        if (reply.metrics_pending())
+        if (term->is_live() && update_available(reply.update_info()))
+        {
+            cout << update_notice(reply.update_info());
+        }
+        else if (reply.metrics_pending())
         {
             if (term->is_live())
             {

@@ -102,3 +102,23 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std
 
     return return_code_for(status.error_code());
 }
+
+bool cmd::update_available(const multipass::UpdateInfo& update_info)
+{
+    return update_info.version() != "";
+}
+
+std::string cmd::update_notice(const multipass::UpdateInfo& update_info)
+{
+    if (update_available(update_info))
+    {
+        return "\n** A new Multipass version " + update_info.version() +
+               " is available! **\n"
+               "** Find out more: " +
+               update_info.url() + "\n";
+    }
+    else
+    {
+        return std::string();
+    }
+}

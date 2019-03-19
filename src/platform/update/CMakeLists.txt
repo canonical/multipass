@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,26 +11,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(platform STATIC
-  platform_linux.cpp
-  platform_unix.cpp)
+set(CMAKE_AUTOMOC ON)
 
-target_link_libraries(platform
-  qemu_backend
-  libvirt_backend
-  journaldlogger)
+add_library(update STATIC
+  github_update_prompt.cpp
+  new_release_monitor.cpp
+  version.cpp)
 
-include_directories(platform
-  backends)
+target_link_libraries(update
+  network
+  fmt
+  rpc
+  Qt5::Core)
 
-target_link_libraries(platform
-  update)
-
-add_subdirectory(backends)
-add_subdirectory(client)
-add_subdirectory(console)
-add_subdirectory(logger)
-add_subdirectory(update)
+target_include_directories(update
+  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

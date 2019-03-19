@@ -101,6 +101,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
+  test_version.cpp
   test_memory_size.cpp
 
   ${BACKEND_TESTS}
@@ -141,6 +142,7 @@ target_link_libraries(multipass_tests
   ssh_test
   ssh_client_test
   sshfs_mount_test
+  update
   utils
   # 3rd-party
   premock

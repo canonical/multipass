@@ -42,6 +42,10 @@ ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter, 
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
 ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr, const grpc::Status& status,
                                         const std::string& error_details = std::string());
+
+// helpers for update handling
+bool update_available(const UpdateInfo& update_info);
+std::string update_notice(const UpdateInfo& update_info);
 } // namespace cmd
 } // namespace multipass
 
