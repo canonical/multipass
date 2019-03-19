@@ -258,10 +258,11 @@ TEST_F(Client, launch_cmd_cloudinit_option_with_valid_file_is_ok)
     tmpfile.open();
     tmpfile.write("password: passw0rd"); // need some YAML
     tmpfile.close();
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init", qPrintable(tmpfile.fileName())}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_cloudinit_option_with_missing_file)
+TEST_F(Client, launch_cmd_cloudinit_option_fails_with_missing_file)
 {
     EXPECT_THAT(send_command({"launch", "--cloud-init", "/definitely/missing-file"}),
                 Eq(mp::ReturnCode::CommandLineError));
