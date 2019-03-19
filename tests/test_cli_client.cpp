@@ -123,12 +123,14 @@ TEST_F(Client, no_command_help_ok)
 // copy-files cli tests
 TEST_F(Client, copy_files_cmd_good_source_remote)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"copy-files", "test-vm:foo", mpt::test_data_path().toStdString() + "good_index.json"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, copy_files_cmd_good_destination_remote)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString() + "good_index.json", "test-vm:bar"}),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -180,6 +182,7 @@ TEST_F(Client, copy_file_cmd_multiple_sources_destination_file_fails)
 // shell cli test
 TEST_F(Client, shell_cmd_good_arguments)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"shell", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -296,11 +299,13 @@ TEST_F(Client, empty_trash_cmd_help_ok)
 // exec cli tests
 TEST_F(Client, exec_cmd_double_dash_ok_cmd_arg)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "--", "cmd"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, exec_cmd_double_dash_ok_cmd_arg_with_opts)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "--", "cmd", "--foo", "--bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -311,11 +316,13 @@ TEST_F(Client, exec_cmd_double_dash_fails_missing_cmd_arg)
 
 TEST_F(Client, exec_cmd_no_double_dash_ok_cmd_arg)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "cmd"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, exec_cmd_no_double_dash_ok_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "cmd", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
