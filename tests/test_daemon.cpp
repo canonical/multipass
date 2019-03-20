@@ -110,19 +110,18 @@ public:
     mp::ReturnCode run(mp::ArgParser* parser) override
     {
         auto on_success = [](mp::CreateReply& /*reply*/) { return mp::ReturnCode::Ok; };
-        auto on_failure = [this](grpc::Status& status)
-        {
+        auto on_failure = [this](grpc::Status& status) {
             mp::CreateError create_error;
             create_error.ParseFromString(status.error_details());
             const auto errors = create_error.error_codes();
 
             cerr << "fail: ";
-            if(errors.size() == 1)
+            if (errors.size() == 1)
             {
                 const auto& error = errors[0];
-                if(error == mp::CreateError::INVALID_DISK_SIZE)
+                if (error == mp::CreateError::INVALID_DISK_SIZE)
                     cerr << "disk";
-                else if(error == mp::CreateError::INVALID_MEM_SIZE)
+                else if (error == mp::CreateError::INVALID_MEM_SIZE)
                     cerr << "memory";
                 else
                     cerr << "?";
@@ -131,10 +130,7 @@ public:
             return mp::ReturnCode::CommandFail;
         };
 
-        auto streaming_callback = [this](mp::CreateReply& reply)
-        {
-            cout << reply.create_message() << std::endl;
-        };
+        auto streaming_callback = [this](mp::CreateReply& reply) { cout << reply.create_message() << std::endl; };
 
         auto ret = parse_args(parser);
         return ret == mp::ParseCode::Ok
@@ -321,11 +317,13 @@ struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<st
 {
 };
 
-struct MinSpaceRespectedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string, std::string>>
+struct MinSpaceRespectedSuite : public Daemon,
+                                public WithParamInterface<std::tuple<std::string, std::string, std::string>>
 {
 };
 
-struct MinSpaceViolatedSuite : public Daemon, public WithParamInterface<std::tuple<std::string, std::string, std::string>>
+struct MinSpaceViolatedSuite : public Daemon,
+                               public WithParamInterface<std::tuple<std::string, std::string, std::string>>
 {
 };
 
@@ -536,8 +534,10 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
 
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
-                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"), Values("1024m", "2Gb", "987654321")));
+                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"),
+                                 Values("1024m", "2Gb", "987654321")));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite,
-                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"), Values("0", "0B", "0GB", "123B", "42kb", "100")));
+                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"),
+                                 Values("0", "0B", "0GB", "123B", "42kb", "100")));
 
 } // namespace
