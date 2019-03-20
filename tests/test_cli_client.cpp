@@ -194,6 +194,7 @@ TEST_F(Client, shell_cmd_help_ok)
 // launch cli tests
 TEST_F(Client, launch_cmd_good_arguments)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -214,6 +215,7 @@ TEST_F(Client, launch_cmd_unknown_option_fails)
 
 TEST_F(Client, launch_cmd_name_option_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "-n", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -224,6 +226,7 @@ TEST_F(Client, launch_cmd_name_option_fails_no_value)
 
 TEST_F(Client, launch_cmd_memory_option_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "-m", "1G"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -234,6 +237,7 @@ TEST_F(Client, launch_cmd_memory_option_fails_no_value)
 
 TEST_F(Client, launch_cmd_cpu_option_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "-c", "2"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -244,11 +248,13 @@ TEST_F(Client, launch_cmd_cpu_option_fails_no_value)
 
 TEST_F(Client, launch_cmd_custom_image_file_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, launch_cmd_custom_image_http_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -278,12 +284,14 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     MockStdCin cin("password: passw0rd"); // no effect since terminal encapsulation of streams
 
     std::stringstream ss;
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests
 TEST_F(Client, empty_trash_cmd_ok_no_args)
 {
+    EXPECT_CALL(mock_daemon, purge(_, _, _));
     EXPECT_THAT(send_command({"purge"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -366,11 +374,13 @@ TEST_F(Client, info_cmd_fails_no_args)
 
 TEST_F(Client, info_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, info(_, _, _));
     EXPECT_THAT(send_command({"info", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, info_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, info(_, _, _));
     EXPECT_THAT(send_command({"info", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -381,6 +391,7 @@ TEST_F(Client, info_cmd_help_ok)
 
 TEST_F(Client, info_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, info(_, _, _));
     EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
