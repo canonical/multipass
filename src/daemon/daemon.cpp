@@ -701,7 +701,7 @@ try // clang-format on
     if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
         metrics_provider.send_metrics();
 
-    return create_vm(context, request, server, /*start=*/true);;
+    return create_vm(context, request, server, /*start=*/true);
 }
 catch (const mp::StartException& e)
 {
