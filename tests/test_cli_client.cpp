@@ -710,11 +710,13 @@ TEST_F(Client, delete_cmd_fails_no_args)
 
 TEST_F(Client, delete_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _));
     EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, delete_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _));
     EXPECT_THAT(send_command({"delete", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -725,6 +727,7 @@ TEST_F(Client, delete_cmd_help_ok)
 
 TEST_F(Client, delete_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _));
     EXPECT_THAT(send_command({"delete", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -735,6 +738,7 @@ TEST_F(Client, delete_cmd_fails_with_names_and_all)
 
 TEST_F(Client, delete_cmd_accepts_purge_option)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _)).Times(2);
     EXPECT_THAT(send_command({"delete", "--purge", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"delete", "-p", "bar"}), Eq(mp::ReturnCode::Ok));
 }
