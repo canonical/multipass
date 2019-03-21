@@ -44,7 +44,7 @@ struct MockDaemonRpc : public mp::DaemonRpc
     using mp::DaemonRpc::DaemonRpc; // ctor
 
     MOCK_METHOD3(create, grpc::Status(grpc::ServerContext* context, const mp::CreateRequest* request,
-                                      grpc::ServerWriter<mp::CreateReply>* reply));
+                                      grpc::ServerWriter<mp::CreateReply>* reply)); // here only to ensure not called
     MOCK_METHOD3(launch, grpc::Status(grpc::ServerContext* context, const mp::LaunchRequest* request,
                                       grpc::ServerWriter<mp::LaunchReply>* reply));
     MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext* context, const mp::PurgeRequest* request,
@@ -760,15 +760,15 @@ TEST_F(Client, command_help_is_different_than_general_help)
     EXPECT_THAT(general_help_output.str(), Ne(command_output.str()));
 }
 
-TEST_F(Client, help_cmd_create_same_create_cmd_help)
+TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 {
-    std::stringstream help_cmd_create;
-    send_command({"help", "launch"}, help_cmd_create);
+    std::stringstream help_cmd_launch;
+    send_command({"help", "launch"}, help_cmd_launch);
 
-    std::stringstream create_cmd_help;
-    send_command({"launch", "-h"}, create_cmd_help);
+    std::stringstream launch_cmd_help;
+    send_command({"launch", "-h"}, launch_cmd_help);
 
-    EXPECT_THAT(help_cmd_create.str(), Ne(""));
-    EXPECT_THAT(help_cmd_create.str(), Eq(create_cmd_help.str()));
+    EXPECT_THAT(help_cmd_launch.str(), Ne(""));
+    EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
 }
 }
