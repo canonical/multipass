@@ -1,7 +1,5 @@
 name: multipass
-version: 'git'
-version-script: |
-  git describe
+adopt-info: multipass
 summary: Ubuntu at your fingertips
 description: |
   Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch`
@@ -153,6 +151,7 @@ parts:
       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
+      snapcraftctl set-version $( cmake -L . | awk -F= '/^MULTIPASS_VERSION/ { print $2 }' )
 
   qemu:
     plugin: nil
