@@ -421,11 +421,13 @@ TEST_F(Client, list_cmd_help_ok)
 // Note: mpt::test_data_path() returns an absolute path
 TEST_F(Client, mount_cmd_good_absolute_source_path)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "test-vm:test"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, mount_cmd_good_relative_source_path)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", "..", "test-vm:test"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -437,12 +439,14 @@ TEST_F(Client, mount_cmd_fails_invalid_source_path)
 
 TEST_F(Client, mount_cmd_good_valid_uid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, mount_cmd_good_valid_large_uid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -461,12 +465,14 @@ TEST_F(Client, mount_cmd_fails_invalid_host_int_uid_map)
 
 TEST_F(Client, mount_cmd_good_valid_gid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, mount_cmd_good_valid_large_gid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -491,11 +497,13 @@ TEST_F(Client, recover_cmd_fails_no_args)
 
 TEST_F(Client, recover_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, recover(_, _, _));
     EXPECT_THAT(send_command({"recover", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, recover_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, recover(_, _, _));
     EXPECT_THAT(send_command({"recover", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -506,6 +514,7 @@ TEST_F(Client, recover_cmd_help_ok)
 
 TEST_F(Client, recover_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, recover(_, _, _));
     EXPECT_THAT(send_command({"recover", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
