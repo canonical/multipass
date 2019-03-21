@@ -403,6 +403,7 @@ TEST_F(Client, info_cmd_fails_with_names_and_all)
 // list cli tests
 TEST_F(Client, list_cmd_ok_no_args)
 {
+    EXPECT_CALL(mock_daemon, list(_, _, _));
     EXPECT_THAT(send_command({"list"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -521,11 +522,13 @@ TEST_F(Client, start_cmd_fails_no_args)
 
 TEST_F(Client, start_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_THAT(send_command({"start", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -536,6 +539,7 @@ TEST_F(Client, start_cmd_help_ok)
 
 TEST_F(Client, start_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -552,11 +556,13 @@ TEST_F(Client, stop_cmd_fails_no_args)
 
 TEST_F(Client, stop_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -567,6 +573,7 @@ TEST_F(Client, stop_cmd_help_ok)
 
 TEST_F(Client, stop_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -582,11 +589,13 @@ TEST_F(Client, stop_cmd_fails_with_time_and_cancel)
 
 TEST_F(Client, stop_cmd_succeeds_with_plus_time)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "--time", "+10"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_succeeds_with_no_plus_time)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "--time", "10"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -607,6 +616,7 @@ TEST_F(Client, stop_cmd_fails_with_time_suffix)
 
 TEST_F(Client, stop_cmd_succeds_with_cancel)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -618,11 +628,13 @@ TEST_F(Client, suspend_cmd_fails_no_args)
 
 TEST_F(Client, suspend_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, suspend(_, _, _));
     EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, suspend_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, suspend(_, _, _));
     EXPECT_THAT(send_command({"suspend", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -633,6 +645,7 @@ TEST_F(Client, suspend_cmd_help_ok)
 
 TEST_F(Client, suspend_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, suspend(_, _, _));
     EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -649,11 +662,13 @@ TEST_F(Client, restart_cmd_fails_no_args)
 
 TEST_F(Client, restart_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
     EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, restart_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
     EXPECT_THAT(send_command({"restart", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -664,6 +679,7 @@ TEST_F(Client, restart_cmd_help_ok)
 
 TEST_F(Client, restart_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
     EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
