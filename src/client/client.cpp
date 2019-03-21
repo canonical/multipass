@@ -98,15 +98,13 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
 
-    auto name_sort = [](cmd::Command::UPtr& a, cmd::Command::UPtr& b) { return a->name() < b->name(); };
-    std::sort(commands.begin(), commands.end(), name_sort);
+    sort_commands();
 }
 
-template <typename T>
-void mp::Client::add_command()
+void mp::Client::sort_commands()
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term);
-    commands.push_back(std::move(cmd));
+    auto name_sort = [](cmd::Command::UPtr& a, cmd::Command::UPtr& b) { return a->name() < b->name(); };
+    std::sort(commands.begin(), commands.end(), name_sort);
 }
 
 int mp::Client::run(const QStringList& arguments)
