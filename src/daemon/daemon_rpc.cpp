@@ -94,6 +94,12 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionTyp
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
 }
 
+grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateRequest* request,
+                                   grpc::ServerWriter<CreateReply>* reply)
+{
+    return emit on_create(context, request, reply); // must block until slot returns
+}
+
 grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,
                                    grpc::ServerWriter<LaunchReply>* reply)
 {

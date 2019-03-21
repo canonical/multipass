@@ -37,6 +37,47 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace
+{
+struct MockDaemonRpc : public mp::DaemonRpc
+{
+    using mp::DaemonRpc::DaemonRpc; // ctor
+
+    MOCK_METHOD3(create, grpc::Status(grpc::ServerContext* context, const mp::CreateRequest* request,
+                                      grpc::ServerWriter<mp::CreateReply>* reply)); // here only to ensure not called
+    MOCK_METHOD3(launch, grpc::Status(grpc::ServerContext* context, const mp::LaunchRequest* request,
+                                      grpc::ServerWriter<mp::LaunchReply>* reply));
+    MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext* context, const mp::PurgeRequest* request,
+                                     grpc::ServerWriter<mp::PurgeReply>* response));
+    MOCK_METHOD3(find, grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request,
+                                    grpc::ServerWriter<mp::FindReply>* response));
+    MOCK_METHOD3(info, grpc::Status(grpc::ServerContext* context, const mp::InfoRequest* request,
+                                    grpc::ServerWriter<mp::InfoReply>* response));
+    MOCK_METHOD3(list, grpc::Status(grpc::ServerContext* context, const mp::ListRequest* request,
+                                    grpc::ServerWriter<mp::ListReply>* response));
+    MOCK_METHOD3(mount, grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request,
+                                     grpc::ServerWriter<mp::MountReply>* response));
+    MOCK_METHOD3(recover, grpc::Status(grpc::ServerContext* context, const mp::RecoverRequest* request,
+                                       grpc::ServerWriter<mp::RecoverReply>* response));
+    MOCK_METHOD3(ssh_info, grpc::Status(grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                                        grpc::ServerWriter<mp::SSHInfoReply>* response));
+    MOCK_METHOD3(start, grpc::Status(grpc::ServerContext* context, const mp::StartRequest* request,
+                                     grpc::ServerWriter<mp::StartReply>* response));
+    MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext* context, const mp::StopRequest* request,
+                                    grpc::ServerWriter<mp::StopReply>* response));
+    MOCK_METHOD3(suspend, grpc::Status(grpc::ServerContext* context, const mp::SuspendRequest* request,
+                                       grpc::ServerWriter<mp::SuspendReply>* response));
+    MOCK_METHOD3(restart, grpc::Status(grpc::ServerContext* context, const mp::RestartRequest* request,
+                                       grpc::ServerWriter<mp::RestartReply>* response));
+    MOCK_METHOD3(delet, grpc::Status(grpc::ServerContext* context, const mp::DeleteRequest* request,
+                                     grpc::ServerWriter<mp::DeleteReply>* response));
+    MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
+                                      grpc::ServerWriter<mp::UmountReply>* response));
+    MOCK_METHOD3(version, grpc::Status(grpc::ServerContext* context, const mp::VersionRequest* request,
+                                       grpc::ServerWriter<mp::VersionReply>* response));
+    MOCK_METHOD3(ping, grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
+};
+
 struct Client : public Test
 {
     int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
@@ -62,7 +103,7 @@ struct Client : public Test
 #endif
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
-    mp::DaemonRpc stub_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store};
+    StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store}; // strict to fail on unexpected calls
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
 
@@ -82,12 +123,14 @@ TEST_F(Client, no_command_help_ok)
 // copy-files cli tests
 TEST_F(Client, copy_files_cmd_good_source_remote)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"copy-files", "test-vm:foo", mpt::test_data_path().toStdString() + "good_index.json"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, copy_files_cmd_good_destination_remote)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString() + "good_index.json", "test-vm:bar"}),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -139,6 +182,7 @@ TEST_F(Client, copy_file_cmd_multiple_sources_destination_file_fails)
 // shell cli test
 TEST_F(Client, shell_cmd_good_arguments)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"shell", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -150,6 +194,7 @@ TEST_F(Client, shell_cmd_help_ok)
 // launch cli tests
 TEST_F(Client, launch_cmd_good_arguments)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -170,6 +215,7 @@ TEST_F(Client, launch_cmd_unknown_option_fails)
 
 TEST_F(Client, launch_cmd_name_option_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "-n", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -180,6 +226,7 @@ TEST_F(Client, launch_cmd_name_option_fails_no_value)
 
 TEST_F(Client, launch_cmd_memory_option_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "-m", "1G"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -190,6 +237,7 @@ TEST_F(Client, launch_cmd_memory_option_fails_no_value)
 
 TEST_F(Client, launch_cmd_cpu_option_ok)
 {
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "-c", "2"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -203,6 +251,7 @@ TEST_F(Client, launch_cmd_custom_image_file_ok)
 #ifdef MULTIPASS_PLATFORM_APPLE
     EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::CommandLineError));
 #else
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::Ok));
 #endif
 }
@@ -212,6 +261,7 @@ TEST_F(Client, launch_cmd_custom_image_http_ok)
 #ifdef MULTIPASS_PLATFORM_APPLE
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::CommandLineError));
 #else
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
 #endif
 }
@@ -222,10 +272,11 @@ TEST_F(Client, launch_cmd_cloudinit_option_with_valid_file_is_ok)
     tmpfile.open();
     tmpfile.write("password: passw0rd"); // need some YAML
     tmpfile.close();
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init", qPrintable(tmpfile.fileName())}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_cloudinit_option_with_missing_file)
+TEST_F(Client, launch_cmd_cloudinit_option_fails_with_missing_file)
 {
     EXPECT_THAT(send_command({"launch", "--cloud-init", "/definitely/missing-file"}),
                 Eq(mp::ReturnCode::CommandLineError));
@@ -241,21 +292,23 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     MockStdCin cin("password: passw0rd"); // no effect since terminal encapsulation of streams
 
     std::stringstream ss;
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests
-TEST_F(Client, empty_trash_cmd_ok_no_args)
+TEST_F(Client, purge_cmd_ok_no_args)
 {
+    EXPECT_CALL(mock_daemon, purge(_, _, _));
     EXPECT_THAT(send_command({"purge"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, empty_trash_cmd_fails_with_args)
+TEST_F(Client, purge_cmd_fails_with_args)
 {
     EXPECT_THAT(send_command({"purge", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, empty_trash_cmd_help_ok)
+TEST_F(Client, purge_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"purge", "-h"}), Eq(mp::ReturnCode::Ok));
 }
@@ -263,11 +316,13 @@ TEST_F(Client, empty_trash_cmd_help_ok)
 // exec cli tests
 TEST_F(Client, exec_cmd_double_dash_ok_cmd_arg)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "--", "cmd"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, exec_cmd_double_dash_ok_cmd_arg_with_opts)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "--", "cmd", "--foo", "--bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -278,11 +333,13 @@ TEST_F(Client, exec_cmd_double_dash_fails_missing_cmd_arg)
 
 TEST_F(Client, exec_cmd_no_double_dash_ok_cmd_arg)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "cmd"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, exec_cmd_no_double_dash_ok_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
     EXPECT_THAT(send_command({"exec", "foo", "cmd", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -325,11 +382,13 @@ TEST_F(Client, info_cmd_fails_no_args)
 
 TEST_F(Client, info_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, info(_, _, _));
     EXPECT_THAT(send_command({"info", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, info_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, info(_, _, _));
     EXPECT_THAT(send_command({"info", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -340,6 +399,7 @@ TEST_F(Client, info_cmd_help_ok)
 
 TEST_F(Client, info_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, info(_, _, _));
     EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -351,6 +411,7 @@ TEST_F(Client, info_cmd_fails_with_names_and_all)
 // list cli tests
 TEST_F(Client, list_cmd_ok_no_args)
 {
+    EXPECT_CALL(mock_daemon, list(_, _, _));
     EXPECT_THAT(send_command({"list"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -368,11 +429,13 @@ TEST_F(Client, list_cmd_help_ok)
 // Note: mpt::test_data_path() returns an absolute path
 TEST_F(Client, mount_cmd_good_absolute_source_path)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "test-vm:test"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, mount_cmd_good_relative_source_path)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", "..", "test-vm:test"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -384,12 +447,14 @@ TEST_F(Client, mount_cmd_fails_invalid_source_path)
 
 TEST_F(Client, mount_cmd_good_valid_uid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, mount_cmd_good_valid_large_uid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -408,12 +473,14 @@ TEST_F(Client, mount_cmd_fails_invalid_host_int_uid_map)
 
 TEST_F(Client, mount_cmd_good_valid_gid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, mount_cmd_good_valid_large_gid_map)
 {
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -438,11 +505,13 @@ TEST_F(Client, recover_cmd_fails_no_args)
 
 TEST_F(Client, recover_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, recover(_, _, _));
     EXPECT_THAT(send_command({"recover", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, recover_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, recover(_, _, _));
     EXPECT_THAT(send_command({"recover", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -453,6 +522,7 @@ TEST_F(Client, recover_cmd_help_ok)
 
 TEST_F(Client, recover_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, recover(_, _, _));
     EXPECT_THAT(send_command({"recover", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -469,11 +539,13 @@ TEST_F(Client, start_cmd_fails_no_args)
 
 TEST_F(Client, start_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_THAT(send_command({"start", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -484,6 +556,7 @@ TEST_F(Client, start_cmd_help_ok)
 
 TEST_F(Client, start_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -500,11 +573,13 @@ TEST_F(Client, stop_cmd_fails_no_args)
 
 TEST_F(Client, stop_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -515,6 +590,7 @@ TEST_F(Client, stop_cmd_help_ok)
 
 TEST_F(Client, stop_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -530,11 +606,13 @@ TEST_F(Client, stop_cmd_fails_with_time_and_cancel)
 
 TEST_F(Client, stop_cmd_succeeds_with_plus_time)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "--time", "+10"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_succeeds_with_no_plus_time)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "--time", "10"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -555,6 +633,7 @@ TEST_F(Client, stop_cmd_fails_with_time_suffix)
 
 TEST_F(Client, stop_cmd_succeds_with_cancel)
 {
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -566,11 +645,13 @@ TEST_F(Client, suspend_cmd_fails_no_args)
 
 TEST_F(Client, suspend_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, suspend(_, _, _));
     EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, suspend_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, suspend(_, _, _));
     EXPECT_THAT(send_command({"suspend", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -581,6 +662,7 @@ TEST_F(Client, suspend_cmd_help_ok)
 
 TEST_F(Client, suspend_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, suspend(_, _, _));
     EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -597,11 +679,13 @@ TEST_F(Client, restart_cmd_fails_no_args)
 
 TEST_F(Client, restart_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
     EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, restart_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
     EXPECT_THAT(send_command({"restart", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -612,6 +696,7 @@ TEST_F(Client, restart_cmd_help_ok)
 
 TEST_F(Client, restart_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
     EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -634,39 +719,43 @@ TEST_F(Client, restart_cmd_fails_with_unknown_options)
     EXPECT_THAT(send_command({"restart", "--cancel", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-// trash cli tests
-TEST_F(Client, trash_cmd_fails_no_args)
+// delete cli tests
+TEST_F(Client, delete_cmd_fails_no_args)
 {
     EXPECT_THAT(send_command({"delete"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, trash_cmd_ok_with_one_arg)
+TEST_F(Client, delete_cmd_ok_with_one_arg)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _));
     EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_succeeds_with_multiple_args)
+TEST_F(Client, delete_cmd_succeeds_with_multiple_args)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _));
     EXPECT_THAT(send_command({"delete", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_help_ok)
+TEST_F(Client, delete_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"delete", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_succeeds_with_all)
+TEST_F(Client, delete_cmd_succeeds_with_all)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _));
     EXPECT_THAT(send_command({"delete", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_fails_with_names_and_all)
+TEST_F(Client, delete_cmd_fails_with_names_and_all)
 {
     EXPECT_THAT(send_command({"delete", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, delete_cmd_accepts_purge_option)
 {
+    EXPECT_CALL(mock_daemon, delet(_, _, _)).Times(2);
     EXPECT_THAT(send_command({"delete", "--purge", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"delete", "-p", "bar"}), Eq(mp::ReturnCode::Ok));
 }
@@ -688,14 +777,15 @@ TEST_F(Client, command_help_is_different_than_general_help)
     EXPECT_THAT(general_help_output.str(), Ne(command_output.str()));
 }
 
-TEST_F(Client, help_cmd_create_same_create_cmd_help)
+TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 {
-    std::stringstream help_cmd_create;
-    send_command({"help", "launch"}, help_cmd_create);
+    std::stringstream help_cmd_launch;
+    send_command({"help", "launch"}, help_cmd_launch);
 
-    std::stringstream create_cmd_help;
-    send_command({"launch", "-h"}, create_cmd_help);
+    std::stringstream launch_cmd_help;
+    send_command({"launch", "-h"}, launch_cmd_help);
 
-    EXPECT_THAT(help_cmd_create.str(), Ne(""));
-    EXPECT_THAT(help_cmd_create.str(), Eq(create_cmd_help.str()));
+    EXPECT_THAT(help_cmd_launch.str(), Ne(""));
+    EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
+}
 }
