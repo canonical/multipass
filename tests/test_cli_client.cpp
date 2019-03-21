@@ -289,18 +289,18 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
 }
 
 // purge cli tests
-TEST_F(Client, empty_trash_cmd_ok_no_args)
+TEST_F(Client, purge_cmd_ok_no_args)
 {
     EXPECT_CALL(mock_daemon, purge(_, _, _));
     EXPECT_THAT(send_command({"purge"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, empty_trash_cmd_fails_with_args)
+TEST_F(Client, purge_cmd_fails_with_args)
 {
     EXPECT_THAT(send_command({"purge", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, empty_trash_cmd_help_ok)
+TEST_F(Client, purge_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"purge", "-h"}), Eq(mp::ReturnCode::Ok));
 }
@@ -702,33 +702,33 @@ TEST_F(Client, restart_cmd_fails_with_unknown_options)
     EXPECT_THAT(send_command({"restart", "--cancel", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-// trash cli tests
-TEST_F(Client, trash_cmd_fails_no_args)
+// delete cli tests
+TEST_F(Client, delete_cmd_fails_no_args)
 {
     EXPECT_THAT(send_command({"delete"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, trash_cmd_ok_with_one_arg)
+TEST_F(Client, delete_cmd_ok_with_one_arg)
 {
     EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_succeeds_with_multiple_args)
+TEST_F(Client, delete_cmd_succeeds_with_multiple_args)
 {
     EXPECT_THAT(send_command({"delete", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_help_ok)
+TEST_F(Client, delete_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"delete", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_succeeds_with_all)
+TEST_F(Client, delete_cmd_succeeds_with_all)
 {
     EXPECT_THAT(send_command({"delete", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, trash_cmd_fails_with_names_and_all)
+TEST_F(Client, delete_cmd_fails_with_names_and_all)
 {
     EXPECT_THAT(send_command({"delete", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
