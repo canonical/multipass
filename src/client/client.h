@@ -43,11 +43,15 @@ class Client
 {
 public:
     explicit Client(ClientConfig& context);
+    virtual ~Client() = default;
     int run(const QStringList& arguments);
 
-private:
+protected:
     template <typename T>
     void add_command();
+    void sort_commands();
+
+private:
     const std::unique_ptr<CertProvider> cert_provider;
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
@@ -57,4 +61,12 @@ private:
     Terminal* term;
 };
 } // namespace multipass
+
+template <typename T>
+void multipass::Client::add_command()
+{
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term);
+    commands.push_back(std::move(cmd));
+}
+
 #endif // MULTIPASS_CLIENT_H
