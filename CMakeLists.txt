@@ -78,7 +78,7 @@ function(determine_version OUTPUT_VARIABLE)
 endfunction()
 
 determine_version(MULTIPASS_VERSION)
-set(MULTIPASS_VERSION ${MULTIPASS_VERSION} CACHE STRING "Multipass version string" FORCE)
+set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 
 set(CMAKE_CXX_STANDARD 14)
