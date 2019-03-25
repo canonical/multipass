@@ -86,50 +86,50 @@ public slots:
     grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
                         grpc::ServerWriter<CreateReply>* reply) override;
 
-    void launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
-                std::promise<grpc::Status>* status_promise);
+    virtual void launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
+                        std::promise<grpc::Status>* status_promise);
 
-    void purge(const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* response,
-               std::promise<grpc::Status>* status_promise);
+    virtual void purge(const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    void find(const FindRequest* request, grpc::ServerWriter<FindReply>* response,
-              std::promise<grpc::Status>* status_promise);
+    virtual void find(const FindRequest* request, grpc::ServerWriter<FindReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    void info(const InfoRequest* request, grpc::ServerWriter<InfoReply>* response,
-              std::promise<grpc::Status>* status_promise);
+    virtual void info(const InfoRequest* request, grpc::ServerWriter<InfoReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    void list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
-              std::promise<grpc::Status>* status_promise);
+    virtual void list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    void mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
-               std::promise<grpc::Status>* status_promise);
+    virtual void mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    void recover(const RecoverRequest* request, grpc::ServerWriter<RecoverReply>* response,
-                 std::promise<grpc::Status>* status_promise);
+    virtual void recover(const RecoverRequest* request, grpc::ServerWriter<RecoverReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
-    void ssh_info(const SSHInfoRequest* request, grpc::ServerWriter<SSHInfoReply>* response,
-                  std::promise<grpc::Status>* status_promise);
+    virtual void ssh_info(const SSHInfoRequest* request, grpc::ServerWriter<SSHInfoReply>* response,
+                          std::promise<grpc::Status>* status_promise);
 
-    void start(const StartRequest* request, grpc::ServerWriter<StartReply>* response,
-               std::promise<grpc::Status>* status_promise);
+    virtual void start(const StartRequest* request, grpc::ServerWriter<StartReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    void stop(const StopRequest* request, grpc::ServerWriter<StopReply>* response,
-              std::promise<grpc::Status>* status_promise);
+    virtual void stop(const StopRequest* request, grpc::ServerWriter<StopReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    void suspend(const SuspendRequest* request, grpc::ServerWriter<SuspendReply>* response,
-                 std::promise<grpc::Status>* status_promise);
+    virtual void suspend(const SuspendRequest* request, grpc::ServerWriter<SuspendReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
-    void restart(const RestartRequest* request, grpc::ServerWriter<RestartReply>* response,
-                 std::promise<grpc::Status>* status_promise);
+    virtual void restart(const RestartRequest* request, grpc::ServerWriter<RestartReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
-    void delet(const DeleteRequest* request, grpc::ServerWriter<DeleteReply>* response,
-               std::promise<grpc::Status>* status_promise);
+    virtual void delet(const DeleteRequest* request, grpc::ServerWriter<DeleteReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    void umount(const UmountRequest* request, grpc::ServerWriter<UmountReply>* response,
-                std::promise<grpc::Status>* status_promise);
+    virtual void umount(const UmountRequest* request, grpc::ServerWriter<UmountReply>* response,
+                        std::promise<grpc::Status>* status_promise);
 
-    void version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* response,
-                 std::promise<grpc::Status>* status_promise);
+    virtual void version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
 private:
     void persist_instances();
