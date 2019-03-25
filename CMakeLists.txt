@@ -47,7 +47,12 @@ add_subdirectory(3rd-party)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Network REQUIRED)
 
-set(MULTIPASS_VERSION "0.6.0-dev.211+g52965e56" CACHE STRING "Multipass version string" FORCE)
+function(determine_version OUTPUT_VARIABLE)
+  set(${OUTPUT_VARIABLE} "0.6.0-dev.211+g52965e56" PARENT_SCOPE)
+endfunction()
+
+determine_version(MULTIPASS_VERSION)
+set(MULTIPASS_VERSION ${MULTIPASS_VERSION} CACHE STRING "Multipass version string" FORCE)
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 
 set(CMAKE_CXX_STANDARD 14)
