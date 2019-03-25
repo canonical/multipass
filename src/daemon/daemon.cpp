@@ -1949,6 +1949,10 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
         auto future_watcher = create_future_watcher();
         future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ssh_for, std::ref(vm), status_promise));
     }
+    else
+    {
+        status_promise->set_value(grpc::Status::OK);
+    }
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)

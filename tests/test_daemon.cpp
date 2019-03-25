@@ -62,42 +62,6 @@ struct MockDaemon : public mp::Daemon
 {
     using mp::Daemon::Daemon;
 
-    MockDaemon(std::unique_ptr<const mp::DaemonConfig> config) : Daemon{std::move(config)}
-    {
-        ON_CALL(*this, create(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
-        ON_CALL(*this, launch(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::LaunchRequest, mp::LaunchReply>));
-        ON_CALL(*this, purge(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::PurgeRequest, mp::PurgeReply>));
-        ON_CALL(*this, find(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
-        ON_CALL(*this, info(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
-        ON_CALL(*this, list(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::ListRequest, mp::ListReply>));
-        ON_CALL(*this, mount(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::MountRequest, mp::MountReply>));
-        ON_CALL(*this, recover(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
-        ON_CALL(*this, ssh_info(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::SSHInfoRequest, mp::SSHInfoReply>));
-        ON_CALL(*this, start(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::StartRequest, mp::StartReply>));
-        ON_CALL(*this, stop(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::StopRequest, mp::StopReply>));
-        ON_CALL(*this, suspend(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::SuspendRequest, mp::SuspendReply>));
-        ON_CALL(*this, restart(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::RestartRequest, mp::RestartReply>));
-        ON_CALL(*this, delet(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::DeleteRequest, mp::DeleteReply>));
-        ON_CALL(*this, umount(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
-        ON_CALL(*this, version(_, _, _))
-            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::VersionRequest, mp::VersionReply>));
-    }
-
     MOCK_METHOD3(create,
                  void(const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(launch,
@@ -311,22 +275,38 @@ TEST_F(Daemon, receives_commands)
 {
     MockDaemon daemon{config_builder.build()};
 
-    EXPECT_CALL(daemon, create(_, _, _));
-    EXPECT_CALL(daemon, launch(_, _, _));
-    EXPECT_CALL(daemon, purge(_, _, _));
-    EXPECT_CALL(daemon, find(_, _, _));
-    EXPECT_CALL(daemon, ssh_info(_, _, _));
-    EXPECT_CALL(daemon, info(_, _, _));
-    EXPECT_CALL(daemon, list(_, _, _));
-    EXPECT_CALL(daemon, recover(_, _, _));
-    EXPECT_CALL(daemon, start(_, _, _));
-    EXPECT_CALL(daemon, stop(_, _, _));
-    EXPECT_CALL(daemon, suspend(_, _, _));
-    EXPECT_CALL(daemon, restart(_, _, _));
-    EXPECT_CALL(daemon, delet(_, _, _));
-    EXPECT_CALL(daemon, version(_, _, _));
-    EXPECT_CALL(daemon, mount(_, _, _));
-    EXPECT_CALL(daemon, umount(_, _, _));
+    EXPECT_CALL(daemon, create(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
+    EXPECT_CALL(daemon, launch(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::LaunchRequest, mp::LaunchReply>));
+    EXPECT_CALL(daemon, purge(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::PurgeRequest, mp::PurgeReply>));
+    EXPECT_CALL(daemon, find(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
+    EXPECT_CALL(daemon, ssh_info(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::SSHInfoRequest, mp::SSHInfoReply>));
+    EXPECT_CALL(daemon, info(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
+    EXPECT_CALL(daemon, list(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::ListRequest, mp::ListReply>));
+    EXPECT_CALL(daemon, recover(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
+    EXPECT_CALL(daemon, start(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::StartRequest, mp::StartReply>));
+    EXPECT_CALL(daemon, stop(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::StopRequest, mp::StopReply>));
+    EXPECT_CALL(daemon, suspend(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::SuspendRequest, mp::SuspendReply>));
+    EXPECT_CALL(daemon, restart(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::RestartRequest, mp::RestartReply>));
+    EXPECT_CALL(daemon, delet(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::DeleteRequest, mp::DeleteReply>));
+    EXPECT_CALL(daemon, version(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::VersionRequest, mp::VersionReply>));
+    EXPECT_CALL(daemon, mount(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::MountRequest, mp::MountReply>));
+    EXPECT_CALL(daemon, umount(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
 
     send_commands({{"test_create", "foo"},
                    {"launch", "foo"},
