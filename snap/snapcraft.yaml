@@ -151,7 +151,7 @@ parts:
       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
-      snapcraftctl set-version $( cmake -L . | awk -F= '/^MULTIPASS_VERSION/ { print $2 }' )
+      snapcraftctl set-version $( awk -F= '/^MULTIPASS_VERSION/ { print $2 }' CMakeCache.txt )
 
   qemu:
     plugin: nil
