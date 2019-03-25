@@ -83,8 +83,8 @@ protected:
     QJsonObject retrieve_metadata_for(const std::string& name) override;
 
 public slots:
-    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
-                        grpc::ServerWriter<CreateReply>* reply) override;
+    virtual void create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,
+                        std::promise<grpc::Status>* status_promise);
 
     virtual void launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
                         std::promise<grpc::Status>* status_promise);
@@ -140,8 +140,8 @@ private:
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
-    grpc::Status create_vm(grpc::ServerContext* context, const CreateRequest* request,
-                           grpc::ServerWriter<CreateReply>* server, bool start);
+    void create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
+                   std::promise<grpc::Status>* status_promise, bool start);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);

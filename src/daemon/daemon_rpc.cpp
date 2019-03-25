@@ -109,7 +109,8 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionTyp
 grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateRequest* request,
                                    grpc::ServerWriter<CreateReply>* reply)
 {
-    return emit on_create(context, request, reply); // must block until slot returns
+    return emit_signal_and_wait_for_result(
+        std::bind(&DaemonRpc::on_create, this, request, reply, std::placeholders::_1));
 }
 
 grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,

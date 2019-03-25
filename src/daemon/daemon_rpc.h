@@ -49,8 +49,8 @@ public:
     DaemonRpc& operator=(const DaemonRpc&) = delete;
 
 signals:
-    grpc::Status on_create(grpc::ServerContext* context, const CreateRequest* request,
-                           grpc::ServerWriter<CreateReply>* reply);
+    void on_create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,
+                   std::promise<grpc::Status>* status_promise);
     void on_launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
                    std::promise<grpc::Status>* status_promise);
     void on_purge(const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* response,

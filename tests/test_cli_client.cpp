@@ -19,11 +19,11 @@
 #include "path.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
-#include "stub_daemon_rpc.h"
 #include "stub_terminal.h"
 
 #include <multipass/logging/log.h>
 #include <src/client/client.h>
+#include <src/daemon/daemon_rpc.h>
 
 #include <QEventLoop>
 #include <QStringList>

@@ -64,6 +64,8 @@ struct MockDaemon : public mp::Daemon
 
     MockDaemon(std::unique_ptr<const mp::DaemonConfig> config) : Daemon{std::move(config)}
     {
+        ON_CALL(*this, create(_, _, _))
+            .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
         ON_CALL(*this, launch(_, _, _))
             .WillByDefault(Invoke(this, &MockDaemon::set_promise_value<mp::LaunchRequest, mp::LaunchReply>));
         ON_CALL(*this, purge(_, _, _))
@@ -97,7 +99,7 @@ struct MockDaemon : public mp::Daemon
     }
 
     MOCK_METHOD3(create,
-                 grpc::Status(grpc::ServerContext*, const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*));
+                 void(const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(launch,
                  void(const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(purge,

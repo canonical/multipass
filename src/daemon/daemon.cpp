@@ -415,7 +415,7 @@ auto get_metrics_opt_in(const mp::Path& data_path)
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
-    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create, Qt::BlockingQueuedConnection);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch);
     QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge);
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
@@ -654,16 +654,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
 
-grpc::Status mp::Daemon::create(grpc::ServerContext* context, const CreateRequest* request,
-                                grpc::ServerWriter<CreateReply>* server) // clang-format off
+void mp::Daemon::create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
+                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
     mpl::ClientLogger<CreateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-    return create_vm(context, request, server, /*start=*/false);
+    return create_vm(request, server, status_promise, /*start=*/false);
 }
 catch (const std::exception& e)
 {
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* server,
@@ -702,7 +702,7 @@ try // clang-format on
     if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
         metrics_provider.send_metrics();
 
-    return create_vm(context, request, server, /*start=*/true);
+    return create_vm(request, server, status_promise, /*start=*/true);
 }
 catch (const mp::StartException& e)
 {
@@ -1844,15 +1844,15 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
     return {};
 }
 
-grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateRequest* request,
-                                   grpc::ServerWriter<CreateReply>* server, bool start)
+void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
+                           std::promise<grpc::Status>* status_promise, bool start)
 {
     auto checked_args = validate_create_arguments(request);
 
     if (!checked_args.option_errors.error_codes().empty())
     {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
-                            checked_args.option_errors.SerializeAsString());
+        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
+                                                      checked_args.option_errors.SerializeAsString()));
     }
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, vm_instances);
