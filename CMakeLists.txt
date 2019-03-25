@@ -47,12 +47,8 @@ add_subdirectory(3rd-party)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Network REQUIRED)
 
-execute_process(COMMAND git describe
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                OUTPUT_VARIABLE MULTIPASS_VERSION
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-set(MULTIPASS_VERSION "0.6.0-dev.211+g52965e56")
+set(MULTIPASS_VERSION "0.6.0-dev.211+g52965e56" CACHE STRING "Multipass version string" FORCE)
+message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
