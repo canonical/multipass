@@ -18,5 +18,5 @@
  */
 namespace multipass
 {
-constexpr auto version_string = "0.6.0-dev.211+g52965e56";
+constexpr auto version_string = "@MULTIPASS_VERSION@";
 }
