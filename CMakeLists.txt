@@ -71,7 +71,7 @@ function(determine_version OUTPUT_VARIABLE)
   string(REGEX MATCH "^v(.+)" VERSION_MATCH ${NEW_VERSION})
 
   if(VERSION_MATCH)
-    set(${OUTPUT_VARIABLE} "0.6.0-dev.211+g52965e56" PARENT_SCOPE)
+    set(${OUTPUT_VARIABLE} ${CMAKE_MATCH_1} PARENT_SCOPE)
   else()
     message(FATAL_ERROR "Invalid tag detected: ${NEW_VERSION}")
   endif()
