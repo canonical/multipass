@@ -18,6 +18,7 @@
 #include <src/client/client.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
+#include <src/platform/update/disabled_update_prompt.h>
 
 #include <multipass/auto_join_thread.h>
 #include <multipass/name_generator.h>
@@ -33,7 +34,6 @@
 #include "stub_logger.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_terminal.h"
-#include "stub_update_prompt.h"
 #include "stub_virtual_machine_factory.h"
 #include "stub_vm_image_vault.h"
 #include "temp_dir.h"
@@ -114,7 +114,7 @@ struct Daemon : public Test
         config_builder.client_cert_store = std::make_unique<mpt::StubCertStore>();
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
-        config_builder.update_prompt = std::make_unique<mpt::StubUpdatePrompt>();
+        config_builder.update_prompt = std::make_unique<mp::DisabledUpdatePrompt>();
     }
 
     mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()

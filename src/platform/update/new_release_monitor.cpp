@@ -134,7 +134,7 @@ void mp::NewReleaseMonitor::check_for_new_release()
         worker_thread.reset(new mp::LatestReleaseChecker(update_url));
         connect(worker_thread.get(), &mp::LatestReleaseChecker::latest_release_found, this,
                 &mp::NewReleaseMonitor::latest_release_found);
-        connect(worker_thread.get(), &QThread::finished, [this]() { worker_thread.reset(); });
+        connect(worker_thread.get(), &QThread::finished, this, [this]() { worker_thread.reset(); });
         worker_thread->start();
     }
 }
