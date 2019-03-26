@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_VIRTUAL_MACHINE_H
 #define MULTIPASS_VIRTUAL_MACHINE_H
 
-#include <QMutex>
-#include <QWaitCondition>
-
 #include <chrono>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <string>
 
 namespace multipass
@@ -64,6 +63,8 @@ public:
     VirtualMachine::State state;
     const SSHKeyProvider& key_provider;
     const std::string vm_name;
+    std::condition_variable state_wait;
+    std::mutex state_mutex;
 
 protected:
     VirtualMachine(VirtualMachine::State state, const SSHKeyProvider& key_provider, const std::string& vm_name)
@@ -72,9 +73,6 @@ protected:
         : VirtualMachine(State::off, key_provider, vm_name){};
     VirtualMachine(const VirtualMachine&) = delete;
     VirtualMachine& operator=(const VirtualMachine&) = delete;
-
-    QWaitCondition state_wait;
-    QMutex state_mutex;
 };
 }
 #endif // MULTIPASS_VIRTUAL_MACHINE_H

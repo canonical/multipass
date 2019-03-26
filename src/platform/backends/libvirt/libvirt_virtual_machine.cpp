@@ -17,6 +17,7 @@
 
 #include "libvirt_virtual_machine.h"
 
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
@@ -287,17 +288,26 @@ void mp::LibVirtVirtualMachine::stop()
 
 void mp::LibVirtVirtualMachine::shutdown()
 {
+    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     if (state == State::running || state == State::delayed_shutdown)
     {
         virDomainShutdown(domain.get());
         state = State::off;
         update_state();
     }
+    else if (state == State::starting)
+    {
+        virDomainDestroy(domain.get());
+        state = State::off;
+        update_state();
+        state_wait.wait(lock);
+    }
     else if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
 
+    lock.unlock();
     monitor->on_shutdown();
 }
 
@@ -330,6 +340,16 @@ mp::VirtualMachine::State mp::LibVirtVirtualMachine::current_state()
 int mp::LibVirtVirtualMachine::ssh_port()
 {
     return 22;
+}
+
+void mp::LibVirtVirtualMachine::ensure_vm_is_running()
+{
+    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
+    if (domain_state_for(domain.get()) != VirtualMachine::State::running)
+    {
+        state_wait.notify_all();
+        throw mp::StartException(vm_name, "Instance shutdown during start");
+    }
 }
 
 std::string mp::LibVirtVirtualMachine::ssh_hostname()
@@ -378,7 +398,7 @@ std::string mp::LibVirtVirtualMachine::ipv6()
 
 void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    mp::utils::wait_until_ssh_up(this, timeout);
+    mp::utils::wait_until_ssh_up(this, timeout, std::bind(&LibVirtVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::LibVirtVirtualMachine::update_state()

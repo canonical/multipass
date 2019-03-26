@@ -368,19 +368,17 @@ void mp::QemuVirtualMachine::on_error()
 
 void mp::QemuVirtualMachine::on_shutdown()
 {
-    state_mutex.lock();
-
+    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     if (state == State::starting)
     {
         saved_error_msg = "shutdown called while starting";
-        state_wait.wait(&state_mutex);
+        state_wait.wait(lock);
     }
-
-    state_mutex.unlock();
 
     state = State::off;
     ip = nullopt;
     update_state();
+    lock.unlock();
     monitor->on_shutdown();
 }
 
@@ -402,14 +400,12 @@ void mp::QemuVirtualMachine::on_restart()
 
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
-    state_mutex.lock();
+    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
     if (vm_process->state() == QProcess::NotRunning)
     {
         state_wait.notify_all();
-        state_mutex.unlock();
         throw mp::StartException(vm_name, saved_error_msg);
     }
-    state_mutex.unlock();
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname()
@@ -462,9 +458,7 @@ std::string mp::QemuVirtualMachine::ipv6()
 
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    auto process_vm_events = [this] { ensure_vm_is_running(); };
-
-    mp::utils::wait_until_ssh_up(this, timeout, process_vm_events);
+    mp::utils::wait_until_ssh_up(this, timeout, std::bind(&QemuVirtualMachine::ensure_vm_is_running, this));
 
     if (delete_memory_snapshot)
     {
