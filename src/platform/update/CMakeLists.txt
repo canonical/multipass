@@ -16,13 +16,13 @@ set(CMAKE_AUTOMOC ON)
 
 add_library(update STATIC
   github_update_prompt.cpp
-  new_release_monitor.cpp
-  version.cpp)
+  new_release_monitor.cpp)
 
 target_link_libraries(update
   network
   fmt
   rpc
+  semver
   Qt5::Core)
 
 target_include_directories(update

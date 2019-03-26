@@ -39,14 +39,9 @@ mp::GithubUpdatePrompt::GithubUpdatePrompt()
 
 mp::GithubUpdatePrompt::~GithubUpdatePrompt() = default;
 
-bool mp::GithubUpdatePrompt::time_to_show()
+bool mp::GithubUpdatePrompt::is_time_to_show()
 {
-    auto new_release = monitor->get_new_release();
-    if (new_release && last_shown + ::notify_user_frequency < std::chrono::system_clock::now())
-    {
-        return true;
-    }
-    return false;
+    return monitor->get_new_release() && last_shown + ::notify_user_frequency < std::chrono::system_clock::now();
 }
 
 void mp::GithubUpdatePrompt::populate(mp::UpdateInfo* update_info)
@@ -62,6 +57,6 @@ void mp::GithubUpdatePrompt::populate(mp::UpdateInfo* update_info)
 
 void mp::GithubUpdatePrompt::populate_if_time_to_show(mp::UpdateInfo* update_info)
 {
-    if (time_to_show())
+    if (is_time_to_show())
         populate(update_info);
 }

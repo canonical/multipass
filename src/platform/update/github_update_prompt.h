@@ -35,7 +35,7 @@ public:
     GithubUpdatePrompt();
     ~GithubUpdatePrompt() override;
 
-    bool time_to_show() override;
+    bool is_time_to_show() override;
     void populate(UpdateInfo *update_info) override;
     void populate_if_time_to_show(UpdateInfo *update_info) override;
 

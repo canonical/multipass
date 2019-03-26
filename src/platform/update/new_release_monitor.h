@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_NEW_RELEASE_MONITOR_H
 #define MULTIPASS_NEW_RELEASE_MONITOR_H
 
-#include <multipass/qt_delete_later_unique_ptr.h>
-#include <multipass/optional.h>
 #include <multipass/new_release_info.h>
-#include "version.h"
+#include <multipass/optional.h>
+#include <multipass/qt_delete_later_unique_ptr.h>
+#include <semver200.h>
 
 #include <QObject>
 #include <QString>
@@ -45,7 +45,10 @@ class NewReleaseMonitor : public QObject
 {
     Q_OBJECT
 public:
-    NewReleaseMonitor(const QString& current_version, std::chrono::hours refresh_rate);
+    static constexpr auto default_update_url = "https://api.github.com/repos/CanonicalLtd/multipass/releases/latest";
+
+    NewReleaseMonitor(const QString& current_version, std::chrono::steady_clock::duration refresh_rate,
+                      const QString& update_url = default_update_url);
     ~NewReleaseMonitor();
 
     optional<NewReleaseInfo> get_new_release() const;
@@ -55,7 +58,8 @@ private slots:
     void latest_release_found(const NewReleaseInfo& latest_release);
 
 private:
-    Version current_version;
+    const version::Semver200_version current_version;
+    const QString update_url;
     optional<NewReleaseInfo> new_release;
     QTimer refresh_timer;
 

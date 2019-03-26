@@ -17,7 +17,6 @@
 
 #include "new_release_monitor.h"
 
-#include "version.h"
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/url_downloader.h>
@@ -33,8 +32,9 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto update_url = "https://api.github.com/repos/CanonicalLtd/multipass/releases/latest";
 constexpr auto timeout = std::chrono::minutes(1);
+constexpr auto json_tag_name = "tag_name";
+constexpr auto json_html_url = "html_url";
 
 QJsonObject parse_manifest(const QByteArray& json)
 {
@@ -45,6 +45,7 @@ QJsonObject parse_manifest(const QByteArray& json)
 
     if (!doc.isObject())
         throw std::runtime_error("invalid JSON object");
+
     return doc.object();
 }
 } // namespace
@@ -53,18 +54,27 @@ class mp::LatestReleaseChecker : public QThread
 {
     Q_OBJECT
 public:
-    void run()
+    LatestReleaseChecker(QString update_url) : update_url(update_url)
+    {
+    }
+
+    void run() override
     {
         QUrl url(update_url);
         try
         {
-            mp::URLDownloader downloader(timeout);
+            mp::URLDownloader downloader(::timeout);
             QByteArray json = downloader.download(url);
-
             const auto manifest = ::parse_manifest(json);
+            if (!manifest.contains(::json_tag_name) || !manifest.contains(::json_html_url))
+                throw std::runtime_error("Github JSON missing required fields");
+
             mp::NewReleaseInfo release;
-            release.version = manifest["tag_name"].toString();
-            release.url = manifest["html_url"].toString();
+            release.version = manifest[::json_tag_name].toString();
+            if (release.version[0] == 'v')
+                release.version.remove(0, 1);
+
+            release.url = manifest[::json_html_url].toString();
 
             mpl::log(mpl::Level::debug, "update",
                      fmt::format("Latest Multipass release available is version {}", qPrintable(release.version)));
@@ -73,21 +83,29 @@ public:
         }
         catch (const mp::DownloadException& e)
         {
-            mpl::log(mpl::Level::info, "update", fmt::format("Failed to check for updates: {}", qPrintable(e.what())));
+            mpl::log(mpl::Level::info, "update", fmt::format("Failed to fetch update info: {}", qPrintable(e.what())));
+        }
+        catch (const std::runtime_error& e)
+        {
+            mpl::log(mpl::Level::info, "update", fmt::format("Failed to parse update info: {}", qPrintable(e.what())));
         }
     }
 signals:
     void latest_release_found(const multipass::NewReleaseInfo& release);
+
+private:
+    const QString update_url;
 };
 
-mp::NewReleaseMonitor::NewReleaseMonitor(const QString& current_version, std::chrono::hours refresh_rate)
-    : current_version(current_version)
+mp::NewReleaseMonitor::NewReleaseMonitor(const QString& current_version,
+                                         std::chrono::steady_clock::duration refresh_rate, const QString& update_url)
+    : current_version(current_version.toStdString()), update_url(update_url)
 {
     qRegisterMetaType<multipass::NewReleaseInfo>(); // necessary to allow custom type be passed in signal/slot
 
     check_for_new_release();
 
-    refresh_timer.setInterval(refresh_rate);
+    refresh_timer.setInterval(std::chrono::duration_cast<std::chrono::milliseconds>(refresh_rate));
     connect(&refresh_timer, &QTimer::timeout, this, &mp::NewReleaseMonitor::check_for_new_release);
     refresh_timer.start();
 }
@@ -101,11 +119,11 @@ mp::optional<mp::NewReleaseInfo> mp::NewReleaseMonitor::get_new_release() const
 
 void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_release)
 {
-    if (current_version < mp::Version(latest_release.version))
+    if (current_version < version::Semver200_version(latest_release.version.toStdString()))
     {
         new_release = latest_release;
         mpl::log(mpl::Level::info, "update",
-                 fmt::format("A New Multipass release is availble: {}", qPrintable(new_release->version)));
+                 fmt::format("A New Multipass release is available: {}", qPrintable(new_release->version)));
     }
 }
 
@@ -113,7 +131,7 @@ void mp::NewReleaseMonitor::check_for_new_release()
 {
     if (!worker_thread)
     {
-        worker_thread.reset(new mp::LatestReleaseChecker);
+        worker_thread.reset(new mp::LatestReleaseChecker(update_url));
         connect(worker_thread.get(), &mp::LatestReleaseChecker::latest_release_found, this,
                 &mp::NewReleaseMonitor::latest_release_found);
         connect(worker_thread.get(), &QThread::finished, [this]() { worker_thread.reset(); });

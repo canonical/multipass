@@ -26,7 +26,7 @@ namespace multipass
 class DisabledUpdatePrompt : public UpdatePrompt
 {
 public:
-    bool time_to_show() override { return false; }
+    bool is_time_to_show() override { return false; }
     void populate(UpdateInfo *update_info) override {}
     void populate_if_time_to_show(UpdateInfo *update_info) override {}
 };

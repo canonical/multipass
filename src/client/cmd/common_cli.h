@@ -44,8 +44,8 @@ ReturnCode standard_failure_handler_for(const std::string& command, std::ostream
                                         const std::string& error_details = std::string());
 
 // helpers for update handling
-bool update_available(const UpdateInfo& update_info);
-std::string update_notice(const UpdateInfo& update_info);
+bool update_available(const multipass::UpdateInfo& update_info);
+std::string update_notice(const multipass::UpdateInfo& update_info);
 } // namespace cmd
 } // namespace multipass
 

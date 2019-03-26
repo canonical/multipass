@@ -201,6 +201,8 @@ mp::ReturnCode cmd::Launch::request_launch()
 
         if (term->is_live() && update_available(reply.update_info()))
         {
+            // TODO: daemon doesn't know if client actually shows this notice. Need to be able
+            // to tell daemon that the notice will be displayed or not.
             cout << update_notice(reply.update_info());
         }
         else if (reply.metrics_pending())

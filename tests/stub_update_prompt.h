@@ -15,25 +15,23 @@
  *
  */
 
-#ifndef MULTIPASS_UPDATE_PROMPT_H
-#define MULTIPASS_UPDATE_PROMPT_H
+#ifndef MULTIPASS_STUB_UPDATE_PROMPT_H
+#define MULTIPASS_STUB_UPDATE_PROMPT_H
 
-#include <memory>
+#include <multipass/update_prompt.h>
 
 namespace multipass
 {
-class UpdateInfo;
-
-class UpdatePrompt
+namespace test
 {
-public:
-    using UPtr = std::unique_ptr<UpdatePrompt>;
-    virtual ~UpdatePrompt() = default;
-
-    virtual bool is_time_to_show() = 0;
-    virtual void populate(UpdateInfo *update_info) = 0;
-    virtual void populate_if_time_to_show(UpdateInfo *update_info) = 0;
+class StubUpdatePrompt : public UpdatePrompt
+{
+    bool is_time_to_show() override { return false; }
+    void populate(UpdateInfo * /*update_info*/) override {}
+    void populate_if_time_to_show(UpdateInfo * /*update_info*/) override {}
 };
+} // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_UPDATE_PROMPT_H
+
+#endif // MULTIPASS_STUB_UPDATE_PROMPT_H

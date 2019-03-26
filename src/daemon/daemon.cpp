@@ -1533,7 +1533,7 @@ try // clang-format on
     if (update_instance_db)
         persist_instances();
 
-    if (config->update_prompt->time_to_show())
+    if (config->update_prompt->is_time_to_show())
     {
         StartReply start_reply;
         config->update_prompt->populate(start_reply.mutable_update_info());
