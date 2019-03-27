@@ -28,6 +28,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/update_prompt.h>
 #include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
@@ -49,6 +50,7 @@ struct DaemonConfig
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     const std::unique_ptr<CertProvider> cert_provider;
     const std::unique_ptr<CertStore> client_cert_store;
+    const std::unique_ptr<UpdatePrompt> update_prompt;
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
@@ -68,6 +70,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     std::unique_ptr<CertProvider> cert_provider;
     std::unique_ptr<CertStore> client_cert_store;
+    std::unique_ptr<UpdatePrompt> update_prompt;
     std::unique_ptr<logging::Logger> logger;
     multipass::Path cache_directory;
     multipass::Path data_directory;

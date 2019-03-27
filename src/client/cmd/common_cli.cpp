@@ -22,6 +22,7 @@
 #include <multipass/cli/format_utils.h>
 
 #include <fmt/ostream.h>
+#include <sstream>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -31,6 +32,23 @@ namespace
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
     return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
+}
+
+std::string message_box(const std::string& message)
+{
+    std::string::size_type divider_length = 80;
+    {
+        std::istringstream m(message);
+        std::string s;
+        while (getline(m, s, '\n'))
+        {
+            divider_length = std::max(divider_length, s.length());
+        }
+    }
+
+    const auto divider = std::string(divider_length, '#');
+
+    return '\n' + divider + '\n' + message + '\n' + divider + '\n';
 }
 } // namespace
 
@@ -101,4 +119,17 @@ mp::ReturnCode cmd::standard_failure_handler_for(const std::string& command, std
                    : !status.error_details().empty() ? fmt::format("{}\n", status.error_details()) : "");
 
     return return_code_for(status.error_code());
+}
+
+bool cmd::update_available(const mp::UpdateInfo& update_info)
+{
+    return update_info.version() != "";
+}
+
+std::string cmd::update_notice(const mp::UpdateInfo& update_info)
+{
+    return ::message_box("A new Multipass version " + update_info.version() +
+                         " is available!\n"
+                         "Find out more: " +
+                         update_info.url());
 }

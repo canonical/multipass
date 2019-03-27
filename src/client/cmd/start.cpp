@@ -39,8 +39,10 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     AnimatedSpinner spinner{cout};
 
-    auto on_success = [&spinner](mp::StartReply& reply) {
+    auto on_success = [&spinner, this](mp::StartReply& reply) {
         spinner.stop();
+        if (term->is_live() && update_available(reply.update_info()))
+            cout << update_notice(reply.update_info());
         return ReturnCode::Ok;
     };
 
@@ -72,7 +74,10 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback);
 }
 
-std::string cmd::Start::name() const { return "start"; }
+std::string cmd::Start::name() const
+{
+    return "start";
+}
 
 QString cmd::Start::short_help() const
 {
