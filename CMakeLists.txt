@@ -66,7 +66,7 @@ if(MSVC)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
 elseif(APPLE)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
   add_compile_options(-Werror -Wall -pedantic -fPIC)
   add_definitions(-DMULTIPASS_PLATFORM_APPLE)
 else()
