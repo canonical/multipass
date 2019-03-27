@@ -350,7 +350,7 @@ int mp::QemuVirtualMachine::ssh_port()
 
 void mp::QemuVirtualMachine::update_state()
 {
-    monitor->persist_state_for(vm_name);
+    monitor->persist_state_for(vm_name, state);
 }
 
 void mp::QemuVirtualMachine::on_started()

@@ -403,5 +403,5 @@ void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds time
 
 void mp::LibVirtVirtualMachine::update_state()
 {
-    monitor->persist_state_for(vm_name);
+    monitor->persist_state_for(vm_name, state);
 }

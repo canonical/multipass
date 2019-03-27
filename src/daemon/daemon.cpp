@@ -1697,10 +1697,9 @@ void mp::Daemon::on_restart(const std::string& name)
                                                 std::vector<std::string>{name}, nullptr));
 }
 
-void mp::Daemon::persist_state_for(const std::string& name)
+void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
 {
-    auto& vm = vm_instances[name];
-    vm_instance_specs[name].state = vm->current_state();
+    vm_instance_specs[name].state = state;
     persist_instances();
 }
 
