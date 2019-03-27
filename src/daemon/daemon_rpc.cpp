@@ -92,8 +92,6 @@ grpc::Status emit_signal_and_wait_for_result(OperationSignal operation_signal)
     auto status_future = status_promise.get_future();
     emit operation_signal(&status_promise);
 
-    status_future.wait();
-
     return status_future.get();
 }
 } // namespace

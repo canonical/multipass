@@ -164,7 +164,6 @@ private:
                                                              std::promise<grpc::Status>* status_promise);
     void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher();
-    std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
@@ -178,6 +177,7 @@ private:
     QTimer source_images_maintenance_task;
     MetricsProvider metrics_provider;
     MetricsOptInData metrics_opt_in;
+    std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H
