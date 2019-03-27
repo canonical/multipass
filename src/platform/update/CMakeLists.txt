@@ -26,4 +26,5 @@ target_link_libraries(update
   Qt5::Core)
 
 target_include_directories(update
-  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+  PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
