@@ -49,10 +49,39 @@ add_subdirectory(3rd-party)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Network REQUIRED)
 
-execute_process(COMMAND git describe
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                OUTPUT_VARIABLE MULTIPASS_VERSION
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
+function(determine_version OUTPUT_VARIABLE)
+  execute_process(COMMAND git describe
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                  OUTPUT_VARIABLE GIT_VERSION
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  execute_process(COMMAND git describe --tags --abbrev=0
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                  OUTPUT_VARIABLE GIT_TAG
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  string(REGEX MATCH "^v.+-([0-9]+)-(g.+)$" GIT_VERSION_MATCH ${GIT_VERSION})
+
+  if(${GIT_VERSION} STREQUAL ${GIT_TAG})
+    set(NEW_VERSION ${GIT_TAG})
+  elseif(GIT_VERSION_MATCH)
+    set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1}+${CMAKE_MATCH_2})
+  else()
+    message(FATAL_ERROR "Failed to parse version number: ${GIT_VERSION}")
+  endif()
+
+  string(REGEX MATCH "^v(.+)" VERSION_MATCH ${NEW_VERSION})
+
+  if(VERSION_MATCH)
+    set(${OUTPUT_VARIABLE} ${CMAKE_MATCH_1} PARENT_SCOPE)
+  else()
+    message(FATAL_ERROR "Invalid tag detected: ${NEW_VERSION}")
+  endif()
+endfunction()
+
+determine_version(MULTIPASS_VERSION)
+set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
+message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
