@@ -20,6 +20,7 @@
 
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 #include "platform_proprietary.h"
+#include <github_update_prompt.h>
 
 #include <QFileInfo>
 #include <QString>
@@ -41,6 +42,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
     return nullptr;
+}
+
+mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
+{
+    return std::make_unique<GithubUpdatePrompt>();
 }
 
 bool mp::platform::link(const char* target, const char* link)
