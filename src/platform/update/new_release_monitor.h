@@ -21,7 +21,6 @@
 #include <multipass/new_release_info.h>
 #include <multipass/optional.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
-#include <semver200.h>
 
 #include <QObject>
 #include <QString>
@@ -58,8 +57,7 @@ private slots:
     void latest_release_found(const NewReleaseInfo& latest_release);
 
 private:
-    const version::Semver200_version current_version;
-    const QString update_url;
+    const QString current_version, update_url;
     optional<NewReleaseInfo> new_release;
     QTimer refresh_timer;
 

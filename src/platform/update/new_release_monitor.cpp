@@ -22,6 +22,7 @@
 #include <multipass/url_downloader.h>
 
 #include <fmt/format.h>
+#include <semver200.h>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -99,7 +100,7 @@ private:
 
 mp::NewReleaseMonitor::NewReleaseMonitor(const QString& current_version,
                                          std::chrono::steady_clock::duration refresh_rate, const QString& update_url)
-    : current_version(current_version.toStdString()), update_url(update_url)
+    : current_version(current_version), update_url(update_url)
 {
     qRegisterMetaType<multipass::NewReleaseInfo>(); // necessary to allow custom type be passed in signal/slot
 
@@ -119,11 +120,23 @@ mp::optional<mp::NewReleaseInfo> mp::NewReleaseMonitor::get_new_release() const
 
 void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_release)
 {
-    if (current_version < version::Semver200_version(latest_release.version.toStdString()))
+    try
     {
-        new_release = latest_release;
-        mpl::log(mpl::Level::info, "update",
-                 fmt::format("A New Multipass release is available: {}", qPrintable(new_release->version)));
+        // Deliberately keeping all version string parsing here. If any version string
+        // not of correct form, throw.
+        if (version::Semver200_version(current_version.toStdString()) <
+            version::Semver200_version(latest_release.version.toStdString()))
+        {
+            new_release = latest_release;
+            mpl::log(mpl::Level::info, "update",
+                     fmt::format("A New Multipass release is available: {}", qPrintable(new_release->version)));
+        }
+    }
+    catch (const version::Parse_error& e)
+    {
+        mpl::log(mpl::Level::warning, "update",
+                 fmt::format("Version strings {} and {} not comparable: {}", qPrintable(current_version),
+                             qPrintable(latest_release.version), e.what()));
     }
 }
 
