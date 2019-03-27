@@ -17,6 +17,7 @@ syntax = "proto3";
 package multipass;
 
 service Rpc {
+    rpc create (LaunchRequest) returns (stream LaunchReply);
     rpc launch (LaunchRequest) returns (stream LaunchReply);
     rpc purge (PurgeRequest) returns (stream PurgeReply);
     rpc find (FindRequest) returns (stream FindReply);

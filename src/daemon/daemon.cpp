@@ -414,6 +414,7 @@ auto get_metrics_opt_in(const mp::Path& data_path)
 
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
+    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge, Qt::BlockingQueuedConnection);
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find, Qt::BlockingQueuedConnection);
@@ -652,6 +653,18 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
 
+grpc::Status mp::Daemon::create(grpc::ServerContext* context, const CreateRequest* request,
+                                grpc::ServerWriter<CreateReply>* server) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger<CreateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    return create_vm(context, request, server, /*start=*/false);
+}
+catch (const std::exception& e)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
+}
+
 grpc::Status mp::Daemon::launch(grpc::ServerContext* context, const LaunchRequest* request,
                                 grpc::ServerWriter<LaunchReply>* server) // clang-format off
 try // clang-format on
@@ -688,102 +701,7 @@ try // clang-format on
     if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
         metrics_provider.send_metrics();
 
-    auto checked_args = validate_create_arguments(request);
-
-    if (!checked_args.option_errors.error_codes().empty())
-    {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
-                            checked_args.option_errors.SerializeAsString());
-    }
-
-    auto name = name_from(checked_args.instance_name, *config->name_generator, vm_instances);
-
-    if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
-    {
-        LaunchError create_error;
-        create_error.add_error_codes(LaunchError::INSTANCE_EXISTS);
-
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" already exists", name),
-                            create_error.SerializeAsString());
-    }
-
-    auto query = query_from(request, name);
-
-    config->factory->check_hypervisor_support();
-
-    auto progress_monitor = [server](int progress_type, int percentage) {
-        LaunchReply create_reply;
-        create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
-        create_reply.mutable_launch_progress()->set_type((LaunchProgress::ProgressTypes)progress_type);
-        return server->Write(create_reply);
-    };
-
-    auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
-        LaunchReply reply;
-        reply.set_create_message("Preparing image for " + name);
-        server->Write(reply);
-
-        return config->factory->prepare_source_image(source_image);
-    };
-
-    auto fetch_type = config->factory->fetch_type();
-
-    LaunchReply reply;
-    reply.set_create_message("Creating " + name);
-    server->Write(reply);
-    auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
-
-    reply.set_create_message("Configuring " + name);
-    server->Write(reply);
-    auto vendor_data_cloud_init_config =
-        make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
-    auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
-    auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-    prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
-    config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
-
-    std::string mac_addr;
-    while (true)
-    {
-        mac_addr = mp::utils::generate_mac_address();
-
-        auto it = allocated_mac_addrs.find(mac_addr);
-        if (it == allocated_mac_addrs.end())
-        {
-            allocated_mac_addrs.insert(mac_addr);
-            break;
-        }
-    }
-    auto vm_desc =
-        to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr, config->ssh_username,
-                        vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
-                        vendor_data_cloud_init_config, *config->ssh_key_provider);
-
-    config->factory->prepare_instance_image(vm_image, vm_desc);
-
-    vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-    vm_instance_specs[name] = {vm_desc.num_cores,
-                               vm_desc.mem_size,
-                               vm_desc.disk_space,
-                               vm_desc.mac_addr,
-                               config->ssh_username,
-                               VirtualMachine::State::off,
-                               {},
-                               false,
-                               QJsonObject()};
-    persist_instances();
-
-    reply.set_create_message("Starting " + name);
-    server->Write(reply);
-
-    auto& vm = vm_instances[name];
-    vm->start();
-    vm->wait_until_ssh_up(std::chrono::minutes(5));
-
-    reply.set_vm_instance_name(name);
-    server->Write(reply);
-
-    return grpc::Status::OK;
+    return create_vm(context, request, server, /*start=*/true);
 }
 catch (const mp::StartException& e)
 {
@@ -2000,6 +1918,111 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
         return fmt::format("instance \"{}\" does not exist\n", instance_name);
 
     return {};
+}
+
+grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateRequest* request,
+                                   grpc::ServerWriter<CreateReply>* server, bool start)
+{
+    auto checked_args = validate_create_arguments(request);
+
+    if (!checked_args.option_errors.error_codes().empty())
+    {
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
+                            checked_args.option_errors.SerializeAsString());
+    }
+
+    auto name = name_from(checked_args.instance_name, *config->name_generator, vm_instances);
+
+    if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
+    {
+        CreateError create_error;
+        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
+
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" already exists", name),
+                            create_error.SerializeAsString());
+    }
+
+    auto query = query_from(request, name);
+
+    config->factory->check_hypervisor_support();
+
+    auto progress_monitor = [server](int progress_type, int percentage) {
+        CreateReply create_reply;
+        create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
+        create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
+        return server->Write(create_reply);
+    };
+
+    auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+        CreateReply reply;
+        reply.set_create_message("Preparing image for " + name);
+        server->Write(reply);
+
+        return config->factory->prepare_source_image(source_image);
+    };
+
+    auto fetch_type = config->factory->fetch_type();
+
+    CreateReply reply;
+    reply.set_create_message("Creating " + name);
+    server->Write(reply);
+    auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
+
+    reply.set_create_message("Configuring " + name);
+    server->Write(reply);
+    auto vendor_data_cloud_init_config =
+        make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
+    auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
+    auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
+    prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+    config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
+
+    std::string mac_addr;
+    while (true)
+    {
+        mac_addr = mp::utils::generate_mac_address();
+
+        auto it = allocated_mac_addrs.find(mac_addr);
+        if (it == allocated_mac_addrs.end())
+        {
+            allocated_mac_addrs.insert(mac_addr);
+            break;
+        }
+    }
+    auto vm_desc =
+        to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr, config->ssh_username,
+                        vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
+                        vendor_data_cloud_init_config, *config->ssh_key_provider);
+
+    config->factory->prepare_instance_image(vm_image, vm_desc);
+
+    vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+    vm_instance_specs[name] = {vm_desc.num_cores,
+                               vm_desc.mem_size,
+                               vm_desc.disk_space,
+                               vm_desc.mac_addr,
+                               config->ssh_username,
+                               VirtualMachine::State::off,
+                               {},
+                               false,
+                               QJsonObject()};
+    persist_instances();
+
+    if (start)
+    {
+        LaunchReply reply;
+        reply.set_create_message("Starting " + name);
+        server->Write(reply);
+
+        auto& vm = vm_instances[name];
+        vm->start();
+        vm->wait_until_ssh_up(std::chrono::minutes(5));
+
+        reply.set_vm_instance_name(name);
+        server->Write(reply);
+    }
+
+    return grpc::Status::OK;
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
