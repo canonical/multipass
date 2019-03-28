@@ -25,13 +25,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <chrono>
+
 namespace mp = multipass;
 
 using namespace testing;
 
 namespace
 {
-const auto timeout = 250;
+const auto timeout = std::chrono::milliseconds{250};
 const QString json_template = R"END({
   "url": "https://api.github.com/repos/CanonicalLtd/multipass/releases/15103253",
   "assets_url": "https://api.github.com/repos/CanonicalLtd/multipass/releases/15103253/assets",
