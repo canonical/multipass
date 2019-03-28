@@ -73,7 +73,7 @@ auto check_for_new_release(QString currentVersion, QString newVersion, QString n
     MockUpdateJson json(newVersion, newVersionUrl);
 
     mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url());
-    QTimer::singleShot(timeout, &e, &QEventLoop::quit);
+    QTimer::singleShot(timeout, &e, &QEventLoop::quit); // TODO replace with a thread sycnh mechanism (e.g. condition)
     e.exec();
 
     return monitor.get_new_release();
