@@ -36,7 +36,7 @@ mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 
 std::string message_box(const std::string& message)
 {
-    std::string::size_type divider_length = 80;
+    std::string::size_type divider_length = 50;
     {
         std::istringstream m(message);
         std::string s;

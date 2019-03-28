@@ -25,13 +25,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <chrono>
+
 namespace mp = multipass;
 
 using namespace testing;
 
 namespace
 {
-const auto timeout = 250;
+const auto timeout = std::chrono::milliseconds{250};
 const QString json_template = R"END({
   "url": "https://api.github.com/repos/CanonicalLtd/multipass/releases/15103253",
   "assets_url": "https://api.github.com/repos/CanonicalLtd/multipass/releases/15103253/assets",
@@ -46,10 +48,10 @@ const QString json_template = R"END({
 }
 )END";
 
-class MockUpdateJson
+class StubUpdateJson
 {
 public:
-    MockUpdateJson(QString version, QString url)
+    StubUpdateJson(QString version, QString url)
     {
         json_file.open();
         json_file.write(json_template.arg(url).arg(version).toUtf8());
@@ -68,10 +70,10 @@ private:
 auto check_for_new_release(QString currentVersion, QString newVersion, QString newVersionUrl = "")
 {
     QEventLoop e;
-    MockUpdateJson json(newVersion, newVersionUrl);
+    StubUpdateJson json(newVersion, newVersionUrl);
 
     mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url());
-    QTimer::singleShot(timeout, &e, &QEventLoop::quit);
+    QTimer::singleShot(timeout, &e, &QEventLoop::quit); // TODO replace with a thread sycnh mechanism (e.g. condition)
     e.exec();
 
     return monitor.get_new_release();
@@ -79,7 +81,7 @@ auto check_for_new_release(QString currentVersion, QString newVersion, QString n
 
 } // namespace
 
-TEST(NewReleaseMonitor, gets_new_release)
+TEST(NewReleaseMonitor, checks_new_release)
 {
     auto new_release = check_for_new_release("0.1.0", "0.2.0", "https://something_unique.com");
 
@@ -88,24 +90,24 @@ TEST(NewReleaseMonitor, gets_new_release)
     EXPECT_EQ("https://something_unique.com", new_release->url.toString().toStdString());
 }
 
-TEST(NewReleaseMonitor, get_new_release_when_nothing_new)
+TEST(NewReleaseMonitor, checks_new_release_when_nothing_new)
 {
     auto new_release = check_for_new_release("0.2.1", "0.2.1");
 
     EXPECT_FALSE(new_release);
 }
 
-TEST(NewReleaseMonitor, get_new_release_when_newer_than_available)
+TEST(NewReleaseMonitor, checks_new_release_when_newer_than_available)
 {
     auto new_release = check_for_new_release("0.3.0", "0.2.0");
 
     EXPECT_FALSE(new_release);
 }
 
-TEST(NewReleaseMonitor, get_new_release_when_download_fail)
+TEST(NewReleaseMonitor, checks_new_release_when_download_fails)
 {
     QEventLoop e;
-    MockUpdateJson json("0.2.0", "https://something_unique.com");
+    StubUpdateJson json("0.2.0", "https://something_unique.com");
 
     mp::NewReleaseMonitor monitor("0.1.0", std::chrono::hours(1), "file:///does/not/exist");
     QTimer::singleShot(timeout, &e, &QEventLoop::quit);
