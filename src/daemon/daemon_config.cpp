@@ -78,6 +78,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory);
+    if (update_prompt == nullptr)
+        update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
     {
         image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get(), manifest_ttl));
@@ -115,6 +117,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     return std::unique_ptr<const DaemonConfig>(
         new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
                          std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider),
-                         std::move(client_cert_store), multiplexing_logger, cache_directory,
+                         std::move(client_cert_store), std::move(update_prompt), multiplexing_logger, cache_directory,
                          data_directory, server_address, ssh_username, connection_type, image_refresh_timer});
 }
