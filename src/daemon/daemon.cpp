@@ -2019,6 +2019,7 @@ grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateReq
         vm->wait_until_ssh_up(std::chrono::minutes(5));
 
         reply.set_vm_instance_name(name);
+        config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
         server->Write(reply);
     }
 
