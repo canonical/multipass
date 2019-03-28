@@ -1066,6 +1066,7 @@ try // clang-format on
 {
     mpl::ClientLogger<ListReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
     ListReply response;
+    config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
     auto status_for = [](mp::VirtualMachine::State state) {
         switch (state)
@@ -1249,17 +1250,17 @@ try // clang-format on
     mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     const auto instances_and_status =
-            find_requested_instances(request->instance_names().instance_name(), deleted_instances,
-                                     std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
+        find_requested_instances(request->instance_names().instance_name(), deleted_instances,
+                                 std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     const auto& status = instances_and_status.second;   // idem
 
-    if(status.ok())
+    if (status.ok())
     {
         for (const auto& name : instances)
         {
             auto it = deleted_instances.find(name);
-            if(it != std::end(deleted_instances))
+            if (it != std::end(deleted_instances))
             {
                 assert(vm_instance_specs[name].deleted);
                 vm_instance_specs[name].deleted = false;
@@ -1449,6 +1450,13 @@ try // clang-format on
 
     if (update_instance_db)
         persist_instances();
+
+    if (config->update_prompt->is_time_to_show())
+    {
+        StartReply start_reply;
+        config->update_prompt->populate(start_reply.mutable_update_info());
+        server->Write(start_reply);
+    }
 
     return grpc_status_for(errors);
 }
@@ -1709,6 +1717,7 @@ grpc::Status mp::Daemon::version(grpc::ServerContext* context, const VersionRequ
 
     VersionReply reply;
     reply.set_version(multipass::version_string);
+    config->update_prompt->populate(reply.mutable_update_info());
     server->Write(reply);
     return grpc::Status::OK;
 }
@@ -1904,7 +1913,7 @@ std::string mp::Daemon::check_instance_operational(const std::string& instance_n
 
 std::string mp::Daemon::check_instance_exists(const std::string& instance_name) const
 {
-    if(vm_instances.find(instance_name) == std::cend(vm_instances) &&
+    if (vm_instances.find(instance_name) == std::cend(vm_instances) &&
         deleted_instances.find(instance_name) == std::cend(deleted_instances))
         return fmt::format("instance \"{}\" does not exist\n", instance_name);
 
@@ -2010,6 +2019,7 @@ grpc::Status mp::Daemon::create_vm(grpc::ServerContext* context, const CreateReq
         vm->wait_until_ssh_up(std::chrono::minutes(5));
 
         reply.set_vm_instance_name(name);
+        config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
         server->Write(reply);
     }
 
