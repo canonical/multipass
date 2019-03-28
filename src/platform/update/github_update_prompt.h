@@ -33,7 +33,7 @@ class GithubUpdatePrompt : public UpdatePrompt
 {
 public:
     GithubUpdatePrompt();
-    ~GithubUpdatePrompt() override;
+    ~GithubUpdatePrompt();
 
     bool is_time_to_show() override;
     void populate(UpdateInfo *update_info) override;
