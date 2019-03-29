@@ -126,6 +126,15 @@ parts:
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_arm64.deb
     source-type: deb
 
+  libssl1.1:
+    plugin: dump
+    source:
+    - on amd64: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_amd64.deb
+    - on i386: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
+    source-type: deb
+
   multipass:
     after:
     - qtbase5-dev
