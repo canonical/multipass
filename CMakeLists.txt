@@ -68,6 +68,18 @@ function(determine_version OUTPUT_VARIABLE)
     message(FATAL_ERROR "Failed to parse version number: ${GIT_VERSION}")
   endif()
 
+  if(APPLE OR MSVC)
+    string(REGEX MATCH "\\+full$" FULL_SUFFIX_MATCH ${NEW_VERSION})
+    if(NOT FULL_SUFFIX_MATCH)
+      set(NEW_VERSION ${NEW_VERSION}.full)
+    endif()
+    if(APPLE)
+      string(REPLACE "full" "mac" NEW_VERSION ${NEW_VERSION})
+    else()
+      string(REPLACE "full" "win" NEW_VERSION ${NEW_VERSION})
+    endif()
+  endif()
+
   string(REGEX MATCH "^v(.+)" VERSION_MATCH ${NEW_VERSION})
 
   if(VERSION_MATCH)
