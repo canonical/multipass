@@ -39,7 +39,11 @@ endif()
 include_directories(platform
   backends)
 
+target_link_libraries(platform
+  update)
+
 add_subdirectory(backends)
 add_subdirectory(client)
 add_subdirectory(console)
 add_subdirectory(logger)
+add_subdirectory(update)

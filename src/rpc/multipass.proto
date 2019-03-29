@@ -97,6 +97,11 @@ message MetricsShowInfo {
     repeated InstanceInfo instances_info = 2;
 }
 
+message UpdateInfo {
+    string version = 1;
+    string url = 2;
+}
+
 message LaunchReply {
     oneof create_oneof {
         string vm_instance_name = 1;
@@ -106,6 +111,7 @@ message LaunchReply {
     bool metrics_pending = 4;
     MetricsShowInfo metrics_show_info = 5;
     string log_line = 6;
+    UpdateInfo update_info = 7;
 }
 
 message PurgeRequest {
@@ -211,6 +217,7 @@ message ListVMInstance {
 message ListReply {
     repeated ListVMInstance instances = 1;
     string log_line = 2;
+    UpdateInfo update_info = 3;
 }
 
 message TargetPathInfo {
@@ -281,6 +288,7 @@ message StartRequest {
 message StartReply {
     string log_line = 1;
     string start_message = 2;
+    UpdateInfo update_info = 3;
 }
 
 message StopRequest {
@@ -338,4 +346,5 @@ message VersionRequest {
 message VersionReply {
     string version = 1;
     string log_line = 2;
+    UpdateInfo update_info = 3;
 }

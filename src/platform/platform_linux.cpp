@@ -26,6 +26,7 @@
 #include "backends/shared/linux/process.h"
 #include "backends/shared/linux/process_factory.h"
 #include "logger/journald_logger.h"
+#include <disabled_update_prompt.h>
 
 namespace mp = multipass;
 
@@ -58,6 +59,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         return std::make_unique<LibVirtVirtualMachineFactory>(::process_factory(), data_dir);
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
+}
+
+mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
+{
+    return std::make_unique<DisabledUpdatePrompt>();
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

@@ -21,6 +21,7 @@
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
+#include <github_update_prompt.h>
 
 #include <QFile>
 
@@ -80,6 +81,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
     return std::make_unique<logging::EventLogger>(level);
+}
+
+mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
+{
+    return std::make_unique<GithubUpdatePrompt>();
 }
 
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)

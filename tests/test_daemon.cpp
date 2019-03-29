@@ -19,6 +19,7 @@
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 #include <src/daemon/daemon_rpc.h>
+#include <src/platform/update/disabled_update_prompt.h>
 
 #include <multipass/auto_join_thread.h>
 #include <multipass/cli/argparser.h>
@@ -203,6 +204,7 @@ struct Daemon : public Test
         config_builder.client_cert_store = std::make_unique<mpt::StubCertStore>();
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
+        config_builder.update_prompt = std::make_unique<mp::DisabledUpdatePrompt>();
     }
 
     mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()
