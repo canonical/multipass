@@ -21,6 +21,7 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
 
 ### Additional binaries used:
 - qemu (qemu-img): https://chocolatey.org/packages/qemu-img
+- OpenSSL (libeay.dll & ssleay.dll): http://wiki.overbyte.eu/arch/openssl-1.0.2r-win64.zip
 
 ### Licensing:
 Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
@@ -55,6 +56,9 @@ Below is a summary of the licensing used in the respective projects. See their s
 - p11-kit: p11-kit License;
 - pcre: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
 - qemu (qemu-img): GNU GPL Version 2 License; See AUTHORS file for Copyright information
+- OpenSSL (libeay.dll & ssleay.dll):
+  - OpenSSL; Copyright (c) 1998-2011 The OpenSSL Project.
+  - SSLeay; Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
 
 ### Licenses:
 Below are the contents of all the licenses used across all the projects distributed along with Multipass.
