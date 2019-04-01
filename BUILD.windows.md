@@ -37,6 +37,15 @@ In the online installer, under Qt, select MSVC 2017 64-bit.
 
 If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
 
+### OpenSSL
+Qt needs OpenSSL for doing https connections.
+
+Download pre-built binaries from: <http://wiki.overbyte.eu/arch/openssl-1.0.2r-win64.zip>
+
+Unzip that file to the top of the Multipass source directory.
+
+If you want a locally built multipassd to use https, you will need to copy ssleay32.dll and libeay32.dll to the builds bin directory.
+
 ### Path setup
 You'll have to manually add CMake and Qt to your account's PATH variable.
 
