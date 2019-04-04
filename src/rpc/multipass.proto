@@ -112,6 +112,7 @@ message LaunchReply {
     MetricsShowInfo metrics_show_info = 5;
     string log_line = 6;
     UpdateInfo update_info = 7;
+    string reply_message = 8;
 }
 
 message PurgeRequest {
@@ -318,6 +319,7 @@ message RestartRequest {
 
 message RestartReply {
     string log_line = 1;
+    string reply_message = 2;
 }
 
 message DeleteRequest {

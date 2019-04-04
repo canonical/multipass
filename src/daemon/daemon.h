@@ -154,10 +154,7 @@ private:
         std::promise<grpc::Status>* status_promise;
     };
 
-    AsyncOperationStatus async_wait_for_ssh_for(const VirtualMachine::UPtr& vm,
-                                                std::promise<grpc::Status>* status_promise);
-    AsyncOperationStatus async_wait_for_ssh_all(const std::vector<std::string>& vms,
-                                                std::promise<grpc::Status>* status_promise);
+    grpc::Status async_wait_for_ssh_for(const VirtualMachine::UPtr& vm);
     template <typename Reply>
     AsyncOperationStatus async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* server,
                                                              const std::vector<std::string>& vms,

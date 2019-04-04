@@ -1519,8 +1519,8 @@ try // clang-format on
         if (status.ok())
         {
             auto future_watcher = create_future_watcher();
-            future_watcher->setFuture(
-                QtConcurrent::run(this, &Daemon::async_wait_for_ssh_all, instances, status_promise));
+            future_watcher->setFuture(QtConcurrent::run(
+                this, &Daemon::async_wait_for_ssh_and_start_mounts<RestartReply>, server, instances, status_promise));
         }
     }
 }
@@ -1946,8 +1946,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
         server->Write(reply);
 
         auto future_watcher = create_future_watcher();
-        future_watcher->setFuture(
-            QtConcurrent::run(this, &Daemon::async_wait_for_ssh_for, std::ref(vm), status_promise));
+        future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<LaunchReply>,
+                                                    server, std::vector<std::string>{name}, status_promise));
     }
     else
     {
@@ -2077,8 +2077,7 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     return future_watcher;
 }
 
-mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ssh_for(const VirtualMachine::UPtr& vm,
-                                                                    std::promise<grpc::Status>* status_promise)
+grpc::Status mp::Daemon::async_wait_for_ssh_for(const VirtualMachine::UPtr& vm)
 {
     try
     {
@@ -2086,30 +2085,10 @@ mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ssh_for(const Virtua
     }
     catch (const std::exception& e)
     {
-        return {grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""), status_promise};
+        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
     }
 
-    return {grpc::Status::OK, status_promise};
-}
-
-mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ssh_all(const std::vector<std::string>& vms,
-                                                                    std::promise<grpc::Status>* status_promise)
-{
-    fmt::memory_buffer errors;
-    for (const auto& name : vms)
-    {
-        auto it = vm_instances.find(name);
-        auto& vm = it->second;
-
-        auto ssh_status = async_wait_for_ssh_for(vm, nullptr);
-        if (!ssh_status.status.ok())
-        {
-            fmt::format_to(errors, "Error starting '{}': {}", name, ssh_status.status.error_message());
-            continue;
-        }
-    }
-
-    return {grpc_status_for(errors), status_promise};
+    return grpc::Status::OK;
 }
 
 template <typename Reply>
@@ -2124,10 +2103,10 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* serve
         auto& vm = it->second;
         auto& mounts = vm_instance_specs[name].mounts;
 
-        auto ssh_status = async_wait_for_ssh_for(vm, nullptr);
-        if (!ssh_status.status.ok())
+        auto status = async_wait_for_ssh_for(vm);
+        if (!status.ok())
         {
-            fmt::format_to(errors, "Error starting '{}': {}", name, ssh_status.status.error_message());
+            fmt::format_to(errors, "Error starting '{}': {}", name, status.error_message());
             continue;
         }
 
