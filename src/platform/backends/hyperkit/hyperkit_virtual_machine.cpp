@@ -104,9 +104,19 @@ void mp::HyperkitVirtualMachine::on_start()
 
 void mp::HyperkitVirtualMachine::on_shutdown()
 {
-    state = State::off;
+    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+    if (state == State::starting)
+    {
+        state_wait.wait(lock, [this] { return state == State::off; });
+    }
+    else
+    {
+        state = State::off;
+    }
+
     ip_address.clear();
     update_state();
+    lock.unlock();
     monitor->on_shutdown();
     vm_process.reset();
 }
@@ -116,6 +126,19 @@ void multipass::HyperkitVirtualMachine::on_ip_address_found(std::string ip)
     ip_address = ip;
 }
 
+void mp::HyperkitVirtualMachine::ensure_vm_is_running()
+{
+    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
+    if (!thread.isRunning())
+    {
+        // Have to set 'off' here so there is an actual state change to compare to for
+        // the cond var's predicate
+        state = State::off;
+        state_wait.notify_all();
+        throw mp::StartException(vm_name, "Instance stopped while starting");
+    }
+}
+
 mp::VirtualMachine::State mp::HyperkitVirtualMachine::current_state()
 {
     return state;
@@ -123,7 +146,7 @@ mp::VirtualMachine::State mp::HyperkitVirtualMachine::current_state()
 
 void mp::HyperkitVirtualMachine::update_state()
 {
-    monitor->persist_state_for(vm_name);
+    monitor->persist_state_for(vm_name, state);
 }
 
 int mp::HyperkitVirtualMachine::ssh_port()
@@ -170,5 +193,5 @@ std::string mp::HyperkitVirtualMachine::ipv6()
 
 void mp::HyperkitVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    mp::utils::wait_until_ssh_up(this, timeout);
+    mp::utils::wait_until_ssh_up(this, timeout, std::bind(&HyperkitVirtualMachine::ensure_vm_is_running, this));
 }
