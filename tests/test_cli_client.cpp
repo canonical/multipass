@@ -206,6 +206,23 @@ TEST_F(Client, shell_cmd_no_args_targets_primary)
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, shell_cmd_can_target_primary_explicitly)
+{
+    const auto primary_matcher = make_ssh_info_primary_matcher();
+    EXPECT_CALL(mock_daemon, ssh_info(_, primary_matcher, _));
+    EXPECT_THAT(send_command({"shell", "primary"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_fails_multiple_args)
+{
+    EXPECT_THAT(send_command({"shell", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, shell_cmd_fails_unknown_options)
+{
+    EXPECT_THAT(send_command({"shell", "--not", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 // launch cli tests
 TEST_F(Client, launch_cmd_good_arguments)
 {
