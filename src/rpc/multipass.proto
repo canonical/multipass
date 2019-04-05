@@ -320,6 +320,7 @@ message RestartRequest {
 message RestartReply {
     string log_line = 1;
     string reply_message = 2;
+    UpdateInfo update_info = 3;
 }
 
 message DeleteRequest {

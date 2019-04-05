@@ -1406,13 +1406,6 @@ try // clang-format on
         it->second->start();
     }
 
-    if (config->update_prompt->is_time_to_show())
-    {
-        StartReply start_reply;
-        config->update_prompt->populate(start_reply.mutable_update_info());
-        server->Write(start_reply);
-    }
-
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
         QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<StartReply>, server, vms, status_promise));
@@ -2147,6 +2140,16 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* serve
                 fmt::format_to(errors, "Removing \"{}\": {}", target_path, e.what());
                 invalid_mounts.push_back(target_path);
             }
+        }
+    }
+
+    if (server && std::is_same<Reply, StartReply>::value)
+    {
+        if (config->update_prompt->is_time_to_show())
+        {
+            Reply reply;
+            config->update_prompt->populate(reply.mutable_update_info());
+            server->Write(reply);
         }
     }
 
