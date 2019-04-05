@@ -61,35 +61,42 @@ namespace
 struct MockDaemon : public mp::Daemon
 {
     using mp::Daemon::Daemon;
+
     MOCK_METHOD3(create,
-                 grpc::Status(grpc::ServerContext*, const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*));
+                 void(const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(launch,
-                 grpc::Status(grpc::ServerContext*, const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*));
+                 void(const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(purge,
-                 grpc::Status(grpc::ServerContext*, const mp::PurgeRequest*, grpc::ServerWriter<mp::PurgeReply>*));
-    MOCK_METHOD3(find, grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request,
-                                    grpc::ServerWriter<mp::FindReply>*));
-    MOCK_METHOD3(info, grpc::Status(grpc::ServerContext*, const mp::InfoRequest*, grpc::ServerWriter<mp::InfoReply>*));
-    MOCK_METHOD3(list, grpc::Status(grpc::ServerContext*, const mp::ListRequest*, grpc::ServerWriter<mp::ListReply>*));
-    MOCK_METHOD3(mount, grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request,
-                                     grpc::ServerWriter<mp::MountReply>*));
+                 void(const mp::PurgeRequest*, grpc::ServerWriter<mp::PurgeReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(find,
+                 void(const mp::FindRequest* request, grpc::ServerWriter<mp::FindReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(info, void(const mp::InfoRequest*, grpc::ServerWriter<mp::InfoReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(list, void(const mp::ListRequest*, grpc::ServerWriter<mp::ListReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(mount, void(const mp::MountRequest* request, grpc::ServerWriter<mp::MountReply>*,
+                             std::promise<grpc::Status>*));
     MOCK_METHOD3(recover,
-                 grpc::Status(grpc::ServerContext*, const mp::RecoverRequest*, grpc::ServerWriter<mp::RecoverReply>*));
+                 void(const mp::RecoverRequest*, grpc::ServerWriter<mp::RecoverReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(ssh_info,
-                 grpc::Status(grpc::ServerContext*, const mp::SSHInfoRequest*, grpc::ServerWriter<mp::SSHInfoReply>*));
+                 void(const mp::SSHInfoRequest*, grpc::ServerWriter<mp::SSHInfoReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(start,
-                 grpc::Status(grpc::ServerContext*, const mp::StartRequest*, grpc::ServerWriter<mp::StartReply>*));
-    MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext*, const mp::StopRequest*, grpc::ServerWriter<mp::StopReply>*));
+                 void(const mp::StartRequest*, grpc::ServerWriter<mp::StartReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(stop, void(const mp::StopRequest*, grpc::ServerWriter<mp::StopReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(suspend,
-                 grpc::Status(grpc::ServerContext*, const mp::SuspendRequest*, grpc::ServerWriter<mp::SuspendReply>*));
+                 void(const mp::SuspendRequest*, grpc::ServerWriter<mp::SuspendReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(restart,
-                 grpc::Status(grpc::ServerContext*, const mp::RestartRequest*, grpc::ServerWriter<mp::RestartReply>*));
+                 void(const mp::RestartRequest*, grpc::ServerWriter<mp::RestartReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(delet,
-                 grpc::Status(grpc::ServerContext*, const mp::DeleteRequest*, grpc::ServerWriter<mp::DeleteReply>*));
-    MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
-                                      grpc::ServerWriter<mp::UmountReply>* response));
+                 void(const mp::DeleteRequest*, grpc::ServerWriter<mp::DeleteReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(umount,
+                 void(const mp::UmountRequest*, grpc::ServerWriter<mp::UmountReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(version,
-                 grpc::Status(grpc::ServerContext*, const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*));
+                 void(const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*, std::promise<grpc::Status>*));
+
+    template <typename Request, typename Reply>
+    void set_promise_value(const Request*, grpc::ServerWriter<Reply>*, std::promise<grpc::Status>* status_promise)
+    {
+        status_promise->set_value(grpc::Status::OK);
+    }
 };
 
 struct StubNameGenerator : public mp::NameGenerator
@@ -272,22 +279,38 @@ TEST_F(Daemon, receives_commands)
 {
     MockDaemon daemon{config_builder.build()};
 
-    EXPECT_CALL(daemon, create(_, _, _));
-    EXPECT_CALL(daemon, launch(_, _, _));
-    EXPECT_CALL(daemon, purge(_, _, _));
-    EXPECT_CALL(daemon, find(_, _, _));
-    EXPECT_CALL(daemon, ssh_info(_, _, _));
-    EXPECT_CALL(daemon, info(_, _, _));
-    EXPECT_CALL(daemon, list(_, _, _));
-    EXPECT_CALL(daemon, recover(_, _, _));
-    EXPECT_CALL(daemon, start(_, _, _));
-    EXPECT_CALL(daemon, stop(_, _, _));
-    EXPECT_CALL(daemon, suspend(_, _, _));
-    EXPECT_CALL(daemon, restart(_, _, _));
-    EXPECT_CALL(daemon, delet(_, _, _));
-    EXPECT_CALL(daemon, version(_, _, _));
-    EXPECT_CALL(daemon, mount(_, _, _));
-    EXPECT_CALL(daemon, umount(_, _, _));
+    EXPECT_CALL(daemon, create(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
+    EXPECT_CALL(daemon, launch(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::LaunchRequest, mp::LaunchReply>));
+    EXPECT_CALL(daemon, purge(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::PurgeRequest, mp::PurgeReply>));
+    EXPECT_CALL(daemon, find(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
+    EXPECT_CALL(daemon, ssh_info(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::SSHInfoRequest, mp::SSHInfoReply>));
+    EXPECT_CALL(daemon, info(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
+    EXPECT_CALL(daemon, list(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::ListRequest, mp::ListReply>));
+    EXPECT_CALL(daemon, recover(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
+    EXPECT_CALL(daemon, start(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::StartRequest, mp::StartReply>));
+    EXPECT_CALL(daemon, stop(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::StopRequest, mp::StopReply>));
+    EXPECT_CALL(daemon, suspend(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::SuspendRequest, mp::SuspendReply>));
+    EXPECT_CALL(daemon, restart(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::RestartRequest, mp::RestartReply>));
+    EXPECT_CALL(daemon, delet(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::DeleteRequest, mp::DeleteReply>));
+    EXPECT_CALL(daemon, version(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::VersionRequest, mp::VersionReply>));
+    EXPECT_CALL(daemon, mount(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::MountRequest, mp::MountReply>));
+    EXPECT_CALL(daemon, umount(_, _, _))
+        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
 
     send_commands({{"test_create", "foo"},
                    {"launch", "foo"},

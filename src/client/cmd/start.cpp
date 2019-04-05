@@ -66,7 +66,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     auto streaming_callback = [&spinner](mp::StartReply& reply) {
         spinner.stop();
-        spinner.start(reply.start_message());
+        spinner.start(reply.reply_message());
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
