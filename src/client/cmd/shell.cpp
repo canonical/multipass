@@ -103,7 +103,10 @@ QString cmd::Shell::description() const
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Name of the instance to open a shell on", "<name>");
+    parser->addPositionalArgument("name",
+                                  "Name of the instance to open a shell on. If omitted, 'primary' will be assumed. If "
+                                  "the instance is not running, an attempt is made to start it.",
+                                  "[<name>]");
 
     auto status = parser->commandParse(this);
 
@@ -112,12 +115,9 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (parser->positionalArguments().count() == 0)
-    {
-        cerr << "Name argument is required\n";
-        status = ParseCode::CommandLineError;
-    }
-    else if (parser->positionalArguments().count() > 1)
+    const auto pos_args = parser->positionalArguments();
+    const auto num_args = pos_args.count();
+    if (num_args > 1)
     {
         cerr << "Too many arguments given\n";
         status = ParseCode::CommandLineError;
@@ -125,7 +125,7 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     else
     {
         auto entry = request.add_instance_name();
-        entry->append(parser->positionalArguments().first().toStdString());
+        entry->append(num_args ? pos_args.first().toStdString() : "primary");
     }
 
     return status;
