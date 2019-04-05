@@ -30,6 +30,7 @@
 #include <QTemporaryFile>
 
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include <sstream>
 
@@ -162,17 +163,17 @@ TEST_F(Client, copy_files_cmd_fails_instance_both_source_destination)
     EXPECT_THAT(send_command({"copy-files", "test-vm1:foo", "test-vm2:bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_files_cmd_too_few_args_fails)
+TEST_F(Client, copy_files_cmd_fails_too_few_args)
 {
     EXPECT_THAT(send_command({"copy-files", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_files_cmd_source_path_empty_fails)
+TEST_F(Client, copy_files_cmd_fails_source_path_empty)
 {
     EXPECT_THAT(send_command({"copy-files", "test-vm1:", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_file_cmd_multiple_sources_destination_file_fails)
+TEST_F(Client, copy_file_cmd_fails_multiple_sources_destination_file)
 {
     EXPECT_THAT(send_command({"copy-files", "test-vm1:foo", "test-vm2:bar",
                               mpt::test_data_path().toStdString() + "good_index.json"}),
@@ -208,7 +209,7 @@ TEST_F(Client, launch_cmd_fails_multiple_args)
     EXPECT_THAT(send_command({"launch", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, launch_cmd_unknown_option_fails)
+TEST_F(Client, launch_cmd_fails_unknown_option)
 {
     EXPECT_THAT(send_command({"launch", "-z", "2"}), Eq(mp::ReturnCode::CommandLineError));
 }
