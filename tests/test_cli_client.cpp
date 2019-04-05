@@ -104,6 +104,17 @@ struct Client : public Test
         return matcher;
     }
 
+    template <typename RequestType, int size>
+    auto make_primary_in_repeated_field_matcher()
+    {
+        static_assert(size > 0, "size must be positive");
+        static const auto matcher = Property(&RequestType::instance_names,
+                                             Property(&mp::InstanceNames::instance_name,
+                                                      AllOf(Contains("primary"), SizeIs(size))));
+
+        return matcher;
+    }
+
 #ifdef WIN32
     std::string server_address{"localhost:50051"};
 #else
@@ -556,11 +567,6 @@ TEST_F(Client, recover_cmd_fails_with_names_and_all)
 }
 
 // start cli tests
-TEST_F(Client, start_cmd_fails_no_args)
-{
-    EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
 TEST_F(Client, start_cmd_ok_with_one_arg)
 {
     EXPECT_CALL(mock_daemon, start(_, _, _));
@@ -587,6 +593,13 @@ TEST_F(Client, start_cmd_succeeds_with_all)
 TEST_F(Client, start_cmd_fails_with_names_and_all)
 {
     EXPECT_THAT(send_command({"start", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, start_cmd_no_args_targets_primary)
+{
+    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StartRequest, 1>();
+    EXPECT_CALL(mock_daemon, start(_, primary_matcher, _));
+    EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::Ok));
 }
 
 // stop cli tests
