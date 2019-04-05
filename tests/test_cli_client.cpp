@@ -602,6 +602,26 @@ TEST_F(Client, start_cmd_no_args_targets_primary)
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, start_cmd_can_target_primary_explicitly)
+{
+    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StartRequest, 1>();
+    EXPECT_CALL(mock_daemon, start(_, primary_matcher, _));
+    EXPECT_THAT(send_command({"start", "primary"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_can_target_primary_among_others)
+{
+    const auto primary_matcher2 = make_primary_in_repeated_field_matcher<mp::StartRequest, 2>();
+    const auto primary_matcher4 = make_primary_in_repeated_field_matcher<mp::StartRequest, 4>();
+
+    InSequence s;
+    EXPECT_CALL(mock_daemon, start(_, primary_matcher2, _)).Times(2);
+    EXPECT_CALL(mock_daemon, start(_, primary_matcher4, _));
+    EXPECT_THAT(send_command({"start", "foo", "primary"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", "primary", "bar"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", "foo", "primary", "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+}
+
 // stop cli tests
 TEST_F(Client, stop_cmd_fails_no_args)
 {
