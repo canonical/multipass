@@ -374,8 +374,11 @@ void mp::QemuVirtualMachine::on_shutdown()
         saved_error_msg = fmt::format("{}: shutdown called while starting", vm_name);
         state_wait.wait(lock, [this] { return state == State::off; });
     }
+    else
+    {
+        state = State::off;
+    }
 
-    state = State::off;
     ip = nullopt;
     update_state();
     lock.unlock();

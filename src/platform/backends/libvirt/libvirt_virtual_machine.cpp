@@ -357,6 +357,7 @@ void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 std::string mp::LibVirtVirtualMachine::ssh_hostname()
 {
     auto action = [this] {
+        ensure_vm_is_running();
         auto result = instance_ip_for(connection, mac_addr);
         if (result)
         {
