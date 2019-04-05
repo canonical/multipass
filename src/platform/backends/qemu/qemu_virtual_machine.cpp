@@ -372,7 +372,7 @@ void mp::QemuVirtualMachine::on_shutdown()
     if (state == State::starting)
     {
         saved_error_msg = "shutdown called while starting";
-        state_wait.wait(lock);
+        state_wait.wait(lock, [this] { return state == State::off; });
     }
 
     state = State::off;
@@ -403,6 +403,9 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
     if (vm_process->state() == QProcess::NotRunning)
     {
+        // Have to set 'off' here so there is an actual state change to compare to for
+        // the cond var's predicate
+        state = State::off;
         state_wait.notify_all();
         throw mp::StartException(vm_name, saved_error_msg);
     }

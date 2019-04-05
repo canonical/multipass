@@ -298,9 +298,8 @@ void mp::LibVirtVirtualMachine::shutdown()
     else if (state == State::starting)
     {
         virDomainDestroy(domain.get());
-        state = State::off;
+        state_wait.wait(lock, [this] { return state == State::off; });
         update_state();
-        state_wait.wait(lock);
     }
     else if (state == State::suspended)
     {
@@ -347,6 +346,9 @@ void mp::LibVirtVirtualMachine::ensure_vm_is_running()
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
     if (domain_state_for(domain.get()) != VirtualMachine::State::running)
     {
+        // Have to set 'off' here so there is an actual state change to compare to for
+        // the cond var's predicate
+        state = State::off;
         state_wait.notify_all();
         throw mp::StartException(vm_name, "Instance shutdown during start");
     }
