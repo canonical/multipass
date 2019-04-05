@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,8 @@
 #include <grpcpp/grpcpp.h>
 
 #include <QObject>
+
+#include <future>
 #include <memory>
 
 namespace multipass
@@ -47,39 +49,38 @@ public:
     DaemonRpc& operator=(const DaemonRpc&) = delete;
 
 signals:
-    // All these signals must be connected to with a BlockingQueuedConnection!!!
-    grpc::Status on_create(grpc::ServerContext* context, const CreateRequest* request,
-                           grpc::ServerWriter<CreateReply>* reply);
-    grpc::Status on_launch(grpc::ServerContext* context, const LaunchRequest* request,
-                           grpc::ServerWriter<LaunchReply>* reply);
-    grpc::Status on_purge(grpc::ServerContext* context, const PurgeRequest* request,
-                          grpc::ServerWriter<PurgeReply>* response);
-    grpc::Status on_find(grpc::ServerContext* context, const FindRequest* request,
-                         grpc::ServerWriter<FindReply>* response);
-    grpc::Status on_info(grpc::ServerContext* context, const InfoRequest* request,
-                         grpc::ServerWriter<InfoReply>* response);
-    grpc::Status on_list(grpc::ServerContext* context, const ListRequest* request,
-                         grpc::ServerWriter<ListReply>* response);
-    grpc::Status on_mount(grpc::ServerContext* context, const MountRequest* request,
-                          grpc::ServerWriter<MountReply>* response);
-    grpc::Status on_recover(grpc::ServerContext* context, const RecoverRequest* request,
-                            grpc::ServerWriter<RecoverReply>* response);
-    grpc::Status on_ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
-                             grpc::ServerWriter<SSHInfoReply>* response);
-    grpc::Status on_start(grpc::ServerContext* context, const StartRequest* request,
-                          grpc::ServerWriter<StartReply>* response);
-    grpc::Status on_stop(grpc::ServerContext* context, const StopRequest* request,
-                         grpc::ServerWriter<StopReply>* response);
-    grpc::Status on_suspend(grpc::ServerContext* context, const SuspendRequest* request,
-                            grpc::ServerWriter<SuspendReply>* response);
-    grpc::Status on_restart(grpc::ServerContext* context, const RestartRequest* request,
-                            grpc::ServerWriter<RestartReply>* response);
-    grpc::Status on_delete(grpc::ServerContext* context, const DeleteRequest* request,
-                           grpc::ServerWriter<DeleteReply>* response);
-    grpc::Status on_umount(grpc::ServerContext* context, const UmountRequest* request,
-                           grpc::ServerWriter<UmountReply>* response);
-    grpc::Status on_version(grpc::ServerContext* context, const VersionRequest* request,
-                            grpc::ServerWriter<VersionReply>* response);
+    void on_create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,
+                   std::promise<grpc::Status>* status_promise);
+    void on_launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
+                   std::promise<grpc::Status>* status_promise);
+    void on_purge(const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* response,
+                  std::promise<grpc::Status>* status_promise);
+    void on_find(const FindRequest* request, grpc::ServerWriter<FindReply>* response,
+                 std::promise<grpc::Status>* status_promise);
+    void on_info(const InfoRequest* request, grpc::ServerWriter<InfoReply>* response,
+                 std::promise<grpc::Status>* status_promise);
+    void on_list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
+                 std::promise<grpc::Status>* status_promise);
+    void on_mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
+                  std::promise<grpc::Status>* status_promise);
+    void on_recover(const RecoverRequest* request, grpc::ServerWriter<RecoverReply>* response,
+                    std::promise<grpc::Status>* status_promise);
+    void on_ssh_info(const SSHInfoRequest* request, grpc::ServerWriter<SSHInfoReply>* response,
+                     std::promise<grpc::Status>* status_promise);
+    void on_start(const StartRequest* request, grpc::ServerWriter<StartReply>* response,
+                  std::promise<grpc::Status>* status_promise);
+    void on_stop(const StopRequest* request, grpc::ServerWriter<StopReply>* response,
+                 std::promise<grpc::Status>* status_promise);
+    void on_suspend(const SuspendRequest* request, grpc::ServerWriter<SuspendReply>* response,
+                    std::promise<grpc::Status>* status_promise);
+    void on_restart(const RestartRequest* request, grpc::ServerWriter<RestartReply>* response,
+                    std::promise<grpc::Status>* status_promise);
+    void on_delete(const DeleteRequest* request, grpc::ServerWriter<DeleteReply>* response,
+                   std::promise<grpc::Status>* status_promise);
+    void on_umount(const UmountRequest* request, grpc::ServerWriter<UmountReply>* response,
+                   std::promise<grpc::Status>* status_promise);
+    void on_version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* response,
+                    std::promise<grpc::Status>* status_promise);
 
 private:
     const std::string server_address;

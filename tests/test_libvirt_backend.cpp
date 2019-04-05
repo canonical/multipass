@@ -193,7 +193,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->start();
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::starting));
@@ -224,7 +224,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_shutdown)
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
     machine->state = mp::VirtualMachine::State::running;
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->shutdown();
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
@@ -255,7 +255,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
     machine->state = mp::VirtualMachine::State::running;
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->suspend();
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));

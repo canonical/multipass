@@ -28,8 +28,12 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <future>
 #include <memory>
 #include <unordered_map>
+#include <vector>
+
+#include <QFutureWatcher>
 
 namespace multipass
 {
@@ -60,7 +64,7 @@ struct MetricsOptInData
 };
 
 struct DaemonConfig;
-class Daemon : public QObject, public multipass::Rpc::Service, public multipass::VMStatusMonitor
+class Daemon : public QObject, public multipass::VMStatusMonitor
 {
     Q_OBJECT
 public:
@@ -74,58 +78,58 @@ protected:
     void on_shutdown() override;
     void on_suspend() override;
     void on_restart(const std::string& name) override;
-    void persist_state_for(const std::string& name) override;
+    void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
     void update_metadata_for(const std::string& name, const QJsonObject& metadata) override;
     QJsonObject retrieve_metadata_for(const std::string& name) override;
 
 public slots:
-    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
-                        grpc::ServerWriter<CreateReply>* reply) override;
+    virtual void create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,
+                        std::promise<grpc::Status>* status_promise);
 
-    grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
-                        grpc::ServerWriter<LaunchReply>* reply) override;
+    virtual void launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
+                        std::promise<grpc::Status>* status_promise);
 
-    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request,
-                       grpc::ServerWriter<PurgeReply>* response) override;
+    virtual void purge(const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    grpc::Status find(grpc::ServerContext* context, const FindRequest* request,
-                      grpc::ServerWriter<FindReply>* response) override;
+    virtual void find(const FindRequest* request, grpc::ServerWriter<FindReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    grpc::Status info(grpc::ServerContext* context, const InfoRequest* request,
-                      grpc::ServerWriter<InfoReply>* response) override;
+    virtual void info(const InfoRequest* request, grpc::ServerWriter<InfoReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    grpc::Status list(grpc::ServerContext* context, const ListRequest* request,
-                      grpc::ServerWriter<ListReply>* response) override;
+    virtual void list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    grpc::Status mount(grpc::ServerContext* context, const MountRequest* request,
-                       grpc::ServerWriter<MountReply>* response) override;
+    virtual void mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    grpc::Status recover(grpc::ServerContext* context, const RecoverRequest* request,
-                         grpc::ServerWriter<RecoverReply>* response) override;
+    virtual void recover(const RecoverRequest* request, grpc::ServerWriter<RecoverReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
-    grpc::Status ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
-                          grpc::ServerWriter<SSHInfoReply>* response) override;
+    virtual void ssh_info(const SSHInfoRequest* request, grpc::ServerWriter<SSHInfoReply>* response,
+                          std::promise<grpc::Status>* status_promise);
 
-    grpc::Status start(grpc::ServerContext* context, const StartRequest* request,
-                       grpc::ServerWriter<StartReply>* response) override;
+    virtual void start(const StartRequest* request, grpc::ServerWriter<StartReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    grpc::Status stop(grpc::ServerContext* context, const StopRequest* request,
-                      grpc::ServerWriter<StopReply>* response) override;
+    virtual void stop(const StopRequest* request, grpc::ServerWriter<StopReply>* response,
+                      std::promise<grpc::Status>* status_promise);
 
-    grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
-                         grpc::ServerWriter<SuspendReply>* response) override;
+    virtual void suspend(const SuspendRequest* request, grpc::ServerWriter<SuspendReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
-    grpc::Status restart(grpc::ServerContext* context, const RestartRequest* request,
-                         grpc::ServerWriter<RestartReply>* response) override;
+    virtual void restart(const RestartRequest* request, grpc::ServerWriter<RestartReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
-    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
-                       grpc::ServerWriter<DeleteReply>* response) override;
+    virtual void delet(const DeleteRequest* request, grpc::ServerWriter<DeleteReply>* response,
+                       std::promise<grpc::Status>* status_promise);
 
-    grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request,
-                        grpc::ServerWriter<UmountReply>* response) override;
+    virtual void umount(const UmountRequest* request, grpc::ServerWriter<UmountReply>* response,
+                        std::promise<grpc::Status>* status_promise);
 
-    grpc::Status version(grpc::ServerContext* context, const VersionRequest* request,
-                         grpc::ServerWriter<VersionReply>* response) override;
+    virtual void version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
 private:
     void persist_instances();
@@ -136,13 +140,27 @@ private:
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
-    grpc::Status create_vm(grpc::ServerContext* context, const CreateRequest* request,
-                           grpc::ServerWriter<CreateReply>* server, bool start);
+    void create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
+                   std::promise<grpc::Status>* status_promise, bool start);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
     void install_sshfs(const VirtualMachine::UPtr& vm, const std::string& name);
+
+    struct AsyncOperationStatus
+    {
+        grpc::Status status;
+        std::promise<grpc::Status>* status_promise;
+    };
+
+    grpc::Status async_wait_for_ssh_for(const VirtualMachine::UPtr& vm);
+    template <typename Reply>
+    AsyncOperationStatus async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* server,
+                                                             const std::vector<std::string>& vms,
+                                                             std::promise<grpc::Status>* status_promise);
+    void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
+    QFutureWatcher<AsyncOperationStatus>* create_future_watcher();
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
@@ -156,6 +174,7 @@ private:
     QTimer source_images_maintenance_task;
     MetricsProvider metrics_provider;
     MetricsOptInData metrics_opt_in;
+    std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H

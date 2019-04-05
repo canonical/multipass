@@ -144,6 +144,8 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         try
         {
             mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port()};
+
+            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             virtual_machine->state = VirtualMachine::State::running;
             virtual_machine->update_state();
             return mp::utils::TimeoutAction::done;
@@ -154,6 +156,7 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         }
     };
     auto on_timeout = [virtual_machine] {
+        std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
         virtual_machine->state = VirtualMachine::State::unknown;
         virtual_machine->update_state();
         throw std::runtime_error("timed out waiting for instance to respond");
