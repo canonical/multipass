@@ -97,6 +97,13 @@ struct Client : public Test
         return client.run(args);
     }
 
+    auto make_ssh_info_primary_matcher()
+    {
+        static const auto matcher = Property(&mp::SSHInfoRequest::instance_name, ElementsAre("primary"));
+
+        return matcher;
+    }
+
 #ifdef WIN32
     std::string server_address{"localhost:50051"};
 #else
@@ -190,6 +197,13 @@ TEST_F(Client, shell_cmd_good_arguments)
 TEST_F(Client, shell_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_no_args_targets_primary)
+{
+    const auto primary_matcher = make_ssh_info_primary_matcher();
+    EXPECT_CALL(mock_daemon, ssh_info(_, primary_matcher, _));
+    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
 // launch cli tests
