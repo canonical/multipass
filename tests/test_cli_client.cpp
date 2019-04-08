@@ -97,7 +97,7 @@ struct Client : public Test
         return client.run(args);
     }
 
-    auto make_ssh_info_primary_matcher()
+    auto make_ssh_info_petenv_matcher()
     {
         static const auto matcher = Property(&mp::SSHInfoRequest::instance_name, ElementsAre(StrEq("primary")));
         return matcher;
@@ -110,7 +110,7 @@ struct Client : public Test
     }
 
     template <typename RequestType, int size>
-    auto make_primary_in_repeated_field_matcher()
+    auto make_petenv_in_repeated_field_matcher()
     {
         static_assert(size > 0, "size must be positive");
         static const auto matcher = make_instance_names_matcher<RequestType>(AllOf(Contains(StrEq("primary")),
@@ -214,17 +214,17 @@ TEST_F(Client, shell_cmd_help_ok)
     EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, shell_cmd_no_args_targets_primary)
+TEST_F(Client, shell_cmd_no_args_targets_petenv)
 {
-    const auto primary_matcher = make_ssh_info_primary_matcher();
-    EXPECT_CALL(mock_daemon, ssh_info(_, primary_matcher, _));
+    const auto petenv_matcher = make_ssh_info_petenv_matcher();
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, shell_cmd_can_target_primary_explicitly)
+TEST_F(Client, shell_cmd_can_target_petenv_explicitly)
 {
-    const auto primary_matcher = make_ssh_info_primary_matcher();
-    EXPECT_CALL(mock_daemon, ssh_info(_, primary_matcher, _));
+    const auto petenv_matcher = make_ssh_info_petenv_matcher();
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell", "primary"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -599,41 +599,41 @@ TEST_F(Client, start_cmd_fails_with_names_and_all)
     EXPECT_THAT(send_command({"start", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, start_cmd_no_args_targets_primary)
+TEST_F(Client, start_cmd_no_args_targets_petenv)
 {
-    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StartRequest, 1>();
-    EXPECT_CALL(mock_daemon, start(_, primary_matcher, _));
+    const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::StartRequest, 1>();
+    EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_can_target_primary_explicitly)
+TEST_F(Client, start_cmd_can_target_petenv_explicitly)
 {
-    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StartRequest, 1>();
-    EXPECT_CALL(mock_daemon, start(_, primary_matcher, _));
+    const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::StartRequest, 1>();
+    EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"start", "primary"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_can_target_primary_among_others)
+TEST_F(Client, start_cmd_can_target_petenv_among_others)
 {
-    const auto primary_matcher2 = make_primary_in_repeated_field_matcher<mp::StartRequest, 2>();
-    const auto primary_matcher4 = make_primary_in_repeated_field_matcher<mp::StartRequest, 4>();
+    const auto petenv_matcher2 = make_petenv_in_repeated_field_matcher<mp::StartRequest, 2>();
+    const auto petenv_matcher4 = make_petenv_in_repeated_field_matcher<mp::StartRequest, 4>();
 
     InSequence s;
-    EXPECT_CALL(mock_daemon, start(_, primary_matcher2, _)).Times(2);
-    EXPECT_CALL(mock_daemon, start(_, primary_matcher4, _));
+    EXPECT_CALL(mock_daemon, start(_, petenv_matcher2, _)).Times(2);
+    EXPECT_CALL(mock_daemon, start(_, petenv_matcher4, _));
     EXPECT_THAT(send_command({"start", "foo", "primary"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "primary", "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", "primary", "bar", "baz"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_does_not_add_primary_to_others)
+TEST_F(Client, start_cmd_does_not_add_petenv_to_others)
 {
     const auto matcher = make_instance_names_matcher<mp::StartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, start(_, matcher, _));
     EXPECT_THAT(send_command({"start", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_does_not_add_primary_to_all)
+TEST_F(Client, start_cmd_does_not_add_petenv_to_all)
 {
     const auto matcher = make_instance_names_matcher<mp::StartRequest>(IsEmpty());
     EXPECT_CALL(mock_daemon, start(_, matcher, _));
@@ -669,41 +669,41 @@ TEST_F(Client, stop_cmd_fails_with_names_and_all)
     EXPECT_THAT(send_command({"stop", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, stop_cmd_no_args_targets_primary)
+TEST_F(Client, stop_cmd_no_args_targets_petenv)
 {
-    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StopRequest, 1>();
-    EXPECT_CALL(mock_daemon, stop(_, primary_matcher, _));
+    const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::StopRequest, 1>();
+    EXPECT_CALL(mock_daemon, stop(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, stop_cmd_can_target_primary_explicitly)
+TEST_F(Client, stop_cmd_can_target_petenv_explicitly)
 {
-    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StopRequest, 1>();
-    EXPECT_CALL(mock_daemon, stop(_, primary_matcher, _));
+    const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::StopRequest, 1>();
+    EXPECT_CALL(mock_daemon, stop(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"stop", "primary"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, stop_cmd_can_target_primary_among_others)
+TEST_F(Client, stop_cmd_can_target_petenv_among_others)
 {
-    const auto primary_matcher2 = make_primary_in_repeated_field_matcher<mp::StopRequest, 2>();
-    const auto primary_matcher4 = make_primary_in_repeated_field_matcher<mp::StopRequest, 4>();
+    const auto petenv_matcher2 = make_petenv_in_repeated_field_matcher<mp::StopRequest, 2>();
+    const auto petenv_matcher4 = make_petenv_in_repeated_field_matcher<mp::StopRequest, 4>();
 
     InSequence s;
-    EXPECT_CALL(mock_daemon, stop(_, primary_matcher2, _)).Times(2);
-    EXPECT_CALL(mock_daemon, stop(_, primary_matcher4, _));
+    EXPECT_CALL(mock_daemon, stop(_, petenv_matcher2, _)).Times(2);
+    EXPECT_CALL(mock_daemon, stop(_, petenv_matcher4, _));
     EXPECT_THAT(send_command({"stop", "foo", "primary"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", "primary", "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", "foo", "primary", "bar", "baz"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, stop_cmd_does_not_add_primary_to_others)
+TEST_F(Client, stop_cmd_does_not_add_petenv_to_others)
 {
     const auto matcher = make_instance_names_matcher<mp::StopRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
     EXPECT_THAT(send_command({"stop", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, stop_cmd_does_not_add_primary_to_all)
+TEST_F(Client, stop_cmd_does_not_add_petenv_to_all)
 {
     const auto matcher = make_instance_names_matcher<mp::StopRequest>(IsEmpty());
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
@@ -748,18 +748,18 @@ TEST_F(Client, stop_cmd_succeds_with_cancel)
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, stop_cmd_no_args_time_option_delays_primary_shutdown)
+TEST_F(Client, stop_cmd_no_args_time_option_delays_petenv_shutdown)
 {
     const auto delay = 5;
-    const auto matcher = AllOf(make_primary_in_repeated_field_matcher<mp::StopRequest, 1>(),
+    const auto matcher = AllOf(make_petenv_in_repeated_field_matcher<mp::StopRequest, 1>(),
                                Property(&mp::StopRequest::time_minutes, delay));
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
     EXPECT_THAT(send_command({"stop", "--time", std::to_string(delay)}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, stop_cmd_no_args_cancel_option_cancels_delayed_primary_shutdown)
+TEST_F(Client, stop_cmd_no_args_cancel_option_cancels_delayed_petenv_shutdown)
 {
-    const auto matcher = AllOf(make_primary_in_repeated_field_matcher<mp::StopRequest, 1>(),
+    const auto matcher = AllOf(make_petenv_in_repeated_field_matcher<mp::StopRequest, 1>(),
                                Property(&mp::StopRequest::cancel_shutdown, true));
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
     EXPECT_THAT(send_command({"stop", "--cancel"}), Eq(mp::ReturnCode::Ok));
