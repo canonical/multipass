@@ -36,9 +36,9 @@ namespace cmd
 const QString all_option_name{"all"};
 const QString format_option_name{"format"};
 
-ParseCode check_for_name_and_all_option_conflict(ArgParser* parser, std::ostream& cerr);
-InstanceNames add_instance_names(ArgParser* parser);
-ParseCode handle_format_option(ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr);
+ParseCode check_for_name_and_all_option_conflict(const ArgParser* parser, std::ostream& cerr);
+InstanceNames add_instance_names(const ArgParser* parser);
+ParseCode handle_format_option(const ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr);
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
 ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr, const grpc::Status& status,
                                         const std::string& error_details = std::string());

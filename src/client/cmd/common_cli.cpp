@@ -52,7 +52,7 @@ std::string message_box(const std::string& message)
 }
 } // namespace
 
-mp::ParseCode cmd::check_for_name_and_all_option_conflict(mp::ArgParser* parser, std::ostream& cerr)
+mp::ParseCode cmd::check_for_name_and_all_option_conflict(const mp::ArgParser* parser, std::ostream& cerr)
 {
     auto num_names = parser->positionalArguments().count();
     if (num_names == 0 && !parser->isSet(all_option_name))
@@ -70,7 +70,7 @@ mp::ParseCode cmd::check_for_name_and_all_option_conflict(mp::ArgParser* parser,
     return ParseCode::Ok;
 }
 
-mp::InstanceNames cmd::add_instance_names(mp::ArgParser* parser)
+mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser)
 {
     InstanceNames instance_names;
 
@@ -83,7 +83,8 @@ mp::InstanceNames cmd::add_instance_names(mp::ArgParser* parser)
     return instance_names;
 }
 
-mp::ParseCode cmd::handle_format_option(mp::ArgParser* parser, mp::Formatter** chosen_formatter, std::ostream& cerr)
+mp::ParseCode cmd::handle_format_option(const mp::ArgParser* parser, mp::Formatter** chosen_formatter,
+                                        std::ostream& cerr)
 {
     *chosen_formatter = mp::format::formatter_for(parser->value(format_option_name).toStdString());
 
