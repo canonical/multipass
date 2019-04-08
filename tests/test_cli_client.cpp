@@ -21,6 +21,7 @@
 #include "stub_certprovider.h"
 #include "stub_terminal.h"
 
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <src/client/client.h>
 #include <src/daemon/daemon_rpc.h>
@@ -99,7 +100,7 @@ struct Client : public Test
 
     auto make_ssh_info_petenv_matcher()
     {
-        static const auto matcher = Property(&mp::SSHInfoRequest::instance_name, ElementsAre(StrEq("primary")));
+        static const auto matcher = Property(&mp::SSHInfoRequest::instance_name, ElementsAre(StrEq(mp::petenv_name)));
         return matcher;
     }
 
@@ -113,8 +114,8 @@ struct Client : public Test
     auto make_petenv_in_repeated_field_matcher()
     {
         static_assert(size > 0, "size must be positive");
-        static const auto matcher = make_instance_names_matcher<RequestType>(AllOf(Contains(StrEq("primary")),
-                                                                                   SizeIs(size)));
+        static const auto matcher =
+            make_instance_names_matcher<RequestType>(AllOf(Contains(StrEq(mp::petenv_name)), SizeIs(size)));
 
         return matcher;
     }
@@ -225,7 +226,7 @@ TEST_F(Client, shell_cmd_can_target_petenv_explicitly)
 {
     const auto petenv_matcher = make_ssh_info_petenv_matcher();
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
-    EXPECT_THAT(send_command({"shell", "primary"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"shell", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, shell_cmd_fails_multiple_args)
@@ -610,7 +611,7 @@ TEST_F(Client, start_cmd_can_target_petenv_explicitly)
 {
     const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::StartRequest, 1>();
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
-    EXPECT_THAT(send_command({"start", "primary"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_can_target_petenv_among_others)
@@ -621,9 +622,9 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     InSequence s;
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher2, _)).Times(2);
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher4, _));
-    EXPECT_THAT(send_command({"start", "foo", "primary"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"start", "primary", "bar"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"start", "foo", "primary", "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", "foo", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", mp::petenv_name, "bar"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", "foo", mp::petenv_name, "bar", "baz"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_does_not_add_petenv_to_others)
@@ -680,7 +681,7 @@ TEST_F(Client, stop_cmd_can_target_petenv_explicitly)
 {
     const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::StopRequest, 1>();
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher, _));
-    EXPECT_THAT(send_command({"stop", "primary"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"stop", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_can_target_petenv_among_others)
@@ -691,9 +692,9 @@ TEST_F(Client, stop_cmd_can_target_petenv_among_others)
     InSequence s;
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher2, _)).Times(2);
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher4, _));
-    EXPECT_THAT(send_command({"stop", "foo", "primary"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"stop", "primary", "bar"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"stop", "foo", "primary", "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"stop", "foo", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"stop", mp::petenv_name, "bar"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"stop", "foo", mp::petenv_name, "bar", "baz"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_does_not_add_petenv_to_others)

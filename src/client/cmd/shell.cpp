@@ -20,6 +20,7 @@
 
 #include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
+#include <multipass/constants.h>
 #include <multipass/ssh/ssh_client.h>
 
 namespace mp = multipass;
@@ -103,10 +104,12 @@ QString cmd::Shell::description() const
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name",
-                                  "Name of the instance to open a shell on. If omitted, 'primary' will be assumed. If "
-                                  "the instance is not running, an attempt is made to start it.",
-                                  "[<name>]");
+    parser->addPositionalArgument(
+        "name",
+        QString{"Name of the instance to open a shell on. If omitted, '%1' will be assumed. If "
+                "the instance is not running, an attempt is made to start it."}
+            .arg(petenv_name),
+        "[<name>]");
 
     auto status = parser->commandParse(this);
 
@@ -125,7 +128,7 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     else
     {
         auto entry = request.add_instance_name();
-        entry->append(num_args ? pos_args.first().toStdString() : "primary");
+        entry->append(num_args ? pos_args.first().toStdString() : petenv_name);
     }
 
     return status;

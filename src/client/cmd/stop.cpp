@@ -21,6 +21,7 @@
 #include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/constants.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -66,7 +67,9 @@ QString cmd::Stop::description() const
 mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument(
-        "name", "Names of instances to stop. If omitted, and without the --all option, 'primary' will be assumed",
+        "name",
+        QString{"Names of instances to stop. If omitted, and without the --all option, '%1' will be assumed"}.arg(
+            petenv_name),
         "[<name> ...]");
 
     QCommandLineOption all_option(all_option_name, "Stop all instances");
@@ -109,7 +112,8 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
         request.set_cancel_shutdown(true);
     }
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/"primary"));
+    request.mutable_instance_names()->CopyFrom(
+        add_instance_names(parser, /*default_name=*/petenv_name));
 
     return status;
 }
