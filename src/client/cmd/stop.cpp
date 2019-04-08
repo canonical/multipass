@@ -65,7 +65,9 @@ QString cmd::Stop::description() const
 
 mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to stop", "<name> [<name> ...]");
+    parser->addPositionalArgument(
+        "name", "Names of instances to stop. If omitted, and without the --all option, 'primary' will be assumed",
+        "[<name> ...]");
 
     QCommandLineOption all_option(all_option_name, "Stop all instances");
     QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
@@ -77,7 +79,7 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
@@ -107,7 +109,7 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
         request.set_cancel_shutdown(true);
     }
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/"primary"));
 
     return status;
 }
