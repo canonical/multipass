@@ -772,11 +772,6 @@ TEST_F(Client, stop_cmd_no_args_fails_with_time_and_cancel)
 }
 
 // suspend cli tests
-TEST_F(Client, suspend_cmd_fails_no_args)
-{
-    EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
 TEST_F(Client, suspend_cmd_ok_with_one_arg)
 {
     EXPECT_CALL(mock_daemon, suspend(_, _, _));
@@ -797,6 +792,47 @@ TEST_F(Client, suspend_cmd_help_ok)
 TEST_F(Client, suspend_cmd_succeeds_with_all)
 {
     EXPECT_CALL(mock_daemon, suspend(_, _, _));
+    EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_no_args_targets_petenv)
+{
+    const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::SuspendRequest, 1>();
+    EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_can_target_petenv_explicitly)
+{
+    const auto petenv_matcher = make_petenv_in_repeated_field_matcher<mp::SuspendRequest, 1>();
+    EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"suspend", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_can_target_petenv_among_others)
+{
+    const auto petenv_matcher2 = make_petenv_in_repeated_field_matcher<mp::SuspendRequest, 2>();
+    const auto petenv_matcher4 = make_petenv_in_repeated_field_matcher<mp::SuspendRequest, 4>();
+
+    InSequence s;
+    EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher2, _)).Times(2);
+    EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher4, _));
+    EXPECT_THAT(send_command({"suspend", "foo", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"suspend", mp::petenv_name, "bar"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"suspend", "foo", mp::petenv_name, "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_does_not_add_petenv_to_others)
+{
+    const auto matcher = make_instance_names_matcher<mp::SuspendRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    EXPECT_CALL(mock_daemon, suspend(_, matcher, _));
+    EXPECT_THAT(send_command({"suspend", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_does_not_add_petenv_to_all)
+{
+    const auto matcher = make_instance_names_matcher<mp::SuspendRequest>(IsEmpty());
+    EXPECT_CALL(mock_daemon, suspend(_, matcher, _));
     EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
