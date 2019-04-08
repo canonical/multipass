@@ -52,10 +52,11 @@ std::string message_box(const std::string& message)
 }
 } // namespace
 
-mp::ParseCode cmd::check_for_name_and_all_option_conflict(const mp::ArgParser* parser, std::ostream& cerr)
+mp::ParseCode cmd::check_for_name_and_all_option_conflict(const mp::ArgParser* parser, std::ostream& cerr,
+                                                          bool allow_empty)
 {
     auto num_names = parser->positionalArguments().count();
-    if (num_names == 0 && !parser->isSet(all_option_name))
+    if (num_names == 0 && !parser->isSet(all_option_name) && !allow_empty)
     {
         fmt::print(cerr, "Name argument or --all is required\n");
         return ParseCode::CommandLineError;
@@ -79,6 +80,15 @@ mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser)
         auto instance_name = instance_names.add_instance_name();
         instance_name->append(arg.toStdString());
     }
+
+    return instance_names;
+}
+
+mp::InstanceNames cmd::add_instance_names(const ArgParser* parser, const std::string& default_name)
+{
+    auto instance_names = add_instance_names(parser);
+    if (!instance_names.instance_name_size() && !parser->isSet(all_option_name))
+        instance_names.add_instance_name(default_name);
 
     return instance_names;
 }
