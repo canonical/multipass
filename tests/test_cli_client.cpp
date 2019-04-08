@@ -641,11 +641,6 @@ TEST_F(Client, start_cmd_does_not_add_primary_to_all)
 }
 
 // stop cli tests
-TEST_F(Client, stop_cmd_fails_no_args)
-{
-    EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
 TEST_F(Client, stop_cmd_ok_with_one_arg)
 {
     EXPECT_CALL(mock_daemon, stop(_, _, _));
@@ -672,6 +667,47 @@ TEST_F(Client, stop_cmd_succeeds_with_all)
 TEST_F(Client, stop_cmd_fails_with_names_and_all)
 {
     EXPECT_THAT(send_command({"stop", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, stop_cmd_no_args_targets_primary)
+{
+    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StopRequest, 1>();
+    EXPECT_CALL(mock_daemon, stop(_, primary_matcher, _));
+    EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_can_target_primary_explicitly)
+{
+    const auto primary_matcher = make_primary_in_repeated_field_matcher<mp::StopRequest, 1>();
+    EXPECT_CALL(mock_daemon, stop(_, primary_matcher, _));
+    EXPECT_THAT(send_command({"stop", "primary"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_can_target_primary_among_others)
+{
+    const auto primary_matcher2 = make_primary_in_repeated_field_matcher<mp::StopRequest, 2>();
+    const auto primary_matcher4 = make_primary_in_repeated_field_matcher<mp::StopRequest, 4>();
+
+    InSequence s;
+    EXPECT_CALL(mock_daemon, stop(_, primary_matcher2, _)).Times(2);
+    EXPECT_CALL(mock_daemon, stop(_, primary_matcher4, _));
+    EXPECT_THAT(send_command({"stop", "foo", "primary"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"stop", "primary", "bar"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"stop", "foo", "primary", "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_does_not_add_primary_to_others)
+{
+    const auto matcher = make_instance_names_matcher<mp::StopRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    EXPECT_CALL(mock_daemon, stop(_, matcher, _));
+    EXPECT_THAT(send_command({"stop", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_does_not_add_primary_to_all)
+{
+    const auto matcher = make_instance_names_matcher<mp::StopRequest>(IsEmpty());
+    EXPECT_CALL(mock_daemon, stop(_, matcher, _));
+    EXPECT_THAT(send_command({"stop", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_fails_with_time_and_cancel)
@@ -710,6 +746,28 @@ TEST_F(Client, stop_cmd_succeds_with_cancel)
 {
     EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_no_args_time_option_delays_primary_shutdown)
+{
+    const auto delay = 5;
+    const auto matcher = AllOf(make_primary_in_repeated_field_matcher<mp::StopRequest, 1>(),
+                               Property(&mp::StopRequest::time_minutes, delay));
+    EXPECT_CALL(mock_daemon, stop(_, matcher, _));
+    EXPECT_THAT(send_command({"stop", "--time", std::to_string(delay)}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_no_args_cancel_option_cancels_delayed_primary_shutdown)
+{
+    const auto matcher = AllOf(make_primary_in_repeated_field_matcher<mp::StopRequest, 1>(),
+                               Property(&mp::StopRequest::cancel_shutdown, true));
+    EXPECT_CALL(mock_daemon, stop(_, matcher, _));
+    EXPECT_THAT(send_command({"stop", "--cancel"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_no_args_fails_with_time_and_cancel)
+{
+    EXPECT_THAT(send_command({"stop", "--time", "+10", "--cancel"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 // suspend cli tests
