@@ -69,6 +69,7 @@ add_executable(multipass_tests
   file_operations.cpp
   main.cpp
   mock_scp.cpp
+  mock_sftp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
   mock_ssh_client.cpp
@@ -90,6 +91,7 @@ add_executable(multipass_tests
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_scp_client.cpp
+  test_sftp_client.cpp
   test_sftpserver.cpp
   test_ssl_cert_provider.cpp
   test_sshfsmount.cpp

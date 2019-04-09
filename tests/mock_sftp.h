@@ -15,29 +15,21 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SFTPSERVER_H
-#define MULTIPASS_MOCK_SFTPSERVER_H
+#ifndef MULTIPASS_MOCK_SFTP_H
+#define MULTIPASS_MOCK_SFTP_H
 
 #include <premock.hpp>
 
-#define WITH_SERVER
 #include <libssh/sftp.h>
 
-DECL_MOCK(sftp_server_new);
-DECL_MOCK(sftp_server_init);
-DECL_MOCK(sftp_reply_status);
-DECL_MOCK(sftp_reply_attr);
-DECL_MOCK(sftp_reply_data);
-DECL_MOCK(sftp_reply_name);
-DECL_MOCK(sftp_reply_names);
-DECL_MOCK(sftp_reply_names_add);
-DECL_MOCK(sftp_reply_handle);
-DECL_MOCK(sftp_get_client_message);
-DECL_MOCK(sftp_client_message_free);
-DECL_MOCK(sftp_client_message_get_data);
-DECL_MOCK(sftp_client_message_get_filename);
-DECL_MOCK(sftp_handle);
-DECL_MOCK(sftp_handle_alloc);
-DECL_MOCK(sftp_handle_remove);
+DECL_MOCK(sftp_new);
+DECL_MOCK(sftp_free);
+DECL_MOCK(sftp_init);
+DECL_MOCK(sftp_open);
+DECL_MOCK(sftp_write);
+DECL_MOCK(sftp_stat);
+DECL_MOCK(sftp_read);
+DECL_MOCK(sftp_get_error);
+DECL_MOCK(sftp_close);
 
-#endif // MULTIPASS_MOCK_SFTPSERVER_H
+#endif // MULTIPASS_MOCK_SFTP_H
