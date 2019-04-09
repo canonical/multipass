@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,6 +53,8 @@ public:
     void update_state() override;
 
 private:
+    void ensure_vm_is_running();
+
     virConnectPtr connection;
     DomainUPtr domain;
     const std::string mac_addr;

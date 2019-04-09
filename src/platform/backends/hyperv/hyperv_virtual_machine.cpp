@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "hyperv_virtual_machine.h"
 #include "powershell.h"
 
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -65,6 +66,10 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
         if (state == "Running")
         {
             return mp::VirtualMachine::State::running;
+        }
+        else if (state == "Starting")
+        {
+            return mp::VirtualMachine::State::starting;
         }
         else if (state == "Saved")
         {
@@ -130,6 +135,7 @@ void mp::HyperVVirtualMachine::start()
 
 void mp::HyperVVirtualMachine::stop()
 {
+    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
@@ -138,10 +144,19 @@ void mp::HyperVVirtualMachine::stop()
         state = State::stopped;
         ip = mp::nullopt;
     }
+    else if (present_state == State::starting)
+    {
+        power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
+        state = State::off;
+        state_wait.wait(lock, [this] { return state == State::stopped; });
+        ip = mp::nullopt;
+    }
     else if (present_state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
+
+    lock.unlock();
 }
 
 void mp::HyperVVirtualMachine::shutdown()
@@ -163,7 +178,7 @@ void mp::HyperVVirtualMachine::suspend()
             update_state();
         }
     }
-    else if (present_state == State::off)
+    else if (present_state == State::stopped)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
     }
@@ -175,7 +190,7 @@ mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(power_shell.get(), name);
 
-    if (state == State::delayed_shutdown && present_state == State::running)
+    if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
         return state;
 
     state = present_state;
@@ -187,9 +202,22 @@ int mp::HyperVVirtualMachine::ssh_port()
     return 22;
 }
 
+void mp::HyperVVirtualMachine::ensure_vm_is_running()
+{
+    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
+    if (state == State::off)
+    {
+        // Have to set 'stopped' here so there is an actual state change to compare to for
+        // the cond var's predicate
+        state = State::stopped;
+        state_wait.notify_all();
+        throw mp::StartException(vm_name, "Instance shutdown during start");
+    }
+}
+
 void mp::HyperVVirtualMachine::update_state()
 {
-    monitor->persist_state_for(vm_name);
+    monitor->persist_state_for(vm_name, state);
 }
 
 std::string mp::HyperVVirtualMachine::ssh_hostname()
@@ -220,5 +248,5 @@ std::string mp::HyperVVirtualMachine::ipv6()
 
 void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    mp::utils::wait_until_ssh_up(this, timeout);
+    mp::utils::wait_until_ssh_up(this, timeout, std::bind(&HyperVVirtualMachine::ensure_vm_is_running, this));
 }

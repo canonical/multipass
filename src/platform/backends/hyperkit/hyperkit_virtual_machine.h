@@ -52,6 +52,7 @@ private:
     void on_start();
     void on_shutdown();
     void on_ip_address_found(std::string ip);
+    void ensure_vm_is_running();
     VMStatusMonitor* monitor;
     std::unique_ptr<VMProcess> vm_process;
     const std::string username;

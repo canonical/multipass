@@ -68,13 +68,13 @@ TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
     machine->state = mp::VirtualMachine::State::running;
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
 }
@@ -86,14 +86,14 @@ TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
     machine->state = mp::VirtualMachine::State::running;
 
     EXPECT_CALL(mock_monitor, on_suspend());
-    EXPECT_CALL(mock_monitor, persist_state_for(_));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->suspend();
 }
 
