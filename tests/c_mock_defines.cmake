@@ -61,6 +61,15 @@ add_c_mocks(
   sftp_handle
   sftp_handle_alloc
   sftp_handle_remove
+  sftp_new
+  sftp_init
+  sftp_open
+  sftp_write
+  sftp_stat
+  sftp_read
+  sftp_free
+  sftp_get_error
+  sftp_close
   ssh_scp_new
   ssh_scp_free
   ssh_scp_init
