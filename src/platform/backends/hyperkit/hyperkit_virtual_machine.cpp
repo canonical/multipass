@@ -53,27 +53,28 @@ mp::HyperkitVirtualMachine::~HyperkitVirtualMachine()
 
 void mp::HyperkitVirtualMachine::start()
 {
-    if (state == State::running)
-        return;
+    if (state == State::off)
+    {
+        vm_process = std::make_unique<VMProcess>();
 
-    vm_process = std::make_unique<VMProcess>();
+        vm_process->moveToThread(&thread);
 
-    vm_process->moveToThread(&thread);
+        QObject::connect(vm_process.get(), &VMProcess::started, [=]() { on_start(); });
+        QObject::connect(vm_process.get(), &VMProcess::stopped, [=](bool) { thread.quit(); });
+        QObject::connect(vm_process.get(), &VMProcess::ip_address_found,
+                         [=](std::string ip) { on_ip_address_found(ip); });
 
-    QObject::connect(vm_process.get(), &VMProcess::started, [=]() { on_start(); });
-    QObject::connect(vm_process.get(), &VMProcess::stopped, [=](bool) { thread.quit(); });
-    QObject::connect(vm_process.get(), &VMProcess::ip_address_found, [=](std::string ip) { on_ip_address_found(ip); });
+        // cross-thread control
+        QObject::connect(&thread, &QThread::started, vm_process.get(), [=]() { vm_process->start(desc); });
+        QObject::connect(&thread, &QThread::finished, [=]() {
+            if (update_shutdown_status)
+            {
+                on_shutdown();
+            }
+        });
 
-    // cross-thread control
-    QObject::connect(&thread, &QThread::started, vm_process.get(), [=]() { vm_process->start(desc); });
-    QObject::connect(&thread, &QThread::finished, [=]() {
-        if (update_shutdown_status)
-        {
-            on_shutdown();
-        }
-    });
-
-    thread.start();
+        thread.start();
+    }
 }
 
 void mp::HyperkitVirtualMachine::stop()
