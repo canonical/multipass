@@ -45,6 +45,7 @@
 
 #include <QDir>
 #include <QEventLoop>
+#include <QFutureSynchronizer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -1403,12 +1404,13 @@ try // clang-format on
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
-        it->second->start();
+        if (it->second->current_state() != VirtualMachine::State::starting)
+            it->second->start();
     }
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
-        QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<StartReply>, server, vms, status_promise));
+        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, server, vms, status_promise));
 }
 catch (const std::exception& e)
 {
@@ -1512,8 +1514,8 @@ try // clang-format on
         if (status.ok())
         {
             auto future_watcher = create_future_watcher();
-            future_watcher->setFuture(QtConcurrent::run(
-                this, &Daemon::async_wait_for_ssh_and_start_mounts<RestartReply>, server, instances, status_promise));
+            future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server,
+                                                        instances, status_promise));
         }
     }
 }
@@ -1686,7 +1688,7 @@ void mp::Daemon::on_suspend()
 void mp::Daemon::on_restart(const std::string& name)
 {
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<StartReply>, nullptr,
+    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, nullptr,
                                                 std::vector<std::string>{name}, nullptr));
 }
 
@@ -1939,8 +1941,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
         server->Write(reply);
 
         auto future_watcher = create_future_watcher();
-        future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<LaunchReply>,
-                                                    server, std::vector<std::string>{name}, status_promise));
+        future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>, server,
+                                                    std::vector<std::string>{name}, status_promise));
     }
     else
     {
@@ -2070,40 +2072,19 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     return future_watcher;
 }
 
-grpc::Status mp::Daemon::async_wait_for_ssh_for(const VirtualMachine::UPtr& vm)
-{
-    try
-    {
-        vm->wait_until_ssh_up(up_timeout);
-    }
-    catch (const std::exception& e)
-    {
-        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
-    }
-
-    return grpc::Status::OK;
-}
-
 template <typename Reply>
-mp::Daemon::AsyncOperationStatus
-mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* server, const std::vector<std::string>& vms,
-                                                std::promise<grpc::Status>* status_promise)
+std::string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
+                                                                grpc::ServerWriter<Reply>* server)
 {
     fmt::memory_buffer errors;
-    for (const auto& name : vms)
+    try
     {
         auto it = vm_instances.find(name);
         auto& vm = it->second;
-        auto& mounts = vm_instance_specs[name].mounts;
-
-        auto status = async_wait_for_ssh_for(vm);
-        if (!status.ok())
-        {
-            fmt::format_to(errors, "Error starting '{}': {}", name, status.error_message());
-            continue;
-        }
+        vm->wait_until_ssh_up(up_timeout);
 
         std::vector<std::string> invalid_mounts;
+        auto& mounts = vm_instance_specs[name].mounts;
         for (const auto& mount_entry : mounts)
         {
             auto& target_path = mount_entry.first;
@@ -2131,15 +2112,47 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* serve
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    fmt::format_to(errors, "Error enabling mount support in '{}'", name);
+                    fmt::format_to(errors, "Error enabling mount support in '{}'\n", name);
                     break;
                 }
             }
             catch (const std::exception& e)
             {
-                fmt::format_to(errors, "Removing \"{}\": {}", target_path, e.what());
+                fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
                 invalid_mounts.push_back(target_path);
             }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        fmt::format_to(errors, e.what());
+    }
+
+    return fmt::to_string(errors);
+}
+
+template <typename Reply>
+mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ready_all(grpc::ServerWriter<Reply>* server,
+                                                                      const std::vector<std::string>& vms,
+                                                                      std::promise<grpc::Status>* status_promise)
+{
+    fmt::memory_buffer errors;
+    QFutureSynchronizer<std::string> start_synchronizer;
+
+    for (const auto& name : vms)
+    {
+        auto future = QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name, server);
+        start_synchronizer.addFuture(future);
+    }
+
+    start_synchronizer.waitForFinished();
+
+    for (const auto& future : start_synchronizer.futures())
+    {
+        auto error = future.result();
+        if (!error.empty())
+        {
+            fmt::format_to(errors, "{}\n", error);
         }
     }
 

@@ -371,7 +371,7 @@ void mp::QemuVirtualMachine::on_shutdown()
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     if (state == State::starting)
     {
-        saved_error_msg = "shutdown called while starting";
+        saved_error_msg = fmt::format("{}: shutdown called while starting", vm_name);
         state_wait.wait(lock, [this] { return state == State::off; });
     }
 
