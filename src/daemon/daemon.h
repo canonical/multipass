@@ -30,6 +30,7 @@
 
 #include <future>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -176,6 +177,8 @@ private:
     MetricsProvider metrics_provider;
     MetricsOptInData metrics_opt_in;
     std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
+    std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
+    std::mutex start_mutex;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H

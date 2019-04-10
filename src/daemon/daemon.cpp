@@ -2136,17 +2136,34 @@ mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ready_all(grpc::Serv
                                                                       const std::vector<std::string>& vms,
                                                                       std::promise<grpc::Status>* status_promise)
 {
-    fmt::memory_buffer errors;
     QFutureSynchronizer<std::string> start_synchronizer;
-
     for (const auto& name : vms)
     {
-        auto future = QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name, server);
-        start_synchronizer.addFuture(future);
+        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
+        if (async_running_futures.find(name) != async_running_futures.end())
+        {
+            start_synchronizer.addFuture(async_running_futures[name]);
+        }
+        else
+        {
+            auto future =
+                QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name, server);
+            async_running_futures[name] = future;
+            start_synchronizer.addFuture(future);
+        }
     }
 
     start_synchronizer.waitForFinished();
 
+    {
+        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
+        for (const auto& name : vms)
+        {
+            async_running_futures.erase(name);
+        }
+    }
+
+    fmt::memory_buffer errors;
     for (const auto& future : start_synchronizer.futures())
     {
         auto error = future.result();
