@@ -127,7 +127,9 @@ struct Client : public Test
 #endif
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
-    StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider, cert_store}; // strict to fail on unexpected calls
+    StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
+                                          cert_store}; // strict to fail on unexpected calls
+
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
 
