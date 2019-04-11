@@ -1300,8 +1300,12 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                                          fmt::format("instance \"{}\" does not exist", name), ""));
+            if (deleted_instances.find(name) == deleted_instances.end())
+                return status_promise->set_value(
+                    grpc::Status{grpc::StatusCode::NOT_FOUND, fmt::format("instance \"{}\" does not exist", name)});
+            else
+                return status_promise->set_value(
+                    grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is deleted", name)});
         }
 
         auto& vm = it->second;
