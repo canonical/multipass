@@ -257,9 +257,10 @@ TEST_F(Client, shell_cmd_fails_if_petenv_present_but_deleted)
 TEST_F(Client, shell_cmd_fails_on_other_absent_instance)
 {
     const auto instance = "ordinary";
+    const auto instance_matcher = make_ssh_info_instance_name_matcher(instance);
     const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
-    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, ssh_info(_, instance_matcher, _)).WillOnce(Return(notfound));
     EXPECT_THAT(send_command({"shell", instance}), Eq(mp::ReturnCode::CommandFail));
 }
 
