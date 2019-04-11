@@ -99,18 +99,22 @@ struct Client : public Test
 
     auto make_ssh_info_primary_matcher()
     {
-        static const auto matcher = Property(&mp::SSHInfoRequest::instance_name, ElementsAre("primary"));
-
+        static const auto matcher = Property(&mp::SSHInfoRequest::instance_name, ElementsAre(StrEq("primary")));
         return matcher;
+    }
+
+    template <typename RequestType, typename Matcher>
+    auto make_instance_names_matcher(const Matcher& instances_matcher)
+    {
+        return Property(&RequestType::instance_names, Property(&mp::InstanceNames::instance_name, instances_matcher));
     }
 
     template <typename RequestType, int size>
     auto make_primary_in_repeated_field_matcher()
     {
         static_assert(size > 0, "size must be positive");
-        static const auto matcher = Property(&RequestType::instance_names,
-                                             Property(&mp::InstanceNames::instance_name,
-                                                      AllOf(Contains("primary"), SizeIs(size))));
+        static const auto matcher = make_instance_names_matcher<RequestType>(AllOf(Contains(StrEq("primary")),
+                                                                                   SizeIs(size)));
 
         return matcher;
     }
@@ -620,6 +624,20 @@ TEST_F(Client, start_cmd_can_target_primary_among_others)
     EXPECT_THAT(send_command({"start", "foo", "primary"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "primary", "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", "primary", "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_does_not_add_primary_to_others)
+{
+    const auto matcher = make_instance_names_matcher<mp::StartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    EXPECT_CALL(mock_daemon, start(_, matcher, _));
+    EXPECT_THAT(send_command({"start", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_does_not_add_primary_to_all)
+{
+    const auto matcher = make_instance_names_matcher<mp::StartRequest>(IsEmpty());
+    EXPECT_CALL(mock_daemon, start(_, matcher, _));
+    EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 // stop cli tests
