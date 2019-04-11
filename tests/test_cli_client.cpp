@@ -229,6 +229,38 @@ TEST_F(Client, shell_cmd_can_target_petenv_explicitly)
     EXPECT_THAT(send_command({"shell", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, shell_cmd_launches_petenv_if_absent)
+{
+    const auto petenv_ssh_info_matcher = make_ssh_info_petenv_matcher();
+    const auto petenv_launch_matcher = Property(&mp::LaunchRequest::instance_name, StrEq(mp::petenv_name));
+    const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_ssh_info_matcher, _)).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_ssh_info_matcher, _)).WillOnce(Return(ok));
+
+    EXPECT_THAT(send_command({"shell", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_fails_if_petenv_present_but_deleted)
+{
+    const auto petenv_matcher = make_ssh_info_petenv_matcher();
+    const grpc::Status failed_precond{grpc::StatusCode::FAILED_PRECONDITION, "msg"};
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _)).WillOnce(Return(failed_precond));
+    EXPECT_THAT(send_command({"shell", mp::petenv_name}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, shell_cmd_fails_on_other_absent_instance)
+{
+    const auto instance = "ordinary";
+    const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_THAT(send_command({"shell", instance}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, shell_cmd_fails_multiple_args)
 {
     EXPECT_THAT(send_command({"shell", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
