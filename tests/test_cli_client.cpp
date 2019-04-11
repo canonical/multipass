@@ -245,6 +245,21 @@ TEST_F(Client, shell_cmd_launches_petenv_if_absent)
     EXPECT_THAT(send_command({"shell", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, shell_cmd_starts_instance_if_stopped_or_suspended)
+{
+    const auto instance = "ordinary";
+    const auto ssh_info_matcher = make_ssh_info_instance_name_matcher(instance);
+    const auto start_matcher = make_instance_name_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
+    const grpc::Status ok{}, aborted{grpc::StatusCode::ABORTED, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, start(_, start_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(ok));
+
+    EXPECT_THAT(send_command({"shell", instance}), Eq(mp::ReturnCode::Ok));
+}
+
 TEST_F(Client, shell_cmd_fails_if_petenv_present_but_deleted)
 {
     const auto petenv_matcher = make_ssh_info_instance_name_matcher(mp::petenv_name);
