@@ -98,6 +98,11 @@ struct Client : public Test
         return client.run(args);
     }
 
+    auto make_launch_instance_matcher(const std::string& instance_name)
+    {
+        return Property(&mp::LaunchRequest::instance_name, StrEq(mp::petenv_name));
+    }
+
     auto make_ssh_info_instance_matcher(const std::string& instance_name)
     {
         return Property(&mp::SSHInfoRequest::instance_name, ElementsAre(StrEq(instance_name)));
@@ -685,6 +690,22 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     EXPECT_THAT(send_command({"start", "foo", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", mp::petenv_name, "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", mp::petenv_name, "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_launches_petenv_if_absent)
+{
+    const auto petenv_start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
+    const auto petenv_launch_matcher = make_launch_instance_matcher(mp::petenv_name);
+
+    mp::StartError err{};
+    err.mutable_instance_errors()->insert({mp::petenv_name, mp::StartError::DOES_NOT_EXIST});
+
+    const grpc::Status ok{}, aborted_absent{grpc::StatusCode::ABORTED, "msg", err.SerializeAsString()};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(aborted_absent));
+    EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"start", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_does_not_add_petenv_to_others)

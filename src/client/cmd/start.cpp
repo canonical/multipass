@@ -49,16 +49,22 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        auto ret = standard_failure_handler_for(name(), cerr, status);
+        auto ret = standard_failure_handler_for(name(), cerr, status); /* TODO @ricab move
+        this below and, instead of using fmt::print, format messages to an error_details string
+        that can be passed as 4th param [which also avoids printing status.error_details] */
         if (status.error_code() == grpc::StatusCode::ABORTED && !status.error_details().empty())
         {
             mp::StartError start_error;
             start_error.ParseFromString(status.error_details());
-
-            if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
+            for (const auto& pair : start_error.instance_errors())
             {
-                fmt::print(cerr, "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                                 "instance.\n");
+                if (pair.second == mp::StartError::INSTANCE_DELETED)
+                {
+                    fmt::print(
+                        cerr,
+                        "Instance '{}' deleted. Use 'recover' to recover it or 'purge' to permanently delete it.\n",
+                        pair.first);
+                }
             }
         }
 

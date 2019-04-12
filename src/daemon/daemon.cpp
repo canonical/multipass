@@ -1358,21 +1358,18 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
+            mp::StartError start_error;
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
             {
-                mp::StartError start_error;
-                start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
-                start_error.set_instance_name(name);
+                start_error.mutable_instance_errors()->insert({name, mp::StartError::DOES_NOT_EXIST});
                 return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
                                                               fmt::format("instance \"{}\" does not exist", name),
                                                               start_error.SerializeAsString()));
             }
             else
             {
-                mp::StartError start_error;
-                start_error.set_error_code(mp::StartError::INSTANCE_DELETED);
-                start_error.set_instance_name(name);
+                start_error.mutable_instance_errors()->insert({name, mp::StartError::INSTANCE_DELETED});
                 return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
                                                               fmt::format("instance \"{}\" is deleted", name),
                                                               start_error.SerializeAsString()));
