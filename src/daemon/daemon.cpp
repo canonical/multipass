@@ -1352,44 +1352,26 @@ try // clang-format on
 
     config->factory->check_hypervisor_support();
 
+    mp::StartError start_error;
+    auto* errors = start_error.mutable_instance_errors();
+
     std::vector<decltype(vm_instances)::key_type> vms;
     for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
-        {
-            mp::StartError start_error;
-            it = deleted_instances.find(name);
-            if (it == deleted_instances.end())
-            {
-                start_error.mutable_instance_errors()->insert({name, mp::StartError::DOES_NOT_EXIST});
-                return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
-                                                              fmt::format("instance \"{}\" does not exist", name),
-                                                              start_error.SerializeAsString()));
-            }
-            else
-            {
-                start_error.mutable_instance_errors()->insert({name, mp::StartError::INSTANCE_DELETED});
-                return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
-                                                              fmt::format("instance \"{}\" is deleted", name),
-                                                              start_error.SerializeAsString()));
-            }
-            continue;
-        }
-
-        auto present_state = it->second->current_state();
-        if (present_state == VirtualMachine::State::running)
-        {
-            continue;
-        }
-        else if (present_state == VirtualMachine::State::delayed_shutdown)
-        {
+            errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
+                                      ? mp::StartError::DOES_NOT_EXIST
+                                      : mp::StartError::INSTANCE_DELETED});
+        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
-            continue;
-        }
-
-        vms.push_back(name);
+        else if (it->second->current_state() != VirtualMachine::State::running)
+            vms.push_back(name);
     }
+
+    if (start_error.instance_errors_size())
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::ABORTED, "instance(s) missing", start_error.SerializeAsString()));
 
     if (request->instance_names().instance_name().empty())
     {
