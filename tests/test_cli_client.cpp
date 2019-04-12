@@ -98,26 +98,22 @@ struct Client : public Test
         return client.run(args);
     }
 
-    auto make_ssh_info_instance_name_matcher(const std::string& instance_name)
+    auto make_ssh_info_instance_matcher(const std::string& instance_name)
     {
-        const auto matcher = Property(&mp::SSHInfoRequest::instance_name, ElementsAre(StrEq(instance_name)));
-        return matcher;
+        return Property(&mp::SSHInfoRequest::instance_name, ElementsAre(StrEq(instance_name)));
     }
 
     template <typename RequestType, typename Matcher>
-    auto make_instance_names_matcher(const Matcher& instances_matcher)
+    auto make_instances_matcher(const Matcher& instances_matcher)
     {
         return Property(&RequestType::instance_names, Property(&mp::InstanceNames::instance_name, instances_matcher));
     }
 
     template <typename RequestType, int size>
-    auto make_instance_name_in_repeated_field_matcher(const std::string& instance_name)
+    auto make_instance_in_repeated_field_matcher(const std::string& instance_name)
     {
         static_assert(size > 0, "size must be positive");
-        const auto matcher =
-            make_instance_names_matcher<RequestType>(AllOf(Contains(StrEq(instance_name)), SizeIs(size)));
-
-        return matcher;
+        return make_instances_matcher<RequestType>(AllOf(Contains(StrEq(instance_name)), SizeIs(size)));
     }
 
 #ifdef WIN32
@@ -219,21 +215,21 @@ TEST_F(Client, shell_cmd_help_ok)
 
 TEST_F(Client, shell_cmd_no_args_targets_petenv)
 {
-    const auto petenv_matcher = make_ssh_info_instance_name_matcher(mp::petenv_name);
+    const auto petenv_matcher = make_ssh_info_instance_matcher(mp::petenv_name);
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, shell_cmd_can_target_petenv_explicitly)
 {
-    const auto petenv_matcher = make_ssh_info_instance_name_matcher(mp::petenv_name);
+    const auto petenv_matcher = make_ssh_info_instance_matcher(mp::petenv_name);
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, shell_cmd_launches_petenv_if_absent)
 {
-    const auto petenv_ssh_info_matcher = make_ssh_info_instance_name_matcher(mp::petenv_name);
+    const auto petenv_ssh_info_matcher = make_ssh_info_instance_matcher(mp::petenv_name);
     const auto petenv_launch_matcher = Property(&mp::LaunchRequest::instance_name, StrEq(mp::petenv_name));
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
@@ -248,8 +244,8 @@ TEST_F(Client, shell_cmd_launches_petenv_if_absent)
 TEST_F(Client, shell_cmd_starts_instance_if_stopped_or_suspended)
 {
     const auto instance = "ordinary";
-    const auto ssh_info_matcher = make_ssh_info_instance_name_matcher(instance);
-    const auto start_matcher = make_instance_name_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
+    const auto ssh_info_matcher = make_ssh_info_instance_matcher(instance);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
     const grpc::Status ok{}, aborted{grpc::StatusCode::ABORTED, "msg"};
 
     InSequence seq;
@@ -262,8 +258,8 @@ TEST_F(Client, shell_cmd_starts_instance_if_stopped_or_suspended)
 
 TEST_F(Client, shell_cmd_starts_petenv_if_stopped_or_suspended)
 {
-    const auto ssh_info_matcher = make_ssh_info_instance_name_matcher(mp::petenv_name);
-    const auto start_matcher = make_instance_name_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
+    const auto ssh_info_matcher = make_ssh_info_instance_matcher(mp::petenv_name);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
     const grpc::Status ok{}, aborted{grpc::StatusCode::ABORTED, "msg"};
 
     InSequence seq;
@@ -276,7 +272,7 @@ TEST_F(Client, shell_cmd_starts_petenv_if_stopped_or_suspended)
 
 TEST_F(Client, shell_cmd_fails_if_petenv_present_but_deleted)
 {
-    const auto petenv_matcher = make_ssh_info_instance_name_matcher(mp::petenv_name);
+    const auto petenv_matcher = make_ssh_info_instance_matcher(mp::petenv_name);
     const grpc::Status failed_precond{grpc::StatusCode::FAILED_PRECONDITION, "msg"};
 
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _)).WillOnce(Return(failed_precond));
@@ -286,7 +282,7 @@ TEST_F(Client, shell_cmd_fails_if_petenv_present_but_deleted)
 TEST_F(Client, shell_cmd_fails_on_other_absent_instance)
 {
     const auto instance = "ordinary";
-    const auto instance_matcher = make_ssh_info_instance_name_matcher(instance);
+    const auto instance_matcher = make_ssh_info_instance_matcher(instance);
     const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
     EXPECT_CALL(mock_daemon, ssh_info(_, instance_matcher, _)).WillOnce(Return(notfound));
@@ -666,22 +662,22 @@ TEST_F(Client, start_cmd_fails_with_names_and_all)
 
 TEST_F(Client, start_cmd_no_args_targets_petenv)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_can_target_petenv_explicitly)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"start", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_can_target_petenv_among_others)
 {
-    const auto petenv_matcher2 = make_instance_name_in_repeated_field_matcher<mp::StartRequest, 2>(mp::petenv_name);
-    const auto petenv_matcher4 = make_instance_name_in_repeated_field_matcher<mp::StartRequest, 4>(mp::petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::StartRequest, 2>(mp::petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StartRequest, 4>(mp::petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher2, _)).Times(2);
@@ -693,14 +689,14 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
 
 TEST_F(Client, start_cmd_does_not_add_petenv_to_others)
 {
-    const auto matcher = make_instance_names_matcher<mp::StartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::StartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, start(_, matcher, _));
     EXPECT_THAT(send_command({"start", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_does_not_add_petenv_to_all)
 {
-    const auto matcher = make_instance_names_matcher<mp::StartRequest>(IsEmpty());
+    const auto matcher = make_instances_matcher<mp::StartRequest>(IsEmpty());
     EXPECT_CALL(mock_daemon, start(_, matcher, _));
     EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
@@ -736,22 +732,22 @@ TEST_F(Client, stop_cmd_fails_with_names_and_all)
 
 TEST_F(Client, stop_cmd_no_args_targets_petenv)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_can_target_petenv_explicitly)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"stop", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_can_target_petenv_among_others)
 {
-    const auto petenv_matcher2 = make_instance_name_in_repeated_field_matcher<mp::StopRequest, 2>(mp::petenv_name);
-    const auto petenv_matcher4 = make_instance_name_in_repeated_field_matcher<mp::StopRequest, 4>(mp::petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::StopRequest, 2>(mp::petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StopRequest, 4>(mp::petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher2, _)).Times(2);
@@ -763,14 +759,14 @@ TEST_F(Client, stop_cmd_can_target_petenv_among_others)
 
 TEST_F(Client, stop_cmd_does_not_add_petenv_to_others)
 {
-    const auto matcher = make_instance_names_matcher<mp::StopRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::StopRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
     EXPECT_THAT(send_command({"stop", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_does_not_add_petenv_to_all)
 {
-    const auto matcher = make_instance_names_matcher<mp::StopRequest>(IsEmpty());
+    const auto matcher = make_instances_matcher<mp::StopRequest>(IsEmpty());
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
     EXPECT_THAT(send_command({"stop", "--all"}), Eq(mp::ReturnCode::Ok));
 }
@@ -816,7 +812,7 @@ TEST_F(Client, stop_cmd_succeds_with_cancel)
 TEST_F(Client, stop_cmd_no_args_time_option_delays_petenv_shutdown)
 {
     const auto delay = 5;
-    const auto matcher = AllOf(make_instance_name_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name),
+    const auto matcher = AllOf(make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name),
                                Property(&mp::StopRequest::time_minutes, delay));
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
     EXPECT_THAT(send_command({"stop", "--time", std::to_string(delay)}), Eq(mp::ReturnCode::Ok));
@@ -824,7 +820,7 @@ TEST_F(Client, stop_cmd_no_args_time_option_delays_petenv_shutdown)
 
 TEST_F(Client, stop_cmd_no_args_cancel_option_cancels_delayed_petenv_shutdown)
 {
-    const auto matcher = AllOf(make_instance_name_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name),
+    const auto matcher = AllOf(make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(mp::petenv_name),
                                Property(&mp::StopRequest::cancel_shutdown, true));
     EXPECT_CALL(mock_daemon, stop(_, matcher, _));
     EXPECT_THAT(send_command({"stop", "--cancel"}), Eq(mp::ReturnCode::Ok));
@@ -861,22 +857,22 @@ TEST_F(Client, suspend_cmd_succeeds_with_all)
 
 TEST_F(Client, suspend_cmd_no_args_targets_petenv)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::SuspendRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, suspend_cmd_can_target_petenv_explicitly)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::SuspendRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"suspend", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, suspend_cmd_can_target_petenv_among_others)
 {
-    const auto petenv_matcher2 = make_instance_name_in_repeated_field_matcher<mp::SuspendRequest, 2>(mp::petenv_name);
-    const auto petenv_matcher4 = make_instance_name_in_repeated_field_matcher<mp::SuspendRequest, 4>(mp::petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 2>(mp::petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 4>(mp::petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher2, _)).Times(2);
@@ -888,14 +884,14 @@ TEST_F(Client, suspend_cmd_can_target_petenv_among_others)
 
 TEST_F(Client, suspend_cmd_does_not_add_petenv_to_others)
 {
-    const auto matcher = make_instance_names_matcher<mp::SuspendRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::SuspendRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, suspend(_, matcher, _));
     EXPECT_THAT(send_command({"suspend", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, suspend_cmd_does_not_add_petenv_to_all)
 {
-    const auto matcher = make_instance_names_matcher<mp::SuspendRequest>(IsEmpty());
+    const auto matcher = make_instances_matcher<mp::SuspendRequest>(IsEmpty());
     EXPECT_CALL(mock_daemon, suspend(_, matcher, _));
     EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
 }
@@ -931,22 +927,22 @@ TEST_F(Client, restart_cmd_succeeds_with_all)
 
 TEST_F(Client, restart_cmd_no_args_targets_petenv)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::RestartRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, restart(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, restart_cmd_can_target_petenv_explicitly)
 {
-    const auto petenv_matcher = make_instance_name_in_repeated_field_matcher<mp::RestartRequest, 1>(mp::petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(mp::petenv_name);
     EXPECT_CALL(mock_daemon, restart(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"restart", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, restart_cmd_can_target_petenv_among_others)
 {
-    const auto petenv_matcher2 = make_instance_name_in_repeated_field_matcher<mp::RestartRequest, 2>(mp::petenv_name);
-    const auto petenv_matcher4 = make_instance_name_in_repeated_field_matcher<mp::RestartRequest, 4>(mp::petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::RestartRequest, 2>(mp::petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::RestartRequest, 4>(mp::petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, restart(_, petenv_matcher2, _)).Times(2);
@@ -958,14 +954,14 @@ TEST_F(Client, restart_cmd_can_target_petenv_among_others)
 
 TEST_F(Client, restart_cmd_does_not_add_petenv_to_others)
 {
-    const auto matcher = make_instance_names_matcher<mp::RestartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::RestartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, restart(_, matcher, _));
     EXPECT_THAT(send_command({"restart", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, restart_cmd_does_not_add_petenv_to_all)
 {
-    const auto matcher = make_instance_names_matcher<mp::RestartRequest>(IsEmpty());
+    const auto matcher = make_instances_matcher<mp::RestartRequest>(IsEmpty());
     EXPECT_CALL(mock_daemon, restart(_, matcher, _));
     EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
 }
