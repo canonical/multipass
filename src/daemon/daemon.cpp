@@ -66,6 +66,8 @@ namespace
 
 using namespace std::chrono_literals;
 
+using error_string = std::string;
+
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto uuid_file_name = "multipass-unique-id";
@@ -2073,8 +2075,8 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
 }
 
 template <typename Reply>
-std::string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
-                                                                grpc::ServerWriter<Reply>* server)
+error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
+                                                                 grpc::ServerWriter<Reply>* server)
 {
     fmt::memory_buffer errors;
     try
@@ -2137,19 +2139,21 @@ mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ready_all(grpc::Serv
                                                                       std::promise<grpc::Status>* status_promise)
 {
     QFutureSynchronizer<std::string> start_synchronizer;
-    for (const auto& name : vms)
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
-        if (async_running_futures.find(name) != async_running_futures.end())
+        for (const auto& name : vms)
         {
-            start_synchronizer.addFuture(async_running_futures[name]);
-        }
-        else
-        {
-            auto future =
-                QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name, server);
-            async_running_futures[name] = future;
-            start_synchronizer.addFuture(future);
+            if (async_running_futures.find(name) != async_running_futures.end())
+            {
+                start_synchronizer.addFuture(async_running_futures[name]);
+            }
+            else
+            {
+                auto future =
+                    QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name, server);
+                async_running_futures[name] = future;
+                start_synchronizer.addFuture(future);
+            }
         }
     }
 
