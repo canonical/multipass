@@ -30,6 +30,14 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
+namespace
+{
+constexpr auto deleted_error_fmt =
+    "Instance '{}' deleted. Use 'recover' to recover it or 'purge' to permanently delete it.\n";
+constexpr auto absent_error_fmt = "Instance '{}' does not exist.\n";
+constexpr auto unknown_error_fmt = "Error on instance '{}'.\n";
+}
+
 mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -49,26 +57,26 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        auto ret = standard_failure_handler_for(name(), cerr, status); /* TODO @ricab move
-        this below and, instead of using fmt::print, format messages to an error_details string
-        that can be passed as 4th param [which also avoids printing status.error_details] */
+
+        std::string details;
         if (status.error_code() == grpc::StatusCode::ABORTED && !status.error_details().empty())
         {
             mp::StartError start_error;
             start_error.ParseFromString(status.error_details());
+
             for (const auto& pair : start_error.instance_errors())
             {
+                const auto* err_fmt = unknown_error_fmt;
                 if (pair.second == mp::StartError::INSTANCE_DELETED)
-                {
-                    fmt::print(
-                        cerr,
-                        "Instance '{}' deleted. Use 'recover' to recover it or 'purge' to permanently delete it.\n",
-                        pair.first);
-                }
+                    err_fmt = deleted_error_fmt;
+                else if (pair.second == mp::StartError::DOES_NOT_EXIST)
+                    err_fmt = absent_error_fmt;
+
+                fmt::format_to(std::back_inserter(details), err_fmt, pair.first);
             }
         }
 
-        return ret;
+        return standard_failure_handler_for(name(), cerr, status, details);
     };
 
     auto streaming_callback = [&spinner](mp::StartReply& reply) {
