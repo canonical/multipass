@@ -719,7 +719,24 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent)
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
+{
+    std::vector<std::string> cmd{"start"}, instances{"a", "b", mp::petenv_name, "c"};
+    cmd.insert(end(cmd), cbegin(instances), cend(instances));
+
+    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto petenv_launch_matcher = make_launch_instance_matcher(mp::petenv_name);
+    const grpc::Status ok{}, aborted = aborted_start_status({mp::petenv_name});
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_does_not_add_petenv_to_others)
