@@ -692,18 +692,32 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     EXPECT_THAT(send_command({"start", "foo", mp::petenv_name, "bar", "baz"}), Eq(mp::ReturnCode::Ok));
 }
 
+namespace
+{
+grpc::Status aborted_start_status(const std::vector<std::string>& absent_instances = {},
+                                  const std::vector<std::string>& deleted_instances = {})
+{
+    mp::StartError start_error{};
+    auto* errors = start_error.mutable_instance_errors();
+
+    for (const auto& instance : absent_instances)
+        errors->insert({instance, mp::StartError::DOES_NOT_EXIST});
+
+    for (const auto& instance : deleted_instances)
+        errors->insert({instance, mp::StartError::INSTANCE_DELETED});
+
+    return {grpc::StatusCode::ABORTED, "fakemsg", start_error.SerializeAsString()};
+}
+} // namespace
+
 TEST_F(Client, start_cmd_launches_petenv_if_absent)
 {
     const auto petenv_start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
     const auto petenv_launch_matcher = make_launch_instance_matcher(mp::petenv_name);
-
-    mp::StartError err{};
-    err.mutable_instance_errors()->insert({mp::petenv_name, mp::StartError::DOES_NOT_EXIST});
-
-    const grpc::Status ok{}, aborted_absent{grpc::StatusCode::ABORTED, "msg", err.SerializeAsString()};
+    const grpc::Status ok{}, aborted = aborted_start_status({mp::petenv_name});
 
     InSequence seq;
-    EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(aborted_absent));
+    EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", mp::petenv_name}), Eq(mp::ReturnCode::Ok));
 }
