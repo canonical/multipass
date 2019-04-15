@@ -72,7 +72,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name)
             return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
         else if (status.error_code() == grpc::StatusCode::ABORTED)
-            return start_instance_for(instance_name);
+            return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)}, parser, cout, cerr);
         else
             return standard_failure_handler_for(name(), cerr, status);
     };
@@ -132,26 +132,4 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     }
 
     return status;
-}
-
-mp::ReturnCode cmd::Shell::start_instance_for(const std::string& instance_name)
-{
-    AnimatedSpinner spinner{cout};
-    auto on_success = [this, &spinner](mp::StartReply& reply) {
-        spinner.stop();
-        cout << '\r' << std::flush;
-        return ReturnCode::Retry;
-    };
-
-    auto on_failure = [this, &spinner](grpc::Status& status) {
-        spinner.stop();
-        return standard_failure_handler_for(name(), cerr, status);
-    };
-
-    StartRequest request;
-    auto names = request.mutable_instance_names()->add_instance_name();
-    names->append(instance_name);
-
-    spinner.start(fmt::format("Starting {}", instance_name));
-    return dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
