@@ -763,6 +763,53 @@ TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_deleted)
     EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
 }
 
+TEST_F(Client, start_cmd_fails_if_petenv_present_but_deleted)
+{
+    const auto petenv_start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(mp::petenv_name);
+    const grpc::Status aborted = aborted_start_status({}, {mp::petenv_name});
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_THAT(send_command({"start", mp::petenv_name}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, start_cmd_fails_if_petenv_present_but_deleted_among_others)
+{
+    std::vector<std::string> cmd{"start"}, instances{mp::petenv_name, "other"};
+    cmd.insert(end(cmd), cbegin(instances), cend(instances));
+
+    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto aborted = aborted_start_status({}, {instances.front()});
+
+    EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, start_cmd_fails_on_other_absent_instance)
+{
+    std::vector<std::string> cmd{"start"}, instances{"o-o", "O_o"};
+    cmd.insert(end(cmd), cbegin(instances), cend(instances)); // TODO @ricab extract repeated bit
+
+    const auto instance_start_matcher =
+        make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances)); // TODO @ricab extract repeated bit
+    const auto aborted = aborted_start_status({}, {"O_o"});
+
+    EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, start_cmd_fails_on_other_absent_instances_with_petenv)
+{
+    std::vector<std::string> cmd{"start"}, instances{mp::petenv_name, "lala", "zzz"};
+    cmd.insert(end(cmd), cbegin(instances), cend(instances));
+
+    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto aborted = aborted_start_status({}, {"zzz"});
+
+    EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, start_cmd_does_not_add_petenv_to_others)
 {
     const auto matcher = make_instances_matcher<mp::StartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
