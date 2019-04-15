@@ -70,7 +70,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 
     auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
         if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name)
-            return launch_petenv(parser);
+            return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
         else if (status.error_code() == grpc::StatusCode::ABORTED)
             return start_instance_for(instance_name);
         else
@@ -154,23 +154,4 @@ mp::ReturnCode cmd::Shell::start_instance_for(const std::string& instance_name)
 
     spinner.start(fmt::format("Starting {}", instance_name));
     return dispatch(&RpcMethod::start, request, on_success, on_failure);
-}
-
-namespace
-{
-void check(mp::ParseCode code)
-{
-    assert(code == mp::ParseCode::Ok);
-    static_cast<void>(code); // replace with [[maybe_unused]] in param decl in C++17
-}
-} // namespace
-
-mp::ReturnCode cmd::Shell::launch_petenv(const ArgParser* orig_parser)
-{
-    QStringList aux_args{"multipass", "launch", "--name", petenv_name};
-    ArgParser aux_parser{aux_args, orig_parser->getCommands(), cout, cerr};
-    check(aux_parser.parse());
-
-    auto ret = aux_parser.chosenCommand()->run(&aux_parser);
-    return ret == ReturnCode::Ok ? ReturnCode::Retry : ret;
 }

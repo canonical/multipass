@@ -42,7 +42,6 @@ private:
 
     ParseCode parse_args(ArgParser *parser) override;
     ReturnCode start_instance_for(const std::string& instance_name);
-    ReturnCode launch_petenv(const ArgParser* orig_parser);
 };
 }
 }
