@@ -86,7 +86,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
             {
                 assert(start_error.instance_errors_size() == 1 &&
                        cbegin(start_error.instance_error())->first == petenv_name);
-                return run_cmd({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
+                return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
             }
         }
 
@@ -100,7 +100,12 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback);
+
+    ReturnCode return_code;
+    while ((return_code = dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback)) ==
+           ReturnCode::Retry)
+        ;
+    return return_code;
 }
 
 std::string cmd::Start::name() const

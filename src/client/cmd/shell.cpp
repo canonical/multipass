@@ -29,14 +29,6 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-namespace
-{
-mp::ReturnCode ok2retry(mp::ReturnCode code)
-{
-    return code == mp::ReturnCode::Ok ? mp::ReturnCode::Retry : code;
-}
-} // namespace
-
 mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -78,9 +70,9 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 
     auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
         if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name)
-            return ok2retry(run_cmd({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr));
+            return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
         else if (status.error_code() == grpc::StatusCode::ABORTED)
-            return ok2retry(run_cmd({"multipass", "start", QString::fromStdString(instance_name)}, parser, cout, cerr));
+            return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)}, parser, cout, cerr);
         else
             return standard_failure_handler_for(name(), cerr, status);
     };

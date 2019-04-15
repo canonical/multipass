@@ -161,3 +161,17 @@ mp::ReturnCode cmd::run_cmd(const QStringList& args, const ArgParser* parser, st
 
     return aux_parser.chosenCommand()->run(&aux_parser);
 }
+
+namespace
+{
+mp::ReturnCode ok2retry(mp::ReturnCode code)
+{
+    return code == mp::ReturnCode::Ok ? mp::ReturnCode::Retry : code;
+}
+} // namespace
+
+mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const ArgParser* parser, std::ostream& cout,
+                                      std::ostream& cerr)
+{
+    return ok2retry(run_cmd(args, parser, cout, cerr));
+}
