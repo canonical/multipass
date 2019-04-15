@@ -739,6 +739,30 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
     EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_absent)
+{
+    std::vector<std::string> cmd{"start"}, instances{"a", "b", "c", mp::petenv_name, "xyz"};
+    cmd.insert(end(cmd), cbegin(instances), cend(instances));
+
+    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto aborted = aborted_start_status({std::next(std::cbegin(instances), 2), std::cend(instances)});
+
+    EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_deleted)
+{
+    std::vector<std::string> cmd{"start"}, instances{"nope", mp::petenv_name};
+    cmd.insert(end(cmd), cbegin(instances), cend(instances));
+
+    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto aborted = aborted_start_status({}, {instances.front()});
+
+    EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, start_cmd_does_not_add_petenv_to_others)
 {
     const auto matcher = make_instances_matcher<mp::StartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
