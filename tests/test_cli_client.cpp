@@ -132,6 +132,19 @@ TEST_F(Client, copy_file_cmd_multiple_sources_destination_file_fails)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, copy_file_stdout_stdin_template_only_fails)
+{
+    EXPECT_THAT(send_command({"copy-files", "-", "-"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, copy_file_stdout_stdin_template_declaration_fails)
+{
+    EXPECT_THAT(send_command({"copy-files", "test-vm1:foo", "-", "-",
+                              mpt::test_data_path().toStdString() + "good_index.json"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
 // shell cli test
 TEST_F(Client, shell_cmd_good_arguments)
 {

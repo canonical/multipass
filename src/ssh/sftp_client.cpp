@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,11 +39,12 @@ constexpr int file_mode = 0664;
 constexpr int package_size = 10;
 const std::string stream_file_name{"stream_output.dat"};
 
-using SFTPUPtr = std::unique_ptr<sftp_session_struct, void (*)(sftp_session)>;
+using SFTPSessionUPtr = std::unique_ptr<sftp_session_struct, void (*)(sftp_session)>;
+using SFTPFileUPtr = std::unique_ptr<sftp_file_struct, int (*)(sftp_file)>;
 
-SFTPUPtr make_sftp_session(ssh_session session)
+SFTPSessionUPtr make_sftp_session(ssh_session session)
 {
-    SFTPUPtr sftp{sftp_new(session), sftp_free};
+    SFTPSessionUPtr sftp{sftp_new(session), sftp_free};
 
     if (sftp == nullptr)
         throw std::runtime_error(fmt::format("could not create new sftp session: {}", ssh_get_error(session)));
@@ -77,13 +78,16 @@ mp::SFTPClient::SFTPClient(SSHSessionUPtr ssh_session) : ssh_session{std::move(s
 void mp::SFTPClient::push_file(const std::string& source_path, const std::string& destination_path)
 {
     auto full_destination_path = full_destination(destination_path, mp::utils::filename_for(source_path));
-    SFTPUPtr sftp{make_sftp_session(*ssh_session)};
+    SFTPSessionUPtr sftp{make_sftp_session(*ssh_session)};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp push] init failed", sftp_init);
 
     QFile source(QString::fromStdString(source_path));
     const auto size{source.size()};
-    auto file_handle = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, file_mode);
-    SSH::throw_on_error(sftp, *ssh_session, "[sftp push] failed", sftp_get_error);
+
+    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, file_mode);
+    SFTPFileUPtr file_handle{raw_ptr, sftp_close};
+
+    SSH::throw_on_error(sftp, *ssh_session, "[sftp push] open failed", sftp_get_error);
 
     int total{0};
     std::array<char, 65536u> data;
@@ -102,25 +106,22 @@ void mp::SFTPClient::push_file(const std::string& source_path, const std::string
         if (r == 0)
             break;
 
-        sftp_write(file_handle, data.data(), r);
+        sftp_write(file_handle.get(), data.data(), r);
         SSH::throw_on_error(sftp, *ssh_session, "[sftp push] remote write failed", sftp_get_error);
 
         total += r;
     } while (total < size);
-
-    sftp_close(file_handle);
-    SSH::throw_on_error(sftp, *ssh_session, "[sftp push] close failed", sftp_get_error);
 }
 
 void mp::SFTPClient::pull_file(const std::string& source_path, const std::string& destination_path)
 {
-    SFTPUPtr sftp{make_sftp_session(*ssh_session)};
+    SFTPSessionUPtr sftp{make_sftp_session(*ssh_session)};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] init failed", sftp_init);
 
     const auto file_attributes = sftp_stat(sftp.get(), source_path.c_str());
     SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] getting stat failed", sftp_get_error);
 
-    const auto size = file_attributes->size;
+    const auto size{file_attributes->size};
     const std::string filename{file_attributes->name};
 
     auto total{0u};
@@ -132,13 +133,16 @@ void mp::SFTPClient::pull_file(const std::string& source_path, const std::string
         throw std::runtime_error(
             fmt::format("[sftp pull] error opening file for writing: {}", destination.errorString().toStdString()));
 
-    auto file_handle = sftp_open(sftp.get(), destination_path.c_str(), O_RDONLY, file_mode);
-    SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] failed", sftp_get_error);
+    auto raw_ptr = sftp_open(sftp.get(), destination_path.c_str(), O_RDONLY, file_mode);
+    SFTPFileUPtr file_handle{raw_ptr, sftp_close};
+
+    SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] open failed", sftp_get_error);
 
     int r;
     do
     {
-        r = sftp_read(file_handle, data.data(), data.size());
+        r = sftp_read(file_handle.get(), data.data(), data.size());
+        SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] read failed", sftp_get_error);
 
         if (r == 0)
             break;
@@ -149,18 +153,17 @@ void mp::SFTPClient::pull_file(const std::string& source_path, const std::string
 
         total += r;
     } while (total < size);
-
-    sftp_close(file_handle);
-    SSH::throw_on_error(sftp, *ssh_session, "[sftp push] close failed", sftp_get_error);
 }
 
 void mp::SFTPClient::stream_file(const std::string &destination_path)
 {
     auto full_destination_path = full_destination(destination_path, stream_file_name);
-    SFTPUPtr sftp{make_sftp_session(*ssh_session)};
+    SFTPSessionUPtr sftp{make_sftp_session(*ssh_session)};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp stream] init session failed", sftp_init);
 
-    auto file_handle = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, file_mode);
+    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, file_mode);
+    SFTPFileUPtr file_handle{raw_ptr, sftp_close};
+
     SSH::throw_on_error(sftp, *ssh_session, "[sftp stream] open failed", sftp_get_error);
 
     QTextStream in_stream(stdin);
@@ -171,10 +174,7 @@ void mp::SFTPClient::stream_file(const std::string &destination_path)
         text = in_stream.read(package_size);
         data = text.toUtf8();
 
-        sftp_write(file_handle, data.data(), data.size());
+        sftp_write(file_handle.get(), data.data(), data.size());
         SSH::throw_on_error(sftp, *ssh_session, "[sftp push] remote write failed", sftp_get_error);
     } while (!in_stream.atEnd());
-
-    sftp_close(file_handle);
-    SSH::throw_on_error(sftp, *ssh_session, "[sftp push] close failed", sftp_get_error);
 }
