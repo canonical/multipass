@@ -154,12 +154,10 @@ void check(mp::ParseCode code)
 }
 } // namespace
 
-mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const ArgParser* parser, std::ostream& cout,
-                                      std::ostream& cerr)
+mp::ReturnCode cmd::run_cmd(const QStringList& args, const ArgParser* parser, std::ostream& cout, std::ostream& cerr)
 {
     ArgParser aux_parser{args, parser->getCommands(), cout, cerr};
     check(aux_parser.parse());
 
-    const auto ret = aux_parser.chosenCommand()->run(&aux_parser);
-    return ret == ReturnCode::Ok ? ReturnCode::Retry : ret;
+    return aux_parser.chosenCommand()->run(&aux_parser);
 }
