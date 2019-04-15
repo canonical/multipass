@@ -114,6 +114,12 @@ struct Client : public Test
         return Property(&RequestType::instance_names, Property(&mp::InstanceNames::instance_name, instances_matcher));
     }
 
+    template <typename RequestType, typename Sequence>
+    auto make_instances_sequence_matcher(const Sequence& seq)
+    {
+        return make_instances_matcher<RequestType>(ElementsAreArray(seq));
+    }
+
     template <typename RequestType, int size>
     auto make_instance_in_repeated_field_matcher(const std::string& instance_name)
     {
@@ -735,7 +741,7 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
 {
     std::vector<std::string> instances{"a", "b", mp::petenv_name, "c"}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto petenv_launch_matcher = make_launch_instance_matcher(mp::petenv_name);
     const grpc::Status ok{}, aborted = aborted_start_status({mp::petenv_name});
 
@@ -750,7 +756,7 @@ TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_absent)
 {
     std::vector<std::string> instances{"a", "b", "c", mp::petenv_name, "xyz"}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto aborted = aborted_start_status({std::next(std::cbegin(instances), 2), std::cend(instances)});
 
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
@@ -761,7 +767,7 @@ TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_deleted)
 {
     std::vector<std::string> instances{"nope", mp::petenv_name}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto aborted = aborted_start_status({}, {instances.front()});
 
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
@@ -782,7 +788,7 @@ TEST_F(Client, start_cmd_fails_if_petenv_present_but_deleted_among_others)
 {
     std::vector<std::string> instances{mp::petenv_name, "other"}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto aborted = aborted_start_status({}, {instances.front()});
 
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
@@ -793,8 +799,7 @@ TEST_F(Client, start_cmd_fails_on_other_absent_instance)
 {
     std::vector<std::string> instances{"o-o", "O_o"}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher =
-        make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances)); // TODO @ricab extract repeated bit
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto aborted = aborted_start_status({}, {"O_o"});
 
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
@@ -806,7 +811,7 @@ TEST_F(Client, start_cmd_fails_on_other_absent_instances_with_petenv)
     std::vector<std::string> cmd{"start"}, instances{mp::petenv_name, "lala", "zzz"};
     cmd.insert(end(cmd), cbegin(instances), cend(instances));
 
-    const auto instance_start_matcher = make_instances_matcher<mp::StartRequest>(ElementsAreArray(instances));
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto aborted = aborted_start_status({}, {"zzz"});
 
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
