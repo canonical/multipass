@@ -26,6 +26,8 @@
 
 #include <fmt/ostream.h>
 
+#include <cassert>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
@@ -55,7 +57,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner, parser](grpc::Status& status) {
         spinner.stop();
 
         std::string details;
@@ -70,9 +72,21 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
                 if (pair.second == mp::StartError::INSTANCE_DELETED)
                     err_fmt = deleted_error_fmt;
                 else if (pair.second == mp::StartError::DOES_NOT_EXIST)
-                    err_fmt = absent_error_fmt;
+                {
+                    if (pair.first != petenv_name)
+                        err_fmt = absent_error_fmt;
+                    else
+                        continue;
+                }
 
                 fmt::format_to(std::back_inserter(details), err_fmt, pair.first);
+            }
+
+            if (details.empty())
+            {
+                assert(start_error.instance_errors_size() == 1 &&
+                       cbegin(start_error.instance_error())->first == petenv_name);
+                return run_cmd({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
             }
         }
 
