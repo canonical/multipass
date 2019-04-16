@@ -19,7 +19,10 @@
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
+#include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+
+#include <fmt/format.h>
 
 #include <gmock/gmock.h>
 
@@ -59,6 +62,18 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_current_release("18.04 LTS");
 
     return list_reply;
+}
+
+auto construct_multiple_instances_including_petenv_list_reply()
+{
+    auto reply = construct_multiple_instances_list_reply();
+
+    auto instance = reply.add_instances();
+    instance->set_name(mp::petenv_name);
+    instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+    instance->set_current_release("Not Available");
+
+    return reply;
 }
 
 auto construct_single_instance_info_reply()
@@ -193,6 +208,16 @@ TEST_F(TableFormatter, multiple_instance_list_output)
     auto output = table_formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST_F(TableFormatter, pet_env_first_in_list_output)
+{
+    const mp::TableFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+    const auto regex = fmt::format("Name.*\n{}.*\n.*\n.*\n", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
 }
 
 TEST_F(TableFormatter, no_instances_list_output)
