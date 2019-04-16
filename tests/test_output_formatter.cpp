@@ -649,6 +649,15 @@ TEST_F(YamlFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+TEST_F(YamlFormatter, pet_env_first_in_list_output)
+{
+    const mp::YamlFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, StartsWith(mp::petenv_name));
+}
+
 TEST_F(YamlFormatter, no_instances_list_output)
 {
     mp::ListReply list_reply;
