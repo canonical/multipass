@@ -109,22 +109,6 @@ TEST_F(SFTPClient, push_throws_on_sftp_read_failed)
     EXPECT_THROW(sftp.push_file("foo", "bar"), std::runtime_error);
 }
 
-TEST_F(SFTPClient, push_throws_on_sftp_read_error)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    mpt::make_file_with_content(file_name);
-
-    auto sftp = make_sftp_client();
-
-    REPLACE(sftp_new, [](auto...) { return new sftp_session_struct; });
-    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
-    REPLACE(sftp_open, [](auto...) { return nullptr; });
-    REPLACE(sftp_write, [](auto...) { return -1; });
-
-    EXPECT_THROW(sftp.push_file(file_name.toStdString(), "bar"), std::runtime_error);
-}
-
 TEST_F(SFTPClient, push_throws_on_sftp_write_error)
 {
     mpt::TempDir temp_dir;
