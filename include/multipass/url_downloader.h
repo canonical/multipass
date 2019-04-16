@@ -26,8 +26,6 @@
 
 #include <QByteArray>
 #include <QDateTime>
-#include <QNetworkAccessManager>
-#include <QNetworkDiskCache>
 
 #include <chrono>
 
@@ -50,8 +48,7 @@ private:
     URLDownloader(const URLDownloader&) = delete;
     URLDownloader& operator=(const URLDownloader&) = delete;
 
-    QNetworkAccessManager manager;
-    QNetworkDiskCache network_cache;
+    const Path cache_dir_path;
     std::chrono::milliseconds timeout;
 };
 }

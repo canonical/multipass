@@ -25,6 +25,7 @@
 #include <fmt/format.h>
 
 #include <QMap>
+#include <QUrl>
 
 #include <utility>
 
