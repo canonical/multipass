@@ -29,7 +29,7 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
         buf, "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
              "total,Mounts\n");
 
-    for (const auto& info : reply.info())
+    for (const auto& info : format::sorted(reply.info()))
     {
         fmt::format_to(buf, "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
                        mp::format::status_string_for(info.instance_status()), info.ipv4(), info.ipv6(),
