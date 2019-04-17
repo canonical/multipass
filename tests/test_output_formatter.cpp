@@ -148,6 +148,19 @@ auto construct_multiple_instances_info_reply()
     return info_reply;
 }
 
+auto construct_multiple_instances_including_petenv_info_reply()
+{
+    auto reply = construct_multiple_instances_info_reply();
+
+    auto entry = reply.add_info();
+    entry->set_name(mp::petenv_name);
+    entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+    entry->set_image_release("18.10");
+    entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+
+    return reply;
+}
+
 class LocaleSettingTest : public testing::Test
 {
 public:
@@ -285,6 +298,16 @@ TEST_F(TableFormatter, multiple_instances_info_output)
     auto output = table_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST_F(TableFormatter, pet_env_first_in_info_output)
+{
+    const mp::TableFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("Name:[[:space:]]+{}.+", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
 }
 
 TEST_F(TableFormatter, no_instances_info_output)
