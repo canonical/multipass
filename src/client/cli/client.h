@@ -20,7 +20,6 @@
 
 #include <multipass/cert_provider.h>
 #include <multipass/terminal.h>
-//#include <multipass/cli/cli.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>

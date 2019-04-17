@@ -32,7 +32,6 @@ namespace platform
 void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
 int getuid();
 int getgid();
-void prepare_stdin_for_read();
 void open_multipass_shell(const QString& instance_name);
 }
 }

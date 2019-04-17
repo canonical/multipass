@@ -26,6 +26,7 @@
 
 #include <map>
 #include <memory>
+#include <sstream>
 #include <unordered_map>
 
 namespace multipass
@@ -35,8 +36,6 @@ struct ClientConfig
     const std::string server_address;
     const RpcConnectionType conn_type;
     std::unique_ptr<CertProvider> cert_provider;
-    std::ostream& cout;
-    std::ostream& cerr;
 };
 
 class ClientGui
@@ -49,10 +48,7 @@ private:
     const std::unique_ptr<CertProvider> cert_provider;
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
-
-    std::ostream& cout;
-    std::ostream& cerr;
-
+    std::stringstream null_stream;
     std::unique_ptr<cmd::GuiCmd> gui_cmd;
 };
 } // namespace multipass

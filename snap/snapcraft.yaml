@@ -178,7 +178,6 @@ parts:
     - on i386: http://archive.ubuntu.com/ubuntu/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_arm64.deb
->>>>>>> snap: Add support for building client with systray UI
     source-type: deb
 
   libxcb-xinerama0:
