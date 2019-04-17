@@ -798,6 +798,16 @@ TEST_F(YamlFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+TEST_F(YamlFormatter, pet_env_first_in_info_output)
+{
+    const mp::YamlFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
+
 TEST_F(YamlFormatter, no_instances_info_output)
 {
     mp::InfoReply info_reply;
