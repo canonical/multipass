@@ -227,7 +227,7 @@ TEST_F(TableFormatter, pet_env_first_in_list_output)
 {
     const mp::TableFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_list_reply();
-    const auto regex = fmt::format("Name.*\n{}.*\n.*\n.*\n", mp::petenv_name);
+    const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", mp::petenv_name);
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -571,7 +571,7 @@ TEST_F(CSVFormatter, pet_env_first_in_list_output)
 {
     const mp::CSVFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_list_reply();
-    const auto regex = fmt::format("Name.*\n{}.*\n.*\n.*\n", mp::petenv_name);
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", mp::petenv_name);
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
