@@ -622,6 +622,16 @@ TEST_F(CSVFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+TEST_F(CSVFormatter, pet_env_first_in_info_output)
+{
+    const mp::CSVFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
+
 TEST_F(CSVFormatter, no_instances_info_output)
 {
     mp::InfoReply info_reply;
