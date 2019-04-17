@@ -17,7 +17,6 @@
 
 #include "version.h"
 #include "common_cli.h"
-
 #include <multipass/cli/argparser.h>
 #include <multipass/version.h>
 

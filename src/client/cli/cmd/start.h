@@ -30,7 +30,7 @@ class Start final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+    ReturnCode run(ArgParser *parser) override;
 
     std::string name() const override;
     QString short_help() const override;
@@ -39,8 +39,8 @@ public:
 private:
     StartRequest request;
 
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser *parser) override;
 };
-} // namespace cmd
-} // namespace multipass
+}
+}
 #endif // MULTIPASS_START_H

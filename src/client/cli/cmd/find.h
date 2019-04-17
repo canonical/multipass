@@ -39,6 +39,6 @@ private:
 
     ParseCode parse_args(ArgParser* parser) override;
 };
-} // namespace cmd
-} // namespace multipass
+}
+}
 #endif // MULTIPASS_FIND_H

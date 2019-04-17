@@ -28,7 +28,7 @@ class Umount final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+    ReturnCode run(ArgParser *parser) override;
 
     std::string name() const override;
     std::vector<std::string> aliases() const override;
@@ -38,8 +38,8 @@ public:
 private:
     UmountRequest request;
 
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser *parser) override;
 };
-} // namespace cmd
-} // namespace multipass
+}
+}
 #endif // MULTIPASS_UMOUNT_H

@@ -44,10 +44,7 @@ mp::ReturnCode cmd::Help::run(mp::ArgParser* parser)
     return ReturnCode::Ok;
 }
 
-std::string cmd::Help::name() const
-{
-    return "help";
-}
+std::string cmd::Help::name() const { return "help"; }
 
 QString cmd::Help::short_help() const
 {

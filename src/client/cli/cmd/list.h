@@ -32,7 +32,7 @@ class List final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+    ReturnCode run(ArgParser *parser) override;
 
     std::string name() const override;
     std::vector<std::string> aliases() const override;
@@ -40,10 +40,10 @@ public:
     QString description() const override;
 
 private:
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser *parser) override;
 
     Formatter* chosen_formatter;
 };
-} // namespace cmd
-} // namespace multipass
+}
+}
 #endif // MULTIPASS_LIST_H

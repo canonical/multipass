@@ -45,10 +45,7 @@ mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::info, request, on_success, on_failure);
 }
 
-std::string cmd::Info::name() const
-{
-    return "info";
-}
+std::string cmd::Info::name() const { return "info"; }
 
 QString cmd::Info::short_help() const
 {
