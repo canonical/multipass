@@ -16,7 +16,6 @@
  */
 
 #include <multipass/cli/csv_formatter.h>
-
 #include <multipass/cli/format_utils.h>
 
 #include <fmt/format.h>
@@ -54,7 +53,7 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
 
     fmt::format_to(buf, "Name,State,IPv4,IPv6,Release\n");
 
-    for (const auto& instance : reply.instances())
+    for (const auto& instance : format::sorted(reply.instances()))
     {
         fmt::format_to(buf, "{},{},{},{},{}\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()), instance.ipv4(), instance.ipv6(),
