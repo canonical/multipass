@@ -96,10 +96,12 @@ auto record_to_json(const mp::VaultRecord& record)
 
 bool has_release(const std::unordered_map<std::string, mp::VaultRecord>& image_records, const std::string& release)
 {
-    const auto it = std::find_if(std::cbegin(image_records), std::cend(image_records),
-                                 [&release](const auto& elem) { return elem.second.query.release == release; });
+    const auto pred = [&release](const auto& elem) {
+        const auto& aliases = elem.second.image.aliases;
+        return find(std::cbegin(aliases), std::cend(aliases), release) != std::cend(aliases);
+    };
 
-    return it != std::cend(image_records);
+    return std::find_if(std::cbegin(image_records), std::cend(image_records), pred) != std::cend(image_records);
 }
 
 std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
