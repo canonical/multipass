@@ -41,8 +41,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     // The VM image itself
     args << "-hda" << desc.image.image_path;
     // For the cloud-init configuration
-    args << "-drive"
-         << QString{"file="} + desc.cloud_init_iso + QString{",if=virtio,format=raw,snapshot=off,read-only"};
+    args << "-cdrom" << desc.cloud_init_iso;
     // Number of cpu cores
     args << "-smp" << QString::number(desc.num_cores);
     // Memory to use for VM
