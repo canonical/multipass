@@ -35,9 +35,9 @@ using RpcMethod = mp::Rpc::Stub;
 namespace
 {
 constexpr auto deleted_error_fmt =
-    "Instance '{}' deleted. Use 'recover' to recover it or 'purge' to permanently delete it.\n";
+    "Instance '{}' is deleted. Use 'recover' to recover it or 'purge' to permanently delete it.\n";
 constexpr auto absent_error_fmt = "Instance '{}' does not exist.\n";
-constexpr auto unknown_error_fmt = "Error on instance '{}'.\n";
+constexpr auto unknown_error_fmt = "Instance '{}' failed in an unexpected way, check logs for more information.\n";
 }
 
 mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
