@@ -112,8 +112,7 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
         request.set_cancel_shutdown(true);
     }
 
-    request.mutable_instance_names()->CopyFrom(
-        add_instance_names(parser, /*default_name=*/petenv_name));
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name));
 
     return status;
 }
