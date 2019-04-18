@@ -1,10 +1,13 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -142,11 +142,11 @@ parts:
+@@ -208,14 +208,14 @@ parts:
      - git
      - golang
      - libsystemd-dev
 +    - lcov
+     stage-packages:
+     - libgl1
+     - libpng16-16
      source: .
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -12,5 +15,5 @@
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
      override-build: |
-       update-ccache-symlinks
        snapcraftctl build
+       set -e
