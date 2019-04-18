@@ -294,6 +294,17 @@ auto make_download_monitor(const std::string& msg_prefix)
         return true;
     };
 }
+
+void cache_default_image(const mp::DaemonConfig& config)
+{
+    auto prepare_action =
+        std::bind(&mp::VirtualMachineFactory::prepare_source_image, config.factory.get(), std::placeholders::_1);
+    auto fetch_type = config.factory->fetch_type();
+    mp::Query query{"", "default", false, "", mp::Query::Type::Alias};
+
+    config.vault->fetch_image(fetch_type, query, prepare_action, make_download_monitor("Caching default image"));
+}
+
 auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 {
     try
@@ -633,6 +644,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
     }
 
+    cache_default_image(*config);
     config->vault->prune_expired_images();
 
     // Fire timer every six hours to perform maintenance on source images such as
