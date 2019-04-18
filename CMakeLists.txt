@@ -59,7 +59,7 @@ function(determine_version OUTPUT_VARIABLE)
                   OUTPUT_VARIABLE GIT_VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-  execute_process(COMMAND git describe --tags --match *-dev --match *-rc --abbrev=0
+  execute_process(COMMAND git describe --tags --match *-* --abbrev=0
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_TAG
                   OUTPUT_STRIP_TRAILING_WHITESPACE)

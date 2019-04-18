@@ -26,7 +26,7 @@ install:
 - ccache --max-size=5G
 
 before_script:
-- "[ ! -f tests/travis.patch ] || patch -p1 < tests/travis.patch"
+- "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
 - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
 - sg lxd -c 'lxc remote add --protocol simplestreams ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/'
 - |
