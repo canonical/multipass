@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/constants.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -64,7 +65,11 @@ QString cmd::Restart::description() const
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to restart", "<name> [<name> ...]");
+    parser->addPositionalArgument(
+        "name",
+        QString{"Names of instances to restart. If omitted, and without the --all option, '%1' will be assumed."}.arg(
+            petenv_name),
+        "[<name> ...]");
 
     QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);
@@ -73,11 +78,11 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name));
 
     return status;
 }

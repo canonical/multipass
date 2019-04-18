@@ -16,7 +16,6 @@
  */
 
 #include <multipass/cli/yaml_formatter.h>
-
 #include <multipass/cli/format_utils.h>
 #include <multipass/utils.h>
 
@@ -48,7 +47,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
     info_node["errors"].push_back(YAML::Null);
 
-    for (const auto& info : reply.info())
+    for (const auto& info : format::sorted(reply.info()))
     {
         YAML::Node instance_node;
 
@@ -129,7 +128,7 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
 {
     YAML::Node list;
 
-    for (const auto& instance : reply.instances())
+    for (const auto& instance : format::sorted(reply.instances()))
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());

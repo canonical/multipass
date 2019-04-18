@@ -22,12 +22,23 @@
 #include "animated_spinner.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/constants.h>
 
 #include <fmt/ostream.h>
+
+#include <cassert>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
+
+namespace
+{
+constexpr auto deleted_error_fmt =
+    "Instance '{}' is deleted. Use 'recover' to recover it or 'purge' to permanently delete it.\n";
+constexpr auto absent_error_fmt = "Instance '{}' does not exist.\n";
+constexpr auto unknown_error_fmt = "Instance '{}' failed in an unexpected way, check logs for more information.\n";
+} // namespace
 
 mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 {
@@ -46,22 +57,41 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner, parser](grpc::Status& status) {
         spinner.stop();
-        auto ret = standard_failure_handler_for(name(), cerr, status);
+
+        std::string details;
         if (status.error_code() == grpc::StatusCode::ABORTED && !status.error_details().empty())
         {
             mp::StartError start_error;
             start_error.ParseFromString(status.error_details());
 
-            if (start_error.error_code() == mp::StartError::INSTANCE_DELETED)
+            for (const auto& pair : start_error.instance_errors())
             {
-                fmt::print(cerr, "Use 'recover' to recover the deleted instance or 'purge' to permanently delete the "
-                                 "instance.\n");
+                const auto* err_fmt = unknown_error_fmt;
+                if (pair.second == mp::StartError::INSTANCE_DELETED)
+                    err_fmt = deleted_error_fmt;
+                else if (pair.second == mp::StartError::DOES_NOT_EXIST)
+                {
+                    if (pair.first != petenv_name)
+                        err_fmt = absent_error_fmt;
+                    else
+                        continue;
+                }
+
+                fmt::format_to(std::back_inserter(details), err_fmt, pair.first);
+            }
+
+            if (details.empty())
+            {
+                assert(start_error.instance_errors_size() == 1 &&
+                       std::cbegin(start_error.instance_errors())->first == petenv_name);
+                return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr); /*
+                                    TODO replace with create, so that all instances are started in a single go */
             }
         }
 
-        return ret;
+        return standard_failure_handler_for(name(), cerr, status, details);
     };
 
     auto streaming_callback = [&spinner](mp::StartReply& reply) {
@@ -69,9 +99,16 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         spinner.start(reply.reply_message());
     };
 
-    spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback);
+
+    ReturnCode return_code;
+    do
+    {
+        spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
+    } while ((return_code = dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback)) ==
+             ReturnCode::Retry);
+
+    return return_code;
 }
 
 std::string cmd::Start::name() const
@@ -93,7 +130,11 @@ QString cmd::Start::description() const
 
 mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to start", "<name> [<name> ...]");
+    parser->addPositionalArgument(
+        "name",
+        QString{"Names of instances to start. If omitted, and without the --all option, '%1' will be assumed."}.arg(
+            petenv_name),
+        "[<name> ...]");
 
     QCommandLineOption all_option(all_option_name, "Start all instances");
     parser->addOption(all_option);
@@ -102,11 +143,11 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name));
 
     return status;
 }

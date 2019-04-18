@@ -1303,8 +1303,12 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                                          fmt::format("instance \"{}\" does not exist", name), ""));
+            if (deleted_instances.find(name) == deleted_instances.end())
+                return status_promise->set_value(
+                    grpc::Status{grpc::StatusCode::NOT_FOUND, fmt::format("instance \"{}\" does not exist", name)});
+            else
+                return status_promise->set_value(
+                    grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is deleted", name)});
         }
 
         auto& vm = it->second;
@@ -1351,47 +1355,26 @@ try // clang-format on
 
     config->factory->check_hypervisor_support();
 
+    mp::StartError start_error;
+    auto* errors = start_error.mutable_instance_errors();
+
     std::vector<decltype(vm_instances)::key_type> vms;
     for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
-        {
-            it = deleted_instances.find(name);
-            if (it == deleted_instances.end())
-            {
-                mp::StartError start_error;
-                start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
-                start_error.set_instance_name(name);
-                return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
-                                                              fmt::format("instance \"{}\" does not exist", name),
-                                                              start_error.SerializeAsString()));
-            }
-            else
-            {
-                mp::StartError start_error;
-                start_error.set_error_code(mp::StartError::INSTANCE_DELETED);
-                start_error.set_instance_name(name);
-                return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
-                                                              fmt::format("instance \"{}\" is deleted", name),
-                                                              start_error.SerializeAsString()));
-            }
-            continue;
-        }
-
-        auto present_state = it->second->current_state();
-        if (present_state == VirtualMachine::State::running)
-        {
-            continue;
-        }
-        else if (present_state == VirtualMachine::State::delayed_shutdown)
-        {
+            errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
+                                      ? mp::StartError::DOES_NOT_EXIST
+                                      : mp::StartError::INSTANCE_DELETED});
+        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
-            continue;
-        }
-
-        vms.push_back(name);
+        else if (it->second->current_state() != VirtualMachine::State::running)
+            vms.push_back(name);
     }
+
+    if (start_error.instance_errors_size())
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::ABORTED, "instance(s) missing", start_error.SerializeAsString()));
 
     if (request->instance_names().instance_name().empty())
     {
