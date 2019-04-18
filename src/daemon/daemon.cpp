@@ -278,6 +278,22 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
 
+auto make_download_monitor(const std::string& msg_prefix)
+{
+    return [msg_prefix, last_percentage_logged = -1](int /*download_type*/, int percentage) mutable /* mutable needed
+                                               in closures changing by-value captures (see https://wg21.link/n3424) */
+    {
+        // Note: The progress callback may be called repeatedly with the same percentage,
+        // so this logic is to only log it once
+        if (last_percentage_logged != percentage && percentage % 10 == 0)
+        {
+            mpl::log(mpl::Level::info, category, fmt::format("{}: {}%", msg_prefix, percentage));
+            last_percentage_logged = percentage;
+        }
+
+        return true;
+    };
+}
 auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 {
     try
@@ -628,20 +644,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             return config->factory->prepare_source_image(source_image);
         };
 
-        auto download_monitor = [](int download_type, int percentage) {
-            static int last_percentage_logged = -1;
-            if (percentage % 10 == 0)
-            {
-                // Note: The progress callback may be called repeatedly with the same percentage,
-                // so this logic is to only log it once
-                if (last_percentage_logged != percentage)
-                {
-                    mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
-                    last_percentage_logged = percentage;
-                }
-            }
-            return true;
-        };
+        auto download_monitor = make_download_monitor("Updating image");
         try
         {
             config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
