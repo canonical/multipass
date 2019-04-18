@@ -21,6 +21,7 @@
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -303,8 +304,14 @@ void cache_default_image(const mp::DaemonConfig& config)
         std::bind(&mp::VirtualMachineFactory::prepare_source_image, config.factory.get(), std::placeholders::_1);
     const auto monitor_action = make_download_monitor(fmt::format("Caching image \"{}\"", img));
 
-    // TODO @ricab try-catch
-    config.vault->cache_image(img, fetch_type, prepare_action, monitor_action);
+    try
+    {
+        config.vault->cache_image(img, fetch_type, prepare_action, monitor_action);
+    }
+    catch (const mp::DownloadException& e)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Failed to cache image \"{}\": {}", img, e.what()));
+    }
 }
 
 auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>

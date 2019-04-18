@@ -251,7 +251,7 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
                            });
 
     if (it == manifests.cend())
-        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote));
+        throw DownloadException(remote, "unknown or unreachable");
 
     return it->second.get();
 }
