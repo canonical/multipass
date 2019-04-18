@@ -29,6 +29,11 @@ namespace test
 {
 struct StubVMImageVault final : public multipass::VMImageVault
 {
+    void cache_image(const std::string& img, const FetchType& fetch_type, const PrepareAction& prepare,
+                     const ProgressMonitor& monitor) override
+    {
+    }
+
     multipass::VMImage fetch_image(const multipass::FetchType&, const multipass::Query&, const PrepareAction& prepare,
                                    const multipass::ProgressMonitor&) override
     {

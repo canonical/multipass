@@ -27,6 +27,7 @@
 
 #include <QDir>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace multipass
@@ -47,6 +48,8 @@ public:
                         multipass::Path data_dir_path, multipass::days days_to_expire);
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;
+    void cache_image(const std::string& img, const FetchType& fetch_type, const PrepareAction& prepare,
+                     const ProgressMonitor& monitor) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;

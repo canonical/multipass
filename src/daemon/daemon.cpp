@@ -297,12 +297,14 @@ auto make_download_monitor(const std::string& msg_prefix)
 
 void cache_default_image(const mp::DaemonConfig& config)
 {
-    auto prepare_action =
+    const auto img = "default";
+    const auto fetch_type = config.factory->fetch_type();
+    const auto prepare_action =
         std::bind(&mp::VirtualMachineFactory::prepare_source_image, config.factory.get(), std::placeholders::_1);
-    auto fetch_type = config.factory->fetch_type();
-    mp::Query query{"", "default", false, "", mp::Query::Type::Alias};
+    const auto monitor_action = make_download_monitor(fmt::format("Caching image \"{}\"", img));
 
-    config.vault->fetch_image(fetch_type, query, prepare_action, make_download_monitor("Caching default image"));
+    // TODO @ricab try-catch
+    config.vault->cache_image(img, fetch_type, prepare_action, monitor_action);
 }
 
 auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>

@@ -35,6 +35,8 @@ public:
     using PrepareAction = std::function<VMImage(const VMImage&)>;
     virtual VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                                 const ProgressMonitor& monitor) = 0;
+    virtual void cache_image(const std::string& img, const FetchType& fetch_type, const PrepareAction& prepare,
+                             const ProgressMonitor& monitor) = 0;
     virtual void remove(const std::string& name) = 0;
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;

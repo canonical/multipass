@@ -94,6 +94,14 @@ auto record_to_json(const mp::VaultRecord& record)
     return json;
 }
 
+bool has_release(const std::unordered_map<std::string, mp::VaultRecord>& image_records, const std::string& release)
+{
+    const auto it = std::find_if(std::cbegin(image_records), std::cend(image_records),
+                                 [&release](const auto& elem) { return elem.second.query.release == release; });
+
+    return it != std::cend(image_records);
+}
+
 std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
 {
     QFile db_file{db_name};
@@ -470,6 +478,16 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         persist_instance_records();
 
         return vm_image;
+    }
+}
+
+void mp::DefaultVMImageVault::cache_image(const std::string& img, const FetchType& fetch_type,
+                                          const PrepareAction& prepare, const ProgressMonitor& monitor)
+{
+    if (!has_release(prepared_image_records, img))
+    {
+        mp::Query query{"", img, false, "", mp::Query::Type::Alias};
+        fetch_image(fetch_type, query, prepare, monitor);
     }
 }
 
