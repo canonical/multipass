@@ -550,7 +550,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                        get_unique_id(config->data_directory), config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
-    qRegisterMetaType<VirtualMachineDescription>();
+    qRegisterMetaType<mp::VirtualMachineDescription>();
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
     bool mac_addr_missing{false};
