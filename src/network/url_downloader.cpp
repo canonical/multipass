@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
 #include <QDir>
 #include <QEventLoop>
 #include <QFile>
+#include <QNetworkAccessManager>
+#include <QNetworkDiskCache>
 #include <QNetworkReply>
 #include <QTimer>
 #include <QUrl>
@@ -38,8 +40,24 @@ namespace
 {
 constexpr auto category = "url downloader";
 
+auto make_network_manager(const mp::Path& cache_dir_path)
+{
+    auto manager = std::make_unique<QNetworkAccessManager>();
+
+    if (!cache_dir_path.isEmpty())
+    {
+        auto network_cache = new QNetworkDiskCache;
+        network_cache->setCacheDirectory(cache_dir_path);
+
+        // Manager now owns network_cache and so it will delete it in its dtor
+        manager->setCache(network_cache);
+    }
+
+    return manager;
+}
+
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
-QByteArray download(QNetworkAccessManager& manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
+QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
                     DownloadAction&& on_download, ErrorAction&& on_error)
 {
     QEventLoop event_loop;
@@ -51,13 +69,13 @@ QByteArray download(QNetworkAccessManager& manager, const Time& timeout, QUrl co
     request.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
-    auto reply = std::unique_ptr<QNetworkReply>(manager.get(request));
+    auto reply = manager->get(request);
 
-    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
-    QObject::connect(reply.get(), &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
-        on_progress(reply.get(), bytes_received, bytes_total);
+    QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    QObject::connect(reply, &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
+        on_progress(reply, bytes_received, bytes_total);
     });
-    QObject::connect(reply.get(), &QNetworkReply::readyRead, [&]() { on_download(reply.get(), download_timeout); });
+    QObject::connect(reply, &QNetworkReply::readyRead, [&]() { on_download(reply, download_timeout); });
     QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
         download_timeout.stop();
         reply->abort();
@@ -76,19 +94,20 @@ QByteArray download(QNetworkAccessManager& manager, const Time& timeout, QUrl co
 }
 } // namespace
 
-mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : timeout{timeout}
+mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : URLDownloader{Path(), timeout}
 {
 }
 
-mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::milliseconds timeout) : URLDownloader{timeout}
+mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::milliseconds timeout)
+    : cache_dir_path{QDir(cache_dir).filePath("network-cache")}, timeout{timeout}
 {
-    network_cache.setCacheDirectory(QDir(cache_dir).filePath("network-cache"));
-    manager.setCache(&network_cache);
 }
 
 void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                                     const mp::ProgressMonitor& monitor)
 {
+    auto manager{make_network_manager(cache_dir_path)};
+
     QFile file{file_name};
     file.open(QIODevice::ReadWrite | QIODevice::Truncate);
 
@@ -124,27 +143,31 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
     auto on_error = [&file]() { file.remove(); };
 
-    ::download(manager, timeout, url, progress_monitor, on_download, on_error);
+    ::download(manager.get(), timeout, url, progress_monitor, on_download, on_error);
 }
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
+    auto manager{make_network_manager(cache_dir_path)};
+
     // This will connect to the QNetworkReply::readReady signal and when emitted,
     // reset the timer.
     auto on_download = [](QNetworkReply* reply, QTimer& download_timeout) { download_timeout.start(); };
 
-    return ::download(manager, timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {});
+    return ::download(manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {});
 }
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 {
+    auto manager{make_network_manager(cache_dir_path)};
+
     QEventLoop event_loop;
 
     QNetworkRequest request{url};
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
-    auto reply = std::unique_ptr<QNetworkReply>(manager.head(request));
-    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    auto reply = manager->head(request);
+    QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
 
     event_loop.exec();
 
