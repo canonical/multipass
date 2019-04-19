@@ -42,8 +42,6 @@ InstanceNames add_instance_names(const ArgParser* parser);
 InstanceNames add_instance_names(const ArgParser* parser, const std::string& default_name);
 ParseCode handle_format_option(const ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr);
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
-ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr, const grpc::Status& status,
-                                        const std::string& error_details = std::string());
 ReturnCode run_cmd(const QStringList& args, const ArgParser* parser, std::ostream& cout, std::ostream& cerr);
 ReturnCode run_cmd_and_retry(const QStringList& args, const ArgParser* parser, std::ostream& cout, std::ostream& cerr);
 
