@@ -68,20 +68,28 @@ private:
     void create_actions();
     void create_menu();
     void update_menu();
+    void update_about_menu();
     void initiate_menu_layout();
+    void initiate_about_menu_layout();
     ListReply retrieve_all_instances();
     void set_menu_actions_for(const std::string& instance_name, const QString& state);
     void suspend_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
+    VersionReply retrieve_version_and_update_info();
 
     QSystemTrayIcon tray_icon;
     QMenu tray_icon_menu;
 
     QAction* retrieving_action;
     QAction* about_separator;
-    QAction* about_action;
     QAction* quit_action;
+    QAction update_action{"Update available"};
     QAction failure_action{"Failure retrieving instances"};
+
+    QMenu about_menu;
+    QAction about_client_version;
+    QAction about_daemon_version;
+    QAction about_copyright;
 
     struct InstanceEntry
     {
@@ -92,9 +100,14 @@ private:
 
     QFuture<ListReply> list_future;
     QFutureWatcher<ListReply> list_watcher;
+
+    QFuture<VersionReply> version_future;
+    QFutureWatcher<VersionReply> version_watcher;
+
     QFutureSynchronizer<void> future_synchronizer;
 
     QTimer menu_update_timer;
+    QTimer about_update_timer;
 };
 } // namespace cmd
 } // namespace multipass

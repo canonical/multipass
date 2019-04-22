@@ -44,6 +44,11 @@ mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command,
     return return_code_for(status.error_code());
 }
 
+bool mp::cmd::update_available(const mp::UpdateInfo& update_info)
+{
+    return update_info.version() != "";
+}
+
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
                                                         mp::RpcConnectionType conn_type,
                                                         mp::CertProvider& cert_provider)

@@ -116,11 +116,6 @@ std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_n
     return message;
 }
 
-bool cmd::update_available(const mp::UpdateInfo& update_info)
-{
-    return update_info.version() != "";
-}
-
 std::string cmd::update_notice(const mp::UpdateInfo& update_info)
 {
     return ::message_box("A new Multipass version " + update_info.version() +

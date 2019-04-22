@@ -22,6 +22,7 @@
 
 #include <multipass/cert_provider.h>
 #include <multipass/cli/return_codes.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 #include <multipass/ssl_cert_provider.h>
 
@@ -35,7 +36,9 @@ namespace cmd
 multipass::ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr,
                                                    const grpc::Status& status,
                                                    const std::string& error_details = std::string());
+bool update_available(const UpdateInfo& update_info);
 }
+
 namespace client
 {
 std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, RpcConnectionType conn_type,
