@@ -40,8 +40,6 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     QStringList args{"--enable-kvm"};
     // The VM image itself
     args << "-hda" << desc.image.image_path;
-    // For the cloud-init configuration
-    args << "-cdrom" << desc.cloud_init_iso;
     // Number of cpu cores
     args << "-smp" << QString::number(desc.num_cores);
     // Memory to use for VM
