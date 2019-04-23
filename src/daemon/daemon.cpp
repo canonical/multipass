@@ -1849,99 +1849,109 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     config->factory->check_hypervisor_support();
 
-    QObject::connect(this, &mp::Daemon::on_prepare_finished, this,
-                     [this, server, status_promise, name, start](const mp::VirtualMachineDescription& vm_desc) {
-                         vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-                         vm_instance_specs[name] = {vm_desc.num_cores,
-                                                    vm_desc.mem_size,
-                                                    vm_desc.disk_space,
-                                                    vm_desc.mac_addr,
-                                                    config->ssh_username,
-                                                    VirtualMachine::State::off,
-                                                    {},
-                                                    false,
-                                                    QJsonObject()};
-                         persist_instances();
+    auto connection = QObject::connect(
+        this, &mp::Daemon::on_prepare_finished, this,
+        [this, server, status_promise, name, start](const mp::VirtualMachineDescription& vm_desc) {
+            vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+            vm_instance_specs[name] = {vm_desc.num_cores,
+                                       vm_desc.mem_size,
+                                       vm_desc.disk_space,
+                                       vm_desc.mac_addr,
+                                       config->ssh_username,
+                                       VirtualMachine::State::off,
+                                       {},
+                                       false,
+                                       QJsonObject()};
+            persist_instances();
 
-                         if (start)
-                         {
-                             LaunchReply reply;
-                             reply.set_create_message("Starting " + name);
-                             server->Write(reply);
-
-                             auto& vm = vm_instances[name];
-                             vm->start();
-
-                             reply.set_vm_instance_name(name);
-                             config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-                             server->Write(reply);
-
-                             auto future_watcher = create_future_watcher();
-                             future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>, server,
-                                                       std::vector<std::string>{name}, status_promise));
-
-                         }
-                         else
-                         {
-                             status_promise->set_value(grpc::Status::OK);
-                         }
-                     },
-                     Qt::QueuedConnection);
-
-    QtConcurrent::run([this, server, request, name, checked_args] {
-        auto query = query_from(request, name);
-
-        auto progress_monitor = [server](int progress_type, int percentage) {
-            CreateReply create_reply;
-            create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
-            create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
-            return server->Write(create_reply);
-        };
-
-        auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
-            CreateReply reply;
-            reply.set_create_message("Preparing image for " + name);
-            server->Write(reply);
-
-            return config->factory->prepare_source_image(source_image);
-        };
-
-        auto fetch_type = config->factory->fetch_type();
-
-        CreateReply reply;
-        reply.set_create_message("Creating " + name);
-        server->Write(reply);
-        auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
-
-        reply.set_create_message("Configuring " + name);
-        server->Write(reply);
-        auto vendor_data_cloud_init_config =
-            make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
-        auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
-        auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-        prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
-        config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
-
-        std::string mac_addr;
-        while (true)
-        {
-            mac_addr = mp::utils::generate_mac_address();
-
-            auto it = allocated_mac_addrs.find(mac_addr);
-            if (it == allocated_mac_addrs.end())
+            if (start)
             {
-                allocated_mac_addrs.insert(mac_addr);
-                break;
+                LaunchReply reply;
+                reply.set_create_message("Starting " + name);
+                server->Write(reply);
+
+                auto& vm = vm_instances[name];
+                vm->start();
+
+                reply.set_vm_instance_name(name);
+                config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                server->Write(reply);
+
+                auto future_watcher = create_future_watcher();
+                future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
+                                                            server, std::vector<std::string>{name}, status_promise));
             }
+            else
+            {
+                status_promise->set_value(grpc::Status::OK);
+            }
+        },
+        Qt::QueuedConnection);
+
+    QtConcurrent::run([this, server, status_promise, connection, request, name, checked_args] {
+        try
+        {
+            auto query = query_from(request, name);
+
+            auto progress_monitor = [server](int progress_type, int percentage) {
+                CreateReply create_reply;
+                create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
+                create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
+                return server->Write(create_reply);
+            };
+
+            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+                CreateReply reply;
+                reply.set_create_message("Preparing image for " + name);
+                server->Write(reply);
+
+                return config->factory->prepare_source_image(source_image);
+            };
+
+            auto fetch_type = config->factory->fetch_type();
+
+            CreateReply reply;
+            reply.set_create_message("Creating " + name);
+            server->Write(reply);
+            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
+
+            reply.set_create_message("Configuring " + name);
+            server->Write(reply);
+            auto vendor_data_cloud_init_config =
+                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
+            auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
+            auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+            config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
+
+            std::string mac_addr;
+            while (true)
+            {
+                mac_addr = mp::utils::generate_mac_address();
+
+                auto it = allocated_mac_addrs.find(mac_addr);
+                if (it == allocated_mac_addrs.end())
+                {
+                    allocated_mac_addrs.insert(mac_addr);
+                    break;
+                }
+            }
+            auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr,
+                                           config->ssh_username, vm_image, meta_data_cloud_init_config,
+                                           user_data_cloud_init_config, vendor_data_cloud_init_config,
+                                           config->ssh_key_provider.get());
+
+            config->factory->prepare_instance_image(vm_image, vm_desc);
+
+            emit on_prepare_finished(vm_desc);
+
+            QObject::disconnect(connection);
         }
-        auto vm_desc =
-            to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr,
-                            config->ssh_username, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
-                            vendor_data_cloud_init_config, config->ssh_key_provider.get());
-
-        config->factory->prepare_instance_image(vm_image, vm_desc);
-
-        emit on_prepare_finished(vm_desc);
+        catch (const std::exception& e)
+        {
+            QObject::disconnect(connection);
+            status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+        }
     });
 }
 
