@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ struct ImageHost : public mp::VMImageHost
         return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
     }
 
-    std::vector<mp::VMImageInfo> all_images_for(const std::string& remote_name) override
+    std::vector<mp::VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override
     {
         return {};
     }

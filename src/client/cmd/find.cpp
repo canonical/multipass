@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -131,6 +131,8 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
                                   "then search ‘daily‘. <string> can be a partial image hash or an "
                                   "Ubuntu release version, codename or alias.",
                                   "[<remote:>][<string>]");
+    QCommandLineOption unsupportedOption("unsupported", "Allow searching for unsupported cloud images");
+    parser->addOptions({unsupportedOption});
 
     auto status = parser->commandParse(this);
 
@@ -163,6 +165,11 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
         {
             request.set_search_string(search_string.toStdString());
         }
+    }
+
+    if (parser->isSet(unsupportedOption))
+    {
+        request.set_allow_unsupported(true);
     }
 
     return status;

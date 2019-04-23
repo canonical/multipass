@@ -200,7 +200,8 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string
     return {};
 }
 
-std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name)
+std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name,
+                                                                   const bool allow_unsupported)
 {
     std::vector<mp::VMImageInfo> images;
     auto custom_manifest = manifest_from(remote_name);

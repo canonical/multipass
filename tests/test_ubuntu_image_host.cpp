@@ -86,13 +86,14 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{4};
+    const size_t expected_entries{5};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"), Eq(1u));
     EXPECT_THAT(ids.count("8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"), Eq(1u));
     EXPECT_THAT(ids.count("1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4"), Eq(1u));
     EXPECT_THAT(ids.count("ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c"), Eq(1u));
+    EXPECT_THAT(ids.count("520224efaaf49b15a976b49c7ce7f2bd2e5b161470d684b37a838933595c0520"), Eq(1u));
 }
 
 TEST_F(UbuntuImageHost, can_query_by_hash)
@@ -184,9 +185,19 @@ TEST_F(UbuntuImageHost, all_images_for_release_returns_four_matches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    auto images = host.all_images_for(release_remote_spec.first);
+    auto images = host.all_images_for(release_remote_spec.first, false);
 
     const size_t expected_matches{4};
+    EXPECT_THAT(images.size(), Eq(expected_matches));
+}
+
+TEST_F(UbuntuImageHost, all_images_for_release_unsupported_returns_five_matches)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    auto images = host.all_images_for(release_remote_spec.first, true);
+
+    const size_t expected_matches{5};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
@@ -194,7 +205,7 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    auto images = host.all_images_for(daily_remote_spec.first);
+    auto images = host.all_images_for(daily_remote_spec.first, false);
 
     const size_t expected_matches{2};
     EXPECT_THAT(images.size(), Eq(expected_matches));

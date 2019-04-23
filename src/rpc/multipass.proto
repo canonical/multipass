@@ -59,6 +59,7 @@ message LaunchRequest {
     string remote_name = 9;
     OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
+    bool allow_unsupported = 12;
 }
 
 message LaunchError {
@@ -127,6 +128,7 @@ message FindRequest {
     string search_string = 1;
     string remote_name = 2;
     int32 verbosity_level = 3;
+    bool allow_unsupported = 4;
 }
 
 message FindReply {
