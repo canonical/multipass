@@ -84,7 +84,7 @@ mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser)
     return instance_names;
 }
 
-mp::InstanceNames cmd::add_instance_names(const ArgParser* parser, const std::string& default_name)
+mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser, const std::string& default_name)
 {
     auto instance_names = add_instance_names(parser);
     if (!instance_names.instance_name_size() && !parser->isSet(all_option_name))
@@ -154,7 +154,8 @@ void check(mp::ParseCode code)
 }
 } // namespace
 
-mp::ReturnCode cmd::run_cmd(const QStringList& args, const ArgParser* parser, std::ostream& cout, std::ostream& cerr)
+mp::ReturnCode cmd::run_cmd(const QStringList& args, const mp::ArgParser* parser, std::ostream& cout,
+                            std::ostream& cerr)
 {
     ArgParser aux_parser{args, parser->getCommands(), cout, cerr};
     check(aux_parser.parse());
@@ -170,7 +171,7 @@ mp::ReturnCode ok2retry(mp::ReturnCode code)
 }
 } // namespace
 
-mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const ArgParser* parser, std::ostream& cout,
+mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgParser* parser, std::ostream& cout,
                                       std::ostream& cerr)
 {
     return ok2retry(run_cmd(args, parser, cout, cerr));
