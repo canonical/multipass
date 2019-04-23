@@ -70,7 +70,7 @@ struct LibVirtBackend : public Test
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
-                                                      key_provider};
+                                                      &key_provider};
     mpt::TempDir data_dir;
 
     decltype(MOCK(virConnectClose)) connect_close{MOCK(virConnectClose)};

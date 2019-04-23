@@ -288,6 +288,11 @@ cmd::Command* mp::ArgParser::findCommand(const QString& command) const
     return nullptr;
 }
 
+const std::vector<cmd::Command::UPtr>& mp::ArgParser::getCommands() const
+{
+    return commands;
+}
+
 bool mp::ArgParser::isSet(const QString& option) const
 {
     return parser.isSet(option);

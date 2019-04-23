@@ -145,6 +145,7 @@ auto get_metadata()
     QJsonObject metadata;
 
     metadata["machine_type"] = get_qemu_machine_type();
+    metadata["use_cdrom"] = true;
 
     return metadata;
 }
@@ -162,7 +163,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
       vm_process{make_qemu_process(process_factory, desc, tap_device_name, mac_addr)},
-      original_args{vm_process->arguments()}
+      original_args{vm_process->arguments()},
+      cloud_init_path{desc.cloud_init_iso}
 {
     QObject::connect(vm_process.get(), &QProcess::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
@@ -272,12 +274,26 @@ void mp::QemuVirtualMachine::start()
         auto args = vm_process->arguments();
         args << "-loadvm" << suspend_tag;
         args << "-machine" << machine_type;
+
+        if (metadata["use_cdrom"].toBool())
+        {
+            args << "-cdrom" << cloud_init_path;
+        }
+        else
+        {
+            args << "-drive" << QString("file=%1,if=virtio,format=raw,snapshot=off,read-only").arg(cloud_init_path);
+        }
+
         vm_process->setArguments(args);
         update_shutdown_status = true;
         delete_memory_snapshot = true;
     }
     else
     {
+        auto args = vm_process->arguments();
+        args << "-cdrom" << cloud_init_path;
+        vm_process->setArguments(args);
+
         monitor->update_metadata_for(vm_name, get_metadata());
     }
 
@@ -371,11 +387,14 @@ void mp::QemuVirtualMachine::on_shutdown()
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     if (state == State::starting)
     {
-        saved_error_msg = "shutdown called while starting";
+        saved_error_msg = fmt::format("{}: shutdown called while starting", vm_name);
         state_wait.wait(lock, [this] { return state == State::off; });
     }
+    else
+    {
+        state = State::off;
+    }
 
-    state = State::off;
     ip = nullopt;
     update_state();
     lock.unlock();
