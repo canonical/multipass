@@ -131,7 +131,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
                                   "then search ‘daily‘. <string> can be a partial image hash or an "
                                   "Ubuntu release version, codename or alias.",
                                   "[<remote:>][<string>]");
-    QCommandLineOption unsupportedOption("allow-unsupported", "Allow searching for unsupported cloud images");
+    QCommandLineOption unsupportedOption("show-unsupported", "Show unsupported cloud images as well");
     parser->addOptions({unsupportedOption});
 
     auto status = parser->commandParse(this);

@@ -59,7 +59,6 @@ message LaunchRequest {
     string remote_name = 9;
     OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
-    bool allow_unsupported = 12;
 }
 
 message LaunchError {

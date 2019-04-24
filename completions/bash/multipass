@@ -61,7 +61,7 @@ _multipass_complete()
             opts="${opts} --all --purge"
         ;;
         "launch")
-            opts="${opts} --cpus --disk --mem --name --cloud-init --allow-unsupported"
+            opts="${opts} --cpus --disk --mem --name --cloud-init"
         ;;
         "mount")
             opts="${opts} --gid-map --uid-map"
@@ -70,7 +70,7 @@ _multipass_complete()
             opts="${opts} --all"
         ;;
         "find")
-            opts="${opts} --allow-unsupported"
+            opts="${opts} --show-unsupported"
         ;;
     esac
 

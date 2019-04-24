@@ -99,8 +99,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
-    QCommandLineOption unsupportedOption("allow-unsupported", "Allow launching unsupported cloud images");
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, unsupportedOption});
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption});
 
     auto status = parser->commandParse(this);
 
@@ -186,11 +185,6 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
         }
-    }
-
-    if (parser->isSet(unsupportedOption))
-    {
-        request.set_allow_unsupported(true);
     }
 
     request.set_verbosity_level(parser->verbosityLevel());

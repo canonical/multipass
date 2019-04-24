@@ -407,12 +407,6 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_unsupported_option_ok)
-{
-    EXPECT_CALL(mock_daemon, launch(_, _, _));
-    EXPECT_THAT(send_command({"launch", "--allow-unsupported"}), Eq(mp::ReturnCode::Ok));
-}
-
 // purge cli tests
 TEST_F(Client, purge_cmd_ok_no_args)
 {
@@ -1167,7 +1161,7 @@ TEST_F(Client, delete_cmd_accepts_purge_option)
 TEST_F(Client, find_cmd_unsupported_option_ok)
 {
     EXPECT_CALL(mock_daemon, find(_, _, _));
-    EXPECT_THAT(send_command({"find", "--allow-unsupported"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, help_returns_ok_return_code)

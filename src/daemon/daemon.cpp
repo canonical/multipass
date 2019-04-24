@@ -92,7 +92,7 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     else if (QString::fromStdString(image).startsWith("http"))
         query_type = mp::Query::Type::HttpDownload;
 
-    return {name, image, false, request->remote_name(), query_type, request->allow_unsupported()};
+    return {name, image, false, request->remote_name(), query_type, true};
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
