@@ -126,6 +126,7 @@ message FindRequest {
     string search_string = 1;
     string remote_name = 2;
     int32 verbosity_level = 3;
+    bool allow_unsupported = 4;
 }
 
 message FindReply {
