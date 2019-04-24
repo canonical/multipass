@@ -40,7 +40,7 @@ mp::Process::Process(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std
 
 void mp::Process::start(const QStringList& extra_arguments)
 {
-    QProcess::start(program(), arguments() << extra_arguments);
+    QProcess::start(program(), process_spec->arguments() << extra_arguments);
 }
 
 bool mp::Process::run_and_return_status(const QStringList& extra_arguments, const int timeout)

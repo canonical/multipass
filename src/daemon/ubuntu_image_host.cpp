@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -108,7 +106,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 
     if (info)
     {
-        if (!info->supported)
+        if (!info->supported && !query.allow_unsupported)
             throw std::runtime_error(fmt::format("The {} release is no longer supported.", query.release));
 
         return with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info);
@@ -132,7 +130,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
 
     if (info)
     {
-        if (!info->supported)
+        if (!info->supported && !query.allow_unsupported)
             throw std::runtime_error(fmt::format("The {} release is no longer supported.", query.release));
 
         images.push_back(*info);
@@ -143,7 +141,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
 
         for (const auto& entry : manifest->products)
         {
-            if (entry.id.startsWith(key) && entry.supported &&
+            if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
                 found_hashes.find(entry.id.toStdString()) == found_hashes.end())
             {
                 images.push_back(
@@ -177,14 +175,15 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
 }
 
-std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name)
+std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name,
+                                                                   const bool allow_unsupported)
 {
     std::vector<mp::VMImageInfo> images;
     auto manifest = manifest_from(remote_name);
 
     for (const auto& entry : manifest->products)
     {
-        if (entry.supported)
+        if (entry.supported || allow_unsupported)
         {
             images.push_back(with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
         }

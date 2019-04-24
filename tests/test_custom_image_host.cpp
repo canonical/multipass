@@ -116,7 +116,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_two_matches)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
-    auto images = host.all_images_for("snapcraft");
+    auto images = host.all_images_for("snapcraft", false);
 
     const size_t expected_matches{2};
     EXPECT_THAT(images.size(), Eq(expected_matches));
