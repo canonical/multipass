@@ -251,13 +251,17 @@ void mp::utils::process_throw_on_error(const QString& program, const QStringList
              fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
-    process.waitForFinished();
+    auto success = process.waitForFinished();
 
-    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
         mpl::log(mpl::Level::debug, category.toStdString(),
-                 fmt::format("{} failed - exitStatus: {}, exitCode: {}", program.toStdString(), process.exitStatus(), process.exitCode()));
-        throw std::runtime_error(fmt::format(message.toStdString(), process.readAllStandardOutput().toStdString()));
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
+                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+
+        auto output = process.readAllStandardOutput();
+        throw std::runtime_error(fmt::format(
+            message.toStdString(), output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
     }
 }
 
@@ -269,14 +273,18 @@ bool mp::utils::process_log_on_error(const QString& program, const QStringList& 
              fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
-    process.waitForFinished();
+    auto success = process.waitForFinished();
 
-    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
         mpl::log(mpl::Level::debug, category.toStdString(),
-                 fmt::format("{} failed - exitStatus: {}, exitCode: {}", program.toStdString(), process.exitStatus(), process.exitCode()));
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
+                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+
+        auto output = process.readAllStandardOutput();
         mpl::log(level, category.toStdString(),
-                 fmt::format(message.toStdString(), process.readAllStandardOutput().toStdString()));
+                 fmt::format(message.toStdString(),
+                             output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
         return false;
     }
 
