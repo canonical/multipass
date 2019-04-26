@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_STUB_VIRTUAL_MACHINE_H
@@ -22,15 +20,13 @@
 
 #include <multipass/virtual_machine.h>
 
-#include "stub_ssh_key_provider.h"
-
 namespace multipass
 {
 namespace test
 {
 struct StubVirtualMachine final : public multipass::VirtualMachine
 {
-    StubVirtualMachine() : VirtualMachine{StubSSHKeyProvider(), ""}
+    StubVirtualMachine() : VirtualMachine{nullptr, ""}
     {
     }
 

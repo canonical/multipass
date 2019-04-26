@@ -45,6 +45,7 @@
 
 #include <QDir>
 #include <QEventLoop>
+#include <QFutureSynchronizer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -64,6 +65,8 @@ namespace
 {
 
 using namespace std::chrono_literals;
+
+using error_string = std::string;
 
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
@@ -159,7 +162,7 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
                                               const std::string& mac_addr, const std::string& ssh_username,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
                                               YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                                              const mp::SSHKeyProvider& key_provider)
+                                              const mp::SSHKeyProvider* key_provider)
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
@@ -547,6 +550,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                        get_unique_id(config->data_directory), config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
+    qRegisterMetaType<mp::VirtualMachineDescription>();
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
     bool mac_addr_missing{false};
@@ -575,7 +579,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
         mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,
                                               name,           mac_addr,       spec.ssh_username,
-                                              vm_image,       cloud_init_iso, *config->ssh_key_provider};
+                                              vm_image,       cloud_init_iso, config->ssh_key_provider.get()};
 
         try
         {
@@ -1300,8 +1304,12 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                                          fmt::format("instance \"{}\" does not exist", name), ""));
+            if (deleted_instances.find(name) == deleted_instances.end())
+                return status_promise->set_value(
+                    grpc::Status{grpc::StatusCode::NOT_FOUND, fmt::format("instance \"{}\" does not exist", name)});
+            else
+                return status_promise->set_value(
+                    grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is deleted", name)});
         }
 
         auto& vm = it->second;
@@ -1348,47 +1356,26 @@ try // clang-format on
 
     config->factory->check_hypervisor_support();
 
+    mp::StartError start_error;
+    auto* errors = start_error.mutable_instance_errors();
+
     std::vector<decltype(vm_instances)::key_type> vms;
     for (const auto& name : request->instance_names().instance_name())
     {
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
-        {
-            it = deleted_instances.find(name);
-            if (it == deleted_instances.end())
-            {
-                mp::StartError start_error;
-                start_error.set_error_code(mp::StartError::DOES_NOT_EXIST);
-                start_error.set_instance_name(name);
-                return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
-                                                              fmt::format("instance \"{}\" does not exist", name),
-                                                              start_error.SerializeAsString()));
-            }
-            else
-            {
-                mp::StartError start_error;
-                start_error.set_error_code(mp::StartError::INSTANCE_DELETED);
-                start_error.set_instance_name(name);
-                return status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED,
-                                                              fmt::format("instance \"{}\" is deleted", name),
-                                                              start_error.SerializeAsString()));
-            }
-            continue;
-        }
-
-        auto present_state = it->second->current_state();
-        if (present_state == VirtualMachine::State::running)
-        {
-            continue;
-        }
-        else if (present_state == VirtualMachine::State::delayed_shutdown)
-        {
+            errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
+                                      ? mp::StartError::DOES_NOT_EXIST
+                                      : mp::StartError::INSTANCE_DELETED});
+        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
-            continue;
-        }
-
-        vms.push_back(name);
+        else if (it->second->current_state() != VirtualMachine::State::running)
+            vms.push_back(name);
     }
+
+    if (start_error.instance_errors_size())
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::ABORTED, "instance(s) missing", start_error.SerializeAsString()));
 
     if (request->instance_names().instance_name().empty())
     {
@@ -1403,12 +1390,13 @@ try // clang-format on
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
-        it->second->start();
+        if (it->second->current_state() != VirtualMachine::State::starting)
+            it->second->start();
     }
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
-        QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<StartReply>, server, vms, status_promise));
+        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, server, vms, status_promise));
 }
 catch (const std::exception& e)
 {
@@ -1512,8 +1500,8 @@ try // clang-format on
         if (status.ok())
         {
             auto future_watcher = create_future_watcher();
-            future_watcher->setFuture(QtConcurrent::run(
-                this, &Daemon::async_wait_for_ssh_and_start_mounts<RestartReply>, server, instances, status_promise));
+            future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server,
+                                                        instances, status_promise));
         }
     }
 }
@@ -1686,7 +1674,7 @@ void mp::Daemon::on_suspend()
 void mp::Daemon::on_restart(const std::string& name)
 {
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<StartReply>, nullptr,
+    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, nullptr,
                                                 std::vector<std::string>{name}, nullptr));
 }
 
@@ -1859,93 +1847,102 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                                       create_error.SerializeAsString()));
     }
 
-    auto query = query_from(request, name);
-
     config->factory->check_hypervisor_support();
 
-    auto progress_monitor = [server](int progress_type, int percentage) {
-        CreateReply create_reply;
-        create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
-        create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
-        return server->Write(create_reply);
-    };
+    QObject::connect(this, &mp::Daemon::on_prepare_finished, this,
+                     [this, server, status_promise, name, start](const mp::VirtualMachineDescription& vm_desc) {
+                         vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+                         vm_instance_specs[name] = {vm_desc.num_cores,
+                                                    vm_desc.mem_size,
+                                                    vm_desc.disk_space,
+                                                    vm_desc.mac_addr,
+                                                    config->ssh_username,
+                                                    VirtualMachine::State::off,
+                                                    {},
+                                                    false,
+                                                    QJsonObject()};
+                         persist_instances();
 
-    auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+                         if (start)
+                         {
+                             LaunchReply reply;
+                             reply.set_create_message("Starting " + name);
+                             server->Write(reply);
+
+                             auto& vm = vm_instances[name];
+                             vm->start();
+
+                             reply.set_vm_instance_name(name);
+                             config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                             server->Write(reply);
+
+                             auto future_watcher = create_future_watcher();
+                             future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>, server,
+                                                       std::vector<std::string>{name}, status_promise));
+
+                         }
+                         else
+                         {
+                             status_promise->set_value(grpc::Status::OK);
+                         }
+                     },
+                     Qt::QueuedConnection);
+
+    QtConcurrent::run([this, server, request, name, checked_args] {
+        auto query = query_from(request, name);
+
+        auto progress_monitor = [server](int progress_type, int percentage) {
+            CreateReply create_reply;
+            create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
+            create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
+            return server->Write(create_reply);
+        };
+
+        auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+            CreateReply reply;
+            reply.set_create_message("Preparing image for " + name);
+            server->Write(reply);
+
+            return config->factory->prepare_source_image(source_image);
+        };
+
+        auto fetch_type = config->factory->fetch_type();
+
         CreateReply reply;
-        reply.set_create_message("Preparing image for " + name);
+        reply.set_create_message("Creating " + name);
         server->Write(reply);
+        auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
-        return config->factory->prepare_source_image(source_image);
-    };
+        reply.set_create_message("Configuring " + name);
+        server->Write(reply);
+        auto vendor_data_cloud_init_config =
+            make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
+        auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
+        auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
+        prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+        config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
 
-    auto fetch_type = config->factory->fetch_type();
-
-    CreateReply reply;
-    reply.set_create_message("Creating " + name);
-    server->Write(reply);
-    auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
-
-    reply.set_create_message("Configuring " + name);
-    server->Write(reply);
-    auto vendor_data_cloud_init_config =
-        make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
-    auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
-    auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-    prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
-    config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
-
-    std::string mac_addr;
-    while (true)
-    {
-        mac_addr = mp::utils::generate_mac_address();
-
-        auto it = allocated_mac_addrs.find(mac_addr);
-        if (it == allocated_mac_addrs.end())
+        std::string mac_addr;
+        while (true)
         {
-            allocated_mac_addrs.insert(mac_addr);
-            break;
+            mac_addr = mp::utils::generate_mac_address();
+
+            auto it = allocated_mac_addrs.find(mac_addr);
+            if (it == allocated_mac_addrs.end())
+            {
+                allocated_mac_addrs.insert(mac_addr);
+                break;
+            }
         }
-    }
-    auto vm_desc =
-        to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr, config->ssh_username,
-                        vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
-                        vendor_data_cloud_init_config, *config->ssh_key_provider);
+        auto vm_desc =
+            to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr,
+                            config->ssh_username, vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
+                            vendor_data_cloud_init_config, config->ssh_key_provider.get());
 
-    config->factory->prepare_instance_image(vm_image, vm_desc);
+        config->factory->prepare_instance_image(vm_image, vm_desc);
 
-    vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-    vm_instance_specs[name] = {vm_desc.num_cores,
-                               vm_desc.mem_size,
-                               vm_desc.disk_space,
-                               vm_desc.mac_addr,
-                               config->ssh_username,
-                               VirtualMachine::State::off,
-                               {},
-                               false,
-                               QJsonObject()};
-    persist_instances();
-
-    if (start)
-    {
-        LaunchReply reply;
-        reply.set_create_message("Starting " + name);
-        server->Write(reply);
-
-        auto& vm = vm_instances[name];
-        vm->start();
-
-        reply.set_vm_instance_name(name);
-        config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-        server->Write(reply);
-
-        auto future_watcher = create_future_watcher();
-        future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts<LaunchReply>,
-                                                    server, std::vector<std::string>{name}, status_promise));
-    }
-    else
-    {
-        status_promise->set_value(grpc::Status::OK);
-    }
+        emit on_prepare_finished(vm_desc);
+    });
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
@@ -2070,40 +2067,19 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     return future_watcher;
 }
 
-grpc::Status mp::Daemon::async_wait_for_ssh_for(const VirtualMachine::UPtr& vm)
-{
-    try
-    {
-        vm->wait_until_ssh_up(up_timeout);
-    }
-    catch (const std::exception& e)
-    {
-        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), "");
-    }
-
-    return grpc::Status::OK;
-}
-
 template <typename Reply>
-mp::Daemon::AsyncOperationStatus
-mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* server, const std::vector<std::string>& vms,
-                                                std::promise<grpc::Status>* status_promise)
+error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
+                                                                 grpc::ServerWriter<Reply>* server)
 {
     fmt::memory_buffer errors;
-    for (const auto& name : vms)
+    try
     {
         auto it = vm_instances.find(name);
         auto& vm = it->second;
-        auto& mounts = vm_instance_specs[name].mounts;
-
-        auto status = async_wait_for_ssh_for(vm);
-        if (!status.ok())
-        {
-            fmt::format_to(errors, "Error starting '{}': {}", name, status.error_message());
-            continue;
-        }
+        vm->wait_until_ssh_up(up_timeout);
 
         std::vector<std::string> invalid_mounts;
+        auto& mounts = vm_instance_specs[name].mounts;
         for (const auto& mount_entry : mounts)
         {
             auto& target_path = mount_entry.first;
@@ -2131,15 +2107,66 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts(grpc::ServerWriter<Reply>* serve
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    fmt::format_to(errors, "Error enabling mount support in '{}'", name);
+                    fmt::format_to(errors, "Error enabling mount support in '{}'\n", name);
                     break;
                 }
             }
             catch (const std::exception& e)
             {
-                fmt::format_to(errors, "Removing \"{}\": {}", target_path, e.what());
+                fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
                 invalid_mounts.push_back(target_path);
             }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        fmt::format_to(errors, e.what());
+    }
+
+    return fmt::to_string(errors);
+}
+
+template <typename Reply>
+mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ready_all(grpc::ServerWriter<Reply>* server,
+                                                                      const std::vector<std::string>& vms,
+                                                                      std::promise<grpc::Status>* status_promise)
+{
+    QFutureSynchronizer<std::string> start_synchronizer;
+    {
+        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
+        for (const auto& name : vms)
+        {
+            if (async_running_futures.find(name) != async_running_futures.end())
+            {
+                start_synchronizer.addFuture(async_running_futures[name]);
+            }
+            else
+            {
+                auto future =
+                    QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name, server);
+                async_running_futures[name] = future;
+                start_synchronizer.addFuture(future);
+            }
+        }
+    }
+
+    start_synchronizer.waitForFinished();
+
+    {
+        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
+        for (const auto& name : vms)
+        {
+            async_running_futures.erase(name);
+        }
+    }
+
+    fmt::memory_buffer errors;
+    for (const auto& future : start_synchronizer.futures())
+    {
+        auto error = future.result();
+        if (!error.empty())
+        {
+            fmt::format_to(errors, "{}\n", error);
         }
     }
 

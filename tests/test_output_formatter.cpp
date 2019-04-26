@@ -19,7 +19,10 @@
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
+#include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+
+#include <fmt/format.h>
 
 #include <gmock/gmock.h>
 
@@ -59,6 +62,18 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_current_release("18.04 LTS");
 
     return list_reply;
+}
+
+auto construct_multiple_instances_including_petenv_list_reply()
+{
+    auto reply = construct_multiple_instances_list_reply();
+
+    auto instance = reply.add_instances();
+    instance->set_name(mp::petenv_name);
+    instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+    instance->set_current_release("Not Available");
+
+    return reply;
 }
 
 auto construct_single_instance_info_reply()
@@ -133,6 +148,19 @@ auto construct_multiple_instances_info_reply()
     return info_reply;
 }
 
+auto construct_multiple_instances_including_petenv_info_reply()
+{
+    auto reply = construct_multiple_instances_info_reply();
+
+    auto entry = reply.add_info();
+    entry->set_name(mp::petenv_name);
+    entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+    entry->set_image_release("18.10");
+    entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+
+    return reply;
+}
+
 class LocaleSettingTest : public testing::Test
 {
 public:
@@ -193,6 +221,16 @@ TEST_F(TableFormatter, multiple_instance_list_output)
     auto output = table_formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST_F(TableFormatter, pet_env_first_in_list_output)
+{
+    const mp::TableFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+    const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
 }
 
 TEST_F(TableFormatter, no_instances_list_output)
@@ -260,6 +298,16 @@ TEST_F(TableFormatter, multiple_instances_info_output)
     auto output = table_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST_F(TableFormatter, pet_env_first_in_info_output)
+{
+    const mp::TableFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("Name:[[:space:]]+{}.+", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
 }
 
 TEST_F(TableFormatter, no_instances_info_output)
@@ -519,6 +567,16 @@ TEST_F(CSVFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+TEST_F(CSVFormatter, pet_env_first_in_list_output)
+{
+    const mp::CSVFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
+
 TEST_F(CSVFormatter, no_instances_list_output)
 {
     mp::ListReply list_reply;
@@ -562,6 +620,16 @@ TEST_F(CSVFormatter, multiple_instances_info_output)
     auto output = csv_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST_F(CSVFormatter, pet_env_first_in_info_output)
+{
+    const mp::CSVFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
 }
 
 TEST_F(CSVFormatter, no_instances_info_output)
@@ -612,6 +680,15 @@ TEST_F(YamlFormatter, multiple_instance_list_output)
     auto output = formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST_F(YamlFormatter, pet_env_first_in_list_output)
+{
+    const mp::YamlFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, StartsWith(mp::petenv_name));
 }
 
 TEST_F(YamlFormatter, no_instances_list_output)
@@ -719,6 +796,16 @@ TEST_F(YamlFormatter, multiple_instances_info_output)
     auto output = formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST_F(YamlFormatter, pet_env_first_in_info_output)
+{
+    const mp::YamlFormatter formatter;
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", mp::petenv_name);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
 }
 
 TEST_F(YamlFormatter, no_instances_info_output)

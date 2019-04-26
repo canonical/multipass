@@ -24,6 +24,8 @@
 #include <multipass/vm_image.h>
 #include <string>
 
+#include <QMetaType>
+
 namespace multipass
 {
 class SSHKeyProvider;
@@ -40,7 +42,10 @@ public:
     std::string ssh_username;
     VMImage image;
     Path cloud_init_iso;
-    const SSHKeyProvider& key_provider;
+    const SSHKeyProvider* key_provider;
 };
 }
+
+Q_DECLARE_METATYPE(multipass::VirtualMachineDescription)
+
 #endif // MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H

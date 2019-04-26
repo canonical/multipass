@@ -41,7 +41,6 @@ private:
     SSHInfoRequest request;
 
     ParseCode parse_args(ArgParser *parser) override;
-    ReturnCode start_instance_for(const std::string& instance_name);
 };
 }
 }

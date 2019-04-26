@@ -42,6 +42,7 @@ public:
     ParseCode parse();
     cmd::Command* chosenCommand() const;
     cmd::Command* findCommand(const QString& command) const;
+    const std::vector<cmd::Command::UPtr>& getCommands() const;
 
     bool isSet(const QString& option) const;
     bool isSet(const QCommandLineOption& option) const;

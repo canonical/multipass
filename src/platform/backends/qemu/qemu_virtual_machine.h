@@ -69,6 +69,7 @@ private:
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;
     const QStringList original_args;
+    const QString cloud_init_path;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool delete_memory_snapshot{false};

@@ -15,9 +15,8 @@
  *
  */
 
-#include <multipass/cli/table_formatter.h>
-
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/table_formatter.h>
 
 #include <fmt/format.h>
 
@@ -54,7 +53,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    for (const auto& info : reply.info())
+    for (const auto& info : format::sorted(reply.info()))
     {
         fmt::format_to(buf, "{:<16}{}\n", "Name:", info.name());
         fmt::format_to(buf, "{:<16}{}\n", "State:", mp::format::status_string_for(info.instance_status()));
@@ -125,7 +124,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
 
     fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
 
-    for (const auto& instance : reply.instances())
+    for (const auto& instance : format::sorted(reply.instances()))
     {
         fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()),

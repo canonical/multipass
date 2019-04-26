@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
+#include <multipass/constants.h>
 #include <multipass/ssh/ssh_client.h>
 
 namespace mp = multipass;
@@ -65,15 +66,13 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &instance_name](grpc::Status& status) {
-        if (status.error_code() == grpc::StatusCode::ABORTED)
-        {
-            return start_instance_for(instance_name);
-        }
+    auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
+        if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name)
+            return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
+        else if (status.error_code() == grpc::StatusCode::ABORTED)
+            return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)}, parser, cout, cerr);
         else
-        {
             return standard_failure_handler_for(name(), cerr, status);
-        }
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
@@ -103,7 +102,12 @@ QString cmd::Shell::description() const
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Name of the instance to open a shell on", "<name>");
+    parser->addPositionalArgument(
+        "name",
+        QString{"Name of the instance to open a shell on. If omitted, '%1' will be assumed. If "
+                "the instance is not running, an attempt is made to start it."}
+            .arg(petenv_name),
+        "[<name>]");
 
     auto status = parser->commandParse(this);
 
@@ -112,12 +116,9 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (parser->positionalArguments().count() == 0)
-    {
-        cerr << "Name argument is required\n";
-        status = ParseCode::CommandLineError;
-    }
-    else if (parser->positionalArguments().count() > 1)
+    const auto pos_args = parser->positionalArguments();
+    const auto num_args = pos_args.count();
+    if (num_args > 1)
     {
         cerr << "Too many arguments given\n";
         status = ParseCode::CommandLineError;
@@ -125,30 +126,8 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     else
     {
         auto entry = request.add_instance_name();
-        entry->append(parser->positionalArguments().first().toStdString());
+        entry->append(num_args ? pos_args.first().toStdString() : petenv_name);
     }
 
     return status;
-}
-
-mp::ReturnCode cmd::Shell::start_instance_for(const std::string& instance_name)
-{
-    AnimatedSpinner spinner{cout};
-    auto on_success = [this, &spinner](mp::StartReply& reply) {
-        spinner.stop();
-        cout << '\r' << std::flush;
-        return ReturnCode::Retry;
-    };
-
-    auto on_failure = [this, &spinner](grpc::Status& status) {
-        spinner.stop();
-        return standard_failure_handler_for(name(), cerr, status);
-    };
-
-    StartRequest request;
-    auto names = request.mutable_instance_names()->add_instance_name();
-    names->append(instance_name);
-
-    spinner.start(fmt::format("Starting {}", instance_name));
-    return dispatch(&RpcMethod::start, request, on_success, on_failure);
 }
