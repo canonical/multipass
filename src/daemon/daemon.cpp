@@ -89,7 +89,7 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     else if (QString::fromStdString(image).startsWith("http"))
         query_type = mp::Query::Type::HttpDownload;
 
-    return {name, image, false, request->remote_name(), query_type};
+    return {name, image, false, request->remote_name(), query_type, true};
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
@@ -758,8 +758,8 @@ try // clang-format on
                 throw std::runtime_error(fmt::format(
                     "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
 
-            auto images_info =
-                it->second->all_info_for({"", request->search_string(), false, remote, Query::Type::Alias});
+            auto images_info = it->second->all_info_for(
+                {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
 
             if (!images_info.empty())
             {
@@ -770,8 +770,8 @@ try // clang-format on
         {
             for (const auto& image_host : config->image_hosts)
             {
-                auto images_info =
-                    image_host->all_info_for({"", request->search_string(), false, remote, Query::Type::Alias});
+                auto images_info = image_host->all_info_for(
+                    {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
 
                 if (!images_info.empty())
                 {
@@ -823,7 +823,7 @@ try // clang-format on
         if (it == remote_image_host_map.end())
             throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
 
-        auto vm_images_info = it->second->all_images_for(remote);
+        auto vm_images_info = it->second->all_images_for(remote, request->allow_unsupported());
         for (const auto& info : vm_images_info)
         {
             if (!info.aliases.empty())
@@ -851,12 +851,12 @@ try // clang-format on
         {
             std::unordered_set<std::string> image_found;
             const auto default_remote{"release"};
-            auto action = [&response, &image_found, default_remote](const std::string& remote,
-                                                                    const mp::VMImageInfo& info) {
+            auto action = [&response, &image_found, default_remote, request](const std::string& remote,
+                                                                             const mp::VMImageInfo& info) {
                 if (!mp::platform::is_remote_supported(remote))
                     return;
 
-                if (info.supported)
+                if (info.supported || request->allow_unsupported())
                 {
                     if (image_found.find(info.release_title.toStdString()) == image_found.end())
                     {

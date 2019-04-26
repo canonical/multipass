@@ -69,6 +69,9 @@ _multipass_complete()
         "recover"|"start"|"stop"|"suspend"|"restart")
             opts="${opts} --all"
         ;;
+        "find")
+            opts="${opts} --show-unsupported"
+        ;;
     esac
 
     if [[ ${prev} == -* ]]; then
