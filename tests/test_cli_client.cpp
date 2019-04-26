@@ -1165,6 +1165,13 @@ TEST_F(Client, delete_cmd_accepts_purge_option)
     EXPECT_THAT(send_command({"delete", "-p", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
+// find cli tests
+TEST_F(Client, find_cmd_unsupported_option_ok)
+{
+    EXPECT_CALL(mock_daemon, find(_, _, _));
+    EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
+}
+
 TEST_F(Client, help_returns_ok_return_code)
 {
     EXPECT_THAT(send_command({"--help"}), Eq(mp::ReturnCode::Ok));

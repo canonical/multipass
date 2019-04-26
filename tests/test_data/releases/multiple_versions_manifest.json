@@ -105,6 +105,40 @@
           "pubname": "ubuntu-zesty-17.04-amd64-server-20170619.1"
         }
       }
+    },
+    "com.ubuntu.cloud:server:17.10:amd64": {
+      "aliases": "17.10,a,artful",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "artful",
+      "release_codename": "Artful Aardvark",
+      "release_title": "17.10",
+      "support_eol": "2018-07-19",
+      "supported": false,
+      "version": "17.10",
+      "versions": {
+        "20171017": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "2d011144148d71d2745d0c5be6e785ab",
+              "path": "server/releases/artful/release-20171017/ubuntu-17.10-server-cloudimg-amd64.img",
+              "sha256": "520224efaaf49b15a976b49c7ce7f2bd2e5b161470d684b37a838933595c0520",
+              "size": 317849600
+            },
+            "lxd.tar.xz": {
+              "combined_squashfs_sha256": "d6b33e50f42d129cdd0d3ef0b267d79012e382380deb30f6e22b5f9910a1e8ec",
+              "ftype": "lxd.tar.xz",
+              "md5": "15241f00869ffebbeff53bc020b562c7",
+              "path": "server/releases/artful/release-20171017/ubuntu-17.10-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "d421060416078ea4ec3a25953dd66b87efc937ef5edb16e64f9cb7ba9b8fad0a",
+              "size": 776
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-artful-17.10-amd64-server-20171017"
+        }
+      }
     }
   },
   "updated": "Thu, 18 May 2017 09:18:01 +0000"
