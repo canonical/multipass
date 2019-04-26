@@ -42,6 +42,9 @@ Instances sorted(const Instances& instances);
 template <typename Instances>
 Instances multipass::format::sorted(const Instances& instances)
 {
+    if (instances.empty())
+        return instances;
+
     auto ret = instances;
     std::partial_sort(std::begin(ret), std::next(std::begin(ret)), std::end(ret),
                       [](const auto& a, const auto& /*unused*/) { return a.name() == multipass::petenv_name; });
