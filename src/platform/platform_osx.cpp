@@ -119,5 +119,10 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 
 bool mp::platform::is_image_url_supported()
 {
-    return check_unlock_code();
+    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+
+    if (driver == "VIRTUALBOX")
+        return check_unlock_code();
+
+    return false;
 }

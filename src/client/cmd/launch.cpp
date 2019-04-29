@@ -121,12 +121,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         if (remote_image_name.startsWith("http://") || remote_image_name.startsWith("https://") ||
             remote_image_name.startsWith("file://"))
         {
-#ifdef MULTIPASS_PLATFORM_APPLE
-            cerr << "http and file schemas are not currently supported on OSX.\n";
-            return ParseCode::CommandLineError;
-#else
             request.set_image(remote_image_name.toStdString());
-#endif
         }
         else
         {
