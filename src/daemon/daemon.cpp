@@ -21,6 +21,7 @@
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -550,7 +551,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                        get_unique_id(config->data_directory), config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
-    qRegisterMetaType<mp::VirtualMachineDescription>();
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
     bool mac_addr_missing{false};
@@ -1849,46 +1849,60 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     config->factory->check_hypervisor_support();
 
-    auto connection = QObject::connect(
-        this, &mp::Daemon::on_prepare_finished, this,
-        [this, server, status_promise, name, start](const mp::VirtualMachineDescription& vm_desc) {
-            vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-            vm_instance_specs[name] = {vm_desc.num_cores,
-                                       vm_desc.mem_size,
-                                       vm_desc.disk_space,
-                                       vm_desc.mac_addr,
-                                       config->ssh_username,
-                                       VirtualMachine::State::off,
-                                       {},
-                                       false,
-                                       QJsonObject()};
-            persist_instances();
+    auto prepare_future_watcher = new QFutureWatcher<VirtualMachineDescription>();
 
-            if (start)
+    QObject::connect(
+        prepare_future_watcher, &QFutureWatcher<VirtualMachineDescription>::finished,
+        [this, server, status_promise, name, start, prepare_future_watcher] {
+            try
             {
-                LaunchReply reply;
-                reply.set_create_message("Starting " + name);
-                server->Write(reply);
+                auto vm_desc = prepare_future_watcher->future().result();
 
-                auto& vm = vm_instances[name];
-                vm->start();
+                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+                vm_instance_specs[name] = {vm_desc.num_cores,
+                                           vm_desc.mem_size,
+                                           vm_desc.disk_space,
+                                           vm_desc.mac_addr,
+                                           config->ssh_username,
+                                           VirtualMachine::State::off,
+                                           {},
+                                           false,
+                                           QJsonObject()};
+                persist_instances();
 
-                reply.set_vm_instance_name(name);
-                config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-                server->Write(reply);
+                if (start)
+                {
+                    LaunchReply reply;
+                    reply.set_create_message("Starting " + name);
+                    server->Write(reply);
 
-                auto future_watcher = create_future_watcher();
-                future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
-                                                            server, std::vector<std::string>{name}, status_promise));
+                    auto& vm = vm_instances[name];
+                    vm->start();
+
+                    reply.set_vm_instance_name(name);
+                    config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                    server->Write(reply);
+
+                    auto future_watcher = create_future_watcher();
+                    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
+                                                                server, std::vector<std::string>{name},
+                                                                status_promise));
+                }
+                else
+                {
+                    status_promise->set_value(grpc::Status::OK);
+                }
             }
-            else
+            catch (const std::exception& e)
             {
-                status_promise->set_value(grpc::Status::OK);
+                status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
-        },
-        Qt::QueuedConnection);
 
-    QtConcurrent::run([this, server, status_promise, connection, request, name, checked_args] {
+            delete prepare_future_watcher;
+        });
+
+    prepare_future_watcher->setFuture(QtConcurrent::run([this, server, status_promise, request, name,
+                                                         checked_args]() -> VirtualMachineDescription {
         try
         {
             auto query = query_from(request, name);
@@ -1943,16 +1957,13 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
-            emit on_prepare_finished(vm_desc);
-
-            QObject::disconnect(connection);
+            return vm_desc;
         }
         catch (const std::exception& e)
         {
-            QObject::disconnect(connection);
-            status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+            throw CreateImageException(e.what());
         }
-    });
+    }));
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
