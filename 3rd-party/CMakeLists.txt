@@ -63,6 +63,8 @@ target_link_libraries(gRPC INTERFACE
   libprotobuf
   zlibstatic)
 
+target_compile_options(gRPC INTERFACE "-Wno-unused-parameter")
+
 # YAML C++
 # Disable tests here to avoid double-including gtest
 option(YAML_CPP_BUILD_TOOLS OFF)

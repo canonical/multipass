@@ -103,7 +103,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_compile_options(-Werror -Wall -pedantic -Wextra -Wno-unused-parameter -Wempty-body -Wformat-security -Winit-self -Warray-bounds -fPIC)
+add_compile_options(-Werror -Wall -pedantic -Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -fPIC)
 
 if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
   add_compile_options(-Wcast-align)
