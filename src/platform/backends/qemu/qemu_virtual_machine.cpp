@@ -222,7 +222,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
         // out any scary error messages for this state
         if (update_shutdown_status)
         {
-            auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
+            auto meta = QMetaEnum::fromType<QProcess::ProcessError>(); // TODO @ricab homogenize such uses
             mpl::log(mpl::Level::error, vm_name, fmt::format("process error occurred {}", meta.valueToKey(error)));
             on_error();
         }
@@ -231,7 +231,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
     QObject::connect(vm_process.get(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
                      [this](int exitCode, QProcess::ExitStatus exitStatus) {
                          mpl::log(mpl::Level::info, vm_name,
-                                  fmt::format("process finished with exit code {}", exitCode));
+                                  fmt::format("process finished with exit code {} ({})", exitCode,
+                                              utils::qenum_to_string(exitStatus)));
                          if (update_shutdown_status || state == State::starting)
                          {
                              on_shutdown();

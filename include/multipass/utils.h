@@ -30,6 +30,7 @@
 #include <QDir>
 #include <QString>
 #include <QStringList>
+#include <QVariant>
 
 namespace multipass
 {
@@ -92,6 +93,21 @@ void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds ti
     }
     on_timeout();
 }
+
+// TODO @ricab separate declaration from implementation
+template <typename RegisteredQtEnum>
+QString qenum_to_qstring(RegisteredQtEnum val)
+{
+    return QVariant::fromValue(val).toString();
 }
+
+template <typename RegisteredQtEnum>
+std::string qenum_to_string(RegisteredQtEnum val)
+{
+    return qenum_to_qstring(val).toStdString();
 }
+
+} // namespace utils
+} // namespace multipass
+
 #endif // MULTIPASS_UTILS_H
