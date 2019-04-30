@@ -152,7 +152,7 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 
     // This will connect to the QNetworkReply::readReady signal and when emitted,
     // reset the timer.
-    auto on_download = [](QNetworkReply* reply, QTimer& download_timeout) { download_timeout.start(); };
+    auto on_download = [](QNetworkReply*, QTimer& download_timeout) { download_timeout.start(); };
 
     return ::download(manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {});
 }

@@ -40,7 +40,7 @@ namespace
 {
 virErrorPtr libvirt_error;
 
-void libvirt_error_handler(void* opaque, virErrorPtr error)
+void libvirt_error_handler(void* /*opaque*/, virErrorPtr /*error*/)
 {
     virFreeError(libvirt_error);
     libvirt_error = virSaveLastError();
