@@ -37,7 +37,6 @@
 #include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QMetaEnum>
 #include <QObject>
 #include <QProcess>
 #include <QString>
@@ -213,8 +212,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
     });
 
     QObject::connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {
-        auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
-        mpl::log(mpl::Level::info, vm_name, fmt::format("process state changed to {}", meta.valueToKey(newState)));
+        mpl::log(mpl::Level::info, vm_name,
+                 fmt::format("process state changed to {}", utils::qenum_to_string(newState)));
     });
 
     QObject::connect(vm_process.get(), &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
@@ -222,8 +221,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
         // out any scary error messages for this state
         if (update_shutdown_status)
         {
-            auto meta = QMetaEnum::fromType<QProcess::ProcessError>(); // TODO @ricab homogenize such uses
-            mpl::log(mpl::Level::error, vm_name, fmt::format("process error occurred {}", meta.valueToKey(error)));
+            mpl::log(mpl::Level::error, vm_name,
+                     fmt::format("process error occurred {}", utils::qenum_to_string(error)));
             on_error();
         }
     });
