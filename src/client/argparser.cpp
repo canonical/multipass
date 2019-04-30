@@ -135,7 +135,7 @@ mp::ParseCode mp::ArgParser::parse()
     }
 
     // Fall through
-    cout << "Error: Unkown Command: '" << qPrintable(requested_command) << "', see \"";
+    cout << "Error: Unknown Command: '" << qPrintable(requested_command) << "', see \"";
     cout << qPrintable(arguments.at(0)) << " --help\"\n";
     return ParseCode::CommandLineError;
 }
