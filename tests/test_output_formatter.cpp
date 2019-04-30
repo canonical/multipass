@@ -223,6 +223,7 @@ TEST_F(TableFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
+#if GTEST_HAS_POSIX_RE
 TEST_F(TableFormatter, pet_env_first_in_list_output)
 {
     const mp::TableFormatter formatter;
@@ -232,6 +233,7 @@ TEST_F(TableFormatter, pet_env_first_in_list_output)
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
 }
+#endif
 
 TEST_F(TableFormatter, no_instances_list_output)
 {
@@ -300,6 +302,7 @@ TEST_F(TableFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_table_output));
 }
 
+#if GTEST_HAS_POSIX_RE
 TEST_F(TableFormatter, pet_env_first_in_info_output)
 {
     const mp::TableFormatter formatter;
@@ -309,6 +312,7 @@ TEST_F(TableFormatter, pet_env_first_in_info_output)
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
 }
+#endif
 
 TEST_F(TableFormatter, no_instances_info_output)
 {
@@ -567,6 +571,7 @@ TEST_F(CSVFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+#if GTEST_HAS_POSIX_RE
 TEST_F(CSVFormatter, pet_env_first_in_list_output)
 {
     const mp::CSVFormatter formatter;
@@ -576,6 +581,7 @@ TEST_F(CSVFormatter, pet_env_first_in_list_output)
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
 }
+#endif
 
 TEST_F(CSVFormatter, no_instances_list_output)
 {
@@ -622,6 +628,7 @@ TEST_F(CSVFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+#if GTEST_HAS_POSIX_RE
 TEST_F(CSVFormatter, pet_env_first_in_info_output)
 {
     const mp::CSVFormatter formatter;
@@ -631,6 +638,7 @@ TEST_F(CSVFormatter, pet_env_first_in_info_output)
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
 }
+#endif
 
 TEST_F(CSVFormatter, no_instances_info_output)
 {
@@ -798,6 +806,7 @@ TEST_F(YamlFormatter, multiple_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+#if GTEST_HAS_POSIX_RE
 TEST_F(YamlFormatter, pet_env_first_in_info_output)
 {
     const mp::YamlFormatter formatter;
@@ -807,6 +816,7 @@ TEST_F(YamlFormatter, pet_env_first_in_info_output)
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
 }
+#endif
 
 TEST_F(YamlFormatter, no_instances_info_output)
 {
