@@ -23,6 +23,7 @@
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <multipass/exceptions/create_image_exception.h>
 #include <multipass/optional.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
@@ -370,7 +371,7 @@ TEST_F(ImageVault, missing_downloaded_image_throws)
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
-                 std::runtime_error);
+                 mp::CreateImageException);
 }
 
 TEST_F(ImageVault, hash_mismatch_throws)
@@ -378,7 +379,7 @@ TEST_F(ImageVault, hash_mismatch_throws)
     BadURLDownloader bad_url_downloader;
     mp::DefaultVMImageVault vault{hosts, &bad_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
-                 std::runtime_error);
+                 mp::CreateImageException);
 }
 
 TEST_F(ImageVault, invalid_remote_throws)
@@ -400,7 +401,8 @@ TEST_F(ImageVault, invalid_image_alias_throw)
 
     query.release = "foo";
 
-    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error);
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
+                 mp::CreateImageException);
 }
 
 TEST_F(ImageVault, valid_remote_and_alias_returns_valid_image_info)

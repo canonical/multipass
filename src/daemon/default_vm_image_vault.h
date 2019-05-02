@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,10 @@
 #include <multipass/vm_image_vault.h>
 
 #include <QDir>
+#include <QFuture>
+
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 namespace multipass
@@ -60,6 +63,7 @@ private:
     VMImage extract_downloaded_image(const VMImage& source_image, const ProgressMonitor& monitor);
     VMImage fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image, const QDir& image_dir,
                                     const ProgressMonitor& monitor);
+    VMImage finalize_image_records(const Query& query, const VMImage& prepared_image);
     VMImageInfo info_for(const Query& query);
     void persist_image_records();
     void persist_instance_records();
@@ -71,10 +75,12 @@ private:
     const QDir instances_dir;
     const QDir images_dir;
     const days days_to_expire;
+    std::mutex fetch_mutex;
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
     std::unordered_map<std::string, VaultRecord> instance_image_records;
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
+    std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
 };
 }
 #endif // MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H

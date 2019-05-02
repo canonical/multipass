@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "default_vm_image_vault.h"
 #include "json_writer.h"
 
+#include <multipass/exceptions/create_image_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -34,6 +35,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
+#include <QtConcurrent/QtConcurrent>
 
 #include <exception>
 
@@ -324,11 +326,8 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
                 if (last_modified.isValid() && (last_modified.toString().toStdString() == record.image.release_date))
                 {
-                    auto vm_image = image_instance_from(query.name, record.image);
-                    instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-                    persist_instance_records();
                     record.last_accessed = std::chrono::system_clock::now();
-                    persist_image_records();
+                    auto vm_image = finalize_image_records(query, record.image);
                     return vm_image;
                 }
                 else
@@ -394,6 +393,24 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
         auto id = info.id.toStdString();
 
+        std::unique_lock<decltype(fetch_mutex)> lock{fetch_mutex};
+        auto it = in_progress_image_fetches.find(id);
+        if (it != in_progress_image_fetches.end())
+        {
+            auto future = it->second;
+            monitor(LaunchProgress::WAITING, -1);
+            lock.unlock();
+
+            auto prepared_image = future.result();
+
+            lock.lock();
+            prepared_image_records[id].last_accessed = std::chrono::system_clock::now();
+            auto vm_image = finalize_image_records(query, prepared_image);
+            lock.unlock();
+
+            return vm_image;
+        }
+
         if (!query.name.empty())
         {
             for (auto& record : prepared_image_records)
@@ -407,11 +424,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                     const auto prepared_image = record.second.image;
                     try
                     {
-                        auto vm_image = image_instance_from(query.name, prepared_image);
-                        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-                        persist_instance_records();
                         record.second.last_accessed = std::chrono::system_clock::now();
-                        persist_image_records();
+                        auto vm_image = finalize_image_records(query, prepared_image);
+                        lock.unlock();
+
                         return vm_image;
                     }
                     catch (const std::exception& e)
@@ -438,36 +454,47 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         }
         DeleteOnException image_file{source_image.image_path};
 
-        url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
-                                    monitor);
+        auto future = QtConcurrent::run([&]() -> VMImage {
+            try
+            {
+                url_downloader->download_to(info.image_location, source_image.image_path, info.size,
+                                            LaunchProgress::IMAGE, monitor);
 
-        monitor(LaunchProgress::VERIFY, -1);
-        verify_image_download(source_image.image_path, id);
+                monitor(LaunchProgress::VERIFY, -1);
+                verify_image_download(source_image.image_path, id);
 
-        if (fetch_type == FetchType::ImageKernelAndInitrd)
-        {
-            source_image = fetch_kernel_and_initrd(info, source_image, image_dir, monitor);
-        }
+                if (fetch_type == FetchType::ImageKernelAndInitrd)
+                {
+                    source_image = fetch_kernel_and_initrd(info, source_image, image_dir, monitor);
+                }
 
-        if (source_image.image_path.endsWith(".xz"))
-        {
-            source_image = extract_downloaded_image(source_image, monitor);
-        }
+                if (source_image.image_path.endsWith(".xz"))
+                {
+                    source_image = extract_downloaded_image(source_image, monitor);
+                }
 
-        auto prepared_image = prepare(source_image);
+                auto prepared_image = prepare(source_image);
+                remove_source_images(source_image, prepared_image);
+
+                return prepared_image;
+            }
+            catch (const std::exception& e)
+            {
+                throw CreateImageException(e.what());
+            }
+        });
+
+        in_progress_image_fetches[id] = future;
+        lock.unlock();
+
+        auto prepared_image = future.result();
+
+        lock.lock();
         prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
-        remove_source_images(source_image, prepared_image);
+        auto vm_image = finalize_image_records(query, prepared_image);
 
-        VMImage vm_image;
-
-        if (!query.name.empty())
-        {
-            vm_image = image_instance_from(query.name, prepared_image);
-            instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-        }
-
-        persist_image_records();
-        persist_instance_records();
+        in_progress_image_fetches.erase(id);
+        lock.unlock();
 
         return vm_image;
     }
@@ -603,6 +630,22 @@ mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& 
     url_downloader->download_to(info.initrd_location, image.initrd_path, -1, LaunchProgress::INITRD, monitor);
 
     return image;
+}
+
+mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, const VMImage& prepared_image)
+{
+    VMImage vm_image;
+
+    if (!query.name.empty())
+    {
+        vm_image = image_instance_from(query.name, prepared_image);
+        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+    }
+
+    persist_instance_records();
+    persist_image_records();
+
+    return vm_image;
 }
 
 mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
