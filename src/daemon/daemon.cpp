@@ -1901,7 +1901,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             delete prepare_future_watcher;
         });
 
-    prepare_future_watcher->setFuture(QtConcurrent::run([this, server, status_promise, request, name,
+    prepare_future_watcher->setFuture(QtConcurrent::run([this, server, request, name,
                                                          checked_args]() -> VirtualMachineDescription {
         try
         {
