@@ -39,7 +39,7 @@ public:
     {
         return new CreateImageException(*this);
     }
-    const char* what() const noexcept
+    const char* what() const noexcept override
     {
         return error_string.c_str();
     }
