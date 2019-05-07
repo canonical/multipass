@@ -77,6 +77,8 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 constexpr auto max_install_sshfs_retries = 3;
+constexpr auto default_mem = "1G";
+constexpr auto default_disk = "5G";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -224,15 +226,15 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             return {};
 
         auto num_cores = record["num_cores"].toInt();
-        auto mem_size = record["mem_size"].toString();
-        auto disk_space = record["disk_space"].toString();
-        auto mac_addr = record["mac_addr"].toString();
-        auto ssh_username = record["ssh_username"].toString();
+        auto mem_size = record["mem_size"].toString().toStdString();
+        auto disk_space = record["disk_space"].toString().toStdString();
+        auto mac_addr = record["mac_addr"].toString().toStdString();
+        auto ssh_username = record["ssh_username"].toString().toStdString();
         auto state = record["state"].toInt();
         auto deleted = record["deleted"].toBool();
         auto metadata = record["metadata"].toObject();
 
-        if (ssh_username.isEmpty())
+        if (ssh_username.empty())
             ssh_username = "ubuntu";
 
         std::unordered_map<std::string, mp::VMMount> mounts;
@@ -259,10 +261,10 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         reconstructed_records[key] = {num_cores,
-                                      mp::MemorySize{mem_size.toStdString()},
-                                      mp::MemorySize{disk_space.toStdString()},
-                                      mac_addr.toStdString(),
-                                      ssh_username.toStdString(),
+                                      mp::MemorySize{mem_size.empty() ? default_mem : mem_size},
+                                      mp::MemorySize{disk_space.empty() ? default_disk : disk_space},
+                                      mac_addr,
+                                      ssh_username,
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
                                       deleted,
@@ -305,8 +307,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     auto instance_name = request->instance_name();
     auto option_errors = mp::LaunchError{};
 
-    const auto opt_mem_size = try_mem_size(mem_size_str.empty() ? "1G" : mem_size_str);
-    const auto opt_disk_space = try_mem_size(disk_space_str.empty() ? "5G" : disk_space_str);
+    const auto opt_mem_size = try_mem_size(mem_size_str.empty() ? default_mem : mem_size_str);
+    const auto opt_disk_space = try_mem_size(disk_space_str.empty() ? default_disk : disk_space_str);
 
     mp::MemorySize mem_size{}, disk_space{};
     if (opt_mem_size && *opt_mem_size >= min_mem)
