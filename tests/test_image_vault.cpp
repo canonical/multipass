@@ -60,7 +60,8 @@ struct ImageHost : public mp::VMImageHost
                                                              initrd.url(),
                                                              default_id,
                                                              default_version,
-                                                             1}};
+                                                             1,
+                                                             true}};
     }
 
     std::vector<mp::VMImageInfo> all_info_for(const mp::Query& query) override
@@ -70,7 +71,7 @@ struct ImageHost : public mp::VMImageHost
 
     mp::VMImageInfo info_for_full_hash(const std::string& full_hash) override
     {
-        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
+        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     }
 
     std::vector<mp::VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override

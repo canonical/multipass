@@ -268,235 +268,187 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
 mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                                  const PrepareAction& prepare, const ProgressMonitor& monitor)
 {
-    auto name_entry = instance_image_records.find(query.name);
-    if (name_entry != instance_image_records.end())
     {
-        const auto& record = name_entry->second;
+        std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+        auto name_entry = instance_image_records.find(query.name);
+        if (name_entry != instance_image_records.end())
+        {
+            const auto& record = name_entry->second;
 
-        return record.image;
+            return record.image;
+        }
     }
 
-    if (query.query_type != Query::Type::Alias)
-    {
-        if (!mp::platform::is_image_url_supported())
-            throw std::runtime_error(fmt::format("http and file based images are not supported"));
+    if (query.query_type != Query::Type::Alias && !mp::platform::is_image_url_supported())
+        throw std::runtime_error(fmt::format("http and file based images are not supported"));
 
+    if (query.query_type == Query::Type::LocalFile)
+    {
         QUrl image_url(QString::fromStdString(query.release));
         VMImage source_image, vm_image;
 
-        if (image_url.isLocalFile())
+        if (!QFile::exists(image_url.path()))
+            throw std::runtime_error(fmt::format("Custom image `{}` does not exist.", image_url.path().toStdString()));
+
+        source_image.image_path = image_url.path();
+
+        if (source_image.image_path.endsWith(".xz"))
         {
-            if (!QFile::exists(image_url.path()))
-                throw std::runtime_error(
-                    fmt::format("Custom image `{}` does not exist.", image_url.path().toStdString()));
-            source_image.image_path = image_url.path();
-
-            if (source_image.image_path.endsWith(".xz"))
-            {
-                source_image = extract_image_from(query.name, source_image, monitor);
-            }
-            else
-            {
-                source_image = image_instance_from(query.name, source_image);
-            }
-
-            if (fetch_type == FetchType::ImageKernelAndInitrd)
-            {
-                Query kernel_query{query.name, "default", false, "", Query::Type::Alias};
-                auto info = info_for(kernel_query);
-
-                source_image = fetch_kernel_and_initrd(info, source_image,
-                                                       QFileInfo(source_image.image_path).absoluteDir(), monitor);
-            }
-
-            vm_image = prepare(source_image);
-            remove_source_images(source_image, vm_image);
+            source_image = extract_image_from(query.name, source_image, monitor);
         }
         else
         {
+            source_image = image_instance_from(query.name, source_image);
+        }
+
+        if (fetch_type == FetchType::ImageKernelAndInitrd)
+        {
+            auto info = get_kernel_query_info(query.name);
+
+            source_image =
+                fetch_kernel_and_initrd(info, source_image, QFileInfo(source_image.image_path).absoluteDir(), monitor);
+        }
+
+        vm_image = prepare(source_image);
+        remove_source_images(source_image, vm_image);
+
+        {
+            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+            instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+            persist_instance_records();
+        }
+
+        return vm_image;
+    }
+    else
+    {
+        std::string id;
+        optional<VMImage> source_image{nullopt};
+        VMImageInfo info;
+        QDir image_dir;
+
+        if (query.query_type == Query::Type::HttpDownload)
+        {
+            QUrl image_url(QString::fromStdString(query.release));
+
             // Generate a sha256 hash based on the URL and use that for the id
-            auto hash =
-                QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex().toStdString();
+            id = QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex().toStdString();
             auto last_modified = url_downloader->last_modified(image_url);
 
-            auto entry = prepared_image_records.find(hash);
+            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+            auto entry = prepared_image_records.find(id);
             if (entry != prepared_image_records.end())
             {
                 auto& record = entry->second;
 
                 if (last_modified.isValid() && (last_modified.toString().toStdString() == record.image.release_date))
                 {
-                    record.last_accessed = std::chrono::system_clock::now();
-                    auto vm_image = finalize_image_records(query, record.image);
-                    return vm_image;
+                    return finalize_image_records(query, record.image, id);
                 }
                 else
                 {
-                    source_image = record.image;
+                    *source_image = record.image;
                 }
             }
             else
             {
+                auto kernel_info = get_kernel_query_info(query.name);
+                info = static_cast<const VMImageInfo>(VMImageInfo{{},
+                                                                  {},
+                                                                  {},
+                                                                  {},
+                                                                  true,
+                                                                  image_url.url(),
+                                                                  kernel_info.kernel_location,
+                                                                  kernel_info.initrd_location,
+                                                                  QString::fromStdString(id),
+                                                                  {},
+                                                                  0,
+                                                                  false});
                 const auto image_filename = filename_for(image_url.path());
                 // Attempt to make a sane directory name based on the filename of the image
+
                 const auto image_dir_name = QString("%1-%2")
                                           .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
                                           .arg(last_modified.toString("yyyyMMdd"));
-                const QDir image_dir{mp::utils::make_dir(images_dir, image_dir_name)};
-
-                source_image.id = hash;
-                source_image.image_path = image_dir.filePath(image_filename);
+                image_dir = mp::utils::make_dir(images_dir, image_dir_name);
             }
+        }
+        else
+        {
+            info = static_cast<const VMImageInfo>(info_for(query));
 
-            DeleteOnException image_file{source_image.image_path};
-            url_downloader->download_to(image_url, source_image.image_path, 0, LaunchProgress::IMAGE, monitor);
+            if (!mp::platform::is_remote_supported(query.remote_name))
+                throw std::runtime_error(
+                    fmt::format("{} is not a supported remote. Please use `multipass find` for supported images.",
+                                query.remote_name));
 
-            if (fetch_type == FetchType::ImageKernelAndInitrd)
+            if (!mp::platform::is_alias_supported(query.release, query.remote_name))
+                throw std::runtime_error(
+                    fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
+                                query.release));
+
+            id = info.id.toStdString();
+
+            if (!query.name.empty())
             {
-                Query kernel_query{query.name, "default", false, "", Query::Type::Alias};
-                auto info = info_for(kernel_query);
+                std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+                for (auto& record : prepared_image_records)
+                {
+                    if (record.second.query.remote_name != query.remote_name)
+                        continue;
 
-                source_image = fetch_kernel_and_initrd(info, source_image,
-                                                       QFileInfo(source_image.image_path).absoluteDir(), monitor);
+                    const auto aliases = record.second.image.aliases;
+                    if (id == record.first ||
+                        std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
+                    {
+                        const auto prepared_image = record.second.image;
+                        try
+                        {
+                            return finalize_image_records(query, prepared_image, id);
+                        }
+                        catch (const std::exception& e)
+                        {
+                            mpl::log(mpl::Level::warning, category,
+                                     fmt::format("Cannot create instance image: {}", e.what()));
+
+                            break;
+                        }
+                    }
+                }
             }
 
-            if (source_image.image_path.endsWith(".xz"))
-            {
-                source_image = extract_downloaded_image(source_image, monitor);
-            }
-
-            vm_image = prepare(source_image);
-            vm_image.release_date = last_modified.toString().toStdString();
-            prepared_image_records[hash] = {vm_image, query, std::chrono::system_clock::now()};
-            remove_source_images(source_image, vm_image);
-            persist_image_records();
-            vm_image = image_instance_from(query.name, vm_image);
+            image_dir = mp::utils::make_dir(images_dir, QString("%1-%2").arg(info.release).arg(info.version));
         }
 
-        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-        persist_instance_records();
-
-        return vm_image;
-    }
-    else
-    {
-        auto info = info_for(query);
-
-        if (!mp::platform::is_remote_supported(query.remote_name))
-            throw std::runtime_error(fmt::format(
-                "{} is not a supported remote. Please use `multipass find` for supported images.", query.remote_name));
-
-        if (!mp::platform::is_alias_supported(query.release, query.remote_name))
-            throw std::runtime_error(
-                fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
-                            query.release));
-
-        auto id = info.id.toStdString();
-
-        std::unique_lock<decltype(fetch_mutex)> lock{fetch_mutex};
-        auto it = in_progress_image_fetches.find(id);
-        if (it != in_progress_image_fetches.end())
+        auto running_future = get_image_future(id);
+        if (running_future)
         {
-            auto future = it->second;
             monitor(LaunchProgress::WAITING, -1);
-            lock.unlock();
+            auto prepared_image = (*running_future).result();
 
-            auto prepared_image = future.result();
-
-            lock.lock();
-            prepared_image_records[id].last_accessed = std::chrono::system_clock::now();
-            auto vm_image = finalize_image_records(query, prepared_image);
-            lock.unlock();
-
-            return vm_image;
+            {
+                std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+                return finalize_image_records(query, prepared_image, id);
+            }
         }
 
-        if (!query.name.empty())
+        // Had to use std::bind here to workaround the 5 allowable function arguments constraint of QtConcurrent::run()
+        auto future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this, info,
+                                                  source_image, image_dir, fetch_type, prepare, monitor));
+
         {
-            for (auto& record : prepared_image_records)
-            {
-                if (record.second.query.remote_name != query.remote_name)
-                    continue;
-
-                const auto aliases = record.second.image.aliases;
-                if (id == record.first || std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
-                {
-                    const auto prepared_image = record.second.image;
-                    try
-                    {
-                        record.second.last_accessed = std::chrono::system_clock::now();
-                        auto vm_image = finalize_image_records(query, prepared_image);
-                        lock.unlock();
-
-                        return vm_image;
-                    }
-                    catch (const std::exception& e)
-                    {
-                        mpl::log(mpl::Level::warning, category,
-                                 fmt::format("Cannot create instance image: {}", e.what()));
-
-                        break;
-                    }
-                }
-            }
+            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+            in_progress_image_fetches[id] = future;
         }
-
-        const auto image_dir_name = QString("%1-%2").arg(info.release).arg(info.version);
-        const QDir image_dir{mp::utils::make_dir(images_dir, image_dir_name)};
-
-        VMImage source_image;
-        source_image.id = id;
-        source_image.image_path = image_dir.filePath(filename_for(info.image_location));
-        source_image.original_release = info.release_title.toStdString();
-        for (const auto& alias : info.aliases)
-        {
-            source_image.aliases.push_back(alias.toStdString());
-        }
-        DeleteOnException image_file{source_image.image_path};
-
-        auto future = QtConcurrent::run([&]() -> VMImage {
-            try
-            {
-                url_downloader->download_to(info.image_location, source_image.image_path, info.size,
-                                            LaunchProgress::IMAGE, monitor);
-
-                monitor(LaunchProgress::VERIFY, -1);
-                verify_image_download(source_image.image_path, id);
-
-                if (fetch_type == FetchType::ImageKernelAndInitrd)
-                {
-                    source_image = fetch_kernel_and_initrd(info, source_image, image_dir, monitor);
-                }
-
-                if (source_image.image_path.endsWith(".xz"))
-                {
-                    source_image = extract_downloaded_image(source_image, monitor);
-                }
-
-                auto prepared_image = prepare(source_image);
-                remove_source_images(source_image, prepared_image);
-
-                return prepared_image;
-            }
-            catch (const std::exception& e)
-            {
-                throw CreateImageException(e.what());
-            }
-        });
-
-        in_progress_image_fetches[id] = future;
-        lock.unlock();
 
         auto prepared_image = future.result();
 
-        lock.lock();
-        prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
-        auto vm_image = finalize_image_records(query, prepared_image);
-
-        in_progress_image_fetches.erase(id);
-        lock.unlock();
-
-        return vm_image;
+        {
+            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+            in_progress_image_fetches.erase(id);
+            return finalize_image_records(query, prepared_image, id);
+        }
     }
 }
 
@@ -569,6 +521,63 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     }
 }
 
+mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
+    const VMImageInfo& info, mp::optional<VMImage>& existing_source_image, const QDir& image_dir,
+    const FetchType& fetch_type, const PrepareAction& prepare, const ProgressMonitor& monitor)
+{
+    VMImage source_image;
+    auto id = info.id.toStdString();
+
+    if (existing_source_image)
+    {
+        source_image = *existing_source_image;
+    }
+    else
+    {
+        source_image.id = id;
+        source_image.image_path = image_dir.filePath(filename_for(info.image_location));
+        source_image.original_release = info.release_title.toStdString();
+
+        for (const auto& alias : info.aliases)
+        {
+            source_image.aliases.push_back(alias.toStdString());
+        }
+    }
+
+    DeleteOnException image_file{source_image.image_path};
+
+    try
+    {
+        url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
+                                    monitor);
+
+        if (info.verify)
+        {
+            monitor(LaunchProgress::VERIFY, -1);
+            verify_image_download(source_image.image_path, id);
+        }
+
+        if (fetch_type == FetchType::ImageKernelAndInitrd)
+        {
+            source_image = fetch_kernel_and_initrd(info, source_image, image_dir, monitor);
+        }
+
+        if (source_image.image_path.endsWith(".xz"))
+        {
+            source_image = extract_downloaded_image(source_image, monitor);
+        }
+
+        auto prepared_image = prepare(source_image);
+        remove_source_images(source_image, prepared_image);
+
+        return prepared_image;
+    }
+    catch (const std::exception& e)
+    {
+        throw CreateImageException(e.what());
+    }
+}
+
 mp::VMImage mp::DefaultVMImageVault::extract_image_from(const std::string& instance_name, const VMImage& source_image,
                                                         const ProgressMonitor& monitor)
 {
@@ -632,7 +641,20 @@ mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& 
     return image;
 }
 
-mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, const VMImage& prepared_image)
+mp::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(const std::string& id)
+{
+    std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+    auto it = in_progress_image_fetches.find(id);
+    if (it != in_progress_image_fetches.end())
+    {
+        return it->second;
+    }
+
+    return mp::nullopt;
+}
+
+mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, const VMImage& prepared_image,
+                                                            const std::string& id)
 {
     VMImage vm_image;
 
@@ -640,6 +662,16 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
     {
         vm_image = image_instance_from(query.name, prepared_image);
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+    }
+
+    try
+    {
+        auto record = prepared_image_records.at(id);
+        record.last_accessed = std::chrono::system_clock::now();
+    }
+    catch (const std::out_of_range&)
+    {
+        prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
     }
 
     persist_instance_records();
@@ -675,6 +707,13 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
     }
 
     throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
+}
+
+mp::VMImageInfo mp::DefaultVMImageVault::get_kernel_query_info(const std::string& name)
+{
+
+    Query kernel_query{name, "default", false, "", Query::Type::Alias};
+    return info_for(kernel_query);
 }
 
 namespace

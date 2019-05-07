@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,9 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *              Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -130,7 +127,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             // Aliases always alias to the latest version
             const QStringList& aliases = version_string == latest_version ? product_aliases : QStringList();
             products.push_back({aliases, "Ubuntu", release, release_title, supported, image_location, kernel_location,
-                                initrd_location, sha256, version_string, size});
+                                initrd_location, sha256, version_string, size, true});
         }
     }
 
