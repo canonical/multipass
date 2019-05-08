@@ -87,7 +87,8 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
     QProcess dhcp_release;
     QObject::connect(&dhcp_release, &QProcess::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
         mpl::log(mpl::Level::warning, "dnsmasq",
-                 fmt::format("failed to release ip addr {} with mac {}", ip.value().as_string(), hw_addr));
+                 fmt::format("failed to release ip addr {} with mac {}: {}", ip.value().as_string(), hw_addr,
+                             utils::qenum_to_string(error)));
     });
 
     auto log_exit_status = [&ip, &hw_addr](int exit_code, QProcess::ExitStatus exit_status) {

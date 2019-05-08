@@ -132,9 +132,6 @@ public slots:
     virtual void version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* response,
                          std::promise<grpc::Status>* status_promise);
 
-signals:
-    void on_prepare_finished(const VirtualMachineDescription& vm_desc);
-
 private:
     void persist_instances();
     void start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,

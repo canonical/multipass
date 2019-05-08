@@ -270,7 +270,8 @@ void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& in
     mp::backend::resize_instance_image(process_factory, desc.disk_space, instance_image.image_path);
 }
 
-void mp::QemuVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config)
+void mp::QemuVirtualMachineFactory::configure(const std::string& /*name*/, YAML::Node& /*meta_config*/,
+                                              YAML::Node& /*user_config*/)
 {
 }
 

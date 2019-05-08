@@ -30,6 +30,7 @@
 #include <QDir>
 #include <QString>
 #include <QStringList>
+#include <QVariant>
 
 namespace multipass
 {
@@ -37,10 +38,17 @@ class VirtualMachine;
 
 namespace utils
 {
+
 enum class QuoteType
 {
     no_quotes,
     quote_every_arg
+};
+
+enum class TimeoutAction
+{
+    retry,
+    done
 };
 
 QDir base_dir(const QString& path);
@@ -66,14 +74,20 @@ bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& process_vm_events = []() { });
 
-enum class TimeoutAction
-{
-    retry,
-    done
-};
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
-                    Args&&... args)
+                    Args&&... args);
+template <typename RegisteredQtEnum>
+QString qenum_to_qstring(RegisteredQtEnum val);
+template <typename RegisteredQtEnum>
+std::string qenum_to_string(RegisteredQtEnum val);
+
+} // namespace utils
+} // namespace multipass
+
+template <typename OnTimeoutCallable, typename TryAction, typename... Args>
+void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout,
+                                      TryAction&& try_action, Args&&... args)
 {
 
     static_assert(std::is_same<decltype(try_action(std::forward<Args>(args)...)), TimeoutAction>::value, "");
@@ -92,6 +106,17 @@ void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds ti
     }
     on_timeout();
 }
+
+template <typename RegisteredQtEnum>
+QString multipass::utils::qenum_to_qstring(RegisteredQtEnum val)
+{
+    return QVariant::fromValue(val).toString();
 }
+
+template <typename RegisteredQtEnum>
+std::string multipass::utils::qenum_to_string(RegisteredQtEnum val)
+{
+    return qenum_to_qstring(val).toStdString();
 }
+
 #endif // MULTIPASS_UTILS_H
