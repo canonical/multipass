@@ -41,6 +41,8 @@ using namespace testing;
 
 namespace
 {
+constexpr auto petenv_key = "client.primary_name";
+
 struct MockDaemonRpc : public mp::DaemonRpc
 {
     using mp::DaemonRpc::DaemonRpc; // ctor
@@ -1186,6 +1188,27 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 {
     EXPECT_CALL(mock_daemon, find(_, _, _));
     EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
+}
+
+// get/set cli tests
+TEST_F(Client, get_can_read_config_values)
+{
+    EXPECT_THAT(send_command({"get", petenv_key}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, set_can_write_write_config_values)
+{
+    EXPECT_THAT(send_command({"set", petenv_key, "blah"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, get_cmd_fails_with_unknown_key)
+{
+    EXPECT_THAT(send_command({"get", "wrong.key"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, set_cmd_fails_with_unknown_key)
+{
+    EXPECT_THAT(send_command({"set", "wrong.key", "blah"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 // general help tests
