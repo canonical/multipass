@@ -1188,12 +1188,12 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
     EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
 }
 
+// general help tests
 TEST_F(Client, help_returns_ok_return_code)
 {
     EXPECT_THAT(send_command({"--help"}), Eq(mp::ReturnCode::Ok));
 }
 
-// general help tests
 TEST_F(Client, command_help_is_different_than_general_help)
 {
     std::stringstream general_help_output;
