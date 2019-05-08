@@ -100,6 +100,14 @@ struct Client : public Test
         return client.run(args);
     }
 
+    std::string get_config(const std::string& key)
+    {
+        auto out = std::ostringstream{};
+        EXPECT_THAT(send_command({"get", key}, out), Eq(mp::ReturnCode::Ok));
+
+        return out.str();
+    }
+
     auto make_launch_instance_matcher(const std::string& instance_name)
     {
         return Property(&mp::LaunchRequest::instance_name, StrEq(instance_name));
@@ -1193,7 +1201,7 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 // get/set cli tests
 TEST_F(Client, get_can_read_config_values)
 {
-    EXPECT_THAT(send_command({"get", petenv_key}), Eq(mp::ReturnCode::Ok));
+    get_config(petenv_key);
 }
 
 TEST_F(Client, set_can_write_write_config_values)
@@ -1209,6 +1217,20 @@ TEST_F(Client, get_cmd_fails_with_unknown_key)
 TEST_F(Client, set_cmd_fails_with_unknown_key)
 {
     EXPECT_THAT(send_command({"set", "wrong.key", "blah"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, get_and_set_can_read_and_write_primary_name)
+{
+    const auto name = "xyz";
+    const auto petenv_matcher = make_ssh_info_instance_matcher(name);
+
+    EXPECT_THAT(get_config(petenv_key), AllOf(Not(IsEmpty()), StrNe(name)));
+
+    EXPECT_THAT(send_command({"set", petenv_key, name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(get_config(petenv_key), StrEq(name));
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
 // general help tests
