@@ -100,7 +100,7 @@ struct Client : public Test
 
     auto make_launch_instance_matcher(const std::string& instance_name)
     {
-        return Property(&mp::LaunchRequest::instance_name, StrEq(mp::petenv_name));
+        return Property(&mp::LaunchRequest::instance_name, StrEq(instance_name));
     }
 
     auto make_ssh_info_instance_matcher(const std::string& instance_name)
