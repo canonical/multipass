@@ -260,7 +260,8 @@ TEST_F(Client, shell_cmd_help_ok)
 
 TEST_F(Client, shell_cmd_no_args_targets_petenv)
 {
-    const auto petenv_matcher = make_ssh_info_instance_matcher(mp::petenv_name);
+    const auto petenv_matcher = make_ssh_info_instance_matcher(
+        mp::petenv_name); // TODO @ricab replace constant result of `multipass get petenv_key`
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
@@ -1228,6 +1229,30 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
 
     EXPECT_THAT(send_command({"set", petenv_key, name}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(get_config(petenv_key), StrEq(name));
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, get_returns_acceptable_primary_name_by_default)
+{
+    const auto default_name = get_config(petenv_key);
+    const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
+
+    EXPECT_THAT(send_command({"set", petenv_key, default_name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(get_config(petenv_key), Eq(default_name));
+}
+
+TEST_F(Client, set_cmd_rejects_bad_primary_name)
+{
+    const auto default_name = get_config(petenv_key);
+    const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
+
+    EXPECT_THAT(send_command({"set", petenv_key, "123.badname_"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(get_config(petenv_key), Eq(default_name));
 
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
