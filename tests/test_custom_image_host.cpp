@@ -66,6 +66,20 @@ TEST_F(CustomImageHost, returns_expected_data_for_core)
     EXPECT_FALSE(info.version.isEmpty());
 }
 
+TEST_F(CustomImageHost, returns_expected_data_for_core16)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    auto info = *host.info_for(make_query("core16", ""));
+
+    EXPECT_THAT(info.image_location, Eq(QUrl::fromLocalFile(test_path + "ubuntu-core-16-amd64.img.xz").toString()));
+    EXPECT_THAT(info.id, Eq(QString("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7")));
+    EXPECT_THAT(info.release, Eq(QString("core-16")));
+    EXPECT_THAT(info.release_title, Eq(QString("Core 16")));
+    EXPECT_TRUE(info.supported);
+    EXPECT_FALSE(info.version.isEmpty());
+}
+
 TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
