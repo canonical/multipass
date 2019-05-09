@@ -19,6 +19,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
 #include <github_update_prompt.h>
@@ -75,7 +76,22 @@ std::string mp::platform::default_server_address()
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
 {
-    return std::make_unique<HyperVVirtualMachineFactory>();
+    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+
+    if (driver.isEmpty() || driver == "HYPERV")
+        return std::make_unique<HyperVVirtualMachineFactory>();
+    else if (driver == "VIRTUALBOX")
+    {
+        qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
+          This is where the Virtualbox installer puts things, and relying on PATH
+          allows the user to do something about it, if the binaries are not found
+          there.
+        */
+
+        return std::make_unique<VirtualBoxVirtualMachineFactory>();
+    }
+
+    throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

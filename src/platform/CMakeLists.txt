@@ -18,6 +18,7 @@ if(MSVC)
   add_library(platform STATIC platform_win.cpp)
   target_link_libraries(platform
     hyperv_backend
+    virtualbox_backend
     wineventlogger)
 elseif(APPLE)
   add_library(platform STATIC
@@ -25,6 +26,7 @@ elseif(APPLE)
     platform_unix.cpp)
   target_link_libraries(platform
     hyperkit_backend
+    virtualbox_backend
     Qt5::Core)
 else()
   add_library(platform STATIC
@@ -33,6 +35,7 @@ else()
   target_link_libraries(platform
     qemu_backend
     libvirt_backend
+    virtualbox_backend
     journaldlogger)
 endif()
 

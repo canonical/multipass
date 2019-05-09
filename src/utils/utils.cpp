@@ -139,6 +139,8 @@ std::string mp::utils::generate_mac_address()
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                   std::function<void()> const& process_vm_events)
 {
+    mpl::log(mpl::Level::debug, virtual_machine->vm_name,
+             fmt::format("Trying SSH on {}:{}", virtual_machine->ssh_hostname(), virtual_machine->ssh_port()));
     auto action = [virtual_machine, &process_vm_events] {
         process_vm_events();
         try
@@ -239,4 +241,52 @@ std::string mp::utils::timestamp()
 bool mp::utils::is_running(const VirtualMachine::State& state)
 {
     return state == VirtualMachine::State::running || state == VirtualMachine::State::delayed_shutdown;
+}
+
+void mp::utils::process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                                       const QString& category)
+{
+    QProcess process;
+    mpl::log(mpl::Level::debug, category.toStdString(),
+             fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(program, arguments);
+    auto success = process.waitForFinished();
+
+    if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    {
+        mpl::log(mpl::Level::debug, category.toStdString(),
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
+                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+
+        auto output = process.readAllStandardOutput();
+        throw std::runtime_error(fmt::format(
+            message.toStdString(), output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
+    }
+}
+
+bool mp::utils::process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                                     const QString& category, mpl::Level level)
+{
+    QProcess process;
+    mpl::log(mpl::Level::debug, category.toStdString(),
+             fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(program, arguments);
+    auto success = process.waitForFinished();
+
+    if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    {
+        mpl::log(mpl::Level::debug, category.toStdString(),
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
+                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+
+        auto output = process.readAllStandardOutput();
+        mpl::log(level, category.toStdString(),
+                 fmt::format(message.toStdString(),
+                             output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
+        return false;
+    }
+
+    return true;
 }

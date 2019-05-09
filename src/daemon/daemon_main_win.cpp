@@ -143,7 +143,7 @@ void install_service()
                                         command_to_start_service.c_str(),      // Path to the service binary
                                         nullptr,                               // load ordering group
                                         nullptr,                               // tag identifier
-                                        "vmms\0\0",                            // Service dependencies (vmms is HyperV)
+                                        nullptr,                               // Service dependencies
                                         "LocalSystem",                         // Account which will run the service
                                         nullptr                                // The password for the account above
                                         ),
