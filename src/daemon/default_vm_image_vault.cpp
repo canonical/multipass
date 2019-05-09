@@ -324,8 +324,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     {
         std::string id;
         optional<VMImage> source_image{nullopt};
-        VMImageInfo info;
-        QDir image_dir;
+        QFuture<VMImage> future;
 
         if (query.query_type == Query::Type::HttpDownload)
         {
@@ -352,31 +351,48 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             }
             else
             {
-                auto kernel_info = get_kernel_query_info(query.name);
-                info = static_cast<const VMImageInfo>(VMImageInfo{{},
-                                                                  {},
-                                                                  {},
-                                                                  {},
-                                                                  true,
-                                                                  image_url.url(),
-                                                                  kernel_info.kernel_location,
-                                                                  kernel_info.initrd_location,
-                                                                  QString::fromStdString(id),
-                                                                  {},
-                                                                  0,
-                                                                  false});
-                const auto image_filename = filename_for(image_url.path());
-                // Attempt to make a sane directory name based on the filename of the image
+                auto running_future = get_image_future(id);
+                if (running_future)
+                {
+                    monitor(LaunchProgress::WAITING, -1);
+                    future = *running_future;
+                }
+                else
+                {
+                    auto kernel_info = get_kernel_query_info(query.name);
+                    const VMImageInfo info{{},
+                                           {},
+                                           {},
+                                           {},
+                                           true,
+                                           image_url.url(),
+                                           kernel_info.kernel_location,
+                                           kernel_info.initrd_location,
+                                           QString::fromStdString(id),
+                                           {},
+                                           0,
+                                           false};
+                    const auto image_filename = filename_for(image_url.path());
+                    // Attempt to make a sane directory name based on the filename of the image
 
-                const auto image_dir_name = QString("%1-%2")
-                                          .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
-                                          .arg(last_modified.toString("yyyyMMdd"));
-                image_dir = mp::utils::make_dir(images_dir, image_dir_name);
+                    const auto image_dir_name =
+                        QString("%1-%2")
+                            .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
+                            .arg(last_modified.toString("yyyyMMdd"));
+                    const auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
+
+                    // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
+                    // QtConcurrent::run()
+                    future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this,
+                                                         info, source_image, image_dir, fetch_type, prepare, monitor));
+
+                    in_progress_image_fetches[id] = future;
+                }
             }
         }
         else
         {
-            info = static_cast<const VMImageInfo>(info_for(query));
+            const auto info = info_for(query);
 
             if (!mp::platform::is_remote_supported(query.remote_name))
                 throw std::runtime_error(
@@ -390,9 +406,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
             id = info.id.toStdString();
 
+            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             if (!query.name.empty())
             {
-                std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
                 for (auto& record : prepared_image_records)
                 {
                     if (record.second.query.remote_name != query.remote_name)
@@ -418,36 +434,38 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                 }
             }
 
-            image_dir = mp::utils::make_dir(images_dir, QString("%1-%2").arg(info.release).arg(info.version));
-        }
-
-        auto running_future = get_image_future(id);
-        if (running_future)
-        {
-            monitor(LaunchProgress::WAITING, -1);
-            auto prepared_image = (*running_future).result();
-
+            auto running_future = get_image_future(id);
+            if (running_future)
             {
-                std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
-                return finalize_image_records(query, prepared_image, id);
+                monitor(LaunchProgress::WAITING, -1);
+                future = *running_future;
+            }
+            else
+            {
+                const auto image_dir =
+                    mp::utils::make_dir(images_dir, QString("%1-%2").arg(info.release).arg(info.version));
+
+                // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
+                // QtConcurrent::run()
+                future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this,
+                                                     info, source_image, image_dir, fetch_type, prepare, monitor));
+
+                in_progress_image_fetches[id] = future;
             }
         }
 
-        // Had to use std::bind here to workaround the 5 allowable function arguments constraint of QtConcurrent::run()
-        auto future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this, info,
-                                                  source_image, image_dir, fetch_type, prepare, monitor));
-
+        try
         {
-            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
-            in_progress_image_fetches[id] = future;
-        }
-
-        auto prepared_image = future.result();
-
-        {
+            auto prepared_image = future.result();
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             in_progress_image_fetches.erase(id);
             return finalize_image_records(query, prepared_image, id);
+        }
+        catch (const std::exception& e)
+        {
+            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+            in_progress_image_fetches.erase(id);
+            throw;
         }
     }
 }
@@ -574,6 +592,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
     catch (const std::exception& e)
     {
+        fmt::print("The error is {}\n", e.what());
         throw CreateImageException(e.what());
     }
 }
@@ -643,7 +662,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& 
 
 mp::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(const std::string& id)
 {
-    std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
     auto it = in_progress_image_fetches.find(id);
     if (it != in_progress_image_fetches.end())
     {
@@ -711,7 +729,6 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
 
 mp::VMImageInfo mp::DefaultVMImageVault::get_kernel_query_info(const std::string& name)
 {
-
     Query kernel_query{name, "default", false, "", Query::Type::Alias};
     return info_for(kernel_query);
 }

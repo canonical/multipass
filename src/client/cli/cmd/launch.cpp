@@ -293,7 +293,7 @@ mp::ReturnCode cmd::Launch::request_launch()
             {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
             {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
             {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "},
-            {LaunchProgress_ProgressTypes_WAITING, "Waiting for in-progress image preparation: "}};
+            {LaunchProgress_ProgressTypes_WAITING, "Preparing image: "}};
 
         if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
         {
