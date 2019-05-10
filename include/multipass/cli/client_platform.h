@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ namespace cli
 {
 namespace platform
 {
-void parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name);
+void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
 int getuid();
 int getgid();
 }

@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -17,7 +17,6 @@
 add_library(commands STATIC
   animated_spinner.cpp
   common_cli.cpp
-  copy_files.cpp
   launch.cpp
   purge.cpp
   exec.cpp
@@ -33,6 +32,7 @@ add_library(commands STATIC
   suspend.cpp
   restart.cpp
   delete.cpp
+  transfer.cpp
   umount.cpp
   version.cpp
 

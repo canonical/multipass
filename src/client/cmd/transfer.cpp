@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *
  */
 
-#include "copy_files.h"
+#include "transfer.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -30,7 +30,7 @@ namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -70,7 +70,7 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
             }
             catch (const std::exception& e)
             {
-                cerr << "copy-files failed: " << e.what() << "\n";
+                cerr << "transfer failed: " << e.what() << "\n";
                 return ReturnCode::CommandFail;
             }
         }
@@ -83,26 +83,31 @@ mp::ReturnCode cmd::CopyFiles::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
 }
 
-std::string cmd::CopyFiles::name() const
+std::string cmd::Transfer::name() const
 {
-    return "copy-files";
+    return "transfer";
 }
 
-QString cmd::CopyFiles::short_help() const
+std::vector<std::string> cmd::Transfer::aliases() const
 {
-    return QStringLiteral("Copy files between the host and instances");
+    return {name(), "copy-files"};
 }
 
-QString cmd::CopyFiles::description() const
+QString cmd::Transfer::short_help() const
+{
+    return QStringLiteral("Transfer files between the host and instances");
+}
+
+QString cmd::Transfer::description() const
 {
     // TODO: Don't mention directories until we support that
     // return QStringLiteral("Copy files and directories between the host and instances.");
     return QStringLiteral("Copy files between the host and instances.");
 }
 
-mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
+mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("source", "One or more paths to copy, prefixed with <name:> "
+    parser->addPositionalArgument("source", "One or more paths to transfer, prefixed with <name:> "
                                             "for paths inside the instance",
                                   "<source> [<source> ...]");
     parser->addPositionalArgument("destination", "The destination path, prefixed with <name:> for "
@@ -124,7 +129,7 @@ mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
         auto source_entry = parser->positionalArguments().at(i);
         QString source_path, instance_name;
 
-        mcp::parse_copy_files_entry(source_entry, source_path, instance_name);
+        mcp::parse_transfer_entry(source_entry, source_path, instance_name);
 
         if (source_path.isEmpty())
         {
@@ -165,7 +170,7 @@ mp::ParseCode cmd::CopyFiles::parse_args(mp::ArgParser* parser)
     auto destination_entry = parser->positionalArguments().last();
     QString destination_path, instance_name;
 
-    mcp::parse_copy_files_entry(destination_entry, destination_path, instance_name);
+    mcp::parse_transfer_entry(destination_entry, destination_path, instance_name);
     if (instance_name.isEmpty())
     {
         QFileInfo destination(destination_path);
