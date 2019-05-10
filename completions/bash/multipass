@@ -46,7 +46,7 @@ _multipass_complete()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
-    multipass_cmds="copy-files delete exec find help info launch list mount purge \
+    multipass_cmds="transfer delete exec find help info launch list mount purge \
                     recover shell start stop suspend restart umount version"
 
     opts="--help --verbose"
