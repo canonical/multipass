@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
  *
  */
 #include "client.h"
-#include "cmd/copy_files.h"
 #include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
@@ -33,6 +32,7 @@
 #include "cmd/start.h"
 #include "cmd/stop.h"
 #include "cmd/suspend.h"
+#include "cmd/transfer.h"
 #include "cmd/umount.h"
 #include "cmd/version.h"
 
@@ -79,7 +79,6 @@ mp::Client::Client(ClientConfig& config)
       stub{mp::Rpc::NewStub(rpc_channel)},
       term{config.term}
 {
-    add_command<cmd::CopyFiles>();
     add_command<cmd::Launch>();
     add_command<cmd::Purge>();
     add_command<cmd::Exec>();
@@ -93,6 +92,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
     add_command<cmd::Suspend>();
+    add_command<cmd::Transfer>();
     add_command<cmd::Restart>();
     add_command<cmd::Delete>();
     add_command<cmd::Umount>();

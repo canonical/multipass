@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_COPY_FILES_H
-#define MULTIPASS_COPY_FILES_H
+#ifndef MULTIPASS_TRANSFER_H
+#define MULTIPASS_TRANSFER_H
 
 #include <multipass/cli/command.h>
 
@@ -27,13 +27,14 @@ namespace multipass
 {
 namespace cmd
 {
-class CopyFiles final : public Command
+class Transfer final : public Command
 {
 public:
     using Command::Command;
     ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
+    std::vector<std::string> aliases() const override;
     QString short_help() const override;
     QString description() const override;
 
@@ -46,4 +47,4 @@ private:
 };
 }
 }
-#endif // MULTIPASS_COPY_FILES_H
+#endif // MULTIPASS_TRANSFER_H
