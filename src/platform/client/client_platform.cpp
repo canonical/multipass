@@ -23,7 +23,7 @@
 
 namespace mcp = multipass::cli::platform;
 
-void mcp::parse_copy_files_entry(const QString& entry, QString& path, QString& instance_name)
+void mcp::parse_transfer_entry(const QString& entry, QString& path, QString& instance_name)
 {
     auto colon_count = entry.count(":");
 

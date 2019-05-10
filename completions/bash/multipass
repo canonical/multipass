@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -125,7 +125,7 @@ _multipass_complete()
                     _multipass_instances
                 fi
             ;;
-            "copy-files")
+            "transfer"|"copy-files")
                 _multipass_instances "RUNNING"
 
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )

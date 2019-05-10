@@ -153,61 +153,61 @@ TEST_F(Client, no_command_help_ok)
     EXPECT_THAT(send_command({"-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-// copy-files cli tests
-TEST_F(Client, copy_files_cmd_good_source_remote)
+// transfer cli tests
+TEST_F(Client, transfer_cmd_good_source_remote)
 {
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
-    EXPECT_THAT(send_command({"copy-files", "test-vm:foo", mpt::test_data_path().toStdString() + "good_index.json"}),
+    EXPECT_THAT(send_command({"transfer", "test-vm:foo", mpt::test_data_path().toStdString() + "good_index.json"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, copy_files_cmd_good_destination_remote)
+TEST_F(Client, transfer_cmd_good_destination_remote)
 {
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
-    EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString() + "good_index.json", "test-vm:bar"}),
+    EXPECT_THAT(send_command({"transfer", mpt::test_data_path().toStdString() + "good_index.json", "test-vm:bar"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, copy_files_cmd_help_ok)
+TEST_F(Client, transfer_cmd_help_ok)
 {
-    EXPECT_THAT(send_command({"copy-files", "-h"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"transfer", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, copy_files_cmd_fails_invalid_source_file)
+TEST_F(Client, transfer_cmd_fails_invalid_source_file)
 {
-    EXPECT_THAT(send_command({"copy-files", "foo", "test-vm:bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "foo", "test-vm:bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_files_cmd_fails_source_is_dir)
+TEST_F(Client, transfer_cmd_fails_source_is_dir)
 {
-    EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString(), "test-vm:bar"}),
+    EXPECT_THAT(send_command({"transfer", mpt::test_data_path().toStdString(), "test-vm:bar"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_files_cmd_fails_no_instance)
+TEST_F(Client, transfer_cmd_fails_no_instance)
 {
-    EXPECT_THAT(send_command({"copy-files", mpt::test_data_path().toStdString() + "good_index.json", "."}),
+    EXPECT_THAT(send_command({"transfer", mpt::test_data_path().toStdString() + "good_index.json", "."}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_files_cmd_fails_instance_both_source_destination)
+TEST_F(Client, transfer_cmd_fails_instance_both_source_destination)
 {
-    EXPECT_THAT(send_command({"copy-files", "test-vm1:foo", "test-vm2:bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "test-vm1:foo", "test-vm2:bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_files_cmd_fails_too_few_args)
+TEST_F(Client, transfer_cmd_fails_too_few_args)
 {
-    EXPECT_THAT(send_command({"copy-files", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_files_cmd_fails_source_path_empty)
+TEST_F(Client, transfer_cmd_fails_source_path_empty)
 {
-    EXPECT_THAT(send_command({"copy-files", "test-vm1:", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "test-vm1:", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, copy_file_cmd_fails_multiple_sources_destination_file)
+TEST_F(Client, transfer_cmd_fails_multiple_sources_destination_file)
 {
-    EXPECT_THAT(send_command({"copy-files", "test-vm1:foo", "test-vm2:bar",
+    EXPECT_THAT(send_command({"transfer", "test-vm1:foo", "test-vm2:bar",
                               mpt::test_data_path().toStdString() + "good_index.json"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
