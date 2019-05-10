@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     auto term = mp::Terminal::make_terminal();
 
     mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl,
-                            std::move(mp::client::get_cert_provider()), term.get()};
+                            mp::client::get_cert_provider(), term.get()};
     mp::Client client{config};
 
     return client.run(QCoreApplication::arguments());

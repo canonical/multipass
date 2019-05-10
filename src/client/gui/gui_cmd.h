@@ -72,7 +72,7 @@ private:
     void initiate_menu_layout();
     void initiate_about_menu_layout();
     ListReply retrieve_all_instances();
-    void set_menu_actions_for(const std::string& instance_name, const QString& state);
+    void set_menu_actions_for(const std::string& instance_name, const InstanceStatus& state);
     void suspend_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
     VersionReply retrieve_version_and_update_info();
@@ -80,7 +80,6 @@ private:
     QSystemTrayIcon tray_icon;
     QMenu tray_icon_menu;
 
-    QAction* retrieving_action;
     QAction* about_separator;
     QAction* quit_action;
     QAction update_action{"Update available"};
@@ -93,7 +92,7 @@ private:
 
     struct InstanceEntry
     {
-        QString state;
+        InstanceStatus state;
         std::unique_ptr<QMenu> menu;
     };
     std::unordered_map<std::string, InstanceEntry> instances_entries;

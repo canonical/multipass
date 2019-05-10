@@ -24,7 +24,6 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 
-#include <map>
 #include <memory>
 #include <sstream>
 #include <unordered_map>
