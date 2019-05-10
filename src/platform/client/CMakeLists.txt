@@ -17,11 +17,14 @@ add_library(client_platform STATIC
   client_platform_windows.cpp)
 elseif(APPLE)
 add_library(client_platform STATIC
-  client_platform.cpp)
+  client_platform.cpp
+  client_platform_osx.cpp)
 else()
 add_library(client_platform STATIC
   client_platform.cpp
   client_platform_linux.cpp)
 endif()
 
-target_link_libraries(client_platform Qt5::Core)
+target_link_libraries(client_platform
+  Qt5::Core
+  fmt)
