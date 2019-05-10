@@ -54,6 +54,10 @@ jobs:
       script:
       - sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- sh -c "cd project; snapcraft"'
 
+    - env: BUILD_TYPE=Clang
+      script:
+      - sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- sh -c "cd project; snapcraft build multipass"'
+
     - env: BUILD_TYPE=Debug
       script:
       - sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- sh -c "cd project; snapcraft build multipass"'

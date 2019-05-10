@@ -1,0 +1,19 @@
+--- a/snap/snapcraft.yaml
++++ b/snap/snapcraft.yaml
+@@ -145,6 +145,7 @@ parts:
+     plugin: cmake
+     build-packages:
+     - build-essential
++    - clang
+     - cmake-extras
+     - git
+     - golang
+@@ -154,6 +155,8 @@ parts:
+     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+     - -DCMAKE_INSTALL_PREFIX=/
+     - -DMULTIPASS_ENABLE_TESTS=off
++    - -DCMAKE_C_COMPILER=clang
++    - -DCMAKE_CXX_COMPILER=clang
+     override-build: |
+       update-ccache-symlinks
+       snapcraftctl build
