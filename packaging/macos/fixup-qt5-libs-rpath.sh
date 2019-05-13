@@ -12,8 +12,8 @@
 
 set -u
 
-QT_FRAMEWORKS="QtCore QtNetwork"
-BINARIES="multipass multipassd"
+QT_FRAMEWORKS="QtCore QtNetwork QtWidgets QtGui QtDBus QtPrintSupport"
+BINARIES="multipass multipass-gui multipassd platforms/libqcocoa.dylib"
 
 if [ $# -ne 1 ]; then
     echo "Argument required"
