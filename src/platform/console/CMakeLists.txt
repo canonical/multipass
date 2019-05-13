@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -29,4 +29,5 @@ endif()
 
 target_link_libraries(console
   client_platform
+  platform
   libssh)

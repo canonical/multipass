@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,22 +13,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_CLI_H
-#define MULTIPASS_CLI_H
+#include "client_gui.h"
 
-#include <string>
-#include <vector>
+#include <multipass/cli/client_common.h>
 
-namespace multipass
+#include <QApplication>
+
+namespace mp = multipass;
+
+int main(int argc, char* argv[])
 {
-namespace cli
-{
-using Args = std::vector<std::string>;
-Args arg_list_from(int argc, char* argv[]);
+    QApplication app(argc, argv);
+    app.setApplicationName("multipass-gui");
+
+    mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl,
+                            mp::client::get_cert_provider()};
+    mp::ClientGui client{config};
+
+    return client.run(app.arguments());
 }
-}
-#endif // MULTIPASS_CLI_H

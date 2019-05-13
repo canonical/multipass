@@ -1,4 +1,4 @@
-# Copyright © 2018 Canonical Ltd.
+# Copyright © 2018-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -15,9 +15,13 @@
 if(MSVC)
 add_library(client_platform STATIC
   client_platform_windows.cpp)
-else()
+elseif(APPLE)
 add_library(client_platform STATIC
   client_platform.cpp)
+else()
+add_library(client_platform STATIC
+  client_platform.cpp
+  client_platform_linux.cpp)
 endif()
 
 target_link_libraries(client_platform Qt5::Core)

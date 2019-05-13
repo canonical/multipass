@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#include <multipass/cli/client_platform.h>
 
-#include <QString>
+#include <QProcess>
 
-namespace multipass
-{
-const auto default_id = -1;
-const auto no_id_info_available = -2;
+namespace mp = multipass;
+namespace mcp = multipass::cli::platform;
 
-namespace cli
+void mcp::open_multipass_shell(const QString& instance_name)
 {
-namespace platform
-{
-void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
-int getuid();
-int getgid();
-void open_multipass_shell(const QString& instance_name);
+    QProcess::startDetached(
+        "xterm", {"-title", instance_name, "-j", "-e", QString("multipass shell %1 || read").arg(instance_name)});
 }
-}
-}
-#endif // MULTIPASS_CLIENT_PLATFORM_H

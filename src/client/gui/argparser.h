@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,22 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#ifndef MULTIPASS_ARGPARSER_H
+#define MULTIPASS_ARGPARSER_H
 
-#include <QString>
+#include <QCommandLineParser>
 
 namespace multipass
 {
-const auto default_id = -1;
-const auto no_id_info_available = -2;
+class ArgParser : public QCommandLineParser
+{
+public:
+    ArgParser();
 
-namespace cli
-{
-namespace platform
-{
-void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
-int getuid();
-int getgid();
-void open_multipass_shell(const QString& instance_name);
-}
-}
-}
-#endif // MULTIPASS_CLIENT_PLATFORM_H
+    int verbosityLevel() const;
+
+private:
+    int verbosity_level{0};
+};
+} // namespace multipass
+#endif // MULTIPASS_ARGPARSER_H

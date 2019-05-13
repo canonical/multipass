@@ -41,6 +41,11 @@ class Command
 {
 public:
     using UPtr = std::unique_ptr<Command>;
+    Command(grpc::Channel& channel, Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr)
+        : rpc_channel{&channel}, stub{&stub}, cout{cout}, cerr{cerr}
+    {
+    }
+
     Command(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term)
         : rpc_channel{&channel}, stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
     {

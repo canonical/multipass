@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -201,7 +201,7 @@ TEST_F(TableFormatter, single_instance_list_output)
     auto list_reply = construct_single_instance_list_reply();
 
     auto expected_table_output = "Name                    State             IPv4             Release\n"
-                                 "foo                     RUNNING           10.168.32.2      Ubuntu 16.04 LTS\n";
+                                 "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n";
 
     mp::TableFormatter table_formatter;
     auto output = table_formatter.format(list_reply);
@@ -214,8 +214,8 @@ TEST_F(TableFormatter, multiple_instance_list_output)
     auto list_reply = construct_multiple_instances_list_reply();
 
     auto expected_table_output = "Name                    State             IPv4             Release\n"
-                                 "bogus-instance          RUNNING           10.21.124.56     Ubuntu 16.04 LTS\n"
-                                 "bombastic               STOPPED           --               Ubuntu 18.04 LTS\n";
+                                 "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
+                                 "bombastic               Stopped           --               Ubuntu 18.04 LTS\n";
 
     mp::TableFormatter table_formatter;
     auto output = table_formatter.format(list_reply);
@@ -252,7 +252,7 @@ TEST_F(TableFormatter, single_instance_info_output)
     auto info_reply = construct_single_instance_info_reply();
 
     auto expected_table_output = "Name:           foo\n"
-                                 "State:          RUNNING\n"
+                                 "State:          Running\n"
                                  "IPv4:           10.168.32.2\n"
                                  "Release:        Ubuntu 16.04.3 LTS\n"
                                  "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
@@ -277,7 +277,7 @@ TEST_F(TableFormatter, multiple_instances_info_output)
     auto info_reply = construct_multiple_instances_info_reply();
 
     auto expected_table_output = "Name:           bogus-instance\n"
-                                 "State:          RUNNING\n"
+                                 "State:          Running\n"
                                  "IPv4:           10.21.124.56\n"
                                  "Release:        Ubuntu 16.04.3 LTS\n"
                                  "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
@@ -288,7 +288,7 @@ TEST_F(TableFormatter, multiple_instances_info_output)
                                  "                    UID map: 1000:501\n"
                                  "                    GID map: 1000:501\n\n"
                                  "Name:           bombastic\n"
-                                 "State:          STOPPED\n"
+                                 "State:          Stopped\n"
                                  "IPv4:           --\n"
                                  "Release:        --\n"
                                  "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
@@ -338,7 +338,7 @@ TEST_F(JsonFormatter, single_instance_list_output)
                                 "            ],\n"
                                 "            \"name\": \"foo\",\n"
                                 "            \"release\": \"16.04 LTS\",\n"
-                                "            \"state\": \"RUNNING\"\n"
+                                "            \"state\": \"Running\"\n"
                                 "        }\n"
                                 "    ]\n"
                                 "}\n";
@@ -361,14 +361,14 @@ TEST_F(JsonFormatter, multiple_instances_list_output)
                                 "            ],\n"
                                 "            \"name\": \"bogus-instance\",\n"
                                 "            \"release\": \"16.04 LTS\",\n"
-                                "            \"state\": \"RUNNING\"\n"
+                                "            \"state\": \"Running\"\n"
                                 "        },\n"
                                 "        {\n"
                                 "            \"ipv4\": [\n"
                                 "            ],\n"
                                 "            \"name\": \"bombastic\",\n"
                                 "            \"release\": \"18.04 LTS\",\n"
-                                "            \"state\": \"STOPPED\"\n"
+                                "            \"state\": \"Stopped\"\n"
                                 "        }\n"
                                 "    ]\n"
                                 "}\n";
@@ -445,7 +445,7 @@ TEST_F(JsonFormatter, single_instance_info_output)
         "                }\n"
         "            },\n"
         "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
-        "            \"state\": \"RUNNING\"\n"
+        "            \"state\": \"Running\"\n"
         "        }\n"
         "    }\n"
         "}\n";
@@ -498,7 +498,7 @@ TEST_F(JsonFormatter, multiple_instances_info_output)
         "                }\n"
         "            },\n"
         "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
-        "            \"state\": \"RUNNING\"\n"
+        "            \"state\": \"Running\"\n"
         "        },\n"
         "        \"bombastic\": {\n"
         "            \"disks\": {\n"
@@ -516,7 +516,7 @@ TEST_F(JsonFormatter, multiple_instances_info_output)
         "            \"mounts\": {\n"
         "            },\n"
         "            \"release\": \"\",\n"
-        "            \"state\": \"STOPPED\"\n"
+        "            \"state\": \"Stopped\"\n"
         "        }\n"
         "    }\n"
         "}\n";
@@ -549,7 +549,7 @@ TEST_F(CSVFormatter, single_instance_list_output)
     auto list_reply = construct_single_instance_list_reply();
 
     auto expected_output = "Name,State,IPv4,IPv6,Release\n"
-                           "foo,RUNNING,10.168.32.2,,16.04 LTS\n";
+                           "foo,Running,10.168.32.2,,16.04 LTS\n";
 
     mp::CSVFormatter csv_formatter;
     auto output = csv_formatter.format(list_reply);
@@ -562,8 +562,8 @@ TEST_F(CSVFormatter, multiple_instance_list_output)
     auto list_reply = construct_multiple_instances_list_reply();
 
     auto expected_output = "Name,State,IPv4,IPv6,Release\n"
-                           "bogus-instance,RUNNING,10.21.124.56,,16.04 LTS\n"
-                           "bombastic,STOPPED,,,18.04 LTS\n";
+                           "bogus-instance,Running,10.21.124.56,,16.04 LTS\n"
+                           "bombastic,Stopped,,,18.04 LTS\n";
 
     mp::CSVFormatter csv_formatter;
     auto output = csv_formatter.format(list_reply);
@@ -600,7 +600,7 @@ TEST_F(CSVFormatter, single_instance_info_output)
     auto info_reply = construct_single_instance_info_reply();
 
     auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-                           "usage,Memory total,Mounts\nfoo,RUNNING,10.168.32.2,,Ubuntu 16.04.3 "
+                           "usage,Memory total,Mounts\nfoo,Running,10.168.32.2,,Ubuntu 16.04.3 "
                            "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
                            "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
                            "=> test_dir;\n";
@@ -616,10 +616,10 @@ TEST_F(CSVFormatter, multiple_instances_info_output)
     auto info_reply = construct_multiple_instances_info_reply();
 
     auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-                           "usage,Memory total,Mounts\nbogus-instance,RUNNING,10.21.124.56,,Ubuntu 16.04.3 "
+                           "usage,Memory total,Mounts\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
                            "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
                            "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
-                           "source;\nbombastic,STOPPED,,,,"
+                           "source;\nbombastic,Stopped,,,,"
                            "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n";
 
     mp::CSVFormatter csv_formatter;
@@ -658,7 +658,7 @@ TEST_F(YamlFormatter, single_instance_list_output)
     auto list_reply = construct_single_instance_list_reply();
 
     auto expected_output = "foo:\n"
-                           "  - state: RUNNING\n"
+                           "  - state: Running\n"
                            "    ipv4:\n"
                            "      - 10.168.32.2\n"
                            "    release: 16.04 LTS\n";
@@ -674,12 +674,12 @@ TEST_F(YamlFormatter, multiple_instance_list_output)
     auto list_reply = construct_multiple_instances_list_reply();
 
     auto expected_output = "bogus-instance:\n"
-                           "  - state: RUNNING\n"
+                           "  - state: Running\n"
                            "    ipv4:\n"
                            "      - 10.21.124.56\n"
                            "    release: 16.04 LTS\n"
                            "bombastic:\n"
-                           "  - state: STOPPED\n"
+                           "  - state: Stopped\n"
                            "    ipv4:\n"
                            "      - \"\"\n"
                            "    release: 18.04 LTS\n";
@@ -718,7 +718,7 @@ TEST_F(YamlFormatter, single_instance_info_output)
     auto expected_output = "errors:\n"
                            "  - ~\n"
                            "foo:\n"
-                           "  - state: RUNNING\n"
+                           "  - state: Running\n"
                            "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
                            "    image_release: 16.04 LTS\n"
                            "    release: Ubuntu 16.04.3 LTS\n"
@@ -762,7 +762,7 @@ TEST_F(YamlFormatter, multiple_instances_info_output)
     auto expected_output = "errors:\n"
                            "  - ~\n"
                            "bogus-instance:\n"
-                           "  - state: RUNNING\n"
+                           "  - state: Running\n"
                            "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
                            "    image_release: 16.04 LTS\n"
                            "    release: Ubuntu 16.04.3 LTS\n"
@@ -787,7 +787,7 @@ TEST_F(YamlFormatter, multiple_instances_info_output)
                            "          - 1000:501\n"
                            "        source_path: /home/user/source\n"
                            "bombastic:\n"
-                           "  - state: STOPPED\n"
+                           "  - state: Stopped\n"
                            "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
                            "    image_release: 18.04 LTS\n"
                            "    release: ~\n"
