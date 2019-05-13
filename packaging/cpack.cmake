@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,8 +11,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Gerry Boland <gerry.boland@canonical.com>
 
 # Helpful docs:
 # https://cmake.org/Wiki/CMake:Component_Install_With_CPack
@@ -30,7 +28,7 @@
 set(CPACK_WARN_ON_ABSOLUTE_INSTALL_DESTINATION ON) # helps avoid errors
 
 set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
-set(CPACK_COMPONENTS_ALL multipassd multipass)
+set(CPACK_COMPONENTS_ALL multipassd multipass multipass_gui)
 
 set(CPACK_COMPONENT_MULTIPASSD_DISPLAY_NAME "Multipass Daemon")
 set(CPACK_COMPONENT_MULTIPASSD_DESCRIPTION
@@ -38,9 +36,13 @@ set(CPACK_COMPONENT_MULTIPASSD_DESCRIPTION
 set(CPACK_COMPONENT_MULTIPASS_DISPLAY_NAME "Command line tooling (multipass)")
 set(CPACK_COMPONENT_MULTIPASS_DESCRIPTION
    "Command line tool to talk to the multipass daemon")
+set(CPACK_COMPONENT_MULTIPASS_GUI_DISPLAY_NAME "Multipass Status Menu")
+set(CPACK_COMPONENT_MULTIPASS_GUI_DESCRIPTION
+    "Status Menu integration for Multipass")
 
 set(CPACK_COMPONENT_MULTIPASSD_REQUIRED TRUE)
 set(CPACK_COMPONENT_MULTIPASS_REQUIRED TRUE)
+set(CPACK_COMPONENT_MULTIPASS_GUI_REQUIRED TRUE)
 
 # set default CPack Packaging options
 set(CPACK_PACKAGE_NAME              "multipass")
@@ -171,12 +173,15 @@ if(APPLE)
                  "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh" @ONLY)
+  configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass-gui.sh.in"
+                 "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh" @ONLY)
   install(FILES "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" DESTINATION Resources COMPONENT multipassd)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions" DESTINATION Resources COMPONENT multipass)
 
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
+  set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
 
   # CPack doesn't support a direct way to customise the Distribution.dist file, but the template
   # CPack.distribution.dist.in is searched for in the CMAKE_MODULE_PATH before CMAKE_ROOT, so as a hack,
