@@ -15,14 +15,18 @@
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-add_executable(multipass-gui
+add_executable(multipass_gui
   argparser.cpp
   client_gui.cpp
   main.cpp
   gui_cmd.cpp
   resources/resources.qrc)
 
-target_link_libraries(multipass-gui
+set_target_properties(multipass_gui
+  PROPERTIES
+  OUTPUT_NAME multipass-gui)
+
+target_link_libraries(multipass_gui
   client_common
   client_platform
   fmt
@@ -32,6 +36,6 @@ target_link_libraries(multipass-gui
   Qt5::Network
   Qt5::Widgets)
 
-install(TARGETS multipass-gui
+install(TARGETS multipass_gui
   DESTINATION bin
-  COMPONENT multipass)
+  COMPONENT multipass_gui)
