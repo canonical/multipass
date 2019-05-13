@@ -16,25 +16,25 @@ add_library(commands STATIC
   animated_spinner.cpp
   common_cli.cpp
   launch.cpp
-  purge.cpp
+  delete.cpp
   exec.cpp
   find.cpp
   get.cpp
   help.cpp
   info.cpp
+  launch.cpp
   list.cpp
   mount.cpp
+  purge.cpp
   recover.cpp
+  restart.cpp
   shell.cpp
   start.cpp
   stop.cpp
   suspend.cpp
-  restart.cpp
-  delete.cpp
   transfer.cpp
   umount.cpp
   version.cpp
-
   ${PLATFORM_COMMANDS})
 
 target_link_libraries(commands
