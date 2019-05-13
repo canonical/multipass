@@ -19,6 +19,7 @@ add_library(commands STATIC
   purge.cpp
   exec.cpp
   find.cpp
+  get.cpp
   help.cpp
   info.cpp
   list.cpp
