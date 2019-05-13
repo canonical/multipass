@@ -36,6 +36,8 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
     return QStringList() << "--keep-in-foreground"
                          << "--strict-order"
                          << "--bind-interfaces"
+                         << "--domain=multipass"
+                         << "--local=/multipass/"
                          << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                          << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
                          << "--dhcp-no-override"

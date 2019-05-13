@@ -48,6 +48,7 @@ auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::str
     return fmt::format("<network>\n"
                        "  <name>default</name>\n"
                        "  <bridge name=\"{}\"/>\n"
+                       "  <domain name=\"multipass\" localOnly=\"yes\"/>\n"
                        "  <forward/>\n"
                        "  <ip address=\"{}.1\" netmask=\"255.255.255.0\">\n"
                        "    <dhcp>\n"
