@@ -65,6 +65,8 @@ if(APPLE)
 endif(APPLE)
 
 if(MSVC)
+  set_target_properties(multipass_gui PROPERTIES WIN32_EXECUTABLE true)
+
   # Copy the windows platform plugin
   install(FILES ${_qt5Gui_install_prefix}/plugins/platforms/qwindows.dll
     DESTINATION bin/platforms

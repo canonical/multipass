@@ -63,5 +63,5 @@ int mcp::getgid()
 void mcp::open_multipass_shell(const QString& instance_name)
 {
     QProcess::startDetached(
-        "PowerShell", {"-NoLogo", "-NoExit", "-Command", QString("multipass shell %1").arg(instance_name)});
+        "cmd", {"/c", "start", "PowerShell", "-NoLogo", "-Command", QString("multipass shell %1").arg(instance_name)});
 }
