@@ -73,8 +73,9 @@ private:
     void initiate_about_menu_layout();
     ListReply retrieve_all_instances();
     void set_menu_actions_for(const std::string& instance_name, const InstanceStatus& state);
-    void suspend_instance_for(const std::string& instance_name);
+    void start_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
+    void suspend_instance_for(const std::string& instance_name);
     VersionReply retrieve_version_and_update_info();
 
     QSystemTrayIcon tray_icon;
