@@ -63,3 +63,18 @@ if(APPLE)
     " COMPONENT multipass_gui)
 
 endif(APPLE)
+
+if(MSVC)
+  # Copy the windows platform plugin
+  install(FILES ${_qt5Gui_install_prefix}/plugins/platforms/qwindows.dll
+    DESTINATION bin/platforms
+    COMPONENT multipass_gui)
+
+  install(CODE "
+    include(BundleUtilities)
+    fixup_bundle(
+      \"\${CMAKE_INSTALL_PREFIX}/bin/multipass-gui.exe\"
+      \"\${CMAKE_INSTALL_PREFIX}/bin/platforms/qwindows.dll\"
+      \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
+    " COMPONENT multipass_gui)
+endif()
