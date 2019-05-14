@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
     QCoreApplication::setOrganizationName(mp::org_name);
     QCoreApplication::setOrganizationDomain(mp::org_domain);
     QCoreApplication::setApplicationName(mp::client_name);
+
     mp::Console::setup_environment();
     auto term = mp::Terminal::make_terminal();
 

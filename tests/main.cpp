@@ -21,11 +21,18 @@
 
 #include <QCoreApplication>
 
+#include <multipass/constants.h>
+
+namespace mp = multipass;
+
 // Normally one would just use libgtest_main but our static library dependencies
 // also define main... DAMN THEM!
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
+    QCoreApplication::setOrganizationName(mp::org_name);
+    QCoreApplication::setOrganizationDomain(mp::org_domain);
+    QCoreApplication::setApplicationName("multipass_tests");
 
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

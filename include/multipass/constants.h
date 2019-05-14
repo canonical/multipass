@@ -21,6 +21,7 @@
 namespace multipass
 {
 constexpr auto client_name = "multipass";
+constexpr auto daemon_name = "multipassd";
 constexpr auto min_memory_size = "128M";
 constexpr auto min_disk_size = "512M";
 constexpr auto org_domain = "canonical.com";
