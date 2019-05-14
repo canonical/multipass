@@ -18,18 +18,35 @@
 #include "get.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/constants.h>
+
+#include <QSettings>
+#include <QtGlobal>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
 mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
 {
-    auto ret = parse_args(parser);
-    if (ret != ParseCode::Ok)
-        return parser->returnCodeFrom(ret);
+    auto ret = parser->returnCodeFrom(parse_args(parser));
+    if (ret == ReturnCode::Ok)
+    {
+        QSettings settings{QSettings::UserScope, organization,
+                           client_name}; // TODO @ricab move setting of org and application name to main or close
 
-    // TODO @ricab
-    return ReturnCode::Ok;
+        const auto val = settings.value(key);
+        if (val.isNull())
+        {
+            cerr << "Unknown key: \"" << qPrintable(key) << "\"\n";
+            ret = ReturnCode::CommandFail;
+        }
+        else
+        {
+            cout << qPrintable(val.toString()) << "\n";
+        }
+    }
+
+    return ret;
 }
 
 std::string cmd::Get::name() const
@@ -49,6 +66,22 @@ QString cmd::Get::description() const
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    // TODO @ricab
-    return parser->commandParse(this);
+    parser->addPositionalArgument("key", "Path to the key whose configured value should be obtained.", "<key>");
+
+    auto status = parser->commandParse(this);
+    if (status == ParseCode::Ok)
+    {
+        const auto args = parser->positionalArguments();
+        if (args.count() == 1)
+        {
+            key = args.at(0);
+        }
+        else
+        {
+            cerr << "Need exactly one key\n";
+            status = ParseCode::CommandLineError;
+        }
+    }
+
+    return status;
 }

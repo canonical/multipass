@@ -36,6 +36,7 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser) override;
+    QString key;
 };
 } // namespace cmd
 } // namespace multipass
