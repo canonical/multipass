@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+    <qresource>
+        <file>images/ubuntu-icon.png</file>
+    </qresource>
+    <qresource>
+        <file>images/multipass-icon.png</file>
+    </qresource>
+</RCC>
