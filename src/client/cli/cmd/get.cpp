@@ -28,8 +28,9 @@ namespace cmd = multipass::cmd;
 
 mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
 {
-    auto ret = parser->returnCodeFrom(parse_args(parser));
-    if (ret == ReturnCode::Ok)
+    auto parse_code = parse_args(parser);
+    auto ret = parser->returnCodeFrom(parse_code);
+    if (parse_code == ParseCode::Ok)
     {
         QSettings settings;
 
