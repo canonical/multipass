@@ -52,6 +52,7 @@ jobs:
   include:
     - env: BUILD_TYPE=Debug
       script:
+      - exit 1
       - sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- sh -c "cd project; snapcraft build multipass"'
       - sg lxd -c
           '/snap/bin/lxc exec snapcraft-multipass --
