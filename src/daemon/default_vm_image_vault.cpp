@@ -592,7 +592,6 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
     catch (const std::exception& e)
     {
-        fmt::print("The error is {}\n", e.what());
         throw CreateImageException(e.what());
     }
 }
