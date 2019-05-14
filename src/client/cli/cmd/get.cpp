@@ -16,3 +16,39 @@
  */
 
 #include "get.h"
+
+#include <multipass/cli/argparser.h>
+
+namespace mp = multipass;
+namespace cmd = multipass::cmd;
+
+mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
+{
+    auto ret = parse_args(parser);
+    if (ret != ParseCode::Ok)
+        return parser->returnCodeFrom(ret);
+
+    // TODO @ricab
+    return ReturnCode::Ok;
+}
+
+std::string cmd::Get::name() const
+{
+    return "get";
+}
+
+QString cmd::Get::short_help() const
+{
+    return QStringLiteral("Get configuration options");
+}
+
+QString cmd::Get::description() const
+{
+    return QStringLiteral("Get configuration option corresponding to the given key");
+}
+
+mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
+{
+    // TODO @ricab
+    return parser->commandParse(this);
+}
