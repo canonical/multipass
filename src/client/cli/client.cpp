@@ -28,6 +28,7 @@
 #include "cmd/purge.h"
 #include "cmd/recover.h"
 #include "cmd/restart.h"
+#include "cmd/set.h"
 #include "cmd/shell.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
@@ -64,6 +65,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::List>();
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
+    add_command<cmd::Set>();
     add_command<cmd::Shell>();
     add_command<cmd::Start>();
     add_command<cmd::Stop>();

@@ -28,6 +28,7 @@ add_library(commands STATIC
   purge.cpp
   recover.cpp
   restart.cpp
+  set.cpp
   shell.cpp
   start.cpp
   stop.cpp
