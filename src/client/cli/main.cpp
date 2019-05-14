@@ -19,6 +19,7 @@
 
 #include <multipass/cli/client_common.h>
 #include <multipass/console.h>
+#include <multipass/constants.h>
 
 #include <QCoreApplication>
 
@@ -27,7 +28,9 @@ namespace mp = multipass;
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass");
+    QCoreApplication::setOrganizationName(mp::org_name);
+    QCoreApplication::setOrganizationDomain(mp::org_domain);
+    QCoreApplication::setApplicationName(mp::client_name);
     mp::Console::setup_environment();
     auto term = mp::Terminal::make_terminal();
 

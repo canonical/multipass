@@ -31,8 +31,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     auto ret = parser->returnCodeFrom(parse_args(parser));
     if (ret == ReturnCode::Ok)
     {
-        QSettings settings{QSettings::UserScope, organization,
-                           client_name}; // TODO @ricab move setting of org and application name to main or close
+        QSettings settings;
 
         const auto val = settings.value(key);
         if (val.isNull())
