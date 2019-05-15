@@ -1,7 +1,7 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -144,9 +144,8 @@ parts:
-     - libsystemd-dev
+@@ -216,9 +216,8 @@ parts:
+     - libpng16-16
      source: .
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
