@@ -34,6 +34,8 @@ apps:
       PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
     command: bin/multipass-gui
+    passthrough:
+      autostart: multipass
   libvirt-bin:
     command: bin/launch-libvirtd
     environment:
