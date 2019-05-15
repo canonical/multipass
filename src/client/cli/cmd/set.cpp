@@ -31,9 +31,7 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
     auto parse_code = parse_args(parser);
     auto ret = parser->returnCodeFrom(parse_code);
     if (parse_code == ParseCode::Ok)
-    {
-        // TODO @ricab
-    }
+        QSettings{}.setValue(key, val);
 
     return ret;
 }
