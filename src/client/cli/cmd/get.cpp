@@ -38,7 +38,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
         if (val.isNull())
         {
             cerr << "Unknown key: \"" << qPrintable(key) << "\"\n";
-            ret = ReturnCode::CommandFail;
+            ret = ReturnCode::CommandLineError;
         }
         else
         {
