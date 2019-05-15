@@ -53,31 +53,31 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     switch (status.status())
     {
     case mp::InstanceStatus::RUNNING:
-        status_val = "RUNNING";
+        status_val = "Running";
         break;
     case mp::InstanceStatus::STOPPED:
-        status_val = "STOPPED";
+        status_val = "Stopped";
         break;
     case mp::InstanceStatus::DELETED:
-        status_val = "DELETED";
+        status_val = "Deleted";
         break;
     case mp::InstanceStatus::STARTING:
-        status_val = "STARTING";
+        status_val = "Starting";
         break;
     case mp::InstanceStatus::RESTARTING:
-        status_val = "RESTARTING";
+        status_val = "Restarting";
         break;
     case mp::InstanceStatus::DELAYED_SHUTDOWN:
-        status_val = "DELAYED SHUTDOWN";
+        status_val = "Delayed Shutdown";
         break;
     case mp::InstanceStatus::SUSPENDING:
-        status_val = "SUSPENDING";
+        status_val = "Suspending";
         break;
     case mp::InstanceStatus::SUSPENDED:
-        status_val = "SUSPENDED";
+        status_val = "Suspended";
         break;
     default:
-        status_val = "UNKNOWN";
+        status_val = "Unknown";
         break;
     }
     return status_val;

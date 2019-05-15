@@ -28,6 +28,12 @@ apps:
       QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
+  gui:
+    environment:
+      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+    command: bin/multipass-gui
   libvirt-bin:
     command: bin/launch-libvirtd
     environment:
@@ -117,6 +123,26 @@ parts:
     stage-packages:
     - libproxy1v5
 
+  libqt5gui5:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_arm64.deb
+    source-type: deb
+    stage-packages:
+    - mesa-common-dev
+
+  libqt5widgets5:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_arm64.deb
+    source-type: deb
+
   libicu:
     plugin: dump
     source:
@@ -133,6 +159,34 @@ parts:
     - on i386: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
+
+  libharfbuzz0b:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_arm64.deb
+    source-type: deb
+    stage-packages:
+    - libgraphite2-3
+
+  libfreetype6:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_i386.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_arm64.deb
+    source-type: deb
+
+  libxcb-xinerama0:
+    plugin: dump
+    source:
+    - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_amd64.deb
+    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_i386.deb
+    - on armhf: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_armhf.deb
+    - on arm64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_arm64.deb
     source-type: deb
 
   multipass:
@@ -141,7 +195,12 @@ parts:
     - qtbase5-dev-tools
     - libqt5core5a
     - libqt5network5
+    - libqt5gui5
+    - libqt5widgets5
+    - libharfbuzz0b
+    - libfreetype6
     - libvirt
+    - libxcb-xinerama0
     plugin: cmake
     build-packages:
     - build-essential
@@ -149,6 +208,9 @@ parts:
     - git
     - golang
     - libsystemd-dev
+    stage-packages:
+    - libgl1
+    - libpng16-16
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -264,6 +326,18 @@ parts:
     - iproute2
     - iputils-ping
     - libatm1
+
+  xterm:
+    plugin: nil
+    override-pull: ""
+    stage-packages:
+    - xterm
+    stage:
+    - -usr/lib/x86_64-linux-gnu/libfreetype.so.6
+    - -usr/share/doc/libfreetype6/FTL.TXT.gz
+    - -usr/share/doc/libfreetype6/TODO
+    - -usr/share/doc/libfreetype6/changelog.Debian.gz
+    - -usr/share/doc/libfreetype6/pcf/README
 
   glue:
     plugin: dump

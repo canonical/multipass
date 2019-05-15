@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ TEST(InstanceStatusString, running_status_returns_RUNNING)
     status.set_status(mp::InstanceStatus::RUNNING);
     auto status_string = mp::format::status_string_for(status);
 
-    EXPECT_THAT(status_string, Eq("RUNNING"));
+    EXPECT_THAT(status_string, Eq("Running"));
 }
 
 TEST(InstanceStatusString, stopped_status_returns_STOPPED)
@@ -38,7 +38,7 @@ TEST(InstanceStatusString, stopped_status_returns_STOPPED)
     status.set_status(mp::InstanceStatus::STOPPED);
     auto status_string = mp::format::status_string_for(status);
 
-    EXPECT_THAT(status_string, Eq("STOPPED"));
+    EXPECT_THAT(status_string, Eq("Stopped"));
 }
 
 TEST(InstanceStatusString, deleted_status_returns_DELETED)
@@ -47,7 +47,7 @@ TEST(InstanceStatusString, deleted_status_returns_DELETED)
     status.set_status(mp::InstanceStatus::DELETED);
     auto status_string = mp::format::status_string_for(status);
 
-    EXPECT_THAT(status_string, Eq("DELETED"));
+    EXPECT_THAT(status_string, Eq("Deleted"));
 }
 
 TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
@@ -56,7 +56,7 @@ TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
     status.set_status(mp::InstanceStatus::SUSPENDING);
     auto status_string = mp::format::status_string_for(status);
 
-    EXPECT_THAT(status_string, Eq("SUSPENDING"));
+    EXPECT_THAT(status_string, Eq("Suspending"));
 }
 
 TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
@@ -65,7 +65,7 @@ TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
     status.set_status(mp::InstanceStatus::SUSPENDED);
     auto status_string = mp::format::status_string_for(status);
 
-    EXPECT_THAT(status_string, Eq("SUSPENDED"));
+    EXPECT_THAT(status_string, Eq("Suspended"));
 }
 
 TEST(InstanceStatusString, running_status_returns_RESTARTING)
@@ -74,7 +74,7 @@ TEST(InstanceStatusString, running_status_returns_RESTARTING)
     status.set_status(mp::InstanceStatus::RESTARTING);
     auto status_string = mp::format::status_string_for(status);
 
-    EXPECT_THAT(status_string, Eq("RESTARTING"));
+    EXPECT_THAT(status_string, Eq("Restarting"));
 }
 
 TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
@@ -83,5 +83,5 @@ TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
     status.set_status(static_cast<mp::InstanceStatus_Status>(10));
     auto status_string = mp::format::status_string_for(status);
 
-    EXPECT_THAT(status_string, Eq("UNKNOWN"));
+    EXPECT_THAT(status_string, Eq("Unknown"));
 }

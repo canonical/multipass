@@ -18,6 +18,8 @@
 #include <multipass/cli/client_platform.h>
 
 #include <QFileInfo>
+#include <QString>
+#include <QProcess>
 
 #include <fcntl.h>
 #include <io.h>
@@ -56,4 +58,10 @@ int mcp::getuid()
 int mcp::getgid()
 {
     return mp::no_id_info_available;
+}
+
+void mcp::open_multipass_shell(const QString& instance_name)
+{
+    QProcess::startDetached(
+        "cmd", {"/c", "start", "PowerShell", "-NoLogo", "-Command", QString("multipass shell %1").arg(instance_name)});
 }

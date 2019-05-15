@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,48 +11,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-add_library(client STATIC
-  argparser.cpp
-  client.cpp)
-
-target_link_libraries(client
-  cert
-  commands
-  fmt
-  formatter
-  platform
-  rpc
-  Qt5::Core)
-
-add_executable(multipass
-  main.cpp)
-
-target_link_libraries(multipass
-  client)
-
-if(APPLE)
-  set_target_properties( multipass PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
-
-  # Copy any framework depenencies into the install directory for packaging
-  install(CODE "
-    include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
-    " COMPONENT multipass)
-endif(APPLE)
-
-install(TARGETS multipass
-  DESTINATION bin
-  COMPONENT multipass)
-
-if(MSVC)
-  install(CODE "
-    include(BundleUtilities)
-    fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/multipass.exe\"  \"\"  \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
-    " COMPONENT multipass)
-endif()
-
-add_subdirectory(cmd)
-add_subdirectory(formatter)
+add_subdirectory(cli)
+add_subdirectory(common)
+add_subdirectory(gui)
