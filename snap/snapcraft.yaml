@@ -185,8 +185,8 @@ parts:
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_amd64.deb
     - on i386: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_i386.deb
-    - on armhf: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_armhf.deb
-    - on arm64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_arm64.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_arm64.deb
     source-type: deb
 
   multipass:
