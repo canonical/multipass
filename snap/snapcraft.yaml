@@ -209,7 +209,10 @@ parts:
     - golang
     - libsystemd-dev
     stage-packages:
-    - libgl1
+    - on amd64: [libgl1]
+    - on i386: [libgl1]
+    - on armhf: [libgles2-mesa]
+    - on arm64: [libgles2-mesa]
     - libpng16-16
     source: .
     configflags:
