@@ -203,6 +203,8 @@ parts:
     - libxcb-xinerama0
     plugin: cmake
     build-packages:
+    - on arm64: [libgles2-mesa-dev]
+    - on armhf: [libgles2-mesa-dev]
     - build-essential
     - cmake-extras
     - git
