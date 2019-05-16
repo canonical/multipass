@@ -1209,7 +1209,7 @@ try // clang-format on
         {
             try
             {
-                start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
+                start_mount(vm.get(), name, request->source_path(), target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1218,8 +1218,8 @@ try // clang-format on
                     MountReply mount_reply;
                     mount_reply.set_mount_message("Enabling support for mounting");
                     server->Write(mount_reply);
-                    install_sshfs(vm, name);
-                    start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
+                    install_sshfs(vm.get(), name);
+                    start_mount(vm.get(), name, request->source_path(), target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
@@ -1757,7 +1757,7 @@ void mp::Daemon::persist_instances()
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
-void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
+void mp::Daemon::start_mount(VirtualMachine *vm, const std::string& name, const std::string& source_path,
                              const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                              const std::unordered_map<int, int>& uid_map)
 {
@@ -2044,7 +2044,7 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     return grpc::Status::OK;
 }
 
-void mp::Daemon::install_sshfs(const VirtualMachine::UPtr& vm, const std::string& name)
+void mp::Daemon::install_sshfs(VirtualMachine *vm, const std::string& name)
 {
     auto& key_provider = *config->ssh_key_provider;
 
@@ -2098,7 +2098,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
     try
     {
         auto it = vm_instances.find(name);
-        auto& vm = it->second;
+        auto vm = it->second;
         vm->wait_until_ssh_up(up_timeout);
 
         std::vector<std::string> invalid_mounts;
@@ -2112,7 +2112,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
             try
             {
-                start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+                start_mount(vm.get(), name, source_path, target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -2125,8 +2125,8 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                         server->Write(reply);
                     }
 
-                    install_sshfs(vm, name);
-                    start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+                    install_sshfs(vm.get(), name);
+                    start_mount(vm.get(), name, source_path, target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
