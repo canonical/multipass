@@ -130,7 +130,9 @@ _multipass_complete()
                         return
                     fi
                 elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
-                    _multipass_instances
+                    _multipass_instances "Running"
+                    _multipass_instances "Stopped"
+                    _multipass_instances "Suspended"
                 fi
             ;;
             "transfer"|"copy-files")
