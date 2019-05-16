@@ -93,17 +93,17 @@ _multipass_complete()
     if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
             "connect"|"sh"|"shell"|"exec"|"stop"|"suspend"|"restart")
-                _multipass_instances "RUNNING"
+                _multipass_instances "Running"
             ;;
             "start")
-                _multipass_instances "STOPPED"
-                _multipass_instances "SUSPENDED"
+                _multipass_instances "Stopped"
+                _multipass_instances "Suspended"
             ;;
             "delete"|"info"|"umount"|"unmount")
                 _multipass_instances
             ;;
             "recover")
-                _multipass_instances "DELETED"
+                _multipass_instances "Deleted"
             ;;
             "mount")
                 local source_set=0
@@ -129,7 +129,7 @@ _multipass_complete()
                 fi
             ;;
             "transfer"|"copy-files")
-                _multipass_instances "RUNNING"
+                _multipass_instances "Running"
 
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 if [[ "${#COMPREPLY[@]}" == "0" ]]; then
