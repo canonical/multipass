@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_SFTP_SERVER_TEST_FIXTURE_H
 #define MULTIPASS_SFTP_SERVER_TEST_FIXTURE_H
 
-#include "mock_sftpserver.h"
 #include "mock_sftp.h"
+#include "mock_sftpserver.h"
 #include "mock_ssh.h"
 
 #include <gtest/gtest.h>

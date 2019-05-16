@@ -68,12 +68,14 @@ std::string full_destination(const std::string& destination_path, const std::str
 } // namespace
 
 mp::SFTPClient::SFTPClient(const std::string& host, int port, const std::string& username,
-                         const std::string& priv_key_blob)
+                           const std::string& priv_key_blob)
     : SFTPClient{std::make_unique<mp::SSHSession>(host, port, username, mp::SSHClientKeyProvider(priv_key_blob))}
-{ }
+{
+}
 
 mp::SFTPClient::SFTPClient(SSHSessionUPtr ssh_session) : ssh_session{std::move(ssh_session)}
-{ }
+{
+}
 
 void mp::SFTPClient::push_file(const std::string& source_path, const std::string& destination_path)
 {
@@ -84,7 +86,7 @@ void mp::SFTPClient::push_file(const std::string& source_path, const std::string
     QFile source(QString::fromStdString(source_path));
     const auto size{source.size()};
 
-    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, file_mode);
+    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode);
     SFTPFileUPtr file_handle{raw_ptr, sftp_close};
 
     SSH::throw_on_error(sftp, *ssh_session, "[sftp push] open failed", sftp_get_error);
@@ -155,13 +157,13 @@ void mp::SFTPClient::pull_file(const std::string& source_path, const std::string
     } while (total < size);
 }
 
-void mp::SFTPClient::stream_file(const std::string &destination_path)
+void mp::SFTPClient::stream_file(const std::string& destination_path)
 {
     auto full_destination_path = full_destination(destination_path, stream_file_name);
     SFTPSessionUPtr sftp{make_sftp_session(*ssh_session)};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp stream] init session failed", sftp_init);
 
-    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, file_mode);
+    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode);
     SFTPFileUPtr file_handle{raw_ptr, sftp_close};
 
     SSH::throw_on_error(sftp, *ssh_session, "[sftp stream] open failed", sftp_get_error);

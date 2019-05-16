@@ -27,7 +27,6 @@
 
 #include <gmock/gmock.h>
 
-
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
@@ -37,11 +36,12 @@ struct SFTPClient : public testing::Test
 {
     SFTPClient()
         : sftp_new{mock_sftp_new,
-            [](ssh_session session) -> sftp_session {
-                sftp_session sftp;
-                sftp = (sftp_session)std::calloc(1, sizeof(struct sftp_session_struct));
-                return sftp;
-                }}, free_sftp{mock_sftp_free, [](sftp_session sftp) { std::free(sftp); }}
+                   [](ssh_session session) -> sftp_session {
+                       sftp_session sftp;
+                       sftp = (sftp_session)std::calloc(1, sizeof(struct sftp_session_struct));
+                       return sftp;
+                   }},
+          free_sftp{mock_sftp_free, [](sftp_session sftp) { std::free(sftp); }}
     {
         connect.returnValue(SSH_OK);
         is_connected.returnValue(true);
@@ -61,7 +61,7 @@ struct SFTPClient : public testing::Test
     MockScope<decltype(mock_sftp_new)> sftp_new;
     MockScope<decltype(mock_sftp_free)> free_sftp;
 };
-}
+} // namespace
 
 // testing sftp_session
 
@@ -121,12 +121,10 @@ TEST_F(SFTPClient, push_throws_on_sftp_write_error)
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_open, [](auto...) { return nullptr; });
     REPLACE(sftp_write, [](auto...) { return 0; });
-    REPLACE(sftp_get_error, [](auto...)
-    {
+    REPLACE(sftp_get_error, [](auto...) {
         static int errorCount = 0;
         return (errorCount-- < 0) ? SSH_ERROR : SSH_OK;
     });
-
 
     EXPECT_THROW(sftp.push_file(file_name.toStdString(), "bar"), std::runtime_error);
 }
@@ -162,8 +160,7 @@ TEST_F(SFTPClient, pull_throws_on_sftp_open_failed)
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_stat, [](auto...) { return new sftp_attributes_struct; });
     REPLACE(sftp_open, [](auto...) { return nullptr; });
-    REPLACE(sftp_get_error, [](auto...)
-    {
+    REPLACE(sftp_get_error, [](auto...) {
         static int errorCount = 0;
         return (errorCount-- < 0) ? SSH_ERROR : SSH_OK;
     });
@@ -180,8 +177,7 @@ TEST_F(SFTPClient, pull_throws_on_sftp_read_failed)
     REPLACE(sftp_stat, [](auto...) { return new sftp_attributes_struct; });
     REPLACE(sftp_open, [](auto...) { return new sftp_file_struct; });
     REPLACE(sftp_read, [](auto...) { return 0; });
-    REPLACE(sftp_get_error, [](auto...)
-    {
+    REPLACE(sftp_get_error, [](auto...) {
         static int errorCount = 1;
         return (errorCount-- < 0) ? SSH_ERROR : SSH_OK;
     });
@@ -221,8 +217,7 @@ TEST_F(SFTPClient, stream_throws_on_write_failed)
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_open, [](auto...) { return nullptr; });
     REPLACE(sftp_write, [](auto...) { return 0; });
-    REPLACE(sftp_get_error, [](auto...)
-    {
+    REPLACE(sftp_get_error, [](auto...) {
         static int errorCount = 0;
         return (errorCount-- < 0) ? SSH_ERROR : SSH_OK;
     });
@@ -232,7 +227,7 @@ TEST_F(SFTPClient, stream_throws_on_write_failed)
     mpt::make_file_with_content(file_name, "testing stream :-)");
 
     // NOTE: remember that we received up to 10 bytes per read
-    freopen(file_name.toStdString().c_str(),"r",stdin);
+    freopen(file_name.toStdString().c_str(), "r", stdin);
 
     EXPECT_THROW(sftp.stream_file("bar"), std::runtime_error);
 }

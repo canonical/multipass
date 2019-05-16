@@ -35,7 +35,7 @@ namespace
 {
 const char template_symbol{'-'};
 const char* stdout_path{"/dev/stdout"};
-}
+} // namespace
 
 mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 {
@@ -145,10 +145,8 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     if (allow_templates)
     {
         const auto arguments = parser->positionalArguments();
-        const auto is_valid_template = !std::all_of(arguments.begin(), arguments.end(), [](const QString& argument)
-        {
-            return (template_symbol == argument);
-        });
+        const auto is_valid_template = !std::all_of(
+            arguments.begin(), arguments.end(), [](const QString& argument) { return (template_symbol == argument); });
 
         if (!is_valid_template)
         {
@@ -174,7 +172,7 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     return ParseCode::Ok;
 }
 
-multipass::ParseCode cmd::CopyFiles::parse_sources(multipass::ArgParser *parser, bool allow_templates)
+mp::ParseCode cmd::Transfer::parse_sources(mp::ArgParser* parser, bool allow_templates)
 {
     for (auto i = 0; i < parser->positionalArguments().count() - 1; ++i)
     {
@@ -229,7 +227,7 @@ multipass::ParseCode cmd::CopyFiles::parse_sources(multipass::ArgParser *parser,
     return ParseCode::Ok;
 }
 
-multipass::ParseCode cmd::CopyFiles::parse_destination(multipass::ArgParser *parser, bool allow_templates)
+mp::ParseCode cmd::Transfer::parse_destination(mp::ArgParser* parser, bool allow_templates)
 {
     auto destination_entry = parser->positionalArguments().last();
     QString destination_path, instance_name;

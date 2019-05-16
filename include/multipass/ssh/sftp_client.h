@@ -43,5 +43,5 @@ public:
 private:
     SSHSessionUPtr ssh_session;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SFTP_CLIENT_H
