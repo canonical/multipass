@@ -122,7 +122,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     if (reply.instances().empty())
         return "No instances found.\n";
 
-    fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", "Name", "State", "IPv4", "Release");
+    fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", "Name", "State", "IPv4", "Image");
 
     for (const auto& instance : format::sorted(reply.instances()))
     {

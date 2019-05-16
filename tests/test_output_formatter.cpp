@@ -200,7 +200,7 @@ TEST_F(TableFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
 
-    auto expected_table_output = "Name                    State             IPv4             Release\n"
+    auto expected_table_output = "Name                    State             IPv4             Image\n"
                                  "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n";
 
     mp::TableFormatter table_formatter;
@@ -213,7 +213,7 @@ TEST_F(TableFormatter, multiple_instance_list_output)
 {
     auto list_reply = construct_multiple_instances_list_reply();
 
-    auto expected_table_output = "Name                    State             IPv4             Release\n"
+    auto expected_table_output = "Name                    State             IPv4             Image\n"
                                  "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
                                  "bombastic               Stopped           --               Ubuntu 18.04 LTS\n";
 
