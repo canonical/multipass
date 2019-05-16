@@ -92,8 +92,13 @@ _multipass_complete()
 
     if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
-            "connect"|"sh"|"shell"|"exec"|"stop"|"suspend"|"restart")
+            "exec"|"stop"|"suspend"|"restart")
                 _multipass_instances "Running"
+            ;;
+            "connect"|"sh"|"shell")
+                _multipass_instances "Running"
+                _multipass_instances "Stopped"
+                _multipass_instances "Suspended"
             ;;
             "start")
                 _multipass_instances "Stopped"
