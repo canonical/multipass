@@ -66,8 +66,11 @@ _multipass_complete()
         "mount")
             opts="${opts} --gid-map --uid-map"
         ;;
-        "recover"|"start"|"stop"|"suspend"|"restart")
+        "recover"|"start"|"suspend"|"restart")
             opts="${opts} --all"
+        ;;
+        "stop")
+            opts="${opts} --all --cancel --time"
         ;;
         "find")
             opts="${opts} --show-unsupported"
