@@ -158,7 +158,6 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
-      process_factory{process_factory},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
       vm_process{make_qemu_process(process_factory, desc, tap_device_name, mac_addr)},
