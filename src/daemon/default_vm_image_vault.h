@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #define MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H
 
 #include <multipass/days.h>
+#include <multipass/optional.h>
 #include <multipass/path.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
@@ -26,7 +27,10 @@
 #include <multipass/vm_image_vault.h>
 
 #include <QDir>
+#include <QFuture>
+
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 namespace multipass
@@ -55,12 +59,18 @@ public:
 
 private:
     VMImage image_instance_from(const std::string& name, const VMImage& prepared_image);
+    VMImage download_and_prepare_source_image(const VMImageInfo& info, optional<VMImage>& existing_source_image,
+                                              const QDir& image_dir, const FetchType& fetch_type,
+                                              const PrepareAction& prepare, const ProgressMonitor& monitor);
     VMImage extract_image_from(const std::string& instance_name, const VMImage& source_image,
                                const ProgressMonitor& monitor);
     VMImage extract_downloaded_image(const VMImage& source_image, const ProgressMonitor& monitor);
     VMImage fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image, const QDir& image_dir,
                                     const ProgressMonitor& monitor);
+    optional<QFuture<VMImage>> get_image_future(const std::string& id);
+    VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id);
     VMImageInfo info_for(const Query& query);
+    VMImageInfo get_kernel_query_info(const std::string& name);
     void persist_image_records();
     void persist_instance_records();
 
@@ -71,10 +81,12 @@ private:
     const QDir instances_dir;
     const QDir images_dir;
     const days days_to_expire;
+    std::mutex fetch_mutex;
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
     std::unordered_map<std::string, VaultRecord> instance_image_records;
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
+    std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
 };
 }
 #endif // MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H

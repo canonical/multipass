@@ -56,7 +56,6 @@
 #include <cassert>
 #include <functional>
 #include <stdexcept>
-#include <unordered_set>
 #include <utility>
 
 namespace mp = multipass;
@@ -1849,7 +1848,19 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                                       create_error.SerializeAsString()));
     }
 
+    if (preparing_instances.find(name) != preparing_instances.end())
+    {
+        CreateError create_error;
+        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
+
+        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                                      fmt::format("instance \"{}\" is being prepared", name),
+                                                      create_error.SerializeAsString()));
+    }
+
     config->factory->check_hypervisor_support();
+
+    preparing_instances.insert(name);
 
     auto prepare_future_watcher = new QFutureWatcher<VirtualMachineDescription>();
 
@@ -1870,6 +1881,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                            {},
                                            false,
                                            QJsonObject()};
+                preparing_instances.erase(name);
+
                 persist_instances();
 
                 if (start)
@@ -1897,6 +1910,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             }
             catch (const std::exception& e)
             {
+                preparing_instances.erase(name);
                 status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 

@@ -32,6 +32,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <QFutureWatcher>
@@ -179,6 +180,7 @@ private:
     std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
+    std::unordered_set<std::string> preparing_instances;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H
