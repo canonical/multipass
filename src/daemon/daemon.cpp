@@ -557,10 +557,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
     bool mac_addr_missing{false};
-    for (auto const& entry : vm_instance_specs)
+    for (auto& entry : vm_instance_specs)
     {
         const auto& name = entry.first;
-        const auto& spec = entry.second;
+        auto& spec = entry.second;
 
         if (!config->vault->has_record_for(name))
         {
@@ -594,6 +594,15 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
             invalid_specs.push_back(name);
             config->vault->remove(name);
+        }
+
+        // FIXME: somehow we're writing contradictory state to disk.
+        if (spec.deleted && spec.state != VirtualMachine::State::stopped)
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("{} is deleted but has incompatible state {}, reseting state to 0 (stopped)", name,
+                                 static_cast<int>(spec.state)));
+            spec.state = VirtualMachine::State::stopped;
         }
 
         if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
