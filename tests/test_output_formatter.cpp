@@ -630,6 +630,83 @@ TEST_F(JsonFormatter, no_instances_info_output)
     EXPECT_THAT(output, Eq(expected_json_output));
 }
 
+TEST_F(JsonFormatter, at_least_one_alias_in_find_output)
+{
+    mp::JsonFormatter formatter;
+    const auto reply = construct_find_one_reply();
+
+    auto expected_output = "{\n"
+                           "    \"errors\": [\n"
+                           "    ],\n"
+                           "    \"images\": {\n"
+                           "        \"ubuntu\": {\n"
+                           "            \"aliases\": [\n"
+                           "            ],\n"
+                           "            \"os\": \"Ubuntu\",\n"
+                           "            \"release\": \"18.04 LTS\",\n"
+                           "            \"remote\": \"\",\n"
+                           "            \"version\": \"20190516\"\n"
+                           "        }\n"
+                           "    }\n"
+                           "}\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(JsonFormatter, filtered_aliases_in_find_output)
+{
+    mp::JsonFormatter formatter;
+    const auto reply = construct_find_multiple_replies();
+
+    auto expected_output = "{\n"
+                           "    \"errors\": [\n"
+                           "    ],\n"
+                           "    \"images\": {\n"
+                           "        \"19.10\": {\n"
+                           "            \"aliases\": [\n"
+                           "                \"eoan\",\n"
+                           "                \"devel\"\n"
+                           "            ],\n"
+                           "            \"os\": \"Ubuntu\",\n"
+                           "            \"release\": \"19.10\",\n"
+                           "            \"remote\": \"daily\",\n"
+                           "            \"version\": \"20190516\"\n"
+                           "        },\n"
+                           "        \"lts\": {\n"
+                           "            \"aliases\": [\n"
+                           "            ],\n"
+                           "            \"os\": \"Ubuntu\",\n"
+                           "            \"release\": \"18.04 LTS\",\n"
+                           "            \"remote\": \"\",\n"
+                           "            \"version\": \"20190516\"\n"
+                           "        }\n"
+                           "    }\n"
+                           "}\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(JsonFormatter, no_images_find_output)
+{
+    mp::FindReply find_reply;
+
+    auto expected_output = "{\n"
+                           "    \"errors\": [\n"
+                           "    ],\n"
+                           "    \"images\": {\n"
+                           "    }\n"
+                           "}\n";
+
+    mp::JsonFormatter json_formatter;
+    auto output = json_formatter.format(find_reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
 TEST_F(CSVFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
