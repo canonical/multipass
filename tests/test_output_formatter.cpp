@@ -161,6 +161,53 @@ auto construct_multiple_instances_including_petenv_info_reply()
     return reply;
 }
 
+auto construct_find_one_reply()
+{
+    auto reply = mp::FindReply();
+
+    auto image_entry = reply.add_images_info();
+    image_entry->set_os("Ubuntu");
+    image_entry->set_release("18.04 LTS");
+    image_entry->set_version("20190516");
+
+    auto alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("ubuntu");
+
+    return reply;
+}
+
+auto construct_find_multiple_replies()
+{
+    auto reply = mp::FindReply();
+
+    auto image_entry = reply.add_images_info();
+    image_entry->set_os("Ubuntu");
+    image_entry->set_release("18.04 LTS");
+    image_entry->set_version("20190516");
+
+    auto alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("ubuntu");
+    alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("lts");
+
+    image_entry = reply.add_images_info();
+    image_entry->set_os("Ubuntu");
+    image_entry->set_release("19.10");
+    image_entry->set_version("20190516");
+
+    alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("19.10");
+    alias_entry->set_remote_name("daily");
+    alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("eoan");
+    alias_entry->set_remote_name("daily");
+    alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("devel");
+    alias_entry->set_remote_name("daily");
+
+    return reply;
+}
+
 class LocaleSettingTest : public testing::Test
 {
 public:
@@ -324,6 +371,45 @@ TEST_F(TableFormatter, no_instances_info_output)
     auto output = table_formatter.format(info_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST_F(TableFormatter, at_least_one_alias_in_find_output)
+{
+    mp::TableFormatter formatter;
+    const auto reply = construct_find_one_reply();
+
+    auto expected_output = "Image                   Aliases           Version          Description\n"
+                           "ubuntu                                    20190516         Ubuntu 18.04 LTS\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(TableFormatter, filtered_aliases_in_find_output)
+{
+    mp::TableFormatter formatter;
+    const auto reply = construct_find_multiple_replies();
+
+    auto expected_output = "Image                   Aliases           Version          Description\n"
+                           "lts                                       20190516         Ubuntu 18.04 LTS\n"
+                           "daily:19.10             eoan,devel        20190516         Ubuntu 19.10\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(TableFormatter, no_images_find_output)
+{
+    mp::FindReply find_reply;
+
+    auto expected_table_output = "No images found.\n";
+
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(find_reply);
+
+    EXPECT_EQ(output, expected_table_output);
 }
 
 TEST_F(JsonFormatter, single_instance_list_output)

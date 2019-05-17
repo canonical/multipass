@@ -21,6 +21,8 @@
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <fmt/format.h>
+
 #include <algorithm>
 #include <string>
 
@@ -52,4 +54,24 @@ Instances multipass::format::sorted(const Instances& instances)
 
     return ret;
 }
+
+namespace fmt
+{
+template <>
+struct formatter<multipass::FindReply_AliasInfo>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::FindReply_AliasInfo& a, FormatContext& ctx)
+    {
+        return format_to(ctx.begin(), "{}", a.alias());
+    }
+};
+} // namespace fmt
+
 #endif // MULTIPASS_FORMAT_UTILS_H

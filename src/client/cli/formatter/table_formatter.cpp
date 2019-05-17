@@ -15,8 +15,9 @@
  *
  */
 
-#include <multipass/cli/format_utils.h>
 #include <multipass/cli/table_formatter.h>
+
+#include <multipass/cli/format_utils.h>
 
 #include <fmt/format.h>
 
@@ -131,6 +132,31 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
                        instance.ipv4().empty() ? "--" : instance.ipv4(),
                        instance.current_release().empty() ? "Not Available"
                                                           : fmt::format("Ubuntu {}", instance.current_release()));
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::TableFormatter::format(const FindReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    if (reply.images_info().empty())
+        return "No images found.\n";
+
+    fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
+
+    for (const auto& image : reply.images_info())
+    {
+        auto aliases = image.aliases_info();
+
+        mp::format::filter_aliases(aliases);
+
+        auto alias = aliases.cbegin();
+        fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n",
+                       (alias->remote_name().empty() ? "" : alias->remote_name() + ":") + alias->alias(),
+                       fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
+                       fmt::format("{} {}", image.os(), image.release()));
     }
 
     return fmt::to_string(buf);

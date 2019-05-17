@@ -34,6 +34,7 @@ public:
     virtual ~Formatter() = default;
     virtual std::string format(const InfoReply& reply) const = 0;
     virtual std::string format(const ListReply& reply) const = 0;
+    virtual std::string format(const FindReply& reply) const = 0;
 
 protected:
     Formatter() = default;
