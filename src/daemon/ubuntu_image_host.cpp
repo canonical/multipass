@@ -57,7 +57,8 @@ mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::
             host_url + info.initrd_location,
             info.id,
             info.version,
-            info.size};
+            info.size,
+            info.verify};
 }
 
 auto key_from(const std::string& search_string)
@@ -171,8 +172,6 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     }
 
     throw std::runtime_error(fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
-
-    return mp::VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1};
 }
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name,
