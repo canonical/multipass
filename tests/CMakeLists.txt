@@ -92,6 +92,7 @@ add_executable(multipass_tests
   test_metrics_provider.cpp
   test_new_release_monitor.cpp
   test_petname.cpp
+  test_private_pass_provider.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_scp_client.cpp
