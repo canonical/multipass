@@ -44,6 +44,8 @@ auto make_map()
 }
 
 const std::map<std::string, std::unique_ptr<mp::Formatter>> formatters{make_map()};
+const std::set<std::string> unwanted_aliases{"ubuntu", "default"};
+
 } // namespace
 
 std::string mp::format::status_string_for(const mp::InstanceStatus& status)
@@ -89,4 +91,17 @@ mp::Formatter* mp::format::formatter_for(const std::string& format)
     if (entry != formatters.end())
         return entry->second.get();
     return nullptr;
+}
+
+void mp::format::filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases)
+{
+    for (auto i = aliases.size() - 1; i >= 0; i--)
+    {
+        if (aliases.size() == 1) // Keep at least the first entry
+            break;
+        if (aliases[i].alias().length() == 1)
+            aliases.DeleteSubrange(i, 1);
+        else if (unwanted_aliases.find(aliases[i].alias()) != unwanted_aliases.end())
+            aliases.DeleteSubrange(i, 1);
+    }
 }

@@ -36,6 +36,7 @@ Formatter* formatter_for(const std::string& format);
 template <typename Instances>
 Instances sorted(const Instances& instances);
 
+void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases);
 } // namespace format
 }
 
