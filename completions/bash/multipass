@@ -66,8 +66,11 @@ _multipass_complete()
         "mount")
             opts="${opts} --gid-map --uid-map"
         ;;
-        "recover"|"start"|"stop"|"suspend"|"restart")
+        "recover"|"start"|"suspend"|"restart")
             opts="${opts} --all"
+        ;;
+        "stop")
+            opts="${opts} --all --cancel --time"
         ;;
         "find")
             opts="${opts} --show-unsupported"
@@ -89,18 +92,23 @@ _multipass_complete()
 
     if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
-            "connect"|"sh"|"shell"|"exec"|"stop"|"suspend"|"restart")
-                _multipass_instances "RUNNING"
+            "exec"|"stop"|"suspend"|"restart")
+                _multipass_instances "Running"
+            ;;
+            "connect"|"sh"|"shell")
+                _multipass_instances "Running"
+                _multipass_instances "Stopped"
+                _multipass_instances "Suspended"
             ;;
             "start")
-                _multipass_instances "STOPPED"
-                _multipass_instances "SUSPENDED"
+                _multipass_instances "Stopped"
+                _multipass_instances "Suspended"
             ;;
             "delete"|"info"|"umount"|"unmount")
                 _multipass_instances
             ;;
             "recover")
-                _multipass_instances "DELETED"
+                _multipass_instances "Deleted"
             ;;
             "mount")
                 local source_set=0
@@ -122,11 +130,13 @@ _multipass_complete()
                         return
                     fi
                 elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
-                    _multipass_instances
+                    _multipass_instances "Running"
+                    _multipass_instances "Stopped"
+                    _multipass_instances "Suspended"
                 fi
             ;;
             "transfer"|"copy-files")
-                _multipass_instances "RUNNING"
+                _multipass_instances "Running"
 
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 if [[ "${#COMPREPLY[@]}" == "0" ]]; then
