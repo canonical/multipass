@@ -312,8 +312,8 @@ parts:
     - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ebtables
     override-pull: |
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.25.debian.tar.xz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.25.dsc
+      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.26.debian.tar.xz
+      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.26.dsc
       dpkg-source -x libvirt*.dsc
     organize:
       # Hack to shift installed libvirt back to root of snap
