@@ -16,6 +16,7 @@
  */
 
 #include <multipass/cli/csv_formatter.h>
+
 #include <multipass/cli/format_utils.h>
 
 #include <fmt/format.h>
@@ -58,6 +59,26 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
         fmt::format_to(buf, "{},{},{},{},{}\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()), instance.ipv4(), instance.ipv6(),
                        instance.current_release());
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::CSVFormatter::format(const FindReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(buf, "Image,Remote,Aliases,OS,Release,Version\n");
+
+    for (const auto& image : reply.images_info())
+    {
+        auto aliases = image.aliases_info();
+
+        mp::format::filter_aliases(aliases);
+
+        fmt::format_to(buf, "{},{},{},{},{},{}\n", aliases[0].alias(), aliases[0].remote_name(),
+                       fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"), image.os(), image.release(),
+                       image.version());
     }
 
     return fmt::to_string(buf);

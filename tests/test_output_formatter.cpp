@@ -816,6 +816,44 @@ TEST_F(CSVFormatter, no_instances_info_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+TEST_F(CSVFormatter, at_least_one_alias_in_find_output)
+{
+    mp::CSVFormatter formatter;
+    const auto reply = construct_find_one_reply();
+
+    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
+                           "ubuntu,,,Ubuntu,18.04 LTS,20190516\n";
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(CSVFormatter, filtered_aliases_in_find_output)
+{
+    mp::CSVFormatter formatter;
+    const auto reply = construct_find_multiple_replies();
+
+    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
+                           "lts,,,Ubuntu,18.04 LTS,20190516\n"
+                           "19.10,daily,eoan;devel,Ubuntu,19.10,20190516\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(CSVFormatter, no_images_find_output)
+{
+    mp::FindReply find_reply;
+
+    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(find_reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
 TEST_F(YamlFormatter, single_instance_list_output)
 {
     auto list_reply = construct_single_instance_list_reply();
