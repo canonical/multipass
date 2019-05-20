@@ -135,3 +135,37 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
 
     return QString(QJsonDocument(list_json).toJson()).toStdString();
 }
+
+std::string mp::JsonFormatter::format(const FindReply& reply) const
+{
+    QJsonObject find_json;
+    QJsonObject images;
+
+    find_json.insert("errors", QJsonArray());
+
+    for (const auto& image : reply.images_info())
+    {
+        QJsonObject image_obj;
+        image_obj.insert("os", QString::fromStdString(image.os()));
+        image_obj.insert("release", QString::fromStdString(image.release()));
+        image_obj.insert("version", QString::fromStdString(image.version()));
+
+        QJsonArray aliases_arr;
+        auto aliases = image.aliases_info();
+        mp::format::filter_aliases(aliases);
+
+        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
+        {
+            aliases_arr.append(QString::fromStdString(alias->alias()));
+        }
+        image_obj.insert("aliases", aliases_arr);
+
+        image_obj.insert("remote", QString::fromStdString(aliases[0].remote_name()));
+
+        images.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])), image_obj);
+    }
+
+    find_json.insert("images", images);
+
+    return QString(QJsonDocument(find_json).toJson()).toStdString();
+}

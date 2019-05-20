@@ -73,7 +73,7 @@ _multipass_complete()
             opts="${opts} --all --cancel --time"
         ;;
         "find")
-            opts="${opts} --show-unsupported"
+            opts="${opts} --show-unsupported --format"
         ;;
     esac
 
