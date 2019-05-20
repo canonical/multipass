@@ -85,6 +85,11 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     return status_val;
 }
 
+std::string mp::format::image_string_for(const mp::FindReply_AliasInfo& alias)
+{
+    return alias.remote_name().empty() ? alias.alias() : fmt::format("{}:{}", alias.remote_name(), alias);
+}
+
 mp::Formatter* mp::format::formatter_for(const std::string& format)
 {
     auto entry = formatters.find(format);

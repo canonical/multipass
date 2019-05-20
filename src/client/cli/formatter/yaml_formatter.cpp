@@ -167,8 +167,7 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
 
         image_node["remote"] = aliases[0].remote_name();
 
-        auto image_id = aliases[0].remote_name().empty() ? aliases[0].alias() : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
-        find["images"][image_id] = image_node;
+        find["images"][mp::format::image_string_for(aliases[0])] = image_node;
     }
 
     return emit_node(find);

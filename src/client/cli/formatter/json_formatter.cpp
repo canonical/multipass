@@ -162,8 +162,7 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
 
         image_obj.insert("remote", QString::fromStdString(aliases[0].remote_name()));
 
-        auto image_id = aliases[0].remote_name().empty() ? aliases[0].alias() : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
-        images.insert(QString::fromStdString(image_id), image_obj);
+        images.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])), image_obj);
     }
 
     find_json.insert("images", images);

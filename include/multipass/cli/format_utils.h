@@ -33,6 +33,7 @@ class Formatter;
 namespace format
 {
 std::string status_string_for(const InstanceStatus& status);
+std::string image_string_for(const multipass::FindReply_AliasInfo& alias);
 Formatter* formatter_for(const std::string& format);
 
 template <typename Instances>
