@@ -1030,3 +1030,68 @@ TEST_F(YamlFormatter, no_instances_info_output)
 
     EXPECT_THAT(output, Eq(expected_output));
 }
+
+TEST_F(YamlFormatter, at_least_one_alias_in_find_output)
+{
+    mp::YamlFormatter formatter;
+    const auto reply = construct_find_one_reply();
+
+    auto expected_output = "errors:\n"
+                           "  []\n"
+                           "images:\n"
+                           "  ubuntu:\n"
+                           "    aliases:\n"
+                           "      []\n"
+                           "    os: Ubuntu\n"
+                           "    release: 18.04 LTS\n"
+                           "    version: 20190516\n"
+                           "    remote: \"\"\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(YamlFormatter, filtered_aliases_in_find_output)
+{
+    mp::YamlFormatter formatter;
+    const auto reply = construct_find_multiple_replies();
+
+    auto expected_output = "errors:\n"
+                           "  []\n"
+                           "images:\n"
+                           "  lts:\n"
+                           "    aliases:\n"
+                           "      []\n"
+                           "    os: Ubuntu\n"
+                           "    release: 18.04 LTS\n"
+                           "    version: 20190516\n"
+                           "    remote: \"\"\n"
+                           "  19.10:\n"
+                           "    aliases:\n"
+                           "      - eoan\n"
+                           "      - devel\n"
+                           "    os: Ubuntu\n"
+                           "    release: 19.10\n"
+                           "    version: 20190516\n"
+                           "    remote: daily\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(YamlFormatter, no_images_find_output)
+{
+    mp::FindReply find_reply;
+
+    auto expected_output = "errors:\n"
+                           "  []\n"
+                           "images:\n"
+                           "  {}\n";
+
+    mp::YamlFormatter yaml_formatter;
+    auto output = yaml_formatter.format(find_reply);
+
+    EXPECT_EQ(output, expected_output);
+}
