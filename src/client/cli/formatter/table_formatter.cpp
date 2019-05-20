@@ -156,7 +156,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n",
                        (alias->remote_name().empty() ? "" : alias->remote_name() + ":") + alias->alias(),
                        fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
-                       fmt::format("{} {}", image.os(), image.release()));
+                       fmt::format("{}{}", image.os().empty() ? ""  : image.os() + " ", image.release()));
     }
 
     return fmt::to_string(buf);

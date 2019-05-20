@@ -176,6 +176,21 @@ auto construct_find_one_reply()
     return reply;
 }
 
+auto construct_find_one_reply_no_os()
+{
+    auto reply = mp::FindReply();
+
+    auto image_entry = reply.add_images_info();
+    image_entry->set_release("Snapcraft builder for core18");
+    image_entry->set_version("20190520");
+
+    auto alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("core18");
+    alias_entry->set_remote_name("snapcraft");
+
+    return reply;
+}
+
 auto construct_find_multiple_replies()
 {
     auto reply = mp::FindReply();
@@ -394,6 +409,19 @@ TEST_F(TableFormatter, filtered_aliases_in_find_output)
     auto expected_output = "Image                   Aliases           Version          Description\n"
                            "lts                                       20190516         Ubuntu 18.04 LTS\n"
                            "daily:19.10             eoan,devel        20190516         Ubuntu 19.10\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(TableFormatter, well_formatted_empty_os_find_output)
+{
+    mp::TableFormatter formatter;
+    const auto reply = construct_find_one_reply_no_os();
+
+    auto expected_output = "Image                   Aliases           Version          Description\n"
+                           "snapcraft:core18                          20190520         Snapcraft builder for core18\n";
 
     auto output = formatter.format(reply);
 
