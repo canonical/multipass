@@ -21,9 +21,6 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
 
-#include <iomanip>
-#include <sstream>
-
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
