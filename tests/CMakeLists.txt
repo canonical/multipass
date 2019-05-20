@@ -95,6 +95,7 @@ add_executable(multipass_tests
   test_private_pass_provider.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
+  test_singleton.cpp
   test_scp_client.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
