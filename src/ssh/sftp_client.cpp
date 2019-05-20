@@ -41,6 +41,7 @@ const std::string stream_file_name{"stream_output.dat"};
 
 using SFTPSessionUPtr = std::unique_ptr<sftp_session_struct, void (*)(sftp_session)>;
 using SFTPFileUPtr = std::unique_ptr<sftp_file_struct, int (*)(sftp_file)>;
+using SFTPAttrUPtr = std::unique_ptr<sftp_attributes_struct, void (*)(sftp_attributes)>;
 
 SFTPSessionUPtr make_sftp_session(ssh_session session)
 {
@@ -86,14 +87,12 @@ void mp::SFTPClient::push_file(const std::string& source_path, const std::string
     QFile source(QString::fromStdString(source_path));
     const auto size{source.size()};
 
-    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode);
-    SFTPFileUPtr file_handle{raw_ptr, sftp_close};
-
+    SFTPFileUPtr file_handle{
+        sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode), sftp_close};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp push] open failed", sftp_get_error);
 
     int total{0};
     std::array<char, 65536u> data;
-
     if (!source.open(QIODevice::ReadOnly))
         throw std::runtime_error(
             fmt::format("[sftp push] error opening file for reading: {}", source.errorString().toStdString()));
@@ -120,7 +119,7 @@ void mp::SFTPClient::pull_file(const std::string& source_path, const std::string
     SFTPSessionUPtr sftp{make_sftp_session(*ssh_session)};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] init failed", sftp_init);
 
-    const auto file_attributes = sftp_stat(sftp.get(), source_path.c_str());
+    SFTPAttrUPtr file_attributes{sftp_stat(sftp.get(), source_path.c_str()), sftp_attributes_free};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] getting stat failed", sftp_get_error);
 
     const auto size{file_attributes->size};
@@ -135,9 +134,7 @@ void mp::SFTPClient::pull_file(const std::string& source_path, const std::string
         throw std::runtime_error(
             fmt::format("[sftp pull] error opening file for writing: {}", destination.errorString().toStdString()));
 
-    auto raw_ptr = sftp_open(sftp.get(), destination_path.c_str(), O_RDONLY, file_mode);
-    SFTPFileUPtr file_handle{raw_ptr, sftp_close};
-
+    SFTPFileUPtr file_handle{sftp_open(sftp.get(), source_path.c_str(), O_RDONLY, file_mode), sftp_close};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] open failed", sftp_get_error);
 
     int r;
@@ -163,9 +160,8 @@ void mp::SFTPClient::stream_file(const std::string& destination_path)
     SFTPSessionUPtr sftp{make_sftp_session(*ssh_session)};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp stream] init session failed", sftp_init);
 
-    auto raw_ptr = sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode);
-    SFTPFileUPtr file_handle{raw_ptr, sftp_close};
-
+    SFTPFileUPtr file_handle{
+        sftp_open(sftp.get(), full_destination_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode), sftp_close};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp stream] open failed", sftp_get_error);
 
     QTextStream in_stream(stdin);

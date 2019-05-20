@@ -120,6 +120,7 @@ target_include_directories(multipass_tests
   PRIVATE ${MULTIPASS_GMOCK_DIR}/include
 )
 
+add_definitions(-DWITH_SERVER)
 target_compile_definitions(ssh_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(sshfs_mount_test PRIVATE
