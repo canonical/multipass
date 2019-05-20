@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/formatter.h>
 
 #include <iomanip>
 #include <sstream>
@@ -26,25 +27,6 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
-
-namespace
-{
-std::ostream& operator<<(std::ostream& out, const multipass::FindReply::AliasInfo& alias_info)
-{
-    auto alias = (!alias_info.remote_name().empty() ? alias_info.remote_name() + ":" : "") + alias_info.alias();
-    out << std::setw(21) << std::left << alias;
-
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const multipass::FindReply::ImageInfo& image_info)
-{
-    out << std::setw(32) << std::left << (!image_info.os().empty() ? image_info.os() + " " : "") + image_info.release()
-        << image_info.version() << "\n";
-
-    return out;
-}
-}
 
 mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
 {
@@ -54,48 +36,8 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::FindReply& reply) {
-        std::stringstream out;
-
-        out << "multipass launch …   Starts an instance of           Image version\n";
-        out << "------------------------------------------------------------------\n";
-
-        for (const auto& info : reply.images_info())
-        {
-            for (auto alias_info = info.aliases_info().cbegin(); alias_info != info.aliases_info().cend(); ++alias_info)
-            {
-                if (request.search_string().empty())
-                {
-                    if (alias_info == info.aliases_info().cbegin())
-                    {
-                        out << *alias_info;
-                        out << info;
-                    }
-                    else
-                    {
-                        if (alias_info == info.aliases_info().cbegin() + 1)
-                        {
-                            out << "   (or: ";
-                        }
-
-                        if (alias_info == info.aliases_info().cend() - 1)
-                        {
-                            out << alias_info->alias() << ")\n";
-                        }
-                        else
-                        {
-                            out << alias_info->alias() << ", ";
-                        }
-                    }
-                }
-                else
-                {
-                    out << *alias_info;
-                    out << info;
-                }
-            }
-        }
-        cout << out.str();
+    auto on_success = [this](FindReply& reply) {
+        cout << chosen_formatter->format(reply);
 
         return ReturnCode::Ok;
     };
@@ -134,6 +76,12 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     QCommandLineOption unsupportedOption("show-unsupported", "Show unsupported cloud images as well");
     parser->addOptions({unsupportedOption});
 
+    QCommandLineOption formatOption(
+        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
+        "format", "table");
+
+    parser->addOption(formatOption);
+
     auto status = parser->commandParse(this);
 
     if (status != ParseCode::Ok)
@@ -171,6 +119,8 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     {
         request.set_allow_unsupported(true);
     }
+
+    status = handle_format_option(parser, &chosen_formatter, cerr);
 
     return status;
 }
