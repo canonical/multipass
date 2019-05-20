@@ -15,23 +15,23 @@
  *
  */
 
-#ifndef MULTIPASS_SETTINGS_H
-#define MULTIPASS_SETTINGS_H
+#include "mock_settings.h"
 
-#include "singleton.h"
+#include <multipass/settings.h>
 
-namespace multipass
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+namespace mp = multipass;
+namespace mpt = mp::test;
+using namespace testing;
+
+namespace
 {
-class Settings : public Singleton<Settings>
+TEST(Settings, can_be_mocked)
 {
-public:
-    using Singleton<Settings>::Singleton; // ctor
-
-    virtual int tmp() const // TODO @ ricab replace this
-    {
-        return 123;
-    }
-};
-} // namespace multipass
-
-#endif // MULTIPASS_SETTINGS_H
+    const auto& mock = mpt::MockSettings::mock_instance();
+    EXPECT_CALL(mock, tmp()).WillOnce(Return(42));
+    ASSERT_EQ(mp::Settings::instance().tmp(), 42);
+}
+} // namespace

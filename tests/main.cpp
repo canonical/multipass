@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,15 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
+
+#include "mock_settings.h"
+
+#include <multipass/constants.h>
 
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
-
-#include <multipass/constants.h>
 
 namespace mp = multipass;
 
@@ -35,5 +35,6 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("multipass_tests");
 
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(mp::test::MockSettings::mocking_environment()); // takes pointer ownership o_O
     return RUN_ALL_TESTS();
 }
