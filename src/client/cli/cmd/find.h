@@ -22,6 +22,8 @@
 
 namespace multipass
 {
+class Formatter;
+
 namespace cmd
 {
 class Find final : public Command
@@ -38,6 +40,8 @@ private:
     FindRequest request;
 
     ParseCode parse_args(ArgParser* parser) override;
+
+    Formatter* chosen_formatter;
 };
 }
 }
