@@ -72,4 +72,23 @@ TEST(Singleton, singleton_can_be_mocked_and_reset)
     ASSERT_THAT(TestSingleton::instance().foo(), Not(mock_matcher));
 }
 
+// safety demo
+class TryMultipleton : public mp::Singleton<TryMultipleton>
+{
+public:
+    // TryMultipleton() = default; // compilation fails when called
+
+    // TryMultipleton()
+    //     : Singleton<TryMultipleton>{Singleton<TryMultipleton>::pass} // error: private
+    // {}
+
+    struct lockpick
+    {
+    } pick{};
+    // TryMultipleton()
+    //     : Singleton<TryMultipleton>{reinterpret_cast<Singleton<TryMultipleton>::PrivatePass>(pick)} // bad cast
+    //     : Singleton<TryMultipleton>{(Singleton<TryMultipleton>::PrivatePass)(pick)} // no way to convert
+    // {}
+};
+
 } // namespace
