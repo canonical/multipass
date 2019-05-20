@@ -51,8 +51,6 @@ protected:
     static void reset(); // not thread-safe, make sure no other threads using this singleton anymore!
 
 private:
-    using Base::pass;
-
     template <typename U>
     static void init();
 
@@ -98,7 +96,7 @@ template <typename T>
 template <typename U>
 inline void multipass::Singleton<T>::init()
 {
-    std::call_once(*once, [] { single = std::make_unique<U>(pass); });
+    std::call_once(*once, [] { single = std::make_unique<U>(Base::pass); });
 }
 
 #endif // MULTIPASS_SINGLETON_H
