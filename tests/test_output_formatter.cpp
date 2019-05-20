@@ -223,6 +223,28 @@ auto construct_find_multiple_replies()
     return reply;
 }
 
+auto construct_find_multiple_replies_duplicate_image()
+{
+    auto reply = mp::FindReply();
+
+    auto image_entry = reply.add_images_info();
+    image_entry->set_os("Ubuntu");
+    image_entry->set_release("Core 18");
+    image_entry->set_version("20190520");
+
+    auto alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("core18");
+
+    image_entry = reply.add_images_info();
+    image_entry->set_release("Snapcraft builder for core18");
+    image_entry->set_version("20190520");
+
+    alias_entry = image_entry->add_aliases_info();
+    alias_entry->set_alias("core18");
+    alias_entry->set_remote_name("snapcraft");
+
+    return reply;
+}
 class LocaleSettingTest : public testing::Test
 {
 public:
@@ -421,6 +443,20 @@ TEST_F(TableFormatter, well_formatted_empty_os_find_output)
     const auto reply = construct_find_one_reply_no_os();
 
     auto expected_output = "Image                   Aliases           Version          Description\n"
+                           "snapcraft:core18                          20190520         Snapcraft builder for core18\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(TableFormatter, duplicate_images_in_find_output)
+{
+    mp::TableFormatter formatter;
+    const auto reply = construct_find_multiple_replies_duplicate_image();
+
+    auto expected_output = "Image                   Aliases           Version          Description\n"
+                           "core18                                    20190520         Ubuntu Core 18\n"
                            "snapcraft:core18                          20190520         Snapcraft builder for core18\n";
 
     auto output = formatter.format(reply);
@@ -692,7 +728,7 @@ TEST_F(JsonFormatter, filtered_aliases_in_find_output)
                            "    \"errors\": [\n"
                            "    ],\n"
                            "    \"images\": {\n"
-                           "        \"19.10\": {\n"
+                           "        \"daily:19.10\": {\n"
                            "            \"aliases\": [\n"
                            "                \"eoan\",\n"
                            "                \"devel\"\n"
@@ -731,6 +767,39 @@ TEST_F(JsonFormatter, no_images_find_output)
 
     mp::JsonFormatter json_formatter;
     auto output = json_formatter.format(find_reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(JsonFormatter, duplicate_images_in_find_output)
+{
+    mp::JsonFormatter formatter;
+    const auto reply = construct_find_multiple_replies_duplicate_image();
+
+    auto expected_output = "{\n"
+                           "    \"errors\": [\n"
+                           "    ],\n"
+                           "    \"images\": {\n"
+                           "        \"core18\": {\n"
+                           "            \"aliases\": [\n"
+                           "            ],\n"
+                           "            \"os\": \"Ubuntu\",\n"
+                           "            \"release\": \"Core 18\",\n"
+                           "            \"remote\": \"\",\n"
+                           "            \"version\": \"20190520\"\n"
+                           "        },\n"
+                           "        \"snapcraft:core18\": {\n"
+                           "            \"aliases\": [\n"
+                           "            ],\n"
+                           "            \"os\": \"\",\n"
+                           "            \"release\": \"Snapcraft builder for core18\",\n"
+                           "            \"remote\": \"snapcraft\",\n"
+                           "            \"version\": \"20190520\"\n"
+                           "        }\n"
+                           "    }\n"
+                           "}\n";
+
+    auto output = formatter.format(reply);
 
     EXPECT_EQ(output, expected_output);
 }
@@ -863,7 +932,21 @@ TEST_F(CSVFormatter, filtered_aliases_in_find_output)
 
     auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
                            "lts,,,Ubuntu,18.04 LTS,20190516\n"
-                           "19.10,daily,eoan;devel,Ubuntu,19.10,20190516\n";
+                           "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(CSVFormatter, duplicate_images_in_find_output)
+{
+    mp::CSVFormatter formatter;
+    const auto reply = construct_find_multiple_replies_duplicate_image();
+
+    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
+                           "core18,,,Ubuntu,Core 18,20190520\n"
+                           "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520\n";
 
     auto output = formatter.format(reply);
 
@@ -1095,7 +1178,7 @@ TEST_F(YamlFormatter, filtered_aliases_in_find_output)
                            "    release: 18.04 LTS\n"
                            "    version: 20190516\n"
                            "    remote: \"\"\n"
-                           "  19.10:\n"
+                           "  daily:19.10:\n"
                            "    aliases:\n"
                            "      - eoan\n"
                            "      - devel\n"
@@ -1103,6 +1186,34 @@ TEST_F(YamlFormatter, filtered_aliases_in_find_output)
                            "    release: 19.10\n"
                            "    version: 20190516\n"
                            "    remote: daily\n";
+
+    auto output = formatter.format(reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
+TEST_F(YamlFormatter, duplicate_images_in_find_output)
+{
+    mp::YamlFormatter formatter;
+    const auto reply = construct_find_multiple_replies_duplicate_image();
+
+    auto expected_output = "errors:\n"
+                           "  []\n"
+                           "images:\n"
+                           "  core18:\n"
+                           "    aliases:\n"
+                           "      []\n"
+                           "    os: Ubuntu\n"
+                           "    release: Core 18\n"
+                           "    version: 20190520\n"
+                           "    remote: \"\"\n"
+                           "  snapcraft:core18:\n"
+                           "    aliases:\n"
+                           "      []\n"
+                           "    os: \"\"\n"
+                           "    release: Snapcraft builder for core18\n"
+                           "    version: 20190520\n"
+                           "    remote: snapcraft\n";
 
     auto output = formatter.format(reply);
 

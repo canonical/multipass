@@ -76,7 +76,8 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
 
         mp::format::filter_aliases(aliases);
 
-        fmt::format_to(buf, "{},{},{},{},{},{}\n", aliases[0].alias(), aliases[0].remote_name(),
+        auto image_id = aliases[0].remote_name().empty() ? aliases[0].alias() : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
+        fmt::format_to(buf, "{},{},{},{},{},{}\n", image_id, aliases[0].remote_name(),
                        fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"), image.os(), image.release(),
                        image.version());
     }
