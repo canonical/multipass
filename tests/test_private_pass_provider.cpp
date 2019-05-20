@@ -49,6 +49,13 @@ public:
     }
 };
 
+TEST(PrivatePass, friend_can_call_function_requiring_pass)
+{
+    const auto str = "proof";
+    const FriendExample fex{};
+    EXPECT_EQ(fex.enter(str), str);
+}
+
 // safety demo
 struct TryBreakInExample : public mp::PrivatePassProvider<TryBreakInExample>,
                            public mp::PrivatePassProvider<PassExample>
@@ -60,12 +67,5 @@ struct TryBreakInExample : public mp::PrivatePassProvider<TryBreakInExample>,
         // type PassExample::speak_friend_and_enter(PrivatePassProvider<PassExample>::pass, "x"); // error: not friends
     }
 };
-
-TEST(PrivatePass, friend_can_call_function_requiring_pass)
-{
-    const auto str = "proof";
-    const FriendExample fex{};
-    EXPECT_EQ(fex.enter(str), str);
-}
 
 } // namespace
