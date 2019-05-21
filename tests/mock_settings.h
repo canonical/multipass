@@ -33,11 +33,7 @@ public:
     using Settings::Settings;    // ctor
 
     static testing::Environment* mocking_environment(); // transfers ownership (as gtest expects)!
-
-    static MockSettings& mock_instance() // TODO @ricab separate impl from decl
-    {
-        return dynamic_cast<MockSettings&>(instance());
-    }
+    static MockSettings& mock_instance();
 
     MOCK_CONST_METHOD1(get, QString(const QString&));
 
@@ -55,6 +51,11 @@ private:
 inline ::testing::Environment* multipass::test::MockSettings::mocking_environment()
 {
     return new TestEnv;
+}
+
+inline auto multipass::test::MockSettings::mock_instance() -> MockSettings&
+{
+    return dynamic_cast<MockSettings&>(instance());
 }
 
 inline void multipass::test::MockSettings::TestEnv::SetUp()
