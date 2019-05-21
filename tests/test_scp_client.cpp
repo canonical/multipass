@@ -123,16 +123,22 @@ TEST_F(SCPClient, throws_on_push_file_invalid_source)
 
 TEST_F(SCPClient, throws_when_pull_file_request_not_newfile)
 {
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
     auto scp = make_scp_client();
 
     REPLACE(ssh_scp_init, [](auto...) { return SSH_OK; });
     REPLACE(ssh_scp_pull_request, [](auto...) { return SSH_SCP_REQUEST_WARNING; });
 
-    EXPECT_THROW(scp.pull_file("foo", "bar"), std::runtime_error);
+    EXPECT_THROW(scp.pull_file("foo", file_name.toStdString()), std::runtime_error);
 }
 
 TEST_F(SCPClient, throws_when_accept_request_fails)
 {
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
     auto scp = make_scp_client();
 
     REPLACE(ssh_scp_init, [](auto...) { return SSH_OK; });
@@ -141,7 +147,7 @@ TEST_F(SCPClient, throws_when_accept_request_fails)
     REPLACE(ssh_scp_request_get_filename, [](auto...) { return "foo"; });
     REPLACE(ssh_scp_accept_request, [](auto...) { return SSH_ERROR; });
 
-    EXPECT_THROW(scp.pull_file("foo", "bar"), std::runtime_error);
+    EXPECT_THROW(scp.pull_file("foo", file_name.toStdString()), std::runtime_error);
 }
 
 TEST_F(SCPClient, throws_on_pull_file_scp_close_error)
