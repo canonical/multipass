@@ -1493,18 +1493,22 @@ try // clang-format on
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
-    if (status.ok())
+    if (!status.ok())
     {
-        status = cmd_vms(instances,
-                         std::bind(&Daemon::reboot_vm, this, std::placeholders::_1)); // 1st pass to reboot all targets
-
-        if (status.ok())
-        {
-            auto future_watcher = create_future_watcher();
-            future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server,
-                                                        instances, status_promise));
-        }
+        return status_promise->set_value(status);
     }
+
+    status = cmd_vms(instances,
+                     std::bind(&Daemon::reboot_vm, this, std::placeholders::_1)); // 1st pass to reboot all targets
+
+    if (!status.ok())
+    {
+        return status_promise->set_value(status);
+    }
+
+    auto future_watcher = create_future_watcher();
+    future_watcher->setFuture(
+        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server, instances, status_promise));
 }
 catch (const std::exception& e)
 {
@@ -1756,7 +1760,7 @@ void mp::Daemon::persist_instances()
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
-void mp::Daemon::start_mount(VirtualMachine *vm, const std::string& name, const std::string& source_path,
+void mp::Daemon::start_mount(VirtualMachine* vm, const std::string& name, const std::string& source_path,
                              const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                              const std::unordered_map<int, int>& uid_map)
 {
@@ -2058,7 +2062,7 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     return grpc::Status::OK;
 }
 
-void mp::Daemon::install_sshfs(VirtualMachine *vm, const std::string& name)
+void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
 {
     auto& key_provider = *config->ssh_key_provider;
 
