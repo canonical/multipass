@@ -260,8 +260,7 @@ TEST_F(Client, shell_cmd_help_ok)
 
 TEST_F(Client, shell_cmd_no_args_targets_petenv)
 {
-    const auto petenv_matcher = make_ssh_info_instance_matcher(
-        mp::petenv_name); // TODO @ricab replace constant result of `multipass get petenv_key`
+    const auto petenv_matcher = make_ssh_info_instance_matcher(mp::petenv_name);
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
