@@ -29,11 +29,12 @@ namespace test
 class MockSettings : public Settings
 {
 public:
-    using Settings::Settings; // ctor
+    using Settings::get_default; // promote visibility
+    using Settings::Settings;    // ctor
 
     static testing::Environment* mocking_environment(); // transfers ownership (as gtest expects)!
 
-    static MockSettings& mock_instance()
+    static MockSettings& mock_instance() // TODO @ricab separate impl from decl
     {
         return dynamic_cast<MockSettings&>(instance());
     }
@@ -58,7 +59,10 @@ inline ::testing::Environment* multipass::test::MockSettings::mocking_environmen
 
 inline void multipass::test::MockSettings::TestEnv::SetUp()
 {
+    using namespace testing;
     Settings::mock<testing::NiceMock<MockSettings>>();
+    auto& mock = MockSettings::mock_instance();
+    ON_CALL(mock, get(_)).WillByDefault(Invoke(&mock, &MockSettings::get_default));
 }
 
 inline void multipass::test::MockSettings::TestEnv::TearDown()
