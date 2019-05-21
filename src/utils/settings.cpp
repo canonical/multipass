@@ -42,6 +42,7 @@ QString mp::Settings::get(const QString& key) const
 }
 
 QString mp::Settings::get_default(const QString& key) const
+const QString& mp::Settings::get_default(const QString& key) const
 {
     return defaults.at(key); // throws if not there
 }

@@ -36,7 +36,7 @@ public:
 
 protected:
     // throws std::out_of_range on unknown key
-    QString get_default(const QString& key) const;
+    const QString& get_default(const QString& key) const;
 
 private:
     std::map<QString, QString> defaults;
