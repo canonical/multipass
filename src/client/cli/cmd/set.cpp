@@ -19,9 +19,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
-
-#include <QSettings>
-#include <QtGlobal>
+#include <multipass/settings.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -31,7 +29,7 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
     auto parse_code = parse_args(parser);
     auto ret = parser->returnCodeFrom(parse_code);
     if (parse_code == ParseCode::Ok)
-        QSettings{}.setValue(key, val);
+        Settings::instance().set(key, val); // TODO @ricab consider macro
 
     return ret;
 }
