@@ -20,17 +20,21 @@
 
 #include "singleton.h"
 
+#include <QString>
+
+#include <map>
+
 namespace multipass
 {
 class Settings : public Singleton<Settings>
 {
 public:
-    using Singleton<Settings>::Singleton; // ctor
+    Settings(const Singleton<Settings>::PrivatePass&);
 
-    virtual int tmp() const // TODO @ ricab replace this
-    {
-        return 123;
-    }
+    virtual QString get(const QString& key) const;
+
+protected:
+    std::map<QString, QString> defaults;
 };
 } // namespace multipass
 

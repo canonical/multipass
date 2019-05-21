@@ -15,29 +15,28 @@
  *
  */
 
-#include "mock_settings.h"
-
+#include <multipass/constants.h>
 #include <multipass/settings.h>
 
-#include <QString>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <QSettings>
 
 namespace mp = multipass;
-namespace mpt = mp::test;
-using namespace testing;
 
 namespace
 {
-
-TEST(Settings, can_be_mocked)
+std::map<QString, QString> make_defaults()
 {
-    const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
-    const auto& mock = mpt::MockSettings::mock_instance();
+    return {{mp::petenv_key, mp::petenv_name}};
+}
+} // namespace
 
-    EXPECT_CALL(mock, get(_)).WillOnce(Return(proof));
-    ASSERT_EQ(mp::Settings::instance().get(test), proof);
+mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
+    : Singleton<Settings>::Singleton{pass}, defaults{make_defaults()}
+{
 }
 
-} // namespace
+QString mp::Settings::get(const QString& key) const
+{
+    const auto& default_ret = defaults.at(key); // make sure the key is valid before reading from disk
+    return QSettings{}.value(key, default_ret).toString();
+}

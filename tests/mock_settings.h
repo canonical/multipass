@@ -38,7 +38,7 @@ public:
         return dynamic_cast<MockSettings&>(instance());
     }
 
-    MOCK_CONST_METHOD0(tmp, int()); // TODO @ ricab replace this
+    MOCK_CONST_METHOD1(get, QString(const QString&));
 
 private:
     class TestEnv : public ::testing::Environment // tying setup/teardown here ensures registered mock is unregistered
