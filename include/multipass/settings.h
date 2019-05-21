@@ -33,6 +33,7 @@ public:
 
     // throws std::out_of_range on unknown key
     virtual QString get(const QString& key) const;
+    virtual void set(const QString& key, const QString& val);
 
 protected:
     // throws std::out_of_range on unknown key

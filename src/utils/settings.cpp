@@ -41,7 +41,12 @@ QString mp::Settings::get(const QString& key) const
     return QSettings{}.value(key, default_ret).toString();
 }
 
-QString mp::Settings::get_default(const QString& key) const
+void mp::Settings::set(const QString& key, const QString& val)
+{
+    get_default(key); // make sure the key is valid before setting
+    QSettings{}.setValue(key, val);
+}
+
 const QString& mp::Settings::get_default(const QString& key) const
 {
     return defaults.at(key); // throws if not there
