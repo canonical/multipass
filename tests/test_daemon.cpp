@@ -58,6 +58,10 @@ using namespace testing;
 
 namespace
 {
+template<typename R>
+  bool is_ready(std::future<R> const& f)
+  { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
+
 struct MockDaemon : public mp::Daemon
 {
     using mp::Daemon::Daemon;
@@ -335,6 +339,21 @@ TEST_F(Daemon, provides_version)
 
     EXPECT_THAT(stream.str(), HasSubstr(mp::version_string));
 }
+
+TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    auto nonexistant_instance = new mp::InstanceNames; // on heap as *Request takes ownership
+    nonexistant_instance->add_instance_name("nonexistant");
+    mp::RestartRequest request;
+    request.set_allocated_instance_names(nonexistant_instance);
+    std::promise<grpc::Status> status_promise;
+
+    daemon.restart(&request, nullptr, &status_promise);
+    EXPECT_TRUE(is_ready(status_promise.get_future()));
+}
+
 
 namespace
 {
