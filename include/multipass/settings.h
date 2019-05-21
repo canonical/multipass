@@ -31,9 +31,14 @@ class Settings : public Singleton<Settings>
 public:
     Settings(const Singleton<Settings>::PrivatePass&);
 
+    // throws std::out_of_range on unknown key
     virtual QString get(const QString& key) const;
 
 protected:
+    // throws std::out_of_range on unknown key
+    QString get_default(const QString& key) const;
+
+private:
     std::map<QString, QString> defaults;
 };
 } // namespace multipass
