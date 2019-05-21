@@ -94,7 +94,10 @@ void cmd::GuiCmd::update_menu()
             {
                 auto& instance_menu = instances_entries.at(name).menu;
 
-                instance_menu->setTitle(QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state_string));
+                if (state.status() == InstanceStatus::STOPPED)
+                    instance_menu->setTitle(QString::fromStdString(name));
+                else
+                    instance_menu->setTitle(QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state_string));
                 instance_menu->clear();
                 set_menu_actions_for(name, state);
                 instances_entries[name].state = state;
