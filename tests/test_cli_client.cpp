@@ -103,7 +103,9 @@ struct Client : public Test
         auto out = std::ostringstream{};
         EXPECT_THAT(send_command({"get", key}, out), Eq(mp::ReturnCode::Ok));
 
-        return out.str();
+        auto ret = out.str();
+        ret.pop_back(); // drop newline
+        return ret;
     }
 
     auto make_launch_instance_matcher(const std::string& instance_name)
