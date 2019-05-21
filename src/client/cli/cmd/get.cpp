@@ -19,8 +19,8 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/settings.h>
 
-#include <QSettings>
 #include <QtGlobal>
 
 namespace mp = multipass;
@@ -32,17 +32,15 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     auto ret = parser->returnCodeFrom(parse_code);
     if (parse_code == ParseCode::Ok)
     {
-        QSettings settings;
+        try
+        {
+            cout << qPrintable(Settings::instance().get(key)) << "\n";
+        }
+        catch (const std::out_of_range&)
 
-        const auto val = settings.value(key);
-        if (val.isNull())
         {
             cerr << "Unknown key: \"" << qPrintable(key) << "\"\n";
             ret = ReturnCode::CommandLineError;
-        }
-        else
-        {
-            cout << qPrintable(val.toString()) << "\n";
         }
     }
 

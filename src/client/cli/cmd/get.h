@@ -20,6 +20,8 @@
 
 #include <multipass/cli/command.h>
 
+#include <QString>
+
 namespace multipass
 {
 namespace cmd
