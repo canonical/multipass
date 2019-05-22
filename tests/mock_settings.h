@@ -36,6 +36,7 @@ public:
     static MockSettings& mock_instance();
 
     MOCK_CONST_METHOD1(get, QString(const QString&));
+    MOCK_METHOD2(set, void(const QString&, const QString&));
 
 private:
     class TestEnv : public ::testing::Environment // tying setup/teardown here ensures registered mock is unregistered
@@ -64,6 +65,7 @@ inline void multipass::test::MockSettings::TestEnv::SetUp()
     Settings::mock<testing::NiceMock<MockSettings>>();
     auto& mock = MockSettings::mock_instance();
     ON_CALL(mock, get(_)).WillByDefault(Invoke(&mock, &MockSettings::get_default));
+    ON_CALL(mock, set(_, _)).WillByDefault(WithArg<0>(IgnoreResult(Invoke(&mock, &MockSettings::get_default))));
 }
 
 inline void multipass::test::MockSettings::TestEnv::TearDown()
