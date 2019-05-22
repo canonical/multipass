@@ -29,7 +29,17 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
     auto parse_code = parse_args(parser);
     auto ret = parser->returnCodeFrom(parse_code);
     if (parse_code == ParseCode::Ok)
-        Settings::instance().set(key, val); // TODO @ricab consider macro
+    {
+        try
+        {
+            Settings::instance().set(key, val); // TODO @ricab consider macro
+        }
+        catch (const std::out_of_range&)
+        {
+            cerr << "Unknown key: \"" << qPrintable(key) << "\"\n";
+            ret = ReturnCode::CommandLineError;
+        }
+    }
 
     return ret;
 }
