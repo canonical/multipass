@@ -60,7 +60,6 @@ void multipass::test::MockSettings::TestEnv::register_accountant()
 
 void multipass::test::MockSettings::TestEnv::release_accountant()
 {
-    // TODO @ricab move this stuff to anonymous namespace in cpp
     auto* listener = UnitTest::GetInstance()->listeners().Release(accountant); // releases ownership
     assert(listener == accountant);
     static_cast<void>(listener); // to avoid unused var warning

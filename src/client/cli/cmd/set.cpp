@@ -32,7 +32,7 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
     {
         try
         {
-            Settings::instance().set(key, val); // TODO @ricab consider macro
+            Settings::instance().set(key, val);
         }
         catch (const std::out_of_range&)
         {

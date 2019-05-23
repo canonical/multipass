@@ -35,6 +35,7 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
 {
 }
 
+// TODO @ricab try yaml...
 QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
