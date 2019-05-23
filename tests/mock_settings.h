@@ -22,6 +22,8 @@
 
 #include <gmock/gmock.h>
 
+#include <cassert> // TODO @ricab move to cpp
+
 namespace multipass
 {
 namespace test
@@ -53,6 +55,9 @@ private:
 
     private:
         void register_accountant();
+        void release_accountant();
+
+        MockSettingsAccountant* accountant = nullptr; // non-owning ptr
     };
 };
 } // namespace test
@@ -85,6 +90,7 @@ inline void multipass::test::MockSettings::TestEnv::SetUp()
 
 inline void multipass::test::MockSettings::TestEnv::TearDown()
 {
+    release_accountant();
     Settings::reset(); /* We need to make sure this runs before gtest unwinds because this is a mock and otherwise
                             a) the mock would leak,
                             b) expectations would not be checked,
@@ -94,7 +100,19 @@ inline void multipass::test::MockSettings::TestEnv::TearDown()
 
 inline void multipass::test::MockSettings::TestEnv::register_accountant()
 {
-    ::testing::UnitTest::GetInstance()->listeners().Append(new MockSettingsAccountant{}); // takes ownership
+    accountant = new MockSettingsAccountant{};
+    ::testing::UnitTest::GetInstance()->listeners().Append(accountant); // takes ownership
+}
+
+inline void multipass::test::MockSettings::TestEnv::release_accountant()
+{
+    // TODO @ricab move this stuff to anonymous namespace in cpp
+    auto* listener = ::testing::UnitTest::GetInstance()->listeners().Release(accountant); // releases ownership
+    assert(listener == accountant);
+    static_cast<void>(listener); // to avoid unused var warning
+
+    delete accountant; // no prob if already null
+    accountant = nullptr;
 }
 
 inline void multipass::test::MockSettings::MockSettingsAccountant::OnTestEnd(const ::testing::TestInfo& /*unused*/)
