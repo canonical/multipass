@@ -32,7 +32,7 @@ public:
     using Settings::get_default; // promote visibility
     using Settings::Settings;    // ctor
 
-    static testing::Environment* mocking_environment(); // transfers ownership (as gtest expects)!
+    static void mockit();
     static MockSettings& mock_instance();
 
     MOCK_CONST_METHOD1(get, QString(const QString&));
@@ -49,9 +49,11 @@ private:
 } // namespace test
 } // namespace multipass
 
-inline ::testing::Environment* multipass::test::MockSettings::mocking_environment()
+// TODO @ricab move this stuff to compilation unit
+
+inline void multipass::test::MockSettings::mockit()
 {
-    return new TestEnv;
+    ::testing::AddGlobalTestEnvironment(new TestEnv{}); // takes pointer ownership o_O
 }
 
 inline auto multipass::test::MockSettings::mock_instance() -> MockSettings&

@@ -35,6 +35,6 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("multipass_tests");
 
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(mp::test::MockSettings::mocking_environment()); // takes pointer ownership o_O
+    mp::test::MockSettings::mockit();
     return RUN_ALL_TESTS();
 }
