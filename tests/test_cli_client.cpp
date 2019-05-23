@@ -15,6 +15,7 @@
  *
  */
 
+#include "mock_settings.h"
 #include "mock_stdcin.h"
 #include "path.h"
 #include "stub_cert_store.h"
@@ -82,6 +83,15 @@ struct MockDaemonRpc : public mp::DaemonRpc
 
 struct Client : public Test
 {
+    void TearDown() override
+    {
+        Mock::VerifyAndClearExpectations(&mpt::MockSettings::mock_instance());
+        Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a strict mock
+                                                           every call to mock_daemon was explicitly "expected",
+                                                           superseding previous expectations and preventing them from
+                                                           being saturated */
+    }
+
     int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
                      std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
@@ -1206,7 +1216,11 @@ TEST_F(Client, get_can_read_config_values)
 
 TEST_F(Client, set_can_write_write_config_values)
 {
-    EXPECT_THAT(send_command({"set", mp::petenv_key, "blah"}), Eq(mp::ReturnCode::Ok));
+    const auto key = mp::petenv_key;
+    const auto val = "blah";
+
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)
