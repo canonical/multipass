@@ -86,9 +86,10 @@ struct Client : public Test
     void TearDown() override
     {
         Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a strict mock
-                                                           every call to mock_daemon was explicitly "expected",
-                                                           superseding previous expectations and preventing them from
-                                                           being saturated */
+                                                           every call to mock_daemon had to be explicitly "expected".
+                                                           Being the best match for incoming calls, each expectation
+                                                           took precedence over the previous ones, preventing them from
+                                                           being saturated inadvertently */
     }
 
     int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
