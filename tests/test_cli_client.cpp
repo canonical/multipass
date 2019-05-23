@@ -1209,12 +1209,12 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 }
 
 // get/set cli tests
-TEST_F(Client, get_can_read_config_values)
+TEST_F(Client, get_can_read_settings)
 {
     get_setting(mp::petenv_key);
 }
 
-TEST_F(Client, set_can_write_write_config_values)
+TEST_F(Client, set_can_write_settings)
 {
     const auto key = mp::petenv_key;
     const auto val = "blah";
