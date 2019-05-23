@@ -26,7 +26,7 @@ namespace multipass
 {
 namespace test
 {
-class MockSettings : public Settings
+class MockSettings : public Settings // This will automatically verify expectations set upon it at the end of each test
 {
 public:
     using Settings::get_default; // promote visibility
@@ -39,11 +39,20 @@ public:
     MOCK_METHOD2(set, void(const QString&, const QString&));
 
 private:
+    class MockSettingsAccountant : public ::testing::EmptyTestEventListener
+    {
+    public:
+        void OnTestEnd(const ::testing::TestInfo&) override;
+    };
+
     class TestEnv : public ::testing::Environment // tying setup/teardown here ensures registered mock is unregistered
     {
     public:
         void SetUp() override;
         void TearDown() override;
+
+    private:
+        void register_accountant();
     };
 };
 } // namespace test
@@ -64,10 +73,14 @@ inline auto multipass::test::MockSettings::mock_instance() -> MockSettings&
 inline void multipass::test::MockSettings::TestEnv::SetUp()
 {
     using namespace testing;
-    Settings::mock<testing::NiceMock<MockSettings>>();
+
+    Settings::mock<NiceMock<MockSettings>>();
+
     auto& mock = MockSettings::mock_instance();
     ON_CALL(mock, get(_)).WillByDefault(Invoke(&mock, &MockSettings::get_default));
     ON_CALL(mock, set(_, _)).WillByDefault(WithArg<0>(IgnoreResult(Invoke(&mock, &MockSettings::get_default))));
+
+    register_accountant();
 }
 
 inline void multipass::test::MockSettings::TestEnv::TearDown()
@@ -77,6 +90,16 @@ inline void multipass::test::MockSettings::TestEnv::TearDown()
                             b) expectations would not be checked,
                             c) it would refer to stuff that was deleted by then.
                         */
+}
+
+inline void multipass::test::MockSettings::TestEnv::register_accountant()
+{
+    ::testing::UnitTest::GetInstance()->listeners().Append(new MockSettingsAccountant{}); // takes ownership
+}
+
+inline void multipass::test::MockSettings::MockSettingsAccountant::OnTestEnd(const ::testing::TestInfo& /*unused*/)
+{
+    ::testing::Mock::VerifyAndClearExpectations(&MockSettings::mock_instance());
 }
 
 #endif // MULTIPASS_MOCK_SETTINGS_H

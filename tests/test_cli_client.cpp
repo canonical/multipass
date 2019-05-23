@@ -85,7 +85,6 @@ struct Client : public Test
 {
     void TearDown() override
     {
-        Mock::VerifyAndClearExpectations(&mpt::MockSettings::mock_instance());
         Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a strict mock
                                                            every call to mock_daemon was explicitly "expected",
                                                            superseding previous expectations and preventing them from
