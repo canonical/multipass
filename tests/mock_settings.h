@@ -22,8 +22,6 @@
 
 #include <gmock/gmock.h>
 
-#include <cassert> // TODO @ricab move to cpp
-
 namespace multipass
 {
 namespace test
@@ -47,7 +45,7 @@ private:
         void OnTestEnd(const ::testing::TestInfo&) override;
     };
 
-    class TestEnv : public ::testing::Environment // tying setup/teardown here ensures registered mock is unregistered
+    class TestEnv : public ::testing::Environment
     {
     public:
         void SetUp() override;
@@ -62,62 +60,5 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-// TODO @ricab move this stuff to compilation unit
-
-inline void multipass::test::MockSettings::mockit()
-{
-    ::testing::AddGlobalTestEnvironment(new TestEnv{}); // takes pointer ownership o_O
-}
-
-inline auto multipass::test::MockSettings::mock_instance() -> MockSettings&
-{
-    return dynamic_cast<MockSettings&>(instance());
-}
-
-inline void multipass::test::MockSettings::TestEnv::SetUp()
-{
-    using namespace testing;
-
-    Settings::mock<NiceMock<MockSettings>>();
-
-    auto& mock = MockSettings::mock_instance();
-    ON_CALL(mock, get(_)).WillByDefault(Invoke(&mock, &MockSettings::get_default));
-    ON_CALL(mock, set(_, _)).WillByDefault(WithArg<0>(IgnoreResult(Invoke(&mock, &MockSettings::get_default))));
-
-    register_accountant();
-}
-
-inline void multipass::test::MockSettings::TestEnv::TearDown()
-{
-    release_accountant();
-    Settings::reset(); /* We need to make sure this runs before gtest unwinds because this is a mock and otherwise
-                            a) the mock would leak,
-                            b) expectations would not be checked,
-                            c) it would refer to stuff that was deleted by then.
-                        */
-}
-
-inline void multipass::test::MockSettings::TestEnv::register_accountant()
-{
-    accountant = new Accountant{};
-    ::testing::UnitTest::GetInstance()->listeners().Append(accountant); // takes ownership
-}
-
-inline void multipass::test::MockSettings::TestEnv::release_accountant()
-{
-    // TODO @ricab move this stuff to anonymous namespace in cpp
-    auto* listener = ::testing::UnitTest::GetInstance()->listeners().Release(accountant); // releases ownership
-    assert(listener == accountant);
-    static_cast<void>(listener); // to avoid unused var warning
-
-    delete accountant; // no prob if already null
-    accountant = nullptr;
-}
-
-inline void multipass::test::MockSettings::Accountant::OnTestEnd(const ::testing::TestInfo& /*unused*/)
-{
-    ::testing::Mock::VerifyAndClearExpectations(&MockSettings::mock_instance());
-}
 
 #endif // MULTIPASS_MOCK_SETTINGS_H
