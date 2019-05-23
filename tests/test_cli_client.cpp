@@ -98,7 +98,7 @@ struct Client : public Test
         return client.run(args);
     }
 
-    std::string get_config(const std::string& key)
+    std::string get_setting(const std::string& key)
     {
         auto out = std::ostringstream{};
         EXPECT_THAT(send_command({"get", key}, out), Eq(mp::ReturnCode::Ok));
@@ -1201,7 +1201,7 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 // get/set cli tests
 TEST_F(Client, get_can_read_config_values)
 {
-    get_config(mp::petenv_key);
+    get_setting(mp::petenv_key);
 }
 
 TEST_F(Client, set_can_write_write_config_values)
@@ -1224,10 +1224,10 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
     const auto name = "xyz";
     const auto petenv_matcher = make_ssh_info_instance_matcher(name);
 
-    EXPECT_THAT(get_config(mp::petenv_key), AllOf(Not(IsEmpty()), StrNe(name)));
+    EXPECT_THAT(get_setting(mp::petenv_key), AllOf(Not(IsEmpty()), StrNe(name)));
 
     EXPECT_THAT(send_command({"set", mp::petenv_key, name}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(get_config(mp::petenv_key), StrEq(name));
+    EXPECT_THAT(get_setting(mp::petenv_key), StrEq(name));
 
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
@@ -1235,23 +1235,23 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
 
 TEST_F(Client, get_returns_acceptable_primary_name_by_default)
 {
-    const auto default_name = get_config(mp::petenv_key);
+    const auto default_name = get_setting(mp::petenv_key);
     const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
 
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 
     EXPECT_THAT(send_command({"set", mp::petenv_key, default_name}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(get_config(mp::petenv_key), Eq(default_name));
+    EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
 }
 
 TEST_F(Client, set_cmd_rejects_bad_primary_name)
 {
-    const auto default_name = get_config(mp::petenv_key);
+    const auto default_name = get_setting(mp::petenv_key);
     const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
 
     EXPECT_THAT(send_command({"set", mp::petenv_key, "123.badname_"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(get_config(mp::petenv_key), Eq(default_name));
+    EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
 
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
