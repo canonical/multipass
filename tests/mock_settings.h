@@ -41,7 +41,7 @@ public:
     MOCK_METHOD2(set, void(const QString&, const QString&));
 
 private:
-    class MockSettingsAccountant : public ::testing::EmptyTestEventListener
+    class Accountant : public ::testing::EmptyTestEventListener
     {
     public:
         void OnTestEnd(const ::testing::TestInfo&) override;
@@ -57,7 +57,7 @@ private:
         void register_accountant();
         void release_accountant();
 
-        MockSettingsAccountant* accountant = nullptr; // non-owning ptr
+        Accountant* accountant = nullptr; // non-owning ptr
     };
 };
 } // namespace test
@@ -100,7 +100,7 @@ inline void multipass::test::MockSettings::TestEnv::TearDown()
 
 inline void multipass::test::MockSettings::TestEnv::register_accountant()
 {
-    accountant = new MockSettingsAccountant{};
+    accountant = new Accountant{};
     ::testing::UnitTest::GetInstance()->listeners().Append(accountant); // takes ownership
 }
 
@@ -115,7 +115,7 @@ inline void multipass::test::MockSettings::TestEnv::release_accountant()
     accountant = nullptr;
 }
 
-inline void multipass::test::MockSettings::MockSettingsAccountant::OnTestEnd(const ::testing::TestInfo& /*unused*/)
+inline void multipass::test::MockSettings::Accountant::OnTestEnd(const ::testing::TestInfo& /*unused*/)
 {
     ::testing::Mock::VerifyAndClearExpectations(&MockSettings::mock_instance());
 }
