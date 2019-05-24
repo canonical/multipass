@@ -45,8 +45,8 @@ private:
     bool streaming_enabled;
 
     ParseCode parse_args(ArgParser* parser) override;
-    ParseCode parse_sources(ArgParser* parser, bool allow_templates);
-    ParseCode parse_destination(ArgParser* parser, bool allow_templates);
+    ParseCode parse_sources(ArgParser* parser);
+    ParseCode parse_destination(ArgParser* parser);
 };
 }
 }

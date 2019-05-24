@@ -15,10 +15,9 @@
  *
  */
 
+#include "file_operations.h"
 #include "mock_sftp.h"
 #include "mock_ssh.h"
-
-#include "file_operations.h"
 #include "path.h"
 #include "temp_dir.h"
 
@@ -27,7 +26,6 @@
 
 #include <gmock/gmock.h>
 
-#include <fmt/format.h>
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
@@ -71,6 +69,8 @@ struct SFTPClient : public testing::Test
     decltype(MOCK(sftp_close)) close{MOCK(sftp_close)};
     MockScope<decltype(mock_sftp_new)> sftp_new;
     MockScope<decltype(mock_sftp_free)> free_sftp;
+
+    std::stringstream test_stream{"testing stream :-)"};
 };
 } // namespace
 
@@ -78,43 +78,39 @@ struct SFTPClient : public testing::Test
 
 TEST_F(SFTPClient, throws_when_unable_to_allocate_sftp_session)
 {
-    auto sftp = make_sftp_client();
-
     REPLACE(sftp_new, [](auto...) { return nullptr; });
 
-    EXPECT_THROW(sftp.push_file("foo", "bar"), std::runtime_error);
+    EXPECT_THROW(make_sftp_client(), std::runtime_error);
+}
+
+TEST_F(SFTPClient, throws_when_failed_to_init)
+{
+    REPLACE(sftp_init, [](auto...) { return SSH_ERROR; });
+
+    EXPECT_THROW(make_sftp_client(), std::runtime_error);
 }
 
 // testing push method
 
-TEST_F(SFTPClient, push_throws_when_failed_to_init)
-{
-    auto sftp = make_sftp_client();
-
-    REPLACE(sftp_init, [](auto...) { return SSH_ERROR; });
-
-    EXPECT_THROW(sftp.push_file("foo", "bar"), std::runtime_error);
-}
-
 TEST_F(SFTPClient, push_throws_on_sftp_open_failed)
 {
-    auto sftp = make_sftp_client();
-
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_open, [](sftp_session session, auto...) {
         session->errnum = SSH_ERROR;
         return nullptr;
     });
 
+    auto sftp = make_sftp_client();
+
     EXPECT_THROW(sftp.push_file("foo", "bar"), std::runtime_error);
 }
 
 TEST_F(SFTPClient, push_throws_on_invalid_source)
 {
-    auto sftp = make_sftp_client();
-
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_open, [](auto...) { return get_dummy_sftp_file(); });
+
+    auto sftp = make_sftp_client();
 
     EXPECT_THROW(sftp.push_file("foo", "bar"), std::runtime_error);
 }
@@ -124,8 +120,6 @@ TEST_F(SFTPClient, push_throws_on_sftp_write_error)
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
-
-    auto sftp = make_sftp_client();
 
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_open, [](sftp_session session, auto...) {
@@ -138,36 +132,26 @@ TEST_F(SFTPClient, push_throws_on_sftp_write_error)
         return -1;
     });
 
-    EXPECT_THROW(sftp.push_file(file_name.toStdString(), "bar"), std::runtime_error);
-}
-
-// testing pull method
-
-TEST_F(SFTPClient, pull_throws_when_failed_to_init)
-{
     auto sftp = make_sftp_client();
 
-    REPLACE(sftp_init, [](auto...) { return SSH_ERROR; });
-
-    EXPECT_THROW(sftp.pull_file("foo", "bar"), std::runtime_error);
+    EXPECT_THROW(sftp.push_file(file_name.toStdString(), "bar"), std::runtime_error);
 }
 
 TEST_F(SFTPClient, pull_throws_on_sftp_get_stat_failed)
 {
-    auto sftp = make_sftp_client();
-
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_stat, [](sftp_session session, auto...) {
         session->errnum = SSH_ERROR;
         return nullptr;
     });
 
+    auto sftp = make_sftp_client();
+
     EXPECT_THROW(sftp.pull_file("foo", "bar"), std::runtime_error);
 }
 
 TEST_F(SFTPClient, pull_throws_on_sftp_open_failed)
 {
-    auto sftp = make_sftp_client();
     const std::string source_path{"foo"};
 
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
@@ -181,12 +165,13 @@ TEST_F(SFTPClient, pull_throws_on_sftp_open_failed)
         return nullptr;
     });
 
-    EXPECT_THROW(sftp.pull_file("foo", "bar"), std::runtime_error);
+    auto sftp = make_sftp_client();
+
+    EXPECT_THROW(sftp.pull_file(source_path, "bar"), std::runtime_error);
 }
 
 TEST_F(SFTPClient, pull_throws_on_sftp_read_failed)
 {
-    auto sftp = make_sftp_client();
     const std::string source_path{"foo"};
 
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
@@ -205,37 +190,29 @@ TEST_F(SFTPClient, pull_throws_on_sftp_read_failed)
         return -1;
     });
 
-    EXPECT_THROW(sftp.pull_file("foo", "bar"), std::runtime_error);
+    auto sftp = make_sftp_client();
+
+    EXPECT_THROW(sftp.pull_file(source_path, "bar"), std::runtime_error);
 }
 
 // testing stream method
 
-TEST_F(SFTPClient, stream_throws_when_failed_to_init)
+TEST_F(SFTPClient, in_steam_throws_on_sftp_open_failed)
 {
-    auto sftp = make_sftp_client();
-
-    REPLACE(sftp_init, [](auto...) { return SSH_ERROR; });
-
-    EXPECT_THROW(sftp.stream_file("bar"), std::runtime_error);
-}
-
-TEST_F(SFTPClient, steam_throws_on_sftp_open_failed)
-{
-    auto sftp = make_sftp_client();
-
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_open, [](sftp_session session, auto...) {
         session->errnum = SSH_ERROR;
         return nullptr;
     });
 
-    EXPECT_THROW(sftp.stream_file("bar"), std::runtime_error);
-}
-
-TEST_F(SFTPClient, stream_throws_on_write_failed)
-{
     auto sftp = make_sftp_client();
 
+    std::istream fake_cin{test_stream.rdbuf()};
+    EXPECT_THROW(sftp.stream_file("bar", fake_cin), std::runtime_error);
+}
+
+TEST_F(SFTPClient, in_stream_throws_on_write_failed)
+{
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_open, [](sftp_session session, auto...) {
         auto file = get_dummy_sftp_file();
@@ -247,12 +224,69 @@ TEST_F(SFTPClient, stream_throws_on_write_failed)
         return -1;
     });
 
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    mpt::make_file_with_content(file_name, "testing stream :-)");
+    auto sftp = make_sftp_client();
 
-    // NOTE: remember that we received up to 10 bytes per read
-    static_cast<void*>(freopen(file_name.toStdString().c_str(), "r", stdin));
+    std::istream fake_cin{test_stream.rdbuf()};
+    EXPECT_THROW(sftp.stream_file("bar", fake_cin), std::runtime_error);
+}
 
-    EXPECT_THROW(sftp.stream_file("bar"), std::runtime_error);
+TEST_F(SFTPClient, out_stream_throws_on_sftp_get_stat_failed)
+{
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [](sftp_session session, auto...) {
+        session->errnum = SSH_ERROR;
+        return nullptr;
+    });
+
+    auto sftp = make_sftp_client();
+
+    std::ostream fake_cout{test_stream.rdbuf()};
+    EXPECT_THROW(sftp.stream_file("bar", fake_cout), std::runtime_error);
+}
+
+TEST_F(SFTPClient, out_stream_throws_on_sftp_open_failed)
+{
+    const std::string source_path{"bar"};
+
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [&source_path](auto...) {
+        auto attributes = get_dummy_sftp_attributes();
+        attributes->name = strdup(source_path.c_str());
+        return attributes;
+    });
+    REPLACE(sftp_open, [](sftp_session session, auto...) {
+        session->errnum = SSH_ERROR;
+        return nullptr;
+    });
+
+    auto sftp = make_sftp_client();
+
+    std::ostream fake_cout{test_stream.rdbuf()};
+    EXPECT_THROW(sftp.stream_file(source_path, fake_cout), std::runtime_error);
+}
+
+TEST_F(SFTPClient, out_stream_throws_on_sftp_read_failed)
+{
+    const std::string source_path{"bar"};
+
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [&source_path](auto...) {
+        auto attributes = get_dummy_sftp_attributes();
+        attributes->name = strdup(source_path.c_str());
+        return attributes;
+    });
+    REPLACE(sftp_open, [](sftp_session session, auto...) {
+        auto file = get_dummy_sftp_file();
+        file->sftp = session;
+        return file;
+    });
+    REPLACE(sftp_read, [](sftp_file file, auto...) {
+        file->sftp->errnum = SSH_ERROR;
+        return -1;
+    });
+
+    auto sftp = make_sftp_client();
+
+    std::ostream fake_cout{test_stream.rdbuf()};
+    EXPECT_THROW(sftp.stream_file(source_path, fake_cout), std::runtime_error);
 }

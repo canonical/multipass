@@ -20,15 +20,16 @@
 
 #include <multipass/ssh/ssh_session.h>
 
-#include <libssh/libssh.h>
+#include <libssh/sftp.h>
 
+#include <istream>
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace multipass
 {
 using SSHSessionUPtr = std::unique_ptr<SSHSession>;
+using SFTPSessionUPtr = std::unique_ptr<sftp_session_struct, void (*)(sftp_session)>;
 
 class SFTPClient
 {
@@ -38,10 +39,12 @@ public:
 
     void push_file(const std::string& source_path, const std::string& destination_path);
     void pull_file(const std::string& source_path, const std::string& destination_path);
-    void stream_file(const std::string& destination_path);
+    void stream_file(const std::string& destination_path, std::istream& cin);
+    void stream_file(const std::string& source_path, std::ostream& cout);
 
 private:
     SSHSessionUPtr ssh_session;
+    SFTPSessionUPtr sftp;
 };
 } // namespace multipass
 #endif // MULTIPASS_SFTP_CLIENT_H
