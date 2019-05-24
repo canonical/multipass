@@ -546,7 +546,9 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
-      vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
+      vm_instance_specs{load_db(
+          mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
+          mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
       metrics_provider{"https://api.staging.jujucharms.com/omnibus/v4/multipass/metrics",
                        get_unique_id(config->data_directory), config->data_directory},
@@ -1756,7 +1758,8 @@ void mp::Daemon::persist_instances()
         auto key = QString::fromStdString(record.first);
         instance_records_json.insert(key, vm_spec_to_json(record.second));
     }
-    QDir data_dir{config->data_directory};
+    QDir data_dir{
+        mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name())};
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
