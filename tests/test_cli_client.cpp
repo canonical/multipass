@@ -154,9 +154,9 @@ struct Client : public Test
 #endif
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
     StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
                                           cert_store}; // strict to fail on unexpected calls
-
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
 
@@ -1211,6 +1211,7 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 // get/set cli tests
 TEST_F(Client, get_can_read_settings)
 {
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key)));
     get_setting(mp::petenv_key);
 }
 
@@ -1219,18 +1220,23 @@ TEST_F(Client, set_can_write_settings)
     const auto key = mp::petenv_key;
     const auto val = "blah";
 
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val)));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
     EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)
 {
-    EXPECT_THAT(send_command({"get", "wrong.key"}), Eq(mp::ReturnCode::CommandLineError));
+    const auto key = "wrong.key";
+    EXPECT_CALL(mock_settings, get(Eq(key)));
+    EXPECT_THAT(send_command({"get", key}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, set_cmd_fails_with_unknown_key)
 {
-    EXPECT_THAT(send_command({"set", "wrong.key", "blah"}), Eq(mp::ReturnCode::CommandLineError));
+    const auto key = "wrong.key";
+    const auto val = "blah";
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, get_and_set_can_read_and_write_primary_name)
@@ -1240,9 +1246,12 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
 
     EXPECT_THAT(get_setting(mp::petenv_key), AllOf(Not(IsEmpty()), StrNe(name)));
 
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(name)));
     EXPECT_THAT(send_command({"set", mp::petenv_key, name}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(get_setting(mp::petenv_key), StrEq(name));
 
+    // EXPECT_THAT(get_setting(mp::petenv_key), StrEq(name));
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(name));
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
