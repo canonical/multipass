@@ -24,9 +24,10 @@ namespace mp = multipass;
 
 namespace
 {
+const auto petenv_name = QStringLiteral("primary");
 std::map<QString, QString> make_defaults()
 {
-    return {{mp::petenv_key, mp::petenv_name}};
+    return {{mp::petenv_key, petenv_name}};
 }
 } // namespace
 

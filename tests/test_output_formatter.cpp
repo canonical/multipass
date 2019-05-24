@@ -21,6 +21,7 @@
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/settings.h>
 
 #include <multipass/format.h>
 
@@ -33,6 +34,11 @@ using namespace testing;
 
 namespace
 {
+auto petenv_name()
+{
+    return mp::Settings::instance().get(mp::petenv_key).toStdString();
+}
+
 auto construct_single_instance_list_reply()
 {
     mp::ListReply list_reply;
@@ -69,7 +75,7 @@ auto construct_multiple_instances_including_petenv_list_reply()
     auto reply = construct_multiple_instances_list_reply();
 
     auto instance = reply.add_instances();
-    instance->set_name(mp::petenv_name);
+    instance->set_name(petenv_name());
     instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     instance->set_current_release("Not Available");
 
@@ -153,7 +159,7 @@ auto construct_multiple_instances_including_petenv_info_reply()
     auto reply = construct_multiple_instances_info_reply();
 
     auto entry = reply.add_info();
-    entry->set_name(mp::petenv_name);
+    entry->set_name(petenv_name());
     entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
     entry->set_image_release("18.10");
     entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
@@ -312,7 +318,7 @@ TEST_F(TableFormatter, pet_env_first_in_list_output)
 {
     const mp::TableFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_list_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", mp::petenv_name);
+    const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -391,7 +397,7 @@ TEST_F(TableFormatter, pet_env_first_in_info_output)
 {
     const mp::TableFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("Name:[[:space:]]+{}.+", mp::petenv_name);
+    const auto regex = fmt::format("Name:[[:space:]]+{}.+", petenv_name());
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -836,7 +842,7 @@ TEST_F(CSVFormatter, pet_env_first_in_list_output)
 {
     const mp::CSVFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_list_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", mp::petenv_name);
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -893,7 +899,7 @@ TEST_F(CSVFormatter, pet_env_first_in_info_output)
 {
     const mp::CSVFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", mp::petenv_name);
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -1008,7 +1014,7 @@ TEST_F(YamlFormatter, pet_env_first_in_list_output)
     const auto reply = construct_multiple_instances_including_petenv_list_reply();
 
     const auto output = formatter.format(reply);
-    EXPECT_THAT(output, StartsWith(mp::petenv_name));
+    EXPECT_THAT(output, StartsWith(petenv_name()));
 }
 
 TEST_F(YamlFormatter, no_instances_list_output)
@@ -1123,7 +1129,7 @@ TEST_F(YamlFormatter, pet_env_first_in_info_output)
 {
     const mp::YamlFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", mp::petenv_name);
+    const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));

@@ -27,7 +27,6 @@ constexpr auto min_disk_size = "512M";
 constexpr auto org_domain = "canonical.com";
 constexpr auto org_name = "Canonical";
 constexpr auto petenv_key = "client.primary_name"; // This will eventually be moved to some dynamic settings schema
-constexpr auto petenv_name = "primary";            // idem
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

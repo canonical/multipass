@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,14 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_CONNECT_H
 #define MULTIPASS_CONNECT_H
 
 #include <multipass/cli/command.h>
+
+#include <QString>
 
 namespace multipass
 {
@@ -39,6 +39,7 @@ public:
 
 private:
     SSHInfoRequest request;
+    QString petenv_name;
 
     ParseCode parse_args(ArgParser *parser) override;
 };
