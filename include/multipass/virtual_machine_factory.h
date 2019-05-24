@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -53,6 +51,7 @@ public:
     virtual void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) = 0;
     virtual void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) = 0;
     virtual void check_hypervisor_support() = 0;
+    virtual QString get_backend_directory_name() = 0;
 
 protected:
     VirtualMachineFactory() = default;

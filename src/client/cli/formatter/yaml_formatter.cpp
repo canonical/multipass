@@ -141,3 +141,34 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
 
     return emit_node(list);
 }
+
+std::string mp::YamlFormatter::format(const FindReply& reply) const
+{
+    YAML::Node find;
+    find["errors"] = std::vector<YAML::Node>{};
+    find["images"] = std::map<std::string, YAML::Node>{};
+
+    for (const auto& image : reply.images_info())
+    {
+        YAML::Node image_node;
+        image_node["aliases"] = std::vector<std::string>{};
+
+        auto aliases = image.aliases_info();
+        mp::format::filter_aliases(aliases);
+
+        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
+        {
+            image_node["aliases"].push_back(alias->alias());
+        }
+
+        image_node["os"] = image.os();
+        image_node["release"] = image.release();
+        image_node["version"] = image.version();
+
+        image_node["remote"] = aliases[0].remote_name();
+
+        find["images"][mp::format::image_string_for(aliases[0])] = image_node;
+    }
+
+    return emit_node(find);
+}

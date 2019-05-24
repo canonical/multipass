@@ -177,6 +177,14 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
     return a_dir.filePath(name);
 }
 
+QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
+{
+    if (subdirectory.isEmpty())
+        return path;
+
+    return mp::Path("%1/%2").arg(path).arg(subdirectory);
+}
+
 QString mp::utils::make_uuid()
 {
     auto uuid = QUuid::createUuid().toString();

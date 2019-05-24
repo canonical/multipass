@@ -45,6 +45,7 @@ public:
     };
 
     using UPtr = std::unique_ptr<VirtualMachine>;
+    using ShPtr = std::shared_ptr<VirtualMachine>;
 
     virtual ~VirtualMachine() = default;
     virtual void stop() = 0;
