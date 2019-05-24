@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Gerry Boland <gerry.boland@canonical.com>
  */
 
 #ifndef MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_FACTORY_H
@@ -36,6 +35,10 @@ public:
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
     void check_hypervisor_support() override;
+    QString get_backend_directory_name() override
+    {
+        return {};
+    };
 };
 }
 
