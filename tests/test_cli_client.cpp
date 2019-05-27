@@ -159,9 +159,10 @@ struct Client : public Test
 #endif
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
     StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
-                                          cert_store}; // strict to fail on unexpected calls
+                                          cert_store}; // strict to fail on unexpected calls and play well with sharing
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
+                                                                              reset at the end of each test */
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
 
@@ -276,6 +277,16 @@ TEST_F(Client, shell_cmd_help_ok)
 TEST_F(Client, shell_cmd_no_args_targets_petenv)
 {
     const auto petenv_matcher = make_ssh_info_instance_matcher(petenv_name());
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_considers_configured_petenv)
+{
+    const auto custom_petenv = "jarjar binks";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    const auto petenv_matcher = make_ssh_info_instance_matcher(custom_petenv);
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
@@ -727,6 +738,16 @@ TEST_F(Client, start_cmd_no_args_targets_petenv)
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, start_cmd_considers_configured_petenv)
+{
+    const auto custom_petenv = "jarjar binks";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(custom_petenv);
+    EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::Ok));
+}
+
 TEST_F(Client, start_cmd_can_target_petenv_explicitly)
 {
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(petenv_name());
@@ -917,6 +938,16 @@ TEST_F(Client, stop_cmd_no_args_targets_petenv)
     EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, stop_cmd_considers_configured_petenv)
+{
+    const auto custom_petenv = "jarjar binks";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(custom_petenv);
+    EXPECT_CALL(mock_daemon, stop(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::Ok));
+}
+
 TEST_F(Client, stop_cmd_can_target_petenv_explicitly)
 {
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(petenv_name());
@@ -1042,6 +1073,16 @@ TEST_F(Client, suspend_cmd_no_args_targets_petenv)
     EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, suspend_cmd_considers_configured_petenv)
+{
+    const auto custom_petenv = "jarjar binks";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(custom_petenv);
+    EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::Ok));
+}
+
 TEST_F(Client, suspend_cmd_can_target_petenv_explicitly)
 {
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(petenv_name());
@@ -1108,6 +1149,16 @@ TEST_F(Client, restart_cmd_succeeds_with_all)
 TEST_F(Client, restart_cmd_no_args_targets_petenv)
 {
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(petenv_name());
+    EXPECT_CALL(mock_daemon, restart(_, petenv_matcher, _));
+    EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_considers_configured_petenv)
+{
+    const auto custom_petenv = "jarjar binks";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(custom_petenv);
     EXPECT_CALL(mock_daemon, restart(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::Ok));
 }
