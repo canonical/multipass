@@ -64,7 +64,6 @@ private:
     const std::string tap_device_name;
     const std::string mac_addr;
     const std::string username;
-    const ProcessFactory* process_factory;
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
     std::unique_ptr<QProcess> vm_process;

@@ -79,6 +79,7 @@ message LaunchProgress {
         INITRD = 2;
         EXTRACT = 3;
         VERIFY = 4;
+        WAITING = 5;
     }
     ProgressTypes type = 1;
     string percent_complete = 2;

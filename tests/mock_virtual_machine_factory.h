@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -40,6 +38,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD2(prepare_instance_image, void(const VMImage&, const VirtualMachineDescription&));
     MOCK_METHOD3(configure, void(const std::string&, YAML::Node&, YAML::Node&));
     MOCK_METHOD0(check_hypervisor_support, void());
+    MOCK_METHOD0(get_backend_directory_name, QString());
 };
 }
 }

@@ -55,6 +55,7 @@ enum class TimeoutAction
 QDir base_dir(const QString& path);
 multipass::Path make_dir(const QDir& a_dir, const QString& name);
 bool is_dir(const std::string& path);
+QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string filename_for(const std::string& path);
 QString make_uuid();
 std::string contents_of(const multipass::Path& file_path);
