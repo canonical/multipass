@@ -15,6 +15,8 @@
  *
  */
 
+#include "mock_settings.h"
+
 #include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
@@ -30,6 +32,7 @@
 #include <locale>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
@@ -265,6 +268,10 @@ public:
         std::locale::global(saved_locale);
     }
 
+protected:
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
+                                                                              reset at the end of each test */
+
 private:
     std::locale saved_locale;
 };
@@ -319,6 +326,20 @@ TEST_F(TableFormatter, pet_env_first_in_list_output)
     const mp::TableFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_list_reply();
     const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
+
+TEST_F(TableFormatter, custom_pet_env_first_in_list_output)
+{
+    const mp::TableFormatter formatter;
+
+    const auto custom = "toto";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
+
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+    const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", custom);
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -398,6 +419,19 @@ TEST_F(TableFormatter, pet_env_first_in_info_output)
     const mp::TableFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_info_reply();
     const auto regex = fmt::format("Name:[[:space:]]+{}.+", petenv_name());
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
+TEST_F(TableFormatter, custom_pet_env_first_in_info_output)
+{
+    const mp::TableFormatter formatter;
+
+    const auto custom = "toto";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
+
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("Name:[[:space:]]+{}.+", custom);
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -847,6 +881,20 @@ TEST_F(CSVFormatter, pet_env_first_in_list_output)
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
 }
+
+TEST_F(CSVFormatter, custom_pet_env_first_in_list_output)
+{
+    const mp::CSVFormatter formatter;
+
+    const auto custom = "toto";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
+
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", custom);
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
 #endif
 
 TEST_F(CSVFormatter, no_instances_list_output)
@@ -900,6 +948,20 @@ TEST_F(CSVFormatter, pet_env_first_in_info_output)
     const mp::CSVFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_info_reply();
     const auto regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
+
+TEST_F(CSVFormatter, custom_pet_env_first_in_info_output)
+{
+    const mp::CSVFormatter formatter;
+
+    const auto custom = "toto";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
+
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", custom);
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
@@ -1017,6 +1079,19 @@ TEST_F(YamlFormatter, pet_env_first_in_list_output)
     EXPECT_THAT(output, StartsWith(petenv_name()));
 }
 
+TEST_F(YamlFormatter, custom_pet_env_first_in_list_output)
+{
+    const mp::YamlFormatter formatter;
+
+    const auto custom = "toto";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
+
+    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, StartsWith(custom));
+}
+
 TEST_F(YamlFormatter, no_instances_list_output)
 {
     mp::ListReply list_reply;
@@ -1130,6 +1205,20 @@ TEST_F(YamlFormatter, pet_env_first_in_info_output)
     const mp::YamlFormatter formatter;
     const auto reply = construct_multiple_instances_including_petenv_info_reply();
     const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
+
+    const auto output = formatter.format(reply);
+    EXPECT_THAT(output, MatchesRegex(regex));
+}
+
+TEST_F(YamlFormatter, custom_pet_env_first_in_info_output)
+{
+    const mp::YamlFormatter formatter;
+
+    const auto custom = "toto";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
+
+    const auto reply = construct_multiple_instances_including_petenv_info_reply();
+    const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", custom);
 
     const auto output = formatter.format(reply);
     EXPECT_THAT(output, MatchesRegex(regex));
