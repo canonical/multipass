@@ -75,7 +75,7 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
 
     try
     {
-        auto console_creator = [&term](auto channel) { return Console::make_console(channel, term); };
+        auto console_creator = [&term](auto channel) { return Console::make_console(channel, term, /*interactive=*/false); };
         mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
         return static_cast<mp::ReturnCode>(ssh_client.exec(args));
     }

@@ -45,7 +45,7 @@ public:
     virtual void write_console() = 0;
     virtual void exit_console() = 0;
 
-    static UPtr make_console(ssh_channel channel, Terminal* term);
+    static UPtr make_console(ssh_channel channel, Terminal* term, bool interactive);
     static void setup_environment();
 
 protected:

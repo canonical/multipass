@@ -81,12 +81,12 @@ private:
     mp::AutoJoinThread signal_handling_thread;
 };
 
-mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term)
+mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term, bool interactive)
     : term{term}, handler{std::make_unique<WindowChangedSignalHandler>(channel, term->cout_fd())}
 {
     setup_console();
 
-    if (term->cin_is_live())
+    if (interactive && term->cin_is_live())
     {
         ssh_channel_request_pty(channel);
         change_ssh_pty_size(channel, term->cout_fd());

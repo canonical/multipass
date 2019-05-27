@@ -35,7 +35,7 @@ class WindowChangedSignalHandler;
 class UnixConsole final : public Console
 {
 public:
-    explicit UnixConsole(ssh_channel channel, UnixTerminal *term);
+    explicit UnixConsole(ssh_channel channel, UnixTerminal *term, bool interactive);
     ~UnixConsole();
 
     void read_console() override{};
