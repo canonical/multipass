@@ -19,6 +19,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/invalid_settings_exception.h>
 #include <multipass/settings.h>
 
 namespace mp = multipass;
@@ -37,6 +38,11 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
         catch (const std::out_of_range&)
         {
             cerr << "Unknown key: \"" << qPrintable(key) << "\"\n";
+            ret = ReturnCode::CommandLineError;
+        }
+        catch (const InvalidSettingsException& e)
+        {
+            cerr << e.what() << "\n";
             ret = ReturnCode::CommandLineError;
         }
     }
