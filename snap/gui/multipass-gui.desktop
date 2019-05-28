@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Multipass
 Exec=multipass.gui
-Icon=/snap/multipass/current/meta/gui/multipass-gui.png
+Icon=${SNAP}/meta/gui/multipass-gui.svg
 Type=Application
 Terminal=false
 Categories=Utility;

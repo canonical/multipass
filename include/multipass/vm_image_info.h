@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,17 +26,18 @@ namespace multipass
 class VMImageInfo
 {
 public:
-    const QStringList aliases;
-    const QString os;
-    const QString release;
-    const QString release_title;
-    const bool supported;
-    const QString image_location;
-    const QString kernel_location;
-    const QString initrd_location;
-    const QString id;
-    const QString version;
-    const int64_t size;
+    QStringList aliases;
+    QString os;
+    QString release;
+    QString release_title;
+    bool supported;
+    QString image_location;
+    QString kernel_location;
+    QString initrd_location;
+    QString id;
+    QString version;
+    int64_t size;
+    bool verify;
 };
 }
 #endif // MULTIPASS_VM_IMAGE_INFO_H

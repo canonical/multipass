@@ -153,7 +153,8 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
                                         image_info.second.initrd_location,
                                         base_image_info.hash,
                                         base_image_info.last_modified,
-                                        0};
+                                        0,
+                                        true};
 
         default_images.push_back(full_image_info);
     }

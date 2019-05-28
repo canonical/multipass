@@ -185,8 +185,8 @@ parts:
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_amd64.deb
     - on i386: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_i386.deb
-    - on armhf: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_armhf.deb
-    - on arm64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_arm64.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_arm64.deb
     source-type: deb
 
   multipass:
@@ -203,13 +203,18 @@ parts:
     - libxcb-xinerama0
     plugin: cmake
     build-packages:
+    - on arm64: [libgles2-mesa-dev]
+    - on armhf: [libgles2-mesa-dev]
     - build-essential
     - cmake-extras
     - git
     - golang
     - libsystemd-dev
     stage-packages:
-    - libgl1
+    - on amd64: [libgl1]
+    - on i386: [libgl1]
+    - on armhf: [libgles2-mesa]
+    - on arm64: [libgles2-mesa]
     - libpng16-16
     source: .
     configflags:
@@ -309,8 +314,8 @@ parts:
     - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/sbin/ebtables
     override-pull: |
       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1.orig.tar.gz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.25.debian.tar.xz
-      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.25.dsc
+      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.26.debian.tar.xz
+      wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.26.dsc
       dpkg-source -x libvirt*.dsc
     organize:
       # Hack to shift installed libvirt back to root of snap
@@ -333,7 +338,7 @@ parts:
     stage-packages:
     - xterm
     stage:
-    - -usr/lib/x86_64-linux-gnu/libfreetype.so.6
+    - -usr/lib/*/libfreetype.so.6
     - -usr/share/doc/libfreetype6/FTL.TXT.gz
     - -usr/share/doc/libfreetype6/TODO
     - -usr/share/doc/libfreetype6/changelog.Debian.gz

@@ -334,6 +334,22 @@ TEST(Utils, filename_only_is_returned)
     EXPECT_THAT(mp::utils::filename_for(full_path), Eq(file_name));
 }
 
+TEST(Utils, no_subdirectory_returns_same_path)
+{
+    mp::Path original_path{"/tmp/foo"};
+    QString empty_subdir{};
+
+    EXPECT_THAT(mp::utils::backend_directory_path(original_path, empty_subdir), Eq(original_path));
+}
+
+TEST(Utils, subdirectory_returns_new_path)
+{
+    mp::Path original_path{"/tmp/foo"};
+    QString subdir{"bar"};
+
+    EXPECT_THAT(mp::utils::backend_directory_path(original_path, subdir), Eq(mp::Path{"/tmp/foo/bar"}));
+}
+
 TEST(Utils, vm_running_returns_true)
 {
     mp::VirtualMachine::State state = mp::VirtualMachine::State::running;

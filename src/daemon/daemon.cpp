@@ -56,7 +56,6 @@
 #include <cassert>
 #include <functional>
 #include <stdexcept>
-#include <unordered_set>
 #include <utility>
 
 namespace mp = multipass;
@@ -547,7 +546,9 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
-      vm_instance_specs{load_db(config->data_directory, config->cache_directory)},
+      vm_instance_specs{load_db(
+          mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
+          mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
       metrics_provider{"https://api.staging.jujucharms.com/omnibus/v4/multipass/metrics",
                        get_unique_id(config->data_directory), config->data_directory},
@@ -556,10 +557,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
     bool mac_addr_missing{false};
-    for (auto const& entry : vm_instance_specs)
+    for (auto& entry : vm_instance_specs)
     {
         const auto& name = entry.first;
-        const auto& spec = entry.second;
+        auto& spec = entry.second;
 
         if (!config->vault->has_record_for(name))
         {
@@ -593,6 +594,15 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
             invalid_specs.push_back(name);
             config->vault->remove(name);
+        }
+
+        // FIXME: somehow we're writing contradictory state to disk.
+        if (spec.deleted && spec.state != VirtualMachine::State::stopped)
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("{} is deleted but has incompatible state {}, reseting state to 0 (stopped)", name,
+                                 static_cast<int>(spec.state)));
+            spec.state = VirtualMachine::State::stopped;
         }
 
         if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
@@ -1209,7 +1219,7 @@ try // clang-format on
         {
             try
             {
-                start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
+                start_mount(vm.get(), name, request->source_path(), target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1218,8 +1228,8 @@ try // clang-format on
                     MountReply mount_reply;
                     mount_reply.set_mount_message("Enabling support for mounting");
                     server->Write(mount_reply);
-                    install_sshfs(vm, name);
-                    start_mount(vm, name, request->source_path(), target_path, gid_map, uid_map);
+                    install_sshfs(vm.get(), name);
+                    start_mount(vm.get(), name, request->source_path(), target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
@@ -1494,18 +1504,22 @@ try // clang-format on
     const auto& instances = instances_and_status.first; // use structured bindings instead in C++17
     auto& status = instances_and_status.second;         // idem
 
-    if (status.ok())
+    if (!status.ok())
     {
-        status = cmd_vms(instances,
-                         std::bind(&Daemon::reboot_vm, this, std::placeholders::_1)); // 1st pass to reboot all targets
-
-        if (status.ok())
-        {
-            auto future_watcher = create_future_watcher();
-            future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server,
-                                                        instances, status_promise));
-        }
+        return status_promise->set_value(status);
     }
+
+    status = cmd_vms(instances,
+                     std::bind(&Daemon::reboot_vm, this, std::placeholders::_1)); // 1st pass to reboot all targets
+
+    if (!status.ok())
+    {
+        return status_promise->set_value(status);
+    }
+
+    auto future_watcher = create_future_watcher();
+    future_watcher->setFuture(
+        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server, instances, status_promise));
 }
 catch (const std::exception& e)
 {
@@ -1753,11 +1767,12 @@ void mp::Daemon::persist_instances()
         auto key = QString::fromStdString(record.first);
         instance_records_json.insert(key, vm_spec_to_json(record.second));
     }
-    QDir data_dir{config->data_directory};
+    QDir data_dir{
+        mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name())};
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
-void mp::Daemon::start_mount(const VirtualMachine::UPtr& vm, const std::string& name, const std::string& source_path,
+void mp::Daemon::start_mount(VirtualMachine* vm, const std::string& name, const std::string& source_path,
                              const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                              const std::unordered_map<int, int>& uid_map)
 {
@@ -1849,7 +1864,19 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                                       create_error.SerializeAsString()));
     }
 
+    if (preparing_instances.find(name) != preparing_instances.end())
+    {
+        CreateError create_error;
+        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
+
+        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                                      fmt::format("instance \"{}\" is being prepared", name),
+                                                      create_error.SerializeAsString()));
+    }
+
     config->factory->check_hypervisor_support();
+
+    preparing_instances.insert(name);
 
     auto prepare_future_watcher = new QFutureWatcher<VirtualMachineDescription>();
 
@@ -1870,6 +1897,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                            {},
                                            false,
                                            QJsonObject()};
+                preparing_instances.erase(name);
+
                 persist_instances();
 
                 if (start)
@@ -1897,6 +1926,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             }
             catch (const std::exception& e)
             {
+                preparing_instances.erase(name);
                 status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 
@@ -2044,7 +2074,7 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     return grpc::Status::OK;
 }
 
-void mp::Daemon::install_sshfs(const VirtualMachine::UPtr& vm, const std::string& name)
+void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
 {
     auto& key_provider = *config->ssh_key_provider;
 
@@ -2098,7 +2128,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
     try
     {
         auto it = vm_instances.find(name);
-        auto& vm = it->second;
+        auto vm = it->second;
         vm->wait_until_ssh_up(up_timeout);
 
         std::vector<std::string> invalid_mounts;
@@ -2112,7 +2142,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
             try
             {
-                start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+                start_mount(vm.get(), name, source_path, target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -2125,8 +2155,8 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                         server->Write(reply);
                     }
 
-                    install_sshfs(vm, name);
-                    start_mount(vm, name, source_path, target_path, gid_map, uid_map);
+                    install_sshfs(vm.get(), name);
+                    start_mount(vm.get(), name, source_path, target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
