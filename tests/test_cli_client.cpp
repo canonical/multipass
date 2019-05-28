@@ -23,6 +23,7 @@
 #include "stub_terminal.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/invalid_settings_exception.h>
 #include <multipass/logging/log.h>
 #include <src/client/cli/client.h>
 #include <src/daemon/daemon_rpc.h>
@@ -1328,8 +1329,12 @@ TEST_F(Client, set_cmd_rejects_bad_primary_name)
 {
     const auto default_name = get_setting(mp::petenv_key);
     const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
+    const auto key = mp::petenv_key;
+    const auto val = "123.badname_";
 
-    EXPECT_THAT(send_command({"set", mp::petenv_key, "123.badname_"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+        .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "bad"}));
+    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
 
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
