@@ -35,11 +35,6 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
         {
             Settings::instance().set(key, val);
         }
-        catch (const std::out_of_range&)
-        {
-            cerr << "Unknown key: \"" << qPrintable(key) << "\"\n";
-            ret = ReturnCode::CommandLineError;
-        }
         catch (const InvalidSettingsException& e)
         {
             cerr << e.what() << "\n";

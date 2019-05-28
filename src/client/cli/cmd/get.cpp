@@ -19,6 +19,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/invalid_settings_exception.h>
 #include <multipass/settings.h>
 
 #include <QtGlobal>
@@ -36,10 +37,9 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
         {
             cout << qPrintable(Settings::instance().get(key)) << "\n";
         }
-        catch (const std::out_of_range&)
-
+        catch (const InvalidSettingsException& e)
         {
-            cerr << "Unknown key: \"" << qPrintable(key) << "\"\n";
+            cerr << e.what() << "\n";
             ret = ReturnCode::CommandLineError;
         }
     }

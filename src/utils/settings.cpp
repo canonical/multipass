@@ -55,5 +55,12 @@ void mp::Settings::set(const QString& key, const QString& val)
 
 const QString& mp::Settings::get_default(const QString& key) const
 {
-    return defaults.at(key); // throws if not there
+    try
+    {
+        return defaults.at(key);
+    }
+    catch (const std::out_of_range&)
+    {
+        throw InvalidSettingsException{key};
+    }
 }

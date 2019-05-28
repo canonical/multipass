@@ -31,13 +31,11 @@ class Settings : public Singleton<Settings>
 public:
     Settings(const Singleton<Settings>::PrivatePass&);
 
-    // throws std::out_of_range on unknown key
-    virtual QString get(const QString& key) const;
-    virtual void set(const QString& key, const QString& val);
+    virtual QString get(const QString& key) const;            // throws on unknown key
+    virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
 
 protected:
-    // throws std::out_of_range on unknown key
-    const QString& get_default(const QString& key) const;
+    const QString& get_default(const QString& key) const; // throws on unknown key
 
 private:
     std::map<QString, QString> defaults;

@@ -27,6 +27,11 @@ namespace multipass
 class InvalidSettingsException : public std::runtime_error
 {
 public:
+    InvalidSettingsException(const QString& key)
+        : runtime_error{QString{"Unrecognized settings key: '%1'"}.arg(key).toStdString()}
+    {
+    }
+
     InvalidSettingsException(const QString& key, const QString& val, const QString& why)
         : runtime_error{QString{"Invalid setting '%1=%2': %3"}.arg(key).arg(val).arg(why).toStdString()}
     {
