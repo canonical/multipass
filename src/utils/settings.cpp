@@ -16,7 +16,9 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/invalid_settings_exception.h> // TODO move out
 #include <multipass/settings.h>
+#include <multipass/utils.h> // TODO move out
 
 #include <QSettings>
 
@@ -46,6 +48,8 @@ QString mp::Settings::get(const QString& key) const
 void mp::Settings::set(const QString& key, const QString& val)
 {
     get_default(key); // make sure the key is valid before setting
+    if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
+        throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
     QSettings{}.setValue(key, val);
 }
 
