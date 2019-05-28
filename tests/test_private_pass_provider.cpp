@@ -37,7 +37,7 @@ public:
 
 private:
     static constexpr const PrivatePass& mellon = pass;
-    friend class FriendExample;
+    friend struct FriendExample;
 };
 
 struct FriendExample
