@@ -212,12 +212,24 @@ TEST_F(Client, transfer_cmd_fails_multiple_sources_destination_file)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, transfer_stdout_stdin_template_only_fails)
+TEST_F(Client, transfer_cmd_stdin_good_destination_ok)
+{
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+    EXPECT_THAT(send_command({"transfer", "-", "test-vm1:foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, transfer_cmd_stdout_good_source_ok)
+{
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+    EXPECT_THAT(send_command({"transfer", "test-vm1:foo", "-"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, transfer_cmd_stdout_stdin_only_fails)
 {
     EXPECT_THAT(send_command({"transfer", "-", "-"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, transfer_stdout_stdin_template_declaration_fails)
+TEST_F(Client, transfer_cmd_stdout_stdin_declaration_fails)
 {
     EXPECT_THAT(
         send_command({"transfer", "test-vm1:foo", "-", "-", mpt::test_data_path().toStdString() + "good_index.json"}),
