@@ -22,7 +22,7 @@
 
 #include <libssh/sftp.h>
 
-#include <istream>
+#include <iostream>
 #include <memory>
 #include <string>
 

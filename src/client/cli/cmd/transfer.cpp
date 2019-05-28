@@ -121,16 +121,18 @@ QString cmd::Transfer::description() const
 {
     // TODO: Don't mention directories until we support that
     // return QStringLiteral("Copy files and directories between the host and instances.");
-    return QStringLiteral("Transfer files between the host and instances.");
+    return QStringLiteral("Copy files between the host and instances.");
 }
 
 mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("source", "One or more paths to transfer, prefixed with <name:> "
-                                            "for paths inside the instance",
+    parser->addPositionalArgument("source",
+                                  "One or more paths to transfer, prefixed with <name:> "
+                                  "for paths inside the instance, or '-' for stdin",
                                   "<source> [<source> ...]");
-    parser->addPositionalArgument("destination", "The destination path, prefixed with <name:> for "
-                                                 "a path inside the instance",
+    parser->addPositionalArgument("destination",
+                                  "The destination path, prefixed with <name:> for "
+                                  "a path inside the instance, or '-' for stdout",
                                   "<destination>");
 
     auto status = parser->commandParse(this);
@@ -246,11 +248,11 @@ mp::ParseCode cmd::Transfer::parse_destination(mp::ArgParser* parser)
 
     if (instance_name.isEmpty())
     {
-        QFileInfo destination(destination_path);
+        QFileInfo destination_file(destination_path);
 
-        if (destination.isDir())
+        if (destination_file.isDir())
         {
-            if (!destination.isWritable())
+            if (!destination_file.isWritable())
             {
                 cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path.toStdString());
                 return ParseCode::CommandLineError;
@@ -258,7 +260,7 @@ mp::ParseCode cmd::Transfer::parse_destination(mp::ArgParser* parser)
         }
         else
         {
-            if (!QFileInfo(destination.dir().absolutePath()).isWritable())
+            if (!QFileInfo(destination_file.dir().absolutePath()).isWritable())
             {
                 cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path.toStdString());
                 return ParseCode::CommandLineError;

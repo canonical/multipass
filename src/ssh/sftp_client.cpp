@@ -32,6 +32,7 @@ namespace mp = multipass;
 
 namespace
 {
+// TODO: For push/pull, use actual file permissions
 constexpr int file_mode = 0664;
 constexpr auto max_transfer = 65536u;
 const std::string stream_file_name{"stream_output.dat"};
