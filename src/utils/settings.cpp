@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_settings_exception.h> // TODO move out
+#include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
 
@@ -33,9 +34,10 @@ namespace
 const auto file_extension = QStringLiteral("conf");
 const auto petenv_name = QStringLiteral("primary");
 std::map<QString, QString> make_defaults()
-{
-    return {{mp::petenv_key, petenv_name}};
-}
+{ // clang-format off
+    return {{mp::petenv_key, petenv_name},
+            {mp::driver_key, mp::platform::default_driver()}};
+} // clang-format on
 
 std::unique_ptr<QSettings> persistent_settings()
 {
