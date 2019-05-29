@@ -15,8 +15,9 @@
  *
  */
 
+#include <multipass/constants.h>
 #include <multipass/platform.h>
-
+#include <multipass/settings.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
@@ -25,6 +26,8 @@
 #include "backends/shared/linux/process_factory.h"
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
+
+#include <fmt/format.h>
 
 namespace mp = multipass;
 
@@ -54,14 +57,20 @@ QString mp::platform::default_driver()
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
-
-    if (driver.isEmpty() || driver == "QEMU")
+    const auto& driver = Settings::instance().get(driver_key);
+    if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(::process_factory(), data_dir);
-    else if (driver == "LIBVIRT")
+    else if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(::process_factory(), data_dir);
+    else
+    {
+        std::string msg_tail{};
+        if (driver == QStringLiteral("hyperkit") || driver == QStringLiteral("hyper-v"))
+            msg_tail = " on this platform";
 
-    throw std::runtime_error("Invalid virtualization driver set in the environment");
+        throw std::runtime_error(
+            fmt::format("Unsupported virtualization driver{}: {}", msg_tail, driver.toStdString()));
+    }
 }
 
 mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
