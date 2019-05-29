@@ -34,6 +34,7 @@ endif()
 
 function(add_scp_client_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
+    sftp_client.cpp
     scp_client.cpp
     ssh_session.cpp)
 

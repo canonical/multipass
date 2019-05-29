@@ -1,4 +1,4 @@
-# Copyright © 2018 Canonical Ltd.
+# Copyright © 2018-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -61,6 +61,15 @@ add_c_mocks(
   sftp_handle
   sftp_handle_alloc
   sftp_handle_remove
+  sftp_new
+  sftp_init
+  sftp_open
+  sftp_write
+  sftp_stat
+  sftp_read
+  sftp_free
+  sftp_get_error
+  sftp_close
   ssh_scp_new
   ssh_scp_free
   ssh_scp_init
