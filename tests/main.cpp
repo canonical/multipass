@@ -17,8 +17,6 @@
 
 #include "mock_settings.h"
 
-#include <multipass/constants.h>
-
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
@@ -30,8 +28,6 @@ namespace mp = multipass;
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    QCoreApplication::setOrganizationName(mp::org_name);
-    QCoreApplication::setOrganizationDomain(mp::org_domain);
     QCoreApplication::setApplicationName("multipass_tests");
 
     ::testing::InitGoogleTest(&argc, argv);

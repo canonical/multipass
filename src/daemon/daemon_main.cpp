@@ -108,8 +108,6 @@ int main(int argc, char* argv[]) // clang-format off
 try // clang-format on
 {
     QCoreApplication app(argc, argv);
-    QCoreApplication::setOrganizationName(mp::org_name);
-    QCoreApplication::setOrganizationDomain(mp::org_domain);
     QCoreApplication::setApplicationName(mp::daemon_name);
     QCoreApplication::setApplicationVersion(mp::version_string);
 
