@@ -20,16 +20,33 @@
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
 
+#include <QCoreApplication>
 #include <QSettings>
+#include <QStandardPaths>
+
+#include <memory>
 
 namespace mp = multipass;
 
 namespace
 {
+const auto file_extension = QStringLiteral("conf");
 const auto petenv_name = QStringLiteral("primary");
 std::map<QString, QString> make_defaults()
 {
     return {{mp::petenv_key, petenv_name}};
+}
+
+std::unique_ptr<QSettings> persistent_settings()
+{
+    static const auto file_path = QStringLiteral("%1/%2.%3") // make up our own file name to avoid org/domain in path
+                                      .arg(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)) // dir
+                                      .arg(QCoreApplication::applicationName())
+                                      .arg(file_extension);
+    static const auto format = QSettings::defaultFormat(); // static consts to make sure these stay fixed
+
+    return std::make_unique<QSettings>(file_path, format); /* unique_ptr to circumvent absent copy-ctor and no RVO
+                                                              guarantee (until C++17) */
 }
 } // namespace
 
@@ -42,7 +59,7 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
 QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
-    return QSettings{}.value(key, default_ret).toString();
+    return persistent_settings()->value(key, default_ret).toString();
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
@@ -50,7 +67,7 @@ void mp::Settings::set(const QString& key, const QString& val)
     get_default(key); // make sure the key is valid before setting
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
-    QSettings{}.setValue(key, val);
+    persistent_settings()->setValue(key, val);
 }
 
 const QString& mp::Settings::get_default(const QString& key) const
