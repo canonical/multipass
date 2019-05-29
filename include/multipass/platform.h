@@ -26,6 +26,8 @@
 
 #include <libssh/sftp.h>
 
+#include <QString>
+
 #include <string>
 
 namespace multipass
@@ -33,6 +35,7 @@ namespace multipass
 namespace platform
 {
 std::string default_server_address();
+QString default_driver();
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();

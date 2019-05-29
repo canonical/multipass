@@ -25,6 +25,7 @@ constexpr auto daemon_name = "multipassd";
 constexpr auto min_memory_size = "128M";
 constexpr auto min_disk_size = "512M";
 constexpr auto petenv_key = "client.primary_name"; // This will eventually be moved to some dynamic settings schema
+constexpr auto driver_key = "local.driver";        // idem
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H
