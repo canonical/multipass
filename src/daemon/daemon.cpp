@@ -1927,6 +1927,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             catch (const std::exception& e)
             {
                 preparing_instances.erase(name);
+                release_resources(name);
+                vm_instances.erase(name);
+                persist_instances();
                 status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 
