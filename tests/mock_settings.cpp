@@ -37,7 +37,9 @@ void multipass::test::MockSettings::TestEnv::SetUp()
 
     auto& mock = MockSettings::mock_instance();
     ON_CALL(mock, get(_)).WillByDefault(Invoke(&mock, &MockSettings::get_default));
-    ON_CALL(mock, set(_, _)).WillByDefault(WithArg<0>(IgnoreResult(Invoke(&mock, &MockSettings::get_default))));
+    ON_CALL(mock, set(_, _)).WillByDefault(Invoke([&mock](const auto& a, const auto& /*ignored*/) {
+        mock.get_default(a);
+    })); // using lambda instead of gmock actions because old VC++ chokes on `WithArg`
 
     register_accountant();
 }
