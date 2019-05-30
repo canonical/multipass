@@ -992,7 +992,7 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                mpl::log(mpl::Level::info, category, fmt::format("Cannot fetch image information: {}", e.what()));
+                mpl::log(mpl::Level::warning, category, fmt::format("Cannot fetch image information: {}", e.what()));
             }
         }
 
@@ -1129,7 +1129,7 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                mpl::log(mpl::Level::info, category, fmt::format("Cannot fetch image information: {}", e.what()));
+                mpl::log(mpl::Level::warning, category, fmt::format("Cannot fetch image information: {}", e.what()));
             }
         }
 
