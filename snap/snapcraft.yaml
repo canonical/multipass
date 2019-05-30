@@ -287,6 +287,7 @@ parts:
     - try: [libnuma1]
     - libcurl3-gnutls
     - libpciaccess0
+    - pm-utils
     configflags:
     - --with-qemu
     - --without-bhyve
