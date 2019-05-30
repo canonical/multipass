@@ -1,11 +1,17 @@
 name: multipass
-adopt-info: multipass
-summary: Ubuntu at your fingertips
+icon: snap/gui/multipass-gui.svg
+summary: Instant Ubuntu VMs
 description: |
-  Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch`
-  and it'll do all the setup for you. Check out `multipass find` for a list
-  of available images. More details you can find under `multipass help`.
+  Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that
+  simulates a cloud environment with support for cloud-init. Get Ubuntu
+  on-demand with clean integration to your IDE and version control on your
+  native platform.
 
+passthrough:
+  title: Multipass
+  license: GPL-3.0
+
+adopt-info: multipass
 grade: devel
 confinement: classic
 
