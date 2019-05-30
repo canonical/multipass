@@ -34,7 +34,7 @@ public:
     class PrivatePass
     {
     private:
-        constexpr PrivatePass();
+        constexpr PrivatePass() = default;
         friend class PrivatePassProvider<T>;
     };
 
@@ -43,11 +43,6 @@ private:
     friend T;
 };
 } // namespace multipass
-
-template <typename T>
-inline constexpr multipass::PrivatePassProvider<T>::PrivatePass::PrivatePass()
-{
-}
 
 template <typename T>
 constexpr const typename multipass::PrivatePassProvider<T>::PrivatePass multipass::PrivatePassProvider<T>::pass;
