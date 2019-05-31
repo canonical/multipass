@@ -20,7 +20,7 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QDir>
 #include <QEventLoop>
@@ -134,8 +134,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
         if (file.write(reply->readAll()) < 0)
         {
-            mpl::log(mpl::Level::error, category,
-                     fmt::format("error writing image: {}", file.errorString().toStdString()));
+            mpl::log(mpl::Level::error, category, fmt::format("error writing image: {}", file.errorString()));
             reply->abort();
         }
         download_timeout.start();

@@ -22,7 +22,7 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <chrono>
 #include <stdexcept>

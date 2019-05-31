@@ -24,7 +24,7 @@
 #include <openssl/rand.h>
 #include <openssl/x509.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QFile>
 
@@ -45,8 +45,7 @@ public:
     explicit WritableFile(const QString& name) : fp{fopen(name.toStdString().c_str(), "wb"), fclose}
     {
         if (fp == nullptr)
-            throw std::runtime_error(
-                fmt::format("failed to open file '{}': {}({})", name.toStdString(), strerror(errno), errno));
+            throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno));
     }
 
     FILE* get() const
@@ -94,8 +93,7 @@ public:
     {
         WritableFile file{name};
         if (!PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr))
-            throw std::runtime_error(
-                fmt::format("Failed writing certificate private key to file '{}'", name.toStdString()));
+            throw std::runtime_error(fmt::format("Failed writing certificate private key to file '{}'", name));
 
         QFile::setPermissions(name, QFile::ReadOwner);
     }
@@ -179,7 +177,7 @@ public:
     {
         WritableFile file{name};
         if (!PEM_write_X509(file.get(), x509.get()))
-            throw std::runtime_error(fmt::format("Failed writing certificate to file '{}'", name.toStdString()));
+            throw std::runtime_error(fmt::format("Failed writing certificate to file '{}'", name));
     }
 
 private:

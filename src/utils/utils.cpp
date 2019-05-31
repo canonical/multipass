@@ -19,7 +19,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QDateTime>
 #include <QDir>
@@ -170,7 +170,7 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
     if (!a_dir.mkpath(name))
     {
         QString dir{a_dir.filePath(name)};
-        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir.toStdString()));
+        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir));
     }
     return a_dir.filePath(name);
 }

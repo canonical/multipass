@@ -17,7 +17,7 @@
 
 #include <multipass/logging/log.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QByteArray>
 #include <QString>

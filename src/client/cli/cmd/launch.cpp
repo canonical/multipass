@@ -23,7 +23,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <yaml-cpp/yaml.h>
 
