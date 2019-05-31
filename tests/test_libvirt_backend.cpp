@@ -34,7 +34,7 @@
 
 #include <gmock/gmock.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

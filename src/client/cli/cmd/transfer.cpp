@@ -205,7 +205,7 @@ mp::ParseCode cmd::Transfer::parse_sources(mp::ArgParser* parser)
             QFileInfo source(source_path);
             if (!source.exists())
             {
-                cerr << fmt::format("Source path \"{}\" does not exist\n", source_path.toStdString());
+                cerr << fmt::format("Source path \"{}\" does not exist\n", source_path);
                 return ParseCode::CommandLineError;
             }
 
@@ -217,7 +217,7 @@ mp::ParseCode cmd::Transfer::parse_sources(mp::ArgParser* parser)
 
             if (!source.isReadable())
             {
-                cerr << fmt::format("Source path \"{}\" is not readable\n", source_path.toStdString());
+                cerr << fmt::format("Source path \"{}\" is not readable\n", source_path);
                 return ParseCode::CommandLineError;
             }
         }
@@ -254,7 +254,7 @@ mp::ParseCode cmd::Transfer::parse_destination(mp::ArgParser* parser)
         {
             if (!destination_file.isWritable())
             {
-                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path.toStdString());
+                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path);
                 return ParseCode::CommandLineError;
             }
         }
@@ -262,7 +262,7 @@ mp::ParseCode cmd::Transfer::parse_destination(mp::ArgParser* parser)
         {
             if (!QFileInfo(destination_file.dir().absolutePath()).isWritable())
             {
-                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path.toStdString());
+                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path);
                 return ParseCode::CommandLineError;
             }
             else if (sources.size() > 1)

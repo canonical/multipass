@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,33 @@
  *
  */
 
-#include <multipass/logging/standard_logger.h>
+#ifndef MULTIPASS_FORMAT_H
+#define MULTIPASS_FORMAT_H
 
-#include <multipass/utils.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <QString>
 
-#include <multipass/format.h>
-
-namespace mp = multipass;
-namespace mpl = multipass::logging;
-
-mpl::StandardLogger::StandardLogger(mpl::Level level) : logging_level{level}
+namespace fmt
 {
-}
 
-void mpl::StandardLogger::log(mpl::Level level, CString category, CString message) const
+template <>
+struct formatter<QString>
 {
-    if (level <= logging_level)
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
     {
-        fmt::print(stderr, "[{}] [{}] [{}] {}\n", mp::utils::timestamp(), as_string(level).c_str(), category.c_str(),
-                   message.c_str());
+        return ctx.begin();
     }
-}
+
+    template <typename FormatContext>
+    auto format(const QString& a, FormatContext& ctx)
+    {
+        return format_to(ctx.begin(), "{}", a.toStdString()); // TODO: remove the copy?
+    }
+};
+
+} // namespace fmt
+
+
+#endif // MULTIPASS_FORMAT_H

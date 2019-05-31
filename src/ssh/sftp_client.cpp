@@ -21,7 +21,7 @@
 
 #include "ssh_client_key_provider.h"
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <array>
 #include <fcntl.h>
@@ -86,8 +86,7 @@ void mp::SFTPClient::push_file(const std::string& source_path, const std::string
 
     QFile source(QString::fromStdString(source_path));
     if (!source.open(QIODevice::ReadOnly))
-        throw std::runtime_error(
-            fmt::format("[sftp push] error opening file for reading: {}", source.errorString().toStdString()));
+        throw std::runtime_error(fmt::format("[sftp push] error opening file for reading: {}", source.errorString()));
 
     auto total{0u};
     const auto size{source.size()};
@@ -97,8 +96,7 @@ void mp::SFTPClient::push_file(const std::string& source_path, const std::string
         auto r = source.read(data.data(), data.size());
 
         if (r == -1)
-            throw std::runtime_error(
-                fmt::format("[sftp push] error reading file: {}" + source.errorString().toStdString()));
+            throw std::runtime_error(fmt::format("[sftp push] error reading file: {}", source.errorString()));
         if (r == 0)
             break;
 
@@ -119,7 +117,7 @@ void mp::SFTPClient::pull_file(const std::string& source_path, const std::string
     QFile destination(QString::fromStdString(full_destination_path));
     if (!destination.open(QIODevice::WriteOnly))
         throw std::runtime_error(
-            fmt::format("[sftp pull] error opening file for writing: {}", destination.errorString().toStdString()));
+            fmt::format("[sftp pull] error opening file for writing: {}", destination.errorString()));
 
     SFTPFileUPtr file_handle{sftp_open(sftp.get(), source_path.c_str(), O_RDONLY, file_mode), sftp_close};
     SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] open failed", sftp_get_error);
@@ -136,8 +134,7 @@ void mp::SFTPClient::pull_file(const std::string& source_path, const std::string
             break;
 
         if (destination.write(data.data(), r) == -1)
-            throw std::runtime_error(
-                fmt::format("[sftp pull] error writing to file: {}", destination.errorString().toStdString()));
+            throw std::runtime_error(fmt::format("[sftp pull] error writing to file: {}", destination.errorString()));
 
         total += r;
     } while (total < size);

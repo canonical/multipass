@@ -29,7 +29,7 @@
 #include <QDir>
 #include <QXmlStreamReader>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <libvirt/virterror.h>
 
@@ -128,7 +128,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
     {
         auto snap_path = QDir(snap);
         snap_path.cd("../current");
-        qemu_path = fmt::format("{}{}", snap_path.path().toStdString(), qemu_path);
+        qemu_path = fmt::format("{}{}", snap_path.path(), qemu_path);
     }
 
     return fmt::format(

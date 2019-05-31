@@ -23,7 +23,7 @@
 #include <shared/linux/process.h>
 #include <shared/linux/process_factory.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <fstream>
 namespace mp = multipass;

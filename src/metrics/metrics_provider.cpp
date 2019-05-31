@@ -19,7 +19,7 @@
 #include <multipass/metrics_provider.h>
 #include <multipass/utils.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QDateTime>
 #include <QEventLoop>
@@ -61,13 +61,12 @@ void post_request(const QUrl& metrics_url, const QByteArray& body)
     {
         auto error_msg = QJsonDocument::fromJson(buff).object();
         mpl::log(mpl::Level::info, category,
-                 fmt::format("Metrics error: {} - {}", error_msg["code"].toString().toStdString(),
-                             error_msg["message"].toString().toStdString()));
+                 fmt::format("Metrics error: {} - {}", error_msg["code"].toString(), error_msg["message"].toString()));
     }
     else if (reply->error() != QNetworkReply::NoError)
     {
         QObject::disconnect(reply.get(), 0, 0, 0);
-        throw std::runtime_error(fmt::format("Metrics error: {}", reply->errorString().toStdString()));
+        throw std::runtime_error(fmt::format("Metrics error: {}", reply->errorString()));
     }
 }
 

@@ -28,7 +28,7 @@
 
 #include <QDateTime>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 #include <gmock/gmock.h>
 
 #include <queue>

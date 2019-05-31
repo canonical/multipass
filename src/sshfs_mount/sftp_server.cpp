@@ -23,7 +23,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QDateTime>
 #include <QDir>

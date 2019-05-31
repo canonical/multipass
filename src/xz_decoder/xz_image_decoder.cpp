@@ -19,7 +19,7 @@
 
 #include <multipass/rpc/multipass.grpc.pb.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <vector>
 
@@ -52,7 +52,7 @@ bool verify_decode(const xz_ret& ret)
 
     return true;
 }
-}
+} // namespace
 
 mp::XzImageDecoder::XzImageDecoder(const Path& xz_file_path)
     : xz_file{xz_file_path}, xz_decoder{xz_dec_init(XZ_DYNALLOC, 1u << 26), xz_dec_end}
@@ -64,17 +64,18 @@ mp::XzImageDecoder::XzImageDecoder(const Path& xz_file_path)
 void mp::XzImageDecoder::decode_to(const Path& decoded_image_path, const ProgressMonitor& monitor)
 {
     if (!xz_file.open(QIODevice::ReadOnly))
-        throw std::runtime_error(fmt::format("failed to open {} for reading", xz_file.fileName().toStdString()));
+        throw std::runtime_error(fmt::format("failed to open {} for reading", xz_file.fileName()));
 
     QFile decoded_file{decoded_image_path};
     if (!decoded_file.open(QIODevice::WriteOnly))
-        throw std::runtime_error(fmt::format("failed to open {} for writing", decoded_file.fileName().toStdString()));
+        throw std::runtime_error(fmt::format("failed to open {} for writing", decoded_file.fileName()));
 
-    struct xz_buf decode_buf{};
+    struct xz_buf decode_buf
+    {
+    };
     const auto max_size = 65536u;
 
-    std::vector<char> read_data,
-                      write_data;
+    std::vector<char> read_data, write_data;
     read_data.reserve(max_size);
     write_data.reserve(max_size);
 

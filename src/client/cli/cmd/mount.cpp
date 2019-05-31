@@ -24,7 +24,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QDir>
 #include <QFileInfo>

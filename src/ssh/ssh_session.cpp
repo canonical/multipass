@@ -23,7 +23,7 @@
 #include <libssh/callbacks.h>
 #include <libssh/socket.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <sstream>
 #include <stdexcept>
