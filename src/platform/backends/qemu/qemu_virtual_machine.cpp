@@ -153,8 +153,7 @@ auto get_metadata()
 mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
                                            const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
                                            VMStatusMonitor& monitor)
-    : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off,
-                     desc.key_provider, desc.vm_name},
+    : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},

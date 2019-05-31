@@ -163,14 +163,13 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
                                               const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
                                               const std::string& mac_addr, const std::string& ssh_username,
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
-                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                                              const mp::SSHKeyProvider* key_provider)
+                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config)
 {
     const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_space, name, mac_addr, ssh_username, image, cloud_init_iso, key_provider};
+    return {num_cores, mem_size, disk_space, name, mac_addr, ssh_username, image, cloud_init_iso};
 }
 
 template <typename T>
@@ -580,9 +579,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,  spec.disk_space,
-                                              name,           mac_addr,       spec.ssh_username,
-                                              vm_image,       cloud_init_iso, config->ssh_key_provider.get()};
+        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,     spec.disk_space, name,
+                                              mac_addr,       spec.ssh_username, vm_image,        cloud_init_iso};
 
         try
         {
@@ -1984,8 +1982,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             }
             auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr,
                                            config->ssh_username, vm_image, meta_data_cloud_init_config,
-                                           user_data_cloud_init_config, vendor_data_cloud_init_config,
-                                           config->ssh_key_provider.get());
+                                           user_data_cloud_init_config, vendor_data_cloud_init_config);
 
             config->factory->prepare_instance_image(vm_image, vm_desc);
 

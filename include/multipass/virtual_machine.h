@@ -62,18 +62,15 @@ public:
     virtual void update_state() = 0;
 
     VirtualMachine::State state;
-    const SSHKeyProvider* key_provider;
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
 
 protected:
-    VirtualMachine(VirtualMachine::State state, const SSHKeyProvider* key_provider, const std::string& vm_name)
-        : state{state}, key_provider{key_provider}, vm_name{vm_name} {};
-    VirtualMachine(const SSHKeyProvider* key_provider, const std::string& vm_name)
-        : VirtualMachine(State::off, key_provider, vm_name){};
+    VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
+    VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name){};
     VirtualMachine(const VirtualMachine&) = delete;
     VirtualMachine& operator=(const VirtualMachine&) = delete;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_VIRTUAL_MACHINE_H
