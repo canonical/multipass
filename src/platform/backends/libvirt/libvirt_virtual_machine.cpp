@@ -29,7 +29,7 @@
 #include <QDir>
 #include <QXmlStreamReader>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <libvirt/virterror.h>
 
@@ -128,7 +128,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
     {
         auto snap_path = QDir(snap);
         snap_path.cd("../current");
-        qemu_path = fmt::format("{}{}", snap_path.path().toStdString(), qemu_path);
+        qemu_path = fmt::format("{}{}", snap_path.path(), qemu_path);
     }
 
     return fmt::format(
@@ -226,7 +226,7 @@ auto domain_state_for(virDomainPtr domain)
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc, virConnectPtr connection,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor)
-    : VirtualMachine{desc.key_provider, desc.vm_name},
+    : VirtualMachine{desc.vm_name},
       connection{connection},
       domain{domain_definition_for(connection, desc, bridge_name)},
       mac_addr{instance_mac_addr_for(domain.get())},

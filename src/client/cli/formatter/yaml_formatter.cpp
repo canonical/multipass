@@ -19,7 +19,7 @@
 #include <multipass/cli/format_utils.h>
 #include <multipass/utils.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <yaml-cpp/yaml.h>
 

@@ -23,7 +23,7 @@
 
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 #include <libssh/callbacks.h>
 
 #include <array>

@@ -22,7 +22,7 @@
 
 #include <multipass/exceptions/download_exception.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QMap>
 #include <QUrl>

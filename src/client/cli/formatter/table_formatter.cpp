@@ -19,7 +19,7 @@
 
 #include <multipass/cli/format_utils.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 namespace mp = multipass;
 

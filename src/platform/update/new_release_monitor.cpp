@@ -21,7 +21,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/url_downloader.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 #include <semver200.h>
 
 #include <QJsonDocument>

@@ -30,7 +30,7 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QCoreApplication>
 #include <QFile>
@@ -66,11 +66,9 @@ auto make_qemu_process(const mp::ProcessFactory* process_factory, const mp::Virt
                                                                 QString::fromStdString(mac_addr));
     auto process = process_factory->create_process(std::move(process_spec));
 
-    mpl::log(mpl::Level::debug, desc.vm_name,
-             fmt::format("process working dir '{}'", process->workingDirectory().toStdString()));
-    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program().toStdString()));
-    mpl::log(mpl::Level::info, desc.vm_name,
-             fmt::format("process arguments '{}'", process->arguments().join(", ").toStdString()));
+    mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->workingDirectory()));
+    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program()));
+    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process arguments '{}'", process->arguments().join(", ")));
     return process;
 }
 
@@ -153,8 +151,7 @@ auto get_metadata()
 mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
                                            const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
                                            VMStatusMonitor& monitor)
-    : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off,
-                     desc.key_provider, desc.vm_name},
+    : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
@@ -170,7 +167,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
     });
     QObject::connect(vm_process.get(), &QProcess::readyReadStandardOutput, [this]() {
         auto qmp_output = vm_process->readAllStandardOutput();
-        mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output.toStdString()));
+        mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output));
         auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
         auto event = qmp_object["event"];
 

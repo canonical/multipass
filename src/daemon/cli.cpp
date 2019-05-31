@@ -21,7 +21,7 @@
 #include <multipass/platform.h>
 #include <multipass/utils.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -80,7 +80,7 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
         else if (logger == "stderr")
             builder.logger = std::make_unique<mpl::StandardLogger>(builder.verbosity_level);
         else
-            throw std::runtime_error(fmt::format("invalid logger option '{}'", logger.toStdString()));
+            throw std::runtime_error(fmt::format("invalid logger option '{}'", logger));
     }
 
     if (parser.isSet(address_option))

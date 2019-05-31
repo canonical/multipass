@@ -21,6 +21,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/ssh/scp_client.h>
+#include <multipass/ssh/sftp_client.h>
 
 #include <QDir>
 #include <QFileInfo>
@@ -30,8 +31,14 @@ namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
 
+namespace
+{
+const char streaming_symbol{'-'};
+} // namespace
+
 mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 {
+    streaming_enabled = false;
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
@@ -62,11 +69,23 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 
             try
             {
-                mp::SCPClient scp_client{host, port, username, priv_key_blob};
-                if (!destination.first.empty())
-                    scp_client.push_file(source.second, destination.second);
+                if (streaming_enabled)
+                {
+                    mp::SFTPClient sftp_client{host, port, username, priv_key_blob};
+                    if (destination.first.empty())
+                        sftp_client.stream_file(source.second, term->cout());
+                    else
+                        sftp_client.stream_file(destination.second, term->cin());
+                }
                 else
-                    scp_client.pull_file(source.second, destination.second);
+                {
+                    // TODO: Switch to using SFTPClient push/pull
+                    mp::SCPClient scp_client{host, port, username, priv_key_blob};
+                    if (!destination.first.empty())
+                        scp_client.push_file(source.second, destination.second);
+                    else
+                        scp_client.pull_file(source.second, destination.second);
+                }
             }
             catch (const std::exception& e)
             {
@@ -107,11 +126,13 @@ QString cmd::Transfer::description() const
 
 mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("source", "One or more paths to transfer, prefixed with <name:> "
-                                            "for paths inside the instance",
+    parser->addPositionalArgument("source",
+                                  "One or more paths to transfer, prefixed with <name:> "
+                                  "for paths inside the instance, or '-' for stdin",
                                   "<source> [<source> ...]");
-    parser->addPositionalArgument("destination", "The destination path, prefixed with <name:> for "
-                                                 "a path inside the instance",
+    parser->addPositionalArgument("destination",
+                                  "The destination path, prefixed with <name:> for "
+                                  "a path inside the instance, or '-' for stdout",
                                   "<destination>");
 
     auto status = parser->commandParse(this);
@@ -124,6 +145,41 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    const auto& args = parser->positionalArguments();
+    const auto num_streaming_symbols = std::count(std::begin(args), std::end(args), streaming_symbol);
+    const bool allow_streaming = (args.count() == 2);
+
+    if (num_streaming_symbols && !allow_streaming)
+    {
+        cerr << fmt::format("Only two arguments allowed when using '{}'\n", streaming_symbol);
+        return ParseCode::CommandLineError;
+    }
+
+    if (num_streaming_symbols > 1)
+    {
+        cerr << fmt::format("Only one '{}'\n", streaming_symbol);
+        return ParseCode::CommandLineError;
+    }
+
+    const auto source_code = parse_sources(parser);
+    if (ParseCode::Ok != source_code)
+        return source_code;
+
+    const auto destination_code = parse_destination(parser);
+    if (ParseCode::Ok != destination_code)
+        return destination_code;
+
+    if (request.instance_name().empty())
+    {
+        cerr << "An instance name is needed for either source or destination\n";
+        return ParseCode::CommandLineError;
+    }
+
+    return ParseCode::Ok;
+}
+
+mp::ParseCode cmd::Transfer::parse_sources(mp::ArgParser* parser)
+{
     for (auto i = 0; i < parser->positionalArguments().count() - 1; ++i)
     {
         auto source_entry = parser->positionalArguments().at(i);
@@ -137,12 +193,19 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
             return ParseCode::CommandLineError;
         }
 
+        if (streaming_symbol == source_path)
+        {
+            streaming_enabled = true;
+            sources.emplace_back(instance_name.toStdString(), "");
+            return ParseCode::Ok;
+        }
+
         if (instance_name.isEmpty())
         {
             QFileInfo source(source_path);
             if (!source.exists())
             {
-                cerr << "Source path \"" << source_path.toStdString() << "\" does not exist\n";
+                cerr << fmt::format("Source path \"{}\" does not exist\n", source_path);
                 return ParseCode::CommandLineError;
             }
 
@@ -154,7 +217,7 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
 
             if (!source.isReadable())
             {
-                cerr << "Source path \"" << source_path.toStdString() << "\" is not readable\n";
+                cerr << fmt::format("Source path \"{}\" is not readable\n", source_path);
                 return ParseCode::CommandLineError;
             }
         }
@@ -167,27 +230,39 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
         sources.emplace_back(instance_name.toStdString(), source_path.toStdString());
     }
 
+    return ParseCode::Ok;
+}
+
+mp::ParseCode cmd::Transfer::parse_destination(mp::ArgParser* parser)
+{
     auto destination_entry = parser->positionalArguments().last();
     QString destination_path, instance_name;
 
     mcp::parse_transfer_entry(destination_entry, destination_path, instance_name);
+    if (streaming_symbol == destination_path)
+    {
+        streaming_enabled = true;
+        destination = std::make_pair("", "");
+        return ParseCode::Ok;
+    }
+
     if (instance_name.isEmpty())
     {
-        QFileInfo destination(destination_path);
+        QFileInfo destination_file(destination_path);
 
-        if (destination.isDir())
+        if (destination_file.isDir())
         {
-            if (!destination.isWritable())
+            if (!destination_file.isWritable())
             {
-                cerr << "Destination path \"" << destination_path.toStdString() << "\" is not writable\n";
+                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path);
                 return ParseCode::CommandLineError;
             }
         }
         else
         {
-            if (!QFileInfo(destination.dir().absolutePath()).isWritable())
+            if (!QFileInfo(destination_file.dir().absolutePath()).isWritable())
             {
-                cerr << "Destination path \"" << destination_path.toStdString() << "\" is not writable\n";
+                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path);
                 return ParseCode::CommandLineError;
             }
             else if (sources.size() > 1)
@@ -207,12 +282,6 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
 
         auto entry = request.add_instance_name();
         entry->append(instance_name.toStdString());
-    }
-
-    if (request.instance_name().empty())
-    {
-        cerr << "An instance name is needed for either source or destination\n";
-        return ParseCode::CommandLineError;
     }
 
     destination = std::make_pair(instance_name.toStdString(), destination_path.toStdString());

@@ -34,7 +34,7 @@
 
 #include <gmock/gmock.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -61,7 +61,6 @@ struct LibVirtBackend : public Test
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mpt::StubProcessFactory process_factory;
-    mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{2,
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
@@ -69,8 +68,7 @@ struct LibVirtBackend : public Test
                                                       "",
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
-                                                      dummy_cloud_init_iso.name(),
-                                                      &key_provider};
+                                                      dummy_cloud_init_iso.name()};
     mpt::TempDir data_dir;
 
     decltype(MOCK(virConnectClose)) connect_close{MOCK(virConnectClose)};

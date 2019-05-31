@@ -17,7 +17,7 @@
 
 #include <multipass/cli/argparser.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QFileInfo>
 #include <QRegExp>

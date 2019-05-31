@@ -26,7 +26,7 @@ namespace test
 {
 struct StubVirtualMachine final : public multipass::VirtualMachine
 {
-    StubVirtualMachine() : VirtualMachine{nullptr, ""}
+    StubVirtualMachine() : VirtualMachine{""}
     {
     }
 
@@ -84,6 +84,6 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 };
-}
-}
+} // namespace test
+} // namespace multipass
 #endif // MULTIPASS_STUB_VIRTUAL_MACHINE_H

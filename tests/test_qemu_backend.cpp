@@ -39,7 +39,6 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mp::ProcessFactory process_factory; // want to launch actual processes
-    mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{2,
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
@@ -47,8 +46,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       "",
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
-                                                      dummy_cloud_init_iso.name(),
-                                                      &key_provider};
+                                                      dummy_cloud_init_iso.name()};
     mpt::TempDir data_dir;
 };
 

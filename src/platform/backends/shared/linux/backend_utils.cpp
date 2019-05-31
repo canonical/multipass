@@ -23,7 +23,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/utils.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QJsonDocument>
 #include <QJsonObject>

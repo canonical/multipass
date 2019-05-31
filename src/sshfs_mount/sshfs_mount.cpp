@@ -23,7 +23,7 @@
 #include <multipass/sshfs_mount/sftp_server.h>
 #include <multipass/utils.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

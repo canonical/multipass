@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,9 @@
 
 #include <premock.hpp>
 
-#define WITH_SERVER
 #include <libssh/sftp.h>
 
 DECL_MOCK(sftp_server_new);
-DECL_MOCK(sftp_free);
 DECL_MOCK(sftp_server_init);
 DECL_MOCK(sftp_reply_status);
 DECL_MOCK(sftp_reply_attr);

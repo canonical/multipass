@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,16 @@
  *
  */
 
-#include <multipass/logging/standard_logger.h>
-
-#include <multipass/utils.h>
-
-#include <multipass/format.h>
-
-namespace mp = multipass;
-namespace mpl = multipass::logging;
-
-mpl::StandardLogger::StandardLogger(mpl::Level level) : logging_level{level}
+#include "mock_sftp.h"
+extern "C"
 {
-}
-
-void mpl::StandardLogger::log(mpl::Level level, CString category, CString message) const
-{
-    if (level <= logging_level)
-    {
-        fmt::print(stderr, "[{}] [{}] [{}] {}\n", mp::utils::timestamp(), as_string(level).c_str(), category.c_str(),
-                   message.c_str());
-    }
+    IMPL_MOCK_DEFAULT(1, sftp_new);
+    IMPL_MOCK_DEFAULT(1, sftp_free);
+    IMPL_MOCK_DEFAULT(1, sftp_init);
+    IMPL_MOCK_DEFAULT(4, sftp_open);
+    IMPL_MOCK_DEFAULT(3, sftp_write);
+    IMPL_MOCK_DEFAULT(2, sftp_stat);
+    IMPL_MOCK_DEFAULT(3, sftp_read);
+    IMPL_MOCK_DEFAULT(1, sftp_get_error);
+    IMPL_MOCK_DEFAULT(1, sftp_close);
 }

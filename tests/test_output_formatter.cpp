@@ -22,7 +22,7 @@
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <gmock/gmock.h>
 

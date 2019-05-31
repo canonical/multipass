@@ -33,7 +33,7 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QCoreApplication>
 

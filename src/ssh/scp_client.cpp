@@ -21,7 +21,7 @@
 
 #include "ssh_client_key_provider.h"
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <array>
 
@@ -84,16 +84,14 @@ void mp::SCPClient::push_file(const std::string& source_path, const std::string&
     std::array<char, 65536u> data;
 
     if (!source.open(QIODevice::ReadOnly))
-        throw std::runtime_error(
-            fmt::format("[scp push] error opening file for reading: {}", source.errorString().toStdString()));
+        throw std::runtime_error(fmt::format("[scp push] error opening file for reading: {}", source.errorString()));
 
     do
     {
         auto r = source.read(data.data(), data.size());
 
         if (r == -1)
-            throw std::runtime_error(
-                fmt::format("[scp push] error reading file: {}" + source.errorString().toStdString()));
+            throw std::runtime_error(fmt::format("[scp push] error reading file: {}", source.errorString()));
         if (r == 0)
             break;
 
@@ -127,7 +125,7 @@ void mp::SCPClient::pull_file(const std::string& source_path, const std::string&
         QFile destination(QString::fromStdString(full_destination_path));
         if (!destination.open(QIODevice::WriteOnly))
             throw std::runtime_error(
-                fmt::format("[scp pull] error opening file for writing: {}", destination.errorString().toStdString()));
+                fmt::format("[scp pull] error opening file for writing: {}", destination.errorString()));
 
         SSH::throw_on_error(scp, *ssh_session, "[scp pull] accept request failed", ssh_scp_accept_request);
 
@@ -140,7 +138,7 @@ void mp::SCPClient::pull_file(const std::string& source_path, const std::string&
 
             if (destination.write(data.data(), r) == -1)
                 throw std::runtime_error(
-                    fmt::format("[scp pull] error writing to file: {}", destination.errorString().toStdString()));
+                    fmt::format("[scp pull] error writing to file: {}", destination.errorString()));
 
             total += r;
         } while (total < size);

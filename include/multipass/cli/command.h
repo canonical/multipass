@@ -20,14 +20,13 @@
 
 #include <multipass/callable_traits.h>
 #include <multipass/cli/return_codes.h>
+#include <multipass/format.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 #include <multipass/utils.h>
 
 #include <QLocalSocket>
 #include <QString>
-
-#include <fmt/format.h>
 
 #include <grpc++/grpc++.h>
 

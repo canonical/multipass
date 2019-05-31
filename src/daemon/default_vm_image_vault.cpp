@@ -28,7 +28,7 @@
 #include <multipass/vm_image.h>
 #include <multipass/xz_image_decoder.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QCryptographicHash>
 #include <QJsonArray>
@@ -179,7 +179,7 @@ QString copy(const QString& file_name, const QDir& output_dir)
         return {};
 
     if (!QFileInfo::exists(file_name))
-        throw std::runtime_error(fmt::format("{} missing", file_name.toStdString()));
+        throw std::runtime_error(fmt::format("{} missing", file_name));
 
     QFileInfo info{file_name};
     const auto source_name = info.fileName();
@@ -288,7 +288,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         VMImage source_image, vm_image;
 
         if (!QFile::exists(image_url.path()))
-            throw std::runtime_error(fmt::format("Custom image `{}` does not exist.", image_url.path().toStdString()));
+            throw std::runtime_error(fmt::format("Custom image `{}` does not exist.", image_url.path()));
 
         source_image.image_path = image_url.path();
 
