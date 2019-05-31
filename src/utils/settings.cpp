@@ -80,7 +80,7 @@ void mp::Settings::set(const QString& key, const QString& val)
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
     persistent_settings(key)->setValue(key, val);
-}
+} // QSettings destroyed and settings written at this point
 
 const QString& mp::Settings::get_default(const QString& key) const
 {
