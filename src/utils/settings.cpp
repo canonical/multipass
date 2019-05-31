@@ -21,10 +21,10 @@
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
 
-#include <QCoreApplication>
 #include <QSettings>
 #include <QStandardPaths>
 
+#include <cassert>
 #include <memory>
 
 namespace mp = multipass;
@@ -32,6 +32,7 @@ namespace mp = multipass;
 namespace
 {
 const auto file_extension = QStringLiteral("conf");
+const auto daemon_root = QStringLiteral("local");
 const auto petenv_name = QStringLiteral("primary");
 std::map<QString, QString> make_defaults()
 { // clang-format off
@@ -39,16 +40,25 @@ std::map<QString, QString> make_defaults()
             {mp::driver_key, mp::platform::default_driver()}};
 } // clang-format on
 
-std::unique_ptr<QSettings> persistent_settings()
+QString file_for(const QString& key) // the key should have passed checks at this point
 {
-    static const auto file_path = QStringLiteral("%1/%2.%3") // make up our own file name to avoid org/domain in path
-                                      .arg(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)) // dir
-                                      .arg(QCoreApplication::applicationName())
-                                      .arg(file_extension);
-    static const auto format = QSettings::defaultFormat(); // static consts to make sure these stay fixed
+    static const auto file_path_base = // we make up our own file names to avoid unknown org/domain in path
+        QStringLiteral("%1/%3.%2")     // note the order
+            .arg(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)) // dir
+            .arg(file_extension); // %3 still not replaced at this point
+    static const auto client_file_path = file_path_base.arg(mp::client_name);
+    static const auto daemon_file_path = file_path_base.arg(mp::daemon_name); // static consts ensure these stay fixed
 
-    return std::make_unique<QSettings>(file_path, format); /* unique_ptr to circumvent absent copy-ctor and no RVO
-                                                              guarantee (until C++17) */
+    assert(key.startsWith(daemon_root) || key.startsWith("client"));
+    return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
+}
+
+std::unique_ptr<QSettings> persistent_settings(const QString& key)
+{
+    static const auto format = QSettings::defaultFormat(); // static const to make sure these stay fixed
+
+    return std::make_unique<QSettings>(file_for(key), format); /* unique_ptr to circumvent absent copy-ctor and no RVO
+                                                                  guarantee (until C++17) */
 }
 } // namespace
 
@@ -61,7 +71,7 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
 QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
-    return persistent_settings()->value(key, default_ret).toString();
+    return persistent_settings(key)->value(key, default_ret).toString();
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
@@ -69,7 +79,7 @@ void mp::Settings::set(const QString& key, const QString& val)
     get_default(key); // make sure the key is valid before setting
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
-    persistent_settings()->setValue(key, val);
+    persistent_settings(key)->setValue(key, val);
 }
 
 const QString& mp::Settings::get_default(const QString& key) const
