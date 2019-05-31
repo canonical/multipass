@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
@@ -42,9 +40,8 @@ public:
     std::string ssh_username;
     VMImage image;
     Path cloud_init_iso;
-    const SSHKeyProvider* key_provider;
 };
-}
+} // namespace multipass
 
 Q_DECLARE_METATYPE(multipass::VirtualMachineDescription)
 
