@@ -43,10 +43,13 @@ std::map<QString, QString> make_defaults()
 
 QString file_for(const QString& key) // the key should have passed checks at this point
 {
-    static const auto file_path_base = // we make up our own file names to avoid unknown org/domain in path
-        QStringLiteral("%1/%3.%2")     // note the order
-            .arg(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)) // dir
-            .arg(file_extension); // %3 still not replaced at this point
+    // we make up our own file names to avoid unknown org/domain in path
+    // Example: ${HOME}/.config/multipass/multipassd.conf
+    static const auto file_path_base =
+        QStringLiteral("%1/%2/%4.%3")                                              // note the order
+            .arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation)) // top config dir
+            .arg(mp::client_name)                                                  // subdir
+            .arg(file_extension);                                                  // %4 not replaced yet at this point
     static const auto client_file_path = file_path_base.arg(mp::client_name);
     static const auto daemon_file_path = file_path_base.arg(mp::daemon_name); // static consts ensure these stay fixed
 
