@@ -50,6 +50,7 @@
 #include <memory>
 #include <ostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 namespace mp = multipass;
@@ -127,7 +128,7 @@ public:
             create_error.ParseFromString(status.error_details());
             const auto errors = create_error.error_codes();
 
-            cerr << "fail: ";
+            cerr << "failed: " << status.error_message();
             if (errors.size() == 1)
             {
                 const auto& error = errors[0];
@@ -396,6 +397,21 @@ TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_instan
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
     send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, on_creation_handles_instance_image_preparation_failure)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::string cause = "motive";
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _)).WillOnce(Throw(std::runtime_error{cause}));
+    EXPECT_CALL(*mock_factory, remove_resources_for(_));
+
+    std::stringstream err_stream;
+    send_command({GetParam()}, trash_stream, err_stream);
+
+    EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("failed"), HasSubstr(cause)));
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, generates_name_on_creation_when_client_does_not_provide_one)
