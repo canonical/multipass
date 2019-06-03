@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/virtual_machine_factory.h>
@@ -26,8 +27,6 @@
 #include "backends/shared/linux/process_factory.h"
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
-
-#include <fmt/format.h>
 
 namespace mp = multipass;
 
@@ -68,8 +67,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         if (driver == QStringLiteral("hyperkit") || driver == QStringLiteral("hyper-v"))
             msg_tail = " on this platform";
 
-        throw std::runtime_error(
-            fmt::format("Unsupported virtualization driver{}: {}", msg_tail, driver.toStdString()));
+        throw std::runtime_error(fmt::format("Unsupported virtualization driver{}: {}", msg_tail, driver));
     }
 }
 
