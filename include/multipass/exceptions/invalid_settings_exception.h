@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_INVALID_SETTINGS_EXCEPTION_H
 #define MULTIPASS_INVALID_SETTINGS_EXCEPTION_H
 
+#include <multipass/format.h>
+
 #include <QString>
 
 #include <stdexcept>
@@ -27,13 +29,12 @@ namespace multipass
 class InvalidSettingsException : public std::runtime_error
 {
 public:
-    InvalidSettingsException(const QString& key)
-        : runtime_error{QString{"Unrecognized settings key: '%1'"}.arg(key).toStdString()}
+    InvalidSettingsException(const QString& key) : runtime_error{fmt::format("Unrecognized settings key: '{}'", key)}
     {
     }
 
     InvalidSettingsException(const QString& key, const QString& val, const QString& why)
-        : runtime_error{QString{"Invalid setting '%1=%2': %3"}.arg(key).arg(val).arg(why).toStdString()}
+        : runtime_error{fmt::format("Invalid setting '{}={}': {}", key, val, why)}
     {
     }
 };
