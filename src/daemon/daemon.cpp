@@ -1323,6 +1323,9 @@ try // clang-format on
         }
 
         auto& vm = it->second;
+        if (vm->current_state() == VirtualMachine::State::unknown)
+            throw std::runtime_error("Cannot retreive credentials in unknown state");
+
         if (!mp::utils::is_running(vm->current_state()))
         {
             return status_promise->set_value(
