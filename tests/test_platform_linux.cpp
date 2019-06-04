@@ -70,9 +70,16 @@ TEST(PlatformLinux, test_libvirt_driver_produces_correct_factory)
     aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt");
 }
 
-TEST(PlatformLinux, test_hyperkit_driver_unsupported)
+struct TestUnsupportedDrivers : public TestWithParam<QString>
 {
-    setup_driver_settings("hyperkit");
+};
+
+TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
+{
+    setup_driver_settings(GetParam());
     EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
 }
+
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
+                         Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
 } // namespace
