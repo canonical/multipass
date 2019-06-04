@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,22 +15,32 @@
  *
  */
 
-#include "mock_settings.h"
+#ifndef MULTIPASS_SET_H
+#define MULTIPASS_SET_H
 
-#include <gtest/gtest.h>
+#include <multipass/cli/command.h>
 
-#include <QCoreApplication>
-
-namespace mp = multipass;
-
-// Normally one would just use libgtest_main but our static library dependencies
-// also define main... DAMN THEM!
-int main(int argc, char* argv[])
+namespace multipass
 {
-    QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_tests");
+namespace cmd
+{
+class Set final : public Command
+{
+public:
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
 
-    ::testing::InitGoogleTest(&argc, argv);
-    mp::test::MockSettings::mockit();
-    return RUN_ALL_TESTS();
-}
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    ParseCode parse_args(ArgParser* parser) override;
+
+    QString key;
+    QString val;
+};
+} // namespace cmd
+} // namespace multipass
+
+#endif // MULTIPASS_SET_H

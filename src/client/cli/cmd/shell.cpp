@@ -21,6 +21,7 @@
 #include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/settings.h>
 #include <multipass/ssh/ssh_client.h>
 
 namespace mp = multipass;
@@ -29,6 +30,7 @@ using RpcMethod = mp::Rpc::Stub;
 
 mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 {
+    petenv_name = Settings::instance().get(petenv_key);
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
@@ -67,7 +69,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
-        if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name)
+        if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name.toStdString())
             return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
         else if (status.error_code() == grpc::StatusCode::ABORTED)
             return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)}, parser, cout, cerr);
@@ -126,7 +128,7 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     else
     {
         auto entry = request.add_instance_name();
-        entry->append(num_args ? pos_args.first().toStdString() : petenv_name);
+        entry->append(num_args ? pos_args.first().toStdString() : petenv_name.toStdString());
     }
 
     return status;

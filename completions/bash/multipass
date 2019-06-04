@@ -47,7 +47,7 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="transfer delete exec find help info launch list mount purge \
-                    recover shell start stop suspend restart umount version"
+                    recover shell start stop suspend restart umount version get set"
 
     opts="--help --verbose"
     case "${cmd}" in

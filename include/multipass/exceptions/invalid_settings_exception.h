@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,34 +15,29 @@
  *
  */
 
-#ifndef MULTIPASS_CONNECT_H
-#define MULTIPASS_CONNECT_H
+#ifndef MULTIPASS_INVALID_SETTINGS_EXCEPTION_H
+#define MULTIPASS_INVALID_SETTINGS_EXCEPTION_H
 
-#include <multipass/cli/command.h>
+#include <multipass/format.h>
 
 #include <QString>
 
+#include <stdexcept>
+
 namespace multipass
 {
-namespace cmd
-{
-class Shell final : public Command
+class InvalidSettingsException : public std::runtime_error
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    InvalidSettingsException(const QString& key) : runtime_error{fmt::format("Unrecognized settings key: '{}'", key)}
+    {
+    }
 
-    std::string name() const override;
-    std::vector<std::string> aliases() const override;
-    QString short_help() const override;
-    QString description() const override;
-
-private:
-    SSHInfoRequest request;
-    QString petenv_name;
-
-    ParseCode parse_args(ArgParser *parser) override;
+    InvalidSettingsException(const QString& key, const QString& val, const QString& why)
+        : runtime_error{fmt::format("Invalid setting '{}={}': {}", key, val, why)}
+    {
+    }
 };
-}
-}
-#endif // MULTIPASS_CONNECT_H
+} // namespace multipass
+
+#endif // MULTIPASS_INVALID_SETTINGS_EXCEPTION_H

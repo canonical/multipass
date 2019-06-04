@@ -22,6 +22,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/settings.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -66,6 +67,7 @@ QString cmd::Suspend::description() const
 
 mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
 {
+    const auto petenv_name = Settings::instance().get(petenv_key);
     parser->addPositionalArgument(
         "name",
         QString{"Names of instances to suspend. If omitted, and without the --all option, '%1' will be assumed."}.arg(
@@ -83,7 +85,7 @@ mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name));
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
 
     return status;
 }

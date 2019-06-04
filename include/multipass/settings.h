@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,34 +15,31 @@
  *
  */
 
-#ifndef MULTIPASS_CONNECT_H
-#define MULTIPASS_CONNECT_H
+#ifndef MULTIPASS_SETTINGS_H
+#define MULTIPASS_SETTINGS_H
 
-#include <multipass/cli/command.h>
+#include "singleton.h"
 
 #include <QString>
 
+#include <map>
+
 namespace multipass
 {
-namespace cmd
-{
-class Shell final : public Command
+class Settings : public Singleton<Settings>
 {
 public:
-    using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    Settings(const Singleton<Settings>::PrivatePass&);
 
-    std::string name() const override;
-    std::vector<std::string> aliases() const override;
-    QString short_help() const override;
-    QString description() const override;
+    virtual QString get(const QString& key) const;            // throws on unknown key
+    virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
+
+protected:
+    const QString& get_default(const QString& key) const; // throws on unknown key
 
 private:
-    SSHInfoRequest request;
-    QString petenv_name;
-
-    ParseCode parse_args(ArgParser *parser) override;
+    std::map<QString, QString> defaults;
 };
-}
-}
-#endif // MULTIPASS_CONNECT_H
+} // namespace multipass
+
+#endif // MULTIPASS_SETTINGS_H

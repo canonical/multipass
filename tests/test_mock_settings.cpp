@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,20 +17,27 @@
 
 #include "mock_settings.h"
 
+#include <multipass/settings.h>
+
+#include <QString>
+
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <QCoreApplication>
-
 namespace mp = multipass;
+namespace mpt = mp::test;
+using namespace testing;
 
-// Normally one would just use libgtest_main but our static library dependencies
-// also define main... DAMN THEM!
-int main(int argc, char* argv[])
+namespace
 {
-    QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_tests");
 
-    ::testing::InitGoogleTest(&argc, argv);
-    mp::test::MockSettings::mockit();
-    return RUN_ALL_TESTS();
+TEST(Settings, can_be_mocked)
+{
+    const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
+    const auto& mock = mpt::MockSettings::mock_instance();
+
+    EXPECT_CALL(mock, get(_)).WillOnce(Return(proof));
+    ASSERT_EQ(mp::Settings::instance().get(test), proof);
 }
+
+} // namespace

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "daemon.h"
@@ -23,6 +21,7 @@
 #include "cli.h"
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
@@ -109,7 +108,9 @@ int main(int argc, char* argv[]) // clang-format off
 try // clang-format on
 {
     QCoreApplication app(argc, argv);
+    QCoreApplication::setApplicationName(mp::daemon_name);
     QCoreApplication::setApplicationVersion(mp::version_string);
+
     UnixSignalHandler handler;
 
     auto builder = mp::cli::parse(app);

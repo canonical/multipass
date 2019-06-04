@@ -20,9 +20,11 @@
 
 namespace multipass
 {
+constexpr auto client_name = "multipass";
+constexpr auto daemon_name = "multipassd";
 constexpr auto min_memory_size = "128M";
 constexpr auto min_disk_size = "512M";
-constexpr auto petenv_name = "primary";
+constexpr auto petenv_key = "client.primary_name"; // This will eventually be moved to some dynamic settings schema
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H
