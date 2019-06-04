@@ -55,4 +55,9 @@ TEST(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 {
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
+
+TEST(PlatformLinux, test_libvirt_driver_produces_correct_factory)
+{
+    aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt");
+}
 } // namespace
