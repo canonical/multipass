@@ -33,23 +33,26 @@ using namespace testing;
 
 namespace
 {
-void aux_test_qemu_driver_factory()
+template <typename VMFactoryType>
+void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
 {
+    auto& expectation = EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::driver_key)));
+    if (!driver.isEmpty())
+        expectation.WillRepeatedly(Return(driver));
+
     decltype(mp::platform::vm_backend("")) factory_ptr;
     EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(QStringLiteral("/tmp")););
 
-    EXPECT_TRUE(dynamic_cast<mp::QemuVirtualMachineFactory*>(factory_ptr.get()));
+    EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
 }
 
-TEST(PlatformLinux, test_default_qemu_driver_produces_qemu_factory)
+TEST(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
 {
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::driver_key)));
-    aux_test_qemu_driver_factory();
+    aux_test_driver_factory<mp::QemuVirtualMachineFactory>();
 }
 
-TEST(PlatformLinux, test_explicit_qemu_driver_produces_qemu_factory)
+TEST(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 {
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::driver_key))).WillRepeatedly(Return("qemu"));
-    aux_test_qemu_driver_factory();
+    aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 } // namespace
