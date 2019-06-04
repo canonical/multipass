@@ -27,21 +27,30 @@
 
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
 {
-template <typename VMFactoryType>
-void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
+const auto backend_path = QStringLiteral("/tmp");
+
+void setup_driver_settings(const QString& driver)
 {
     auto& expectation = EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::driver_key)));
     if (!driver.isEmpty())
         expectation.WillRepeatedly(Return(driver));
+}
+
+template <typename VMFactoryType>
+void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
+{
+    setup_driver_settings(driver);
 
     decltype(mp::platform::vm_backend("")) factory_ptr;
-    EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(QStringLiteral("/tmp")););
+    EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path););
 
     EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
 }
@@ -59,5 +68,11 @@ TEST(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 TEST(PlatformLinux, test_libvirt_driver_produces_correct_factory)
 {
     aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt");
+}
+
+TEST(PlatformLinux, test_hyperkit_driver_unsupported)
+{
+    setup_driver_settings("hyperkit");
+    EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
 }
 } // namespace
