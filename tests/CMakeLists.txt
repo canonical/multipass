@@ -23,6 +23,7 @@ include(c_mock_defines.cmake)
 
 list(APPEND BACKEND_TESTS
   mock_libvirt.cpp
+  test_platform_linux.cpp
   test_qemu_backend.cpp
   test_dnsmasq_server.cpp
   test_libvirt_backend.cpp
