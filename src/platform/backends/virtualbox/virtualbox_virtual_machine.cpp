@@ -92,7 +92,7 @@ auto instance_state_for(const QString& name)
 } // namespace
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{desc.key_provider, desc.vm_name},
+    : VirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor}
