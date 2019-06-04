@@ -38,7 +38,6 @@ struct HyperVBackend : public testing::Test
 {
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
-    mpt::StubSSHKeyProvider key_provider;
     mp::VirtualMachineDescription default_description{2,
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used,
@@ -46,8 +45,7 @@ struct HyperVBackend : public testing::Test
                                                       "",
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
-                                                      dummy_cloud_init_iso.name(),
-                                                      &key_provider};
+                                                      dummy_cloud_init_iso.name()};
     mp::HyperVVirtualMachineFactory backend;
 };
 } // namespace

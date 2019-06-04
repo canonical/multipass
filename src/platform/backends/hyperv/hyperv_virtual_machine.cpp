@@ -86,7 +86,7 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 } // namespace
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{desc.key_provider, desc.vm_name},
+    : VirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       power_shell{std::make_unique<PowerShell>(vm_name)},
