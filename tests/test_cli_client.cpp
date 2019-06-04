@@ -87,7 +87,7 @@ struct MockDaemonRpc : public mp::DaemonRpc
     MOCK_METHOD3(ping, grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
 };
 
-struct Client : public Test
+struct Client : public TestWithParam<const char*>
 {
     void TearDown() override
     {
@@ -1266,20 +1266,23 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 }
 
 // get/set cli tests
-TEST_F(Client, get_can_read_settings)
+TEST_P(Client, get_can_read_settings)
 {
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key)));
-    get_setting(mp::petenv_key);
+    const auto& key = GetParam();
+    EXPECT_CALL(mock_settings, get(Eq(key)));
+    get_setting(key);
 }
 
-TEST_F(Client, set_can_write_settings)
+TEST_P(Client, set_can_write_settings)
 {
-    const auto key = mp::petenv_key;
+    const auto& key = GetParam();
     const auto val = "blah";
 
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
     EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::Ok));
 }
+
+INSTANTIATE_TEST_SUITE_P(Client, Client, Values(mp::petenv_key, mp::driver_key));
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)
 {
