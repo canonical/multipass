@@ -29,7 +29,7 @@ install:
 
 before_script:
 - "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
-- "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 < tests/travis-${BUILD_TYPE}.patch"
+- "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
 - sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
 - sg lxd -c '/snap/bin/lxc profile set default environment.PATH "/usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"'
 - ccache --zero-stats
