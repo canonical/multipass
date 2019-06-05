@@ -53,6 +53,7 @@ mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
       rpc_channel{mp::client::make_channel(config.server_address, config.conn_type, *cert_provider)},
       stub{mp::Rpc::NewStub(rpc_channel)},
+      daemon_killer{std::move(config.daemon_killer)},
       term{config.term}
 {
     add_command<cmd::Launch>();

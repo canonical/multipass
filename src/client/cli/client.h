@@ -35,6 +35,7 @@ struct ClientConfig
     const std::string server_address;
     const RpcConnectionType conn_type;
     std::unique_ptr<CertProvider> cert_provider;
+    DaemonKiller* daemon_killer;
     Terminal *term;
 };
 
@@ -57,6 +58,7 @@ private:
 
     std::vector<cmd::Command::UPtr> commands;
 
+    DaemonKiller* daemon_killer;
     Terminal* term;
 };
 } // namespace multipass
@@ -64,7 +66,7 @@ private:
 template <typename T>
 void multipass::Client::add_command()
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term);
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, daemon_killer, term);
     commands.push_back(std::move(cmd));
 }
 

@@ -40,6 +40,9 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
             cerr << e.what() << "\n";
             ret = ReturnCode::CommandLineError;
         }
+
+        if (key.startsWith("local"))      // FIXME
+            daemon_killer->kill_daemon(); // FIXME check result
     }
 
     return ret;

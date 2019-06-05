@@ -23,6 +23,7 @@
 #include "stub_terminal.h"
 
 #include <multipass/constants.h>
+#include <multipass/daemon_killer.h>
 #include <multipass/exceptions/invalid_settings_exception.h>
 #include <multipass/logging/log.h>
 #include <src/client/cli/client.h>
@@ -87,6 +88,11 @@ struct MockDaemonRpc : public mp::DaemonRpc
     MOCK_METHOD3(ping, grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
 };
 
+struct MockDaemonKiller : mp::DaemonKiller
+{
+    MOCK_CONST_METHOD0(kill_daemon, bool());
+};
+
 struct Client : public TestWithParam<const char*>
 {
     void TearDown() override
@@ -103,7 +109,7 @@ struct Client : public TestWithParam<const char*>
     {
         mpt::StubTerminal term(cout, cerr, cin);
         mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                       std::make_unique<mpt::StubCertProvider>(), &term};
+                                       std::make_unique<mpt::StubCertProvider>(), &mock_killer, &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -160,6 +166,7 @@ struct Client : public TestWithParam<const char*>
 #endif
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
+    StrictMock<MockDaemonKiller> mock_killer{};
     StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
                                           cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are

@@ -249,7 +249,8 @@ struct Daemon : public Test
         mp::AutoJoinThread t([this, &commands, &cout, &cerr, &cin] {
             mpt::StubTerminal term(cout, cerr, cin);
             mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                           std::make_unique<mpt::StubCertProvider>(), &term};
+                                           std::make_unique<mpt::StubCertProvider>(),
+                                           /*daemon_killer=*/nullptr /*FIXME*/, &term};
             TestClient client{client_config};
             for (const auto& command : commands)
             {

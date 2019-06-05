@@ -20,6 +20,7 @@
 
 #include <multipass/callable_traits.h>
 #include <multipass/cli/return_codes.h>
+#include <multipass/daemon_killer.h>
 #include <multipass/format.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
@@ -40,13 +41,19 @@ class Command
 {
 public:
     using UPtr = std::unique_ptr<Command>;
-    Command(grpc::Channel& channel, Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr)
-        : rpc_channel{&channel}, stub{&stub}, cout{cout}, cerr{cerr}
+    Command(grpc::Channel& channel, Rpc::Stub& stub, DaemonKiller* daemon_killer, std::ostream& cout,
+            std::ostream& cerr)
+        : rpc_channel{&channel}, stub{&stub}, daemon_killer{daemon_killer}, cout{cout}, cerr{cerr}
     {
     }
 
-    Command(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term)
-        : rpc_channel{&channel}, stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
+    Command(grpc::Channel& channel, Rpc::Stub& stub, DaemonKiller* daemon_killer, Terminal* term)
+        : rpc_channel{&channel},
+          stub{&stub},
+          daemon_killer{daemon_killer},
+          term{term},
+          cout{term->cout()},
+          cerr{term->cerr()}
     {
     }
     virtual ~Command() = default;
@@ -136,6 +143,7 @@ protected:
 
     grpc::Channel* rpc_channel;
     Rpc::Stub* stub;
+    DaemonKiller* daemon_killer;
     Terminal* term;
     std::ostream& cout;
     std::ostream& cerr;

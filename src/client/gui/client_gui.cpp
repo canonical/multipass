@@ -29,7 +29,8 @@ mp::ClientGui::ClientGui(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
       rpc_channel{mp::client::make_channel(config.server_address, config.conn_type, *cert_provider)},
       stub{mp::Rpc::NewStub(rpc_channel)},
-      gui_cmd{std::make_unique<cmd::GuiCmd>(*rpc_channel, *stub, null_stream, null_stream)}
+      gui_cmd{std::make_unique<cmd::GuiCmd>(*rpc_channel, *stub, /*daemon_killer=*/nullptr /*FIXME*/, null_stream,
+                                            null_stream)}
 {
 }
 
