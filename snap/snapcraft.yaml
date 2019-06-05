@@ -1,4 +1,5 @@
 name: multipass
+title: Multipass
 icon: snap/gui/multipass-gui.svg
 summary: Instant Ubuntu VMs
 description: |
@@ -6,10 +7,7 @@ description: |
   simulates a cloud environment with support for cloud-init. Get Ubuntu
   on-demand with clean integration to your IDE and version control on your
   native platform.
-
-passthrough:
-  title: Multipass
-  license: GPL-3.0
+license: GPL-3.0
 
 adopt-info: multipass
 confinement: classic
@@ -25,8 +23,7 @@ apps:
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
-    passthrough:
-      after: [libvirt-bin]
+    after: [libvirt-bin]
   multipass:
     environment:
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
