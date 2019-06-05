@@ -35,6 +35,7 @@ namespace
 const auto file_extension = QStringLiteral("conf");
 const auto daemon_root = QStringLiteral("local");
 const auto petenv_name = QStringLiteral("primary");
+
 std::map<QString, QString> make_defaults()
 { // clang-format off
     return {{mp::petenv_key, petenv_name},
@@ -122,4 +123,9 @@ const QString& mp::Settings::get_default(const QString& key) const
     {
         throw InvalidSettingsException{key};
     }
+}
+
+QString mp::Settings::get_daemon_settings_file_path() // temporary
+{
+    return file_for(daemon_root);
 }

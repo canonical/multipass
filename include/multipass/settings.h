@@ -34,6 +34,8 @@ public:
     virtual QString get(const QString& key) const;            // throws on unknown key
     virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
 
+    static QString get_daemon_settings_file_path(); // temporary
+
 protected:
     const QString& get_default(const QString& key) const; // throws on unknown key
 
