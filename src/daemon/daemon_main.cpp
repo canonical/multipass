@@ -26,6 +26,7 @@
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/settings.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -35,6 +36,8 @@
 #include <multipass/format.h>
 
 #include <QCoreApplication>
+#include <QFileSystemWatcher>
+#include <QObject>
 
 #include <csignal>
 #include <cstring>
@@ -102,6 +105,14 @@ public:
 private:
     mp::AutoJoinThread signal_handling_thread;
 };
+
+void monitor_and_quit_on_settings_change()
+{
+    // TODO @ricab touch the file (QFileWatcher can't watch if not there)
+    static QFileSystemWatcher monitor{{mp::Settings::get_daemon_settings_file_path()}};
+    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, QCoreApplication::instance(), QCoreApplication::quit);
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) // clang-format off
@@ -117,6 +128,7 @@ try // clang-format on
     auto config = builder.build();
     auto server_address = config->server_address;
 
+    monitor_and_quit_on_settings_change();
     mp::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
