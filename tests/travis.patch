@@ -1,14 +1,6 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -212,6 +212,7 @@ parts:
-     - on arm64: [libgles2-mesa-dev]
-     - on armhf: [libgles2-mesa-dev]
-     - build-essential
-+    - ccache
-     - cmake-extras
-     - git
-     - golang
-@@ -228,6 +229,7 @@ parts:
+@@ -220,6 +220,7 @@ parts:
      - -DCMAKE_INSTALL_PREFIX=/
      - -DMULTIPASS_ENABLE_TESTS=off
      override-build: |
@@ -16,17 +8,9 @@
        snapcraftctl build
        set -e
        mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
-@@ -265,6 +267,7 @@ parts:
-     source-subdir: libvirt-1.3.1
-     plugin: autotools
-     build-packages:
-+    - ccache
-     - libxml2-dev
-     - libxml-libxml-perl
-     - libcurl4-gnutls-dev
-@@ -327,6 +330,9 @@ parts:
-       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.26.debian.tar.xz
-       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.26.dsc
+@@ -315,6 +316,9 @@ parts:
+       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.25.debian.tar.xz
+       wget http://archive.ubuntu.com/ubuntu/pool/main/libv/libvirt/libvirt_1.3.1-1ubuntu10.25.dsc
        dpkg-source -x libvirt*.dsc
 +    override-build: |
 +      update-ccache-symlinks
