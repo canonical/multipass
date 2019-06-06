@@ -1296,6 +1296,21 @@ TEST_F(Client, set_cmd_fails_with_unknown_key)
     EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, get_handles_persistent_settings_errors)
+{
+    const auto key = mp::petenv_key;
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
+    EXPECT_THAT(send_command({"get", key}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, set_handles_persistent_settings_errors)
+{
+    const auto key = mp::petenv_key;
+    const auto val = "asdasdasd";
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
+    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, get_and_set_can_read_and_write_primary_name)
 {
     const auto name = "xyz";
