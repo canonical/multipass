@@ -16,6 +16,7 @@
  */
 
 #include "get.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
@@ -40,8 +41,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
         catch (const SettingsException& e)
         {
             cerr << e.what() << "\n";
-            ret = dynamic_cast<const InvalidSettingsException*>(&e) ? ReturnCode::CommandLineError
-                                                                    : ReturnCode::CommandFail;
+            ret = return_code_from(e);
         }
     }
 
