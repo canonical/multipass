@@ -23,7 +23,7 @@
 #include "stub_terminal.h"
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/invalid_settings_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/logging/log.h>
 #include <src/client/cli/client.h>
 #include <src/daemon/daemon_rpc.h>

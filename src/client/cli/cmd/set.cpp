@@ -19,7 +19,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
-#include <multipass/exceptions/invalid_settings_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings.h>
 
 namespace mp = multipass;
@@ -35,10 +35,11 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
         {
             Settings::instance().set(key, val);
         }
-        catch (const InvalidSettingsException& e)
+        catch (const SettingsException& e)
         {
             cerr << e.what() << "\n";
-            ret = ReturnCode::CommandLineError;
+            ret = dynamic_cast<const InvalidSettingsException*>(&e) ? ReturnCode::CommandLineError
+                                                                    : ReturnCode::CommandFail;
         }
     }
 

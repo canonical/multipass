@@ -16,7 +16,7 @@
  */
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/invalid_settings_exception.h> // TODO move out
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
 
@@ -54,15 +54,16 @@ void check_status(const QSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
     if (status)
-        throw std::runtime_error{fmt::format("Could not {} settings: {} error", attempted_operation,
-                                             status == QSettings::AccessError ? "access" : "format")};
+        throw mp::PersistentSettingsException{attempted_operation, status == QSettings::AccessError
+                                                                       ? QStringLiteral("access")
+                                                                       : QStringLiteral("format")};
 }
 
 QString checked_get(QSettings& settings, const QString& key, const QString& fallback)
 {
     auto ret = settings.value(key, fallback).toString();
 
-    check_status(settings, "read");
+    check_status(settings, QStringLiteral("read"));
     return ret;
 }
 
@@ -71,7 +72,7 @@ void checked_set(QSettings& settings, const QString& key, const QString& val)
     settings.setValue(key, val);
 
     settings.sync(); // flush to confirm we can write
-    check_status(settings, "write");
+    check_status(settings, QStringLiteral("write"));
 }
 
 } // namespace
