@@ -25,7 +25,8 @@ add_library(daemon STATIC
   daemon_rpc.cpp
   default_vm_image_vault.cpp
   json_writer.cpp
-  ubuntu_image_host.cpp)
+  ubuntu_image_host.cpp
+  vm_instance.cpp)
 
 add_library(delayed_shutdown STATIC
   delayed_shutdown_timer.cpp
