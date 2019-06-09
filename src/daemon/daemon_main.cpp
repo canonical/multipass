@@ -79,6 +79,12 @@ void set_server_permissions(const std::string& server_address)
         throw std::runtime_error("Could not set permissions for the multipass socket.");
 }
 
+void init_settings(const QString& filename)
+{
+    QFile file{filename};
+    file.open(QIODevice::WriteOnly | QIODevice::Append);
+}
+
 class UnixSignalHandler
 {
 public:
@@ -108,8 +114,10 @@ private:
 
 void monitor_and_quit_on_settings_change()
 {
-    // TODO @ricab touch the file (QFileWatcher can't watch if not there)
-    static QFileSystemWatcher monitor{{mp::Settings::get_daemon_settings_file_path()}};
+    static const auto filename = mp::Settings::get_daemon_settings_file_path();
+    init_settings(filename); // create if not there
+
+    static QFileSystemWatcher monitor{{filename}};
     QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, QCoreApplication::instance(), QCoreApplication::quit);
 }
 
