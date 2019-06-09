@@ -53,6 +53,23 @@ namespace
 {
 const std::vector<std::string> supported_socket_groups{"sudo", "adm", "admin"};
 
+void configure_permissions(const std::string& filename)
+{
+    struct group* group{nullptr};
+    for (const auto socket_group : supported_socket_groups)
+    {
+        group = getgrnam(socket_group.c_str());
+        if (group)
+            break;
+    }
+
+    if (!group || chown(filename.c_str(), 0, group->gr_gid) == -1)
+        throw std::runtime_error(fmt::format("Could not set file ownership on \"{}\".", filename));
+
+    if (chmod(filename.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) == -1)
+        throw std::runtime_error(fmt::format("Could not set file permissions on \"{}\".", filename));
+}
+
 void set_server_permissions(const std::string& server_address)
 {
     auto tokens = mp::utils::split(server_address, ":");
@@ -63,26 +80,14 @@ void set_server_permissions(const std::string& server_address)
     if (server_name != "unix")
         return;
 
-    struct group* group{nullptr};
-    for (const auto socket_group : supported_socket_groups)
-    {
-        group = getgrnam(socket_group.c_str());
-        if (group)
-            break;
-    }
-
-    const auto socket_path = tokens[1];
-    if (group && chown(socket_path.c_str(), 0, group->gr_gid) == -1)
-        throw std::runtime_error("Could not set ownership of the multipass socket.");
-
-    if (chmod(socket_path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) == -1)
-        throw std::runtime_error("Could not set permissions for the multipass socket.");
+    configure_permissions(tokens[1]);
 }
 
 void init_settings(const QString& filename)
 {
     QFile file{filename};
     file.open(QIODevice::WriteOnly | QIODevice::Append);
+    configure_permissions(filename.toStdString());
 }
 
 class UnixSignalHandler
@@ -115,7 +120,7 @@ private:
 void monitor_and_quit_on_settings_change()
 {
     static const auto filename = mp::Settings::get_daemon_settings_file_path();
-    init_settings(filename); // create if not there
+    init_settings(filename); // create and set permissions if not there
 
     static QFileSystemWatcher monitor{{filename}};
     QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, QCoreApplication::instance(), QCoreApplication::quit);
