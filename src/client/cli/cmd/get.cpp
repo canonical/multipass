@@ -16,10 +16,11 @@
  */
 
 #include "get.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
-#include <multipass/exceptions/invalid_settings_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings.h>
 
 #include <QtGlobal>
@@ -37,10 +38,10 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
         {
             cout << qPrintable(Settings::instance().get(key)) << "\n";
         }
-        catch (const InvalidSettingsException& e)
+        catch (const SettingsException& e)
         {
             cerr << e.what() << "\n";
-            ret = ReturnCode::CommandLineError;
+            ret = return_code_from(e);
         }
     }
 

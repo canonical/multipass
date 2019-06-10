@@ -23,7 +23,7 @@
 #include "stub_terminal.h"
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/invalid_settings_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/logging/log.h>
 #include <src/client/cli/client.h>
 #include <src/daemon/daemon_rpc.h>
@@ -1294,6 +1294,21 @@ TEST_F(Client, set_cmd_fails_with_unknown_key)
     const auto val = "blah";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
     EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, get_handles_persistent_settings_errors)
+{
+    const auto key = mp::petenv_key;
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
+    EXPECT_THAT(send_command({"get", key}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, set_handles_persistent_settings_errors)
+{
+    const auto key = mp::petenv_key;
+    const auto val = "asdasdasd";
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
+    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, get_and_set_can_read_and_write_primary_name)

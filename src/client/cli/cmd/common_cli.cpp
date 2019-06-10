@@ -20,6 +20,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/exceptions/settings_exceptions.h>
 
 #include <fmt/ostream.h>
 #include <sstream>
@@ -154,4 +155,9 @@ mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgPars
                                       std::ostream& cerr)
 {
     return ok2retry(run_cmd(args, parser, cout, cerr));
+}
+
+auto cmd::return_code_from(const SettingsException& e) -> ReturnCode
+{
+    return dynamic_cast<const InvalidSettingsException*>(&e) ? ReturnCode::CommandLineError : ReturnCode::CommandFail;
 }

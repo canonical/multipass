@@ -15,29 +15,49 @@
  *
  */
 
-#ifndef MULTIPASS_INVALID_SETTINGS_EXCEPTION_H
-#define MULTIPASS_INVALID_SETTINGS_EXCEPTION_H
+#ifndef MULTIPASS_SETTINGS_EXCEPTIONS_H
+#define MULTIPASS_SETTINGS_EXCEPTIONS_H
 
 #include <multipass/format.h>
 
 #include <QString>
 
 #include <stdexcept>
+#include <string>
 
 namespace multipass
 {
-class InvalidSettingsException : public std::runtime_error
+class SettingsException : public std::runtime_error
 {
 public:
-    InvalidSettingsException(const QString& key) : runtime_error{fmt::format("Unrecognized settings key: '{}'", key)}
+    SettingsException(const std::string& msg) : runtime_error{msg}
+    {
+    }
+};
+
+class PersistentSettingsException : public SettingsException
+{
+public:
+    PersistentSettingsException(const QString& attempted_operation, const QString& failure)
+        : SettingsException{fmt::format("Could not {} settings: {} error", attempted_operation, failure)}
+    {
+    }
+};
+
+class InvalidSettingsException : public SettingsException
+{
+public:
+    InvalidSettingsException(const QString& key)
+        : SettingsException{fmt::format("Unrecognized settings key: '{}'", key)}
     {
     }
 
     InvalidSettingsException(const QString& key, const QString& val, const QString& why)
-        : runtime_error{fmt::format("Invalid setting '{}={}': {}", key, val, why)}
+        : SettingsException{fmt::format("Invalid setting '{}={}': {}", key, val, why)}
     {
     }
 };
+
 } // namespace multipass
 
-#endif // MULTIPASS_INVALID_SETTINGS_EXCEPTION_H
+#endif // MULTIPASS_SETTINGS_EXCEPTIONS_H
