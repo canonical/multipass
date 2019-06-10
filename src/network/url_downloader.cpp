@@ -26,7 +26,6 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QNetworkAccessManager>
-#include <QNetworkDiskCache>
 #include <QNetworkReply>
 #include <QTimer>
 #include <QUrl>
@@ -40,20 +39,9 @@ namespace
 {
 constexpr auto category = "url downloader";
 
-auto make_network_manager(const mp::Path& cache_dir_path)
+auto make_network_manager()
 {
-    auto manager = std::make_unique<QNetworkAccessManager>();
-
-    if (!cache_dir_path.isEmpty())
-    {
-        auto network_cache = new QNetworkDiskCache;
-        network_cache->setCacheDirectory(cache_dir_path);
-
-        // Manager now owns network_cache and so it will delete it in its dtor
-        manager->setCache(network_cache);
-    }
-
-    return manager;
+    return std::make_unique<QNetworkAccessManager>();
 }
 
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
@@ -101,12 +89,30 @@ mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : URLDownloa
 mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::milliseconds timeout)
     : cache_dir_path{QDir(cache_dir).filePath("network-cache")}, timeout{timeout}
 {
+
+    // TODO: We will be using our own caching in the future due to the issue
+    //       seen in https://github.com/CanonicalLtd/multipass/issues/825
+    if (!cache_dir_path.isEmpty())
+    {
+        // Clean up old QNetworkDiskCache dirs
+        QDir data_dir{QDir(cache_dir_path).filePath("data8")};
+        if (data_dir.exists())
+        {
+            data_dir.removeRecursively();
+        }
+
+        QDir prepared_dir{QDir(cache_dir_path).filePath("prepared")};
+        if (prepared_dir.exists())
+        {
+            prepared_dir.removeRecursively();
+        }
+    }
 }
 
 void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                                     const mp::ProgressMonitor& monitor)
 {
-    auto manager{make_network_manager(cache_dir_path)};
+    auto manager{make_network_manager()};
 
     QFile file{file_name};
     file.open(QIODevice::ReadWrite | QIODevice::Truncate);
@@ -147,7 +153,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
-    auto manager{make_network_manager(cache_dir_path)};
+    auto manager{make_network_manager()};
 
     // This will connect to the QNetworkReply::readReady signal and when emitted,
     // reset the timer.
@@ -158,7 +164,7 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 {
-    auto manager{make_network_manager(cache_dir_path)};
+    auto manager{make_network_manager()};
 
     QEventLoop event_loop;
 
