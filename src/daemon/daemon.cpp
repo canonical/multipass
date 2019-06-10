@@ -585,7 +585,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         try
         {
             auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
-            instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
+            instance_record[name] = std::make_unique<VMInstance>(
+                config->factory->create_virtual_machine(vm_desc, *this), *config->ssh_key_provider);
         }
         catch (const std::exception& e)
         {
@@ -603,13 +604,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             spec.state = VirtualMachine::State::stopped;
         }
 
-        if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
+        if (spec.state == VirtualMachine::State::running &&
+            vm_instances[name]->vm()->state != VirtualMachine::State::running)
         {
             assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
             QTimer::singleShot(0, [this, &name] {
-                vm_instances[name]->start();
+                vm_instances[name]->vm()->start();
                 on_restart(name);
             });
         }
@@ -945,7 +947,8 @@ try // clang-format on
         }
 
         auto info = response.add_info();
-        auto& vm = it->second;
+        auto& vm_instance = it->second;
+        const auto& vm = vm_instance->vm();
         auto present_state = vm->current_state();
         info->set_name(name);
         if (deleted)
@@ -1026,40 +1029,16 @@ try // clang-format on
 
         if (mp::utils::is_running(present_state))
         {
-            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                   *config->ssh_key_provider};
-
-            auto run_in_vm = [&session](const std::string& cmd) {
-                auto proc = session.exec(cmd);
-                if (proc.exit_code() != 0)
-                {
-                    auto error_msg = proc.read_std_error();
-                    mpl::log(
-                        mpl::Level::warning, category,
-                        fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-                    return std::string{};
-                }
-
-                auto output = proc.read_std_output();
-                if (output.empty())
-                {
-                    mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
-                    return std::string{};
-                }
-
-                return mp::utils::trim_end(output);
-            };
-
-            info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
-            info->set_memory_usage(run_in_vm("free -b | sed '1d;3d' | awk '{printf $3}'"));
-            info->set_memory_total(run_in_vm("free -b | sed '1d;3d' | awk '{printf $2}'"));
-            info->set_disk_usage(
-                run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
-            info->set_disk_total(
-                run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_load(vm_instance->run_command("cat /proc/loadavg | cut -d ' ' -f1-3"));
+            info->set_memory_usage(vm_instance->run_command("free -b | sed '1d;3d' | awk '{printf $3}'"));
+            info->set_memory_total(vm_instance->run_command("free -b | sed '1d;3d' | awk '{printf $2}'"));
+            info->set_disk_usage(vm_instance->run_command(
+                "df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_disk_total(vm_instance->run_command(
+                "df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_ipv4(vm->ipv4());
 
-            auto current_release = run_in_vm("lsb_release -ds");
+            auto current_release = vm_instance->run_command("lsb_release -ds");
             info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
     }
@@ -1108,7 +1087,7 @@ try // clang-format on
     for (const auto& instance : vm_instances)
     {
         const auto& name = instance.first;
-        const auto& vm = instance.second;
+        const auto& vm = instance.second->vm();
         auto present_state = vm->current_state();
         auto entry = response.add_instances();
         entry->set_name(name);
@@ -1211,7 +1190,7 @@ try // clang-format on
             continue;
         }
 
-        auto& vm = it->second;
+        const auto& vm = it->second->vm();
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
@@ -1322,7 +1301,7 @@ try // clang-format on
                     grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is deleted", name)});
         }
 
-        auto& vm = it->second;
+        const auto& vm = it->second->vm();
         if (!mp::utils::is_running(vm->current_state()))
         {
             return status_promise->set_value(
@@ -1377,9 +1356,9 @@ try // clang-format on
             errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
                                       ? mp::StartError::DOES_NOT_EXIST
                                       : mp::StartError::INSTANCE_DELETED});
-        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        else if (it->second->vm()->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
-        else if (it->second->current_state() != VirtualMachine::State::running)
+        else if (it->second->vm()->current_state() != VirtualMachine::State::running)
             vms.push_back(name);
     }
 
@@ -1391,7 +1370,7 @@ try // clang-format on
     {
         for (auto& pair : vm_instances)
         {
-            if (pair.second->current_state() == VirtualMachine::State::running)
+            if (pair.second->vm()->current_state() == VirtualMachine::State::running)
                 continue;
             vms.push_back(pair.first);
         }
@@ -1400,8 +1379,8 @@ try // clang-format on
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
-        if (it->second->current_state() != VirtualMachine::State::starting)
-            it->second->start();
+        if (it->second->vm()->current_state() != VirtualMachine::State::starting)
+            it->second->vm()->start();
     }
 
     auto future_watcher = create_future_watcher();
@@ -1546,12 +1525,13 @@ try // clang-format on
             assert(!vm_instance_specs[name].deleted);
 
             auto& instance = vm_instances[name];
+            const auto& vm = instance->vm();
 
-            if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+            if (vm->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
 
             stop_mounts_for_instance(name);
-            instance->shutdown();
+            vm->shutdown();
 
             if (purge)
                 release_resources(name);
@@ -1603,7 +1583,7 @@ try // clang-format on
 
         auto target_path = path_entry.target_path();
         auto& mounts = vm_instance_specs[name].mounts;
-        auto& vm = it->second;
+        const auto& vm = it->second->vm();
 
         auto stop_sshfs_for = [this, name](const std::string& target_path) {
             auto sshfs_mount_it = mount_threads.find(name);
@@ -1885,7 +1865,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             {
                 auto vm_desc = prepare_future_watcher->future().result();
 
-                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+                vm_instances[name] = std::make_unique<VMInstance>(
+                    config->factory->create_virtual_machine(vm_desc, *this), *config->ssh_key_provider);
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
                                            vm_desc.disk_space,
@@ -1905,7 +1886,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                     reply.set_create_message("Starting " + name);
                     server->Write(reply);
 
-                    auto& vm = vm_instances[name];
+                    const auto& vm = vm_instances[name]->vm();
                     vm->start();
 
                     reply.set_vm_instance_name(name);
@@ -2066,7 +2047,7 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
   it gives clear error messages on type mismatch (!= templated callable). */
     for (const auto& tgt : tgts)
     {
-        const auto st = cmd(*vm_instances.at(tgt));
+        const auto st = cmd(*vm_instances.at(tgt)->vm());
         if (!st.ok())
             return st; // Fail early
     }
@@ -2128,7 +2109,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
     try
     {
         auto it = vm_instances.find(name);
-        auto vm = it->second;
+        const auto& vm = it->second->vm();
         vm->wait_until_ssh_up(up_timeout);
 
         std::vector<std::string> invalid_mounts;

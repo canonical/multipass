@@ -20,6 +20,7 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+#include "vm_instance.h"
 
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/memory_size.h>
@@ -135,7 +136,7 @@ public slots:
 
 private:
     void persist_instances();
-    void start_mount(VirtualMachine *vm, const std::string& name, const std::string& source_path,
+    void start_mount(VirtualMachine* vm, const std::string& name, const std::string& source_path,
                      const std::string& target_path, const std::unordered_map<int, int>& gid_map,
                      const std::unordered_map<int, int>& uid_map);
     void stop_mounts_for_instance(const std::string& instance);
@@ -148,7 +149,7 @@ private:
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
-    void install_sshfs(VirtualMachine *vm, const std::string& name);
+    void install_sshfs(VirtualMachine* vm, const std::string& name);
 
     struct AsyncOperationStatus
     {
@@ -167,8 +168,8 @@ private:
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
-    std::unordered_map<std::string, VirtualMachine::ShPtr> vm_instances;
-    std::unordered_map<std::string, VirtualMachine::ShPtr> deleted_instances;
+    std::unordered_map<std::string, VMInstance::UPtr> vm_instances;
+    std::unordered_map<std::string, VMInstance::UPtr> deleted_instances;
     std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<SshfsMount>>> mount_threads;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
