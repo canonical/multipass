@@ -42,17 +42,21 @@ std::map<QString, QString> make_defaults()
             {mp::driver_key, mp::platform::default_driver()}};
 } // clang-format on
 
+/*
+ * We make up our own file names to:
+ *   a) avoid unknown org/domain in path;
+ *   b) write daemon config to a central location (rather than user-dependent)
+ * Examples:
+ *   - ${HOME}/.config/multipass/multipass.conf
+ *   - /root/.config/multipass/multipassd.conf
+ */
 QString file_for(const QString& key) // the key should have passed checks at this point
 {
-    // we make up our own file names to avoid unknown org/domain in path
-    // Example: ${HOME}/.config/multipass/multipassd.conf
-    static const auto file_path_base =
-        QStringLiteral("%1/%2/%4.%3")                                              // note the order
-            .arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation)) // top config dir
-            .arg(mp::client_name)                                                  // subdir
-            .arg(file_extension);                                                  // %4 not replaced yet at this point
-    static const auto client_file_path = file_path_base.arg(mp::client_name);
-    static const auto daemon_file_path = file_path_base.arg(mp::daemon_name); // static consts ensure these stay fixed
+    static const auto file_path_base = QStringLiteral("%1/%2.%3"); // static consts ensure these stay fixed
+    static const auto client_dir_path = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    static const auto daemon_dir_path = QStringLiteral("/root/.config/multipass"); // temporary
+    static const auto client_file_path = file_path_base.arg(client_dir_path, mp::client_name, file_extension);
+    static const auto daemon_file_path = file_path_base.arg(daemon_dir_path, mp::daemon_name, file_extension);
 
     assert(key.startsWith(daemon_root) || key.startsWith("client"));
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
