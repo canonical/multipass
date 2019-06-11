@@ -55,7 +55,7 @@ QString file_for(const QString& key) // the key should have passed checks at thi
 {
     static const auto file_path_base = QStringLiteral("%1/%2.%3"); // static consts ensure these stay fixed
     static const auto client_dir_path = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-    static const auto daemon_dir_path = QStringLiteral("/root/.config/multipass"); // temporary
+    static const auto daemon_dir_path = QStringLiteral("/etc/xdg"); // temporary
     static const auto client_file_path = file_path_base.arg(client_dir_path, mp::client_name, file_extension);
     static const auto daemon_file_path = file_path_base.arg(daemon_dir_path, mp::daemon_name, file_extension);
 
