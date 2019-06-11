@@ -21,6 +21,7 @@
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
 
+#include <QFileInfo>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -70,13 +71,19 @@ std::unique_ptr<QSettings> persistent_settings(const QString& key)
                                                                   guarantee (until C++17) */
 }
 
+bool is_unreadable(const QString& filename)
+{
+    QFileInfo info(filename);
+    return info.exists() && !(info.isFile() && info.isReadable());
+}
+
 void check_status(const QSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
-    if (status)
-        throw mp::PersistentSettingsException{attempted_operation, status == QSettings::AccessError
-                                                                       ? QStringLiteral("access")
-                                                                       : QStringLiteral("format")};
+    if (status || is_unreadable(settings.fileName()))
+        throw mp::PersistentSettingsException{attempted_operation, status == QSettings::FormatError
+                                                                       ? QStringLiteral("format")
+                                                                       : QStringLiteral("access")};
 }
 
 QString checked_get(QSettings& settings, const QString& key, const QString& fallback)
