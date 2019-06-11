@@ -99,7 +99,7 @@ void checked_set(QSettings& settings, const QString& key, const QString& val)
     settings.setValue(key, val);
 
     settings.sync(); // flush to confirm we can write
-    check_status(settings, QStringLiteral("write"));
+    check_status(settings, QStringLiteral("read/write"));
 }
 
 } // namespace
