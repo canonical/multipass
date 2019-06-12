@@ -240,6 +240,9 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
     update_shutdown_status = false;
     if (state == State::running)
         suspend();
+    else
+        shutdown();
+
     remove_tap_device(QString::fromStdString(tap_device_name));
     vm_process->waitForFinished();
 }
@@ -313,7 +316,8 @@ void mp::QemuVirtualMachine::shutdown()
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
-    else if ((state == State::running || state == State::delayed_shutdown) && vm_process->processId() > 0)
+    else if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) &&
+             vm_process->processId() > 0)
     {
         vm_process->write(qmp_execute_json("system_powerdown"));
         vm_process->waitForFinished();

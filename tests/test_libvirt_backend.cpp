@@ -258,3 +258,34 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));
 }
+
+TEST_F(LibVirtBackend, machine_unknown_state_properly_shuts_down)
+{
+    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetXMLDesc, [](auto...) {
+        std::string domain_desc{"mac"};
+        return strdup(domain_desc.c_str());
+    });
+    REPLACE(virDomainCreate, [](auto...) { return 0; });
+    REPLACE(virDomainShutdown, [](auto...) { return 0; });
+    REPLACE(virDomainManagedSave, [](auto...) { return 0; });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
+
+    mp::LibVirtVirtualMachineFactory backend{&process_factory, data_dir.path()};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    machine->state = mp::VirtualMachine::State::unknown;
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    machine->shutdown();
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
