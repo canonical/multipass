@@ -18,29 +18,38 @@
 #ifndef MULTIPASS_STUB_PROCESS_FACTORY_H
 #define MULTIPASS_STUB_PROCESS_FACTORY_H
 
-#include <src/platform/backends/shared/linux/process.h>
+#include <multipass/process.h>
 #include <src/platform/backends/shared/linux/process_factory.h>
 
 namespace multipass
 {
 namespace test
 {
-
-class StubProcessSpec : public ProcessSpec
-{
-public:
-    QString program() const override
-    {
-        return QString();
-    }
-};
-
 class StubProcess : public Process
 {
 public:
-    StubProcess() : Process{std::make_unique<StubProcessSpec>()}
-    {
-    }
+    StubProcess() {}
+
+    QString program() const { return ""; }
+    QStringList arguments() const { return {}; }
+    QString working_directory() const { return ""; }
+    QProcessEnvironment process_environment() const { return QProcessEnvironment(); }
+
+    void start(const QStringList& extra_arguments = QStringList()) {}
+    void kill() {}
+
+    bool wait_for_started(int msecs = 30000) { return true; }
+    bool wait_for_finished(int msecs = 30000) { return true; }
+
+    bool running() const { return true; }
+
+    QByteArray read_all_standard_output() { return ""; }
+    QByteArray read_all_standard_error() { return ""; }
+
+    qint64 write(const QByteArray &data) { return 0; }
+
+    bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000) { return true; }
+    QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000) { return ""; }
 };
 
 class StubProcessFactory : public ProcessFactory

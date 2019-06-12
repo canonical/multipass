@@ -15,7 +15,7 @@
 set (CMAKE_AUTOMOC ON)
 add_library(shared_linux STATIC
   backend_utils.cpp
-  process.cpp
+  linux_process.cpp
   process_spec.cpp
   process_factory.cpp
   qemuimg_process_spec.cpp)
