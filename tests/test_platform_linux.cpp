@@ -15,6 +15,7 @@
  *
  */
 
+#include "fake_handle.h"
 #include "mock_libvirt.h"
 #include "mock_settings.h"
 
@@ -37,12 +38,6 @@ using namespace testing;
 namespace
 {
 const auto backend_path = QStringLiteral("/tmp");
-
-template <typename T>
-auto fake_handle()
-{
-    return reinterpret_cast<T>(0xDEADBEEF);
-}
 
 void setup_driver_settings(const QString& driver)
 {
@@ -74,8 +69,8 @@ TEST(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 
 TEST(PlatformLinux, test_libvirt_driver_produces_correct_factory)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
     REPLACE(virNetworkFree, [](auto...) { return 0; });
     REPLACE(virConnectClose, [](auto...) { return 0; });

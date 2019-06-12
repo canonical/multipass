@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 
+#include "fake_handle.h"
 #include "mock_libvirt.h"
 #include "mock_status_monitor.h"
 #include "stub_process_factory.h"
@@ -39,15 +40,6 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
-
-namespace
-{
-template <typename T>
-auto fake_handle()
-{
-    return reinterpret_cast<T>(0xDEADBEEF);
-}
-} // namespace
 
 struct LibVirtBackend : public Test
 {
@@ -88,14 +80,14 @@ TEST_F(LibVirtBackend, failed_connection_throws)
 
 TEST_F(LibVirtBackend, creates_in_off_state)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkGetBridgeName, [](auto...) {
         std::string bridge_name{"mpvirt0"};
         return strdup(bridge_name.c_str());
     });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
     REPLACE(virDomainGetXMLDesc, [](auto...) {
         std::string domain_desc{"mac"};
@@ -112,14 +104,14 @@ TEST_F(LibVirtBackend, creates_in_off_state)
 
 TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkGetBridgeName, [](auto...) {
         std::string bridge_name{"mpvirt0"};
         return strdup(bridge_name.c_str());
     });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
     REPLACE(virDomainGetXMLDesc, [](auto...) {
         std::string domain_desc{"mac"};
@@ -136,14 +128,14 @@ TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
 
 TEST_F(LibVirtBackend, machine_sends_monitoring_events)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkGetBridgeName, [](auto...) {
         std::string bridge_name{"mpvirt0"};
         return strdup(bridge_name.c_str());
     });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
     REPLACE(virDomainGetXMLDesc, [](auto...) {
         std::string domain_desc{"mac"};
@@ -172,14 +164,14 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
 
 TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkGetBridgeName, [](auto...) {
         std::string bridge_name{"mpvirt0"};
         return strdup(bridge_name.c_str());
     });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
     REPLACE(virDomainGetXMLDesc, [](auto...) {
         std::string domain_desc{"mac"};
@@ -202,14 +194,14 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
 
 TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_shutdown)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkGetBridgeName, [](auto...) {
         std::string bridge_name{"mpvirt0"};
         return strdup(bridge_name.c_str());
     });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
     REPLACE(virDomainGetXMLDesc, [](auto...) {
         std::string domain_desc{"mac"};
@@ -233,14 +225,14 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_shutdown)
 
 TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkGetBridgeName, [](auto...) {
         std::string bridge_name{"mpvirt0"};
         return strdup(bridge_name.c_str());
     });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
     REPLACE(virDomainGetXMLDesc, [](auto...) {
         std::string domain_desc{"mac"};
@@ -264,14 +256,14 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
 
 TEST_F(LibVirtBackend, machine_unknown_state_properly_shuts_down)
 {
-    REPLACE(virConnectOpen, [](auto...) { return fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return fake_handle<virNetworkPtr>(); });
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
     REPLACE(virNetworkGetBridgeName, [](auto...) {
         std::string bridge_name{"mpvirt0"};
         return strdup(bridge_name.c_str());
     });
     REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virDomainLookupByName, [](auto...) { return fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
     REPLACE(virDomainGetXMLDesc, [](auto...) {
         std::string domain_desc{"mac"};
