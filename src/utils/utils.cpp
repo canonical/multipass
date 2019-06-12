@@ -137,10 +137,10 @@ std::string mp::utils::generate_mac_address()
 }
 
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                  std::function<void()> const& process_vm_events)
+                                  std::function<void()> const& ensure_vm_is_running)
 {
-    auto action = [virtual_machine, &process_vm_events] {
-        process_vm_events();
+    auto action = [virtual_machine, &ensure_vm_is_running] {
+        ensure_vm_is_running();
         try
         {
             mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port()};
@@ -162,6 +162,29 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         throw std::runtime_error(fmt::format("{}: timed out waiting for response", virtual_machine->vm_name));
     };
 
+    mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
+void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+                                    const mp::SSHKeyProvider& key_provider)
+{
+    auto action = [virtual_machine, &key_provider] {
+        virtual_machine->ensure_vm_is_running();
+        try
+        {
+            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+            mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
+                                   virtual_machine->ssh_username(), key_provider};
+            auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
+            return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, virtual_machine->vm_name, e.what());
+            return mp::utils::TimeoutAction::retry;
+        }
+    };
+    auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 

@@ -34,6 +34,7 @@
 
 namespace multipass
 {
+class SSHKeyProvider;
 class VirtualMachine;
 
 namespace utils
@@ -71,9 +72,10 @@ std::vector<std::string> split(const std::string& string, const std::string& del
 std::string generate_mac_address();
 std::string timestamp();
 bool is_running(const VirtualMachine::State& state);
-// TODO: Rename process_vm_events to something more meaningful
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                       std::function<void()> const& process_vm_events = []() { });
+                       std::function<void()> const& ensure_vm_is_running = []() {});
+void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+                         const SSHKeyProvider& key_provider);
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
