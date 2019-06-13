@@ -71,11 +71,13 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         return std::make_unique<LibVirtVirtualMachineFactory>(::process_factory(), data_dir);
     else
     {
-        std::string msg_tail{};
+        std::string msg;
         if (driver == QStringLiteral("hyperkit") || driver == QStringLiteral("hyper-v"))
-            msg_tail = " on this platform";
+            msg = "Unsupported virtualization driver (on this platform): {}";
+        else
+            msg = "Unsupported virtualization driver: {}";
 
-        throw std::runtime_error(fmt::format("Unsupported virtualization driver{}: {}", msg_tail, driver));
+        throw std::runtime_error(fmt::format(msg, driver));
     }
 }
 
