@@ -27,6 +27,8 @@
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
 
+#include <QtGlobal>
+
 namespace mp = multipass;
 
 namespace
@@ -41,6 +43,13 @@ mp::ProcessFactory* process_factory()
     }
     return static_process_factory.get();
 }
+
+QString get_driver_str()
+{
+    auto driver = qgetenv(mp::driver_env_var);
+    return driver.isEmpty() ? mp::Settings::instance().get(mp::driver_key) : driver.toLower();
+}
+
 } // namespace
 
 std::string mp::platform::default_server_address()
@@ -55,7 +64,7 @@ QString mp::platform::default_driver()
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    const auto& driver = Settings::instance().get(driver_key);
+    const auto& driver = get_driver_str();
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(::process_factory(), data_dir);
     else if (driver == QStringLiteral("libvirt"))
