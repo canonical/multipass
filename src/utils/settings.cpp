@@ -21,6 +21,7 @@
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
 
+#include <QDir>
 #include <QFileInfo>
 #include <QSettings>
 #include <QStandardPaths>
@@ -53,11 +54,12 @@ std::map<QString, QString> make_defaults()
  */
 QString file_for(const QString& key) // the key should have passed checks at this point
 {
-    static const auto file_path_base = QStringLiteral("%1/%2.%3"); // static consts ensure these stay fixed
-    static const auto client_dir_path = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-    static const auto daemon_dir_path = QStringLiteral("/etc/xdg"); // temporary
-    static const auto client_file_path = file_path_base.arg(client_dir_path, mp::client_name, file_extension);
-    static const auto daemon_file_path = file_path_base.arg(daemon_dir_path, mp::daemon_name, file_extension);
+    // static consts ensure these stay fixed
+    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
+    static const auto client_dir_path = QDir{QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)};
+    static const auto daemon_dir_path = QDir{QStringLiteral("/etc/xdg")}; // temporary
+    static const auto client_file_path = client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
+    static const auto daemon_file_path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 
     assert(key.startsWith(daemon_root) || key.startsWith("client"));
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
