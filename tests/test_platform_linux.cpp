@@ -23,9 +23,12 @@
 #include "src/platform/backends/qemu/qemu_virtual_machine_factory.h"
 
 #include <multipass/constants.h>
+#include <multipass/optional.h>
 #include <multipass/platform.h>
 
+#include <QProcessEnvironment>
 #include <QString>
+#include <QtGlobal>
 
 #include <gtest/gtest.h>
 
@@ -46,41 +49,82 @@ void setup_driver_settings(const QString& driver)
         expectation.WillRepeatedly(Return(driver));
 }
 
-template <typename VMFactoryType>
-void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
+struct PlatformLinux : public Test
 {
-    setup_driver_settings(driver);
+    void SetUp() override
+    {
+        if (QProcessEnvironment::systemEnvironment().contains(mp::driver_env_var))
+        {
+            env_driver_backup = qgetenv(mp::driver_env_var);
+            qunsetenv(mp::driver_env_var);
+        }
+    }
 
-    decltype(mp::platform::vm_backend("")) factory_ptr;
-    EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path););
+    void TearDown() override
+    {
+        if (env_driver_backup)
+            qputenv(mp::driver_env_var, *env_driver_backup);
+        else
+            qunsetenv(mp::driver_env_var);
+    }
 
-    EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
-}
+    template <typename VMFactoryType>
+    void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
+    {
+        setup_driver_settings(driver);
 
-TEST(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
+        decltype(mp::platform::vm_backend("")) factory_ptr;
+        EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path););
+
+        EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
+    }
+
+    void with_minimally_mocked_libvirt(std::function<void()> test_contents)
+    {
+        REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+        REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
+        REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+        REPLACE(virNetworkFree, [](auto...) { return 0; });
+        REPLACE(virConnectClose, [](auto...) { return 0; });
+
+        std::string bridge_name{"where's that confounded bridge?"};
+        REPLACE(virNetworkGetBridgeName, [&bridge_name](auto...) {
+            return &bridge_name.front(); // hackish... replace with bridge_name.data() in C++17
+        });
+
+        test_contents();
+    }
+
+    mp::optional<QByteArray> env_driver_backup = mp::nullopt;
+};
+
+TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
 {
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>();
 }
 
-TEST(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
+TEST_F(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 {
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
-TEST(PlatformLinux, test_libvirt_driver_produces_correct_factory)
+TEST_F(PlatformLinux, test_libvirt_driver_produces_correct_factory)
 {
-    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
-    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
-    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-    REPLACE(virNetworkFree, [](auto...) { return 0; });
-    REPLACE(virConnectClose, [](auto...) { return 0; });
+    auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
+    with_minimally_mocked_libvirt(test);
+}
 
-    std::string bridge_name{"where's that confounded bridge?"};
-    REPLACE(virNetworkGetBridgeName, [&bridge_name](auto...) {
-        return &bridge_name.front(); // hackish... replace with bridge_name.data() in C++17
-    });
+TEST_F(PlatformLinux, test_qemu_in_env_var_takes_precedence_over_settings)
+{
+    qputenv(mp::driver_env_var, "QEMU");
+    aux_test_driver_factory<mp::QemuVirtualMachineFactory>("libvirt");
+}
 
-    aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt");
+TEST_F(PlatformLinux, test_libvirt_in_env_var_takes_precedence_over_settings)
+{
+    qputenv(mp::driver_env_var, "LIBVIRT");
+    auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("qemu"); };
+    with_minimally_mocked_libvirt(test);
 }
 
 struct TestUnsupportedDrivers : public TestWithParam<QString>
