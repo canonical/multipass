@@ -163,22 +163,18 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 
     if (metadata.isValid())
     {
-        QDateTime modified;
-
         try
         {
-            modified = last_modified(url);
+            if (last_modified(url) == metadata.lastModified())
+            {
+                return get_network_cache_data(network_cache, url);
+            }
         }
         catch (const std::exception& e)
         {
-            // Force using the cached data if the URL is unreachable
-            modified = metadata.lastModified();
-            mpl::log(mpl::Level::info, category,
-                     fmt::format("Cannot get last modified date for {}: {}", url.toString(), e.what()));
-        }
-
-        if (modified == metadata.lastModified())
-        {
+            mpl::log(
+                mpl::Level::info, category,
+                fmt::format("Cannot get last modified date for {}: {}. Using cached data.", url.toString(), e.what()));
             return get_network_cache_data(network_cache, url);
         }
     }
