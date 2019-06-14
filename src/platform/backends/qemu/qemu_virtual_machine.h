@@ -50,6 +50,7 @@ public:
     std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
+    void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
 
@@ -59,7 +60,6 @@ private:
     void on_shutdown();
     void on_suspend();
     void on_restart();
-    void ensure_vm_is_running();
     multipass::optional<IPAddress> ip;
     const std::string tap_device_name;
     const std::string mac_addr;
