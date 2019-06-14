@@ -2115,14 +2115,14 @@ void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
-mp::Daemon::create_future_watcher(std::function<void()> const& finished_operation)
+mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
     async_future_watchers.emplace_back(std::make_unique<QFutureWatcher<AsyncOperationStatus>>());
 
     auto future_watcher = async_future_watchers.back().get();
     QObject::connect(future_watcher, &QFutureWatcher<AsyncOperationStatus>::finished,
-                     [this, future_watcher, finished_operation] {
-                         finished_operation();
+                     [this, future_watcher, finished_op] {
+                         finished_op();
                          finish_async_operation(future_watcher->future());
                      });
 
@@ -2140,14 +2140,17 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
         auto vm = it->second;
         vm->wait_until_ssh_up(up_timeout);
 
-        if (server)
+        if (std::is_same<Reply, LaunchReply>::value)
         {
-            Reply reply;
-            reply.set_reply_message("Waiting for initialization to complete");
-            server->Write(reply);
-        }
+            if (server)
+            {
+                Reply reply;
+                reply.set_reply_message("Waiting for initialization to complete");
+                server->Write(reply);
+            }
 
-        mp::utils::wait_for_cloud_init(vm.get(), cloud_init_timeout, *config->ssh_key_provider);
+            mp::utils::wait_for_cloud_init(vm.get(), cloud_init_timeout, *config->ssh_key_provider);
+        }
 
         std::vector<std::string> invalid_mounts;
         auto& mounts = vm_instance_specs[name].mounts;
