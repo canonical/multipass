@@ -26,7 +26,7 @@ multipass launch --name foo
 
 ## Run commands in an instance
 ```
-multipass exec foo lsb_release -a
+multipass exec foo lsb_release -- -a
 ```
 
 ## Pass a cloud-init file to an instance
