@@ -157,7 +157,7 @@ mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgPars
     return ok2retry(run_cmd(args, parser, cout, cerr));
 }
 
-auto cmd::return_code_from(const SettingsException& e) -> ReturnCode
+auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
 {
     return dynamic_cast<const InvalidSettingsException*>(&e) ? ReturnCode::CommandLineError : ReturnCode::CommandFail;
 }
