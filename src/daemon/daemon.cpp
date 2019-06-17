@@ -542,6 +542,20 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
     return grpc::Status::OK;
 }
 
+QStringList filter_unsupported_aliases(const QStringList& aliases, const std::string& remote)
+{
+    QStringList supported_aliases;
+
+    for (const auto& alias : aliases)
+    {
+        if (mp::platform::is_alias_supported(alias.toStdString(), remote))
+        {
+            supported_aliases.append(alias);
+        }
+    }
+    return supported_aliases;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -875,14 +889,12 @@ try // clang-format on
                 {
                     if (image_found.find(info.release_title.toStdString()) == image_found.end())
                     {
-                        if (!info.aliases.empty())
+                        const auto supported_aliases = filter_unsupported_aliases(info.aliases, remote);
+                        if (!supported_aliases.empty())
                         {
                             auto entry = response.add_images_info();
-                            for (const auto& alias : info.aliases)
+                            for (const auto& alias : supported_aliases)
                             {
-                                if (!mp::platform::is_alias_supported(alias.toStdString(), remote))
-                                    return;
-
                                 auto alias_entry = entry->add_aliases_info();
                                 if (remote != default_remote)
                                     alias_entry->set_remote_name(remote);
