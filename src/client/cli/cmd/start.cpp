@@ -23,6 +23,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/settings.h>
 
 #include <fmt/ostream.h>
 
@@ -42,6 +43,7 @@ constexpr auto unknown_error_fmt = "Instance '{}' failed in an unexpected way, c
 
 mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 {
+    petenv_name = Settings::instance().get(petenv_key);
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
@@ -73,7 +75,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
                     err_fmt = deleted_error_fmt;
                 else if (pair.second == mp::StartError::DOES_NOT_EXIST)
                 {
-                    if (pair.first != petenv_name)
+                    if (pair.first != petenv_name.toStdString())
                         err_fmt = absent_error_fmt;
                     else
                         continue;
@@ -85,7 +87,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
             if (details.empty())
             {
                 assert(start_error.instance_errors_size() == 1 &&
-                       std::cbegin(start_error.instance_errors())->first == petenv_name);
+                       std::cbegin(start_error.instance_errors())->first == petenv_name.toStdString());
                 return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr); /*
                                     TODO replace with create, so that all instances are started in a single go */
             }
@@ -147,7 +149,7 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name));
+    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
 
     return status;
 }

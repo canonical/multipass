@@ -106,3 +106,23 @@ TEST_F(QemuBackend, throws_when_starting_while_suspending)
 
     EXPECT_THROW(machine->start(), std::runtime_error);
 }
+
+TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{&process_factory, data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+
+    machine->state = mp::VirtualMachine::State::unknown;
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_shutdown());
+    machine->shutdown();
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}

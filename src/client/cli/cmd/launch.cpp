@@ -315,6 +315,11 @@ mp::ReturnCode cmd::Launch::request_launch()
             spinner.stop();
             spinner.start(reply.create_message());
         }
+        else if (!reply.reply_message().empty())
+        {
+            spinner.stop();
+            spinner.start(reply.reply_message());
+        }
     };
 
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);

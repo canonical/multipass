@@ -56,6 +56,14 @@ auto make_network_manager(const mp::Path& cache_dir_path)
     return manager;
 }
 
+auto get_network_cache_data(QAbstractNetworkCache* network_cache, const QUrl& url)
+{
+    auto contents = network_cache->data(url);
+    auto data = contents->readAll();
+    contents->deleteLater();
+    return data;
+}
+
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
 QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
                     DownloadAction&& on_download, ErrorAction&& on_error)
@@ -68,6 +76,7 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     request.setRawHeader("Connection", "Keep-Alive");
     request.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
 
     auto reply = manager->get(request);
 
@@ -149,11 +158,49 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 {
     auto manager{make_network_manager(cache_dir_path)};
 
+    auto network_cache = manager->cache();
+    auto metadata = network_cache->metaData(url);
+
+    if (metadata.isValid())
+    {
+        try
+        {
+            if (last_modified(url) == metadata.lastModified())
+            {
+                return get_network_cache_data(network_cache, url);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(
+                mpl::Level::info, category,
+                fmt::format("Cannot get last modified date for {}: {}. Using cached data.", url.toString(), e.what()));
+            return get_network_cache_data(network_cache, url);
+        }
+    }
+
     // This will connect to the QNetworkReply::readReady signal and when emitted,
     // reset the timer.
     auto on_download = [](QNetworkReply*, QTimer& download_timeout) { download_timeout.start(); };
 
-    return ::download(manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {});
+    try
+    {
+        return ::download(manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {});
+    }
+    catch (const std::exception& e)
+    {
+        if (metadata.isValid())
+        {
+            // Force using the cached data if there is an error retrieving the data from the network
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("Cannot download {}: {}. Using cached data instead.", url.toString(), e.what()));
+            return get_network_cache_data(network_cache, url);
+        }
+        else
+        {
+            throw;
+        }
+    }
 }
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)
