@@ -46,12 +46,11 @@ public:
     std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
+    void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
 
 private:
-    void ensure_vm_is_running();
-
     const QString name;
     const std::string username;
     multipass::optional<int> port;

@@ -45,6 +45,7 @@ public:
     std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
+    void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
 
@@ -52,7 +53,6 @@ private:
     void on_start();
     void on_shutdown();
     void on_ip_address_found(std::string ip);
-    void ensure_vm_is_running();
     VMStatusMonitor* monitor;
     std::unique_ptr<VMProcess> vm_process;
     const std::string username;
