@@ -175,7 +175,7 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
         {
             mpl::log(
                 mpl::Level::info, category,
-                fmt::format("Cannot get last modified date for {}: {}. Using cached data.", url.toString(), e.what()));
+                fmt::format("Cannot get last modified date for {}: {}. Using cached data.", url.toString().toStdString(), e.what()));
             return get_network_cache_data(network_cache, url);
         }
     }
@@ -194,7 +194,7 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
         {
             // Force using the cached data if there is an error retrieving the data from the network
             mpl::log(mpl::Level::warning, category,
-                     fmt::format("Cannot download {}: {}. Using cached data instead.", url.toString(), e.what()));
+                     fmt::format("Cannot download {}: {}. Using cached data instead.", url.toString().toStdString(), e.what()));
             return get_network_cache_data(network_cache, url);
         }
         else
