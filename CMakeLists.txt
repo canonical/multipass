@@ -45,6 +45,11 @@ add_subdirectory(3rd-party)
 find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
+  execute_process(COMMAND git rev-parse --abbrev-ref HEAD
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                  OUTPUT_VARIABLE GIT_BRANCH
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
   execute_process(COMMAND git describe --exact
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_RELEASE
@@ -56,10 +61,19 @@ function(determine_version OUTPUT_VARIABLE)
                   OUTPUT_VARIABLE GIT_VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-  execute_process(COMMAND git describe --tags --match *-* --abbrev=0
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  OUTPUT_VARIABLE GIT_TAG
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  # only use -rc tags on release/* branches
+  string(REGEX MATCH "^release/[0-9]+.[0-9]+$" GIT_BRANCH_MATCH ${GIT_BRANCH})
+  if(GIT_BRANCH_MATCH)
+      execute_process(COMMAND git describe --tags --match *-rc --abbrev=0
+                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                      OUTPUT_VARIABLE GIT_TAG
+                      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  else()
+      execute_process(COMMAND git describe --tags --match *-dev --abbrev=0
+                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                      OUTPUT_VARIABLE GIT_TAG
+                      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
 
   string(REGEX MATCH "^v.+-([0-9]+)-(g.+)$" GIT_VERSION_MATCH ${GIT_VERSION})
 
