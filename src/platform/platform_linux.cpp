@@ -62,6 +62,12 @@ QString mp::platform::default_driver()
     return QStringLiteral("qemu");
 }
 
+QString mp::platform::daemon_config_home() // temporary
+{
+    const auto envdir = qgetenv("DAEMON_CONFIG_HOME");
+    return envdir.isEmpty() ? QStringLiteral("/var/lib") : envdir;
+}
+
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto& driver = get_driver_str();

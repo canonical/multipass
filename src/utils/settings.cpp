@@ -57,7 +57,7 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     // static consts ensure these stay fixed
     static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
     static const auto client_dir_path = QDir{QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)};
-    static const auto daemon_dir_path = QDir{QStringLiteral("/etc/xdg")}; // temporary
+    static const auto daemon_dir_path = QDir{mp::platform::daemon_config_home()}; // temporary, replace w/ AppConfigLoc
     static const auto client_file_path = client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
     static const auto daemon_file_path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 
