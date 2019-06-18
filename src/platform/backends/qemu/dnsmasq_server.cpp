@@ -20,7 +20,7 @@
 #include "dnsmasq_process_spec.h"
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
-#include <shared/linux/process.h>
+#include <multipass/process.h>
 #include <shared/linux/process_factory.h>
 
 #include <multipass/format.h>
@@ -53,7 +53,7 @@ mp::DNSMasqServer::DNSMasqServer(const ProcessFactory* process_factory, const Pa
 mp::DNSMasqServer::~DNSMasqServer()
 {
     dnsmasq_cmd->kill();
-    dnsmasq_cmd->waitForFinished();
+    dnsmasq_cmd->wait_for_finished();
 }
 
 mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)

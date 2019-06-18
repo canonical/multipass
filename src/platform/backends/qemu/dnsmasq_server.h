@@ -21,9 +21,9 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
+#include <multipass/process.h>
 
 #include <QDir>
-#include <QProcess>
 
 #include <memory>
 #include <string>
@@ -45,7 +45,7 @@ public:
 
 private:
     const QDir data_dir;
-    std::unique_ptr<QProcess> dnsmasq_cmd;
+    std::unique_ptr<Process> dnsmasq_cmd;
     QString bridge_name;
 };
 } // namespace multipass

@@ -16,15 +16,15 @@
  */
 
 #include "process_factory.h"
-#include "process.h"
+#include "linux_process.h"
 #include "process_spec.h"
 
 namespace mp = multipass;
 
-class UnsecuredProcess : public mp::Process
+class UnsecuredProcess : public mp::LinuxProcess
 {
 public:
-    UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : Process{std::move(spec)}
+    UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : LinuxProcess{std::move(spec)}
     {
     }
 };

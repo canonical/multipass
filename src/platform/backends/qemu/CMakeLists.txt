@@ -12,12 +12,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+set (CMAKE_AUTOMOC ON)
+
 add_library(qemu_backend STATIC
   dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
   qemu_vm_process_spec.cpp
   qemu_virtual_machine_factory.cpp
-  qemu_virtual_machine.cpp)
+  qemu_virtual_machine.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/process.h)
 
 target_link_libraries(qemu_backend
   fmt
