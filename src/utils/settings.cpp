@@ -73,7 +73,7 @@ std::unique_ptr<QSettings> persistent_settings(const QString& key)
                                                                   guarantee (until C++17) */
 }
 
-bool is_unreadable(const QString& filename)
+bool exists_but_unreadable_or_dir(const QString& filename)
 {
     QFileInfo info(filename);
     return info.exists() && !(info.isFile() && info.isReadable());
@@ -82,7 +82,7 @@ bool is_unreadable(const QString& filename)
 void check_status(const QSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
-    if (status || is_unreadable(settings.fileName()))
+    if (status || exists_but_unreadable_or_dir(settings.fileName()))
         throw mp::PersistentSettingsException{attempted_operation, status == QSettings::FormatError
                                                                        ? QStringLiteral("format")
                                                                        : QStringLiteral("access")};
