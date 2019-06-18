@@ -35,7 +35,7 @@ apps:
       XDG_DATA_HOME: $SNAP_USER_DATA/data
       XDG_CACHE_HOME: $SNAP_USER_DATA/cache
       XDG_CONFIG_HOME: $SNAP_USER_DATA/config
-    command: bin/multipass
+    command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
   gui:
     environment: *client-environment
