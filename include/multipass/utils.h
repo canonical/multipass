@@ -35,6 +35,7 @@
 
 namespace multipass
 {
+class SSHKeyProvider;
 class VirtualMachine;
 
 namespace utils
@@ -76,9 +77,10 @@ void process_throw_on_error(const QString& program, const QStringList& arguments
 bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
                           const QString& category, multipass::logging::Level level = multipass::logging::Level::debug);
 bool is_running(const VirtualMachine::State& state);
-// TODO: Rename process_vm_events to something more meaningful
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                       std::function<void()> const& process_vm_events = []() { });
+                       std::function<void()> const& ensure_vm_is_running = []() {});
+void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+                         const SSHKeyProvider& key_provider);
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,

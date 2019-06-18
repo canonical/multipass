@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/settings.h>
 
 #include <fmt/format.h>
 
@@ -50,8 +51,9 @@ Instances multipass::format::sorted(const Instances& instances)
         return instances;
 
     auto ret = instances;
+    const auto petenv_name = Settings::instance().get(petenv_key).toStdString();
     std::partial_sort(std::begin(ret), std::next(std::begin(ret)), std::end(ret),
-                      [](const auto& a, const auto& /*unused*/) { return a.name() == multipass::petenv_name; });
+                      [&petenv_name](const auto& a, const auto& /*unused*/) { return a.name() == petenv_name; });
 
     return ret;
 }

@@ -11,7 +11,11 @@ On Linux it's available as a classically confined snap, in the `beta` channel:
 sudo snap install multipass --beta --classic
 ```
 
-For macOS we provide installers [on GitHub](https://github.com/CanonicalLtd/multipass/releases).
+For macOS, you can download the installers [from GitHub](https://github.com/CanonicalLtd/multipass/releases) or [use Homebrew](https://github.com/Homebrew/brew):
+
+```
+brew cask install multipass
+```
 
 # Usage
 
@@ -22,7 +26,7 @@ multipass launch --name foo
 
 ## Run commands in an instance
 ```
-multipass exec foo lsb_release -a
+multipass exec foo -- lsb_release -a
 ```
 
 ## Pass a cloud-init file to an instance

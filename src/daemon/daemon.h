@@ -163,7 +163,7 @@ private:
                                                   const std::vector<std::string>& vms,
                                                   std::promise<grpc::Status>* status_promise);
     void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
-    QFutureWatcher<AsyncOperationStatus>* create_future_watcher();
+    QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;

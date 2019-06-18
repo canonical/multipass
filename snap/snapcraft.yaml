@@ -1,13 +1,17 @@
 name: multipass
-adopt-info: multipass
-summary: Ubuntu at your fingertips
+title: Multipass
+icon: snap/gui/multipass-gui.svg
+summary: Instant Ubuntu VMs
 description: |
-  Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch`
-  and it'll do all the setup for you. Check out `multipass find` for a list
-  of available images. More details you can find under `multipass help`.
+  Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that
+  simulates a cloud environment with support for cloud-init. Get Ubuntu
+  on-demand with clean integration to your IDE and version control on your
+  native platform.
+license: GPL-3.0
 
-grade: devel
+adopt-info: multipass
 confinement: classic
+base: core
 
 apps:
   multipassd:
@@ -19,8 +23,7 @@ apps:
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
     daemon: simple
-    passthrough:
-      after: [libvirt-bin]
+    after: [libvirt-bin]
   multipass:
     environment:
       LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
@@ -152,7 +155,7 @@ parts:
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_arm64.deb
     source-type: deb
 
-  libssl1.1:
+  libssl11:
     plugin: dump
     source:
     - on amd64: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_amd64.deb
@@ -227,7 +230,9 @@ parts:
       mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
-      snapcraftctl set-version $( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
+      VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
+      snapcraftctl set-version ${VERSION}
+      snapcraftctl set-grade $( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+$' && echo stable || echo devel )
 
   qemu:
     plugin: nil
@@ -253,6 +258,7 @@ parts:
     - try: [msr-tools]
 
   libvirt:
+    source: snap
     source-subdir: libvirt-1.3.1
     plugin: autotools
     build-packages:
@@ -287,6 +293,7 @@ parts:
     - try: [libnuma1]
     - libcurl3-gnutls
     - libpciaccess0
+    - pm-utils
     configflags:
     - --with-qemu
     - --without-bhyve

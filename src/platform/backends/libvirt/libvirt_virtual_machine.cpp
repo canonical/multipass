@@ -289,7 +289,7 @@ void mp::LibVirtVirtualMachine::stop()
 void mp::LibVirtVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    if (state == State::running || state == State::delayed_shutdown)
+    if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
     {
         virDomainShutdown(domain.get());
         state = State::off;
