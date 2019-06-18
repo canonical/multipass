@@ -118,7 +118,7 @@ void monitor_and_quit_on_settings_change()
     init_settings(filename); // create if not there
 
     static QFileSystemWatcher monitor{{filename}};
-    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, QCoreApplication::instance(), QCoreApplication::quit);
+    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(EXIT_FAILURE); });
 }
 
 } // namespace
@@ -141,10 +141,10 @@ try // clang-format on
 
     set_server_permissions(server_address);
 
-    QCoreApplication::exec();
+    auto ret = QCoreApplication::exec();
 
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
-    return EXIT_SUCCESS;
+    return ret;
 }
 catch (const std::exception& e)
 {
