@@ -22,11 +22,12 @@
 #include <multipass/utils.h> // TODO move out
 
 #include <QDir>
-#include <QFileInfo>
+#include <QFile>
 #include <QSettings>
 #include <QStandardPaths>
 
 #include <cassert>
+#include <cerrno>
 #include <memory>
 #include <stdexcept>
 
@@ -73,16 +74,17 @@ std::unique_ptr<QSettings> persistent_settings(const QString& key)
                                                                   guarantee (until C++17) */
 }
 
-bool exists_but_unreadable_or_dir(const QString& filename)
+bool exists_but_unreadable(const QString& filename)
 {
-    QFileInfo info(filename);
-    return info.exists() && !(info.isFile() && info.isReadable());
+    QFile file(filename);
+    return !file.open(QIODevice::ReadOnly) && errno != ENOENT; /* note file.error() not enough for us: it would not
+                                                                  distinguish the cause of failure */
 }
 
 void check_status(const QSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
-    if (status || exists_but_unreadable_or_dir(settings.fileName()))
+    if (status || exists_but_unreadable(settings.fileName()))
         throw mp::PersistentSettingsException{attempted_operation, status == QSettings::FormatError
                                                                        ? QStringLiteral("format")
                                                                        : QStringLiteral("access")};
