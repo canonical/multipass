@@ -1,7 +1,0 @@
-#!/bin/sh -e
-
-driver="$(snapctl get driver)"
-
-if [ "$driver" = "LIBVIRT" ]; then
-    exec "$SNAP/sbin/libvirtd"
-fi

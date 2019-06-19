@@ -51,7 +51,8 @@ public:
 private:
     const ProcessFactory* process_factory;
     ConnectionUPtr connection;
-    const std::string bridge_name;
+    const Path data_dir;
+    std::string bridge_name;
 };
 } // namespace multipass
 

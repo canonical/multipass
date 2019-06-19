@@ -30,16 +30,6 @@ namespace
 {
 constexpr auto multipass_bridge_name = "mpvirtbr0";
 
-auto connect_to_libvirt_daemon()
-{
-    mp::LibVirtVirtualMachineFactory::ConnectionUPtr conn{virConnectOpen("qemu:///system"), virConnectClose};
-
-    if (conn == nullptr)
-        throw std::runtime_error("Cannot connect to libvirtd");
-
-    return conn;
-}
-
 auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
@@ -88,14 +78,28 @@ std::string enable_libvirt_network(virConnectPtr connection, const mp::Path& dat
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const ProcessFactory* process_factory,
                                                                const mp::Path& data_dir)
     : process_factory{process_factory},
-      connection{connect_to_libvirt_daemon()},
-      bridge_name{enable_libvirt_network(connection.get(), data_dir)}
+      connection{virConnectOpen("qemu:///system"), virConnectClose},
+      data_dir{data_dir}
 {
+    if (connection)
+    {
+        bridge_name = enable_libvirt_network(connection.get(), data_dir);
+    }
 }
 
 mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                   VMStatusMonitor& monitor)
 {
+    if (!connection)
+    {
+        connection.reset(virConnectOpen("qemu:///system"));
+
+        if (!connection)
+            throw std::runtime_error("Cannot connect to libvirtd. Please ensure libvirt is installed and running.");
+
+        bridge_name = enable_libvirt_network(connection.get(), data_dir);
+    }
+
     return std::make_unique<mp::LibVirtVirtualMachine>(desc, connection.get(), bridge_name, monitor);
 }
 
@@ -111,7 +115,8 @@ mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
 
 void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    virDomainUndefine(virDomainLookupByName(connection.get(), name.c_str()));
+    if (connection)
+        virDomainUndefine(virDomainLookupByName(connection.get(), name.c_str()));
 }
 
 mp::FetchType mp::LibVirtVirtualMachineFactory::fetch_type()

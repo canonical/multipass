@@ -80,7 +80,10 @@ struct LibVirtBackend : public Test
 TEST_F(LibVirtBackend, failed_connection_throws)
 {
     REPLACE(virConnectOpen, [](auto...) { return nullptr; });
-    EXPECT_THROW(mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path()), std::runtime_error);
+
+    mp::LibVirtVirtualMachineFactory backend(&process_factory, data_dir.path());
+    mpt::StubVMStatusMonitor stub_monitor;
+    EXPECT_THROW(backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error);
 }
 
 TEST_F(LibVirtBackend, creates_in_off_state)
