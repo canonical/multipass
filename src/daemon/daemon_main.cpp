@@ -51,6 +51,7 @@ namespace mpp = multipass::platform;
 
 namespace
 {
+constexpr const int settings_changed_code = 42;
 const std::vector<std::string> supported_socket_groups{"sudo", "adm", "admin"};
 
 void set_server_permissions(const std::string& server_address)
@@ -118,7 +119,7 @@ void monitor_and_quit_on_settings_change()
     init_settings(filename); // create if not there
 
     static QFileSystemWatcher monitor{{filename}};
-    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(EXIT_FAILURE); });
+    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
 }
 
 } // namespace
