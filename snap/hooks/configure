@@ -31,7 +31,7 @@ if [[ $driver != $driver_saved ]]; then
         exit 1
     fi
 
-    if /snap/bin/multipass list --format=csv | grep -Ev '(\+--|Name)' | grep --quiet -v 'STOPPED'; then
+    if /snap/bin/multipass list --format=csv | grep -Ev '(\+--|Name)' | grep --quiet -iv 'Stopped'; then
         echo "All instances need to be stopped."
         echo "Please save any data and stop the instances before proceeding:"
         echo
