@@ -64,8 +64,12 @@ QString mp::platform::default_driver()
 
 QString mp::platform::daemon_config_home() // temporary
 {
-    const auto envdir = qgetenv("DAEMON_CONFIG_HOME");
-    return envdir.isEmpty() ? QStringLiteral("/var/lib") : envdir;
+    auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};
+    if (ret.isEmpty())
+        ret = QStringLiteral("/root/.config");
+
+    ret += QStringLiteral("/%1").arg(mp::daemon_name);
+    return ret;
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
