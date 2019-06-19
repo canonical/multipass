@@ -68,7 +68,7 @@ QString mp::platform::daemon_config_home() // temporary
     if (ret.isEmpty())
         ret = QStringLiteral("/root/.config");
 
-    ret += QStringLiteral("/%1").arg(mp::daemon_name);
+    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
     return ret;
 }
 
