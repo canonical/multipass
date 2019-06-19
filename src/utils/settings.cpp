@@ -85,9 +85,9 @@ void check_status(const QSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
     if (status || exists_but_unreadable(settings.fileName()))
-        throw mp::PersistentSettingsException{attempted_operation, status == QSettings::FormatError
-                                                                       ? QStringLiteral("format")
-                                                                       : QStringLiteral("access")};
+        throw mp::PersistentSettingsException{
+            attempted_operation, status == QSettings::FormatError ? QStringLiteral("format error")
+                                                                  : QStringLiteral("access error (consider `sudo`)")};
 }
 
 QString checked_get(QSettings& settings, const QString& key, const QString& fallback)
