@@ -154,6 +154,22 @@ void install_service()
     if (!changed)
         throw std::runtime_error(fmt::format("ChangeServiceConfig2 failed: '{}'", last_error_message()));
 
+    SERVICE_FAILURE_ACTIONS sfa;
+    SC_ACTION action;
+
+    action.Type = SC_ACTION_RESTART;
+    action.Delay = 2000;
+
+    sfa.dwResetPeriod = INFINITE;
+    sfa.lpCommand = nullptr;
+    sfa.lpRebootMsg = nullptr;
+    sfa.cActions = 1;
+    sfa.lpsaActions = &action;
+
+    changed = ChangeServiceConfig2(service.get(), SERVICE_CONFIG_FAILURE_ACTIONS, &sfa);
+    if (!changed)
+        throw std::runtime_error(fmt::format("ChangeServiceConfig2 failed: '{}'", last_error_message()));
+
     auto started = StartService(service.get(), 0, nullptr);
     if (!started)
         throw std::runtime_error(fmt::format("StartService failed: '{}'", last_error_message()));
