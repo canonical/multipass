@@ -32,7 +32,7 @@ class LibVirtVirtualMachineFactory final : public VirtualMachineFactory
 public:
     using ConnectionUPtr = std::unique_ptr<virConnect, decltype(virConnectClose)*>;
 
-    explicit LibVirtVirtualMachineFactory(const ProcessFactory* process_factory, const Path& data_dir);
+    explicit LibVirtVirtualMachineFactory(const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -49,7 +49,6 @@ public:
     };
 
 private:
-    const ProcessFactory* process_factory;
     ConnectionUPtr connection;
     const std::string bridge_name;
 };
