@@ -43,7 +43,7 @@ public:
     void stop() override;
     void shutdown() override;
     void suspend() override;
-    State current_state() override;
+    InstanceState current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
     std::string ssh_username() override;

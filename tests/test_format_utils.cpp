@@ -26,8 +26,8 @@ using namespace testing;
 TEST(InstanceStatusString, running_status_returns_RUNNING)
 {
     mp::InstanceStatus status;
-    status.set_status(mp::InstanceStatus::RUNNING);
-    auto status_string = mp::format::status_string_for(status);
+    status.set_state(mp::InstanceState::RUNNING);
+    auto status_string = mp::format::state_string_for(status.state());
 
     EXPECT_THAT(status_string, Eq("Running"));
 }
@@ -35,8 +35,8 @@ TEST(InstanceStatusString, running_status_returns_RUNNING)
 TEST(InstanceStatusString, stopped_status_returns_STOPPED)
 {
     mp::InstanceStatus status;
-    status.set_status(mp::InstanceStatus::STOPPED);
-    auto status_string = mp::format::status_string_for(status);
+    status.set_state(mp::InstanceState::STOPPED);
+    auto status_string = mp::format::state_string_for(status.state());
 
     EXPECT_THAT(status_string, Eq("Stopped"));
 }
@@ -44,8 +44,8 @@ TEST(InstanceStatusString, stopped_status_returns_STOPPED)
 TEST(InstanceStatusString, deleted_status_returns_DELETED)
 {
     mp::InstanceStatus status;
-    status.set_status(mp::InstanceStatus::DELETED);
-    auto status_string = mp::format::status_string_for(status);
+    status.set_state(mp::InstanceState::DELETED);
+    auto status_string = mp::format::state_string_for(status.state());
 
     EXPECT_THAT(status_string, Eq("Deleted"));
 }
@@ -53,8 +53,8 @@ TEST(InstanceStatusString, deleted_status_returns_DELETED)
 TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
 {
     mp::InstanceStatus status;
-    status.set_status(mp::InstanceStatus::SUSPENDING);
-    auto status_string = mp::format::status_string_for(status);
+    status.set_state(mp::InstanceState::SUSPENDING);
+    auto status_string = mp::format::state_string_for(status.state());
 
     EXPECT_THAT(status_string, Eq("Suspending"));
 }
@@ -62,8 +62,8 @@ TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
 TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
 {
     mp::InstanceStatus status;
-    status.set_status(mp::InstanceStatus::SUSPENDED);
-    auto status_string = mp::format::status_string_for(status);
+    status.set_state(mp::InstanceState::SUSPENDED);
+    auto status_string = mp::format::state_string_for(status.state());
 
     EXPECT_THAT(status_string, Eq("Suspended"));
 }
@@ -71,8 +71,8 @@ TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
 TEST(InstanceStatusString, running_status_returns_RESTARTING)
 {
     mp::InstanceStatus status;
-    status.set_status(mp::InstanceStatus::RESTARTING);
-    auto status_string = mp::format::status_string_for(status);
+    status.set_state(mp::InstanceState::RESTARTING);
+    auto status_string = mp::format::state_string_for(status.state());
 
     EXPECT_THAT(status_string, Eq("Restarting"));
 }
@@ -80,8 +80,8 @@ TEST(InstanceStatusString, running_status_returns_RESTARTING)
 TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
 {
     mp::InstanceStatus status;
-    status.set_status(static_cast<mp::InstanceStatus_Status>(10));
-    auto status_string = mp::format::status_string_for(status);
+    status.set_state(mp::InstanceState::UNKNOWN);
+    auto status_string = mp::format::state_string_for(status.state());
 
     EXPECT_THAT(status_string, Eq("Unknown"));
 }

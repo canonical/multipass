@@ -32,7 +32,7 @@ struct MockVMStatusMonitor : public VMStatusMonitor
     MOCK_METHOD0(on_shutdown, void());
     MOCK_METHOD0(on_suspend, void());
     MOCK_METHOD1(on_restart, void(const std::string&));
-    MOCK_METHOD2(persist_state_for, void(const std::string&, const VirtualMachine::State&));
+    MOCK_METHOD2(persist_state_for, void(const std::string&, const InstanceState&));
     MOCK_METHOD2(update_metadata_for, void(const std::string&, const QJsonObject&));
     MOCK_METHOD1(retrieve_metadata_for, QJsonObject(const std::string&));
 };

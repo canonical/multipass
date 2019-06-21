@@ -352,21 +352,21 @@ TEST(Utils, subdirectory_returns_new_path)
 
 TEST(Utils, vm_running_returns_true)
 {
-    mp::VirtualMachine::State state = mp::VirtualMachine::State::running;
+    mp::InstanceState state = mp::InstanceState::RUNNING;
 
     EXPECT_TRUE(mp::utils::is_running(state));
 }
 
 TEST(Utils, vm_delayed_shutdown_returns_true)
 {
-    mp::VirtualMachine::State state = mp::VirtualMachine::State::delayed_shutdown;
+    mp::InstanceState state = mp::InstanceState::DELAYED_SHUTDOWN;
 
     EXPECT_TRUE(mp::utils::is_running(state));
 }
 
 TEST(Utils, vm_stopped_returns_false)
 {
-    mp::VirtualMachine::State state = mp::VirtualMachine::State::stopped;
+    mp::InstanceState state = mp::InstanceState::STOPPED;
 
     EXPECT_FALSE(mp::utils::is_running(state));
 }

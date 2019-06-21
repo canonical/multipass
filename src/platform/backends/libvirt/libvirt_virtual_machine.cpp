@@ -216,11 +216,11 @@ auto domain_state_for(virDomainPtr domain)
     auto state{0};
 
     if (virDomainHasManagedSaveImage(domain, 0) == 1)
-        return mp::VirtualMachine::State::suspended;
+        return mp::InstanceState::SUSPENDED;
 
     virDomainGetState(domain, &state, nullptr, 0);
 
-    return (state == VIR_DOMAIN_RUNNING) ? mp::VirtualMachine::State::running : mp::VirtualMachine::State::off;
+    return (state == VIR_DOMAIN_RUNNING) ? mp::InstanceState::RUNNING : mp::InstanceState::OFF;
 }
 } // namespace
 
@@ -241,24 +241,24 @@ mp::LibVirtVirtualMachine::~LibVirtVirtualMachine()
 {
     update_suspend_status = false;
 
-    if (state == State::running)
+    if (state == InstanceState::RUNNING)
         suspend();
 }
 
 void mp::LibVirtVirtualMachine::start()
 {
-    if (state == State::running)
+    if (state == InstanceState::RUNNING)
         return;
 
-    if (state == State::suspended)
+    if (state == InstanceState::SUSPENDED)
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
 
-    state = State::starting;
+    state = InstanceState::STARTING;
     update_state();
 
     if (virDomainCreate(domain.get()) == -1)
     {
-        state = State::suspended;
+        state = InstanceState::SUSPENDED;
         update_state();
 
         std::string error_string{virGetLastErrorMessage()};
@@ -289,19 +289,19 @@ void mp::LibVirtVirtualMachine::stop()
 void mp::LibVirtVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
+    if (state == InstanceState::RUNNING || state == InstanceState::DELAYED_SHUTDOWN || state == InstanceState::UNKNOWN)
     {
         virDomainShutdown(domain.get());
-        state = State::off;
+        state = InstanceState::OFF;
         update_state();
     }
-    else if (state == State::starting)
+    else if (state == InstanceState::STARTING)
     {
         virDomainDestroy(domain.get());
-        state_wait.wait(lock, [this] { return state == State::off; });
+        state_wait.wait(lock, [this] { return state == InstanceState::OFF; });
         update_state();
     }
-    else if (state == State::suspended)
+    else if (state == InstanceState::SUSPENDED)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
@@ -312,18 +312,18 @@ void mp::LibVirtVirtualMachine::shutdown()
 
 void mp::LibVirtVirtualMachine::suspend()
 {
-    if (state == State::running || state == State::delayed_shutdown)
+    if (state == InstanceState::RUNNING || state == InstanceState::DELAYED_SHUTDOWN)
     {
         if (virDomainManagedSave(domain.get(), 0) < 0)
             throw std::runtime_error(virGetLastErrorMessage());
 
         if (update_suspend_status)
         {
-            state = State::suspended;
+            state = InstanceState::SUSPENDED;
             update_state();
         }
     }
-    else if (state == State::off)
+    else if (state == InstanceState::OFF)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
     }
@@ -331,7 +331,7 @@ void mp::LibVirtVirtualMachine::suspend()
     monitor->on_suspend();
 }
 
-mp::VirtualMachine::State mp::LibVirtVirtualMachine::current_state()
+mp::InstanceState mp::LibVirtVirtualMachine::current_state()
 {
     return state;
 }
@@ -344,11 +344,11 @@ int mp::LibVirtVirtualMachine::ssh_port()
 void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 {
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (domain_state_for(domain.get()) != VirtualMachine::State::running)
+    if (domain_state_for(domain.get()) != InstanceState::RUNNING)
     {
         // Have to set 'off' here so there is an actual state change to compare to for
         // the cond var's predicate
-        state = State::off;
+        state = InstanceState::OFF;
         state_wait.notify_all();
         throw mp::StartException(vm_name, "Instance shutdown during start");
     }

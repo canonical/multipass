@@ -57,7 +57,7 @@ TEST_F(QemuBackend, creates_in_off_state)
     mp::QemuVirtualMachineFactory backend{&process_factory, data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
-    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+    EXPECT_THAT(machine->current_state(), Eq(mp::InstanceState::OFF));
 }
 
 TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
@@ -71,7 +71,7 @@ TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
-    machine->state = mp::VirtualMachine::State::running;
+    machine->state = mp::InstanceState::RUNNING;
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_shutdown());
@@ -89,7 +89,7 @@ TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
-    machine->state = mp::VirtualMachine::State::running;
+    machine->state = mp::InstanceState::RUNNING;
 
     EXPECT_CALL(mock_monitor, on_suspend());
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
@@ -103,7 +103,7 @@ TEST_F(QemuBackend, throws_when_starting_while_suspending)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    machine->state = mp::VirtualMachine::State::suspending;
+    machine->state = mp::InstanceState::SUSPENDING;
 
     EXPECT_THROW(machine->start(), std::runtime_error);
 }
@@ -119,13 +119,13 @@ TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
-    machine->state = mp::VirtualMachine::State::unknown;
+    machine->state = mp::InstanceState::UNKNOWN;
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
 
-    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+    EXPECT_THAT(machine->current_state(), Eq(mp::InstanceState::OFF));
 }
 
 TEST_F(QemuBackend, verify_dnsmasq_and_qemu_processes_created)

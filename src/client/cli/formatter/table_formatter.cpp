@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     for (const auto& info : format::sorted(reply.info()))
     {
         fmt::format_to(buf, "{:<16}{}\n", "Name:", info.name());
-        fmt::format_to(buf, "{:<16}{}\n", "State:", mp::format::status_string_for(info.instance_status()));
+        fmt::format_to(buf, "{:<16}{}\n", "State:", mp::format::state_string_for(info.instance_status().state()));
         fmt::format_to(buf, "{:<16}{}\n", "IPv4:", info.ipv4().empty() ? "--" : info.ipv4());
 
         if (!info.ipv6().empty())
@@ -128,7 +128,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     for (const auto& instance : format::sorted(reply.instances()))
     {
         fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", instance.name(),
-                       mp::format::status_string_for(instance.instance_status()),
+                       mp::format::state_string_for(instance.instance_status().state()),
                        instance.ipv4().empty() ? "--" : instance.ipv4(),
                        instance.current_release().empty() ? "Not Available"
                                                           : fmt::format("Ubuntu {}", instance.current_release()));

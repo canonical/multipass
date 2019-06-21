@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,34 +48,34 @@ const std::set<std::string> unwanted_aliases{"ubuntu", "default"};
 
 } // namespace
 
-std::string mp::format::status_string_for(const mp::InstanceStatus& status)
+std::string mp::format::state_string_for(const mp::InstanceState& state)
 {
     std::string status_val;
 
-    switch (status.status())
+    switch (state)
     {
-    case mp::InstanceStatus::RUNNING:
+    case mp::InstanceState::RUNNING:
         status_val = "Running";
         break;
-    case mp::InstanceStatus::STOPPED:
+    case mp::InstanceState::STOPPED:
         status_val = "Stopped";
         break;
-    case mp::InstanceStatus::DELETED:
+    case mp::InstanceState::DELETED:
         status_val = "Deleted";
         break;
-    case mp::InstanceStatus::STARTING:
+    case mp::InstanceState::STARTING:
         status_val = "Starting";
         break;
-    case mp::InstanceStatus::RESTARTING:
+    case mp::InstanceState::RESTARTING:
         status_val = "Restarting";
         break;
-    case mp::InstanceStatus::DELAYED_SHUTDOWN:
+    case mp::InstanceState::DELAYED_SHUTDOWN:
         status_val = "Delayed Shutdown";
         break;
-    case mp::InstanceStatus::SUSPENDING:
+    case mp::InstanceState::SUSPENDING:
         status_val = "Suspending";
         break;
-    case mp::InstanceStatus::SUSPENDED:
+    case mp::InstanceState::SUSPENDED:
         status_val = "Suspended";
         break;
     default:

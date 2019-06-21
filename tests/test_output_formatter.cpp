@@ -48,7 +48,7 @@ auto construct_single_instance_list_reply()
 
     auto list_entry = list_reply.add_instances();
     list_entry->set_name("foo");
-    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+    list_entry->mutable_instance_status()->set_state(mp::InstanceState::RUNNING);
     list_entry->set_current_release("16.04 LTS");
     list_entry->set_ipv4("10.168.32.2");
 
@@ -61,13 +61,13 @@ auto construct_multiple_instances_list_reply()
 
     auto list_entry = list_reply.add_instances();
     list_entry->set_name("bogus-instance");
-    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+    list_entry->mutable_instance_status()->set_state(mp::InstanceState::RUNNING);
     list_entry->set_current_release("16.04 LTS");
     list_entry->set_ipv4("10.21.124.56");
 
     list_entry = list_reply.add_instances();
     list_entry->set_name("bombastic");
-    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
+    list_entry->mutable_instance_status()->set_state(mp::InstanceState::STOPPED);
     list_entry->set_current_release("18.04 LTS");
 
     return list_reply;
@@ -79,7 +79,7 @@ auto construct_multiple_instances_including_petenv_list_reply()
 
     auto instance = reply.add_instances();
     instance->set_name(petenv_name());
-    instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+    instance->mutable_instance_status()->set_state(mp::InstanceState::DELETED);
     instance->set_current_release("Not Available");
 
     return reply;
@@ -91,7 +91,7 @@ auto construct_single_instance_info_reply()
 
     auto info_entry = info_reply.add_info();
     info_entry->set_name("foo");
-    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+    info_entry->mutable_instance_status()->set_state(mp::InstanceState::RUNNING);
     info_entry->set_image_release("16.04 LTS");
     info_entry->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -127,7 +127,7 @@ auto construct_multiple_instances_info_reply()
 
     auto info_entry = info_reply.add_info();
     info_entry->set_name("bogus-instance");
-    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+    info_entry->mutable_instance_status()->set_state(mp::InstanceState::RUNNING);
     info_entry->set_image_release("16.04 LTS");
     info_entry->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -150,7 +150,7 @@ auto construct_multiple_instances_info_reply()
 
     info_entry = info_reply.add_info();
     info_entry->set_name("bombastic");
-    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
+    info_entry->mutable_instance_status()->set_state(mp::InstanceState::STOPPED);
     info_entry->set_image_release("18.04 LTS");
     info_entry->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
 
@@ -163,7 +163,7 @@ auto construct_multiple_instances_including_petenv_info_reply()
 
     auto entry = reply.add_info();
     entry->set_name(petenv_name());
-    entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+    entry->mutable_instance_status()->set_state(mp::InstanceState::SUSPENDED);
     entry->set_image_release("18.10");
     entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
 

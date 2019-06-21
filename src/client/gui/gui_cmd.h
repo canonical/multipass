@@ -72,7 +72,7 @@ private:
     void initiate_menu_layout();
     void initiate_about_menu_layout();
     ListReply retrieve_all_instances();
-    void set_menu_actions_for(const std::string& instance_name, const InstanceStatus& state);
+    void set_menu_actions_for(const std::string& instance_name, const InstanceState& state);
     void start_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
     void suspend_instance_for(const std::string& instance_name);
@@ -93,7 +93,7 @@ private:
 
     struct InstanceEntry
     {
-        InstanceStatus state;
+        InstanceState state;
         std::unique_ptr<QMenu> menu;
     };
     std::unordered_map<std::string, InstanceEntry> instances_entries;

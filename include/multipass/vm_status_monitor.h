@@ -35,7 +35,7 @@ public:
     virtual void on_shutdown() = 0;
     virtual void on_suspend() = 0;
     virtual void on_restart(const std::string& name) = 0;
-    virtual void persist_state_for(const std::string& name, const VirtualMachine::State& state) = 0;
+    virtual void persist_state_for(const std::string& name, const InstanceState& state) = 0;
     virtual void update_metadata_for(const std::string& name, const QJsonObject& metadata) = 0;
     virtual QJsonObject retrieve_metadata_for(const std::string& name) = 0;
 

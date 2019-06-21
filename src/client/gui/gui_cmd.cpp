@@ -78,40 +78,40 @@ void cmd::GuiCmd::update_menu()
     for (const auto& instance : reply.instances())
     {
         auto name = instance.name();
-        auto state = instance.instance_status();
-        auto state_string = QString::fromStdString(mp::format::status_string_for(state));
+        auto new_state = instance.instance_status().state();
+        auto state_string = QString::fromStdString(mp::format::state_string_for(new_state));
 
         auto it = instances_entries.find(name);
 
         if (it != instances_entries.end())
         {
-            auto instance_state = it->second.state;
-            if (state.status() == InstanceStatus::DELETED)
+            auto saved_state = it->second.state;
+            if (new_state == InstanceState::DELETED)
             {
                 instances_entries.erase(name);
             }
-            else if (instance_state.status() != state.status())
+            else if (saved_state != new_state)
             {
                 auto& instance_menu = instances_entries.at(name).menu;
 
-                if (state.status() == InstanceStatus::STOPPED)
+                if (new_state == InstanceState::STOPPED)
                     instance_menu->setTitle(QString::fromStdString(name));
                 else
                     instance_menu->setTitle(QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state_string));
                 instance_menu->clear();
-                set_menu_actions_for(name, state);
-                instances_entries[name].state = state;
+                set_menu_actions_for(name, new_state);
+                instances_entries[name].state = new_state;
             }
 
             continue;
         }
 
-        if (state.status() != InstanceStatus::DELETED)
+        if (new_state != InstanceState::DELETED)
         {
             instances_entries[name].menu =
                 std::make_unique<QMenu>(QString("%1 (%2)").arg(QString::fromStdString(name)).arg(state_string));
-            set_menu_actions_for(name, state);
-            instances_entries[name].state = state;
+            set_menu_actions_for(name, new_state);
+            instances_entries[name].state = new_state;
         }
     }
 
@@ -228,7 +228,7 @@ mp::ListReply cmd::GuiCmd::retrieve_all_instances()
     return list_reply;
 }
 
-void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const mp::InstanceStatus& state)
+void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const mp::InstanceState& state)
 {
     auto& instance_menu = instances_entries.at(instance_name).menu;
 
@@ -237,14 +237,14 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const m
         mp::cli::platform::open_multipass_shell(QString::fromStdString(instance_name));
     });
 
-    if (state.status() == InstanceStatus::RUNNING)
+    if (state == InstanceState::RUNNING)
     {
         instance_menu->addAction("Stop");
         QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
             future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, instance_name));
         });
     }
-    else if (state.status() == InstanceStatus::STOPPED)
+    else if (state == InstanceState::STOPPED)
     {
         instance_menu->addAction("Start");
         QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {

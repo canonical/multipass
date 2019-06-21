@@ -170,19 +170,21 @@ message MountInfo {
     repeated MountPaths mount_paths = 2;
 }
 
+enum InstanceState {
+    UNKNOWN = 0;
+    OFF = 1;
+    STOPPED = 2;
+    STARTING = 3;
+    RESTARTING = 4;
+    RUNNING = 5;
+    DELETED = 6;
+    DELAYED_SHUTDOWN = 7;
+    SUSPENDING = 8;
+    SUSPENDED = 9;
+}
+
 message InstanceStatus {
-    enum Status {
-        RUNNING = 0;
-        STARTING = 1;
-        RESTARTING = 2;
-        STOPPED = 3;
-        DELETED = 4;
-        DELAYED_SHUTDOWN = 5;
-        SUSPENDING = 6;
-        SUSPENDED = 7;
-        UNKNOWN = 8;
-    }
-    Status status = 1;
+    InstanceState state = 1;
 }
 
 message InfoReply {

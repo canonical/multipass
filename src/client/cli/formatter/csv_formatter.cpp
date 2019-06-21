@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
     for (const auto& info : format::sorted(reply.info()))
     {
         fmt::format_to(buf, "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
-                       mp::format::status_string_for(info.instance_status()), info.ipv4(), info.ipv6(),
+                       mp::format::state_string_for(info.instance_status().state()), info.ipv4(), info.ipv6(),
                        info.current_release(), info.id(), info.image_release(), info.load(), info.disk_usage(),
                        info.disk_total(), info.memory_usage(), info.memory_total());
 
@@ -57,8 +57,8 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
     for (const auto& instance : format::sorted(reply.instances()))
     {
         fmt::format_to(buf, "{},{},{},{},{}\n", instance.name(),
-                       mp::format::status_string_for(instance.instance_status()), instance.ipv4(), instance.ipv6(),
-                       instance.current_release());
+                       mp::format::state_string_for(instance.instance_status().state()), instance.ipv4(),
+                       instance.ipv6(), instance.current_release());
     }
 
     return fmt::to_string(buf);

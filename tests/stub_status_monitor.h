@@ -31,7 +31,7 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
     void on_shutdown() override{};
     void on_suspend() override{};
     void on_restart(const std::string& name) override{};
-    void persist_state_for(const std::string& name, const VirtualMachine::State& state) override{};
+    void persist_state_for(const std::string& name, const InstanceState& state) override{};
     void update_metadata_for(const std::string& name, const QJsonObject& metadata) override{};
     QJsonObject retrieve_metadata_for(const std::string& name) override
     {

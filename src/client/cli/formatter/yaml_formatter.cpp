@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
     {
         YAML::Node instance_node;
 
-        instance_node["state"] = mp::format::status_string_for(info.instance_status());
+        instance_node["state"] = mp::format::state_string_for(info.instance_status().state());
         instance_node["image_hash"] = info.id();
         instance_node["image_release"] = info.image_release();
         if (info.current_release().empty())
@@ -131,7 +131,7 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
     for (const auto& instance : format::sorted(reply.instances()))
     {
         YAML::Node instance_node;
-        instance_node["state"] = mp::format::status_string_for(instance.instance_status());
+        instance_node["state"] = mp::format::state_string_for(instance.instance_status().state());
 
         instance_node["ipv4"].push_back(instance.ipv4());
         instance_node["release"] = instance.current_release();

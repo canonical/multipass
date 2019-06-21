@@ -264,7 +264,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       mp::MemorySize{disk_space.empty() ? default_disk : disk_space},
                                       mac_addr,
                                       ssh_username,
-                                      static_cast<mp::VirtualMachine::State>(state),
+                                      static_cast<mp::InstanceState>(state),
                                       mounts,
                                       deleted,
                                       metadata};
@@ -610,15 +610,15 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         // FIXME: somehow we're writing contradictory state to disk.
-        if (spec.deleted && spec.state != VirtualMachine::State::stopped)
+        if (spec.deleted && spec.state != InstanceState::STOPPED)
         {
             mpl::log(mpl::Level::warning, category,
                      fmt::format("{} is deleted but has incompatible state {}, reseting state to 0 (stopped)", name,
                                  static_cast<int>(spec.state)));
-            spec.state = VirtualMachine::State::stopped;
+            spec.state = InstanceState::STOPPED;
         }
 
-        if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
+        if (spec.state == InstanceState::RUNNING && vm_instances[name]->state != InstanceState::RUNNING)
         {
             assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
@@ -963,32 +963,11 @@ try // clang-format on
         info->set_name(name);
         if (deleted)
         {
-            info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+            info->mutable_instance_status()->set_state(InstanceState::DELETED);
         }
         else
         {
-            auto status_for = [](mp::VirtualMachine::State state) {
-                switch (state)
-                {
-                case mp::VirtualMachine::State::starting:
-                    return mp::InstanceStatus::STARTING;
-                case mp::VirtualMachine::State::restarting:
-                    return mp::InstanceStatus::RESTARTING;
-                case mp::VirtualMachine::State::running:
-                    return mp::InstanceStatus::RUNNING;
-                case mp::VirtualMachine::State::delayed_shutdown:
-                    return mp::InstanceStatus::DELAYED_SHUTDOWN;
-                case mp::VirtualMachine::State::suspending:
-                    return mp::InstanceStatus::SUSPENDING;
-                case mp::VirtualMachine::State::suspended:
-                    return mp::InstanceStatus::SUSPENDED;
-                case mp::VirtualMachine::State::unknown:
-                    return mp::InstanceStatus::UNKNOWN;
-                default:
-                    return mp::InstanceStatus::STOPPED;
-                }
-            };
-            info->mutable_instance_status()->set_status(status_for(present_state));
+            info->mutable_instance_status()->set_state(present_state);
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1096,28 +1075,6 @@ try // clang-format on
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
-    auto status_for = [](mp::VirtualMachine::State state) {
-        switch (state)
-        {
-        case mp::VirtualMachine::State::starting:
-            return mp::InstanceStatus::STARTING;
-        case mp::VirtualMachine::State::restarting:
-            return mp::InstanceStatus::RESTARTING;
-        case mp::VirtualMachine::State::running:
-            return mp::InstanceStatus::RUNNING;
-        case mp::VirtualMachine::State::delayed_shutdown:
-            return mp::InstanceStatus::DELAYED_SHUTDOWN;
-        case mp::VirtualMachine::State::suspending:
-            return mp::InstanceStatus::SUSPENDING;
-        case mp::VirtualMachine::State::suspended:
-            return mp::InstanceStatus::SUSPENDED;
-        case mp::VirtualMachine::State::unknown:
-            return mp::InstanceStatus::UNKNOWN;
-        default:
-            return mp::InstanceStatus::STOPPED;
-        }
-    };
-
     for (const auto& instance : vm_instances)
     {
         const auto& name = instance.first;
@@ -1125,7 +1082,7 @@ try // clang-format on
         auto present_state = vm->current_state();
         auto entry = response.add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(status_for(present_state));
+        entry->mutable_instance_status()->set_state(present_state);
 
         // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1155,7 +1112,7 @@ try // clang-format on
         const auto& name = instance.first;
         auto entry = response.add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        entry->mutable_instance_status()->set_state(InstanceState::DELETED);
     }
 
     server->Write(response);
@@ -1226,7 +1183,7 @@ try // clang-format on
 
         auto& vm = it->second;
 
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->current_state() == InstanceState::RUNNING)
         {
             try
             {
@@ -1336,7 +1293,7 @@ try // clang-format on
         }
 
         auto& vm = it->second;
-        if (vm->current_state() == VirtualMachine::State::unknown)
+        if (vm->current_state() == InstanceState::UNKNOWN)
             throw std::runtime_error("Cannot retreive credentials in unknown state");
 
         if (!mp::utils::is_running(vm->current_state()))
@@ -1345,7 +1302,7 @@ try // clang-format on
                 grpc::Status(grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name)));
         }
 
-        if (vm->state == VirtualMachine::State::delayed_shutdown)
+        if (vm->state == InstanceState::DELAYED_SHUTDOWN)
         {
             if (delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
             {
@@ -1393,9 +1350,9 @@ try // clang-format on
             errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
                                       ? mp::StartError::DOES_NOT_EXIST
                                       : mp::StartError::INSTANCE_DELETED});
-        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+        else if (it->second->current_state() == InstanceState::DELAYED_SHUTDOWN)
             delayed_shutdown_instances.erase(name);
-        else if (it->second->current_state() != VirtualMachine::State::running)
+        else if (it->second->current_state() != InstanceState::RUNNING)
             vms.push_back(name);
     }
 
@@ -1407,7 +1364,7 @@ try // clang-format on
     {
         for (auto& pair : vm_instances)
         {
-            if (pair.second->current_state() == VirtualMachine::State::running)
+            if (pair.second->current_state() == InstanceState::RUNNING)
                 continue;
             vms.push_back(pair.first);
         }
@@ -1416,7 +1373,7 @@ try // clang-format on
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
-        if (it->second->current_state() != VirtualMachine::State::starting)
+        if (it->second->current_state() != InstanceState::STARTING)
             it->second->start();
     }
 
@@ -1563,7 +1520,7 @@ try // clang-format on
 
             auto& instance = vm_instances[name];
 
-            if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+            if (instance->current_state() == InstanceState::DELAYED_SHUTDOWN)
                 delayed_shutdown_instances.erase(name);
 
             stop_mounts_for_instance(name);
@@ -1647,7 +1604,7 @@ try // clang-format on
         }
         else
         {
-            if (vm->current_state() == mp::VirtualMachine::State::running)
+            if (vm->current_state() == InstanceState::RUNNING)
             {
                 auto found = stop_sshfs_for(target_path);
                 if (!found)
@@ -1708,7 +1665,7 @@ void mp::Daemon::on_restart(const std::string& name)
                                                 std::vector<std::string>{name}, nullptr));
 }
 
-void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
+void mp::Daemon::persist_state_for(const std::string& name, const InstanceState& state)
 {
     vm_instance_specs[name].state = state;
     persist_instances();
@@ -1907,7 +1864,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                            vm_desc.disk_space,
                                            vm_desc.mac_addr,
                                            config->ssh_username,
-                                           VirtualMachine::State::off,
+                                           InstanceState::OFF,
                                            {},
                                            false,
                                            QJsonObject()};
@@ -2017,7 +1974,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 {
-    if (vm.state == VirtualMachine::State::delayed_shutdown)
+    if (vm.state == InstanceState::DELAYED_SHUTDOWN)
         delayed_shutdown_instances.erase(vm.vm_name);
 
     if (!mp::utils::is_running(vm.current_state()))
@@ -2033,8 +1990,8 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     const auto& name = vm.vm_name;
     const auto& state = vm.current_state();
 
-    using St = VirtualMachine::State;
-    const auto skip_states = {St::off, St::stopped, St::suspended};
+    using St = InstanceState;
+    const auto skip_states = {St::OFF, St::STOPPED, St::SUSPENDED};
 
     if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,8 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
     for (const auto& info : reply.info())
     {
         QJsonObject instance_info;
-        instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(info.instance_status())));
+        instance_info.insert("state",
+                             QString::fromStdString(mp::format::state_string_for(info.instance_status().state())));
         instance_info.insert("image_hash", QString::fromStdString(info.id()));
         instance_info.insert("image_release", QString::fromStdString(info.image_release()));
         instance_info.insert("release", QString::fromStdString(info.current_release()));
@@ -119,7 +120,8 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
     {
         QJsonObject instance_obj;
         instance_obj.insert("name", QString::fromStdString(instance.name()));
-        instance_obj.insert("state", QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
+        instance_obj.insert("state",
+                            QString::fromStdString(mp::format::state_string_for(instance.instance_status().state())));
 
         QJsonArray ipv4_addrs;
         if (!instance.ipv4().empty())

@@ -46,9 +46,9 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    multipass::VirtualMachine::State current_state() override
+    InstanceState current_state() override
     {
-        return multipass::VirtualMachine::State::off;
+        return InstanceState::OFF;
     }
 
     int ssh_port() override

@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_VIRTUAL_MACHINE_H
 #define MULTIPASS_VIRTUAL_MACHINE_H
 
+#include <multipass/rpc/multipass.grpc.pb.h>
+
 #include <chrono>
 #include <condition_variable>
 #include <memory>
@@ -26,24 +28,9 @@
 
 namespace multipass
 {
-class SSHKeyProvider;
-
 class VirtualMachine
 {
 public:
-    enum class State
-    {
-        off,
-        stopped,
-        starting,
-        restarting,
-        running,
-        delayed_shutdown,
-        suspending,
-        suspended,
-        unknown
-    };
-
     using UPtr = std::unique_ptr<VirtualMachine>;
     using ShPtr = std::shared_ptr<VirtualMachine>;
 
@@ -52,7 +39,7 @@ public:
     virtual void start() = 0;
     virtual void shutdown() = 0;
     virtual void suspend() = 0;
-    virtual State current_state() = 0;
+    virtual InstanceState current_state() = 0;
     virtual int ssh_port() = 0;
     virtual std::string ssh_hostname() = 0;
     virtual std::string ssh_username() = 0;
@@ -62,14 +49,14 @@ public:
     virtual void ensure_vm_is_running() = 0;
     virtual void update_state() = 0;
 
-    VirtualMachine::State state;
+    InstanceState state;
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
 
 protected:
-    VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
-    VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name){};
+    VirtualMachine(InstanceState state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
+    VirtualMachine(const std::string& vm_name) : VirtualMachine(InstanceState::OFF, vm_name){};
     VirtualMachine(const VirtualMachine&) = delete;
     VirtualMachine& operator=(const VirtualMachine&) = delete;
 };

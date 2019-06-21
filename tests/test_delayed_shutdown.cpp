@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ struct DelayedShutdown : public Test
         request_exec.returnValue(SSH_OK);
 
         vm = std::make_unique<mpt::StubVirtualMachine>();
-        vm->state = mp::VirtualMachine::State::running;
+        vm->state = mp::InstanceState::RUNNING;
     }
 
     decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
@@ -102,11 +102,11 @@ TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
+    EXPECT_TRUE(vm->state == mp::InstanceState::RUNNING);
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
 
-    EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
+    EXPECT_TRUE(vm->state == mp::InstanceState::DELAYED_SHUTDOWN);
 }
 
 TEST_F(DelayedShutdown, vm_state_running_after_cancel)
@@ -128,8 +128,8 @@ TEST_F(DelayedShutdown, vm_state_running_after_cancel)
     {
         mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session)};
         delayed_shutdown_timer.start(std::chrono::milliseconds(1));
-        EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
+        EXPECT_TRUE(vm->state == mp::InstanceState::DELAYED_SHUTDOWN);
     }
 
-    EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
+    EXPECT_TRUE(vm->state == mp::InstanceState::RUNNING);
 }
