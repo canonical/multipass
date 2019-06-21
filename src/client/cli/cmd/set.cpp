@@ -63,22 +63,33 @@ QString cmd::Set::description() const
 
 mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("key", "Path to the option to configure.", "<key>");
-    parser->addPositionalArgument("value", "Value to set the option to.", "<value>");
+    parser->addPositionalArgument(
+        "keyval",
+        "A key-value pair. The key specifies a path to the option to configure. The value is its intended value.",
+        "<key>=<value>");
 
     auto status = parser->commandParse(this);
     if (status == ParseCode::Ok)
     {
         const auto args = parser->positionalArguments();
-        if (args.count() == 2)
+        if (args.isEmpty())
         {
-            key = args.at(0);
-            val = args.at(1);
+            cerr << "Insufficient arguments.\n";
+            status = ParseCode::CommandLineError;
         }
         else
         {
-            cerr << "Need exactly one option key and one value\n";
-            status = ParseCode::CommandLineError;
+            const auto keyval = args.at(0).split('=');
+            if (keyval.count() != 2 || keyval.contains(QStringLiteral("")))
+            {
+                cerr << "Bad key-value format.\n";
+                status = ParseCode::CommandLineError;
+            }
+            else
+            {
+                key = keyval.at(0);
+                val = keyval.at(1);
+            }
         }
     }
 
