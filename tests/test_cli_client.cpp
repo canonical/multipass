@@ -153,6 +153,15 @@ struct Client : public TestWithParam<const char*>
         return make_instances_matcher<RequestType>(AllOf(Contains(StrEq(instance_name)), SizeIs(size)));
     }
 
+    void aux_set_cmd_rejects_bad_val(const char* key, const char* val)
+    {
+        const auto default_val = get_setting(key);
+        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+            .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "bad"}));
+        EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
+        EXPECT_THAT(get_setting(key), Eq(default_val));
+    }
+
 #ifdef WIN32
     std::string server_address{"localhost:50051"};
 #else
@@ -1345,29 +1354,18 @@ TEST_F(Client, get_returns_acceptable_primary_name_by_default)
 
 TEST_F(Client, set_cmd_rejects_bad_primary_name)
 {
-    const auto default_name = get_setting(mp::petenv_key);
-    const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
     const auto key = mp::petenv_key;
-    const auto val = "123.badname_";
+    const auto default_petenv_matcher = make_ssh_info_instance_matcher(get_setting(key));
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
-        .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "bad"}));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
+    aux_set_cmd_rejects_bad_val(key, "123.badname_");
 
-    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
+    EXPECT_CALL(mock_daemon, ssh_info(_, default_petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, set_cmd_rejects_bad_driver)
 {
-    const auto key = mp::driver_key;
-    const auto val = "bad driver";
-    const auto default_driver = get_setting(key);
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
-        .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "nope"}));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(get_setting(mp::driver_key), Eq(default_driver));
+    aux_set_cmd_rejects_bad_val(mp::driver_key, "bad driver");
 }
 
 // general help tests
