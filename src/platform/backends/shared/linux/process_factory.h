@@ -30,10 +30,8 @@ class ProcessSpec;
 class ProcessFactory : public Singleton<ProcessFactory>
 {
 public:
-    using UPtr = std::unique_ptr<ProcessFactory>;
-
     ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
-    virtual ~ProcessFactory() = default;
+    //    virtual ~ProcessFactory() = default;
 
     virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
 };

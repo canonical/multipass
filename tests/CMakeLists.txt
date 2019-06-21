@@ -77,6 +77,7 @@ add_executable(multipass_tests
   mock_ssh.cpp
   mock_ssh_client.cpp
   path.cpp
+  stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
   test_cli_client.cpp

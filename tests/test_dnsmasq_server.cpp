@@ -48,7 +48,7 @@ struct CapturingLogger : public mp::logging::Logger
     mutable std::vector<std::string> logged_lines;
 };
 
-struct DNSMasqServer : public mpt::TestWithMockedBinPath
+struct DNSMasqServer : public ::testing::Test
 {
     DNSMasqServer()
     {
@@ -67,7 +67,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
 
     mpt::TempDir data_dir;
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
-    // mpt::StubProcessFactory process_factory;
+    mpt::StubProcessFactory& mock_settings = mpt::StubProcessFactory::stub_instance();
     const QString bridge_name{"dummy-bridge"};
     const mp::IPAddress bridge_addr{"192.168.64.1"};
     const mp::IPAddress start_addr{"192.168.64.2"};
