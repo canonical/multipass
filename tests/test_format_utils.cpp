@@ -23,67 +23,85 @@
 namespace mp = multipass;
 using namespace testing;
 
-TEST(InstanceStatusString, running_status_returns_RUNNING)
+TEST(InstanceStateString, RUNNING_state_returns_Running)
 {
     mp::InstanceStatus status;
     status.set_state(mp::InstanceState::RUNNING);
-    auto status_string = mp::format::state_string_for(status.state());
+    auto state_string = mp::format::state_string_for(status.state());
 
-    EXPECT_THAT(status_string, Eq("Running"));
+    EXPECT_THAT(state_string, Eq("Running"));
 }
 
-TEST(InstanceStatusString, stopped_status_returns_STOPPED)
+TEST(InstanceStateString, STOPPED_state_returns_Stopped)
 {
     mp::InstanceStatus status;
     status.set_state(mp::InstanceState::STOPPED);
-    auto status_string = mp::format::state_string_for(status.state());
+    auto state_string = mp::format::state_string_for(status.state());
 
-    EXPECT_THAT(status_string, Eq("Stopped"));
+    EXPECT_THAT(state_string, Eq("Stopped"));
 }
 
-TEST(InstanceStatusString, deleted_status_returns_DELETED)
+TEST(InstanceStateString, DELETED_state_returns_Deleted)
 {
     mp::InstanceStatus status;
     status.set_state(mp::InstanceState::DELETED);
-    auto status_string = mp::format::state_string_for(status.state());
+    auto state_string = mp::format::state_string_for(status.state());
 
-    EXPECT_THAT(status_string, Eq("Deleted"));
+    EXPECT_THAT(state_string, Eq("Deleted"));
 }
 
-TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
+TEST(InstanceStateString, SUSPENDING_status_returns_Suspending)
 {
     mp::InstanceStatus status;
     status.set_state(mp::InstanceState::SUSPENDING);
-    auto status_string = mp::format::state_string_for(status.state());
+    auto state_string = mp::format::state_string_for(status.state());
 
-    EXPECT_THAT(status_string, Eq("Suspending"));
+    EXPECT_THAT(state_string, Eq("Suspending"));
 }
 
-TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
+TEST(InstanceStateString, SUSPENDED_state_returns_Suspended)
 {
     mp::InstanceStatus status;
     status.set_state(mp::InstanceState::SUSPENDED);
-    auto status_string = mp::format::state_string_for(status.state());
+    auto state_string = mp::format::state_string_for(status.state());
 
-    EXPECT_THAT(status_string, Eq("Suspended"));
+    EXPECT_THAT(state_string, Eq("Suspended"));
 }
 
-TEST(InstanceStatusString, running_status_returns_RESTARTING)
+TEST(InstanceStateString, RESTARTING_state_returns_Restarting)
 {
     mp::InstanceStatus status;
     status.set_state(mp::InstanceState::RESTARTING);
-    auto status_string = mp::format::state_string_for(status.state());
+    auto state_string = mp::format::state_string_for(status.state());
 
-    EXPECT_THAT(status_string, Eq("Restarting"));
+    EXPECT_THAT(state_string, Eq("Restarting"));
 }
 
-TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
+TEST(InstanceStateString, UNKNOWN_state_returns_Unknown)
 {
     mp::InstanceStatus status;
     status.set_state(mp::InstanceState::UNKNOWN);
-    auto status_string = mp::format::state_string_for(status.state());
+    auto state_string = mp::format::state_string_for(status.state());
 
-    EXPECT_THAT(status_string, Eq("Unknown"));
+    EXPECT_THAT(state_string, Eq("Unknown"));
+}
+
+TEST(InstanceStateString, STARTING_state_returns_Starting)
+{
+    mp::InstanceStatus status;
+    status.set_state(mp::InstanceState::STARTING);
+    auto state_string = mp::format::state_string_for(status.state());
+
+    EXPECT_THAT(state_string, Eq("Starting"));
+}
+
+TEST(InstanceStateString, DELAYED_SHUTDOWN_state_returns_Delayed_Shutdown)
+{
+    mp::InstanceStatus status;
+    status.set_state(mp::InstanceState::DELAYED_SHUTDOWN);
+    auto state_string = mp::format::state_string_for(status.state());
+
+    EXPECT_THAT(state_string, Eq("Delayed Shutdown"));
 }
 
 TEST(AliasFilter, unwanted_aliases_filtered_out)
