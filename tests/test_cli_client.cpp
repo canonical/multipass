@@ -1359,6 +1359,17 @@ TEST_F(Client, set_cmd_rejects_bad_primary_name)
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, set_cmd_rejects_bad_driver)
+{
+    const auto key = mp::driver_key;
+    const auto val = "bad driver";
+    const auto default_driver = get_setting(key);
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+        .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "nope"}));
+    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(get_setting(mp::driver_key), Eq(default_driver));
+}
+
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)
 {

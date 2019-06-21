@@ -133,6 +133,8 @@ struct TestUnsupportedDrivers : public TestWithParam<QString>
 
 TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 {
+    ASSERT_FALSE(mp::platform::is_backend_supported(GetParam()));
+
     setup_driver_settings(GetParam());
     EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
 }
