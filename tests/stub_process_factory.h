@@ -21,87 +21,41 @@
 #include <multipass/process.h>
 #include <src/platform/backends/shared/linux/process_factory.h>
 
+#include <gtest/gtest.h>
+
 namespace multipass
 {
 namespace test
 {
-class StubProcess : public Process
-{
-public:
-    StubProcess()
-    {
-    }
-
-    QString program() const
-    {
-        return "";
-    }
-    QStringList arguments() const
-    {
-        return {};
-    }
-    QString working_directory() const
-    {
-        return "";
-    }
-    QProcessEnvironment process_environment() const
-    {
-        return QProcessEnvironment();
-    }
-
-    void start(const QStringList& extra_arguments = QStringList())
-    {
-    }
-    void kill()
-    {
-    }
-
-    bool wait_for_started(int msecs = 30000)
-    {
-        return true;
-    }
-    bool wait_for_finished(int msecs = 30000)
-    {
-        return true;
-    }
-
-    bool running() const
-    {
-        return true;
-    }
-
-    QByteArray read_all_standard_output()
-    {
-        return "";
-    }
-    QByteArray read_all_standard_error()
-    {
-        return "";
-    }
-
-    qint64 write(const QByteArray& data)
-    {
-        return 0;
-    }
-
-    bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000)
-    {
-        return true;
-    }
-    QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000)
-    {
-        return "";
-    }
-};
 
 class StubProcessFactory : public ProcessFactory
 {
 public:
+    struct ProcessInfo
+    {
+        QString command;
+        QStringList arguments;
+    };
+
+    // StubProcessFactory installed with Inject() call, and uninstalled when the Scope object deleted
+    struct Scope
+    {
+        ~Scope();
+
+        // Get info about the Processes launched with this list
+        std::vector<ProcessInfo> process_list();
+    };
+
+    static std::unique_ptr<Scope> Inject();
+
+    // Implementation
     using ProcessFactory::ProcessFactory;
 
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&&) const override;
+    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& spec) const override;
 
+private:
     static StubProcessFactory& stub_instance();
+    std::vector<ProcessInfo> process_list;
 };
 
 } // namespace test

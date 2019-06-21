@@ -21,10 +21,8 @@
 #include <multipass/logging/logger.h>
 
 #include "file_operations.h"
-#include "stub_process_factory.h"
 #include "temp_dir.h"
 #include "test_with_mocked_bin_path.h"
-
 #include <QDir>
 
 #include <memory>
@@ -48,7 +46,7 @@ struct CapturingLogger : public mp::logging::Logger
     mutable std::vector<std::string> logged_lines;
 };
 
-struct DNSMasqServer : public ::testing::Test
+struct DNSMasqServer : public mpt::TestWithMockedBinPath
 {
     DNSMasqServer()
     {
@@ -67,7 +65,6 @@ struct DNSMasqServer : public ::testing::Test
 
     mpt::TempDir data_dir;
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
-    mpt::StubProcessFactory& mock_settings = mpt::StubProcessFactory::stub_instance();
     const QString bridge_name{"dummy-bridge"};
     const mp::IPAddress bridge_addr{"192.168.64.1"};
     const mp::IPAddress start_addr{"192.168.64.2"};
@@ -78,6 +75,7 @@ struct DNSMasqServer : public ::testing::Test
         "0 "s + hw_addr + " "s + expected_ip + " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 };
 } // namespace
+
 TEST_F(DNSMasqServer, starts_dnsmasq_process)
 {
     EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, bridge_addr, start_addr, end_addr));
