@@ -114,6 +114,12 @@ struct Client : public TestWithParam<const char*>
         return client.run(args);
     }
 
+    template <typename Str1, typename Str2>
+    std::string keyval_arg(Str1&& key, Str2&& val)
+    {
+        return fmt::format("{}={}", std::forward<Str1>(key), std::forward<Str2>(val));
+    }
+
     std::string get_setting(const std::string& key)
     {
         auto out = std::ostringstream{};
@@ -158,7 +164,7 @@ struct Client : public TestWithParam<const char*>
         const auto default_val = get_setting(key);
         EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
             .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "bad"}));
-        EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
+        EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
         EXPECT_THAT(get_setting(key), Eq(default_val));
     }
 
@@ -1288,7 +1294,7 @@ TEST_P(Client, set_can_write_settings)
     const auto val = "blah";
 
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, Client, Values(mp::petenv_key, mp::driver_key));
@@ -1305,7 +1311,7 @@ TEST_F(Client, set_cmd_fails_with_unknown_key)
     const auto key = "wrong.key";
     const auto val = "blah";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, get_handles_persistent_settings_errors)
@@ -1320,7 +1326,7 @@ TEST_F(Client, set_handles_persistent_settings_errors)
     const auto key = mp::petenv_key;
     const auto val = "asdasdasd";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, get_and_set_can_read_and_write_primary_name)
@@ -1331,7 +1337,7 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
     EXPECT_THAT(get_setting(mp::petenv_key), AllOf(Not(IsEmpty()), StrNe(name)));
 
     EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(name)));
-    EXPECT_THAT(send_command({"set", mp::petenv_key, name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, name)}), Eq(mp::ReturnCode::Ok));
 
     // EXPECT_THAT(get_setting(mp::petenv_key), StrEq(name));
 
@@ -1348,7 +1354,7 @@ TEST_F(Client, get_returns_acceptable_primary_name_by_default)
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 
-    EXPECT_THAT(send_command({"set", mp::petenv_key, default_name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, default_name)}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
 }
 
