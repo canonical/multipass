@@ -1299,6 +1299,23 @@ TEST_P(Client, set_can_write_settings)
 
 INSTANTIATE_TEST_SUITE_P(Client, Client, Values(mp::petenv_key, mp::driver_key));
 
+TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
+{
+    EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
+    EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "abc"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "abc="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "=foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "=foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo=bar=="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "==foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo==bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo===bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 TEST_F(Client, get_cmd_fails_with_unknown_key)
 {
     const auto key = "wrong.key";
