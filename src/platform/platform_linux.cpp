@@ -72,6 +72,11 @@ QString mp::platform::daemon_config_home() // temporary
     return ret;
 }
 
+bool mp::platform::is_backend_supported(const QString& backend)
+{
+    return backend == "qemu" || backend == "libvirt";
+}
+
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto& driver = get_driver_str();

@@ -125,6 +125,8 @@ void mp::Settings::set(const QString& key, const QString& val)
     get_default(key); // make sure the key is valid before setting
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
+    else if (key == driver_key && !mp::platform::is_backend_supported(val))
+        throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
     checked_set(*persistent_settings(key), key, val);
 }
 

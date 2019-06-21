@@ -37,6 +37,7 @@ namespace platform
 std::string default_server_address();
 QString default_driver();
 QString daemon_config_home(); // temporary
+bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
