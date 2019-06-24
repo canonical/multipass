@@ -13,6 +13,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+set (CMAKE_AUTOMOC ON)
+
 list(APPEND CMOCK_TARGETS
   ssh_test
   sshfs_mount_test
@@ -110,6 +112,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/process.h # need to run MOC on this
 
   ${BACKEND_TESTS}
 
