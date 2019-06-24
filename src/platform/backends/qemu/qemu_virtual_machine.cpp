@@ -137,10 +137,8 @@ auto hmc_to_qmp_json(const QString& command_line)
 
 bool instance_image_has_snapshot(const mp::Path& image_path)
 {
-    auto output = QString::fromStdString(
-                      mp::utils::run_cmd_for_output(QStringLiteral("qemu-img"),
-                                                    {QStringLiteral("snapshot"), QStringLiteral("-l"), image_path}))
-                      .split('\n');
+    auto process = mp::ProcessFactory::instance().create_process("qemu-img", QStringList{"snapshot", "-l", image_path});
+    auto output = process->run_and_return_output().split('\n');
 
     for (const auto& line : output)
     {
