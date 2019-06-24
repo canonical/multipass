@@ -51,7 +51,7 @@ public:
         return QProcessEnvironment();
     }
 
-    void start(const QStringList& extra_arguments = QStringList()) override
+    void start() override
     {
         emit started();
     }
@@ -88,11 +88,11 @@ public:
         return 0;
     }
 
-    bool run_and_return_status(const QStringList& = QStringList(), const int timeout = 3000) override
+    bool run_and_return_status(const int timeout = 3000) override
     {
         return true;
     }
-    QString run_and_return_output(const QStringList& = QStringList(), const int timeout = 3000) override
+    QString run_and_return_output(const int timeout = 3000) override
     {
         return "";
     }

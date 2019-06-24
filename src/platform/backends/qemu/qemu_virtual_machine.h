@@ -58,14 +58,13 @@ private:
     void on_shutdown();
     void on_suspend();
     void on_restart();
-    multipass::optional<IPAddress> ip;
     const std::string tap_device_name;
+    std::unique_ptr<Process> vm_process;
+    multipass::optional<IPAddress> ip;
     const std::string mac_addr;
     const std::string username;
     DNSMasqServer* dnsmasq_server;
     VMStatusMonitor* monitor;
-    std::unique_ptr<Process> vm_process;
-    const QString cloud_init_path;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool delete_memory_snapshot{false};
