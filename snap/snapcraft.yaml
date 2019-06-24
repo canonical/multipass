@@ -207,6 +207,9 @@ parts:
     - on armhf: [libgles2-mesa]
     - on arm64: [libgles2-mesa]
     - libpng16-16
+    - libxml2
+    - libvirt0
+    - dnsmasq
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
