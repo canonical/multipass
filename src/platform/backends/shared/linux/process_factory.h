@@ -21,13 +21,11 @@
 #include <memory>
 
 #include "process_spec.h"
-#include <multipass/process.h>
 #include <multipass/singleton.h>
 
 namespace multipass
 {
-// class Process;
-// class ProcessSpec;
+class Process;
 
 class ProcessFactory : public Singleton<ProcessFactory>
 {
