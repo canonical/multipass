@@ -35,6 +35,13 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace
+{ // copied from QemuVirtualMachine implementation
+constexpr auto suspend_tag = "suspend";
+constexpr auto vm_command_version_tag = "command_version";
+
+} // namespace
+
 struct QemuBackend : public mpt::TestWithMockedBinPath
 {
     mpt::TempFile dummy_image;
@@ -48,6 +55,14 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
     mpt::TempDir data_dir;
+
+    mpt::MockProcessFactory::Callback qemu_img_snapshot_returns_true = [](mpt::MockProcess* process) {
+        // Have "qemu-img snapshot" return a string with the suspend tag in it
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            ON_CALL(*process, run_and_return_output(_)).WillByDefault(Return(suspend_tag));
+        }
+    };
 };
 
 TEST_F(QemuBackend, creates_in_off_state)
@@ -141,7 +156,7 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
     EXPECT_TRUE(factory->process_list()[2].command.startsWith("qemu-system-"));
 }
 
-TEST_F(QemuBackend, verify_qemu_arguments)
+TEST_F(QemuBackend, verify_some_common_qemu_arguments)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto factory = mpt::StubProcessFactory::Inject();
@@ -152,7 +167,6 @@ TEST_F(QemuBackend, verify_qemu_arguments)
     ASSERT_EQ(factory->process_list().size(), 3u);
     auto qemu = factory->process_list()[2];
     EXPECT_TRUE(qemu.arguments.contains("--enable-kvm"));
-    EXPECT_TRUE(qemu.arguments.contains("-hda"));
     EXPECT_TRUE(qemu.arguments.contains("virtio-net-pci,netdev=hostnet0,id=net0,mac="));
     EXPECT_TRUE(qemu.arguments.contains("-nographic"));
     EXPECT_TRUE(qemu.arguments.contains("-serial"));
@@ -166,19 +180,10 @@ TEST_F(QemuBackend, verify_qemu_arguments)
 
 TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
 {
-    constexpr auto suspend_tag = "suspend";
     constexpr auto default_machine_type = "pc-i440fx-xenial";
 
-    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
-        // Have "qemu-img snapshot" return a string with the suspend tag in it
-        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
-        {
-            ON_CALL(*process, run_and_return_output(_)).WillByDefault(Return(suspend_tag));
-        }
-    };
-
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(callback);
+    factory->register_callback(qemu_img_snapshot_returns_true);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
@@ -196,18 +201,10 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
 
 TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metadata)
 {
-    constexpr auto suspend_tag = "suspend";
     constexpr auto machine_type = "k0mPuT0R";
 
-    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
-        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
-        {
-            ON_CALL(*process, run_and_return_output(_)).WillByDefault(Return(suspend_tag));
-        }
-    };
-
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(callback);
+    factory->register_callback(qemu_img_snapshot_returns_true);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"machine_type", machine_type}})));
@@ -223,19 +220,10 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
     EXPECT_TRUE(qemu.arguments.contains(machine_type));
 }
 
-TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_using_cdrom_key)
+TEST_F(QemuBackend, verify_qemu_command_version_when_resuming_suspend_image_using_cdrom_key)
 {
-    constexpr auto suspend_tag = "suspend";
-
-    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
-        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
-        {
-            EXPECT_CALL(*process, run_and_return_output(_)).WillOnce(Return(suspend_tag));
-        }
-    };
-
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(callback);
+    factory->register_callback(qemu_img_snapshot_returns_true);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"use_cdrom", true}})));
@@ -247,5 +235,25 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_using_cdro
     ASSERT_EQ(factory->process_list().size(), 3u);
     auto qemu = factory->process_list()[2];
     ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
-    EXPECT_TRUE(qemu.arguments.contains("-cdrom"));
+    EXPECT_TRUE(qemu.arguments.contains("-cdrom"));                    // added in Qemu command version 1
+    EXPECT_FALSE(qemu.arguments.contains("virtio-scsi-pci,id=scsi0")); // added in Qemu command version 2
+}
+
+TEST_F(QemuBackend, verify_qemu_command_version_read_from_metadata_and_used)
+{
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(qemu_img_snapshot_returns_true);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{vm_command_version_tag, 1}})));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    ASSERT_EQ(factory->process_list().size(), 3u);
+    auto qemu = factory->process_list()[2];
+    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
+    EXPECT_TRUE(qemu.arguments.contains("-cdrom"));                    // added in Qemu command version 1
+    EXPECT_FALSE(qemu.arguments.contains("virtio-scsi-pci,id=scsi0")); // added in Qemu command version 2
 }

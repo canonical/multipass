@@ -53,11 +53,16 @@ namespace
 {
 constexpr auto suspend_tag = "suspend";
 constexpr auto machine_type_key = "machine_type";
+constexpr auto command_version_key = "command_version";
 
 int get_vm_command_version(const QJsonObject& metadata)
 {
     int version;
-    if (metadata.contains("use_cdrom") && metadata["use_cdrom"].toBool())
+    if (metadata.contains(command_version_key) && metadata[command_version_key].toInt(-1) != -1)
+    {
+        version = metadata[command_version_key].toInt();
+    }
+    else if (metadata.contains("use_cdrom") && metadata["use_cdrom"].toBool())
     {
         version = 1; // am retro-setting the "use_cdrom" metadata flag as version 1
     }
@@ -176,7 +181,7 @@ auto generate_metadata()
     QJsonObject metadata;
 
     metadata[machine_type_key] = get_qemu_machine_type();
-    metadata["use_cdrom"] = true;
+    metadata[command_version_key] = mp::QemuVMProcessSpec::latest_version();
 
     return metadata;
 }

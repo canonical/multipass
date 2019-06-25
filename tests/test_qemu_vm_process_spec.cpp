@@ -38,7 +38,39 @@ struct TestQemuVMProcessSpec : public Test
 
 TEST_F(TestQemuVMProcessSpec, latest_version_correct)
 {
-    ASSERT_EQ(1, mp::QemuVMProcessSpec::latest_version());
+    ASSERT_EQ(2, mp::QemuVMProcessSpec::latest_version());
+}
+
+TEST_F(TestQemuVMProcessSpec, version2_command_correct)
+{
+    mp::QemuVMProcessSpec spec(desc, 2, tap_device_name, mp::nullopt);
+
+    EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
+                                             "-device",
+                                             "virtio-scsi-pci,id=scsi0",
+                                             "-drive",
+                                             "file=/path/to/image,if=none,format=qcow2,discard=unmap,id=hda",
+                                             "-device",
+                                             "scsi-hd,drive=hda,bus=scsi0.0",
+                                             "-smp",
+                                             "2",
+                                             "-m",
+                                             "3072M",
+                                             "-device",
+                                             "virtio-net-pci,netdev=hostnet0,id=net0,mac=00:11:22:33:44:55",
+                                             "-netdev",
+                                             "tap,id=hostnet0,ifname=tap_device,script=no,downscript=no",
+                                             "-qmp",
+                                             "stdio",
+                                             "-cpu",
+                                             "host",
+                                             "-chardev",
+                                             "null,id=char0",
+                                             "-serial",
+                                             "chardev:char0",
+                                             "-nographic",
+                                             "-cdrom",
+                                             "/path/to/cloud_init.iso"}));
 }
 
 TEST_F(TestQemuVMProcessSpec, version1_command_correct)
@@ -196,4 +228,3 @@ TEST_F(TestQemuVMProcessSpec, version0_resume_command_correct_with_missing_machi
                                              "-machine",
                                              "pc-i440fx-xenial"}));
 }
-

@@ -34,6 +34,11 @@ constexpr auto default_machine_type = "pc-i440fx-xenial";
  * To support backward compatibility, we version each Qemu command line iteration.
  *
  * Versions:
+ *  2 - change how disk image is specified, enabling image discard feature
+ *      Replaced: "-hda image.img"
+ *      With:     "-device virtio-scsi-pci,id=scsi0
+ *                 -drive file=image.img,if=none,format=qcow2,discard=unmap,id=hda
+ *                 -device scsi-hd,drive=hda,bus=scsi0.0"
  *  1 - changed how cloud-init ISO was specified:
  *      Replaced: "-drive file=cloud-init.iso,if=virtio,format=raw,snapshot=off,read-only"
  *      With:     "-cdrom cloud-init.iso"
@@ -43,7 +48,7 @@ constexpr auto default_machine_type = "pc-i440fx-xenial";
 
 int multipass::QemuVMProcessSpec::latest_version()
 {
-    return 1;
+    return 2;
 }
 
 QString mp::QemuVMProcessSpec::default_machine_type()
@@ -70,7 +75,18 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
     QStringList args{"--enable-kvm"};
     // The VM image itself
-    args << "-hda" << desc.image.image_path;
+    if (version > 1)
+    { // version=2+
+        args << "-device"
+             << "virtio-scsi-pci,id=scsi0"
+             << "-drive" << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda").arg(desc.image.image_path)
+             << "-device"
+             << "scsi-hd,drive=hda,bus=scsi0.0";
+    }
+    else
+    { // version=0,1
+        args << "-hda" << desc.image.image_path;
+    }
     // Number of cpu cores
     args << "-smp" << QString::number(desc.num_cores);
     // Memory to use for VM
