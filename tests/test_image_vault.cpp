@@ -45,6 +45,7 @@ namespace
 {
 constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 constexpr auto default_version = "20160217.1";
+const QDateTime default_last_modified{QDate(2019, 6, 25), QTime(13, 15, 0)};
 
 struct ImageHost : public mp::VMImageHost
 {
@@ -135,6 +136,33 @@ struct BadURLDownloader : public mp::URLDownloader
     {
         return {};
     }
+};
+
+struct HttpURLDownloader : public mp::URLDownloader
+{
+    HttpURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
+    {
+    }
+    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+                     const mp::ProgressMonitor&) override
+    {
+        mpt::make_file_with_content(file_name, "");
+        downloaded_urls << url.toString();
+        downloaded_files << file_name;
+    }
+
+    QByteArray download(const QUrl& url) override
+    {
+        return {};
+    }
+
+    QDateTime last_modified(const QUrl& url) override
+    {
+        return default_last_modified;
+    }
+
+    QStringList downloaded_files;
+    QStringList downloaded_urls;
 };
 
 struct ImageVault : public testing::Test
@@ -419,4 +447,20 @@ TEST_F(ImageVault, valid_remote_and_alias_returns_valid_image_info)
 
     EXPECT_THAT(image.original_release, Eq("16.04 LTS"));
     EXPECT_THAT(image.id, Eq("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+}
+
+TEST_F(ImageVault, http_download_returns_expected_image_info)
+{
+    HttpURLDownloader http_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &http_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+
+    auto image_url{"http://www.foo.com/images/foo.img"};
+    mp::Query query{instance_name, image_url, false, "", mp::Query::Type::HttpDownload};
+
+    mp::VMImage image;
+    EXPECT_NO_THROW(image = vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor));
+
+    // Hash is based on image url
+    EXPECT_THAT(image.id, Eq("7404f51c9b4f40312fa048a0ad36e07b74b718a2d3a5a08e8cca906c69059ddf"));
+    EXPECT_THAT(image.release_date, Eq(default_last_modified.toString().toStdString()));
 }
