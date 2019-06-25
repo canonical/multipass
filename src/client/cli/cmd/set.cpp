@@ -72,15 +72,15 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
     if (status == ParseCode::Ok)
     {
         const auto args = parser->positionalArguments();
-        if (args.isEmpty())
+        if (args.size() != 1)
         {
-            cerr << "Insufficient arguments.\n";
+            cerr << "Need exactly one key-value pair.\n";
             status = ParseCode::CommandLineError;
         }
         else
         {
             const auto keyval = args.at(0).split('=');
-            if (keyval.count() != 2 || keyval.contains(QStringLiteral("")))
+            if (keyval.size() != 2 || keyval.contains(QStringLiteral("")))
             {
                 cerr << "Bad key-value format.\n";
                 status = ParseCode::CommandLineError;
