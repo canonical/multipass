@@ -175,7 +175,7 @@ auto generate_metadata()
 {
     QJsonObject metadata;
 
-    metadata["machine_type"] = get_qemu_machine_type();
+    metadata[machine_type_key] = get_qemu_machine_type();
     metadata["use_cdrom"] = true;
 
     return metadata;
