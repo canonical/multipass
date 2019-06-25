@@ -344,50 +344,44 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                 {
                     return finalize_image_records(query, record.image, id);
                 }
-                else
-                {
-                    *source_image = record.image;
-                }
+            }
+
+            auto running_future = get_image_future(id);
+            if (running_future)
+            {
+                monitor(LaunchProgress::WAITING, -1);
+                future = *running_future;
             }
             else
             {
-                auto running_future = get_image_future(id);
-                if (running_future)
-                {
-                    monitor(LaunchProgress::WAITING, -1);
-                    future = *running_future;
-                }
-                else
-                {
-                    auto kernel_info = get_kernel_query_info(query.name);
-                    const VMImageInfo info{{},
-                                           {},
-                                           {},
-                                           {},
-                                           true,
-                                           image_url.url(),
-                                           kernel_info.kernel_location,
-                                           kernel_info.initrd_location,
-                                           QString::fromStdString(id),
-                                           {},
-                                           0,
-                                           false};
-                    const auto image_filename = filename_for(image_url.path());
-                    // Attempt to make a sane directory name based on the filename of the image
+                auto kernel_info = get_kernel_query_info(query.name);
+                const VMImageInfo info{{},
+                                       {},
+                                       {},
+                                       {},
+                                       true,
+                                       image_url.url(),
+                                       kernel_info.kernel_location,
+                                       kernel_info.initrd_location,
+                                       QString::fromStdString(id),
+                                       last_modified.toString(),
+                                       0,
+                                       false};
+                const auto image_filename = filename_for(image_url.path());
+                // Attempt to make a sane directory name based on the filename of the image
 
-                    const auto image_dir_name =
-                        QString("%1-%2")
-                            .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
-                            .arg(last_modified.toString("yyyyMMdd"));
-                    const auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
+                const auto image_dir_name =
+                    QString("%1-%2")
+                        .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
+                        .arg(last_modified.toString("yyyyMMdd"));
+                const auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
 
-                    // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
-                    // QtConcurrent::run()
-                    future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this,
-                                                         info, source_image, image_dir, fetch_type, prepare, monitor));
+                // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
+                // QtConcurrent::run()
+                future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this,
+                                                     info, source_image, image_dir, fetch_type, prepare, monitor));
 
-                    in_progress_image_fetches[id] = future;
-                }
+                in_progress_image_fetches[id] = future;
             }
         }
         else
@@ -555,6 +549,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         source_image.id = id;
         source_image.image_path = image_dir.filePath(filename_for(info.image_location));
         source_image.original_release = info.release_title.toStdString();
+        source_image.release_date = info.version.toStdString();
 
         for (const auto& alias : info.aliases)
         {
