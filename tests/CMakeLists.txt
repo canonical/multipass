@@ -25,6 +25,7 @@ include(c_mock_defines.cmake)
 
 list(APPEND BACKEND_TESTS
   mock_libvirt.cpp
+  stub_process_factory.cpp
   test_qemu_backend.cpp
   test_dnsmasq_server.cpp
   test_libvirt_backend.cpp
@@ -79,7 +80,6 @@ add_executable(multipass_tests
   mock_ssh.cpp
   mock_ssh_client.cpp
   path.cpp
-  stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
   test_cli_client.cpp
