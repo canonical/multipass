@@ -1311,7 +1311,7 @@ TEST_F(Client, get_cmd_fails_with_no_arguments)
 
 TEST_F(Client, set_cmd_fails_with_no_arguments)
 {
-    EXPECT_CALL(mock_settings, set(_)).Times(0);
+    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
     EXPECT_THAT(send_command({"set"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
