@@ -1303,6 +1303,31 @@ TEST_P(TestBasicGetSetOptions, set_can_write_settings)
 
 INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions, Values(mp::petenv_key, mp::driver_key));
 
+TEST_F(Client, get_cmd_fails_with_no_arguments)
+{
+    EXPECT_CALL(mock_settings, get(_)).Times(0);
+    EXPECT_THAT(send_command({"get"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, set_cmd_fails_with_no_arguments)
+{
+    EXPECT_CALL(mock_settings, set(_)).Times(0);
+    EXPECT_THAT(send_command({"set"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, get_cmd_fails_with_multiple_arguments)
+{
+    EXPECT_CALL(mock_settings, get(_)).Times(0);
+    EXPECT_THAT(send_command({"get", "client.primary_name", "local.driver"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, set_cmd_fails_with_multiple_arguments)
+{
+    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
+    EXPECT_THAT(send_command({"set", "client.primary_name=asdf", "local.driver=qemu"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
 TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
 {
     EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
