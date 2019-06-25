@@ -69,14 +69,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
     QStringList args{"--enable-kvm"};
-    args << "-machine"
-         << "pc-i440fx-2.11";
     // The VM image itself
-    args << "-device"
-         << "virtio-scsi-pci,id=scsi0"
-         << "-drive" << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda").arg(desc.image.image_path)
-         << "-device"
-         << "scsi-hd,drive=hda,bus=scsi0.0";
+    args << "-hda" << desc.image.image_path;
     // Number of cpu cores
     args << "-smp" << QString::number(desc.num_cores);
     // Memory to use for VM

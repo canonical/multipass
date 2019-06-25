@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
+#include "mock_process_factory.h"
 #include "mock_status_monitor.h"
 #include "stub_process_factory.h"
 #include "stub_ssh_key_provider.h"
@@ -151,6 +152,7 @@ TEST_F(QemuBackend, verify_qemu_arguments)
     ASSERT_EQ(factory->process_list().size(), 3u);
     auto qemu = factory->process_list()[2];
     EXPECT_TRUE(qemu.arguments.contains("--enable-kvm"));
+    EXPECT_TRUE(qemu.arguments.contains("-hda"));
     EXPECT_TRUE(qemu.arguments.contains("virtio-net-pci,netdev=hostnet0,id=net0,mac="));
     EXPECT_TRUE(qemu.arguments.contains("-nographic"));
     EXPECT_TRUE(qemu.arguments.contains("-serial"));
