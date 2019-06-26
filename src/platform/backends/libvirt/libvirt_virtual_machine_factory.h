@@ -50,7 +50,8 @@ public:
 
 private:
     ConnectionUPtr connection;
-    const std::string bridge_name;
+    const Path data_dir;
+    std::string bridge_name;
 };
 } // namespace multipass
 
