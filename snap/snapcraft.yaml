@@ -207,6 +207,7 @@ parts:
     - golang
     - libsystemd-dev
     - libvirt-dev
+    - pkg-config
     stage-packages:
     - on amd64: [libgl1]
     - on i386: [libgl1]

@@ -1,15 +1,15 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -201,6 +201,7 @@ parts:
-     - golang
+@@ -209,6 +209,7 @@ parts:
      - libsystemd-dev
      - libvirt-dev
+     - pkg-config
 +    - lcov
      stage-packages:
      - on amd64: [libgl1]
      - on i386: [libgl1]
-@@ -209,9 +210,8 @@ parts:
-     - libpng16-16
+@@ -220,9 +221,8 @@ parts:
+     - dnsmasq
      source: .
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
