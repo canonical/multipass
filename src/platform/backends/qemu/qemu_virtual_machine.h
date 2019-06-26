@@ -28,15 +28,14 @@
 namespace multipass
 {
 class DNSMasqServer;
-class ProcessFactory;
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
 class QemuVirtualMachine final : public VirtualMachine
 {
 public:
-    QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
-                       const std::string& tap_device_name, DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
+    QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
+                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;

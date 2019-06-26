@@ -134,25 +134,24 @@ void mp::backend::check_hypervisor_support()
     }
 }
 
-void mp::backend::resize_instance_image(const ProcessFactory* process_factory, const MemorySize& disk_space,
-                                        const mp::Path& image_path)
+void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>();
-    auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
+    auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
 
     if (!qemuimg_process->run_and_return_status({"resize", image_path, disk_size}))
         throw std::runtime_error("Cannot resize instance image");
 }
 
-mp::Path mp::backend::convert_to_qcow_if_necessary(const ProcessFactory* process_factory, const mp::Path& image_path)
+mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
 {
     // Check if raw image file, and if so, convert to qcow2 format.
     // TODO: we could support converting from other the image formats that qemu-img can deal with
     const auto qcow2_path{image_path + ".qcow2"};
 
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>();
-    auto qemuimg_process = process_factory->create_process(std::move(qemuimg_spec));
+    auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
 
     auto image_info = qemuimg_process->run_and_return_output({"info", "--output=json", image_path});
     auto image_record = QJsonDocument::fromJson(image_info.toUtf8(), nullptr).object();
