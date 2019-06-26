@@ -1,5 +1,8 @@
 #!/bin/sh -e
 
+. launcher-common.sh
+mk_xdg_dirs
+
 http_proxy="$(snapctl get proxy.http)"
 https_proxy="$(snapctl get proxy.https)"
 MULTIPASS_VM_DRIVER="$(snapctl get driver)"

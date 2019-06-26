@@ -17,25 +17,31 @@ apps:
   multipassd:
     command: bin/launch-multipassd
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
-      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
+      LD_LIBRARY_PATH: &library-path |
+        $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+      PATH: &path |
+        $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
+      XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
+      DAEMON_CONFIG_HOME: *daemon-config # temporary
     daemon: simple
     plugs: [libvirt]
   multipass:
     environment:
-      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
-      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-      QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
-    command: bin/multipass
+      <<: &client-environment
+        LD_LIBRARY_PATH: *library-path
+        PATH: *path
+        QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+        XDG_DATA_HOME: $SNAP_USER_DATA/data
+        XDG_CACHE_HOME: $SNAP_USER_DATA/cache
+        XDG_CONFIG_HOME: $SNAP_USER_DATA/config
+      DAEMON_CONFIG_HOME: *daemon-config # temporary
+    command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
   gui:
-    environment:
-      LD_LIBRARY_PATH: $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
-      PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-      QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+    environment: *client-environment
     command: bin/multipass-gui
 
 parts:
