@@ -20,11 +20,11 @@
 #include "dnsmasq_server.h"
 #include "qemu_vm_process_spec.h"
 #include <shared/linux/backend_utils.h>
-#include <shared/linux/process.h>
 #include <shared/linux/process_factory.h>
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
+#include <multipass/process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -54,8 +54,8 @@ namespace
 constexpr auto suspend_tag = "suspend";
 constexpr auto default_machine_type = "pc-i440fx-xenial";
 
-auto make_qemu_process(const mp::ProcessFactory* process_factory, const mp::VirtualMachineDescription& desc,
-                       const std::string& tap_device_name, const std::string& mac_addr)
+auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
+                       const std::string& mac_addr)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -64,11 +64,7 @@ auto make_qemu_process(const mp::ProcessFactory* process_factory, const mp::Virt
 
     auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, QString::fromStdString(tap_device_name),
                                                                 QString::fromStdString(mac_addr));
-    auto process = process_factory->create_process(std::move(process_spec));
-
-    mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->workingDirectory()));
-    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program()));
-    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process arguments '{}'", process->arguments().join(", ")));
+    auto process = mp::ProcessFactory::instance().create_process(std::move(process_spec));
     return process;
 }
 
@@ -148,25 +144,23 @@ auto get_metadata()
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
-                                           const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
-                                           VMStatusMonitor& monitor)
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
+                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
-      vm_process{make_qemu_process(process_factory, desc, tap_device_name, mac_addr)},
-      original_args{vm_process->arguments()},
+      vm_process{make_qemu_process(desc, tap_device_name, mac_addr)},
       cloud_init_path{desc.cloud_init_iso}
 {
-    QObject::connect(vm_process.get(), &QProcess::started, [this]() {
+    QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
         on_started();
     });
-    QObject::connect(vm_process.get(), &QProcess::readyReadStandardOutput, [this]() {
-        auto qmp_output = vm_process->readAllStandardOutput();
+    QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
+        auto qmp_output = vm_process->read_all_standard_output();
         mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output));
         auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
         auto event = qmp_object["event"];
@@ -202,17 +196,17 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
         }
     });
 
-    QObject::connect(vm_process.get(), &QProcess::readyReadStandardError, [this]() {
-        saved_error_msg = vm_process->readAllStandardError().data();
+    QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {
+        saved_error_msg = vm_process->read_all_standard_error().data();
         mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
     });
 
-    QObject::connect(vm_process.get(), &QProcess::stateChanged, [this](QProcess::ProcessState newState) {
+    QObject::connect(vm_process.get(), &Process::state_changed, [this](QProcess::ProcessState newState) {
         mpl::log(mpl::Level::info, vm_name,
                  fmt::format("process state changed to {}", utils::qenum_to_string(newState)));
     });
 
-    QObject::connect(vm_process.get(), &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
+    QObject::connect(vm_process.get(), &Process::error_occurred, [this](QProcess::ProcessError error) {
         // We just kill the process when suspending, so we don't want to print
         // out any scary error messages for this state
         if (update_shutdown_status)
@@ -223,16 +217,14 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory
         }
     });
 
-    QObject::connect(vm_process.get(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                     [this](int exitCode, QProcess::ExitStatus exitStatus) {
-                         mpl::log(mpl::Level::info, vm_name,
-                                  fmt::format("process finished with exit code {} ({})", exitCode,
-                                              utils::qenum_to_string(exitStatus)));
-                         if (update_shutdown_status || state == State::starting)
-                         {
-                             on_shutdown();
-                         }
-                     });
+    QObject::connect(vm_process.get(), &Process::finished, [this](int exitCode, QProcess::ExitStatus exitStatus) {
+        mpl::log(mpl::Level::info, vm_name,
+                 fmt::format("process finished with exit code {} ({})", exitCode, utils::qenum_to_string(exitStatus)));
+        if (update_shutdown_status || state == State::starting)
+        {
+            on_shutdown();
+        }
+    });
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
@@ -244,7 +236,7 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
         shutdown();
 
     remove_tap_device(QString::fromStdString(tap_device_name));
-    vm_process->waitForFinished();
+    vm_process->wait_for_finished();
 }
 
 void mp::QemuVirtualMachine::start()
@@ -255,7 +247,7 @@ void mp::QemuVirtualMachine::start()
     if (state == State::suspending)
         throw std::runtime_error("cannot start the instance while suspending");
 
-    vm_process->setArguments(original_args);
+    QStringList extra_args;
     if (state == State::suspended)
     {
         auto metadata = monitor->retrieve_metadata_for(vm_name);
@@ -270,34 +262,35 @@ void mp::QemuVirtualMachine::start()
         }
 
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
-        auto args = vm_process->arguments();
-        args << "-loadvm" << suspend_tag;
-        args << "-machine" << machine_type;
+        extra_args << "-loadvm" << suspend_tag;
+        extra_args << "-machine" << machine_type;
 
         if (metadata["use_cdrom"].toBool())
         {
-            args << "-cdrom" << cloud_init_path;
+            extra_args << "-cdrom" << cloud_init_path;
         }
         else
         {
-            args << "-drive" << QString("file=%1,if=virtio,format=raw,snapshot=off,read-only").arg(cloud_init_path);
+            extra_args << "-drive"
+                       << QString("file=%1,if=virtio,format=raw,snapshot=off,read-only").arg(cloud_init_path);
         }
 
-        vm_process->setArguments(args);
         update_shutdown_status = true;
         delete_memory_snapshot = true;
     }
     else
     {
-        auto args = vm_process->arguments();
-        args << "-cdrom" << cloud_init_path;
-        vm_process->setArguments(args);
+        extra_args << "-cdrom" << cloud_init_path;
 
         monitor->update_metadata_for(vm_name, get_metadata());
     }
 
-    vm_process->start();
-    auto started = vm_process->waitForStarted();
+    vm_process->start(extra_args);
+    auto started = vm_process->wait_for_started();
+
+    mpl::log(mpl::Level::debug, vm_name, fmt::format("process working dir '{}'", vm_process->working_directory()));
+    mpl::log(mpl::Level::info, vm_name, fmt::format("process program '{}'", vm_process->program()));
+    mpl::log(mpl::Level::info, vm_name, fmt::format("process arguments '{}'", vm_process->arguments().join(", ")));
 
     if (!started)
         throw std::runtime_error("failed to start qemu instance");
@@ -317,10 +310,10 @@ void mp::QemuVirtualMachine::shutdown()
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
     else if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) &&
-             vm_process->processId() > 0)
+             vm_process->running())
     {
         vm_process->write(qmp_execute_json("system_powerdown"));
-        vm_process->waitForFinished();
+        vm_process->wait_for_finished();
     }
     else
     {
@@ -328,13 +321,13 @@ void mp::QemuVirtualMachine::shutdown()
             update_shutdown_status = false;
 
         vm_process->kill();
-        vm_process->waitForFinished();
+        vm_process->wait_for_finished();
     }
 }
 
 void mp::QemuVirtualMachine::suspend()
 {
-    if ((state == State::running || state == State::delayed_shutdown) && vm_process->processId() > 0)
+    if ((state == State::running || state == State::delayed_shutdown) && vm_process->running())
     {
         vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
 
@@ -344,7 +337,7 @@ void mp::QemuVirtualMachine::suspend()
             update_state();
 
             update_shutdown_status = false;
-            vm_process->waitForFinished();
+            vm_process->wait_for_finished();
         }
     }
     else if (state == State::off || state == State::suspended)
@@ -420,7 +413,7 @@ void mp::QemuVirtualMachine::on_restart()
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (vm_process->state() == QProcess::NotRunning)
+    if (!vm_process->running())
     {
         // Have to set 'off' here so there is an actual state change to compare to for
         // the cond var's predicate

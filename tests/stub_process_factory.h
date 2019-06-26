@@ -18,38 +18,46 @@
 #ifndef MULTIPASS_STUB_PROCESS_FACTORY_H
 #define MULTIPASS_STUB_PROCESS_FACTORY_H
 
-#include <src/platform/backends/shared/linux/process.h>
+#include <multipass/process.h>
 #include <src/platform/backends/shared/linux/process_factory.h>
+
+#include <gtest/gtest.h>
 
 namespace multipass
 {
 namespace test
 {
 
-class StubProcessSpec : public ProcessSpec
-{
-public:
-    QString program() const override
-    {
-        return QString();
-    }
-};
-
-class StubProcess : public Process
-{
-public:
-    StubProcess() : Process{std::make_unique<StubProcessSpec>()}
-    {
-    }
-};
-
 class StubProcessFactory : public ProcessFactory
 {
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&&) const override
+public:
+    struct ProcessInfo
     {
-        return std::make_unique<StubProcess>();
-    }
+        QString command;
+        QStringList arguments;
+    };
+
+    // StubProcessFactory installed with Inject() call, and uninstalled when the Scope object deleted
+    struct Scope
+    {
+        ~Scope();
+
+        // Get info about the Processes launched with this list
+        std::vector<ProcessInfo> process_list();
+    };
+
+    static std::unique_ptr<Scope> Inject();
+
+    // Implementation
+    using ProcessFactory::ProcessFactory;
+
+    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& spec) const override;
+
+private:
+    static StubProcessFactory& stub_instance();
+    std::vector<ProcessInfo> process_list;
 };
+
 } // namespace test
 } // namespace multipass
 

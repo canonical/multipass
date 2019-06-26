@@ -23,27 +23,11 @@
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
-#include "backends/shared/linux/process.h"
-#include "backends/shared/linux/process_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
 
 namespace mp = multipass;
-
-namespace
-{
-static mp::ProcessFactory::UPtr static_process_factory;
-
-mp::ProcessFactory* process_factory()
-{
-    if (!static_process_factory)
-    {
-        static_process_factory = std::make_unique<mp::ProcessFactory>();
-    }
-    return static_process_factory.get();
-}
-} // namespace
 
 std::string mp::platform::default_server_address()
 {
@@ -55,9 +39,9 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     auto driver = qgetenv("MULTIPASS_VM_DRIVER");
 
     if (driver.isEmpty() || driver == "QEMU")
-        return std::make_unique<QemuVirtualMachineFactory>(::process_factory(), data_dir);
+        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
     else if (driver == "LIBVIRT")
-        return std::make_unique<LibVirtVirtualMachineFactory>(::process_factory(), data_dir);
+        return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
     else if (driver == "VIRTUALBOX")
         return std::make_unique<VirtualBoxVirtualMachineFactory>();
 

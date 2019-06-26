@@ -123,14 +123,6 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
 
     auto qemu_path = fmt::format("/usr/bin/qemu-system-{}", arch);
 
-    auto snap = qgetenv("SNAP");
-    if (!snap.isEmpty())
-    {
-        auto snap_path = QDir(snap);
-        snap_path.cd("../current");
-        qemu_path = fmt::format("{}{}", snap_path.path(), qemu_path);
-    }
-
     return fmt::format(
         "<domain type=\'kvm\'>\n"
         "  <name>{}</name>\n"

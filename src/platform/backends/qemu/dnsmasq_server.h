@@ -21,22 +21,20 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
+#include <multipass/process.h>
 
 #include <QDir>
-#include <QProcess>
 
 #include <memory>
 #include <string>
 
 namespace multipass
 {
-class ProcessFactory;
-
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir, const QString& bridge_name,
-                  const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end);
+    DNSMasqServer(const Path& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
+                  const IPAddress& start, const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 
@@ -45,7 +43,7 @@ public:
 
 private:
     const QDir data_dir;
-    std::unique_ptr<QProcess> dnsmasq_cmd;
+    std::unique_ptr<Process> dnsmasq_cmd;
     QString bridge_name;
 };
 } // namespace multipass

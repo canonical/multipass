@@ -174,14 +174,16 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
         virtual_machine->ensure_vm_is_running();
         try
         {
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
                                    virtual_machine->ssh_username(), key_provider};
+
+            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
             return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
         }
         catch (const std::exception& e)
         {
+            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             mpl::log(mpl::Level::warning, virtual_machine->vm_name, e.what());
             return mp::utils::TimeoutAction::retry;
         }

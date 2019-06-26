@@ -1,14 +1,14 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -208,6 +208,7 @@ parts:
-     - git
+@@ -201,6 +201,7 @@ parts:
      - golang
      - libsystemd-dev
+     - libvirt-dev
 +    - lcov
      stage-packages:
      - on amd64: [libgl1]
      - on i386: [libgl1]
-@@ -216,9 +217,8 @@ parts:
+@@ -209,9 +210,8 @@ parts:
      - libpng16-16
      source: .
      configflags:

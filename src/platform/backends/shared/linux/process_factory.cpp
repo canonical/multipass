@@ -16,18 +16,26 @@
  */
 
 #include "process_factory.h"
-#include "process.h"
+#include "linux_process.h"
 #include "process_spec.h"
 
 namespace mp = multipass;
 
-class UnsecuredProcess : public mp::Process
+namespace
+{
+class UnsecuredProcess : public mp::LinuxProcess
 {
 public:
-    UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : Process{std::move(spec)}
+    UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : LinuxProcess{std::move(spec)}
     {
     }
 };
+} // namespace
+
+mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass& pass)
+    : Singleton<ProcessFactory>::Singleton{pass}
+{
+}
 
 // This is the default ProcessFactory that creates a Process with no security mechanisms enabled
 std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
