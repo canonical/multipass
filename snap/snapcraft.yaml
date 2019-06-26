@@ -27,7 +27,6 @@ apps:
       XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     daemon: simple
-    plugs: [libvirt]
   multipass:
     environment:
       <<: &client-environment
