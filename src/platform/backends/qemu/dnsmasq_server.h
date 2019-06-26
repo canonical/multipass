@@ -30,13 +30,11 @@
 
 namespace multipass
 {
-class ProcessFactory;
-
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const ProcessFactory* process_factory, const Path& data_dir, const QString& bridge_name,
-                  const IPAddress& bridge_addr, const IPAddress& start, const IPAddress& end);
+    DNSMasqServer(const Path& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
+                  const IPAddress& start, const IPAddress& end);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 

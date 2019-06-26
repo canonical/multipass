@@ -21,6 +21,8 @@
 
 namespace mp = multipass;
 
+namespace
+{
 class UnsecuredProcess : public mp::LinuxProcess
 {
 public:
@@ -28,6 +30,12 @@ public:
     {
     }
 };
+} // namespace
+
+mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass& pass)
+    : Singleton<ProcessFactory>::Singleton{pass}
+{
+}
 
 // This is the default ProcessFactory that creates a Process with no security mechanisms enabled
 std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const

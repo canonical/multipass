@@ -20,18 +20,17 @@
 
 #include <memory>
 
+#include "process_spec.h"
+#include <multipass/singleton.h>
+
 namespace multipass
 {
 class Process;
-class ProcessSpec;
 
-class ProcessFactory
+class ProcessFactory : public Singleton<ProcessFactory>
 {
 public:
-    using UPtr = std::unique_ptr<ProcessFactory>;
-
-    ProcessFactory() = default;
-    virtual ~ProcessFactory() = default;
+    ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
 
     virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
 };

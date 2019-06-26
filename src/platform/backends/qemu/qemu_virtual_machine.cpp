@@ -54,8 +54,8 @@ namespace
 constexpr auto suspend_tag = "suspend";
 constexpr auto default_machine_type = "pc-i440fx-xenial";
 
-auto make_qemu_process(const mp::ProcessFactory* process_factory, const mp::VirtualMachineDescription& desc,
-                       const std::string& tap_device_name, const std::string& mac_addr)
+auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
+                       const std::string& mac_addr)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -64,7 +64,7 @@ auto make_qemu_process(const mp::ProcessFactory* process_factory, const mp::Virt
 
     auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, QString::fromStdString(tap_device_name),
                                                                 QString::fromStdString(mac_addr));
-    auto process = process_factory->create_process(std::move(process_spec));
+    auto process = mp::ProcessFactory::instance().create_process(std::move(process_spec));
     return process;
 }
 
@@ -144,16 +144,15 @@ auto get_metadata()
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const ProcessFactory* process_factory, const VirtualMachineDescription& desc,
-                                           const std::string& tap_device_name, DNSMasqServer& dnsmasq_server,
-                                           VMStatusMonitor& monitor)
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
+                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor},
-      vm_process{make_qemu_process(process_factory, desc, tap_device_name, mac_addr)},
+      vm_process{make_qemu_process(desc, tap_device_name, mac_addr)},
       cloud_init_path{desc.cloud_init_iso}
 {
     QObject::connect(vm_process.get(), &Process::started, [this]() {

@@ -13,6 +13,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+set (CMAKE_AUTOMOC ON)
+
 list(APPEND CMOCK_TARGETS
   ssh_test
   sshfs_mount_test
@@ -23,6 +25,7 @@ include(c_mock_defines.cmake)
 
 list(APPEND BACKEND_TESTS
   mock_libvirt.cpp
+  stub_process_factory.cpp
   test_platform_linux.cpp
   test_qemu_backend.cpp
   test_dnsmasq_server.cpp
@@ -110,6 +113,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/process.h # need to run MOC on this
 
   ${BACKEND_TESTS}
 
