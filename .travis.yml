@@ -12,8 +12,9 @@ if: |
 
 addons:
   snaps:
-  - lxd
-  - name: snapcraft
+  - &lxd lxd
+  - &snapcraft
+    name: snapcraft
     classic: true
 
 env:
@@ -47,9 +48,15 @@ cache: ccache
 
 jobs:
   include:
-    - env: BUILD_TYPE=RelWithDebInfo
+    - addons:
+        snaps:
+        - *lxd
+        - *snapcraft
+        - review-tools
+      env: BUILD_TYPE=RelWithDebInfo
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
+      - /snap/bin/review-tools.snap-review --allow-classic *.snap
 
     - env: BUILD_TYPE=Debug
       script:
