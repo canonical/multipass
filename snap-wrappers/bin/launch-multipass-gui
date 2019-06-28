@@ -1,6 +1,3 @@
 #!/bin/sh -e
 
-. launcher-common.sh
-mk_xdg_dirs
-
 exec "$SNAP/bin/multipass-gui" "$@"
