@@ -36,6 +36,8 @@
 #include <multipass/format.h>
 
 #include <QCoreApplication>
+#include <QFile>
+#include <QFileInfo>
 #include <QFileSystemWatcher>
 #include <QObject>
 
@@ -82,6 +84,7 @@ void set_server_permissions(const std::string& server_address)
 
 void init_settings(const QString& filename)
 {
+    mp::utils::make_dir({}, QFileInfo{filename}.dir().path()); // make sure parent dir is there
     QFile file{filename};
     file.open(QIODevice::WriteOnly | QIODevice::Append);
 }
