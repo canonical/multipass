@@ -13,6 +13,14 @@ adopt-info: multipass
 confinement: classic
 base: core
 
+architectures:
+- build-on: amd64
+  run-on: amd64
+- build-on: armhf
+  run-on: armhf
+- build-on: arm64
+  run-on: arm64
+
 apps:
   multipassd:
     command: bin/launch-multipassd
@@ -49,7 +57,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -59,7 +66,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qtbase5-dev-tools_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -69,7 +75,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -80,7 +85,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/qt5-qmake-bin_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -91,7 +95,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5core5a_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -103,7 +106,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5dbus5_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -112,7 +114,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5network5_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -123,7 +124,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5gui5_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -134,7 +134,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/q/qtbase-opensource-src/libqt5widgets5_5.9.5+dfsg-0ubuntu1_arm64.deb
     source-type: deb
@@ -143,7 +142,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu60_60.2-3ubuntu3_arm64.deb
     source-type: deb
@@ -152,7 +150,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_amd64.deb
-    - on i386: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
 
@@ -160,7 +157,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/h/harfbuzz/libharfbuzz0b_1.7.2-1ubuntu1_arm64.deb
     source-type: deb
@@ -171,7 +167,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/f/freetype/libfreetype6_2.8.1-2ubuntu2_arm64.deb
     source-type: deb
@@ -180,7 +175,6 @@ parts:
     plugin: dump
     source:
     - on amd64: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_amd64.deb
-    - on i386: http://archive.ubuntu.com/ubuntu/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_i386.deb
     - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_armhf.deb
     - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/libx/libxcb/libxcb-xinerama0_1.11.1-1ubuntu1_arm64.deb
     source-type: deb
@@ -209,7 +203,6 @@ parts:
     - pkg-config
     stage-packages:
     - on amd64: [libgl1]
-    - on i386: [libgl1]
     - on armhf: [libgles2-mesa]
     - on arm64: [libgles2-mesa]
     - libpng16-16
@@ -236,7 +229,6 @@ parts:
     override-pull: ""
     stage-packages:
     - on amd64: [qemu-system-x86]
-    - on i386: [qemu-system-x86]
     - on armhf: [qemu-system-arm]
     - on arm64: [qemu-system-arm]
     - qemu-utils
