@@ -1,8 +1,9 @@
 # What is multipass?
 
-Multipass is a lightweight VM manager for Linux and MacOS. It's designed for
-developers who want a fresh Ubuntu with a single command or hotkey. It uses
-KVM on Linux and HyperKit on MacOS to run the VM with minimal overhead.
+Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed
+for developers who want a fresh Ubuntu environment with a single command. It uses
+KVM on Linux, Hyper-V on Windows and HyperKit on macOS to run the VM with minimal
+overhead. It can also use VirtualBox on Windows and macOS.
 Multipass will fetch images for you and keep them up to date.
 
 Since it supports metadata for cloud-init, you can simulate a small cloud
@@ -21,6 +22,8 @@ For macOS, you can download the installers [from GitHub](https://github.com/Cano
 ```
 brew cask install multipass
 ```
+
+On Windows, download the installer [from GitHub](https://github.com/CanonicalLtd/multipass/releases).
 
 # Usage
 
