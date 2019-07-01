@@ -27,11 +27,14 @@ brew cask install multipass
 ## Find available images
 ```
 $ multipass find
-IMAGE  ALIASES         VERSION   DESCRIPTION
-core                   20180419  Ubuntu Core 16
-14.04  t, trusty       20181203  Ubuntu 14.04 LTS
-16.04  x, xenial       20181207  Ubuntu 16.04 LTS
-18.04  b, bionic, lts  20181207  Ubuntu 16.04 LTS
+Image                   Aliases           Version          Description
+core                    core16            20190424         Ubuntu Core 16
+core18                                    20190213         Ubuntu Core 18
+16.04                   xenial            20190628         Ubuntu 16.04 LTS
+18.04                   bionic,lts        20190627.1       Ubuntu 18.04 LTS
+18.10                   cosmic            20190628         Ubuntu 18.10
+19.04                   disco             20190628         Ubuntu 19.04
+daily:19.10             devel,eoan        20190623         Ubuntu 19.10
 ```
 
 ## Launch a fresh instance of the current Ubuntu LTS
