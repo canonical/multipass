@@ -45,7 +45,7 @@ apps:
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
         XDG_CONFIG_HOME: $SNAP_USER_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
-    command: bin/launch-multipass
+    command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
   gui:
     environment: *client-environment
