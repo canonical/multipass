@@ -23,7 +23,7 @@
 namespace mp = multipass;
 using namespace testing;
 
-TEST(InstanceStatusString, running_status_returns_RUNNING)
+TEST(InstanceStatusString, RUNNING_status_returns_Running)
 {
     mp::InstanceStatus status;
     status.set_status(mp::InstanceStatus::RUNNING);
@@ -32,7 +32,7 @@ TEST(InstanceStatusString, running_status_returns_RUNNING)
     EXPECT_THAT(status_string, Eq("Running"));
 }
 
-TEST(InstanceStatusString, stopped_status_returns_STOPPED)
+TEST(InstanceStatusString, STOPPED_status_returns_Stopped)
 {
     mp::InstanceStatus status;
     status.set_status(mp::InstanceStatus::STOPPED);
@@ -41,7 +41,7 @@ TEST(InstanceStatusString, stopped_status_returns_STOPPED)
     EXPECT_THAT(status_string, Eq("Stopped"));
 }
 
-TEST(InstanceStatusString, deleted_status_returns_DELETED)
+TEST(InstanceStatusString, DELETED_status_returns_Deleted)
 {
     mp::InstanceStatus status;
     status.set_status(mp::InstanceStatus::DELETED);
@@ -50,7 +50,7 @@ TEST(InstanceStatusString, deleted_status_returns_DELETED)
     EXPECT_THAT(status_string, Eq("Deleted"));
 }
 
-TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
+TEST(InstanceStatusString, SUSPENDING_status_returns_Suspending)
 {
     mp::InstanceStatus status;
     status.set_status(mp::InstanceStatus::SUSPENDING);
@@ -59,7 +59,7 @@ TEST(InstanceStatusString, suspending_status_returns_SUSPENDING)
     EXPECT_THAT(status_string, Eq("Suspending"));
 }
 
-TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
+TEST(InstanceStatusString, SUSPENDED_status_returns_Suspended)
 {
     mp::InstanceStatus status;
     status.set_status(mp::InstanceStatus::SUSPENDED);
@@ -68,7 +68,7 @@ TEST(InstanceStatusString, suspended_status_returns_SUSPENDED)
     EXPECT_THAT(status_string, Eq("Suspended"));
 }
 
-TEST(InstanceStatusString, running_status_returns_RESTARTING)
+TEST(InstanceStatusString, RESTARTING_status_returns_Restarting)
 {
     mp::InstanceStatus status;
     status.set_status(mp::InstanceStatus::RESTARTING);
@@ -77,13 +77,31 @@ TEST(InstanceStatusString, running_status_returns_RESTARTING)
     EXPECT_THAT(status_string, Eq("Restarting"));
 }
 
-TEST(InstanceStatusString, bogus_status_returns_UNKNOWN)
+TEST(InstanceStatusString, bogus_status_returns_Unknown)
 {
     mp::InstanceStatus status;
-    status.set_status(static_cast<mp::InstanceStatus_Status>(10));
+    status.set_status(static_cast<mp::InstanceStatus_Status>(46));
     auto status_string = mp::format::status_string_for(status);
 
     EXPECT_THAT(status_string, Eq("Unknown"));
+}
+
+TEST(InstanceStatusString, STARTING_status_returns_Starting)
+{
+    mp::InstanceStatus status;
+    status.set_status(mp::InstanceStatus::STARTING);
+    auto status_string = mp::format::status_string_for(status);
+
+    EXPECT_THAT(status_string, Eq("Starting"));
+}
+
+TEST(InstanceStatusString, DELAYED_SHUTDOWN_status_returns_Delayed_Shutdown)
+{
+    mp::InstanceStatus status;
+    status.set_status(mp::InstanceStatus::DELAYED_SHUTDOWN);
+    auto status_string = mp::format::status_string_for(status);
+
+    EXPECT_THAT(status_string, Eq("Delayed Shutdown"));
 }
 
 TEST(AliasFilter, unwanted_aliases_filtered_out)
