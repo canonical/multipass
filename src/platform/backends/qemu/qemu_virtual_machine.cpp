@@ -35,6 +35,7 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QObject>
@@ -53,19 +54,11 @@ namespace
 {
 constexpr auto suspend_tag = "suspend";
 constexpr auto machine_type_key = "machine_type";
+constexpr auto arguments_key = "arguments";
 
-int get_vm_command_version(const QJsonObject& metadata)
+bool use_cdrom_set(const QJsonObject& metadata)
 {
-    int version;
-    if (metadata.contains("use_cdrom") && metadata["use_cdrom"].toBool())
-    {
-        version = 1; // am retro-setting the "use_cdrom" metadata flag as version 1
-    }
-    else
-    {
-        version = 0; // fallback to original qemu command
-    }
-    return version;
+    return metadata.contains("use_cdrom") && metadata["use_cdrom"].toBool();
 }
 
 QString get_vm_machine(const QJsonObject& metadata)
@@ -78,6 +71,20 @@ QString get_vm_machine(const QJsonObject& metadata)
     return machine;
 }
 
+QStringList get_arguments(const QJsonObject& metadata)
+{
+    QStringList args;
+    if (metadata.contains(arguments_key) && metadata[arguments_key].type() == QJsonValue::Array)
+    {
+        auto array = metadata[arguments_key].toArray();
+        for (const auto& val : array)
+        {
+            args.push_back(val.toString());
+        }
+    }
+    return args;
+}
+
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::optional<QJsonObject>& resume_metadata,
                        const std::string& tap_device_name)
 {
@@ -86,20 +93,15 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    int vm_command_version;
     mp::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
     if (resume_metadata)
     {
-        vm_command_version = get_vm_command_version(resume_metadata.value());
-        resume_data = {suspend_tag, get_vm_machine(resume_metadata.value())};
-    }
-    else
-    {
-        vm_command_version = mp::QemuVMProcessSpec::latest_version();
+        const auto& data = resume_metadata.value();
+        resume_data = {suspend_tag, get_vm_machine(data), use_cdrom_set(data), get_arguments(data)};
     }
 
-    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, vm_command_version,
-                                                                QString::fromStdString(tap_device_name), resume_data);
+    auto process_spec =
+        std::make_unique<mp::QemuVMProcessSpec>(desc, QString::fromStdString(tap_device_name), resume_data);
     auto process = mp::ProcessFactory::instance().create_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
@@ -171,13 +173,11 @@ auto get_qemu_machine_type()
     return machine_type;
 }
 
-auto generate_metadata()
+auto generate_metadata(const QStringList& args)
 {
     QJsonObject metadata;
-
     metadata[machine_type_key] = get_qemu_machine_type();
-    metadata["use_cdrom"] = true;
-
+    metadata[arguments_key] = QJsonArray::fromStringList(args);
     return metadata;
 }
 } // namespace
@@ -297,7 +297,7 @@ void mp::QemuVirtualMachine::start()
     }
     else
     {
-        monitor->update_metadata_for(vm_name, generate_metadata());
+        monitor->update_metadata_for(vm_name, generate_metadata(vm_process->arguments()));
     }
 
     vm_process->start();

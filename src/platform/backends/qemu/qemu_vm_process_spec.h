@@ -33,12 +33,13 @@ public:
     {
         QString suspend_tag;
         QString machine_type;
+        bool use_cdrom_flag; // to be removed, should be replaced by "arguments"
+        QStringList arguments;
     };
 
-    static int latest_version();
     static QString default_machine_type();
 
-    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, int version, const QString& tap_device_name,
+    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QString& tap_device_name,
                                const multipass::optional<ResumeData>& resume_data);
 
     QString program() const override;
@@ -47,7 +48,6 @@ public:
 
 private:
     const VirtualMachineDescription desc;
-    const int version;
     const QString tap_device_name;
     const multipass::optional<ResumeData> resume_data;
 };

@@ -33,17 +33,11 @@ struct TestQemuVMProcessSpec : public Test
                                              {"/path/to/image", "", "", "", "", "", "", {}}, // VMImage
                                              mp::Path{"/path/to/cloud_init.iso"}};
     const QString tap_device_name{"tap_device"};
-    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag", "machine_type"};
 };
 
-TEST_F(TestQemuVMProcessSpec, latest_version_correct)
+TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
 {
-    ASSERT_EQ(1, mp::QemuVMProcessSpec::latest_version());
-}
-
-TEST_F(TestQemuVMProcessSpec, version1_command_correct)
-{
-    mp::QemuVMProcessSpec spec(desc, 1, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
 
     EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
                                              "-hda",
@@ -69,38 +63,44 @@ TEST_F(TestQemuVMProcessSpec, version1_command_correct)
                                              "/path/to/cloud_init.iso"}));
 }
 
-TEST_F(TestQemuVMProcessSpec, version0_command_correct)
+TEST_F(TestQemuVMProcessSpec, legacy_resume_arguments_correct)
 {
-    mp::QemuVMProcessSpec spec(desc, 0, tap_device_name, mp::nullopt);
+    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag", "machine_type", false, {}};
 
-    EXPECT_EQ(spec.arguments(),
-              QStringList({"--enable-kvm",
-                           "-hda",
-                           "/path/to/image",
-                           "-smp",
-                           "2",
-                           "-m",
-                           "3072M",
-                           "-device",
-                           "virtio-net-pci,netdev=hostnet0,id=net0,mac=00:11:22:33:44:55",
-                           "-netdev",
-                           "tap,id=hostnet0,ifname=tap_device,script=no,downscript=no",
-                           "-qmp",
-                           "stdio",
-                           "-cpu",
-                           "host",
-                           "-chardev",
-                           "null,id=char0",
-                           "-serial",
-                           "chardev:char0",
-                           "-nographic",
-                           "-drive",
-                           "file=/path/to/cloud_init.iso,if=virtio,format=raw,snapshot=off,read-only"}));
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data);
+    EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
+                                             "-hda",
+                                             "/path/to/image",
+                                             "-smp",
+                                             "2",
+                                             "-m",
+                                             "3072M",
+                                             "-device",
+                                             "virtio-net-pci,netdev=hostnet0,id=net0,mac=00:11:22:33:44:55",
+                                             "-netdev",
+                                             "tap,id=hostnet0,ifname=tap_device,script=no,downscript=no",
+                                             "-qmp",
+                                             "stdio",
+                                             "-cpu",
+                                             "host",
+                                             "-chardev",
+                                             "null,id=char0",
+                                             "-serial",
+                                             "chardev:char0",
+                                             "-nographic",
+                                             "-drive",
+                                             "file=/path/to/cloud_init.iso,if=virtio,format=raw,snapshot=off,read-only",
+                                             "-loadvm",
+                                             "suspend_tag",
+                                             "-machine",
+                                             "machine_type"}));
 }
 
-TEST_F(TestQemuVMProcessSpec, version1_resume_command_correct)
+TEST_F(TestQemuVMProcessSpec, legacy_use_cdrom_resume_arguments_correct)
 {
-    mp::QemuVMProcessSpec spec(desc, 1, tap_device_name, resume_data);
+    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag", "machine_type", true, {}};
+
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data);
 
     EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
                                              "-hda",
@@ -130,70 +130,22 @@ TEST_F(TestQemuVMProcessSpec, version1_resume_command_correct)
                                              "machine_type"}));
 }
 
-TEST_F(TestQemuVMProcessSpec, version0_resume_command_correct)
+TEST_F(TestQemuVMProcessSpec, resume_arguments_taken_from_resumedata)
 {
-    mp::QemuVMProcessSpec spec(desc, 0, tap_device_name, resume_data);
+    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag", "machine_type", false, {"-one", "-two"}};
 
-    EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
-                                             "-hda",
-                                             "/path/to/image",
-                                             "-smp",
-                                             "2",
-                                             "-m",
-                                             "3072M",
-                                             "-device",
-                                             "virtio-net-pci,netdev=hostnet0,id=net0,mac=00:11:22:33:44:55",
-                                             "-netdev",
-                                             "tap,id=hostnet0,ifname=tap_device,script=no,downscript=no",
-                                             "-qmp",
-                                             "stdio",
-                                             "-cpu",
-                                             "host",
-                                             "-chardev",
-                                             "null,id=char0",
-                                             "-serial",
-                                             "chardev:char0",
-                                             "-nographic",
-                                             "-drive",
-                                             "file=/path/to/cloud_init.iso,if=virtio,format=raw,snapshot=off,read-only",
-                                             "-loadvm",
-                                             "suspend_tag",
-                                             "-machine",
-                                             "machine_type"}));
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data);
+
+    EXPECT_EQ(spec.arguments(), QStringList({"-one", "-two", "-loadvm", "suspend_tag", "-machine", "machine_type"}));
 }
 
-TEST_F(TestQemuVMProcessSpec, version0_resume_command_correct_with_missing_machine_type)
+TEST_F(TestQemuVMProcessSpec, reusme_with_missing_machine_type_guesses_correctly)
 {
     mp::QemuVMProcessSpec::ResumeData resume_data_missing_machine_info;
     resume_data_missing_machine_info.suspend_tag = "suspend_tag";
+    resume_data_missing_machine_info.arguments = QStringList{"-args"};
 
-    mp::QemuVMProcessSpec spec(desc, 0, tap_device_name, resume_data_missing_machine_info);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data_missing_machine_info);
 
-    EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
-                                             "-hda",
-                                             "/path/to/image",
-                                             "-smp",
-                                             "2",
-                                             "-m",
-                                             "3072M",
-                                             "-device",
-                                             "virtio-net-pci,netdev=hostnet0,id=net0,mac=00:11:22:33:44:55",
-                                             "-netdev",
-                                             "tap,id=hostnet0,ifname=tap_device,script=no,downscript=no",
-                                             "-qmp",
-                                             "stdio",
-                                             "-cpu",
-                                             "host",
-                                             "-chardev",
-                                             "null,id=char0",
-                                             "-serial",
-                                             "chardev:char0",
-                                             "-nographic",
-                                             "-drive",
-                                             "file=/path/to/cloud_init.iso,if=virtio,format=raw,snapshot=off,read-only",
-                                             "-loadvm",
-                                             "suspend_tag",
-                                             "-machine",
-                                             "pc-i440fx-xenial"}));
+    EXPECT_EQ(spec.arguments(), QStringList({"-args", "-loadvm", "suspend_tag", "-machine", "pc-i440fx-xenial"}));
 }
-
