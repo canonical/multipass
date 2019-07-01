@@ -33,6 +33,7 @@ class VirtualMachine
 public:
     enum class State
     {
+        unknown,
         off,
         stopped,
         starting,
@@ -40,8 +41,7 @@ public:
         running,
         delayed_shutdown,
         suspending,
-        suspended,
-        unknown
+        suspended
     };
 
     using UPtr = std::unique_ptr<VirtualMachine>;
