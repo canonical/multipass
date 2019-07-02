@@ -415,7 +415,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                         const auto prepared_image = record.second.image;
                         try
                         {
-                            return finalize_image_records(query, prepared_image, id);
+                            return finalize_image_records(query, prepared_image, record.first);
                         }
                         catch (const std::exception& e)
                         {
@@ -676,15 +676,7 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
     }
 
-    try
-    {
-        auto record = prepared_image_records.at(id);
-        record.last_accessed = std::chrono::system_clock::now();
-    }
-    catch (const std::out_of_range&)
-    {
-        prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
-    }
+    prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
 
     persist_instance_records();
     persist_image_records();
