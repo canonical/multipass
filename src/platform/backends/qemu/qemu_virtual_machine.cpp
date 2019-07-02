@@ -97,7 +97,8 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
     if (resume_metadata)
     {
         const auto& data = resume_metadata.value();
-        resume_data = {suspend_tag, get_vm_machine(data), use_cdrom_set(data), get_arguments(data)};
+        resume_data = mp::QemuVMProcessSpec::ResumeData{suspend_tag, get_vm_machine(data), use_cdrom_set(data),
+                                                        get_arguments(data)};
     }
 
     auto process_spec =
