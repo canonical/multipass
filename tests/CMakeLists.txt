@@ -28,6 +28,7 @@ list(APPEND BACKEND_TESTS
   stub_process_factory.cpp
   test_platform_linux.cpp
   test_qemu_backend.cpp
+  test_qemu_vm_process_spec.cpp
   test_dnsmasq_server.cpp
   test_libvirt_backend.cpp
   test_with_mocked_bin_path.cpp)
@@ -74,6 +75,7 @@ add_executable(multipass_tests
   image_host_remote_count.cpp
   main.cpp
   mischievous_url_downloader.cpp
+  mock_process_factory.cpp
   mock_scp.cpp
   mock_settings.cpp
   mock_sftp.cpp
@@ -123,6 +125,7 @@ add_executable(multipass_tests
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
   PRIVATE ${MULTIPASS_GTEST_DIR}
   PRIVATE ${MULTIPASS_GTEST_DIR}/include
   PRIVATE ${MULTIPASS_GMOCK_DIR}

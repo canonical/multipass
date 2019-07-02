@@ -33,6 +33,7 @@ public:
     ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
 
     virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
+    std::unique_ptr<Process> create_process(const QString& command, const QStringList& = QStringList()) const;
 };
 
 } // namespace multipass

@@ -35,6 +35,7 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QObject>
@@ -52,19 +53,61 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto suspend_tag = "suspend";
-constexpr auto default_machine_type = "pc-i440fx-xenial";
+constexpr auto machine_type_key = "machine_type";
+constexpr auto arguments_key = "arguments";
 
-auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       const std::string& mac_addr)
+bool use_cdrom_set(const QJsonObject& metadata)
+{
+    return metadata.contains("use_cdrom") && metadata["use_cdrom"].toBool();
+}
+
+QString get_vm_machine(const QJsonObject& metadata)
+{
+    QString machine;
+    if (metadata.contains(machine_type_key))
+    {
+        machine = metadata[machine_type_key].toString();
+    }
+    return machine;
+}
+
+QStringList get_arguments(const QJsonObject& metadata)
+{
+    QStringList args;
+    if (metadata.contains(arguments_key) && metadata[arguments_key].type() == QJsonValue::Array)
+    {
+        auto array = metadata[arguments_key].toArray();
+        for (const auto& val : array)
+        {
+            args.push_back(val.toString());
+        }
+    }
+    return args;
+}
+
+auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::optional<QJsonObject>& resume_metadata,
+                       const std::string& tap_device_name)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, QString::fromStdString(tap_device_name),
-                                                                QString::fromStdString(mac_addr));
+    mp::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
+    if (resume_metadata)
+    {
+        const auto& data = resume_metadata.value();
+        resume_data = mp::QemuVMProcessSpec::ResumeData{suspend_tag, get_vm_machine(data), use_cdrom_set(data),
+                                                        get_arguments(data)};
+    }
+
+    auto process_spec =
+        std::make_unique<mp::QemuVMProcessSpec>(desc, QString::fromStdString(tap_device_name), resume_data);
     auto process = mp::ProcessFactory::instance().create_process(std::move(process_spec));
+
+    mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
+    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program()));
+    mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process arguments '{}'", process->arguments().join(", ")));
     return process;
 }
 
@@ -97,10 +140,8 @@ auto hmc_to_qmp_json(const QString& command_line)
 
 bool instance_image_has_snapshot(const mp::Path& image_path)
 {
-    auto output = QString::fromStdString(
-                      mp::utils::run_cmd_for_output(QStringLiteral("qemu-img"),
-                                                    {QStringLiteral("snapshot"), QStringLiteral("-l"), image_path}))
-                      .split('\n');
+    auto process = mp::ProcessFactory::instance().create_process("qemu-img", QStringList{"snapshot", "-l", image_path});
+    auto output = process->run_and_return_output().split('\n');
 
     for (const auto& line : output)
     {
@@ -133,13 +174,11 @@ auto get_qemu_machine_type()
     return machine_type;
 }
 
-auto get_metadata()
+auto generate_metadata(const QStringList& args)
 {
     QJsonObject metadata;
-
-    metadata["machine_type"] = get_qemu_machine_type();
-    metadata["use_cdrom"] = true;
-
+    metadata[machine_type_key] = get_qemu_machine_type();
+    metadata[arguments_key] = QJsonArray::fromStringList(args);
     return metadata;
 }
 } // namespace
@@ -148,12 +187,13 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
+      vm_process{make_qemu_process(
+          desc, ((state == State::suspended) ? mp::make_optional(monitor.retrieve_metadata_for(vm_name)) : mp::nullopt),
+          tap_device_name)},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
-      monitor{&monitor},
-      vm_process{make_qemu_process(desc, tap_device_name, mac_addr)},
-      cloud_init_path{desc.cloud_init_iso}
+      monitor{&monitor}
 {
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
@@ -247,50 +287,22 @@ void mp::QemuVirtualMachine::start()
     if (state == State::suspending)
         throw std::runtime_error("cannot start the instance while suspending");
 
-    QStringList extra_args;
     if (state == State::suspended)
     {
-        auto metadata = monitor->retrieve_metadata_for(vm_name);
-
-        auto machine_type = metadata["machine_type"].toString();
-
-        if (machine_type.isNull())
-        {
-            mpl::log(mpl::Level::info, vm_name,
-                     fmt::format("Cannot determine QEMU machine type. Defaulting to '{}'.", default_machine_type));
-            machine_type = default_machine_type;
-        }
-
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
-        extra_args << "-loadvm" << suspend_tag;
-        extra_args << "-machine" << machine_type;
 
-        if (metadata["use_cdrom"].toBool())
-        {
-            extra_args << "-cdrom" << cloud_init_path;
-        }
-        else
-        {
-            extra_args << "-drive"
-                       << QString("file=%1,if=virtio,format=raw,snapshot=off,read-only").arg(cloud_init_path);
-        }
+        auto metadata = monitor->retrieve_metadata_for(vm_name);
 
         update_shutdown_status = true;
         delete_memory_snapshot = true;
     }
     else
     {
-        extra_args << "-cdrom" << cloud_init_path;
-
-        monitor->update_metadata_for(vm_name, get_metadata());
+        monitor->update_metadata_for(vm_name, generate_metadata(vm_process->arguments()));
     }
 
-    vm_process->start(extra_args);
+    vm_process->start();
     auto started = vm_process->wait_for_started();
-
-    mpl::log(mpl::Level::debug, vm_name, fmt::format("process working dir '{}'", vm_process->working_directory()));
-    mpl::log(mpl::Level::info, vm_name, fmt::format("process program '{}'", vm_process->program()));
-    mpl::log(mpl::Level::info, vm_name, fmt::format("process arguments '{}'", vm_process->arguments().join(", ")));
 
     if (!started)
         throw std::runtime_error("failed to start qemu instance");
