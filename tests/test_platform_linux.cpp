@@ -114,17 +114,17 @@ TEST_F(PlatformLinux, test_libvirt_driver_produces_correct_factory)
     with_minimally_mocked_libvirt(test);
 }
 
-TEST_F(PlatformLinux, test_qemu_in_env_var_takes_precedence_over_settings)
+TEST_F(PlatformLinux, test_qemu_in_env_var_is_ignored)
 {
     qputenv(mp::driver_env_var, "QEMU");
-    aux_test_driver_factory<mp::QemuVirtualMachineFactory>("libvirt");
+    auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
+    with_minimally_mocked_libvirt(test);
 }
 
-TEST_F(PlatformLinux, test_libvirt_in_env_var_takes_precedence_over_settings)
+TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 {
     qputenv(mp::driver_env_var, "LIBVIRT");
-    auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("qemu"); };
-    with_minimally_mocked_libvirt(test);
+    aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
 struct TestUnsupportedDrivers : public TestWithParam<QString>

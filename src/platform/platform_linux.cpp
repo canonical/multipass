@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/virtual_machine_factory.h>
@@ -29,6 +30,7 @@
 #include <QtGlobal>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -36,7 +38,13 @@ namespace
 QString get_driver_str()
 {
     auto driver = qgetenv(mp::driver_env_var);
-    return driver.isEmpty() ? mp::Settings::instance().get(mp::driver_key) : driver.toLower();
+    if (!driver.isEmpty())
+    {
+        mpl::log(
+            mpl::Level::warning, "platform",
+            fmt::format("{} is now ignored, please use `multipass set local.driver` instead.", mp::driver_env_var));
+    }
+    return mp::Settings::instance().get(mp::driver_key);
 }
 
 } // namespace
