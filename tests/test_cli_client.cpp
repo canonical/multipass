@@ -168,6 +168,23 @@ struct Client : public Test
         EXPECT_THAT(get_setting(key), Eq(default_val));
     }
 
+    auto make_fill_listreply(std::vector<mp::InstanceStatus_Status> statuses)
+    {
+        return [statuses](Unused, Unused, grpc::ServerWriter<mp::ListReply>* response) {
+            mp::ListReply list_reply;
+
+            for (mp::InstanceStatus_Status status : statuses)
+            {
+                auto list_entry = list_reply.add_instances();
+                list_entry->mutable_instance_status()->set_status(status);
+            }
+
+            response->Write(list_reply);
+
+            return grpc::Status{};
+        };
+    }
+
 #ifdef WIN32
     std::string server_address{"localhost:50051"};
 #else
@@ -1419,6 +1436,55 @@ TEST_F(Client, set_cmd_rejects_bad_driver)
 {
     aux_set_cmd_rejects_bad_val(mp::driver_key, "bad driver");
 }
+
+TEST_F(Client, set_cmd_falls_through_instances_when_no_driver_change)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "qemu")}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
+    aux_set_cmd_rejects_bad_val(mp::driver_key, "other");
+}
+
+TEST_F(Client, set_cmd_fails_when_grpc_problem)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
+}
+
+struct TestSetDriverWithInstances
+    : Client,
+      WithParamInterface<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>>
+{
+};
+
+const std::vector<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>> set_driver_expected{
+    {{}, mp::ReturnCode::Ok},
+    {{mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
+    {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
+    {{mp::InstanceStatus::RUNNING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::STARTING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::RESTARTING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::DELETED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::DELAYED_SHUTDOWN}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::SUSPENDING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::SUSPENDED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::UNKNOWN}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::RUNNING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::STARTING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::SUSPENDED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+};
+
+TEST_P(TestSetDriverWithInstances, inspects_instance_states)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Invoke(make_fill_listreply(GetParam().first)));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(GetParam().second));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
 
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)
