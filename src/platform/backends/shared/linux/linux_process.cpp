@@ -51,7 +51,7 @@ QString mp::LinuxProcess::program() const
 
 QStringList mp::LinuxProcess::arguments() const
 {
-    return process.arguments(); // as start() can add more, this most reliable source
+    return process.arguments();
 }
 
 QString mp::LinuxProcess::working_directory() const
@@ -64,9 +64,8 @@ QProcessEnvironment mp::LinuxProcess::process_environment() const
     return process.processEnvironment();
 }
 
-void mp::LinuxProcess::start(const QStringList& extra_arguments)
+void mp::LinuxProcess::start()
 {
-    process.setArguments(process_spec->arguments() << extra_arguments);
     process.start();
 }
 
@@ -105,21 +104,21 @@ qint64 mp::LinuxProcess::write(const QByteArray& data)
     return process.write(data);
 }
 
-bool mp::LinuxProcess::run_and_return_status(const QStringList& extra_arguments, const int timeout)
+bool mp::LinuxProcess::run_and_return_status(const int timeout)
 {
-    run_and_wait_until_finished(extra_arguments, timeout);
+    run_and_wait_until_finished(timeout);
     return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
 }
 
-QString mp::LinuxProcess::run_and_return_output(const QStringList& extra_arguments, const int timeout)
+QString mp::LinuxProcess::run_and_return_output(const int timeout)
 {
-    run_and_wait_until_finished(extra_arguments, timeout);
+    run_and_wait_until_finished(timeout);
     return process.readAllStandardOutput().trimmed();
 }
 
-void mp::LinuxProcess::run_and_wait_until_finished(const QStringList& extra_arguments, const int timeout)
+void mp::LinuxProcess::run_and_wait_until_finished(const int timeout)
 {
-    start(extra_arguments);
+    start();
     if (!process.waitForFinished(timeout) || process.exitStatus() != QProcess::NormalExit)
     {
         mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(process.errorString()));

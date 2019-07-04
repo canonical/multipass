@@ -19,11 +19,16 @@
 
 namespace mp = multipass;
 
-mp::QemuImgProcessSpec::QemuImgProcessSpec()
+mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args) : args{args}
 {
 }
 
 QString mp::QemuImgProcessSpec::program() const
 {
     return "qemu-img";
+}
+
+QStringList mp::QemuImgProcessSpec::arguments() const
+{
+    return args;
 }

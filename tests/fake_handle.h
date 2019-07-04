@@ -15,33 +15,14 @@
  *
  */
 
-#ifndef MULTIPASS_SETTINGS_H
-#define MULTIPASS_SETTINGS_H
-
-#include "singleton.h"
-
-#include <QString>
-
-#include <map>
-
 namespace multipass
 {
-class Settings : public Singleton<Settings>
+namespace test
 {
-public:
-    Settings(const Singleton<Settings>::PrivatePass&);
-
-    virtual QString get(const QString& key) const;            // throws on unknown key
-    virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
-
-    static QString get_daemon_settings_file_path(); // temporary
-
-protected:
-    const QString& get_default(const QString& key) const; // throws on unknown key
-
-private:
-    std::map<QString, QString> defaults;
-};
+template <typename T>
+auto fake_handle()
+{
+    return reinterpret_cast<T>(0xDEADBEEF);
+}
+} // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_SETTINGS_H

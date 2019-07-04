@@ -114,6 +114,12 @@ struct Client : public Test
         return client.run(args);
     }
 
+    template <typename Str1, typename Str2>
+    std::string keyval_arg(Str1&& key, Str2&& val)
+    {
+        return fmt::format("{}={}", std::forward<Str1>(key), std::forward<Str2>(val));
+    }
+
     std::string get_setting(const std::string& key)
     {
         auto out = std::ostringstream{};
@@ -151,6 +157,32 @@ struct Client : public Test
     {
         static_assert(size > 0, "size must be positive");
         return make_instances_matcher<RequestType>(AllOf(Contains(StrEq(instance_name)), SizeIs(size)));
+    }
+
+    void aux_set_cmd_rejects_bad_val(const char* key, const char* val)
+    {
+        const auto default_val = get_setting(key);
+        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+            .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "bad"}));
+        EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
+        EXPECT_THAT(get_setting(key), Eq(default_val));
+    }
+
+    auto make_fill_listreply(std::vector<mp::InstanceStatus_Status> statuses)
+    {
+        return [statuses](Unused, Unused, grpc::ServerWriter<mp::ListReply>* response) {
+            mp::ListReply list_reply;
+
+            for (mp::InstanceStatus_Status status : statuses)
+            {
+                auto list_entry = list_reply.add_instances();
+                list_entry->mutable_instance_status()->set_status(status);
+            }
+
+            response->Write(list_reply);
+
+            return grpc::Status{};
+        };
     }
 
 #ifdef WIN32
@@ -1274,19 +1306,68 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 }
 
 // get/set cli tests
-TEST_F(Client, get_can_read_settings)
+struct TestBasicGetSetOptions : Client, WithParamInterface<const char*>
 {
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key)));
-    get_setting(mp::petenv_key);
+};
+
+TEST_P(TestBasicGetSetOptions, get_can_read_settings)
+{
+    const auto& key = GetParam();
+    EXPECT_CALL(mock_settings, get(Eq(key)));
+    get_setting(key);
 }
 
-TEST_F(Client, set_can_write_settings)
+TEST_P(TestBasicGetSetOptions, set_can_write_settings)
 {
-    const auto key = mp::petenv_key;
+    const auto& key = GetParam();
     const auto val = "blah";
 
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions, Values(mp::petenv_key, mp::driver_key));
+
+TEST_F(Client, get_cmd_fails_with_no_arguments)
+{
+    EXPECT_CALL(mock_settings, get(_)).Times(0);
+    EXPECT_THAT(send_command({"get"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, set_cmd_fails_with_no_arguments)
+{
+    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
+    EXPECT_THAT(send_command({"set"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, get_cmd_fails_with_multiple_arguments)
+{
+    EXPECT_CALL(mock_settings, get(_)).Times(0);
+    EXPECT_THAT(send_command({"get", "client.primary_name", "local.driver"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, set_cmd_fails_with_multiple_arguments)
+{
+    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
+    EXPECT_THAT(send_command({"set", "client.primary_name=asdf", "local.driver=qemu"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
+{
+    EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
+    EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "abc"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "abc="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "=foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "=foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo=bar=="}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "==foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo==bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "foo===bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)
@@ -1301,7 +1382,7 @@ TEST_F(Client, set_cmd_fails_with_unknown_key)
     const auto key = "wrong.key";
     const auto val = "blah";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, get_handles_persistent_settings_errors)
@@ -1316,7 +1397,7 @@ TEST_F(Client, set_handles_persistent_settings_errors)
     const auto key = mp::petenv_key;
     const auto val = "asdasdasd";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, get_and_set_can_read_and_write_primary_name)
@@ -1327,7 +1408,7 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
     EXPECT_THAT(get_setting(mp::petenv_key), AllOf(Not(IsEmpty()), StrNe(name)));
 
     EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(name)));
-    EXPECT_THAT(send_command({"set", mp::petenv_key, name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, name)}), Eq(mp::ReturnCode::Ok));
 
     // EXPECT_THAT(get_setting(mp::petenv_key), StrEq(name));
 
@@ -1344,25 +1425,74 @@ TEST_F(Client, get_returns_acceptable_primary_name_by_default)
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 
-    EXPECT_THAT(send_command({"set", mp::petenv_key, default_name}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, default_name)}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
 }
 
 TEST_F(Client, set_cmd_rejects_bad_primary_name)
 {
-    const auto default_name = get_setting(mp::petenv_key);
-    const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
     const auto key = mp::petenv_key;
-    const auto val = "123.badname_";
+    const auto default_petenv_matcher = make_ssh_info_instance_matcher(get_setting(key));
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
-        .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "bad"}));
-    EXPECT_THAT(send_command({"set", key, val}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
+    aux_set_cmd_rejects_bad_val(key, "123.badname_");
 
-    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
+    EXPECT_CALL(mock_daemon, ssh_info(_, default_petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
+
+TEST_F(Client, set_cmd_rejects_bad_driver)
+{
+    aux_set_cmd_rejects_bad_val(mp::driver_key, "bad driver");
+}
+
+TEST_F(Client, set_cmd_falls_through_instances_when_no_driver_change)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "qemu")}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
+    aux_set_cmd_rejects_bad_val(mp::driver_key, "other");
+}
+
+TEST_F(Client, set_cmd_fails_when_grpc_problem)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
+}
+
+struct TestSetDriverWithInstances
+    : Client,
+      WithParamInterface<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>>
+{
+};
+
+const std::vector<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>> set_driver_expected{
+    {{}, mp::ReturnCode::Ok},
+    {{mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
+    {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
+    {{mp::InstanceStatus::RUNNING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::STARTING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::RESTARTING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::DELETED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::DELAYED_SHUTDOWN}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::SUSPENDING}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::SUSPENDED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::UNKNOWN}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::RUNNING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::STARTING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+    {{mp::InstanceStatus::SUSPENDED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+};
+
+TEST_P(TestSetDriverWithInstances, inspects_instance_states)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Invoke(make_fill_listreply(GetParam().first)));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(GetParam().second));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
 
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)

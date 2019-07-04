@@ -2,6 +2,7 @@
 
 needs_restart=false
 config_file="$SNAP_COMMON/snap_config"
+daemon_config_file="$SNAP_DATA/config/multipassd/multipassd.conf"
 
 if [[ -a $config_file ]]; then
     source $config_file
@@ -9,38 +10,17 @@ fi
 
 driver="$(snapctl get driver)"
 
-if [[ -n $driver && ! $driver =~ (LIBVIRT|QEMU) ]]; then
-    echo "\"$driver\" is not a supported virtualization driver"
-    exit 1
-fi
-
-driver_file="$SNAP_COMMON/driver"
-
-if [[ ! -v driver_saved ]]; then
-    driver_saved="$(cat $driver_file)" || true
-fi
-
-driver=${driver:-QEMU}
-driver_saved=${driver_saved:-QEMU}
-
 if [[ $driver != $driver_saved ]]; then
-    /snap/bin/multipass list &>/dev/null || /bin/true
-
-    if [ $? -ne 0 ]; then
-        echo "Cannot determine status of instances. Not switching driver."
-        exit 1
-    fi
-
-    if /snap/bin/multipass list --format=csv | grep -Ev '(\+--|Name)' | grep --quiet -iv 'Stopped'; then
-        echo "All instances need to be stopped."
-        echo "Please save any data and stop the instances before proceeding:"
-        echo
-        echo "multipass stop --all"
-        exit 1
-    fi
-
-    driver_saved=$driver
-    needs_restart=true
+    echo -e '`snap set` is no longer used for driver selection, please use:\n'
+    echo "sudo multipass set local.driver=$( echo $driver | awk '{print tolower($0)}' )"
+    exit 1
+elif [[ $driver_saved != "" ]]; then
+    # we should only ever be here once on conversion from `snap set` to `multipass set`,
+    # it's relatively safe to just overwrite the daemon file then
+    mkdir -p $( dirname $daemon_config_file )
+    echo -e "[General]\nlocal.driver=$( echo $driver_saved | awk '{print tolower($0)}' )" > $daemon_config_file
+    snapctl set driver=""
+    driver_saved=""
 fi
 
 http_proxy="$(snapctl get proxy.http)"
@@ -65,8 +45,4 @@ fi
 
 if [[ $needs_restart = true ]]; then
     snapctl restart $SNAP_NAME
-fi
-
-if [[ -a $driver_file ]]; then
-    rm $driver_file
 fi
