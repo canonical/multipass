@@ -68,10 +68,8 @@ QString file_for(const QString& key) // the key should have passed checks at thi
 
 std::unique_ptr<QSettings> persistent_settings(const QString& key)
 {
-    static const auto format = QSettings::defaultFormat(); // static const to make sure these stay fixed
-
-    return std::make_unique<QSettings>(file_for(key), format); /* unique_ptr to circumvent absent copy-ctor and no RVO
-                                                                  guarantee (until C++17) */
+    return std::make_unique<QSettings>(file_for(key), QSettings::IniFormat); /* unique_ptr to circumvent absent
+                                                                  copy-ctor and no RVO guarantee (until C++17) */
 }
 
 bool exists_but_unreadable(const QString& filename)
