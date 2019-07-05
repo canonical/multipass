@@ -32,7 +32,7 @@ std::unique_ptr<mp::Process> mpt::MockProcessFactory::create_process(std::unique
     return process;
 }
 
-mpt::MockProcess::MockProcess(std::unique_ptr<ProcessSpec>&& spec,
+mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
                               std::vector<mpt::MockProcessFactory::ProcessInfo>& process_list)
     : spec{std::move(spec)}
 {
