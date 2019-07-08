@@ -25,9 +25,7 @@ include_directories(platform
   backends)
 
 target_link_libraries(platform
-  update)
-
-target_link_libraries(platform
+  update
   utils)
 
 add_subdirectory(backends)
