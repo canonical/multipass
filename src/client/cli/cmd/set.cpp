@@ -33,44 +33,42 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
     auto ret = parser->returnCodeFrom(parse_code);
     if (parse_code == ParseCode::Ok)
     {
-        if (key == "local.driver" && (val == "qemu" || val == "libvirt") && // temporary
-            val != Settings::instance().get(key))
+        try
         {
-            auto on_success = [this](ListReply& reply) {
-                for (const auto& instance : reply.instances())
-                {
-                    if (instance.instance_status().status() != mp::InstanceStatus::STOPPED)
+            if (key == "local.driver" && (val == "qemu" || val == "libvirt") && // temporary
+                val != Settings::instance().get(key))
+            {
+                auto on_success = [this](ListReply& reply) {
+                    for (const auto& instance : reply.instances())
                     {
-                        cerr << "All instances need to be stopped.\n";
-                        cerr << "Please save any data and stop the instances before proceeding:\n\n";
-                        cerr << "multipass stop --all\n";
-                        return ReturnCode::CommandFail;
+                        if (instance.instance_status().status() != mp::InstanceStatus::STOPPED)
+                        {
+                            cerr << "All instances need to be stopped.\n";
+                            cerr << "Please save any data and stop the instances before proceeding:\n\n";
+                            cerr << "multipass stop --all\n";
+                            return ReturnCode::CommandFail;
+                        }
                     }
-                }
 
-                return ReturnCode::Ok;
-            };
+                    return ReturnCode::Ok;
+                };
 
-            auto on_failure = [this](grpc::Status& status) {
-                return standard_failure_handler_for(name(), cerr, status);
-            };
+                auto on_failure = [this](grpc::Status& status) {
+                    return standard_failure_handler_for(name(), cerr, status);
+                };
 
-            ListRequest request;
-            request.set_verbosity_level(parser->verbosityLevel());
-            ret = dispatch(&RpcMethod::list, request, on_success, on_failure);
-        }
+                ListRequest request;
+                request.set_verbosity_level(parser->verbosityLevel());
+                ret = dispatch(&RpcMethod::list, request, on_success, on_failure);
+            }
 
-        if (ret == ReturnCode::Ok)
-        {
-            try
-            {
+            if (ret == ReturnCode::Ok)
                 Settings::instance().set(key, val);
-            }
-            catch (const SettingsException& e)
-            {
-                cerr << e.what() << "\n";
-                ret = return_code_from(e);
-            }
+        }
+        catch (const SettingsException& e)
+        {
+            cerr << e.what() << "\n";
+            ret = return_code_from(e);
         }
     }
 
