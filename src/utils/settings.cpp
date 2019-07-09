@@ -22,12 +22,12 @@
 #include <multipass/utils.h> // TODO move out
 
 #include <QDir>
-#include <QFile>
 #include <QSettings>
 #include <QStandardPaths>
 
 #include <cassert>
 #include <cerrno>
+#include <fstream>
 #include <memory>
 #include <stdexcept>
 
@@ -74,9 +74,13 @@ std::unique_ptr<QSettings> persistent_settings(const QString& key)
 
 bool exists_but_unreadable(const QString& filename)
 {
-    QFile file(filename);
-    return !file.open(QIODevice::ReadOnly) && errno != ENOENT; /* note file.error() not enough for us: it would not
-                                                                  distinguish the cause of failure */
+    std::ifstream stream;
+    stream.open(filename.toStdString(), std::ios_base::in);
+    return stream.fail() && errno && errno != ENOENT; /*
+        Note: QFile::error() not enough for us: it would not distinguish the actual cause of failure;
+        Note: errno is only set on some platforms, but those were experimentally verified to be the only ones that do
+            not set a bad QSettings status on permission denied; to make this code portable, we need to account for a
+            zero errno on the remaining platforms */
 }
 
 void check_status(const QSettings& settings, const QString& attempted_operation)
