@@ -77,7 +77,7 @@ bool exists_but_unreadable(const QString& filename)
     std::ifstream stream;
     stream.open(filename.toStdString(), std::ios_base::in);
     return stream.fail() && errno && errno != ENOENT; /*
-        Note: file.error() is not enough for us: it would not distinguish the cause of failure;
+        Note: QFile::error() not enough for us: it would not distinguish the actual cause of failure;
         Note: errno is only set on some platforms, but those were experimentally verified to be the only ones that do
             not set a bad QSettings status on permission denied; to make this code portable, we need to account for a
             zero errno on the remaining platforms */
