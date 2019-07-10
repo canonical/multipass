@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
@@ -100,13 +101,13 @@ bool mp::platform::is_backend_supported(const QString& backend)
     return backend == "hyperv" || backend == "virtualbox";
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&) // TODO
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
 {
-    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+    const auto driver = utils::get_driver_str();
 
-    if (driver.isEmpty() || driver == "HYPERV")
+    if (driver == QStringLiteral("hyperv"))
         return std::make_unique<HyperVVirtualMachineFactory>();
-    else if (driver == "VIRTUALBOX")
+    else if (driver == QStringLiteral("virtualbox"))
     {
         qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
           This is where the Virtualbox installer puts things, and relying on PATH
