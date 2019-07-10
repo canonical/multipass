@@ -170,6 +170,13 @@ void install_service()
     if (!changed)
         throw std::runtime_error(fmt::format("ChangeServiceConfig2 failed: '{}'", last_error_message()));
 
+    SERVICE_FAILURE_ACTIONS_FLAG sfaf;
+    sfaf.fFailureActionsOnNonCrashFailures = true;
+
+    changed = ChangeServiceConfig2(service.get(), SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &sfaf);
+    if (!changed)
+        throw std::runtime_error(fmt::format("ChangeServiceConfig2 failed: '{}'", last_error_message()));
+
     auto started = StartService(service.get(), 0, nullptr);
     if (!started)
         throw std::runtime_error(fmt::format("StartService failed: '{}'", last_error_message()));
