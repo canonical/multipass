@@ -26,7 +26,7 @@
 #include <multipass/utils.h>
 #include <multipass/version.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QCoreApplication>
 
