@@ -33,6 +33,17 @@ set(LIBSSH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libssh/include)
 set(LIB_INSTALL_DIR lib)
 set(BIN_INSTALL_DIR bin)
 
+# Since the main CMake file is bypassed, we have to specifically
+# set some required options from libssh/DefineOptions.cmake
+set(GLOBAL_BIND_CONFIG "/etc/ssh/libssh_server_config")
+set(GLOBAL_CLIENT_CONFIG "/etc/ssh/ssh_config")
+
+# libssh uses the EVP_PKEY_base_id() function from OpenSSL to
+# determine the type of key in use. This maps to EVP_PKEY_id()
+# in BoringSSL. Using sed to swap in the proper function name.
+execute_process(COMMAND "sed" "-i" "s/base_id/id/g" "libssh/src/pki_crypto.c"
+	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
 include_directories(${LIBSSH_INCLUDE_DIR})
 include_directories(${OPENSSL_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/libssh)
