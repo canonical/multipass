@@ -19,7 +19,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
@@ -28,27 +28,8 @@
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
 
-#include <QtGlobal>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-
-namespace
-{
-
-QString get_driver_str()
-{
-    auto driver = qgetenv(mp::driver_env_var);
-    if (!driver.isEmpty())
-    {
-        mpl::log(
-            mpl::Level::warning, "platform",
-            fmt::format("{} is now ignored, please use `multipass set local.driver` instead.", mp::driver_env_var));
-    }
-    return mp::Settings::instance().get(mp::driver_key);
-}
-
-} // namespace
 
 std::string mp::platform::default_server_address()
 {
@@ -77,7 +58,7 @@ bool mp::platform::is_backend_supported(const QString& backend)
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    const auto& driver = get_driver_str();
+    const auto& driver = utils::get_driver_str();
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
     else if (driver == QStringLiteral("libvirt"))

@@ -1447,8 +1447,9 @@ TEST_F(Client, set_cmd_rejects_bad_driver)
 
 TEST_F(Client, set_cmd_falls_through_instances_when_no_driver_change)
 {
+    const auto default_driver = mp::Settings::instance().get(mp::driver_key);
     EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "qemu")}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, default_driver)}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)

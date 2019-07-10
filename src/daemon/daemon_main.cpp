@@ -17,6 +17,7 @@
 
 #include "daemon.h"
 #include "daemon_config.h"
+#include "daemon_monitor_settings.h" // temporary
 
 #include "cli.h"
 
@@ -26,7 +27,6 @@
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
-#include <multipass/settings.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -36,10 +36,6 @@
 #include <multipass/format.h>
 
 #include <QCoreApplication>
-#include <QFile>
-#include <QFileInfo>
-#include <QFileSystemWatcher>
-#include <QObject>
 
 #include <csignal>
 #include <cstring>
@@ -53,7 +49,6 @@ namespace mpp = multipass::platform;
 
 namespace
 {
-constexpr const int settings_changed_code = 42;
 const std::vector<std::string> supported_socket_groups{"sudo", "adm", "admin"};
 
 void set_server_permissions(const std::string& server_address)
@@ -80,13 +75,6 @@ void set_server_permissions(const std::string& server_address)
 
     if (chmod(socket_path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) == -1)
         throw std::runtime_error("Could not set permissions for the multipass socket.");
-}
-
-void init_settings(const QString& filename)
-{
-    mp::utils::make_dir({}, QFileInfo{filename}.dir().path()); // make sure parent dir is there
-    QFile file{filename};
-    file.open(QIODevice::WriteOnly | QIODevice::Append);
 }
 
 class UnixSignalHandler
@@ -116,15 +104,6 @@ private:
     mp::AutoJoinThread signal_handling_thread;
 };
 
-void monitor_and_quit_on_settings_change()
-{
-    static const auto filename = mp::Settings::get_daemon_settings_file_path();
-    init_settings(filename); // create if not there
-
-    static QFileSystemWatcher monitor{{filename}};
-    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
-}
-
 } // namespace
 
 int main(int argc, char* argv[]) // clang-format off
@@ -140,7 +119,7 @@ try // clang-format on
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    monitor_and_quit_on_settings_change();
+    mp::monitor_and_quit_on_settings_change(); // temporary
     mp::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
