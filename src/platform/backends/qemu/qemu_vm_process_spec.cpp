@@ -19,10 +19,12 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mu = multipass::utils;
 
 namespace
 {
@@ -157,8 +159,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
 QString mp::QemuVMProcessSpec::working_directory() const
 {
-    auto snap = qgetenv("SNAP");
-    if (!snap.isEmpty())
-        return snap.append("/qemu");
+    if (mu::is_snap())
+        return mu::snap_dir().append("/qemu");
     return QString();
 }

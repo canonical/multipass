@@ -19,6 +19,8 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/settings.h>
+#include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -29,10 +31,22 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mu = multipass::utils;
 
 std::string mp::platform::default_server_address()
 {
-    return {"unix:/run/multipass_socket"};
+    std::string base_dir;
+
+    if (mu::is_snap())
+    {
+        // if Snap, client and daemon can both access $SNAP_COMMON so can put socket there
+        base_dir = mu::snap_common_dir().toStdString();
+    }
+    else
+    {
+        base_dir = "/run";
+    }
+    return "unix:" + base_dir + "/multipass_socket";
 }
 
 QString mp::platform::default_driver()
