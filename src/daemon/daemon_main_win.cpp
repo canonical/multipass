@@ -20,6 +20,7 @@
 #include "daemon_config.h"
 #include "daemon_monitor_settings.h" // temporary
 
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
@@ -240,6 +241,7 @@ void control_handler(DWORD control)
 int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
 {
     QCoreApplication app(argc, argv);
+    QCoreApplication::setApplicationName(mp::daemon_name);
     QCoreApplication::setApplicationVersion(mp::version_string);
 
     if (register_console == RegisterConsoleHandler::yes)
