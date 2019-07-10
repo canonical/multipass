@@ -18,6 +18,7 @@
 #include "cli.h"
 #include "daemon.h"
 #include "daemon_config.h"
+#include "daemon_monitor_settings.h" // temporary
 
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -246,11 +247,13 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
 
     auto builder = mp::cli::parse(app);
     auto config = builder.build();
+
+    mp::monitor_and_quit_on_settings_change(); // temporary
     mp::Daemon daemon(std::move(config));
 
-    QCoreApplication::exec();
+    auto ret = QCoreApplication::exec();
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
-    return EXIT_SUCCESS;
+    return ret;
 }
 
 void service_main(DWORD argc, char* argv[]) // clang-format off
