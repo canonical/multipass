@@ -64,7 +64,9 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
                 };
 
                 auto on_failure = [this](grpc::Status& status) {
-                    return standard_failure_handler_for(name(), cerr, status);
+                    return status.error_code() == grpc::StatusCode::NOT_FOUND
+                               ? mp::ReturnCode::Ok // let it go through - assuming no instances if daemon not around
+                               : standard_failure_handler_for(name(), cerr, status);
                 };
 
                 ListRequest request;
