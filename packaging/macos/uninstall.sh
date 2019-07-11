@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-if [ "$EUID" -ne 0 ]; then 
+if [ "$EUID" -ne 0 ]; then
     echo "This script needs to run as root"
     exit 1
 fi
@@ -52,6 +52,9 @@ rm -rf "/opt/local/share/bash-completion/completions/multipass"
 
 # Log files
 rm -rfv "/Library/Logs/Multipass"
+
+# Preferences
+rm -rfv "/var/root/Library/Preferences/multipassd"
 
 echo .
 echo "Removing package installation receipts"
