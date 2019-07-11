@@ -10,7 +10,7 @@ fi
 
 driver="$(snapctl get driver)"
 
-if [[ $driver != $driver_saved ]]; then
+if [[ -n $driver && $driver != $driver_saved ]]; then
     echo -e '`snap set` is no longer used for driver selection, please use:\n'
     echo "sudo multipass set local.driver=$( echo $driver | awk '{print tolower($0)}' )"
     exit 1
