@@ -21,11 +21,22 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/settings.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
+
+namespace
+{
+bool allow_only_stopped_instances(const QString& key, const QString& val) // temporary
+{
+    return key == "local.driver" && mp::platform::is_backend_supported(val) && (val == "qemu" || val == "libvirt") &&
+           val != mp::Settings::instance().get(key); /* if we are switching between qemu and libvirt drivers (on linux),
+                                                        we can only have stopped instances */
+}
+} // namespace
 
 mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
 {
@@ -35,8 +46,7 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
     {
         try
         {
-            if (key == "local.driver" && (val == "qemu" || val == "libvirt") && // temporary
-                val != Settings::instance().get(key))
+            if (allow_only_stopped_instances(key, val))
             {
                 auto on_success = [this](ListReply& reply) {
                     for (const auto& instance : reply.instances())
