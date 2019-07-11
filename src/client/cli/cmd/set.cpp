@@ -103,7 +103,7 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
         const auto args = parser->positionalArguments();
         if (args.size() != 1)
         {
-            cerr << "Need exactly one key-value pair.\n";
+            cerr << "Need exactly one key-value pair (in <key>=<value> form).\n";
             status = ParseCode::CommandLineError;
         }
         else
