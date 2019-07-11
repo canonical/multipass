@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
