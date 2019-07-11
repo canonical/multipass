@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/constants.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -23,6 +24,7 @@
 #include "platform_proprietary.h"
 #include <github_update_prompt.h>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QString>
 
@@ -33,6 +35,24 @@ namespace mp = multipass;
 std::string mp::platform::default_server_address()
 {
     return {"unix:/var/run/multipass_socket"};
+}
+
+QString mp::platform::default_driver()
+{
+    return QStringLiteral("hyperkit");
+}
+
+QString mp::platform::daemon_config_home() // temporary
+{
+    auto ret = QStringLiteral("/var/root/Library/Preferences/");
+    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
+
+    return ret;
+}
+
+bool mp::platform::is_backend_supported(const QString& backend)
+{
+    return backend == "hyperkit" || backend == "virtualbox";
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
