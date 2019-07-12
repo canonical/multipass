@@ -1458,10 +1458,18 @@ TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
     aux_set_cmd_rejects_bad_val(mp::driver_key, "other");
 }
 
-TEST_F(Client, set_cmd_fails_when_grpc_problem)
+#ifdef MULTIPASS_PLATFORM_LINUX // These tests concern linux-specific behavior for qemu<->libvirt switching
+
+TEST_F(Client, set_cmd_fails_driver_switch_when_needs_daemon_and_grpc_problem)
 {
     EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::Ok));
 }
 
 struct TestSetDriverWithInstances
@@ -1494,6 +1502,8 @@ TEST_P(TestSetDriverWithInstances, inspects_instance_states)
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
+
+#endif // MULTIPASS_PLATFORM_LINUX
 
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)
