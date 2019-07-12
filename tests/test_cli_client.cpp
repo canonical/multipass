@@ -1461,6 +1461,16 @@ TEST_F(Client, set_cmd_fails_when_needs_daemon_and_grpc_problem)
     }
 }
 
+TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
+{
+    const auto driver = "libvirt";
+    if (mp::platform::is_backend_supported(driver))
+    {
+        EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+        EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, driver)}), Eq(mp::ReturnCode::Ok));
+    }
+}
+
 struct TestSetDriverWithInstances
     : Client,
       WithParamInterface<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>>
