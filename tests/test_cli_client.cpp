@@ -25,6 +25,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <src/client/cli/client.h>
 #include <src/daemon/daemon_rpc.h>
 
@@ -1462,22 +1463,28 @@ struct TestSetDriverWithInstances
 {
 };
 
-const std::vector<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>> set_driver_expected{
-    {{}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::RUNNING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::STARTING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::RESTARTING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::DELETED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::DELAYED_SHUTDOWN}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::UNKNOWN}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::RUNNING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::STARTING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-};
+const std::vector<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>> gen_driver_expected()
+{
+    if (mp::platform::is_backend_supported("libvirt"))
+        return {
+            {{}, mp::ReturnCode::Ok},
+            {{mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
+            {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
+            {{mp::InstanceStatus::RUNNING}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::STARTING}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::RESTARTING}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::DELETED}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::DELAYED_SHUTDOWN}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::SUSPENDING}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::SUSPENDED}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::UNKNOWN}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::RUNNING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::STARTING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+            {{mp::InstanceStatus::SUSPENDED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
+        };
+    else
+        return {};
+}
 
 TEST_P(TestSetDriverWithInstances, inspects_instance_states)
 {
@@ -1485,7 +1492,7 @@ TEST_P(TestSetDriverWithInstances, inspects_instance_states)
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(GetParam().second));
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
+INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(gen_driver_expected()));
 
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)
