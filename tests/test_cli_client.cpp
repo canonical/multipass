@@ -1458,6 +1458,12 @@ TEST_F(Client, set_cmd_fails_driver_switch_when_needs_daemon_and_grpc_problem)
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
 }
 
+TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::Ok));
+}
+
 struct TestSetDriverWithInstances
     : Client,
       WithParamInterface<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>>
