@@ -1451,10 +1451,14 @@ TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
     aux_set_cmd_rejects_bad_val(mp::driver_key, "other");
 }
 
-TEST_F(Client, set_cmd_fails_when_grpc_problem)
+TEST_F(Client, set_cmd_fails_when_needs_daemon_and_grpc_problem)
 {
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
+    const auto driver = "libvirt";
+    if (mp::platform::is_backend_supported(driver))
+    {
+        EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
+        EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, driver)}), Eq(mp::ReturnCode::CommandFail));
+    }
 }
 
 struct TestSetDriverWithInstances
