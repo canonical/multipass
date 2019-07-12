@@ -1451,7 +1451,8 @@ TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
 }
 
 #ifdef MULTIPASS_PLATFORM_LINUX // These tests concern linux-specific behavior for qemu<->libvirt switching
-TEST_F(Client, set_cmd_fails_when_grpc_problem)
+
+TEST_F(Client, set_cmd_fails_driver_switch_when_needs_daemon_and_grpc_problem)
 {
     EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
