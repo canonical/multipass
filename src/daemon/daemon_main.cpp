@@ -17,6 +17,7 @@
 
 #include "daemon.h"
 #include "daemon_config.h"
+#include "daemon_monitor_settings.h" // temporary
 
 #include "cli.h"
 
@@ -102,6 +103,7 @@ public:
 private:
     mp::AutoJoinThread signal_handling_thread;
 };
+
 } // namespace
 
 int main(int argc, char* argv[]) // clang-format off
@@ -117,14 +119,15 @@ try // clang-format on
     auto config = builder.build();
     auto server_address = config->server_address;
 
+    mp::monitor_and_quit_on_settings_change(); // temporary
     mp::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
 
-    QCoreApplication::exec();
+    auto ret = QCoreApplication::exec();
 
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
-    return EXIT_SUCCESS;
+    return ret;
 }
 catch (const std::exception& e)
 {

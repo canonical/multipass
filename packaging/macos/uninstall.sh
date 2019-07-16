@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-if [ "$EUID" -ne 0 ]; then 
+if [ "$EUID" -ne 0 ]; then
     echo "This script needs to run as root"
     exit 1
 fi
@@ -18,7 +18,7 @@ done
 DELETE_VMS=0
 
 while true; do
-    read -p "Do you want to delete all your Multipass VMs too? [Y/N] " yn
+    read -p "Do you want to delete all your Multipass VMs and daemon preferences too? [Y/N] " yn
     case $yn in
         [Yy]* ) DELETE_VMS=1; break;;
         [Nn]* ) DELETE_VMS=0; break;;
@@ -35,6 +35,8 @@ launchctl unload -w "$LAUNCH_AGENT_DEST"
 if [ $DELETE_VMS -eq 1 ]; then
     echo "Removing VMs:"
     rm -rfv "/var/root/Library/Application Support/multipassd"
+    echo "Removing daemon preferences:"
+    rm -rfv "/var/root/Library/Preferences/multipassd"
 fi
 
 echo .

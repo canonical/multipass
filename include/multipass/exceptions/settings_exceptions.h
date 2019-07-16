@@ -38,8 +38,8 @@ public:
 class PersistentSettingsException : public SettingsException
 {
 public:
-    PersistentSettingsException(const QString& attempted_operation, const QString& failure)
-        : SettingsException{fmt::format("Could not {} settings: {} error", attempted_operation, failure)}
+    PersistentSettingsException(const QString& attempted_operation, const QString& detail)
+        : SettingsException{fmt::format("Unable to {} settings: {}", attempted_operation, detail)}
     {
     }
 };

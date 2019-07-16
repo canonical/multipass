@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
+#include "mock_process_factory.h"
 #include "mock_status_monitor.h"
 #include "stub_process_factory.h"
 #include "stub_ssh_key_provider.h"
@@ -29,6 +30,8 @@
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
+
+#include <QJsonArray>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -134,9 +137,10 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 2u);
+    ASSERT_EQ(factory->process_list().size(), 3u);
     EXPECT_EQ(factory->process_list()[0].command, "dnsmasq");
-    EXPECT_TRUE(factory->process_list()[1].command.startsWith("qemu-system-"));
+    EXPECT_EQ(factory->process_list()[1].command, "qemu-img"); // checks for suspended image
+    EXPECT_TRUE(factory->process_list()[2].command.startsWith("qemu-system-"));
 }
 
 TEST_F(QemuBackend, verify_qemu_arguments)
@@ -147,9 +151,10 @@ TEST_F(QemuBackend, verify_qemu_arguments)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 2u);
-    auto qemu = factory->process_list()[1];
+    ASSERT_EQ(factory->process_list().size(), 3u);
+    auto qemu = factory->process_list()[2];
     EXPECT_TRUE(qemu.arguments.contains("--enable-kvm"));
+    EXPECT_TRUE(qemu.arguments.contains("-hda"));
     EXPECT_TRUE(qemu.arguments.contains("virtio-net-pci,netdev=hostnet0,id=net0,mac="));
     EXPECT_TRUE(qemu.arguments.contains("-nographic"));
     EXPECT_TRUE(qemu.arguments.contains("-serial"));
@@ -159,4 +164,119 @@ TEST_F(QemuBackend, verify_qemu_arguments)
     EXPECT_TRUE(qemu.arguments.contains("host"));
     EXPECT_TRUE(qemu.arguments.contains("-chardev"));
     EXPECT_TRUE(qemu.arguments.contains("null,id=char0"));
+}
+
+TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
+{
+    constexpr auto suspend_tag = "suspend";
+    constexpr auto default_machine_type = "pc-i440fx-xenial";
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        // Have "qemu-img snapshot" return a string with the suspend tag in it
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            ON_CALL(*process, run_and_return_output(_)).WillByDefault(Return(suspend_tag));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    ASSERT_EQ(factory->process_list().size(), 3u);
+    auto qemu = factory->process_list()[2];
+    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
+    EXPECT_TRUE(qemu.arguments.contains("-loadvm"));
+    EXPECT_TRUE(qemu.arguments.contains(suspend_tag));
+    EXPECT_TRUE(qemu.arguments.contains("-machine"));
+    EXPECT_TRUE(qemu.arguments.contains(default_machine_type));
+}
+
+TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metadata)
+{
+    constexpr auto suspend_tag = "suspend";
+    constexpr auto machine_type = "k0mPuT0R";
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            ON_CALL(*process, run_and_return_output(_)).WillByDefault(Return(suspend_tag));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"machine_type", machine_type}})));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    ASSERT_EQ(factory->process_list().size(), 3u);
+    auto qemu = factory->process_list()[2];
+    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
+    EXPECT_TRUE(qemu.arguments.contains("-machine"));
+    EXPECT_TRUE(qemu.arguments.contains(machine_type));
+}
+
+TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_using_cdrom_key)
+{
+    constexpr auto suspend_tag = "suspend";
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            EXPECT_CALL(*process, run_and_return_output(_)).WillOnce(Return(suspend_tag));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"use_cdrom", true}})));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    ASSERT_EQ(factory->process_list().size(), 3u);
+    auto qemu = factory->process_list()[2];
+    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
+    EXPECT_TRUE(qemu.arguments.contains("-cdrom"));
+}
+
+TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
+{
+    constexpr auto suspend_tag = "suspend";
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            EXPECT_CALL(*process, run_and_return_output(_)).WillOnce(Return(suspend_tag));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillOnce(Return(QJsonObject({{"arguments", QJsonArray{"-hi_there", "-hows_it_going"}}})));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    ASSERT_EQ(factory->process_list().size(), 3u);
+    auto qemu = factory->process_list()[2];
+    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
+    EXPECT_TRUE(qemu.arguments.contains("-hi_there"));
+    EXPECT_TRUE(qemu.arguments.contains("-hows_it_going"));
 }

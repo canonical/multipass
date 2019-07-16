@@ -17,13 +17,17 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
 
-#include <QCoreApplication>
+#include <QDir>
 #include <QSettings>
 #include <QStandardPaths>
 
+#include <cassert>
+#include <cerrno>
+#include <fstream>
 #include <memory>
 #include <stdexcept>
 
@@ -32,31 +36,61 @@ namespace mp = multipass;
 namespace
 {
 const auto file_extension = QStringLiteral("conf");
+const auto daemon_root = QStringLiteral("local");
 const auto petenv_name = QStringLiteral("primary");
+
 std::map<QString, QString> make_defaults()
+{ // clang-format off
+    return {{mp::petenv_key, petenv_name},
+            {mp::driver_key, mp::platform::default_driver()}};
+} // clang-format on
+
+/*
+ * We make up our own file names to:
+ *   a) avoid unknown org/domain in path;
+ *   b) write daemon config to a central location (rather than user-dependent)
+ * Examples:
+ *   - ${HOME}/.config/multipass/multipass.conf
+ *   - /root/.config/multipass/multipassd.conf
+ */
+QString file_for(const QString& key) // the key should have passed checks at this point
 {
-    return {{mp::petenv_key, petenv_name}};
+    // static consts ensure these stay fixed
+    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
+    static const auto client_dir_path = QDir{QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)};
+    static const auto daemon_dir_path = QDir{mp::platform::daemon_config_home()}; // temporary, replace w/ AppConfigLoc
+    static const auto client_file_path = client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
+    static const auto daemon_file_path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
+
+    assert(key.startsWith(daemon_root) || key.startsWith("client"));
+    return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
-std::unique_ptr<QSettings> persistent_settings()
+std::unique_ptr<QSettings> persistent_settings(const QString& key)
 {
-    static const auto file_path = QStringLiteral("%1/%2.%3") // make up our own file name to avoid org/domain in path
-                                      .arg(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)) // dir
-                                      .arg(QCoreApplication::applicationName())
-                                      .arg(file_extension);
-    static const auto format = QSettings::defaultFormat(); // static consts to make sure these stay fixed
+    return std::make_unique<QSettings>(file_for(key), QSettings::IniFormat); /* unique_ptr to circumvent absent
+                                                                  copy-ctor and no RVO guarantee (until C++17) */
+}
 
-    return std::make_unique<QSettings>(file_path, format); /* unique_ptr to circumvent absent copy-ctor and no RVO
-                                                              guarantee (until C++17) */
+bool exists_but_unreadable(const QString& filename)
+{
+    std::ifstream stream;
+    stream.open(filename.toStdString(), std::ios_base::in);
+    return stream.fail() && errno && errno != ENOENT; /*
+        Note: QFile::error() not enough for us: it would not distinguish the actual cause of failure;
+        Note: errno is only set on some platforms, but those were experimentally verified to be the only ones that do
+            not set a bad QSettings status on permission denied; to make this code portable, we need to account for a
+            zero errno on the remaining platforms */
 }
 
 void check_status(const QSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
-    if (status)
-        throw mp::PersistentSettingsException{attempted_operation, status == QSettings::AccessError
-                                                                       ? QStringLiteral("access")
-                                                                       : QStringLiteral("format")};
+    if (status || exists_but_unreadable(settings.fileName()))
+        throw mp::PersistentSettingsException{
+            attempted_operation, status == QSettings::FormatError
+                                     ? QStringLiteral("format error")
+                                     : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
 QString checked_get(QSettings& settings, const QString& key, const QString& fallback)
@@ -72,7 +106,7 @@ void checked_set(QSettings& settings, const QString& key, const QString& val)
     settings.setValue(key, val);
 
     settings.sync(); // flush to confirm we can write
-    check_status(settings, QStringLiteral("write"));
+    check_status(settings, QStringLiteral("read/write"));
 }
 
 } // namespace
@@ -86,7 +120,7 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
 QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
-    return checked_get(*persistent_settings(), key, default_ret);
+    return checked_get(*persistent_settings(key), key, default_ret);
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
@@ -94,7 +128,9 @@ void mp::Settings::set(const QString& key, const QString& val)
     get_default(key); // make sure the key is valid before setting
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
-    checked_set(*persistent_settings(), key, val);
+    else if (key == driver_key && !mp::platform::is_backend_supported(val))
+        throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
+    checked_set(*persistent_settings(key), key, val);
 }
 
 const QString& mp::Settings::get_default(const QString& key) const
@@ -107,4 +143,9 @@ const QString& mp::Settings::get_default(const QString& key) const
     {
         throw InvalidSettingsException{key};
     }
+}
+
+QString mp::Settings::get_daemon_settings_file_path() // temporary
+{
+    return file_for(daemon_root);
 }

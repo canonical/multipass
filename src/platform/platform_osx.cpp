@@ -15,7 +15,10 @@
  *
  */
 
+#include <multipass/constants.h>
+#include <multipass/format.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
@@ -23,8 +26,10 @@
 #include "platform_proprietary.h"
 #include <github_update_prompt.h>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QString>
+#include <QtGlobal>
 
 #include <unistd.h>
 
@@ -35,13 +40,31 @@ std::string mp::platform::default_server_address()
     return {"unix:/var/run/multipass_socket"};
 }
 
+QString mp::platform::default_driver()
+{
+    return QStringLiteral("hyperkit");
+}
+
+QString mp::platform::daemon_config_home() // temporary
+{
+    auto ret = QStringLiteral("/var/root/Library/Preferences/");
+    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
+
+    return ret;
+}
+
+bool mp::platform::is_backend_supported(const QString& backend)
+{
+    return backend == "hyperkit" || backend == "virtualbox";
+}
+
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+    auto driver = utils::get_driver_str();
 
-    if (driver.isEmpty() || driver == "HYPERKIT")
+    if (driver == QStringLiteral("hyperkit"))
         return std::make_unique<HyperkitVirtualMachineFactory>();
-    else if (driver == "VIRTUALBOX")
+    else if (driver == QStringLiteral("virtualbox"))
     {
         qputenv("PATH", qgetenv("PATH") + ":/usr/local/bin"); /*
           This is where the Virtualbox installer puts things, and relying on PATH
@@ -52,7 +75,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         return std::make_unique<VirtualBoxVirtualMachineFactory>();
     }
 
-    throw std::runtime_error("Invalid virtualization driver set in the environment");
+    throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

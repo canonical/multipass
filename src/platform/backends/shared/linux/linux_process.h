@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_LINUXPROCESS_H
 #define MULTIPASS_LINUXPROCESS_H
 
-#include <multipass/process.h>
 #include "process_spec.h"
 #include <QProcess>
 #include <memory>
+#include <multipass/process.h>
 
 namespace multipass
 {
@@ -37,10 +37,10 @@ public:
     QString working_directory() const override;
     QProcessEnvironment process_environment() const override;
 
-    void start(const QStringList& extra_arguments = QStringList()) override;
+    void start() override;
     void kill() override;
 
-    bool wait_for_started(int msecs = 30000) override; // return false if process fails to start
+    bool wait_for_started(int msecs = 30000) override;  // return false if process fails to start
     bool wait_for_finished(int msecs = 30000) override; // return false if wait times-out, or process never started
 
     bool running() const override;
@@ -48,10 +48,10 @@ public:
     QByteArray read_all_standard_output() override;
     QByteArray read_all_standard_error() override;
 
-    qint64 write(const QByteArray &data) override;
+    qint64 write(const QByteArray& data) override;
 
-    bool run_and_return_status(const QStringList& extra_arguments = QStringList(), const int timeout = 30000) override;
-    QString run_and_return_output(const QStringList& extra_arguments = QStringList(), const int timeout = 30000) override;
+    bool run_and_return_status(const int timeout = 30000) override;
+    QString run_and_return_output(const int timeout = 30000) override;
 
 protected:
     LinuxProcess(std::unique_ptr<ProcessSpec>&& spec);
@@ -60,7 +60,7 @@ protected:
     QProcess process; // ease testing
 
 private:
-    void run_and_wait_until_finished(const QStringList& extra_arguments, const int timeout);
+    void run_and_wait_until_finished(const int timeout);
 };
 
 } // namespace multipass

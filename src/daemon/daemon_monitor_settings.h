@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,12 @@
  *
  */
 
-#ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-#define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-
-#include "process_spec.h"
+#ifndef MULTIPASS_DAEMON_MONITOR_SETTINGS_H
+#define MULTIPASS_DAEMON_MONITOR_SETTINGS_H
 
 namespace multipass
 {
+void monitor_and_quit_on_settings_change(); // temporary
+}
 
-class QemuImgProcessSpec : public ProcessSpec
-{
-public:
-    explicit QemuImgProcessSpec(const QStringList& args);
-
-    QString program() const override;
-    QStringList arguments() const override;
-
-private:
-    const QStringList args;
-};
-
-} // namespace multipass
-
-#endif // MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#endif // MULTIPASS_DAEMON_MONITOR_SETTINGS_H

@@ -15,7 +15,9 @@
  *
  */
 
+#include <multipass/constants.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
@@ -24,7 +26,9 @@
 #include "platform_proprietary.h"
 #include <github_update_prompt.h>
 
+#include <QDir>
 #include <QFile>
+#include <QtGlobal>
 
 #include <windows.h>
 
@@ -74,13 +78,36 @@ std::string mp::platform::default_server_address()
     return {"localhost:50051"};
 }
 
+QString mp::platform::default_driver()
+{
+    return QStringLiteral("hyperv");
+}
+
+QString mp::platform::daemon_config_home() // temporary
+{
+    auto ret = QString{qgetenv("SYSTEMROOT")};
+    ret = QDir{ret}.absoluteFilePath("system32");
+    ret = QDir{ret}.absoluteFilePath("config");
+    ret = QDir{ret}.absoluteFilePath("systemprofile");
+    ret = QDir{ret}.absoluteFilePath("AppData");
+    ret = QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
+    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
+
+    return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
+}
+
+bool mp::platform::is_backend_supported(const QString& backend)
+{
+    return backend == "hyperv" || backend == "virtualbox";
+}
+
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
 {
-    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+    const auto driver = utils::get_driver_str();
 
-    if (driver.isEmpty() || driver == "HYPERV")
+    if (driver == QStringLiteral("hyperv"))
         return std::make_unique<HyperVVirtualMachineFactory>();
-    else if (driver == "VIRTUALBOX")
+    else if (driver == QStringLiteral("virtualbox"))
     {
         qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
           This is where the Virtualbox installer puts things, and relying on PATH

@@ -18,13 +18,15 @@
 #include "cli.h"
 #include "daemon.h"
 #include "daemon_config.h"
+#include "daemon_monitor_settings.h" // temporary
 
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <QCoreApplication>
 
@@ -246,6 +248,7 @@ void control_handler(DWORD control)
 int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
 {
     QCoreApplication app(argc, argv);
+    QCoreApplication::setApplicationName(mp::daemon_name);
     QCoreApplication::setApplicationVersion(mp::version_string);
 
     if (register_console == RegisterConsoleHandler::yes)
@@ -253,11 +256,13 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
 
     auto builder = mp::cli::parse(app);
     auto config = builder.build();
+
+    mp::monitor_and_quit_on_settings_change(); // temporary
     mp::Daemon daemon(std::move(config));
 
-    QCoreApplication::exec();
+    auto ret = QCoreApplication::exec();
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
-    return EXIT_SUCCESS;
+    return ret;
 }
 
 void service_main(DWORD argc, char* argv[]) // clang-format off

@@ -30,6 +30,27 @@ public:
     {
     }
 };
+
+class SimpleProcessSpec : public mp::ProcessSpec
+{
+public:
+    SimpleProcessSpec(const QString& cmd, const QStringList& args) : cmd{cmd}, args{args}
+    {
+    }
+
+    QString program() const override
+    {
+        return cmd;
+    }
+    QStringList arguments() const override
+    {
+        return args;
+    }
+
+private:
+    const QString cmd;
+    const QStringList args;
+};
 } // namespace
 
 mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass& pass)
@@ -41,4 +62,10 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
 std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
 {
     return std::make_unique<UnsecuredProcess>(std::move(process_spec));
+}
+
+std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(const QString& command,
+                                                                const QStringList& arguments) const
+{
+    return create_process(std::make_unique<SimpleProcessSpec>(command, arguments));
 }
