@@ -55,10 +55,16 @@ public:
     {
         emit started();
     }
-    void kill() override
+    void terminate() override
     {
         mp::ProcessState exit_state;
         exit_state.exit_code = 0;
+        emit finished(exit_state);
+    }
+    void kill() override
+    {
+        mp::ProcessState exit_state;
+        exit_state.error->state = QProcess::Crashed;
         emit finished(exit_state);
     }
 

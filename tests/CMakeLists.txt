@@ -125,7 +125,9 @@ add_executable(multipass_tests
   test_sftp_client.cpp
   test_sftpserver.cpp
   test_ssl_cert_provider.cpp
+  test_sshfs_server_process_spec.cpp
   test_sshfsmount.cpp
+  test_sshfsmounts.cpp
   test_ssh_client.cpp
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
