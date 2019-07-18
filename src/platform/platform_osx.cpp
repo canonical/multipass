@@ -102,6 +102,12 @@ bool mp::platform::link(const char* target, const char* link)
 
 bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
+    auto driver = utils::get_driver_str();
+
+    // Minimal images that the snapcraft remote uses do not work with VirtualBox
+    if (driver == "virtualbox" && remote == "snapcraft")
+        return false;
+
     if (remote.empty() && alias == "core")
         return false;
 
@@ -142,9 +148,9 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 
 bool mp::platform::is_image_url_supported()
 {
-    auto driver = qgetenv("MULTIPASS_VM_DRIVER");
+    auto driver = utils::get_driver_str();
 
-    if (driver == "VIRTUALBOX")
+    if (driver == "virtualbox")
         return check_unlock_code();
 
     return false;
