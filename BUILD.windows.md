@@ -31,13 +31,13 @@ yasm is another assembler that works and will only output a warning on these opt
 You may need to clean your build directory and run cmake again to pick up the yasm assembler path.
 
 ### Qt5
-Install the latest stable version of Qt5 (5.11.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
+Install the latest stable version of Qt5 (5.12.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
 
 In the online installer, under Qt, select MSVC 2017 64-bit.
 
 If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
 
-Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt5_5124/qt.qt5.5124.win64_msvc2017_64/5.12.4-0-201906140149qtbase-Windows-Windows_10-MSVC2017-Windows-Windows_10-X86_64.7z) and extract it to `C:\Qt\5.11.4`.
+Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt5_5124/qt.qt5.5124.win64_msvc2017_64/5.12.4-0-201906140149qtbase-Windows-Windows_10-MSVC2017-Windows-Windows_10-X86_64.7z) and extract it to `C:\Qt\5.12.4`.
 
 ### OpenSSL
 Qt needs OpenSSL for doing https connections.
@@ -54,7 +54,7 @@ You'll have to manually add CMake and Qt to your account's PATH variable.
 Search for "Edit environment variables for your account" then edit your Path variable.
 Add the following:
      `C:\Program Files\CMake\bin`
-     `C:\Qt\5.11.4\msvc2017_64\bin`
+     `C:\Qt\5.12.4\msvc2017_64\bin`
 
 ### Cmder setup
 Cmder is a sane terminal emulator for windows, which includes git and SSH support among other things.
