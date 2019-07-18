@@ -160,6 +160,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     {
         qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path});
+        qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
 
         qemuimg_process->run_and_return_status(-1);
         return qcow2_path;
