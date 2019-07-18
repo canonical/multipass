@@ -74,7 +74,7 @@ auto instance_state_for(const QString& name)
         {
             return mp::VirtualMachine::State::suspended;
         }
-        else if (state == "poweroff")
+        else if (state == "poweroff" || state == "aborted")
         {
             return mp::VirtualMachine::State::stopped;
         }
