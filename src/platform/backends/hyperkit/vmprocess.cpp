@@ -191,7 +191,15 @@ void mp::VMProcess::start(const VirtualMachineDescription& desc)
     connect(vm_process.get(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
             [this](int exitCode, QProcess::ExitStatus exitStatus) {
                 mpl::log(mpl::Level::info, vm_name, fmt::format("process finished with exit code {}", exitCode));
-                emit stopped(exitCode != QProcess::NormalExit);
+                if (exitCode == 2) // Hyperkit returning 2 indicates a reboot was requested
+                {
+                    mpl::log(mpl::Level::info, vm_name, "Rebooting");
+                    vm_process->start();
+                }
+                else
+                {
+                    emit stopped(exitCode != QProcess::NormalExit);
+                }
             });
 
     connect(vm_process.get(), &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
