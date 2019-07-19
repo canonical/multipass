@@ -83,6 +83,7 @@ void mp::HyperkitVirtualMachine::stop()
     {
         QMetaObject::invokeMethod(vm_process.get(), "stop");
         thread.wait(20000);
+        update_state();
     }
 }
 

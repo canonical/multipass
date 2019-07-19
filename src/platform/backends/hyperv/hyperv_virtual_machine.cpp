@@ -156,6 +156,7 @@ void mp::HyperVVirtualMachine::stop()
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
 
+    update_state();
     lock.unlock();
 }
 
