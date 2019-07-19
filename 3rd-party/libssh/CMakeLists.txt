@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,8 +11,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 set(WITH_ZLIB FALSE)
 set(WITH_EXAMPLES FALSE)
@@ -68,6 +66,13 @@ if (NOT LIBRARY_SOVERSION)
 endif()
 
 message(STATUS "  Found ${LIBRARY_VERSION}, ${LIBRARY_SOVERSION}")
+
+file(STRINGS libssh/src/connector.c CHUNKSIZE REGEX "#define CHUNKSIZE 4096")
+if (CHUNKSIZE)
+    message(STATUS "Patching libssh connector CHUNKSIZE to 65536 bytes")
+    execute_process(COMMAND git apply ${CMAKE_SOURCE_DIR}/3rd-party/libssh/libssh-connector-chunksize.patch
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/3rd-party/libssh/libssh)
+endif()
 
 # We bypass the main CMake file to avoid various package checks which are satisfied manually
 # through the configuration above.

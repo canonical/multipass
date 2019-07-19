@@ -1,0 +1,13 @@
+diff --git a/src/connector.c b/src/connector.c
+index c4f6af54..5dacc4c7 100644
+--- a/src/connector.c
++++ b/src/connector.c
+@@ -30,7 +30,7 @@
+ #include <stdbool.h>
+ #include <sys/stat.h>
+ 
+-#define CHUNKSIZE 4096
++#define CHUNKSIZE 65536
+ 
+ #ifdef _WIN32
+ # ifdef HAVE_IO_H
