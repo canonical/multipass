@@ -51,10 +51,12 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
                 auto on_success = [this](ListReply& reply) {
                     for (const auto& instance : reply.instances())
                     {
-                        if (instance.instance_status().status() != mp::InstanceStatus::STOPPED)
+                        if (instance.instance_status().status() != mp::InstanceStatus::STOPPED &&
+                            instance.instance_status().status() != mp::InstanceStatus::DELETED)
                         {
                             cerr << "All instances need to be stopped.\n";
-                            cerr << "Please save any data and stop the instances before proceeding:\n\n";
+                            cerr << "If you have any suspended instances, please start them first,\n";
+                            cerr << "save any data and stop all instances before proceeding:\n\n";
                             cerr << "multipass stop --all\n";
                             return ReturnCode::CommandFail;
                         }
