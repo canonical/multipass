@@ -40,8 +40,12 @@ TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
     mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
 
     EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
-                                             "-hda",
-                                             "/path/to/image",
+                                             "-device",
+                                             "virtio-scsi-pci,id=scsi0",
+                                             "-drive",
+                                             "file=/path/to/image,if=none,format=qcow2,discard=unmap,id=hda",
+                                             "-device",
+                                             "scsi-hd,drive=hda,bus=scsi0.0",
                                              "-smp",
                                              "2",
                                              "-m",

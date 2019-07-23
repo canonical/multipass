@@ -125,7 +125,11 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
         args << "--enable-kvm";
         // The VM image itself
-        args << "-hda" << desc.image.image_path;
+        args << "-device"
+             << "virtio-scsi-pci,id=scsi0"
+             << "-drive" << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda").arg(desc.image.image_path)
+             << "-device"
+             << "scsi-hd,drive=hda,bus=scsi0.0";
         // Number of cpu cores
         args << "-smp" << QString::number(desc.num_cores);
         // Memory to use for VM
