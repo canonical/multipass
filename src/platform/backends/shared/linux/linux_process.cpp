@@ -17,13 +17,23 @@
 
 #include "linux_process.h"
 #include "process_spec.h"
+#include <QProcess>
 
 #include <multipass/logging/log.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}
+mp::LinuxProcess::CustomQProcess::CustomQProcess(LinuxProcess* p) : p{p}
+{
+}
+
+void mp::LinuxProcess::CustomQProcess::setupChildProcess()
+{
+    p->setup_child_process();
+}
+
+mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}, process{this}
 {
     connect(&process, &QProcess::started, this, &mp::Process::started);
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
@@ -56,6 +66,8 @@ mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : proces
                  qPrintable(process.readAllStandardError()));
     });
 }
+
+mp::LinuxProcess::~LinuxProcess() = default;
 
 QString mp::LinuxProcess::program() const
 {
@@ -143,7 +155,8 @@ mp::ProcessState mp::LinuxProcess::execute(const int timeout)
     mp::ProcessState exit_state;
     start();
 
-    if (!process.waitForFinished(timeout) || process.exitStatus() != QProcess::NormalExit)
+    if (!process.waitForStarted(timeout) || !process.waitForFinished(timeout) ||
+        process.exitStatus() != QProcess::NormalExit)
     {
         mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(process.errorString()));
         exit_state.error = mp::ProcessState::Error{process.error(), process.errorString()};
@@ -152,4 +165,8 @@ mp::ProcessState mp::LinuxProcess::execute(const int timeout)
 
     exit_state.exit_code = process.exitCode();
     return exit_state;
+}
+
+void mp::LinuxProcess::setup_child_process()
+{
 }

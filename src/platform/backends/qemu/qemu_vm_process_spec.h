@@ -46,6 +46,9 @@ public:
     QStringList arguments() const override;
     QString working_directory() const override;
 
+    QString apparmor_profile() const override;
+    QString identifier() const override;
+
 private:
     const VirtualMachineDescription desc;
     const QString tap_device_name;

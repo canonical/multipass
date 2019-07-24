@@ -167,3 +167,103 @@ QString mp::QemuVMProcessSpec::working_directory() const
         return mu::snap_dir().append("/qemu");
     return QString();
 }
+
+QString mp::QemuVMProcessSpec::apparmor_profile() const
+{
+    // Following profile is based on /etc/apparmor.d/abstractions/libvirt-qemu
+    QString profile_template(R"END(
+#include <tunables/global>
+profile %1 flags=(attach_disconnected) {
+  #include <abstractions/base>
+  #include <abstractions/consoles>
+  #include <abstractions/nameservice>
+
+  # required for reading disk images
+  capability dac_override,
+  capability dac_read_search,
+  capability chown,
+
+  # needed to drop privileges
+  capability setgid,
+  capability setuid,
+
+  network inet stream,
+  network inet6 stream,
+
+  # Allow multipassd send qemu signals
+  signal (receive) peer=%2,
+
+  /dev/net/tun rw,
+  /dev/kvm rw,
+  /dev/ptmx rw,
+  /dev/kqemu rw,
+  @{PROC}/*/status r,
+  # When qemu is signaled to terminate, it will read cmdline of signaling
+  # process for reporting purposes. Allowing read access to a process
+  # cmdline may leak sensitive information embedded in the cmdline.
+  @{PROC}/@{pid}/cmdline r,
+  # Per man(5) proc, the kernel enforces that a thread may
+  # only modify its comm value or those in its thread group.
+  owner @{PROC}/@{pid}/task/@{tid}/comm rw,
+  @{PROC}/sys/kernel/cap_last_cap r,
+  owner @{PROC}/*/auxv r,
+  @{PROC}/sys/vm/overcommit_memory r,
+
+  # access to firmware's etc (selectively chosen for multipass' usage)
+  %3 r,
+
+  # for save and resume
+  /{usr/,}bin/dash rmix,
+  /{usr/,}bin/dd rmix,
+  /{usr/,}bin/cat rmix,
+
+  # for restore
+  /{usr/,}bin/bash rmix,
+
+  # for file-posix getting limits since 9103f1ce
+  /sys/devices/**/block/*/queue/max_segments r,
+
+  # for gathering information about available host resources
+  /sys/devices/system/cpu/ r,
+  /sys/devices/system/node/ r,
+  /sys/devices/system/node/node[0-9]*/meminfo r,
+  /sys/module/vhost/parameters/max_mem_regions r,
+
+  # binary and its libs
+  %4/usr/bin/%5 ixr,
+  %4/{,usr/}lib/{,@{multiarch}/}{,**/}*.so* rm,
+
+  # CLASSIC ONLY: need to specify required libs from core snap
+  /snap/core/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
+
+  # Disk images
+  %6 rwk,  # QCow2 filesystem image
+  %7 rk,   # cloud-init ISO
+}
+    )END");
+
+    /* Customisations depending on if running inside snap or not */
+    QString root_dir;    // root directory: either "" or $SNAP
+    QString signal_peer; // who can send kill signal to qemu
+    QString firmware;    // location of bootloader firmware needed by qemu
+
+    if (mu::is_snap())
+    {
+        root_dir = mu::snap_dir();
+        signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
+        firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
+    }
+    else
+    {
+        signal_peer = "unconfined";
+        firmware = "/usr/share/seabios/*";
+    }
+
+    return profile_template.arg(apparmor_profile_name(), signal_peer, firmware, root_dir, program(),
+                                desc.image.image_path, desc.cloud_init_iso);
+}
+
+QString mp::QemuVMProcessSpec::identifier() const
+{
+    return QString::fromStdString(desc.vm_name);
+}

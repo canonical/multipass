@@ -205,9 +205,13 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
 mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
-    const auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
+    auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
 
     create_virtual_switch(subnet, bridge_name);
+    if (subnet.empty()) // if bridge didn't exist, need to get subnet again
+    {
+        subnet = mp::backend::get_subnet(network_dir, bridge_name);
+    }
     set_ip_forward();
     set_nat_iptables(subnet, bridge_name);
 
@@ -284,11 +288,11 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     auto process =
         mp::ProcessFactory::instance().create_process("qemu-system-" + mp::backend::cpu_arch(), {"--version"});
 
-    auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
     auto exit_state = process->execute();
 
     if (exit_state.completed_successfully())
     {
+        auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
         auto match = version_re.match(process->read_all_standard_output());
 
         if (match.hasMatch())
@@ -296,17 +300,24 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
         else
         {
             mpl::log(mpl::Level::error, "daemon",
-                     fmt::format("Failed to parse QEMU version out:\n{}", process->read_all_standard_output()));
+                     fmt::format("Failed to parse QEMU version out: '{}'", process->read_all_standard_output()));
             return QString("qemu-unknown");
         }
     }
-
-    if (exit_state.error)
-        mpl::log(mpl::Level::error, "daemon",
-                 fmt::format("Failed to determine QEMU version (exec error):\n{}", exit_state.error->message));
     else
-        mpl::log(mpl::Level::error, "daemon",
-                 fmt::format("Failed to determine QEMU version (process error):\n{}{}",
-                             process->read_all_standard_output(), process->read_all_standard_error()));
+    {
+        if (exit_state.error)
+        {
+            mpl::log(mpl::Level::error, "daemon",
+                     fmt::format("Qemu failed to start: {}", exit_state.failure_message()));
+        }
+        else if (exit_state.exit_code)
+        {
+            mpl::log(mpl::Level::error, "daemon",
+                     fmt::format("Qemu fail: '{}' with outputs:\n{}\n{}", exit_state.failure_message(),
+                                 process->read_all_standard_output(), process->read_all_standard_error()));
+        }
+    }
+
     return QString("qemu-unknown");
 }

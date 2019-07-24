@@ -21,6 +21,14 @@ architectures:
 - build-on: arm64
   run-on: arm64
 
+layout:
+  /usr/lib/x86_64-linux-gnu/qemu:
+    bind: $SNAP/usr/lib/x86_64-linux-gnu/qemu
+  /usr/lib/arm-linux-gnueabihf/qemu:
+    bind: $SNAP/usr/lib/arm-linux-gnueabihf/qemu
+  /usr/lib/aarch64-linux-gnu/qemu:
+    bind: $SNAP/usr/lib/aarch64-linux-gnu/qemu
+
 apps:
   multipassd:
     command: bin/launch-multipassd
@@ -149,9 +157,9 @@ parts:
   libssl11:
     plugin: dump
     source:
-    - on amd64: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_amd64.deb
-    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_armhf.deb
-    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4.3_arm64.deb
+    - on amd64: http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4_amd64.deb
+    - on armhf: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4_armhf.deb
+    - on arm64: http://ports.ubuntu.com/ubuntu-ports/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4_arm64.deb
 
   libharfbuzz0b:
     plugin: dump
@@ -198,6 +206,7 @@ parts:
     - cmake-extras
     - git
     - golang
+    - libapparmor-dev
     - libsystemd-dev
     - libvirt-dev
     - pkg-config
