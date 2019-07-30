@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,12 @@
 #include <multipass/sshfs_mount/sftp_server.h>
 
 #include <multipass/cli/client_platform.h>
+#include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
+#include <multipass/utils.h>
 
 #include <multipass/format.h>
 
@@ -36,6 +38,7 @@ namespace
 {
 constexpr auto category = "sftp server";
 using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
+using namespace std::literals::chrono_literals;
 
 enum Permissions
 {
@@ -225,19 +228,50 @@ auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::u
         return entry->second.get();
     return nullptr;
 }
+
+void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
+{
+    try
+    {
+        if (sshfs_process.exit_code(250ms) != 0)
+            throw std::runtime_error(sshfs_process.read_std_error());
+    }
+    catch (const mp::ExitlessSSHProcessException&)
+    {
+        // Timeout getting exit status; assume sshfs is running in the instance
+    }
+}
+
+auto create_sshfs_process(mp::SSHSession& session, const std::string& source, const std::string& target)
+{
+    auto sshfs_process = session.exec(fmt::format(
+        "sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :\"{}\" \"{}\"", source, target));
+
+    check_sshfs_status(session, sshfs_process);
+
+    return std::make_unique<mp::SSHProcess>(std::move(sshfs_process));
+}
 } // namespace
 
-mp::SftpServer::SftpServer(SSHSession&& session, SSHProcess&& sshfs_proc, const std::string& source,
+mp::SftpServer::SftpServer(SSHSession&& session, const std::string& source, const std::string& target,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
                            int default_uid, int default_gid)
     : ssh_session{std::move(session)},
-      sftp_server_session{make_sftp_session(ssh_session, sshfs_proc.release_channel())},
+      sshfs_process{
+          create_sshfs_process(ssh_session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'))},
+      sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{source},
+      target_path{target},
       gid_map{gid_map},
       uid_map{uid_map},
       default_uid{default_uid},
       default_gid{default_gid}
 {
+}
+
+mp::SftpServer::~SftpServer()
+{
+    stop_invoked = true;
 }
 
 sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
@@ -375,7 +409,42 @@ void mp::SftpServer::run()
         MsgUPtr client_msg{sftp_get_client_message(sftp_server_session.get()), sftp_client_message_free};
         auto msg = client_msg.get();
         if (msg == nullptr)
-            break;
+        {
+            if (stop_invoked)
+                break;
+
+            int status{0};
+            try
+            {
+                status = sshfs_process->exit_code(250ms);
+            }
+            catch (const mp::ExitlessSSHProcessException& e)
+            {
+                status = 1;
+            }
+
+            if (status != 0)
+            {
+                mpl::log(mpl::Level::error, category,
+                         "sshfs in the instance appears to have exited unexpectedly.  Trying to recover.");
+                auto proc = ssh_session.exec(fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
+                auto mount_path = proc.read_std_output();
+                if (!mount_path.empty())
+                {
+                    ssh_session.exec(fmt::format("sudo umount {}", mount_path));
+                }
+
+                sshfs_process = create_sshfs_process(ssh_session, mp::utils::escape_char(source_path, '"'),
+                                                     mp::utils::escape_char(target_path, '"'));
+                sftp_server_session = make_sftp_session(ssh_session, sshfs_process->release_channel());
+
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
 
         process_message(msg);
     }
@@ -383,6 +452,7 @@ void mp::SftpServer::run()
 
 void mp::SftpServer::stop()
 {
+    stop_invoked = true;
     ssh_session.force_shutdown();
 }
 
