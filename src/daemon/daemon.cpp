@@ -512,6 +512,18 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ope
     return std::make_tuple(operational_instances_to_delete, trashed_instances_to_delete, status);
 }
 
+template <typename Instances>
+auto instances_running(const Instances& instances)
+{
+    for (const auto& instance : instances)
+    {
+        if (mp::utils::is_running(instance.second->current_state()))
+            return true;
+    }
+
+    return false;
+}
+
 mp::SSHProcess exec_and_log(mp::SSHSession& session, const std::string& cmd)
 {
     mpl::log(mpl::Level::debug, category, fmt::format("Executing {}.", cmd));
@@ -1374,7 +1386,8 @@ try // clang-format on
 {
     mpl::ClientLogger<StartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    config->factory->check_hypervisor_support();
+    if (!instances_running(vm_instances))
+        config->factory->hypervisor_health_check();
 
     mp::StartError start_error;
     auto* errors = start_error.mutable_instance_errors();
@@ -1882,7 +1895,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                                       create_error.SerializeAsString()));
     }
 
-    config->factory->check_hypervisor_support();
+    if (!instances_running(vm_instances))
+        config->factory->hypervisor_health_check();
 
     preparing_instances.insert(name);
 

@@ -57,7 +57,7 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
     {
     }
 
-    void check_hypervisor_support() override
+    void hypervisor_health_check() override
     {
     }
 

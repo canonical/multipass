@@ -50,7 +50,7 @@ public:
     virtual VMImage prepare_source_image(const VMImage& source_image) = 0;
     virtual void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) = 0;
     virtual void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) = 0;
-    virtual void check_hypervisor_support() = 0;
+    virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() = 0;
     virtual QString get_backend_version_string() = 0;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -142,7 +142,7 @@ void mp::LibVirtVirtualMachineFactory::configure(const std::string& /*name*/, YA
 {
 }
 
-void mp::LibVirtVirtualMachineFactory::check_hypervisor_support()
+void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
 {
     mp::backend::check_hypervisor_support();
 }
