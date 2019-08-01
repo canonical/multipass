@@ -57,6 +57,17 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace YAML
+{
+void PrintTo(const YAML::Node& node, ::std::ostream* os)
+{
+    YAML::Emitter emitter;
+    emitter.SetIndent(4);
+    emitter << node;
+    *os << "\n" << emitter.c_str();
+}
+} // namespace YAML
+
 namespace
 {
 template<typename R>
@@ -508,6 +519,27 @@ MATCHER_P(YAMLNodeContainsSequence, key, "")
     return arg[key].IsSequence();
 }
 
+MATCHER_P(YAMLSequenceContainsStringMap, values, "")
+{
+    if (!arg.IsSequence())
+    {
+        return false;
+    }
+    for (const auto& node : arg)
+    {
+        if (node.size() != values.size())
+            continue;
+        for (auto it = values.cbegin();; ++it)
+        {
+            if (node[it->first].template as<std::string>() != it->second)
+                break;
+            else if (it == values.cend())
+                return true;
+        }
+    }
+    return false;
+}
+
 TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -558,6 +590,31 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
             auto const& ssh_keys_stanza = user_config["ssh_authorized_keys"];
             EXPECT_THAT(ssh_keys_stanza, YAMLNodeContainsSubString(expected_key));
         }));
+
+    send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_config)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    std::vector<std::pair<std::string, std::string>> const& expected_pollinate_map{
+        {"path", "/etc/pollinate/add-user-agent"},
+        {"content", fmt::format("multipass/version/{} # written by Multipass", multipass::version_string)},
+    };
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, configure(_, _, _))
+        .WillOnce(Invoke(
+            [&expected_pollinate_map](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
+                EXPECT_THAT(user_config, YAMLNodeContainsSequence("write_files"));
+
+                if (user_config["write_files"])
+                {
+                    auto const& write_stanza = user_config["write_files"];
+
+                    EXPECT_THAT(write_stanza, YAMLSequenceContainsStringMap(expected_pollinate_map));
+                }
+            }));
 
     send_command({GetParam()});
 }
