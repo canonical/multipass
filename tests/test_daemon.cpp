@@ -519,6 +519,27 @@ MATCHER_P(YAMLNodeContainsSequence, key, "")
     return arg[key].IsSequence();
 }
 
+MATCHER_P(YAMLSequenceContainsStringMap, values, "")
+{
+    if (!arg.IsSequence())
+    {
+        return false;
+    }
+    for (const auto& node : arg)
+    {
+        if (node.size() != values.size())
+            continue;
+        for (auto it = values.cbegin();; ++it)
+        {
+            if (node[it->first].template as<std::string>() != it->second)
+                break;
+            else if (it == values.cend())
+                return true;
+        }
+    }
+    return false;
+}
+
 TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
 {
     auto mock_factory = use_a_mock_vm_factory();
