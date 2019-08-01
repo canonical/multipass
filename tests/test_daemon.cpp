@@ -594,6 +594,31 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
     send_command({GetParam()});
 }
 
+TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_config)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    std::vector<std::pair<std::string, std::string>> const& expected_pollinate_map{
+        {"path", "/etc/pollinate/add-user-agent"},
+        {"content", fmt::format("multipass/version/{} # written by Multipass", multipass::version_string)},
+    };
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, configure(_, _, _))
+        .WillOnce(Invoke(
+            [&expected_pollinate_map](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
+                EXPECT_THAT(user_config, YAMLNodeContainsSequence("write_files"));
+
+                if (user_config["write_files"])
+                {
+                    auto const& write_stanza = user_config["write_files"];
+
+                    EXPECT_THAT(write_stanza, YAMLSequenceContainsStringMap(expected_pollinate_map));
+                }
+            }));
+
+    send_command({GetParam()});
+}
+
 TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
 {
     auto mock_factory = use_a_mock_vm_factory();

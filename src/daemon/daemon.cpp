@@ -108,6 +108,13 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     config["timezone"] = time_zone;
     config["system_info"]["default_user"]["name"] = username;
 
+    YAML::Node pollinate_user_agent_node;
+    pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
+    pollinate_user_agent_node["content"] =
+        fmt::format("multipass/version/{} # written by Multipass", multipass::version_string);
+
+    config["write_files"].push_back(pollinate_user_agent_node);
+
     return config;
 }
 
