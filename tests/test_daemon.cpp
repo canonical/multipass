@@ -57,6 +57,17 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace YAML
+{
+void PrintTo(const YAML::Node& node, ::std::ostream* os)
+{
+    YAML::Emitter emitter;
+    emitter.SetIndent(4);
+    emitter << node;
+    *os << "\n" << emitter.c_str();
+}
+} // namespace YAML
+
 namespace
 {
 template<typename R>
