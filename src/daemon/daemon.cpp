@@ -556,6 +556,30 @@ QStringList filter_unsupported_aliases(const QStringList& aliases, const std::st
     return supported_aliases;
 }
 
+mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::State& state)
+{
+    switch (state)
+    {
+    case mp::VirtualMachine::State::off:
+    case mp::VirtualMachine::State::stopped:
+        return mp::InstanceStatus::STOPPED;
+    case mp::VirtualMachine::State::starting:
+        return mp::InstanceStatus::STARTING;
+    case mp::VirtualMachine::State::restarting:
+        return mp::InstanceStatus::RESTARTING;
+    case mp::VirtualMachine::State::running:
+        return mp::InstanceStatus::RUNNING;
+    case mp::VirtualMachine::State::delayed_shutdown:
+        return mp::InstanceStatus::DELAYED_SHUTDOWN;
+    case mp::VirtualMachine::State::suspending:
+        return mp::InstanceStatus::SUSPENDING;
+    case mp::VirtualMachine::State::suspended:
+        return mp::InstanceStatus::SUSPENDED;
+    case mp::VirtualMachine::State::unknown:
+    default:
+        return mp::InstanceStatus::UNKNOWN;
+    }
+}
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -967,28 +991,7 @@ try // clang-format on
         }
         else
         {
-            auto status_for = [](mp::VirtualMachine::State state) {
-                switch (state)
-                {
-                case mp::VirtualMachine::State::starting:
-                    return mp::InstanceStatus::STARTING;
-                case mp::VirtualMachine::State::restarting:
-                    return mp::InstanceStatus::RESTARTING;
-                case mp::VirtualMachine::State::running:
-                    return mp::InstanceStatus::RUNNING;
-                case mp::VirtualMachine::State::delayed_shutdown:
-                    return mp::InstanceStatus::DELAYED_SHUTDOWN;
-                case mp::VirtualMachine::State::suspending:
-                    return mp::InstanceStatus::SUSPENDING;
-                case mp::VirtualMachine::State::suspended:
-                    return mp::InstanceStatus::SUSPENDED;
-                case mp::VirtualMachine::State::unknown:
-                    return mp::InstanceStatus::UNKNOWN;
-                default:
-                    return mp::InstanceStatus::STOPPED;
-                }
-            };
-            info->mutable_instance_status()->set_status(status_for(present_state));
+            info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1096,28 +1099,6 @@ try // clang-format on
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
-    auto status_for = [](mp::VirtualMachine::State state) {
-        switch (state)
-        {
-        case mp::VirtualMachine::State::starting:
-            return mp::InstanceStatus::STARTING;
-        case mp::VirtualMachine::State::restarting:
-            return mp::InstanceStatus::RESTARTING;
-        case mp::VirtualMachine::State::running:
-            return mp::InstanceStatus::RUNNING;
-        case mp::VirtualMachine::State::delayed_shutdown:
-            return mp::InstanceStatus::DELAYED_SHUTDOWN;
-        case mp::VirtualMachine::State::suspending:
-            return mp::InstanceStatus::SUSPENDING;
-        case mp::VirtualMachine::State::suspended:
-            return mp::InstanceStatus::SUSPENDED;
-        case mp::VirtualMachine::State::unknown:
-            return mp::InstanceStatus::UNKNOWN;
-        default:
-            return mp::InstanceStatus::STOPPED;
-        }
-    };
-
     for (const auto& instance : vm_instances)
     {
         const auto& name = instance.first;
@@ -1125,7 +1106,7 @@ try // clang-format on
         auto present_state = vm->current_state();
         auto entry = response.add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(status_for(present_state));
+        entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
