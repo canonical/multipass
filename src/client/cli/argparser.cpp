@@ -91,7 +91,7 @@ mp::ParseCode mp::ArgParser::parse()
     QCommandLineOption verbose_option({"v", "verbose"},
                                       "Increase logging verbosity, repeat up to three times for more detail");
     QCommandLineOption version_option({"V", "version"}, "Show version details");
-    version_option.setHidden(true);
+    version_option.setFlags(QCommandLineOption::HiddenFromHelp);
     parser.addOption(verbose_option);
     parser.addOption(version_option);
 
