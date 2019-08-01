@@ -275,7 +275,7 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& /*name*/, YAML:
 
 void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 {
-    mp::backend::check_hypervisor_support();
+    mp::backend::check_for_kvm_support();
 }
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()

@@ -144,7 +144,6 @@ void mp::LibVirtVirtualMachineFactory::configure(const std::string& /*name*/, YA
 
 void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
 {
-    mp::backend::check_hypervisor_support();
 }
 
 QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()

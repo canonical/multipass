@@ -117,23 +117,6 @@ std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& 
     return new_subnet;
 }
 
-void mp::backend::check_hypervisor_support()
-{
-    auto arch = QSysInfo::currentCpuArchitecture();
-    if (arch == "x86_64" || arch == "i386")
-    {
-        QProcess check_kvm;
-        check_kvm.setProcessChannelMode(QProcess::MergedChannels);
-        check_kvm.start("check_kvm_support");
-        check_kvm.waitForFinished();
-
-        if (check_kvm.exitCode() == 1)
-        {
-            throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
-        }
-    }
-}
-
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
@@ -197,4 +180,17 @@ QString mp::backend::cpu_arch()
                                               {"s390x", "s390x"}};
 
     return cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
+}
+
+void mp::backend::check_for_kvm_support()
+{
+    QProcess check_kvm;
+    check_kvm.setProcessChannelMode(QProcess::MergedChannels);
+    check_kvm.start("check_kvm_support");
+    check_kvm.waitForFinished();
+
+    if (check_kvm.exitCode() == 1)
+    {
+        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+    }
 }
