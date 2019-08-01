@@ -35,6 +35,7 @@ void resize_instance_image(const MemorySize& disk_space, const multipass::Path& 
 Path convert_to_qcow_if_necessary(const Path& image_path);
 QString cpu_arch();
 void check_for_kvm_support();
+void check_if_kvm_is_in_use();
 } // namespace backend
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H

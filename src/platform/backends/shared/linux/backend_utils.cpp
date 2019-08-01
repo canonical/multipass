@@ -35,6 +35,13 @@
 #include <exception>
 #include <random>
 
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/kvm.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -193,4 +200,18 @@ void mp::backend::check_for_kvm_support()
     {
         throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
     }
+}
+
+void mp::backend::check_if_kvm_is_in_use()
+{
+    auto kvm_fd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
+    auto ret = ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
+
+    close(kvm_fd);
+
+    if (ret == -1 && errno == EBUSY)
+        throw std::runtime_error(
+            "Another hypervisor is currently running. Please shut it down before starting a Multipass instance.");
+
+    close(ret);
 }
