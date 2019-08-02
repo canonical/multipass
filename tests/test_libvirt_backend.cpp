@@ -282,3 +282,10 @@ TEST_F(LibVirtBackend, machine_unknown_state_properly_shuts_down)
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
+
+TEST_F(LibVirtBackend, returns_version_string)
+{
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "libvirt");
+}

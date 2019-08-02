@@ -43,6 +43,10 @@ public:
     {
         return {};
     };
+    QString get_backend_version_string() override
+    {
+        return "qemu";
+    };
 
 private:
     const QString bridge_name;

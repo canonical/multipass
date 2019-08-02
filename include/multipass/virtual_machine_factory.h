@@ -52,6 +52,7 @@ public:
     virtual void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) = 0;
     virtual void check_hypervisor_support() = 0;
     virtual QString get_backend_directory_name() = 0;
+    virtual QString get_backend_version_string() = 0;
 
 protected:
     VirtualMachineFactory() = default;

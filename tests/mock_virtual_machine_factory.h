@@ -39,6 +39,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD3(configure, void(const std::string&, YAML::Node&, YAML::Node&));
     MOCK_METHOD0(check_hypervisor_support, void());
     MOCK_METHOD0(get_backend_directory_name, QString());
+    MOCK_METHOD0(get_backend_version_string, QString());
 };
 }
 }

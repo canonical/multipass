@@ -274,3 +274,10 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
     EXPECT_TRUE(qemu.arguments.contains("-hi_there"));
     EXPECT_TRUE(qemu.arguments.contains("-hows_it_going"));
 }
+
+TEST_F(QemuBackend, returns_version_string)
+{
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "qemu");
+}

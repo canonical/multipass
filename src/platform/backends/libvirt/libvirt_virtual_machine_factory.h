@@ -47,6 +47,10 @@ public:
     {
         return {};
     };
+    QString get_backend_version_string() override
+    {
+        return "libvirt";
+    };
 
 private:
     ConnectionUPtr connection;
