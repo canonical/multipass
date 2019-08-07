@@ -18,6 +18,7 @@
 #include "libvirt_virtual_machine_factory.h"
 #include "libvirt_virtual_machine.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <shared/linux/backend_utils.h>
@@ -25,10 +26,12 @@
 #include <multipass/format.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
 constexpr auto multipass_bridge_name = "mpvirtbr0";
+constexpr auto logging_category = "libvirt-factory";
 
 auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
 {
@@ -142,4 +145,21 @@ void mp::LibVirtVirtualMachineFactory::configure(const std::string& /*name*/, YA
 void mp::LibVirtVirtualMachineFactory::check_hypervisor_support()
 {
     mp::backend::check_hypervisor_support();
+}
+
+QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
+{
+    unsigned long libvirt_version;
+    if (connection && virConnectGetVersion(connection.get(), &libvirt_version) == 0)
+    {
+        return QString("libvirt-%1.%2.%3")
+            .arg(libvirt_version / 1000000)
+            .arg(libvirt_version / 1000 % 1000)
+            .arg(libvirt_version % 1000);
+    }
+    else
+    {
+        mpl::log(mpl::Level::error, logging_category, "Failed to determine libvirtd version.");
+        return QString("libvirt-unknown");
+    }
 }
