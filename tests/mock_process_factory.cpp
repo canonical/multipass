@@ -25,8 +25,8 @@ using namespace ::testing;
 
 std::unique_ptr<mp::Process> mpt::MockProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& spec) const
 {
-    auto process =
-        std::make_unique<mpt::MockProcess>(std::move(spec), const_cast<std::vector<ProcessInfo>&>(process_list));
+    auto process = std::make_unique<NiceMock<mpt::MockProcess>>(std::move(spec),
+                                                                const_cast<std::vector<ProcessInfo>&>(process_list));
     if (callback)
         callback.value()(process.get());
     return process;
@@ -69,7 +69,14 @@ std::vector<mpt::MockProcessFactory::ProcessInfo> mpt::MockProcessFactory::Scope
 
 mpt::MockProcessFactory& mpt::MockProcessFactory::mock_instance()
 {
-    return dynamic_cast<mpt::MockProcessFactory&>(instance());
+    try
+    {
+        return dynamic_cast<mpt::MockProcessFactory&>(instance());
+    }
+    catch (std::bad_cast&)
+    {
+        throw std::runtime_error("ProcessFactory::instance() called before MockProcessFactory::Inject()");
+    }
 }
 
 void mpt::MockProcessFactory::Scope::register_callback(const mpt::MockProcessFactory::Callback& cb)
