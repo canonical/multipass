@@ -31,28 +31,30 @@ yasm is another assembler that works and will only output a warning on these opt
 You may need to clean your build directory and run cmake again to pick up the yasm assembler path.
 
 ### Qt5
-Install the latest stable version of Qt5 (5.11.2 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
+Install the latest stable version of Qt5 (5.12.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
 
 In the online installer, under Qt, select MSVC 2017 64-bit.
 
 If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
 
+Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt5_5124/qt.qt5.5124.win64_msvc2017_64/5.12.4-0-201906140149qtbase-Windows-Windows_10-MSVC2017-Windows-Windows_10-X86_64.7z) and extract it to `C:\Qt` (so it ends up in `C:\Qt\5.12.4`).
+
 ### OpenSSL
 Qt needs OpenSSL for doing https connections.
 
-Download pre-built binaries from: <http://wiki.overbyte.eu/arch/openssl-1.0.2r-win64.zip>
+Download pre-built binaries from: <http://wiki.overbyte.eu/arch/openssl-1.1.1c-win64.zip>
 
-Unzip that file to the top of the Multipass source directory.
+Unzip that file to the top of the Multipass source directory, to a directory with the same name but for the extension, (e.g. `7z x -o"<multipass_src>\openssl-1.1.1c-win64" openssl-1.1.1c-win64.zip`)
 
-If you want a locally built multipassd to use https, you will need to copy ssleay32.dll and libeay32.dll to the builds bin directory.
+The dlls within are redistributed with the package. but if you want a locally built multipassd to use https, you will need to copy them manually to the bin directory (or somewhere on the `Path`).
 
 ### Path setup
 You'll have to manually add CMake and Qt to your account's PATH variable.
 
 Search for "Edit environment variables for your account" then edit your Path variable.
 Add the following:
-     C:\Program Files\CMake\bin
-     C:\Qt\5.11.2\msvc2017_64\bin
+     `C:\Program Files\CMake\bin`
+     `C:\Qt\5.12.4\msvc2017_64\bin`
 
 ### Cmder setup
 Cmder is a sane terminal emulator for windows, which includes git and SSH support among other things.
@@ -84,7 +86,7 @@ This will open a new terminal tab and run the VS2017 setup. CMake can now find t
     ninja
 
 This builds multipass and multipassd.
-To create an installer, run "ninja package"
+To create an installer, run `ninja package`
 
 Running multipass
 ---------------------------------------
