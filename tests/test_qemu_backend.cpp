@@ -277,7 +277,37 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
 
 TEST_F(QemuBackend, returns_version_string)
 {
+    constexpr auto qemu_version_output = "QEMU emulator version 2.11.1(Debian 1:2.11+dfsg-1ubuntu7.15)\n"
+                                         "Copyright (c) 2003-2017 Fabrice Bellard and the QEMU Project developers\n";
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
+        {
+            EXPECT_CALL(*process, run_and_return_output(_)).WillOnce(Return(qemu_version_output));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    EXPECT_EQ(backend.get_backend_version_string(), "qemu");
+    EXPECT_EQ(backend.get_backend_version_string(), "qemu-2.11.1");
+}
+
+TEST_F(QemuBackend, returns_version_string_when_errored)
+{
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
+        {
+            EXPECT_CALL(*process, run_and_return_output(_)).WillOnce(Return(""));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
 }

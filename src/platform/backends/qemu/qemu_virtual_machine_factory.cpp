@@ -24,10 +24,12 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/linux/backend_utils.h>
+#include <shared/linux/process_factory.h>
 
 #include <multipass/format.h>
 #include <yaml-cpp/yaml.h>
 
+#include <QRegularExpression>
 #include <QTcpSocket>
 
 namespace mp = multipass;
@@ -274,4 +276,19 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& /*name*/, YAML:
 void mp::QemuVirtualMachineFactory::check_hypervisor_support()
 {
     mp::backend::check_hypervisor_support();
+}
+
+QString mp::QemuVirtualMachineFactory::get_backend_version_string()
+{
+    auto process =
+        mp::ProcessFactory::instance().create_process("qemu-system-" + mp::backend::cpu_arch(), {"--version"});
+
+    auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
+    auto match = version_re.match(process->run_and_return_output());
+
+    if (match.hasMatch())
+        return QString("qemu-%1").arg(match.captured(1));
+
+    mpl::log(mpl::Level::error, "daemon", "Failed to determine QEMU version.");
+    return QString("qemu-unknown");
 }
