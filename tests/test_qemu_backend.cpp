@@ -62,7 +62,10 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         // Have "qemu-img snapshot" return a string with the suspend tag in it
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
         {
-            ON_CALL(*process, run_and_return_output(_)).WillByDefault(Return(suspend_tag));
+            mp::ProcessExitState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, run_and_return_exit_state(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(suspend_tag));
         }
     };
 };
@@ -247,7 +250,10 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
         {
-            EXPECT_CALL(*process, run_and_return_output(_)).WillOnce(Return(suspend_tag));
+            mp::ProcessExitState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, run_and_return_exit_state(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(suspend_tag));
         }
     };
 

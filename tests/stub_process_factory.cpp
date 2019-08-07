@@ -57,7 +57,9 @@ public:
     }
     void kill() override
     {
-        emit finished(0, QProcess::NormalExit);
+        mp::ProcessExitState exit_state;
+        exit_state.exit_code = 0;
+        emit finished(exit_state);
     }
 
     bool wait_for_started(int msecs = 30000) override
@@ -88,13 +90,11 @@ public:
         return 0;
     }
 
-    bool run_and_return_status(const int timeout = 3000) override
+    const mp::ProcessExitState run_and_return_exit_state(const int /*timeout*/ = 3000) override
     {
-        return true;
-    }
-    QString run_and_return_output(const int timeout = 3000) override
-    {
-        return "";
+        mp::ProcessExitState exit_state;
+        exit_state.exit_code = 0;
+        return exit_state;
     }
 };
 } // namespace

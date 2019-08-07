@@ -26,7 +26,20 @@ namespace mpl = multipass::logging;
 mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}
 {
     connect(&process, &QProcess::started, this, &mp::Process::started);
-    connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, &mp::Process::finished);
+    connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
+            [this](int exit_code, QProcess::ExitStatus exit_status) {
+                mp::ProcessExitState exit_state;
+
+                if (exit_status == QProcess::NormalExit)
+                {
+                    exit_state.exit_code = exit_code;
+                }
+                else
+                {
+                    exit_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+                }
+                emit mp::Process::finished(exit_state);
+            });
     connect(&process, &QProcess::errorOccurred, this, &mp::Process::error_occurred);
     connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
     connect(&process, &QProcess::readyReadStandardError, this, &mp::Process::ready_read_standard_error);
@@ -104,23 +117,18 @@ qint64 mp::LinuxProcess::write(const QByteArray& data)
     return process.write(data);
 }
 
-bool mp::LinuxProcess::run_and_return_status(const int timeout)
+const mp::ProcessExitState mp::LinuxProcess::run_and_return_exit_state(const int timeout)
 {
-    run_and_wait_until_finished(timeout);
-    return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
-}
-
-QString mp::LinuxProcess::run_and_return_output(const int timeout)
-{
-    run_and_wait_until_finished(timeout);
-    return process.readAllStandardOutput().trimmed();
-}
-
-void mp::LinuxProcess::run_and_wait_until_finished(const int timeout)
-{
+    mp::ProcessExitState exit_state;
     start();
+
     if (!process.waitForFinished(timeout) || process.exitStatus() != QProcess::NormalExit)
     {
         mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(process.errorString()));
+        exit_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+        return exit_state;
     }
+
+    exit_state.exit_code = process.exitCode();
+    return exit_state;
 }
