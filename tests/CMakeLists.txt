@@ -64,6 +64,15 @@ set_target_properties(dhcp_release
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
+add_executable(qemu-img
+  mock_qemuimg.cpp)
+
+set_target_properties(qemu-img
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
 list(APPEND CMOCK_TARGETS libvirt_backend_test)
 target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
