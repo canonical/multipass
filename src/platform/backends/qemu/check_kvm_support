@@ -62,7 +62,9 @@ if [ "$(id -u)" != "0" ]; then
 else
     msr="/dev/cpu/0/msr"
     if [ ! -r "$msr" ]; then
-        modprobe msr
+        if ! modprobe msr > /dev/null 2>&1 ; then
+            echo "Cannot check BIOS for determining KVM extensions support."
+        fi
     fi
 
     if [ "$virt" = "vmx" ]; then
