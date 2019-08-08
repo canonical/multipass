@@ -25,6 +25,9 @@
 
 #include <multipass/format.h>
 
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -52,21 +55,33 @@ auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::str
                        bridge_name, subnet, subnet, subnet);
 }
 
-std::string enable_libvirt_network(virConnectPtr connection, const mp::Path& data_dir)
+std::string enable_libvirt_network(const mp::Path& data_dir)
 {
-    mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection, "default"), virNetworkFree};
+    mp::LibVirtVirtualMachine::ConnectionUPtr connection{nullptr, nullptr};
+    try
+    {
+        connection = mp::LibVirtVirtualMachine::open_libvirt_connection();
+    }
+    catch (const std::exception&)
+    {
+        return {};
+    }
+
+    mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection.get(), "default"), virNetworkFree};
     std::string bridge_name;
 
     if (network == nullptr)
     {
         bridge_name = multipass_bridge_name;
         network = mp::LibVirtVirtualMachine::NetworkUPtr{
-            virNetworkCreateXML(connection, generate_libvirt_bridge_xml_config(data_dir, bridge_name).c_str()),
+            virNetworkCreateXML(connection.get(), generate_libvirt_bridge_xml_config(data_dir, bridge_name).c_str()),
             virNetworkFree};
     }
     else
     {
-        bridge_name = virNetworkGetBridgeName(network.get());
+        auto libvirt_bridge = virNetworkGetBridgeName(network.get());
+        bridge_name = libvirt_bridge;
+        free(libvirt_bridge);
     }
 
     if (virNetworkIsActive(network.get()) == 0)
@@ -79,44 +94,36 @@ std::string enable_libvirt_network(virConnectPtr connection, const mp::Path& dat
 } // namespace
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : connection{virConnectOpen("qemu:///system"), virConnectClose}, data_dir{data_dir}
+    : data_dir{data_dir}, bridge_name{enable_libvirt_network(data_dir)}
 {
-    if (connection)
-    {
-        bridge_name = enable_libvirt_network(connection.get(), data_dir);
-    }
 }
 
 mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                   VMStatusMonitor& monitor)
 {
-    if (!connection)
-    {
-        connection.reset(virConnectOpen("qemu:///system"));
+    if (bridge_name.empty())
+        bridge_name = enable_libvirt_network(data_dir);
 
-        if (!connection)
-            throw std::runtime_error("Cannot connect to libvirtd. Please ensure libvirt is installed and running.");
-
-        bridge_name = enable_libvirt_network(connection.get(), data_dir);
-    }
-
-    return std::make_unique<mp::LibVirtVirtualMachine>(desc, connection.get(), bridge_name, monitor);
+    return std::make_unique<mp::LibVirtVirtualMachine>(desc, bridge_name, monitor);
 }
 
 mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
 {
     if (bridge_name == multipass_bridge_name)
     {
+        auto connection = LibVirtVirtualMachine::open_libvirt_connection();
         mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection.get(), "default"),
                                                        virNetworkFree};
+
         virNetworkDestroy(network.get());
     }
 }
 
 void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    if (connection)
-        virDomainUndefine(virDomainLookupByName(connection.get(), name.c_str()));
+    auto connection = LibVirtVirtualMachine::open_libvirt_connection();
+
+    virDomainUndefine(virDomainLookupByName(connection.get(), name.c_str()));
 }
 
 mp::FetchType mp::LibVirtVirtualMachineFactory::fetch_type()
@@ -144,6 +151,12 @@ void mp::LibVirtVirtualMachineFactory::configure(const std::string& /*name*/, YA
 
 void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
 {
+    mp::backend::check_if_kvm_is_in_use();
+
+    auto connection = LibVirtVirtualMachine::open_libvirt_connection();
+
+    if (bridge_name.empty())
+        bridge_name = enable_libvirt_network(data_dir);
 }
 
 QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
