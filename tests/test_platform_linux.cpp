@@ -86,11 +86,7 @@ struct PlatformLinux : public Test
         REPLACE(virNetworkIsActive, [](auto...) { return 1; });
         REPLACE(virNetworkFree, [](auto...) { return 0; });
         REPLACE(virConnectClose, [](auto...) { return 0; });
-
-        std::string bridge_name{"where's that confounded bridge?"};
-        REPLACE(virNetworkGetBridgeName, [&bridge_name](auto...) {
-            return &bridge_name.front(); // hackish... replace with bridge_name.data() in C++17
-        });
+        REPLACE(virNetworkGetBridgeName, [](auto...) { return strdup("where's that confounded bridge?"); });
 
         test_contents();
     }
