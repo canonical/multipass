@@ -76,7 +76,7 @@ public:
     MOCK_METHOD0(start, void());
     MOCK_METHOD0(kill, void());
     MOCK_CONST_METHOD0(running, bool());
-    MOCK_METHOD1(run_and_return_exit_state, const ProcessExitState(int));
+    MOCK_METHOD1(execute, const ProcessExitState(int));
 
     MockProcess(std::unique_ptr<ProcessSpec>&& spec, std::vector<MockProcessFactory::ProcessInfo>& process_list);
 

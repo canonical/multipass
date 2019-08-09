@@ -90,7 +90,7 @@ public:
         return 0;
     }
 
-    const mp::ProcessExitState run_and_return_exit_state(const int /*timeout*/ = 3000) override
+    const mp::ProcessExitState execute(const int /*timeout*/ = 3000) override
     {
         mp::ProcessExitState exit_state;
         exit_state.exit_code = 0;

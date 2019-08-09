@@ -141,7 +141,7 @@ auto hmc_to_qmp_json(const QString& command_line)
 bool instance_image_has_snapshot(const mp::Path& image_path)
 {
     auto process = mp::ProcessFactory::instance().create_process("qemu-img", QStringList{"snapshot", "-l", image_path});
-    auto exit_state = process->run_and_return_exit_state();
+    auto exit_state = process->execute();
     if (!exit_state.success())
     {
         throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output: {}",
@@ -272,7 +272,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         }
         if (exit_state.error)
         {
-            mpl::log(mpl::Level::info, vm_name,
+            mpl::log(mpl::Level::error, vm_name,
                      fmt::format("process returned error {}: {}", exit_state.error->state, exit_state.error->message));
         }
 

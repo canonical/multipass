@@ -64,7 +64,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         {
             mp::ProcessExitState exit_state;
             exit_state.exit_code = 0;
-            ON_CALL(*process, run_and_return_exit_state(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
             ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(suspend_tag));
         }
     };
@@ -252,7 +252,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
         {
             mp::ProcessExitState exit_state;
             exit_state.exit_code = 0;
-            EXPECT_CALL(*process, run_and_return_exit_state(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(suspend_tag));
         }
     };

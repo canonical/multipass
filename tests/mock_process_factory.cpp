@@ -29,7 +29,7 @@ std::unique_ptr<mp::Process> mpt::MockProcessFactory::create_process(std::unique
         std::make_unique<mpt::MockProcess>(std::move(spec), const_cast<std::vector<ProcessInfo>&>(process_list));
     if (callback)
         callback.value()(process.get());
-    return std::move(process);
+    return process;
 }
 
 mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
@@ -45,7 +45,7 @@ mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
         emit finished(exit_state);
     }));
     ON_CALL(*this, running()).WillByDefault(Return(true));
-    ON_CALL(*this, run_and_return_exit_state(_)).WillByDefault(Return(success_exit_state));
+    ON_CALL(*this, execute(_)).WillByDefault(Return(success_exit_state));
 
     mpt::MockProcessFactory::ProcessInfo p{program(), arguments()};
     process_list.emplace_back(p);

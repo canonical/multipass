@@ -26,20 +26,33 @@
 namespace multipass
 {
 
+/***
+ * ProcessExitState - encapsulates info on an exited process
+ *
+ * Possible states this encapsulates are:
+ * +--------------------------------+---------+-----------+--------------------------+
+ * |             state              | success | exit_code |          error           |
+ * +--------------------------------+---------+-----------+--------------------------+
+ * | normal exit (returns 0)        | true    | set       | N/A.                     |
+ * | normal exit (returns non-zero) | false   | set       | N/A.                     |
+ * | failed to start                | false   | N/A       | FailedToStart            |
+ * | crash exit                     | false   | N/A       | Crashed                  |
+ * | timeout                        | false   | N/A       | Timedout (still running) |
+ * +--------------------------------+---------+-----------+--------------------------+
+ */
 struct ProcessExitState
 {
-    bool success() const
+    bool success() const // if process stops successfully with exit code 0
     {
         return !error && exit_code && exit_code.value() == 0;
     }
 
-    multipass::optional<int> exit_code; // not set if FailedToStart. Can be set if success() is false
+    multipass::optional<int> exit_code; // only set if process stops successfully. Can be set even if success() is false
 
     struct Error
     {
-        QProcess::ProcessError state; // FailedToStart (file not found / resource error), Crashed,
-                                      // Timedout, ReadError, WriteError, UnknownError
-        QString message;
+        QProcess::ProcessError state; // FailedToStart, Crashed, Timedout only options
+        QString message;              // human-readable error message
     };
 
     multipass::optional<Error> error;
@@ -71,7 +84,7 @@ public:
 
     virtual qint64 write(const QByteArray& data) = 0;
 
-    virtual const ProcessExitState run_and_return_exit_state(const int timeout = 30000) = 0;
+    virtual const ProcessExitState execute(const int timeout = 30000) = 0;
 
 signals:
     void started();

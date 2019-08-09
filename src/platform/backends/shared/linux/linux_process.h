@@ -50,7 +50,7 @@ public:
 
     qint64 write(const QByteArray& data) override;
 
-    const ProcessExitState run_and_return_exit_state(const int timeout = 30000) override;
+    const ProcessExitState execute(const int timeout = 30000) override;
 
 protected:
     LinuxProcess(std::unique_ptr<ProcessSpec>&& spec);

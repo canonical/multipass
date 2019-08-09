@@ -34,7 +34,7 @@ mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : proces
                 {
                     exit_state.exit_code = exit_code;
                 }
-                else
+                else // crash
                 {
                     exit_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
                 }
@@ -117,7 +117,7 @@ qint64 mp::LinuxProcess::write(const QByteArray& data)
     return process.write(data);
 }
 
-const mp::ProcessExitState mp::LinuxProcess::run_and_return_exit_state(const int timeout)
+const mp::ProcessExitState mp::LinuxProcess::execute(const int timeout)
 {
     mp::ProcessExitState exit_state;
     start();
