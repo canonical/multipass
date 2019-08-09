@@ -21,9 +21,42 @@
 #include <QProcessEnvironment>
 #include <QStringList>
 #include <memory>
+#include <multipass/optional.h>
 
 namespace multipass
 {
+
+/***
+ * ProcessExitState - encapsulates info on an exited process
+ *
+ * Possible states this encapsulates are:
+ * +--------------------------------+---------+-----------+--------------------------+
+ * |             state              | success | exit_code |          error           |
+ * +--------------------------------+---------+-----------+--------------------------+
+ * | normal exit (returns 0)        | true    | set       | N/A.                     |
+ * | normal exit (returns non-zero) | false   | set       | N/A.                     |
+ * | failed to start                | false   | N/A       | FailedToStart            |
+ * | crash exit                     | false   | N/A       | Crashed                  |
+ * | timeout                        | false   | N/A       | Timedout (still running) |
+ * +--------------------------------+---------+-----------+--------------------------+
+ */
+struct ProcessExitState
+{
+    bool success() const // if process stops successfully with exit code 0
+    {
+        return !error && exit_code && exit_code.value() == 0;
+    }
+
+    multipass::optional<int> exit_code; // only set if process stops successfully. Can be set even if success() is false
+
+    struct Error
+    {
+        QProcess::ProcessError state; // FailedToStart, Crashed, Timedout only options
+        QString message;              // human-readable error message
+    };
+
+    multipass::optional<Error> error;
+};
 
 class Process : public QObject
 {
@@ -51,16 +84,14 @@ public:
 
     virtual qint64 write(const QByteArray& data) = 0;
 
-    virtual bool run_and_return_status(const int timeout = 30000) = 0;
-    virtual QString run_and_return_output(const int timeout = 30000) = 0;
+    virtual const ProcessExitState execute(const int timeout = 30000) = 0;
 
 signals:
     void started();
-    void finished(int exitCode, QProcess::ExitStatus exit_status); // normal or crash
-    void error_occurred(QProcess::ProcessError error);             // not running, starting, running
-    void state_changed(QProcess::ProcessState state); // FailedToStart (file not found / resource error) Crashed,
-                                                      // Timedout, ReadError, WriteError, UnknownError
-
+    void finished(const ProcessExitState exit_state);
+    void state_changed(QProcess::ProcessState state);  // not running, starting, running
+    void error_occurred(QProcess::ProcessError error); // FailedToStart (file not found / resource error) Crashed,
+                                                       // Timedout, ReadError, WriteError, UnknownError
     void ready_read_standard_output();
     void ready_read_standard_error();
 };

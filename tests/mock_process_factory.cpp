@@ -36,11 +36,16 @@ mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
                               std::vector<mpt::MockProcessFactory::ProcessInfo>& process_list)
     : spec{std::move(spec)}
 {
+    success_exit_state.exit_code = 0;
+
     ON_CALL(*this, start()).WillByDefault(Invoke([this] { emit started(); }));
-    ON_CALL(*this, kill()).WillByDefault(Invoke([this] { emit finished(0, QProcess::NormalExit); }));
+    ON_CALL(*this, kill()).WillByDefault(Invoke([this] {
+        mp::ProcessExitState exit_state;
+        exit_state.exit_code = 0;
+        emit finished(exit_state);
+    }));
     ON_CALL(*this, running()).WillByDefault(Return(true));
-    ON_CALL(*this, run_and_return_status(_)).WillByDefault(Return(true));
-    ON_CALL(*this, run_and_return_output(_)).WillByDefault(Return(""));
+    ON_CALL(*this, execute(_)).WillByDefault(Return(success_exit_state));
 
     mpt::MockProcessFactory::ProcessInfo p{program(), arguments()};
     process_list.emplace_back(p);
@@ -110,15 +115,6 @@ bool mpt::MockProcess::wait_for_started(int)
 bool mpt::MockProcess::wait_for_finished(int)
 {
     return true;
-}
-
-QByteArray mpt::MockProcess::read_all_standard_output()
-{
-    return "";
-}
-QByteArray mpt::MockProcess::read_all_standard_error()
-{
-    return "";
 }
 
 qint64 mpt::MockProcess::write(const QByteArray&)
