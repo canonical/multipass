@@ -93,7 +93,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                   "disk", "default");
     QCommandLineOption memOption({"m", "mem"},
                                  QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
-                                                                    "in bytes, or with K, M, G suffix. Mimimum: {}.",
+                                                                    "in bytes, or with K, M, G suffix. Minimum: {}.",
                                                                     min_memory_size)),
                                  "mem", "1024"); // In MB's
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
