@@ -101,7 +101,7 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
                                    const std::string& username)
 {
-    auto ssh_key_line = fmt::format("ssh-rsa {} multipass@localhost", key_provider.public_key_as_base64());
+    auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
 
     auto config = YAML::Load(mp::base_cloud_init_config);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
