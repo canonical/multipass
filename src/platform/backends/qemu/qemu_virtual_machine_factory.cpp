@@ -284,11 +284,28 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
         mp::ProcessFactory::instance().create_process("qemu-system-" + mp::backend::cpu_arch(), {"--version"});
 
     auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
-    auto match = version_re.match(process->run_and_return_output());
+    auto exit_state = process->execute();
 
-    if (match.hasMatch())
-        return QString("qemu-%1").arg(match.captured(1));
+    if (exit_state.success())
+    {
+        auto match = version_re.match(process->read_all_standard_output());
 
-    mpl::log(mpl::Level::error, "daemon", "Failed to determine QEMU version.");
+        if (match.hasMatch())
+            return QString("qemu-%1").arg(match.captured(1));
+        else
+        {
+            mpl::log(mpl::Level::error, "daemon",
+                     fmt::format("Failed to parse QEMU version out:\n{}", process->read_all_standard_output()));
+            return QString("qemu-unknown");
+        }
+    }
+
+    if (exit_state.error)
+        mpl::log(mpl::Level::error, "daemon",
+                 fmt::format("Failed to determine QEMU version (exec error):\n{}", exit_state.error->message));
+    else
+        mpl::log(mpl::Level::error, "daemon",
+                 fmt::format("Failed to determine QEMU version (process error):\n{}{}",
+                             process->read_all_standard_output(), process->read_all_standard_error()));
     return QString("qemu-unknown");
 }
