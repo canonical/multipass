@@ -537,9 +537,9 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
     {
         auto ecode = proc.exit_code();
 
-        // we shouldn't get this far: a successful reboot command does not return
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                            fmt::format("Reboot command exited with code {}", ecode), proc.read_std_error()};
+        if (ecode != 0)
+            return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                fmt::format("Reboot command exited with code {}", ecode), proc.read_std_error()};
     }
     catch (const mp::ExitlessSSHProcessException&)
     {
