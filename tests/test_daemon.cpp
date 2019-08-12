@@ -46,6 +46,7 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <QSysInfo>
 
 #include <memory>
 #include <ostream>
@@ -602,8 +603,9 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     std::vector<std::pair<std::string, std::string>> const& expected_pollinate_map{
         {"path", "/etc/pollinate/add-user-agent"},
         {"content", fmt::format("multipass/version/{} # written by Multipass\n"
-                                "multipass/driver/mock-1234 # written by Multipass\n",
-                                multipass::version_string)},
+                                "multipass/driver/mock-1234 # written by Multipass\n"
+                                "multipass/host/{}-{} # written by Multipass\n",
+                                multipass::version_string, QSysInfo::productType(), QSysInfo::productVersion())},
     };
     mp::Daemon daemon{config_builder.build()};
 
