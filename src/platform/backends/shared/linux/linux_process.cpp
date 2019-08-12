@@ -87,14 +87,44 @@ void mp::LinuxProcess::kill()
     process.kill();
 }
 
-bool mp::LinuxProcess::wait_for_started(int msecs)
+mp::optional<mp::ProcessExitState> mp::LinuxProcess::wait_for_started(int msecs)
 {
-    return process.waitForStarted(msecs);
+    // If process has already quit ok
+    if (process.exitStatus() == QProcess::NormalExit)
+    {
+        mp::optional<mp::ProcessExitState> error_state;
+        error_state->exit_code = process.exitCode();
+        return error_state;
+    }
+
+    // Now try waiting for process, and if it fails get error condition.
+    if (!process.waitForStarted(msecs))
+    {
+        mp::optional<mp::ProcessExitState> error_state;
+        error_state->error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+        return error_state;
+    }
+    return mp::nullopt;
 }
 
-bool mp::LinuxProcess::wait_for_finished(int msecs)
+const mp::ProcessExitState mp::LinuxProcess::wait_for_finished(int msecs)
 {
-    return process.waitForFinished(msecs);
+    mp::ProcessExitState error_state;
+
+    // If process has already quit ok
+    if (process.exitStatus() == QProcess::NormalExit)
+    {
+        error_state.exit_code = process.exitCode();
+        return error_state;
+    }
+
+    // Now try waiting for process, and if it has failed get error condition.
+    if (!process.waitForFinished(msecs))
+    {
+        error_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+        return error_state;
+    }
+    return error_state;
 }
 
 bool mp::LinuxProcess::running() const
@@ -102,12 +132,12 @@ bool mp::LinuxProcess::running() const
     return process.state() == QProcess::Running;
 }
 
-QByteArray multipass::LinuxProcess::read_all_standard_output()
+QByteArray mp::LinuxProcess::read_all_standard_output()
 {
     return process.readAllStandardOutput();
 }
 
-QByteArray multipass::LinuxProcess::read_all_standard_error()
+QByteArray mp::LinuxProcess::read_all_standard_error()
 {
     return process.readAllStandardError();
 }
@@ -115,6 +145,11 @@ QByteArray multipass::LinuxProcess::read_all_standard_error()
 qint64 mp::LinuxProcess::write(const QByteArray& data)
 {
     return process.write(data);
+}
+
+void mp::LinuxProcess::close_write_channel()
+{
+    process.closeWriteChannel();
 }
 
 const mp::ProcessExitState mp::LinuxProcess::execute(const int timeout)

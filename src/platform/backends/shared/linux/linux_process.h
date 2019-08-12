@@ -40,8 +40,10 @@ public:
     void start() override;
     void kill() override;
 
-    bool wait_for_started(int msecs = 30000) override;  // return false if process fails to start
-    bool wait_for_finished(int msecs = 30000) override; // return false if wait times-out, or process never started
+    multipass::optional<ProcessExitState>
+    wait_for_started(int msecs = 30000) override; // optional set if process fails to start
+    const ProcessExitState
+    wait_for_finished(int msecs = 30000) override; // optional set if wait times-out, or process never started
 
     bool running() const override;
 
@@ -49,6 +51,7 @@ public:
     QByteArray read_all_standard_error() override;
 
     qint64 write(const QByteArray& data) override;
+    void close_write_channel() override;
 
     const ProcessExitState execute(const int timeout = 30000) override;
 

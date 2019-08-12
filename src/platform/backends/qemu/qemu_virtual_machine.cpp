@@ -318,10 +318,25 @@ void mp::QemuVirtualMachine::start()
     }
 
     vm_process->start();
-    auto started = vm_process->wait_for_started();
+    auto start_failed = vm_process->wait_for_started();
 
-    if (!started)
-        throw std::runtime_error("failed to start qemu instance");
+    if (start_failed)
+    {
+        if (start_failed->error)
+        {
+            mpl::log(mpl::Level::error, vm_name, fmt::format("Qemu failed to start: {}", start_failed->error->message));
+            throw std::runtime_error(fmt::format("failed to start qemu instance: {}", start_failed->error->message));
+        }
+        else if (start_failed->exit_code)
+        {
+            mpl::log(mpl::Level::error, vm_name,
+                     fmt::format("Qemu quit unexpectedly with exit code {} and with output:\n{}",
+                                 start_failed->exit_code.value(), vm_process->read_all_standard_error()));
+            throw std::runtime_error(
+                fmt::format("qemu quit unexpectedly with exit code {}, check logs for more details",
+                            start_failed->exit_code.value()));
+        }
+    }
 
     vm_process->write(qmp_execute_json("qmp_capabilities"));
 }

@@ -74,8 +74,10 @@ public:
     virtual void start() = 0;
     virtual void kill() = 0;
 
-    virtual bool wait_for_started(int msecs = 30000) = 0;  // return false if process fails to start
-    virtual bool wait_for_finished(int msecs = 30000) = 0; // return false if wait times-out, or process never started
+    virtual multipass::optional<ProcessExitState>
+    wait_for_started(int msecs = 30000) = 0; // optional set if process fails to start
+    virtual const ProcessExitState
+    wait_for_finished(int msecs = 30000) = 0; // check ProcessExitState to see wait times-out, or process never started
 
     virtual bool running() const = 0;
 
@@ -83,6 +85,7 @@ public:
     virtual QByteArray read_all_standard_error() = 0;
 
     virtual qint64 write(const QByteArray& data) = 0;
+    virtual void close_write_channel() = 0;
 
     virtual const ProcessExitState execute(const int timeout = 30000) = 0;
 
