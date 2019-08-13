@@ -161,17 +161,24 @@ void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
 
 QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
 {
-    unsigned long libvirt_version;
-    if (connection && virConnectGetVersion(connection.get(), &libvirt_version) == 0 && libvirt_version != 0)
+    try
     {
-        return QString("libvirt-%1.%2.%3")
-            .arg(libvirt_version / 1000000)
-            .arg(libvirt_version / 1000 % 1000)
-            .arg(libvirt_version % 1000);
+        unsigned long libvirt_version;
+        auto connection = LibVirtVirtualMachine::open_libvirt_connection();
+
+        if (virConnectGetVersion(connection.get(), &libvirt_version) == 0 && libvirt_version != 0)
+        {
+            return QString("libvirt-%1.%2.%3")
+                .arg(libvirt_version / 1000000)
+                .arg(libvirt_version / 1000 % 1000)
+                .arg(libvirt_version % 1000);
+        }
     }
-    else
+    catch (const std::exception&)
     {
-        mpl::log(mpl::Level::error, logging_category, "Failed to determine libvirtd version.");
-        return QString("libvirt-unknown");
+        // Ignore
     }
+
+    mpl::log(mpl::Level::error, logging_category, "Failed to determine libvirtd version.");
+    return QString("libvirt-unknown");
 }
