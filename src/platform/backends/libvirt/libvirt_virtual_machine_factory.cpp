@@ -150,7 +150,7 @@ void mp::LibVirtVirtualMachineFactory::check_hypervisor_support()
 QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
 {
     unsigned long libvirt_version;
-    if (connection && virConnectGetVersion(connection.get(), &libvirt_version) == 0)
+    if (connection && virConnectGetVersion(connection.get(), &libvirt_version) == 0 && libvirt_version != 0)
     {
         return QString("libvirt-%1.%2.%3")
             .arg(libvirt_version / 1000000)
