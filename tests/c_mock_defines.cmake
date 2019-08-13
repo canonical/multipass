@@ -84,6 +84,7 @@ add_c_mocks(
   virConnectOpen
   virConnectClose
   virConnectGetCapabilities
+  virConnectGetVersion
   virNetworkLookupByName
   virNetworkFree
   virNetworkCreateXML

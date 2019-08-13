@@ -43,6 +43,7 @@ public:
     {
         return {};
     };
+    QString get_backend_version_string() override;
 
 private:
     const QString bridge_name;

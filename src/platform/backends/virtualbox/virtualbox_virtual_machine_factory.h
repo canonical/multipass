@@ -36,7 +36,11 @@ public:
     QString get_backend_directory_name() override
     {
         return "virtualbox";
-    }
+    };
+    QString get_backend_version_string() override
+    {
+        return "virtualbox";
+    };
 };
 } // namespace multipass
 

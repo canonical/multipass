@@ -22,6 +22,7 @@ extern "C"
     IMPL_MOCK_DEFAULT(1, virConnectOpen);
     IMPL_MOCK_DEFAULT(1, virConnectClose);
     IMPL_MOCK_DEFAULT(1, virConnectGetCapabilities);
+    IMPL_MOCK_DEFAULT(2, virConnectGetVersion);
     IMPL_MOCK_DEFAULT(2, virNetworkLookupByName);
     IMPL_MOCK_DEFAULT(1, virNetworkFree);
     IMPL_MOCK_DEFAULT(2, virNetworkCreateXML);

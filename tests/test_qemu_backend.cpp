@@ -274,3 +274,89 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
     EXPECT_TRUE(qemu.arguments.contains("-hi_there"));
     EXPECT_TRUE(qemu.arguments.contains("-hows_it_going"));
 }
+
+TEST_F(QemuBackend, returns_version_string)
+{
+    constexpr auto qemu_version_output = "QEMU emulator version 2.11.1(Debian 1:2.11+dfsg-1ubuntu7.15)\n"
+                                         "Copyright (c) 2003-2017 Fabrice Bellard and the QEMU Project developers\n";
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
+        {
+            mp::ProcessExitState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(qemu_version_output));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "qemu-2.11.1");
+}
+
+TEST_F(QemuBackend, returns_version_string_when_failed_parsing)
+{
+    constexpr auto qemu_version_output = "Unparsable version string";
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
+        {
+            mp::ProcessExitState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).WillRepeatedly(Return(qemu_version_output));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
+}
+
+TEST_F(QemuBackend, returns_version_string_when_errored)
+{
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
+        {
+            mp::ProcessExitState exit_state;
+            exit_state.exit_code = 1;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return("Standard output\n"));
+            EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return("Standard error\n"));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
+}
+
+TEST_F(QemuBackend, returns_version_string_when_exec_failed)
+{
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
+        {
+            mp::ProcessExitState exit_state;
+            exit_state.error = mp::ProcessExitState::Error{QProcess::Crashed, "Error message"};
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).Times(0);
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(callback);
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
+}
