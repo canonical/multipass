@@ -51,6 +51,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
 #include <cassert>
@@ -99,7 +100,7 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
-                                   const std::string& username)
+                                   const std::string& username, const std::string& backend_version_string)
 {
     auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
 
@@ -108,10 +109,15 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     config["timezone"] = time_zone;
     config["system_info"]["default_user"]["name"] = username;
 
+    auto pollinate_user_agent_string =
+        fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
+    pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
+    pollinate_user_agent_string += fmt::format("multipass/host/{}-{} # written by Multipass\n", QSysInfo::productType(),
+                                               QSysInfo::productVersion());
+
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
-    pollinate_user_agent_node["content"] =
-        fmt::format("multipass/version/{} # written by Multipass", multipass::version_string);
+    pollinate_user_agent_node["content"] = pollinate_user_agent_string;
 
     config["write_files"].push_back(pollinate_user_agent_node);
 
@@ -1970,7 +1976,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             reply.set_create_message("Configuring " + name);
             server->Write(reply);
             auto vendor_data_cloud_init_config =
-                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username);
+                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
+                                              config->factory->get_backend_version_string().toStdString());
             auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
             auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);

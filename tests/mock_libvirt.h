@@ -25,6 +25,7 @@
 DECL_MOCK(virConnectOpen);
 DECL_MOCK(virConnectClose);
 DECL_MOCK(virConnectGetCapabilities);
+DECL_MOCK(virConnectGetVersion);
 DECL_MOCK(virNetworkLookupByName);
 DECL_MOCK(virNetworkFree);
 DECL_MOCK(virNetworkCreateXML);

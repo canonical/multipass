@@ -65,6 +65,11 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
     {
         return {};
     }
+
+    QString get_backend_version_string() override
+    {
+        return "stub-5678";
+    }
 };
 }
 }
