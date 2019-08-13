@@ -46,6 +46,7 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <QSysInfo>
 
 #include <memory>
 #include <ostream>
@@ -239,6 +240,8 @@ struct Daemon : public Test
             .WillByDefault(Return(ByMove(std::make_unique<mpt::StubVirtualMachine>())));
 
         ON_CALL(*mock_factory_ptr, prepare_source_image(_)).WillByDefault(ReturnArg<0>());
+
+        ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
 
         config_builder.factory = std::move(mock_factory);
         return mock_factory_ptr;
@@ -599,7 +602,10 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     auto mock_factory = use_a_mock_vm_factory();
     std::vector<std::pair<std::string, std::string>> const& expected_pollinate_map{
         {"path", "/etc/pollinate/add-user-agent"},
-        {"content", fmt::format("multipass/version/{} # written by Multipass", multipass::version_string)},
+        {"content", fmt::format("multipass/version/{} # written by Multipass\n"
+                                "multipass/driver/mock-1234 # written by Multipass\n"
+                                "multipass/host/{}-{} # written by Multipass\n",
+                                multipass::version_string, QSysInfo::productType(), QSysInfo::productVersion())},
     };
     mp::Daemon daemon{config_builder.build()};
 

@@ -47,6 +47,7 @@ public:
     {
         return {};
     };
+    QString get_backend_version_string() override;
 
 private:
     ConnectionUPtr connection;

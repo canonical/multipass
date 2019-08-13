@@ -24,10 +24,12 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/linux/backend_utils.h>
+#include <shared/linux/process_factory.h>
 
 #include <multipass/format.h>
 #include <yaml-cpp/yaml.h>
 
+#include <QRegularExpression>
 #include <QTcpSocket>
 
 namespace mp = multipass;
@@ -274,4 +276,36 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& /*name*/, YAML:
 void mp::QemuVirtualMachineFactory::check_hypervisor_support()
 {
     mp::backend::check_hypervisor_support();
+}
+
+QString mp::QemuVirtualMachineFactory::get_backend_version_string()
+{
+    auto process =
+        mp::ProcessFactory::instance().create_process("qemu-system-" + mp::backend::cpu_arch(), {"--version"});
+
+    auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
+    auto exit_state = process->execute();
+
+    if (exit_state.success())
+    {
+        auto match = version_re.match(process->read_all_standard_output());
+
+        if (match.hasMatch())
+            return QString("qemu-%1").arg(match.captured(1));
+        else
+        {
+            mpl::log(mpl::Level::error, "daemon",
+                     fmt::format("Failed to parse QEMU version out:\n{}", process->read_all_standard_output()));
+            return QString("qemu-unknown");
+        }
+    }
+
+    if (exit_state.error)
+        mpl::log(mpl::Level::error, "daemon",
+                 fmt::format("Failed to determine QEMU version (exec error):\n{}", exit_state.error->message));
+    else
+        mpl::log(mpl::Level::error, "daemon",
+                 fmt::format("Failed to determine QEMU version (process error):\n{}{}",
+                             process->read_all_standard_output(), process->read_all_standard_error()));
+    return QString("qemu-unknown");
 }

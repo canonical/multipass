@@ -282,3 +282,68 @@ TEST_F(LibVirtBackend, machine_unknown_state_properly_shuts_down)
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
+
+TEST_F(LibVirtBackend, returns_version_string)
+{
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+
+    REPLACE(virConnectGetVersion, [](virConnectPtr, unsigned long* hvVer) {
+        *hvVer = 1002003;
+        return 0;
+    });
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "libvirt-1.2.3");
+}
+
+TEST_F(LibVirtBackend, returns_version_string_when_error)
+{
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+
+    REPLACE(virConnectGetVersion, [](auto...) { return -1; });
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "libvirt-unknown");
+}
+
+TEST_F(LibVirtBackend, returns_version_string_when_lacking_capabilities)
+{
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
+    REPLACE(virNetworkGetBridgeName, [](auto...) {
+        std::string bridge_name{"mpvirt0"};
+        return strdup(bridge_name.c_str());
+    });
+    REPLACE(virNetworkIsActive, [](auto...) { return 1; });
+
+    REPLACE(virConnectGetVersion, [](virConnectPtr, unsigned long* hvVer) {
+        *hvVer = 0;
+        return 0;
+    });
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "libvirt-unknown");
+}
+
+TEST_F(LibVirtBackend, returns_version_string_when_failed_connecting)
+{
+    REPLACE(virConnectOpen, [](auto...) { return nullptr; });
+    auto m = MOCK(virConnectGetVersion);
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.get_backend_version_string(), "libvirt-unknown");
+    m.expectCalled(0);
+}
