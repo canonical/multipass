@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,45 +31,6 @@ using namespace testing;
 
 namespace
 {
-class ExitStatusMock
-{
-public:
-    ExitStatusMock()
-    {
-        add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
-            channel_cbs = cb;
-            return SSH_OK;
-        };
-
-        event_do_poll = [this](auto...) {
-            if (channel_cbs == nullptr)
-                return SSH_ERROR;
-            channel_cbs->channel_exit_status_function(nullptr, nullptr, exit_code, channel_cbs->userdata);
-            return SSH_OK;
-        };
-    }
-
-    ~ExitStatusMock()
-    {
-        add_channel_cbs = std::move(old_add_channel_cbs);
-        event_do_poll = std::move(old_event_do_poll);
-    }
-
-    void return_exit_code(int code)
-    {
-        exit_code = code;
-    }
-
-private:
-    decltype(mock_ssh_add_channel_callbacks)& add_channel_cbs{mock_ssh_add_channel_callbacks};
-    decltype(mock_ssh_add_channel_callbacks) old_add_channel_cbs{std::move(mock_ssh_add_channel_callbacks)};
-    decltype(mock_ssh_event_dopoll)& event_do_poll{mock_ssh_event_dopoll};
-    decltype(mock_ssh_event_dopoll) old_event_do_poll{std::move(mock_ssh_event_dopoll)};
-
-    int exit_code{SSH_OK};
-    ssh_channel_callbacks channel_cbs{nullptr};
-};
-
 struct SshfsMount : public mp::test::SftpServerTest
 {
     SshfsMount()
@@ -113,7 +74,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         return channel_read;
     }
 
-    ExitStatusMock exit_status_mock;
+    mpt::ExitStatusMock exit_status_mock;
     decltype(MOCK(ssh_channel_read_timeout)) channel_read{MOCK(ssh_channel_read_timeout)};
     decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
 
@@ -170,28 +131,6 @@ TEST_F(SshfsMount, throws_when_unable_to_chown)
 {
     bool invoked{false};
     auto request_exec = make_exec_that_fails_for("chown", invoked);
-
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
-    EXPECT_TRUE(invoked);
-}
-
-TEST_F(SshfsMount, throws_when_unable_to_start_sshfs)
-{
-    bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("sudo sshfs", invoked);
-
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
-    EXPECT_TRUE(invoked);
-}
-
-TEST_F(SshfsMount, throws_when_sshfs_fails_to_run)
-{
-    bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("pgrep", invoked);
 
     REPLACE(ssh_channel_request_exec, request_exec);
 

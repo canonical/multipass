@@ -19,10 +19,12 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mu = multipass::utils;
 
 namespace
 {
@@ -123,7 +125,11 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
         args << "--enable-kvm";
         // The VM image itself
-        args << "-hda" << desc.image.image_path;
+        args << "-device"
+             << "virtio-scsi-pci,id=scsi0"
+             << "-drive" << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda").arg(desc.image.image_path)
+             << "-device"
+             << "scsi-hd,drive=hda,bus=scsi0.0";
         // Number of cpu cores
         args << "-smp" << QString::number(desc.num_cores);
         // Memory to use for VM
@@ -157,8 +163,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
 QString mp::QemuVMProcessSpec::working_directory() const
 {
-    auto snap = qgetenv("SNAP");
-    if (!snap.isEmpty())
-        return snap.append("/qemu");
+    if (mu::is_snap())
+        return mu::snap_dir().append("/qemu");
     return QString();
 }

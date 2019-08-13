@@ -146,7 +146,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         "  <devices>\n"
         "    <emulator>{}</emulator>\n"
         "    <disk type=\'file\' device=\'disk\'>\n"
-        "      <driver name=\'qemu\' type=\'qcow2\'/>\n"
+        "      <driver name=\'qemu\' type=\'qcow2\' discard=\'unmap\'/>\n"
         "      <source file=\'{}\'/>\n"
         "      <backingStore/>\n"
         "      <target dev=\'vda\' bus=\'virtio\'/>\n"

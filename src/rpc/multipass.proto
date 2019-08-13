@@ -172,15 +172,15 @@ message MountInfo {
 
 message InstanceStatus {
     enum Status {
-        RUNNING = 0;
-        STARTING = 1;
-        RESTARTING = 2;
-        STOPPED = 3;
-        DELETED = 4;
-        DELAYED_SHUTDOWN = 5;
-        SUSPENDING = 6;
-        SUSPENDED = 7;
-        UNKNOWN = 8;
+        UNKNOWN = 0;
+        RUNNING = 1;
+        STARTING = 2;
+        RESTARTING = 3;
+        STOPPED = 4;
+        DELETED = 5;
+        DELAYED_SHUTDOWN = 6;
+        SUSPENDING = 7;
+        SUSPENDED = 8;
     }
     Status status = 1;
 }
