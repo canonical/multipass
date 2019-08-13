@@ -27,22 +27,23 @@ namespace multipass
 {
 
 /***
- * ProcessExitState - encapsulates info on an exited process
+ * ProcessState - encapsulates info on an process
  *
  * Possible states this encapsulates are:
- * +--------------------------------+---------+-----------+--------------------------+
- * |             state              | success | exit_code |          error           |
- * +--------------------------------+---------+-----------+--------------------------+
- * | normal exit (returns 0)        | true    | set       | N/A.                     |
- * | normal exit (returns non-zero) | false   | set       | N/A.                     |
- * | failed to start                | false   | N/A       | FailedToStart            |
- * | crash exit                     | false   | N/A       | Crashed                  |
- * | timeout                        | false   | N/A       | Timedout (still running) |
- * +--------------------------------+---------+-----------+--------------------------+
+ * +--------------------------------+------------------------+-----------+--------------------------+
+ * |             state              | completed_successfully | exit_code |          error           |
+ * +--------------------------------+------------------------+-----------+--------------------------+
+ * | running                        | false                  | N/A       | N/A.                     |
+ * | normal exit (returns 0)        | true                   | set       | N/A.                     |
+ * | normal exit (returns non-zero) | false                  | set       | N/A.                     |
+ * | failed to start                | false                  | N/A       | FailedToStart            |
+ * | crash exit                     | false                  | N/A       | Crashed                  |
+ * | timeout                        | false                  | N/A       | Timedout (still running) |
+ * +--------------------------------+------------------------+-----------+--------------------------+
  */
-struct ProcessExitState
+struct ProcessState
 {
-    bool success() const // if process stops successfully with exit code 0
+    bool completed_successfully() const // if process stopped successfully with exit code 0
     {
         return !error && exit_code && exit_code.value() == 0;
     }
@@ -74,12 +75,11 @@ public:
     virtual void start() = 0;
     virtual void kill() = 0;
 
-    virtual multipass::optional<ProcessExitState>
-    wait_for_started(int msecs = 30000) = 0; // optional set if process fails to start
-    virtual const ProcessExitState
-    wait_for_finished(int msecs = 30000) = 0; // check ProcessExitState to see wait times-out, or process never started
+    virtual bool wait_for_started(int msecs = 30000) = 0;
+    virtual bool wait_for_finished(int msecs = 30000) = 0;
 
     virtual bool running() const = 0;
+    virtual ProcessState process_state() const = 0;
 
     virtual QByteArray read_all_standard_output() = 0;
     virtual QByteArray read_all_standard_error() = 0;
@@ -87,11 +87,11 @@ public:
     virtual qint64 write(const QByteArray& data) = 0;
     virtual void close_write_channel() = 0;
 
-    virtual const ProcessExitState execute(const int timeout = 30000) = 0;
+    virtual ProcessState execute(const int timeout = 30000) = 0;
 
 signals:
     void started();
-    void finished(const ProcessExitState exit_state);
+    void finished(ProcessState process_state);
     void state_changed(QProcess::ProcessState state);  // not running, starting, running
     void error_occurred(QProcess::ProcessError error); // FailedToStart (file not found / resource error) Crashed,
                                                        // Timedout, ReadError, WriteError, UnknownError

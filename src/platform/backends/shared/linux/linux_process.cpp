@@ -28,17 +28,17 @@ mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : proces
     connect(&process, &QProcess::started, this, &mp::Process::started);
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
             [this](int exit_code, QProcess::ExitStatus exit_status) {
-                mp::ProcessExitState exit_state;
+                mp::ProcessState process_state;
 
                 if (exit_status == QProcess::NormalExit)
                 {
-                    exit_state.exit_code = exit_code;
+                    process_state.exit_code = exit_code;
                 }
                 else // crash
                 {
-                    exit_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+                    process_state.error = mp::ProcessState::Error{process.error(), process.errorString()};
                 }
-                emit mp::Process::finished(exit_state);
+                emit mp::Process::finished(process_state);
             });
     connect(&process, &QProcess::errorOccurred, this, &mp::Process::error_occurred);
     connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
@@ -87,44 +87,30 @@ void mp::LinuxProcess::kill()
     process.kill();
 }
 
-mp::optional<mp::ProcessExitState> mp::LinuxProcess::wait_for_started(int msecs)
+bool mp::LinuxProcess::wait_for_started(int msecs)
 {
-    // If process has already quit ok
-    if (process.exitStatus() == QProcess::NormalExit)
-    {
-        mp::optional<mp::ProcessExitState> error_state;
-        error_state->exit_code = process.exitCode();
-        return error_state;
-    }
-
-    // Now try waiting for process, and if it fails get error condition.
-    if (!process.waitForStarted(msecs))
-    {
-        mp::optional<mp::ProcessExitState> error_state;
-        error_state->error = mp::ProcessExitState::Error{process.error(), process.errorString()};
-        return error_state;
-    }
-    return mp::nullopt;
+    return process.waitForStarted(msecs);
 }
 
-const mp::ProcessExitState mp::LinuxProcess::wait_for_finished(int msecs)
+bool mp::LinuxProcess::wait_for_finished(int msecs)
 {
-    mp::ProcessExitState error_state;
+    return process.waitForFinished(msecs);
+}
 
-    // If process has already quit ok
-    if (process.exitStatus() == QProcess::NormalExit)
+mp::ProcessState mp::LinuxProcess::process_state() const
+{
+    mp::ProcessState state;
+
+    if (process.error() != QProcess::ProcessError::UnknownError)
     {
-        error_state.exit_code = process.exitCode();
-        return error_state;
+        state.error = mp::ProcessState::Error{process.error(), process.errorString()};
+    }
+    else if (process.state() != QProcess::Running && process.exitStatus() == QProcess::NormalExit)
+    {
+        state.exit_code = process.exitCode();
     }
 
-    // Now try waiting for process, and if it has failed get error condition.
-    if (!process.waitForFinished(msecs))
-    {
-        error_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
-        return error_state;
-    }
-    return error_state;
+    return state;
 }
 
 bool mp::LinuxProcess::running() const
@@ -152,15 +138,15 @@ void mp::LinuxProcess::close_write_channel()
     process.closeWriteChannel();
 }
 
-const mp::ProcessExitState mp::LinuxProcess::execute(const int timeout)
+mp::ProcessState mp::LinuxProcess::execute(const int timeout)
 {
-    mp::ProcessExitState exit_state;
+    mp::ProcessState exit_state;
     start();
 
     if (!process.waitForFinished(timeout) || process.exitStatus() != QProcess::NormalExit)
     {
         mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(process.errorString()));
-        exit_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+        exit_state.error = mp::ProcessState::Error{process.error(), process.errorString()};
         return exit_state;
     }
 

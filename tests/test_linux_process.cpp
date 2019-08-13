@@ -35,49 +35,157 @@ struct LinuxProcessTest : public mpt::TestWithMockedBinPath
 TEST_F(LinuxProcessTest, execute_missing_command)
 {
     auto process = process_factory.create_process("a_missing_command");
-    auto exit_state = process->execute();
+    auto process_state = process->execute();
 
-    EXPECT_FALSE(exit_state.success());
-    EXPECT_FALSE(exit_state.exit_code);
+    EXPECT_FALSE(process_state.completed_successfully());
+    EXPECT_FALSE(process_state.exit_code);
 
-    EXPECT_TRUE(exit_state.error);
-    EXPECT_EQ(QProcess::ProcessError::FailedToStart, exit_state.error->state);
+    EXPECT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::ProcessError::FailedToStart, process_state.error->state);
 }
 
 TEST_F(LinuxProcessTest, execute_crashing_command)
 {
     auto process = process_factory.create_process("mock_process");
-    auto exit_state = process->execute();
+    auto process_state = process->execute();
 
-    EXPECT_FALSE(exit_state.success());
-    EXPECT_FALSE(exit_state.exit_code);
+    EXPECT_FALSE(process_state.completed_successfully());
+    EXPECT_FALSE(process_state.exit_code);
 
-    EXPECT_TRUE(exit_state.error);
-    EXPECT_EQ(QProcess::ProcessError::Crashed, exit_state.error->state);
+    EXPECT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::ProcessError::Crashed, process_state.error->state);
 }
 
 TEST_F(LinuxProcessTest, execute_good_command_with_positive_exit_code)
 {
     const int exit_code = 7;
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
-    auto exit_state = process->execute();
+    auto process_state = process->execute();
 
-    EXPECT_FALSE(exit_state.success());
-    EXPECT_TRUE(exit_state.exit_code);
-    EXPECT_EQ(exit_code, exit_state.exit_code.value());
+    EXPECT_FALSE(process_state.completed_successfully());
+    EXPECT_TRUE(process_state.exit_code);
+    EXPECT_EQ(exit_code, process_state.exit_code.value());
 
-    EXPECT_FALSE(exit_state.error);
+    EXPECT_FALSE(process_state.error);
 }
 
 TEST_F(LinuxProcessTest, execute_good_command_with_zero_exit_code)
 {
     const int exit_code = 0;
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
-    auto exit_state = process->execute();
+    auto process_state = process->execute();
 
-    EXPECT_TRUE(exit_state.success());
-    EXPECT_TRUE(exit_state.exit_code);
-    EXPECT_EQ(exit_code, exit_state.exit_code.value());
+    EXPECT_TRUE(process_state.completed_successfully());
+    EXPECT_TRUE(process_state.exit_code);
+    EXPECT_EQ(exit_code, process_state.exit_code.value());
 
-    EXPECT_FALSE(exit_state.error);
+    EXPECT_FALSE(process_state.error);
+}
+
+TEST_F(LinuxProcessTest, process_state_when_runs_and_stops_ok)
+{
+    const int exit_code = 7;
+    auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    process->start();
+
+    EXPECT_TRUE(process->wait_for_started());
+    auto process_state = process->process_state();
+
+    EXPECT_FALSE(process_state.exit_code);
+    EXPECT_FALSE(process_state.error);
+
+    process->write(QByteArray(1, '\0')); // will make mock_process quit
+    EXPECT_TRUE(process->wait_for_finished());
+
+    process_state = process->process_state();
+    EXPECT_TRUE(process_state.exit_code);
+    EXPECT_EQ(exit_code, process_state.exit_code.value());
+
+    EXPECT_FALSE(process_state.error);
+}
+
+TEST_F(LinuxProcessTest, process_state_when_runs_but_fails_to_stop)
+{
+    const int exit_code = 2;
+    auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    process->start();
+
+    EXPECT_TRUE(process->wait_for_started());
+    auto process_state = process->process_state();
+
+    EXPECT_FALSE(process_state.exit_code);
+    EXPECT_FALSE(process_state.error);
+
+    EXPECT_FALSE(process->wait_for_finished(100)); // will hit timeout
+
+    process_state = process->process_state();
+    EXPECT_FALSE(process_state.exit_code);
+
+    EXPECT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::Timedout, process_state.error->state);
+}
+
+TEST_F(LinuxProcessTest, process_state_when_crashes_on_start)
+{
+    auto process = process_factory.create_process("mock_process"); // will crash immediately
+    process->start();
+
+    // EXPECT_TRUE(process->wait_for_started()); // on start too soon, app hasn't crashed yet!
+    EXPECT_TRUE(process->wait_for_finished());
+    auto process_state = process->process_state();
+
+    EXPECT_FALSE(process_state.exit_code);
+    EXPECT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::Crashed, process_state.error->state);
+}
+
+TEST_F(LinuxProcessTest, process_state_when_crashes_while_running)
+{
+    auto process = process_factory.create_process("mock_process", {QString::number(0), "stay-alive"});
+    process->start();
+
+    process->write("crash"); // will make mock_process crash
+    process->write(QByteArray(1, '\0'));
+
+    EXPECT_TRUE(process->wait_for_finished());
+
+    auto process_state = process->process_state();
+    EXPECT_FALSE(process_state.exit_code);
+    EXPECT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::Crashed, process_state.error->state);
+}
+
+TEST_F(LinuxProcessTest, process_state_when_failed_to_start)
+{
+    auto process = process_factory.create_process("a_missing_process");
+    process->start();
+
+    EXPECT_FALSE(process->wait_for_started());
+
+    auto process_state = process->process_state();
+
+    EXPECT_FALSE(process_state.exit_code);
+    EXPECT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::FailedToStart, process_state.error->state);
+}
+
+TEST_F(LinuxProcessTest, process_state_when_runs_and_stops_immediately)
+{
+    const int exit_code = 7;
+    auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
+    process->start();
+
+    EXPECT_TRUE(process->wait_for_started());
+    auto process_state = process->process_state();
+
+    EXPECT_FALSE(process_state.exit_code);
+    EXPECT_FALSE(process_state.error);
+
+    EXPECT_TRUE(process->wait_for_finished());
+
+    process_state = process->process_state();
+    EXPECT_TRUE(process_state.exit_code);
+    EXPECT_EQ(exit_code, process_state.exit_code.value());
+
+    EXPECT_FALSE(process_state.error);
 }

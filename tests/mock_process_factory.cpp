@@ -40,11 +40,12 @@ mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
 
     ON_CALL(*this, start()).WillByDefault(Invoke([this] { emit started(); }));
     ON_CALL(*this, kill()).WillByDefault(Invoke([this] {
-        mp::ProcessExitState exit_state;
+        mp::ProcessState exit_state;
         exit_state.exit_code = 0;
         emit finished(exit_state);
     }));
     ON_CALL(*this, running()).WillByDefault(Return(true));
+    ON_CALL(*this, process_state()).WillByDefault(Return(success_exit_state));
     ON_CALL(*this, execute(_)).WillByDefault(Return(success_exit_state));
 
     mpt::MockProcessFactory::ProcessInfo p{program(), arguments()};
@@ -120,4 +121,8 @@ bool mpt::MockProcess::wait_for_finished(int)
 qint64 mpt::MockProcess::write(const QByteArray&)
 {
     return 0;
+}
+
+void mpt::MockProcess::close_write_channel()
+{
 }
