@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,8 +52,7 @@ struct SftpServer : public mp::test::SftpServerTest
     mp::SftpServer make_sftpserver(const std::string& path)
     {
         mp::SSHSession session{"a", 42};
-        auto proc = session.exec("sshfs");
-        return {std::move(session), std::move(proc), path, default_map, default_map, default_id, default_id};
+        return {std::move(session), path, path, default_map, default_map, default_id, default_id};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)
@@ -88,6 +87,7 @@ struct SftpServer : public mp::test::SftpServerTest
         return reply_status;
     }
 
+    mpt::ExitStatusMock exit_status_mock;
     std::queue<sftp_client_message> messages;
     std::unordered_map<int, int> default_map;
     int default_id{1000};
@@ -244,6 +244,60 @@ TEST_F(SftpServer, throws_when_failed_to_init)
 {
     REPLACE(sftp_server_init, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
+}
+
+TEST_F(SftpServer, throws_when_sshfs_errors_on_start)
+{
+    bool invoked{false};
+    auto request_exec = [this, &invoked](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd.find("sudo sshfs") != std::string::npos)
+        {
+            invoked = true;
+            exit_status_mock.return_exit_code(SSH_ERROR);
+        }
+        return SSH_OK;
+    };
+
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    EXPECT_THROW(make_sftpserver(), std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SftpServer, sshfs_restarts_on_error)
+{
+    bool invoked{false};
+    int num_calls{0};
+
+    auto request_exec = [this, &invoked, &num_calls](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd.find("sudo sshfs") != std::string::npos)
+        {
+            invoked = true;
+            exit_status_mock.return_exit_code(SSH_OK);
+            ++num_calls;
+        }
+
+        return SSH_OK;
+    };
+
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    auto sftp = make_sftpserver();
+
+    auto get_client_msg = [this, &num_calls](auto...) {
+        if (num_calls == 1)
+            exit_status_mock.return_exit_code(SSH_ERROR);
+
+        return nullptr;
+    };
+    REPLACE(sftp_get_client_message, get_client_msg);
+
+    sftp.run();
+
+    EXPECT_THAT(num_calls, Eq(2));
+    EXPECT_TRUE(invoked);
 }
 
 TEST_F(SftpServer, stops_after_a_null_message)

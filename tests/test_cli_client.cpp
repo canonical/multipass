@@ -1343,13 +1343,13 @@ TEST_F(Client, set_cmd_fails_with_no_arguments)
 TEST_F(Client, get_cmd_fails_with_multiple_arguments)
 {
     EXPECT_CALL(mock_settings, get(_)).Times(0);
-    EXPECT_THAT(send_command({"get", "client.primary-name", "local.driver"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"get", mp::petenv_key, "local.driver"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, set_cmd_fails_with_multiple_arguments)
 {
     EXPECT_CALL(mock_settings, set(_, _)).Times(0);
-    EXPECT_THAT(send_command({"set", "client.primary-name=asdf", "local.driver=qemu"}),
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "asdf"), "local.driver=qemu"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 

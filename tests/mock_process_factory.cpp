@@ -25,8 +25,8 @@ using namespace ::testing;
 
 std::unique_ptr<mp::Process> mpt::MockProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& spec) const
 {
-    auto process =
-        std::make_unique<mpt::MockProcess>(std::move(spec), const_cast<std::vector<ProcessInfo>&>(process_list));
+    auto process = std::make_unique<NiceMock<mpt::MockProcess>>(std::move(spec),
+                                                                const_cast<std::vector<ProcessInfo>&>(process_list));
     if (callback)
         callback.value()(process.get());
     return process;
@@ -36,11 +36,16 @@ mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
                               std::vector<mpt::MockProcessFactory::ProcessInfo>& process_list)
     : spec{std::move(spec)}
 {
+    success_exit_state.exit_code = 0;
+
     ON_CALL(*this, start()).WillByDefault(Invoke([this] { emit started(); }));
-    ON_CALL(*this, kill()).WillByDefault(Invoke([this] { emit finished(0, QProcess::NormalExit); }));
+    ON_CALL(*this, kill()).WillByDefault(Invoke([this] {
+        mp::ProcessExitState exit_state;
+        exit_state.exit_code = 0;
+        emit finished(exit_state);
+    }));
     ON_CALL(*this, running()).WillByDefault(Return(true));
-    ON_CALL(*this, run_and_return_status(_)).WillByDefault(Return(true));
-    ON_CALL(*this, run_and_return_output(_)).WillByDefault(Return(""));
+    ON_CALL(*this, execute(_)).WillByDefault(Return(success_exit_state));
 
     mpt::MockProcessFactory::ProcessInfo p{program(), arguments()};
     process_list.emplace_back(p);
@@ -69,7 +74,14 @@ std::vector<mpt::MockProcessFactory::ProcessInfo> mpt::MockProcessFactory::Scope
 
 mpt::MockProcessFactory& mpt::MockProcessFactory::mock_instance()
 {
-    return dynamic_cast<mpt::MockProcessFactory&>(instance());
+    try
+    {
+        return dynamic_cast<mpt::MockProcessFactory&>(instance());
+    }
+    catch (std::bad_cast&)
+    {
+        throw std::runtime_error("ProcessFactory::instance() called before MockProcessFactory::Inject()");
+    }
 }
 
 void mpt::MockProcessFactory::Scope::register_callback(const mpt::MockProcessFactory::Callback& cb)
@@ -103,15 +115,6 @@ bool mpt::MockProcess::wait_for_started(int)
 bool mpt::MockProcess::wait_for_finished(int)
 {
     return true;
-}
-
-QByteArray mpt::MockProcess::read_all_standard_output()
-{
-    return "";
-}
-QByteArray mpt::MockProcess::read_all_standard_error()
-{
-    return "";
 }
 
 qint64 mpt::MockProcess::write(const QByteArray&)

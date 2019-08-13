@@ -50,17 +50,13 @@ public:
 
     qint64 write(const QByteArray& data) override;
 
-    bool run_and_return_status(const int timeout = 30000) override;
-    QString run_and_return_output(const int timeout = 30000) override;
+    const ProcessExitState execute(const int timeout = 30000) override;
 
 protected:
     LinuxProcess(std::unique_ptr<ProcessSpec>&& spec);
     const std::unique_ptr<ProcessSpec> process_spec;
 
     QProcess process; // ease testing
-
-private:
-    void run_and_wait_until_finished(const int timeout);
 };
 
 } // namespace multipass

@@ -37,6 +37,7 @@ else()
     test_qemu_backend.cpp
     test_qemu_vm_process_spec.cpp
     test_dnsmasq_server.cpp
+    test_linux_process.cpp
     test_libvirt_backend.cpp
     test_with_mocked_bin_path.cpp)
 
@@ -70,8 +71,26 @@ else()
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-  list(APPEND CMOCK_TARGETS libvirt_backend_test)
-  target_compile_definitions(libvirt_backend_test PRIVATE
+  add_executable(qemu-img
+    mock_qemuimg.cpp)
+
+  set_target_properties(qemu-img
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+  add_executable(mock_process
+    mock_process.cpp)
+
+  set_target_properties(mock_process
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+    list(APPEND CMOCK_TARGETS libvirt_backend_test)
+    target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
 endif()
 
@@ -114,6 +133,7 @@ add_executable(multipass_tests
   test_scp_client.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
+  test_snap_utils.cpp
   test_ssl_cert_provider.cpp
   test_sshfsmount.cpp
   test_ssh_client.cpp

@@ -101,12 +101,19 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
                                    const std::string& username)
 {
-    auto ssh_key_line = fmt::format("ssh-rsa {} multipass@localhost", key_provider.public_key_as_base64());
+    auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
 
     auto config = YAML::Load(mp::base_cloud_init_config);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = time_zone;
     config["system_info"]["default_user"]["name"] = username;
+
+    YAML::Node pollinate_user_agent_node;
+    pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
+    pollinate_user_agent_node["content"] =
+        fmt::format("multipass/version/{} # written by Multipass", multipass::version_string);
+
+    config["write_files"].push_back(pollinate_user_agent_node);
 
     return config;
 }
@@ -530,9 +537,9 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
     {
         auto ecode = proc.exit_code();
 
-        // we shouldn't get this far: a successful reboot command does not return
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                            fmt::format("Reboot command exited with code {}", ecode), proc.read_std_error()};
+        if (ecode != 0)
+            return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                fmt::format("Reboot command exited with code {}", ecode), proc.read_std_error()};
     }
     catch (const mp::ExitlessSSHProcessException&)
     {
@@ -556,6 +563,30 @@ QStringList filter_unsupported_aliases(const QStringList& aliases, const std::st
     return supported_aliases;
 }
 
+mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::State& state)
+{
+    switch (state)
+    {
+    case mp::VirtualMachine::State::off:
+    case mp::VirtualMachine::State::stopped:
+        return mp::InstanceStatus::STOPPED;
+    case mp::VirtualMachine::State::starting:
+        return mp::InstanceStatus::STARTING;
+    case mp::VirtualMachine::State::restarting:
+        return mp::InstanceStatus::RESTARTING;
+    case mp::VirtualMachine::State::running:
+        return mp::InstanceStatus::RUNNING;
+    case mp::VirtualMachine::State::delayed_shutdown:
+        return mp::InstanceStatus::DELAYED_SHUTDOWN;
+    case mp::VirtualMachine::State::suspending:
+        return mp::InstanceStatus::SUSPENDING;
+    case mp::VirtualMachine::State::suspended:
+        return mp::InstanceStatus::SUSPENDED;
+    case mp::VirtualMachine::State::unknown:
+    default:
+        return mp::InstanceStatus::UNKNOWN;
+    }
+}
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -564,7 +595,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
-      metrics_provider{"https://api.staging.jujucharms.com/omnibus/v4/multipass/metrics",
+      metrics_provider{"https://api.jujucharms.com/omnibus/v4/multipass/metrics",
                        get_unique_id(config->data_directory), config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)}
 {
@@ -967,28 +998,7 @@ try // clang-format on
         }
         else
         {
-            auto status_for = [](mp::VirtualMachine::State state) {
-                switch (state)
-                {
-                case mp::VirtualMachine::State::starting:
-                    return mp::InstanceStatus::STARTING;
-                case mp::VirtualMachine::State::restarting:
-                    return mp::InstanceStatus::RESTARTING;
-                case mp::VirtualMachine::State::running:
-                    return mp::InstanceStatus::RUNNING;
-                case mp::VirtualMachine::State::delayed_shutdown:
-                    return mp::InstanceStatus::DELAYED_SHUTDOWN;
-                case mp::VirtualMachine::State::suspending:
-                    return mp::InstanceStatus::SUSPENDING;
-                case mp::VirtualMachine::State::suspended:
-                    return mp::InstanceStatus::SUSPENDED;
-                case mp::VirtualMachine::State::unknown:
-                    return mp::InstanceStatus::UNKNOWN;
-                default:
-                    return mp::InstanceStatus::STOPPED;
-                }
-            };
-            info->mutable_instance_status()->set_status(status_for(present_state));
+            info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1096,28 +1106,6 @@ try // clang-format on
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
-    auto status_for = [](mp::VirtualMachine::State state) {
-        switch (state)
-        {
-        case mp::VirtualMachine::State::starting:
-            return mp::InstanceStatus::STARTING;
-        case mp::VirtualMachine::State::restarting:
-            return mp::InstanceStatus::RESTARTING;
-        case mp::VirtualMachine::State::running:
-            return mp::InstanceStatus::RUNNING;
-        case mp::VirtualMachine::State::delayed_shutdown:
-            return mp::InstanceStatus::DELAYED_SHUTDOWN;
-        case mp::VirtualMachine::State::suspending:
-            return mp::InstanceStatus::SUSPENDING;
-        case mp::VirtualMachine::State::suspended:
-            return mp::InstanceStatus::SUSPENDED;
-        case mp::VirtualMachine::State::unknown:
-            return mp::InstanceStatus::UNKNOWN;
-        default:
-            return mp::InstanceStatus::STOPPED;
-        }
-    };
-
     for (const auto& instance : vm_instances)
     {
         const auto& name = instance.first;
@@ -1125,7 +1113,7 @@ try // clang-format on
         auto present_state = vm->current_state();
         auto entry = response.add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(status_for(present_state));
+        entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);

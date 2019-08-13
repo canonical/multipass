@@ -114,7 +114,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         client_cert_store =
             std::make_unique<mp::ClientCertStore>(mp::utils::make_dir(data_directory, "registered-certs"));
     if (ssh_username.empty())
-        ssh_username = "multipass";
+        ssh_username = "ubuntu";
 
     return std::unique_ptr<const DaemonConfig>(
         new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
