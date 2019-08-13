@@ -126,8 +126,8 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
         // The VM image itself
         "-s"
          << "1:0,ahci-hd,file://" + desc.image.image_path +
-                "?sync=os&buffered=1,format=qcow,qcow-config=discard=true;compact_after_unmaps=0;keep_"
-                "erased=0;runtime_asserts=false"
+                "?sync=os&buffered=1,format=qcow,qcow-config=discard=true;compact_after_unmaps=262144;keep_"
+                "erased=262144;runtime_asserts=false"
          <<
         // Disk image for the cloud-init configuration
         "-s"
