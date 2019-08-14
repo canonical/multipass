@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,40 +25,63 @@
 
 #include <multipass/format.h>
 
+#include <QDir>
+
 #include <fstream>
+
+#include <signal.h>
+#include <sys/types.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
-auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const mp::IPAddress& bridge_addr,
-                          const mp::IPAddress& start, const mp::IPAddress& end)
+auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const QString& pid_file_path,
+                          const std::string& subnet)
 {
-    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, bridge_addr, start, end);
+    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, pid_file_path, subnet);
     return mp::ProcessFactory::instance().create_process(std::move(process_spec));
+}
+
+auto get_dnsmasq_pid(const mp::Path& pid_file_path)
+{
+    std::ifstream pid_file{pid_file_path.toStdString()};
+    std::string pid;
+
+    getline(pid_file, pid);
+
+    return std::stoi(pid);
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
-                                 const IPAddress& start, const IPAddress& end)
+mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet)
     : data_dir{data_dir},
-      dnsmasq_cmd{make_dnsmasq_process(data_dir, bridge_name, bridge_addr, start, end)},
-      bridge_name{bridge_name}
+      bridge_name{bridge_name},
+      pid_file_path{QDir(data_dir).filePath("dnsmasq.pid")},
+      subnet{subnet}
 {
-    dnsmasq_cmd->start();
+    try
+    {
+        check_dnsmasq_running();
+    }
+    catch (const std::exception&)
+    {
+        start_dnsmasq();
+    }
 }
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
-    dnsmasq_cmd->kill();
-    dnsmasq_cmd->wait_for_finished();
+    auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
+    kill(dnsmasq_pid, SIGKILL);
 }
 
 mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
 {
     // DNSMasq leases entries consist of:
     // <lease expiration> <mac addr> <ipv4> <name> * * *
-    const auto path = data_dir.filePath("dnsmasq.leases").toStdString();
+    const auto path = QDir(data_dir).filePath("dnsmasq.leases").toStdString();
     const std::string delimiter{" "};
     const int hw_addr_idx{1};
     const int ipv4_idx{2};
@@ -104,4 +127,22 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
                                                      << QString::fromStdString(hw_addr));
 
     dhcp_release.waitForFinished();
+}
+
+void mp::DNSMasqServer::check_dnsmasq_running()
+{
+    auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
+    if (kill(dnsmasq_pid, 0) == 0)
+        return;
+
+    // exit_code == 2 signifies dnsmasq network-related error. See `man dnsmasq`.
+    throw std::runtime_error(
+        fmt::format("Multipass dnsmasq is not running.{}",
+                    (dnsmasq_exit_state.exit_code == 2) ? " Ensure nothing is using port 53." : ""));
+}
+
+void mp::DNSMasqServer::start_dnsmasq()
+{
+    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, pid_file_path, subnet);
+    dnsmasq_exit_state = dnsmasq_cmd->execute();
 }

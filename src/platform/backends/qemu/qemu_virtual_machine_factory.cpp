@@ -211,10 +211,7 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
     set_ip_forward();
     set_nat_iptables(subnet, bridge_name);
 
-    const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
-    const auto start_addr = mp::IPAddress{fmt::format("{}.2", subnet)};
-    const auto end_addr = mp::IPAddress{fmt::format("{}.254", subnet)};
-    return {network_dir, bridge_name, bridge_addr, start_addr, end_addr};
+    return {network_dir, bridge_name, subnet};
 }
 } // namespace
 
@@ -277,6 +274,17 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 {
     mp::backend::check_for_kvm_support();
     mp::backend::check_if_kvm_is_in_use();
+
+    try
+    {
+        dnsmasq_server.check_dnsmasq_running();
+    }
+    catch (const std::exception&)
+    {
+        // Try starting dnsmasq if it's not running
+        dnsmasq_server.start_dnsmasq();
+        dnsmasq_server.check_dnsmasq_running();
+    }
 }
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()
