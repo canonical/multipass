@@ -89,7 +89,7 @@ if [ "$disabled" -eq 1 ]; then
     exit 1
 fi
 
-modprobe $kvm_mod
+modprobe $kvm_mod > /dev/null 2>&1
 
 check_kvm_module
 

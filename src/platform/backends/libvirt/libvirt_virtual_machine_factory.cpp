@@ -151,6 +151,7 @@ void mp::LibVirtVirtualMachineFactory::configure(const std::string& /*name*/, YA
 
 void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
 {
+    mp::backend::check_for_kvm_support();
     mp::backend::check_if_kvm_is_in_use();
 
     auto connection = LibVirtVirtualMachine::open_libvirt_connection();

@@ -210,8 +210,8 @@ void mp::backend::check_if_kvm_is_in_use()
     close(kvm_fd);
 
     if (ret == -1 && errno == EBUSY)
-        throw std::runtime_error(
-            "Another hypervisor is currently running. Please shut it down before starting a Multipass instance.");
+        throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
+                                 "starting a Multipass instance.");
 
     close(ret);
 }
