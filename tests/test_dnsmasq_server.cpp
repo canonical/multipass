@@ -135,3 +135,10 @@ TEST_F(DNSMasqServer, release_mac_logs_failures)
     EXPECT_TRUE(QFile::exists(dchp_release_called));
     EXPECT_TRUE(logger->logged_lines.size() > 0);
 }
+
+TEST_F(DNSMasqServer, dnsmasq_not_running_throws)
+{
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+
+    EXPECT_THROW(dns.check_dnsmasq_running(), std::runtime_error);
+}

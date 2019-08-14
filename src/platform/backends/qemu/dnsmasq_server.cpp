@@ -73,8 +73,15 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
-    auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
-    kill(dnsmasq_pid, SIGKILL);
+    try
+    {
+        auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
+        kill(dnsmasq_pid, SIGKILL);
+    }
+    catch (const std::exception&)
+    {
+        // Ignore
+    }
 }
 
 mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
