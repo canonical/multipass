@@ -2060,8 +2060,8 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
                      fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
         }
 
-        auto& shutdown_timer = delayed_shutdown_instances[name] =
-            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session));
+        auto& shutdown_timer = delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(
+            &vm, std::move(session), std::bind(&Daemon::stop_mounts_for_instance, this, std::placeholders::_1));
 
         QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
                          [this, name]() { delayed_shutdown_instances.erase(name); });
