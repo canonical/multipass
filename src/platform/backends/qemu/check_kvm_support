@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-set -e
 
 check_kvm_module() {
     if [ -e /dev/kvm ]; then
@@ -24,9 +23,32 @@ check_kvm_module() {
 
 check_kvm_module
 
-virt=$(egrep -m1 -w '^flags[[:blank:]]*:' /proc/cpuinfo | egrep -wo '(vmx|svm)') || true
-[ "$virt" = "vmx" ] && kvm_mod="kvm_intel"
-[ "$virt" = "svm" ] && kvm_mod="kvm_amd"
+ARM_CPU_PART_CORTEX_A15="0xc0f" # <asm/cputype.h>
+
+# check cpu flags for capability
+case "$(uname -m)" in
+    armv7l)
+        if egrep -m1 -w '^CPU part[[:blank:]]*:' /proc/cpuinfo | \
+                egrep -wq "$ARM_CPU_PART_CORTEX_A15"; then
+            virt="ARM"
+            kvm_mod="kvm"
+        fi
+        ;;
+    aarch64)
+        virt="ARM"
+        kvm_mod="kvm"
+        ;;
+    ppc64le|ppc64|s390x)
+        # FIXME: Assume that all POWER and z/Systems are KVM capable
+        virt="generic"
+        kvm_mod="kvm"
+        ;;
+    *)
+        virt=$(egrep -m1 -w '^flags[[:blank:]]*:' /proc/cpuinfo | egrep -wo '(vmx|svm)') || true
+        [ "$virt" = "vmx" ] && kvm_mod="kvm_intel"
+        [ "$virt" = "svm" ] && kvm_mod="kvm_amd"
+        ;;
+esac
 
 if [ -z "$virt" ]; then
     echo "CPU does not support KVM extensions."
@@ -39,7 +61,9 @@ if [ "$(id -u)" != "0" ]; then
 else
     msr="/dev/cpu/0/msr"
     if [ ! -r "$msr" ]; then
-        modprobe msr
+        if ! modprobe msr > /dev/null 2>&1 ; then
+            echo "Cannot check BIOS for determining KVM extensions support."
+        fi
     fi
 
     if [ "$virt" = "vmx" ]; then
@@ -64,9 +88,9 @@ if [ "$disabled" -eq 1 ]; then
     exit 1
 fi
 
-modprobe $kvm_mod
+modprobe $kvm_mod > /dev/null 2>&1
 
 check_kvm_module
 
-echo "Unable to load '$kvm_mod'."
+echo "Unable to load KVM support. Please ensure KVM is installed on your machine."
 exit 1

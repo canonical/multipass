@@ -22,7 +22,6 @@
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
-#include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/linux/backend_utils.h>
 
@@ -38,14 +37,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-virErrorPtr libvirt_error;
-
-void libvirt_error_handler(void* /*opaque*/, virErrorPtr /*error*/)
-{
-    virFreeError(libvirt_error);
-    libvirt_error = virSaveLastError();
-}
-
 auto instance_mac_addr_for(virDomainPtr domain)
 {
     std::string mac_addr;
@@ -67,11 +58,21 @@ auto instance_mac_addr_for(virDomainPtr domain)
     return mac_addr;
 }
 
-auto instance_ip_for(virConnectPtr connection, const std::string& mac_addr)
+auto instance_ip_for(const std::string& mac_addr)
 {
     mp::optional<mp::IPAddress> ip_address;
 
-    mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection, "default"), virNetworkFree};
+    mp::LibVirtVirtualMachine::ConnectionUPtr connection{nullptr, nullptr};
+    try
+    {
+        connection = mp::LibVirtVirtualMachine::open_libvirt_connection();
+    }
+    catch (const std::exception&)
+    {
+        return ip_address;
+    }
+
+    mp::LibVirtVirtualMachine::NetworkUPtr network{virNetworkLookupByName(connection.get(), "default"), virNetworkFree};
 
     virNetworkDHCPLeasePtr* leases = nullptr;
     auto nleases = virNetworkGetDHCPLeases(network.get(), mac_addr.c_str(), &leases, 0);
@@ -180,25 +181,20 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.mac_addr, bridge_name);
 }
 
-auto domain_definition_for(virConnectPtr connection, const mp::VirtualMachineDescription& desc,
-                           const std::string& bridge_name)
+auto domain_by_name_for(const std::string& vm_name, virConnectPtr connection)
 {
-    virSetErrorFunc(nullptr, libvirt_error_handler);
+    mp::LibVirtVirtualMachine::DomainUPtr domain{virDomainLookupByName(connection, vm_name.c_str()), virDomainFree};
 
-    mp::LibVirtVirtualMachine::DomainUPtr domain{virDomainLookupByName(connection, desc.vm_name.c_str()),
-                                                 virDomainFree};
+    return domain;
+}
 
-    virFreeError(libvirt_error);
-    libvirt_error = nullptr;
-
-    if (domain == nullptr)
-        domain = mp::LibVirtVirtualMachine::DomainUPtr{
-            virDomainDefineXML(connection,
-                               generate_xml_config_for(desc, bridge_name, host_architecture_for(connection)).c_str()),
-            virDomainFree};
-
-    if (domain == nullptr)
-        throw std::runtime_error("Error getting domain definition");
+auto domain_by_definition_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
+                              virConnectPtr connection)
+{
+    mp::LibVirtVirtualMachine::DomainUPtr domain{
+        virDomainDefineXML(connection,
+                           generate_xml_config_for(desc, bridge_name, host_architecture_for(connection)).c_str()),
+        virDomainFree};
 
     return domain;
 }
@@ -207,26 +203,33 @@ auto domain_state_for(virDomainPtr domain)
 {
     auto state{0};
 
+    if (!domain)
+        return mp::VirtualMachine::State::unknown;
+
     if (virDomainHasManagedSaveImage(domain, 0) == 1)
         return mp::VirtualMachine::State::suspended;
 
-    virDomainGetState(domain, &state, nullptr, 0);
+    if (virDomainGetState(domain, &state, nullptr, 0) == -1)
+    {
+        return mp::VirtualMachine::State::unknown;
+    }
 
     return (state == VIR_DOMAIN_RUNNING) ? mp::VirtualMachine::State::running : mp::VirtualMachine::State::off;
 }
 } // namespace
 
-mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc, virConnectPtr connection,
+mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor)
-    : VirtualMachine{desc.vm_name},
-      connection{connection},
-      domain{domain_definition_for(connection, desc, bridge_name)},
-      mac_addr{instance_mac_addr_for(domain.get())},
-      username{desc.ssh_username},
-      ip{instance_ip_for(connection, mac_addr)},
-      monitor{&monitor}
+    : VirtualMachine{desc.vm_name}, username{desc.ssh_username}, desc{desc}, monitor{&monitor}, bridge_name{bridge_name}
 {
-    state = domain_state_for(domain.get());
+    try
+    {
+        initialize_domain_info(open_libvirt_connection().get());
+    }
+    catch (const std::exception&)
+    {
+        state = VirtualMachine::State::unknown;
+    }
 }
 
 mp::LibVirtVirtualMachine::~LibVirtVirtualMachine()
@@ -241,6 +244,14 @@ void mp::LibVirtVirtualMachine::start()
 {
     if (state == State::running)
         return;
+
+    auto connection = open_libvirt_connection();
+    DomainUPtr domain{nullptr, nullptr};
+
+    if (state == VirtualMachine::State::unknown)
+        domain = initialize_domain_info(connection.get());
+    else
+        domain = domain_by_name_for(vm_name, connection.get());
 
     if (state == State::suspended)
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
@@ -281,9 +292,17 @@ void mp::LibVirtVirtualMachine::stop()
 void mp::LibVirtVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
+    auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
+    auto present_state = domain_state_for(domain.get());
+    if (present_state == State::running || present_state == State::delayed_shutdown || present_state == State::unknown)
     {
-        virDomainShutdown(domain.get());
+        if (!domain || virDomainShutdown(domain.get()) == -1)
+        {
+            auto warning_string{fmt::format("Cannot shutdown '{}': {}", vm_name, virGetLastErrorMessage())};
+            mpl::log(mpl::Level::warning, vm_name, warning_string);
+            throw std::runtime_error(warning_string);
+        }
+
         state = State::off;
         update_state();
     }
@@ -304,10 +323,16 @@ void mp::LibVirtVirtualMachine::shutdown()
 
 void mp::LibVirtVirtualMachine::suspend()
 {
-    if (state == State::running || state == State::delayed_shutdown)
+    auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
+    auto libvirt_state = domain_state_for(domain.get());
+    if (libvirt_state == State::running || state == State::delayed_shutdown)
     {
-        if (virDomainManagedSave(domain.get(), 0) < 0)
-            throw std::runtime_error(virGetLastErrorMessage());
+        if (!domain || virDomainManagedSave(domain.get(), 0) < 0)
+        {
+            auto warning_string{fmt::format("Cannot suspend '{}': {}", vm_name, virGetLastErrorMessage())};
+            mpl::log(mpl::Level::warning, vm_name, warning_string);
+            throw std::runtime_error(warning_string);
+        }
 
         if (update_suspend_status)
         {
@@ -325,6 +350,24 @@ void mp::LibVirtVirtualMachine::suspend()
 
 mp::VirtualMachine::State mp::LibVirtVirtualMachine::current_state()
 {
+    try
+    {
+        auto connection = open_libvirt_connection();
+        auto domain = domain_by_name_for(vm_name, connection.get());
+        if (!domain)
+            initialize_domain_info(connection.get());
+
+        auto libvirt_state = domain_state_for(domain.get());
+        if (libvirt_state == VirtualMachine::State::unknown || libvirt_state == VirtualMachine::State::off)
+        {
+            state = libvirt_state;
+        }
+    }
+    catch (const std::exception&)
+    {
+        state = VirtualMachine::State::unknown;
+    }
+
     return state;
 }
 
@@ -336,12 +379,17 @@ int mp::LibVirtVirtualMachine::ssh_port()
 void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 {
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (domain_state_for(domain.get()) != VirtualMachine::State::running)
+    auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
+    auto present_state = domain_state_for(domain.get());
+    if (present_state != VirtualMachine::State::running)
     {
         // Have to set 'off' here so there is an actual state change to compare to for
         // the cond var's predicate
         state = State::off;
         state_wait.notify_all();
+        if (present_state == VirtualMachine::State::unknown)
+            throw mp::StartException(vm_name, "Unable to determine state");
+
         throw mp::StartException(vm_name, "Instance shutdown during start");
     }
 }
@@ -350,7 +398,7 @@ std::string mp::LibVirtVirtualMachine::ssh_hostname()
 {
     auto action = [this] {
         ensure_vm_is_running();
-        auto result = instance_ip_for(connection, mac_addr);
+        auto result = instance_ip_for(mac_addr);
         if (result)
         {
             ip.emplace(result.value());
@@ -376,7 +424,7 @@ std::string mp::LibVirtVirtualMachine::ipv4()
 {
     if (!ip)
     {
-        auto result = instance_ip_for(connection, mac_addr);
+        auto result = instance_ip_for(mac_addr);
         if (result)
             ip.emplace(result.value());
         else
@@ -399,4 +447,35 @@ void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds time
 void mp::LibVirtVirtualMachine::update_state()
 {
     monitor->persist_state_for(vm_name, state);
+}
+
+mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_domain_info(virConnectPtr connection)
+{
+    auto domain = domain_by_name_for(vm_name, connection);
+
+    if (!domain)
+    {
+        domain = domain_by_definition_for(desc, bridge_name, connection);
+    }
+
+    if (mac_addr.empty())
+        mac_addr = instance_mac_addr_for(domain.get());
+
+    ipv4(); // To set ip
+    state = domain_state_for(domain.get());
+
+    return domain;
+}
+
+mp::LibVirtVirtualMachine::ConnectionUPtr mp::LibVirtVirtualMachine::open_libvirt_connection()
+{
+    mp::LibVirtVirtualMachine::ConnectionUPtr connection{virConnectOpen("qemu:///system"), virConnectClose};
+    if (!connection)
+    {
+        throw std::runtime_error(
+            fmt::format("Cannot connect to libvirtd: {}\nPlease ensure libvirt is installed and running.",
+                        virGetLastErrorMessage()));
+    }
+
+    return connection;
 }

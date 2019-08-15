@@ -21,22 +21,23 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <libvirt/libvirt.h>
 
 namespace multipass
 {
 class VMStatusMonitor;
-class VirtualMachineDescription;
 
 class LibVirtVirtualMachine final : public VirtualMachine
 {
 public:
+    using ConnectionUPtr = std::unique_ptr<virConnect, decltype(virConnectClose)*>;
     using DomainUPtr = std::unique_ptr<virDomain, decltype(virDomainFree)*>;
     using NetworkUPtr = std::unique_ptr<virNetwork, decltype(virNetworkFree)*>;
 
-    LibVirtVirtualMachine(const VirtualMachineDescription& desc, virConnectPtr connection,
-                          const std::string& bridge_name, VMStatusMonitor& monitor);
+    LibVirtVirtualMachine(const VirtualMachineDescription& desc, const std::string& bridge_name,
+                          VMStatusMonitor& monitor);
     ~LibVirtVirtualMachine();
 
     void start() override;
@@ -53,14 +54,17 @@ public:
     void ensure_vm_is_running() override;
     void update_state() override;
 
-private:
+    static ConnectionUPtr open_libvirt_connection();
 
-    virConnectPtr connection;
-    DomainUPtr domain;
-    const std::string mac_addr;
+private:
+    DomainUPtr initialize_domain_info(virConnectPtr connection);
+
+    std::string mac_addr;
     const std::string username;
+    const VirtualMachineDescription desc;
     optional<IPAddress> ip;
     VMStatusMonitor* monitor;
+    const std::string bridge_name;
     bool update_suspend_status{true};
 };
 } // namespace multipass

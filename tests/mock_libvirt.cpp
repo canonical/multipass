@@ -41,4 +41,5 @@ extern "C"
     IMPL_MOCK_DEFAULT(1, virDomainShutdown);
     IMPL_MOCK_DEFAULT(2, virDomainManagedSave);
     IMPL_MOCK_DEFAULT(2, virDomainHasManagedSaveImage);
+    IMPL_MOCK_DEFAULT(0, virGetLastError);
 }
