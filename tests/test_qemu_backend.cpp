@@ -283,7 +283,7 @@ TEST_F(QemuBackend, returns_version_string)
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
-            mp::ProcessExitState exit_state;
+            mp::ProcessState exit_state;
             exit_state.exit_code = 0;
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(qemu_version_output));
@@ -305,7 +305,7 @@ TEST_F(QemuBackend, returns_version_string_when_failed_parsing)
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
-            mp::ProcessExitState exit_state;
+            mp::ProcessState exit_state;
             exit_state.exit_code = 0;
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillRepeatedly(Return(qemu_version_output));
@@ -325,7 +325,7 @@ TEST_F(QemuBackend, returns_version_string_when_errored)
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
-            mp::ProcessExitState exit_state;
+            mp::ProcessState exit_state;
             exit_state.exit_code = 1;
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return("Standard output\n"));
@@ -346,8 +346,8 @@ TEST_F(QemuBackend, returns_version_string_when_exec_failed)
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
-            mp::ProcessExitState exit_state;
-            exit_state.error = mp::ProcessExitState::Error{QProcess::Crashed, "Error message"};
+            mp::ProcessState exit_state;
+            exit_state.error = mp::ProcessState::Error{QProcess::Crashed, "Error message"};
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).Times(0);
         }

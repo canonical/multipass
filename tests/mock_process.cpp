@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
     if (argc == 1)
     {
         // deliberately will crash if argument 1 missing
-        assert(false);
+        abort();
     }
     // Exit immediately if only 1 argument
     else if (argc == 2)
@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
     // Crash on demand
     if (s == "crash")
     {
-        assert(false);
+        abort();
     }
 
     // Print out what was supplied by stdin
