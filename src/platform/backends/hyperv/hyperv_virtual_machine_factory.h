@@ -32,7 +32,7 @@ public:
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
-    void check_hypervisor_support() override;
+    void hypervisor_health_check() override;
     QString get_backend_directory_name() override
     {
         return {};
