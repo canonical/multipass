@@ -117,6 +117,6 @@ void mp::VirtualBoxVirtualMachineFactory::configure(const std::string& /* name *
 {
 }
 
-void mp::VirtualBoxVirtualMachineFactory::check_hypervisor_support()
+void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
 {
 }
