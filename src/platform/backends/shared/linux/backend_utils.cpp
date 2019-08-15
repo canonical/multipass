@@ -196,6 +196,11 @@ void mp::backend::check_for_kvm_support()
     check_kvm.start("check_kvm_support");
     check_kvm.waitForFinished();
 
+    if (check_kvm.error() == QProcess::FailedToStart)
+    {
+        throw std::runtime_error("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
+    }
+
     if (check_kvm.exitCode() == 1)
     {
         throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());

@@ -92,5 +92,5 @@ modprobe $kvm_mod > /dev/null 2>&1
 
 check_kvm_module
 
-echo "Unable to load kvm support. Please ensure kvm is installed on your machine."
+echo "Unable to load KVM support. Please ensure KVM is installed on your machine."
 exit 1
