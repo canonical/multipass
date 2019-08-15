@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -273,9 +273,10 @@ void mp::QemuVirtualMachineFactory::configure(const std::string& /*name*/, YAML:
 {
 }
 
-void mp::QemuVirtualMachineFactory::check_hypervisor_support()
+void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 {
-    mp::backend::check_hypervisor_support();
+    mp::backend::check_for_kvm_support();
+    mp::backend::check_if_kvm_is_in_use();
 }
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()

@@ -35,6 +35,13 @@
 #include <exception>
 #include <random>
 
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/kvm.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -117,23 +124,6 @@ std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& 
     return new_subnet;
 }
 
-void mp::backend::check_hypervisor_support()
-{
-    auto arch = QSysInfo::currentCpuArchitecture();
-    if (arch == "x86_64" || arch == "i386")
-    {
-        QProcess check_kvm;
-        check_kvm.setProcessChannelMode(QProcess::MergedChannels);
-        check_kvm.start("check_kvm_support");
-        check_kvm.waitForFinished();
-
-        if (check_kvm.exitCode() == 1)
-        {
-            throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
-        }
-    }
-}
-
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
@@ -197,4 +187,36 @@ QString mp::backend::cpu_arch()
                                               {"s390x", "s390x"}};
 
     return cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
+}
+
+void mp::backend::check_for_kvm_support()
+{
+    QProcess check_kvm;
+    check_kvm.setProcessChannelMode(QProcess::MergedChannels);
+    check_kvm.start("check_kvm_support");
+    check_kvm.waitForFinished();
+
+    if (check_kvm.error() == QProcess::FailedToStart)
+    {
+        throw std::runtime_error("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
+    }
+
+    if (check_kvm.exitCode() == 1)
+    {
+        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+    }
+}
+
+void mp::backend::check_if_kvm_is_in_use()
+{
+    auto kvm_fd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
+    auto ret = ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
+
+    close(kvm_fd);
+
+    if (ret == -1 && errno == EBUSY)
+        throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
+                                 "starting a Multipass instance.");
+
+    close(ret);
 }

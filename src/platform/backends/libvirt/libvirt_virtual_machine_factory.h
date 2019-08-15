@@ -21,8 +21,6 @@
 
 #include <memory>
 
-#include <libvirt/libvirt.h>
-
 namespace multipass
 {
 class ProcessFactory;
@@ -30,8 +28,6 @@ class ProcessFactory;
 class LibVirtVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
-    using ConnectionUPtr = std::unique_ptr<virConnect, decltype(virConnectClose)*>;
-
     explicit LibVirtVirtualMachineFactory(const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
@@ -42,7 +38,7 @@ public:
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
-    void check_hypervisor_support() override;
+    void hypervisor_health_check() override;
     QString get_backend_directory_name() override
     {
         return {};
@@ -50,7 +46,6 @@ public:
     QString get_backend_version_string() override;
 
 private:
-    ConnectionUPtr connection;
     const Path data_dir;
     std::string bridge_name;
 };
