@@ -25,11 +25,11 @@ include(c_mock_defines.cmake)
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
-  list(APPEND BACKEND_TESTS test_hyperv_backend.cpp)
+  list(APPEND PLATFORM_TESTS test_hyperv_backend.cpp)
 elseif(APPLE)
-  list(APPEND BACKEND_TESTS test_hyperkit_backend.cpp)
+  list(APPEND PLATFORM_TESTS test_hyperkit_backend.cpp)
 else()
-  list(APPEND BACKEND_TESTS
+  list(APPEND PLATFORM_TESTS
     mock_libvirt.cpp
     mock_process_factory.cpp
     stub_process_factory.cpp
@@ -39,6 +39,7 @@ else()
     test_dnsmasq_server.cpp
     test_linux_process.cpp
     test_libvirt_backend.cpp
+    test_snap_utils.cpp
     test_with_mocked_bin_path.cpp)
 
   add_executable(qemu-system-x86_64
@@ -89,8 +90,8 @@ else()
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-    list(APPEND CMOCK_TARGETS libvirt_backend_test)
-    target_compile_definitions(libvirt_backend_test PRIVATE
+  list(APPEND CMOCK_TARGETS libvirt_backend_test)
+  target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
 endif()
 
@@ -133,7 +134,6 @@ add_executable(multipass_tests
   test_scp_client.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
-  test_snap_utils.cpp
   test_ssl_cert_provider.cpp
   test_sshfsmount.cpp
   test_ssh_client.cpp
@@ -144,7 +144,7 @@ add_executable(multipass_tests
   test_utils.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process.h # need to run MOC on this
 
-  ${BACKEND_TESTS}
+  ${PLATFORM_TESTS}
 
   ${MULTIPASS_GMOCK_DIR}/src/gmock-all.cc
   ${MULTIPASS_GTEST_DIR}/src/gtest-all.cc
