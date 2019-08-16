@@ -29,14 +29,15 @@ public:
     explicit SetEnvScope(const QByteArray& name, const QByteArray& new_value) : name(name)
     {
         old_value = qgetenv(name.constData());
-        setenv(name.constData(), new_value.constData(), 1 /*overwrite*/);
+
+        qputenv(name.constData(), new_value.constData());
     }
     ~SetEnvScope()
     {
         if (old_value.isNull())
-            unsetenv(name.constData());
+            qunsetenv(name.constData());
         else
-            setenv(name.constData(), old_value.constData(), 1 /*overwrite*/);
+            qputenv(name.constData(), old_value.constData());
     }
 
 private:
@@ -50,12 +51,12 @@ public:
     {
         old_value = qgetenv(name.constData());
         if (!old_value.isNull())
-            unsetenv(name.constData());
+            qunsetenv(name.constData());
     }
     ~UnsetEnvScope()
     {
         if (!old_value.isNull())
-            setenv(name.constData(), old_value.constData(), 0 /*no-overwrite*/);
+            qputenv(name.constData(), old_value.constData());
     }
 
 private:

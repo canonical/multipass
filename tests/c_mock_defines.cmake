@@ -103,4 +103,5 @@ add_c_mocks(
   virDomainShutdown
   virDomainManagedSave
   virDomainHasManagedSaveImage
+  virGetLastError
 )

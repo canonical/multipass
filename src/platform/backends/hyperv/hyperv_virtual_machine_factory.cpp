@@ -87,6 +87,6 @@ void mp::HyperVVirtualMachineFactory::configure(const std::string& name, YAML::N
 {
 }
 
-void mp::HyperVVirtualMachineFactory::check_hypervisor_support()
+void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 {
 }

@@ -21,6 +21,7 @@
 #include <premock.hpp>
 
 #include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 
 DECL_MOCK(virConnectOpen);
 DECL_MOCK(virConnectClose);
@@ -44,5 +45,6 @@ DECL_MOCK(virDomainCreate);
 DECL_MOCK(virDomainShutdown);
 DECL_MOCK(virDomainManagedSave);
 DECL_MOCK(virDomainHasManagedSaveImage);
+DECL_MOCK(virGetLastError);
 
 #endif // MULTIPASS_MOCK_LIBVIRT_H
