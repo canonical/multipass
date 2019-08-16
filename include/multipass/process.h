@@ -47,6 +47,18 @@ struct ProcessState
     {
         return !error && exit_code && exit_code.value() == 0;
     }
+    QString failure_message() const
+    {
+        if (error)
+        {
+            return error->message;
+        }
+        if (exit_code && exit_code.value() != 0)
+        {
+            return QString("Process returned exit code: %1").arg(exit_code.value());
+        }
+        return QString();
+    }
 
     multipass::optional<int> exit_code; // only set if process stops successfully. Can be set even if success() is false
 

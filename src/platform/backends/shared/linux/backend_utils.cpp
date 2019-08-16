@@ -144,7 +144,7 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output: {}",
-                                             process_state.error.value().message,
+                                             process_state.failure_message(),
                                              qemuimg_process->read_all_standard_error()));
     }
 }
@@ -162,7 +162,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Cannot read image format: qemu-img failed ({}) with output: {}",
-                                             process_state.error.value().message,
+                                             process_state.failure_message(),
                                              qemuimg_process->read_all_standard_error()));
     }
 
@@ -179,7 +179,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
         if (!process_state.completed_successfully())
         {
             throw std::runtime_error(fmt::format("Failed to convert image format: qemu-img failed ({}) with output: {}",
-                                                 process_state.error.value().message,
+                                                 process_state.failure_message(),
                                                  qemuimg_process->read_all_standard_error()));
         }
         return qcow2_path;
