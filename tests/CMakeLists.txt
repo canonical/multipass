@@ -23,7 +23,7 @@ list(APPEND CMOCK_TARGETS
 
 include(c_mock_defines.cmake)
 
-list(APPEND BACKEND_TESTS
+list(APPEND PLATFORM_TESTS
   mock_libvirt.cpp
   mock_process_factory.cpp
   stub_process_factory.cpp
@@ -33,6 +33,7 @@ list(APPEND BACKEND_TESTS
   test_dnsmasq_server.cpp
   test_linux_process.cpp
   test_libvirt_backend.cpp
+  test_snap_utils.cpp
   test_with_mocked_bin_path.cpp)
 
 add_executable(qemu-system-x86_64
@@ -126,7 +127,6 @@ add_executable(multipass_tests
   test_scp_client.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
-  test_snap_utils.cpp
   test_ssl_cert_provider.cpp
   test_sshfsmount.cpp
   test_ssh_client.cpp
@@ -137,7 +137,7 @@ add_executable(multipass_tests
   test_utils.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process.h # need to run MOC on this
 
-  ${BACKEND_TESTS}
+  ${PLATFORM_TESTS}
 
   ${MULTIPASS_GMOCK_DIR}/src/gmock-all.cc
   ${MULTIPASS_GTEST_DIR}/src/gtest-all.cc
