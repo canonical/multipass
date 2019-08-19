@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -29,6 +27,58 @@
 #include <QProcess>
 
 namespace mp = multipass;
+
+namespace
+{
+void determine_hyperv_support()
+{
+    mp::PowerShell power_shell("Hyper-V Health Check");
+    QString ps_output;
+    QStringList select_object{"|", "Select-Object", "-ExpandProperty"};
+    QStringList get_reg_version_info{"Get-ItemProperty", "-Path",
+                                     "'HKLM:\\Software\\Microsoft\\Windows NT\\CurrentVersion'"};
+
+    // Check for Windows 10
+    power_shell.run(QStringList() << get_reg_version_info << select_object << "CurrentMajorVersionNumber", ps_output);
+    if (ps_output != "10")
+        throw std::runtime_error("Hyper-V support requires Windows 10");
+
+    // Check if it's Home Edition
+    power_shell.run(QStringList() << get_reg_version_info << select_object << "ProductName", ps_output);
+    if (ps_output.contains("Home"))
+        throw std::runtime_error(
+            "Cannot use Windows 10 Home edition for Hyper-V. Please upgrade to Pro or Enterprise edition.");
+
+    // Check if it's a version less than 1803
+    power_shell.run(QStringList() << get_reg_version_info << select_object << "ReleaseId", ps_output);
+    if (ps_output.toInt() < 1803)
+        throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
+
+    QStringList optional_feature{"Get-WindowsOptionalFeature", "-Online", "-FeatureName"};
+
+    // Check if Hyper-V is fully enabled
+    if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << select_object << "State",
+                        ps_output))
+    {
+        if (ps_output == "Enabled")
+        {
+            power_shell.run(QStringList()
+                                << optional_feature << "Microsoft-Hyper-V-Hypervisor" << select_object << "State",
+                            ps_output);
+            if (ps_output == "Enabled")
+                return;
+
+            throw std::runtime_error("The Hyper-V Hypervisor is disabled. Please enable by using the following\n"
+                                     "command in an Administrator Powershell and reboot:\n"
+                                     "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Hypervisor");
+        }
+
+        throw std::runtime_error("The Hyper-V Windows feature is disabled. Please enable by using the following\n"
+                                 "command in an Administrator Powershell and reboot:\n"
+                                 "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All");
+    }
+}
+} // namespace
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                  VMStatusMonitor& monitor)
@@ -89,4 +139,5 @@ void mp::HyperVVirtualMachineFactory::configure(const std::string& name, YAML::N
 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 {
+    determine_hyperv_support();
 }
