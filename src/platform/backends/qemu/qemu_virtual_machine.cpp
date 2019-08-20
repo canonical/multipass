@@ -141,11 +141,11 @@ auto hmc_to_qmp_json(const QString& command_line)
 bool instance_image_has_snapshot(const mp::Path& image_path)
 {
     auto process = mp::ProcessFactory::instance().create_process("qemu-img", QStringList{"snapshot", "-l", image_path});
-    auto exit_state = process->execute();
-    if (!exit_state.success())
+    auto process_state = process->execute();
+    if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output: {}",
-                                             exit_state.error.value().message, process->read_all_standard_error()));
+                                             process_state.failure_message(), process->read_all_standard_error()));
     }
 
     auto output = process->read_all_standard_output().split('\n');
@@ -264,16 +264,17 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         }
     });
 
-    QObject::connect(vm_process.get(), &Process::finished, [this](ProcessExitState exit_state) {
-        if (exit_state.exit_code)
+    QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
+        if (process_state.exit_code)
         {
             mpl::log(mpl::Level::info, vm_name,
-                     fmt::format("process finished with exit code {}", exit_state.exit_code.value()));
+                     fmt::format("process finished with exit code {}", process_state.exit_code.value()));
         }
-        if (exit_state.error)
+        if (process_state.error)
         {
-            mpl::log(mpl::Level::error, vm_name,
-                     fmt::format("process returned error {}: {}", exit_state.error->state, exit_state.error->message));
+            mpl::log(
+                mpl::Level::error, vm_name,
+                fmt::format("process returned error {}: {}", process_state.error->state, process_state.error->message));
         }
 
         if (update_shutdown_status || state == State::starting)
@@ -318,10 +319,24 @@ void mp::QemuVirtualMachine::start()
     }
 
     vm_process->start();
-    auto started = vm_process->wait_for_started();
-
-    if (!started)
-        throw std::runtime_error("failed to start qemu instance");
+    if (!vm_process->wait_for_started())
+    {
+        auto process_state = vm_process->process_state();
+        if (process_state.error)
+        {
+            mpl::log(mpl::Level::error, vm_name, fmt::format("Qemu failed to start: {}", process_state.error->message));
+            throw std::runtime_error(fmt::format("failed to start qemu instance: {}", process_state.error->message));
+        }
+        else if (process_state.exit_code)
+        {
+            mpl::log(mpl::Level::error, vm_name,
+                     fmt::format("Qemu quit unexpectedly with exit code {} and with output:\n{}",
+                                 process_state.exit_code.value(), vm_process->read_all_standard_error()));
+            throw std::runtime_error(
+                fmt::format("qemu quit unexpectedly with exit code {}, check logs for more details",
+                            process_state.exit_code.value()));
+        }
+    }
 
     vm_process->write(qmp_execute_json("qmp_capabilities"));
 }

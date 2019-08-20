@@ -28,17 +28,17 @@ mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : proces
     connect(&process, &QProcess::started, this, &mp::Process::started);
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
             [this](int exit_code, QProcess::ExitStatus exit_status) {
-                mp::ProcessExitState exit_state;
+                mp::ProcessState process_state;
 
                 if (exit_status == QProcess::NormalExit)
                 {
-                    exit_state.exit_code = exit_code;
+                    process_state.exit_code = exit_code;
                 }
                 else // crash
                 {
-                    exit_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+                    process_state.error = mp::ProcessState::Error{process.error(), process.errorString()};
                 }
-                emit mp::Process::finished(exit_state);
+                emit mp::Process::finished(process_state);
             });
     connect(&process, &QProcess::errorOccurred, this, &mp::Process::error_occurred);
     connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
@@ -97,17 +97,33 @@ bool mp::LinuxProcess::wait_for_finished(int msecs)
     return process.waitForFinished(msecs);
 }
 
+mp::ProcessState mp::LinuxProcess::process_state() const
+{
+    mp::ProcessState state;
+
+    if (process.error() != QProcess::ProcessError::UnknownError)
+    {
+        state.error = mp::ProcessState::Error{process.error(), process.errorString()};
+    }
+    else if (process.state() != QProcess::Running && process.exitStatus() == QProcess::NormalExit)
+    {
+        state.exit_code = process.exitCode();
+    }
+
+    return state;
+}
+
 bool mp::LinuxProcess::running() const
 {
     return process.state() == QProcess::Running;
 }
 
-QByteArray multipass::LinuxProcess::read_all_standard_output()
+QByteArray mp::LinuxProcess::read_all_standard_output()
 {
     return process.readAllStandardOutput();
 }
 
-QByteArray multipass::LinuxProcess::read_all_standard_error()
+QByteArray mp::LinuxProcess::read_all_standard_error()
 {
     return process.readAllStandardError();
 }
@@ -117,15 +133,20 @@ qint64 mp::LinuxProcess::write(const QByteArray& data)
     return process.write(data);
 }
 
-const mp::ProcessExitState mp::LinuxProcess::execute(const int timeout)
+void mp::LinuxProcess::close_write_channel()
 {
-    mp::ProcessExitState exit_state;
+    process.closeWriteChannel();
+}
+
+mp::ProcessState mp::LinuxProcess::execute(const int timeout)
+{
+    mp::ProcessState exit_state;
     start();
 
     if (!process.waitForFinished(timeout) || process.exitStatus() != QProcess::NormalExit)
     {
         mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(process.errorString()));
-        exit_state.error = mp::ProcessExitState::Error{process.error(), process.errorString()};
+        exit_state.error = mp::ProcessState::Error{process.error(), process.errorString()};
         return exit_state;
     }
 

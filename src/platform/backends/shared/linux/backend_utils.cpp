@@ -130,11 +130,11 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"resize", image_path, disk_size});
     auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
 
-    auto exit_state = qemuimg_process->execute();
-    if (!exit_state.success())
+    auto process_state = qemuimg_process->execute();
+    if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output: {}",
-                                             exit_state.error.value().message,
+                                             process_state.failure_message(),
                                              qemuimg_process->read_all_standard_error()));
     }
 }
@@ -148,11 +148,11 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path});
     auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
 
-    auto exit_state = qemuimg_process->execute();
-    if (!exit_state.success())
+    auto process_state = qemuimg_process->execute();
+    if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Cannot read image format: qemu-img failed ({}) with output: {}",
-                                             exit_state.error.value().message,
+                                             process_state.failure_message(),
                                              qemuimg_process->read_all_standard_error()));
     }
 
@@ -164,12 +164,12 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
         qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path});
         qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
-        exit_state = qemuimg_process->execute(-1);
+        process_state = qemuimg_process->execute(-1);
 
-        if (!exit_state.success())
+        if (!process_state.completed_successfully())
         {
             throw std::runtime_error(fmt::format("Failed to convert image format: qemu-img failed ({}) with output: {}",
-                                                 exit_state.error.value().message,
+                                                 process_state.failure_message(),
                                                  qemuimg_process->read_all_standard_error()));
         }
         return qcow2_path;
