@@ -41,18 +41,7 @@ void determine_hyperv_support()
     // Check for Windows 10
     power_shell.run(QStringList() << get_reg_version_info << select_object << "CurrentMajorVersionNumber", ps_output);
     if (ps_output != "10")
-        throw std::runtime_error("Hyper-V support requires Windows 10");
-
-    // Check if it's Home Edition
-    power_shell.run(QStringList() << get_reg_version_info << select_object << "ProductName", ps_output);
-    if (ps_output.contains("Home"))
-        throw std::runtime_error(
-            "Cannot use Windows 10 Home edition for Hyper-V. Please upgrade to Pro or Enterprise edition.");
-
-    // Check if it's a version less than 1803
-    power_shell.run(QStringList() << get_reg_version_info << select_object << "ReleaseId", ps_output);
-    if (ps_output.toInt() < 1803)
-        throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
+        throw std::runtime_error("Multipass support for Hyper-V requires Windows 10");
 
     QStringList optional_feature{"Get-WindowsOptionalFeature", "-Online", "-FeatureName"};
 
@@ -60,7 +49,12 @@ void determine_hyperv_support()
     if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << select_object << "State",
                         ps_output))
     {
-        if (ps_output == "Enabled")
+        if (ps_output.isEmpty())
+        {
+            throw std::runtime_error(
+                "Hyper-V is not available on this edition of Windows 10. Please upgrade to Pro or Enterprise edition.");
+        }
+        else if (ps_output == "Enabled")
         {
             power_shell.run(QStringList()
                                 << optional_feature << "Microsoft-Hyper-V-Hypervisor" << select_object << "State",
@@ -77,6 +71,15 @@ void determine_hyperv_support()
                                  "command in an Administrator Powershell and reboot:\n"
                                  "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All");
     }
+    else
+    {
+        throw std::runtime_error("Cannot determine if Hyper-V is available on this system.");
+    }
+
+    // Check if it's a version less than 1803
+    power_shell.run(QStringList() << get_reg_version_info << select_object << "ReleaseId", ps_output);
+    if (ps_output.toInt() < 1803)
+        throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
 }
 } // namespace
 
