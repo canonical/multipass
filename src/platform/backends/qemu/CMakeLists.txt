@@ -33,5 +33,13 @@ target_link_libraries(qemu_backend
   utils
   yaml)
 
+add_custom_target(copy-check-kvm-support ALL DEPENDS
+  ${CMAKE_BINARY_DIR}/bin/check_kvm_support)
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/bin/check_kvm_support
+  COMMAND ${CMAKE_COMMAND} -E copy
+      ${CMAKE_CURRENT_SOURCE_DIR}/check_kvm_support
+      ${CMAKE_BINARY_DIR}/bin/check_kvm_support
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/check_kvm_support)
+
 install(PROGRAMS check_kvm_support
   DESTINATION bin)
