@@ -305,27 +305,45 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
 
     if (petenv_state.status() != state.status())
     {
-        petenv_start_action.setText(QString::fromStdString(
-            fmt::format("Start \"{}\"{}", petenv_name,
-                        (state.status() != InstanceStatus::STOPPED) ? fmt::format(" ({})", state_string) : "")));
+        if (petenv_exists && state.status() == InstanceStatus::DELETED)
+        {
+            remove_petenv_actions();
+            petenv_state = state;
+            petenv_exists = false;
+        }
+        else
+        {
+            petenv_start_action.setText(QString::fromStdString(
+                fmt::format("Start \"{}\"{}", petenv_name,
+                            (state.status() != InstanceStatus::STOPPED) ? fmt::format(" ({})", state_string) : "")));
 
-        set_petenv_actions_for(state);
-        petenv_state = state;
-        petenv_exists = true;
+            set_petenv_actions_for(state);
+            petenv_state = state;
+            petenv_exists = true;
+        }
     }
 }
 
 void cmd::GuiCmd::set_petenv_actions_for(const mp::InstanceStatus& state)
 {
-    if (state.status() == InstanceStatus::STARTING || state.status() == InstanceStatus::RUNNING)
+    const auto can_stop_states = {InstanceStatus::UNKNOWN, InstanceStatus::STARTING, InstanceStatus::RUNNING,
+                                  InstanceStatus::DELAYED_SHUTDOWN};
+    const auto can_start_states = {InstanceStatus::STOPPED, InstanceStatus::SUSPENDED};
+
+    if (std::find(can_stop_states.begin(), can_stop_states.end(), state.status()) != can_stop_states.end())
     {
         petenv_stop_action.setEnabled(true);
         petenv_start_action.setEnabled(false);
     }
-    else if (state.status() == InstanceStatus::STOPPED || state.status() == InstanceStatus::SUSPENDED)
+    else if (std::find(can_start_states.begin(), can_start_states.end(), state.status()) != can_start_states.end())
     {
 
         petenv_start_action.setEnabled(true);
+        petenv_stop_action.setEnabled(false);
+    }
+    else
+    {
+        petenv_start_action.setEnabled(false);
         petenv_stop_action.setEnabled(false);
     }
 }
