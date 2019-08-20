@@ -25,6 +25,7 @@
 
 #include <multipass/format.h>
 
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
@@ -193,7 +194,7 @@ void mp::backend::check_for_kvm_support()
 {
     QProcess check_kvm;
     check_kvm.setProcessChannelMode(QProcess::MergedChannels);
-    check_kvm.start("check_kvm_support");
+    check_kvm.start(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
     check_kvm.waitForFinished();
 
     if (check_kvm.error() == QProcess::FailedToStart)
