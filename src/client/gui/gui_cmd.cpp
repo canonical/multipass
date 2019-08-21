@@ -54,6 +54,10 @@ void cmd::GuiCmd::create_actions()
     about_separator = tray_icon_menu.addSeparator();
     quit_action = tray_icon_menu.addAction("Quit");
 
+    petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
+    tray_icon_menu.insertActions(petenv_actions_separator,
+                                 {&petenv_start_action, &petenv_shell_action, &petenv_stop_action});
+
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [] { mp::cli::platform::open_multipass_shell(QString()); });
     QObject::connect(&petenv_stop_action, &QAction::triggered, [this] {
@@ -90,12 +94,10 @@ void cmd::GuiCmd::update_menu()
         instances_entries.erase(instance);
     }
 
+    const auto petenv_name = Settings::instance().get(petenv_key).toStdString();
     for (const auto& instance : reply.instances())
     {
         auto name = instance.name();
-        if (name == Settings::instance().get(petenv_key).toStdString())
-            continue; // Already handled
-
         auto state = instance.instance_status();
         auto state_string = QString::fromStdString(mp::format::status_string_for(state));
 
@@ -104,7 +106,7 @@ void cmd::GuiCmd::update_menu()
         if (it != instances_entries.end())
         {
             auto instance_state = it->second.state;
-            if (state.status() == InstanceStatus::DELETED)
+            if (name == petenv_name || state.status() == InstanceStatus::DELETED)
             {
                 instances_entries.erase(name);
             }
@@ -123,6 +125,9 @@ void cmd::GuiCmd::update_menu()
 
             continue;
         }
+
+        if (name == petenv_name)
+            continue;
 
         if (state.status() != InstanceStatus::DELETED)
         {
@@ -284,11 +289,9 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
 
     if (petenv_instance == instances.cend())
     {
-        if (petenv_exists)
-        {
-            remove_petenv_actions();
-            petenv_exists = false;
-        }
+        petenv_start_action.setText("Start");
+        petenv_start_action.setEnabled(false);
+        petenv_stop_action.setEnabled(false);
 
         return;
     }
@@ -296,64 +299,49 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     auto state = petenv_instance->instance_status();
     auto state_string = QString::fromStdString(mp::format::status_string_for(state));
 
-    if (!petenv_exists)
-    {
-        petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
-        tray_icon_menu.insertActions(petenv_actions_separator,
-                                     {&petenv_start_action, &petenv_shell_action, &petenv_stop_action});
-    }
 
     if (petenv_state.status() != state.status())
     {
-        if (petenv_exists && state.status() == InstanceStatus::DELETED)
-        {
-            remove_petenv_actions();
-            petenv_state = state;
-            petenv_exists = false;
-        }
-        else
-        {
-            petenv_start_action.setText(QString::fromStdString(
-                fmt::format("Start \"{}\"{}", petenv_name,
-                            (state.status() != InstanceStatus::STOPPED) ? fmt::format(" ({})", state_string) : "")));
+        petenv_start_action.setText(QString::fromStdString(
+            fmt::format("Start \"{}\"{}", petenv_name,
+                        (state.status() != InstanceStatus::STOPPED) ? fmt::format(" ({})", state_string) : "")));
 
-            set_petenv_actions_for(state);
-            petenv_state = state;
-            petenv_exists = true;
-        }
+        set_petenv_actions_for(state);
+        petenv_state = state;
     }
 }
 
 void cmd::GuiCmd::set_petenv_actions_for(const mp::InstanceStatus& state)
 {
-    const auto can_stop_states = {InstanceStatus::UNKNOWN, InstanceStatus::STARTING, InstanceStatus::RUNNING,
-                                  InstanceStatus::DELAYED_SHUTDOWN};
+    const auto can_stop_states = {InstanceStatus::UNKNOWN, InstanceStatus::RUNNING, InstanceStatus::DELAYED_SHUTDOWN};
     const auto can_start_states = {InstanceStatus::STOPPED, InstanceStatus::SUSPENDED};
 
     if (std::find(can_stop_states.begin(), can_stop_states.end(), state.status()) != can_stop_states.end())
     {
+        if (state.status() == InstanceStatus::UNKNOWN)
+            petenv_shell_action.setEnabled(false);
+        else
+            petenv_shell_action.setEnabled(true);
+
         petenv_stop_action.setEnabled(true);
         petenv_start_action.setEnabled(false);
     }
     else if (std::find(can_start_states.begin(), can_start_states.end(), state.status()) != can_start_states.end())
     {
-
+        petenv_shell_action.setEnabled(true);
         petenv_start_action.setEnabled(true);
         petenv_stop_action.setEnabled(false);
     }
     else
     {
+        if (state.status() == InstanceStatus::DELETED || state.status() == InstanceStatus::SUSPENDING)
+            petenv_shell_action.setEnabled(false);
+        else
+            petenv_shell_action.setEnabled(true);
+
         petenv_start_action.setEnabled(false);
         petenv_stop_action.setEnabled(false);
     }
-}
-
-void cmd::GuiCmd::remove_petenv_actions()
-{
-    tray_icon_menu.removeAction(&petenv_start_action);
-    tray_icon_menu.removeAction(&petenv_shell_action);
-    tray_icon_menu.removeAction(&petenv_stop_action);
-    tray_icon_menu.removeAction(petenv_actions_separator);
 }
 
 void cmd::GuiCmd::start_instance_for(const std::string& instance_name)

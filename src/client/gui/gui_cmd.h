@@ -75,7 +75,6 @@ private:
     void set_menu_actions_for(const std::string& instance_name, const InstanceStatus& state);
     void handle_petenv_instance(const google::protobuf::RepeatedPtrField<ListVMInstance>&);
     void set_petenv_actions_for(const InstanceStatus& state);
-    void remove_petenv_actions();
     void start_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
     void suspend_instance_for(const std::string& instance_name);
@@ -88,7 +87,6 @@ private:
     QAction petenv_shell_action{"Open Shell"};
     QAction petenv_stop_action{"Stop"};
     InstanceStatus petenv_state;
-    bool petenv_exists{false};
 
     QAction* petenv_actions_separator;
     QAction* about_separator;
