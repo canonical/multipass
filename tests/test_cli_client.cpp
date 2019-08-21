@@ -1402,8 +1402,6 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
     EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(name)));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, name)}), Eq(mp::ReturnCode::Ok));
 
-    // EXPECT_THAT(get_setting(mp::petenv_key), StrEq(name));
-
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(name));
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
