@@ -37,11 +37,13 @@ namespace
 const auto file_extension = QStringLiteral("conf");
 const auto daemon_root = QStringLiteral("local");
 const auto petenv_name = QStringLiteral("primary");
+const auto autostart_default = QStringLiteral("true");
 
 std::map<QString, QString> make_defaults()
 { // clang-format off
     return {{mp::petenv_key, petenv_name},
-            {mp::driver_key, mp::platform::default_driver()}};
+            {mp::driver_key, mp::platform::default_driver()},
+            {mp::autostart_key, autostart_default}};
 } // clang-format on
 
 /*
@@ -130,7 +132,9 @@ void mp::Settings::set(const QString& key, const QString& val)
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
     else if (key == driver_key && !mp::platform::is_backend_supported(val))
         throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
-
+    else if (key == autostart_key && val != "true" && val != "false")
+        throw InvalidSettingsException(key, val, "Invalid flag, need \"true\" or \"false\"");
+        
     auto settings = persistent_settings(key);
     checked_set(settings, key, val);
 }
