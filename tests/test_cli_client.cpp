@@ -127,7 +127,12 @@ struct Client : public Test
         EXPECT_THAT(send_command({"get", key}, out), Eq(mp::ReturnCode::Ok));
 
         auto ret = out.str();
-        ret.pop_back(); // drop newline
+        if (!ret.empty())
+        {
+            EXPECT_EQ(ret.back(), '\n');
+            ret.pop_back(); // drop newline
+        }
+
         return ret;
     }
 
