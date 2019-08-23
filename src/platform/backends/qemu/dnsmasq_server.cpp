@@ -19,7 +19,6 @@
 
 #include "dnsmasq_process_spec.h"
 #include <multipass/logging/log.h>
-#include <multipass/process.h>
 #include <multipass/utils.h>
 #include <shared/linux/process_factory.h>
 
@@ -51,7 +50,8 @@ auto get_dnsmasq_pid(const mp::Path& pid_file_path)
 
     getline(pid_file, pid);
 
-    return std::stoi(pid);
+    // std::stoi will throw if pid doesn't exist or is invalid
+    return static_cast<unsigned int>(std::stoi(pid));
 }
 } // namespace
 
@@ -67,7 +67,7 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
     }
     catch (const std::exception&)
     {
-        start_dnsmasq();
+        // Ignore
     }
 }
 
@@ -139,17 +139,28 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
 void mp::DNSMasqServer::check_dnsmasq_running()
 {
     auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
-    if (kill(dnsmasq_pid, 0) == 0)
-        return;
+    if (kill(dnsmasq_pid, 0) != 0)
+    {
+        // Try starting dnsmasq if it's not running
+        const auto dnsmasq_daemon_fork_state = start_dnsmasq();
 
-    // exit_code == 2 signifies dnsmasq network-related error. See `man dnsmasq`.
-    throw std::runtime_error(
-        fmt::format("Multipass dnsmasq is not running.{}",
-                    (dnsmasq_exit_state.exit_code == 2) ? " Ensure nothing is using port 53." : ""));
+        if (dnsmasq_daemon_fork_state.error)
+        {
+            throw std::runtime_error(
+                fmt::format("Multipass dnsmasq failed to start: {}", dnsmasq_daemon_fork_state.error.value().message));
+        }
+        else if (dnsmasq_daemon_fork_state.exit_code != 0)
+        {
+            // exit_code == 2 signifies dnsmasq network-related error. See `man dnsmasq`.
+            throw std::runtime_error(
+                fmt::format("Multipass dnsmasq is not running.{}",
+                            (dnsmasq_daemon_fork_state.exit_code == 2) ? " Ensure nothing is using port 53." : ""));
+        }
+    }
 }
 
-void mp::DNSMasqServer::start_dnsmasq()
+mp::ProcessState mp::DNSMasqServer::start_dnsmasq()
 {
     dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, pid_file_path, subnet);
-    dnsmasq_exit_state = dnsmasq_cmd->execute();
+    return dnsmasq_cmd->execute();
 }

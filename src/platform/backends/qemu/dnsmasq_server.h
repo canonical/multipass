@@ -38,15 +38,15 @@ public:
     optional<IPAddress> get_ip_for(const std::string& hw_addr);
     void release_mac(const std::string& hw_addr);
     void check_dnsmasq_running();
-    void start_dnsmasq();
 
 private:
+    ProcessState start_dnsmasq();
+
     const QString data_dir;
     const QString bridge_name;
     const QString pid_file_path;
     const std::string subnet;
     std::unique_ptr<Process> dnsmasq_cmd;
-    ProcessExitState dnsmasq_exit_state;
 };
 } // namespace multipass
 #endif // MULTIPASS_DNSMASQ_SERVER_H

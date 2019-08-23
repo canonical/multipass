@@ -275,16 +275,7 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
     mp::backend::check_for_kvm_support();
     mp::backend::check_if_kvm_is_in_use();
 
-    try
-    {
-        dnsmasq_server.check_dnsmasq_running();
-    }
-    catch (const std::exception&)
-    {
-        // Try starting dnsmasq if it's not running
-        dnsmasq_server.start_dnsmasq();
-        dnsmasq_server.check_dnsmasq_running();
-    }
+    dnsmasq_server.check_dnsmasq_running();
 }
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()
