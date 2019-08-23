@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -136,9 +136,10 @@ TEST_F(DNSMasqServer, release_mac_logs_failures)
     EXPECT_TRUE(logger->logged_lines.size() > 0);
 }
 
-TEST_F(DNSMasqServer, dnsmasq_not_running_throws)
+TEST_F(DNSMasqServer, dnsmasq_not_running_starts_and_does_not_throw)
 {
+    // Mocked dnsmasq exits with 0 immediately
     mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
 
-    EXPECT_THROW(dns.check_dnsmasq_running(), std::runtime_error);
+    EXPECT_NO_THROW(dns.check_dnsmasq_running());
 }
