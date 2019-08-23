@@ -21,13 +21,14 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-#include <multipass/process.h>
 
 #include <memory>
 #include <string>
 
 namespace multipass
 {
+class Process;
+
 class DNSMasqServer
 {
 public:
@@ -40,7 +41,7 @@ public:
     void check_dnsmasq_running();
 
 private:
-    ProcessState start_dnsmasq();
+    void start_dnsmasq();
 
     const QString data_dir;
     const QString bridge_name;

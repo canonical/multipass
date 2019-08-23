@@ -19,6 +19,7 @@
 
 #include "dnsmasq_process_spec.h"
 #include <multipass/logging/log.h>
+#include <multipass/process.h>
 #include <multipass/utils.h>
 #include <shared/linux/process_factory.h>
 
@@ -138,29 +139,38 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
 
 void mp::DNSMasqServer::check_dnsmasq_running()
 {
-    auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
-    if (kill(dnsmasq_pid, 0) != 0)
+    try
     {
-        // Try starting dnsmasq if it's not running
-        const auto dnsmasq_daemon_fork_state = start_dnsmasq();
-
-        if (dnsmasq_daemon_fork_state.error)
+        auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
+        if (kill(dnsmasq_pid, 0) == 0)
         {
-            throw std::runtime_error(
-                fmt::format("Multipass dnsmasq failed to start: {}", dnsmasq_daemon_fork_state.error.value().message));
-        }
-        else if (dnsmasq_daemon_fork_state.exit_code != 0)
-        {
-            // exit_code == 2 signifies dnsmasq network-related error. See `man dnsmasq`.
-            throw std::runtime_error(
-                fmt::format("Multipass dnsmasq is not running.{}",
-                            (dnsmasq_daemon_fork_state.exit_code == 2) ? " Ensure nothing is using port 53." : ""));
+            return;
         }
     }
+    catch (const std::exception&)
+    {
+        // Ignore and fall-through
+    }
+
+    // Try starting dnsmasq since it's not running
+    start_dnsmasq();
 }
 
-mp::ProcessState mp::DNSMasqServer::start_dnsmasq()
+void mp::DNSMasqServer::start_dnsmasq()
 {
     dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, pid_file_path, subnet);
-    return dnsmasq_cmd->execute();
+    const auto dnsmasq_daemon_fork_state = dnsmasq_cmd->execute();
+
+    if (dnsmasq_daemon_fork_state.error)
+    {
+        throw std::runtime_error(
+            fmt::format("Multipass dnsmasq failed to start: {}", dnsmasq_daemon_fork_state.error.value().message));
+    }
+    else if (dnsmasq_daemon_fork_state.exit_code != 0)
+    {
+        // exit_code == 2 signifies dnsmasq network-related error. See `man dnsmasq`.
+        throw std::runtime_error(
+            fmt::format("Multipass dnsmasq is not running.{}",
+                        (dnsmasq_daemon_fork_state.exit_code == 2) ? " Ensure nothing is using port 53." : ""));
+    }
 }
