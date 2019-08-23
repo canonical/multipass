@@ -61,12 +61,10 @@ void cmd::GuiCmd::create_actions()
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [] { mp::cli::platform::open_multipass_shell(QString()); });
     QObject::connect(&petenv_stop_action, &QAction::triggered, [this] {
-        future_synchronizer.addFuture(
-            QtConcurrent::run(this, &GuiCmd::stop_instance_for, Settings::instance().get(petenv_key).toStdString()));
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, current_petenv_name));
     });
     QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
-        future_synchronizer.addFuture(
-            QtConcurrent::run(this, &GuiCmd::start_instance_for, Settings::instance().get(petenv_key).toStdString()));
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
     });
 }
 
@@ -94,7 +92,6 @@ void cmd::GuiCmd::update_menu()
         instances_entries.erase(instance);
     }
 
-    const auto petenv_name = Settings::instance().get(petenv_key).toStdString();
     for (const auto& instance : reply.instances())
     {
         auto name = instance.name();
@@ -106,7 +103,7 @@ void cmd::GuiCmd::update_menu()
         if (it != instances_entries.end())
         {
             auto instance_state = it->second.state;
-            if (name == petenv_name || state.status() == InstanceStatus::DELETED)
+            if (name == current_petenv_name || state.status() == InstanceStatus::DELETED)
             {
                 instances_entries.erase(name);
             }
@@ -126,7 +123,7 @@ void cmd::GuiCmd::update_menu()
             continue;
         }
 
-        if (name == petenv_name)
+        if (name == current_petenv_name)
             continue;
 
         if (state.status() != InstanceStatus::DELETED)
@@ -280,18 +277,18 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const m
 
 void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrField<mp::ListVMInstance>& instances)
 {
-    auto petenv_name = Settings::instance().get(petenv_key);
+    auto petenv_name = Settings::instance().get(petenv_key).toStdString();
 
     auto petenv_instance =
-        std::find_if(instances.cbegin(), instances.cend(), [&petenv_name](const ListVMInstance& instance) {
-            return petenv_name.toStdString() == instance.name();
-        });
+        std::find_if(instances.cbegin(), instances.cend(),
+                     [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
 
     if (petenv_instance == instances.cend())
     {
         petenv_start_action.setText("Start");
         petenv_start_action.setEnabled(false);
         petenv_stop_action.setEnabled(false);
+        petenv_shell_action.setEnabled(true);
 
         return;
     }
@@ -299,8 +296,7 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     auto state = petenv_instance->instance_status();
     auto state_string = QString::fromStdString(mp::format::status_string_for(state));
 
-
-    if (petenv_state.status() != state.status())
+    if (petenv_state.status() != state.status() || petenv_name != current_petenv_name)
     {
         petenv_start_action.setText(QString::fromStdString(
             fmt::format("Start \"{}\"{}", petenv_name,
@@ -308,6 +304,7 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
 
         set_petenv_actions_for(state);
         petenv_state = state;
+        current_petenv_name = petenv_name;
     }
 }
 

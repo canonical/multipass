@@ -87,6 +87,7 @@ private:
     QAction petenv_shell_action{"Open Shell"};
     QAction petenv_stop_action{"Stop"};
     InstanceStatus petenv_state;
+    std::string current_petenv_name;
 
     QAction* petenv_actions_separator;
     QAction* about_separator;
