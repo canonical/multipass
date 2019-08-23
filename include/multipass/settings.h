@@ -18,9 +18,11 @@
 #ifndef MULTIPASS_SETTINGS_H
 #define MULTIPASS_SETTINGS_H
 
+#include "exceptions/settings_exceptions.h"
 #include "singleton.h"
 
 #include <QString>
+#include <QVariant>
 
 #include <map>
 
@@ -34,6 +36,9 @@ public:
     virtual QString get(const QString& key) const;            // throws on unknown key
     virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
 
+    template <typename T>
+    T get_as(const QString& key) const;
+
     static QString get_daemon_settings_file_path(); // temporary
 
 protected:
@@ -43,5 +48,14 @@ private:
     std::map<QString, QString> defaults;
 };
 } // namespace multipass
+
+template <typename T>
+T multipass::Settings::get_as(const QString& key) const
+{
+    auto var = QVariant{get(key)};
+    if (var.canConvert<T>())
+        return var.value<T>();
+    throw UnsupportedSettingValueType<T>(key);
+}
 
 #endif // MULTIPASS_SETTINGS_H

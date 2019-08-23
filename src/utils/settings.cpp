@@ -16,7 +16,6 @@
  */
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/utils.h> // TODO move out
