@@ -30,20 +30,38 @@ namespace mp = multipass;
 
 namespace
 {
-void determine_hyperv_support()
+const QStringList select_object{"|", "Select-Object", "-ExpandProperty"};
+
+void check_host_hyperv_support(mp::PowerShell& power_shell)
 {
-    mp::PowerShell power_shell("Hyper-V Health Check");
     QString ps_output;
-    QStringList select_object{"|", "Select-Object", "-ExpandProperty"};
-    QStringList get_reg_version_info{"Get-ItemProperty", "-Path",
-                                     "'HKLM:\\Software\\Microsoft\\Windows NT\\CurrentVersion'"};
 
-    // Check for Windows 10
-    power_shell.run(QStringList() << get_reg_version_info << select_object << "CurrentMajorVersionNumber", ps_output);
-    if (ps_output != "10")
-        throw std::runtime_error("Multipass support for Hyper-V requires Windows 10");
+    if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << select_object
+                                      << "VirtualizationFirmwareEnabled",
+                        ps_output))
+    {
+        if (ps_output == "False")
+        {
+            throw std::runtime_error("Virtualization support appears to be disabled in the BIOS.\n"
+                                     "Enter your BIOS setup and enable Virtualization Technology (VT).");
+        }
+    }
 
-    QStringList optional_feature{"Get-WindowsOptionalFeature", "-Online", "-FeatureName"};
+    if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << select_object
+                                      << "SecondLevelAddressTranslationExtensions",
+                        ps_output))
+    {
+        if (ps_output == "False")
+        {
+            throw std::runtime_error("The CPU does not have proper virtualization extensions to support Hyper-V");
+        }
+    }
+}
+
+void check_hyperv_feature_enabled(mp::PowerShell& power_shell)
+{
+    QString ps_output;
+    const QStringList optional_feature{"Get-WindowsOptionalFeature", "-Online", "-FeatureName"};
 
     // Check if Hyper-V is fully enabled
     if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << select_object << "State",
@@ -74,6 +92,29 @@ void determine_hyperv_support()
     else
     {
         throw std::runtime_error("Cannot determine if Hyper-V is available on this system.");
+    }
+}
+
+void check_hyperv_support()
+{
+    mp::PowerShell power_shell("Hyper-V Health Check");
+    QString ps_output;
+    QStringList get_reg_version_info{"Get-ItemProperty", "-Path",
+                                     "'HKLM:\\Software\\Microsoft\\Windows NT\\CurrentVersion'"};
+
+    // Check for Windows 10
+    power_shell.run(QStringList() << get_reg_version_info << select_object << "CurrentMajorVersionNumber", ps_output);
+    if (ps_output != "10")
+        throw std::runtime_error("Multipass support for Hyper-V requires Windows 10");
+
+    // Check if HypervisorPresent is true- implies Hyper-V is running as this is "False"
+    // when another HyperVisor is running
+    power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << select_object << "HypervisorPresent",
+                    ps_output);
+    if (ps_output == "False")
+    {
+        check_host_hyperv_support(power_shell);
+        check_hyperv_feature_enabled(power_shell);
     }
 
     // Check if it's a version less than 1803
@@ -142,5 +183,5 @@ void mp::HyperVVirtualMachineFactory::configure(const std::string& name, YAML::N
 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 {
-    determine_hyperv_support();
+    check_hyperv_support();
 }
