@@ -85,6 +85,33 @@ auto construct_multiple_instances_including_petenv_list_reply()
     return reply;
 }
 
+auto construct_unsorted_list_reply()
+{
+    mp::ListReply list_reply;
+
+    auto list_entry = list_reply.add_instances();
+    list_entry->set_name("trusty-190611-1542");
+    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+    list_entry->set_current_release("N/A");
+
+    list_entry = list_reply.add_instances();
+    list_entry->set_name("trusty-190611-1535");
+    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
+    list_entry->set_current_release("N/A");
+
+    list_entry = list_reply.add_instances();
+    list_entry->set_name("trusty-190611-1539");
+    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+    list_entry->set_current_release("N/A");
+
+    list_entry = list_reply.add_instances();
+    list_entry->set_name("trusty-190611-1529");
+    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+    list_entry->set_current_release("N/A");
+
+    return list_reply;
+}
+
 auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
@@ -318,6 +345,22 @@ TEST_F(TableFormatter, multiple_instance_list_output)
     auto output = table_formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_table_output));
+}
+
+TEST_F(TableFormatter, multiple_instance_sorted_output)
+{
+    auto list_reply = construct_unsorted_list_reply();
+
+    auto expected_table_output = "Name                    State             IPv4             Image\n"
+                                 "trusty-190611-1529      Deleted           --               Ubuntu N/A\n"
+                                 "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
+                                 "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
+                                 "trusty-190611-1542      Running           --               Ubuntu N/A\n";
+
+    mp::TableFormatter table_formatter;
+    auto output = table_formatter.format(list_reply);
+
+    EXPECT_EQ(output, expected_table_output);
 }
 
 #if GTEST_HAS_POSIX_RE
@@ -871,6 +914,22 @@ TEST_F(CSVFormatter, multiple_instance_list_output)
     EXPECT_THAT(output, Eq(expected_output));
 }
 
+TEST_F(CSVFormatter, multiple_instance_sorted_output)
+{
+    auto list_reply = construct_unsorted_list_reply();
+
+    auto expected_output = "Name,State,IPv4,IPv6,Release\n"
+                           "trusty-190611-1529,Deleted,,,N/A\n"
+                           "trusty-190611-1535,Stopped,,,N/A\n"
+                           "trusty-190611-1539,Suspended,,,N/A\n"
+                           "trusty-190611-1542,Running,,,N/A\n";
+
+    mp::CSVFormatter csv_formatter;
+    auto output = csv_formatter.format(list_reply);
+
+    EXPECT_EQ(output, expected_output);
+}
+
 #if GTEST_HAS_POSIX_RE
 TEST_F(CSVFormatter, pet_env_first_in_list_output)
 {
@@ -1068,6 +1127,37 @@ TEST_F(YamlFormatter, multiple_instance_list_output)
     auto output = formatter.format(list_reply);
 
     EXPECT_THAT(output, Eq(expected_output));
+}
+
+TEST_F(YamlFormatter, multiple_instance_sorted_output)
+{
+    auto list_reply = construct_unsorted_list_reply();
+
+    auto expected_output = "trusty-190611-1529:\n"
+                           "  - state: Deleted\n"
+                           "    ipv4:\n"
+                           "      - \"\"\n"
+                           "    release: N/A\n"
+                           "trusty-190611-1535:\n"
+                           "  - state: Stopped\n"
+                           "    ipv4:\n"
+                           "      - \"\"\n"
+                           "    release: N/A\n"
+                           "trusty-190611-1539:\n"
+                           "  - state: Suspended\n"
+                           "    ipv4:\n"
+                           "      - \"\"\n"
+                           "    release: N/A\n"
+                           "trusty-190611-1542:\n"
+                           "  - state: Running\n"
+                           "    ipv4:\n"
+                           "      - \"\"\n"
+                           "    release: N/A\n";
+
+    mp::YamlFormatter formatter;
+    auto output = formatter.format(list_reply);
+
+    EXPECT_EQ(output, expected_output);
 }
 
 TEST_F(YamlFormatter, pet_env_first_in_list_output)
