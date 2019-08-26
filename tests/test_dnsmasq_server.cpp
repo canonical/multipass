@@ -67,6 +67,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
     const QString bridge_name{"dummy-bridge"};
     const std::string subnet{"192.168.64"};
+    const std::string error_subnet{"0.0.0"}; // This forces the mock dnsmasq process to exit with error
     const std::string hw_addr{"00:01:02:03:04:05"};
     const std::string expected_ip{"10.177.224.22"};
     const std::string lease_entry =
@@ -136,10 +137,16 @@ TEST_F(DNSMasqServer, release_mac_logs_failures)
     EXPECT_TRUE(logger->logged_lines.size() > 0);
 }
 
-TEST_F(DNSMasqServer, dnsmasq_not_running_starts_and_does_not_throw)
+TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
 {
-    // Mocked dnsmasq exits with 0 immediately
     mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
 
     EXPECT_NO_THROW(dns.check_dnsmasq_running());
+}
+
+TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
+{
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, error_subnet};
+
+    EXPECT_THROW(dns.check_dnsmasq_running(), std::runtime_error);
 }
