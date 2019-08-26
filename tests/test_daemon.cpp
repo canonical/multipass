@@ -285,10 +285,8 @@ struct Daemon : public Test
     mpt::TempDir cache_dir;
     mpt::TempDir data_dir;
     mp::DaemonConfigBuilder config_builder;
-    static std::stringstream trash_stream; // this may have contents (that we don't care about)
+    inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
 };
-
-std::stringstream Daemon::trash_stream; // replace with inline in C++17
 
 TEST_F(Daemon, receives_commands)
 {
