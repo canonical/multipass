@@ -205,13 +205,9 @@ void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
 mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
-    auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
+    const auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
 
     create_virtual_switch(subnet, bridge_name);
-    if (subnet.empty()) // if bridge didn't exist, need to get subnet again
-    {
-        subnet = mp::backend::get_subnet(network_dir, bridge_name);
-    }
     set_ip_forward();
     set_nat_iptables(subnet, bridge_name);
 
@@ -288,11 +284,11 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     auto process =
         mp::ProcessFactory::instance().create_process("qemu-system-" + mp::backend::cpu_arch(), {"--version"});
 
+    auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
     auto exit_state = process->execute();
 
     if (exit_state.completed_successfully())
     {
-        auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
         auto match = version_re.match(process->read_all_standard_output());
 
         if (match.hasMatch())
