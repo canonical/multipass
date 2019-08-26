@@ -310,33 +310,34 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
 
 void cmd::GuiCmd::set_petenv_actions_for(const mp::InstanceStatus& state)
 {
-    const auto can_stop_states = {InstanceStatus::UNKNOWN, InstanceStatus::RUNNING, InstanceStatus::DELAYED_SHUTDOWN};
-    const auto can_start_states = {InstanceStatus::STOPPED, InstanceStatus::SUSPENDED};
-
-    if (std::find(can_stop_states.begin(), can_stop_states.end(), state.status()) != can_stop_states.end())
+    switch (state.status())
     {
-        if (state.status() == InstanceStatus::UNKNOWN)
-            petenv_shell_action.setEnabled(false);
-        else
-            petenv_shell_action.setEnabled(true);
-
+    case InstanceStatus::UNKNOWN:
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(false);
         petenv_stop_action.setEnabled(true);
+        break;
+    case InstanceStatus::RUNNING:
+    case InstanceStatus::DELAYED_SHUTDOWN:
         petenv_start_action.setEnabled(false);
-    }
-    else if (std::find(can_start_states.begin(), can_start_states.end(), state.status()) != can_start_states.end())
-    {
         petenv_shell_action.setEnabled(true);
+        petenv_stop_action.setEnabled(true);
+        break;
+    case InstanceStatus::STOPPED:
+    case InstanceStatus::SUSPENDED:
         petenv_start_action.setEnabled(true);
+        petenv_shell_action.setEnabled(true);
         petenv_stop_action.setEnabled(false);
-    }
-    else
-    {
-        if (state.status() == InstanceStatus::DELETED || state.status() == InstanceStatus::SUSPENDING)
-            petenv_shell_action.setEnabled(false);
-        else
-            petenv_shell_action.setEnabled(true);
-
+        break;
+    case InstanceStatus::DELETED:
+    case InstanceStatus::SUSPENDING:
         petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(false);
+        petenv_stop_action.setEnabled(false);
+        break;
+    default:
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(true);
         petenv_stop_action.setEnabled(false);
     }
 }
