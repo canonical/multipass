@@ -196,10 +196,8 @@ struct Client : public Test
                                           cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
                                                                               reset at the end of each test */
-    static std::stringstream trash_stream; // this may have contents (that we don't care about)
+    inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
 };
-
-std::stringstream Client::trash_stream; // replace with inline in C++17
 
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
@@ -1343,13 +1341,13 @@ TEST_F(Client, set_cmd_fails_with_no_arguments)
 TEST_F(Client, get_cmd_fails_with_multiple_arguments)
 {
     EXPECT_CALL(mock_settings, get(_)).Times(0);
-    EXPECT_THAT(send_command({"get", mp::petenv_key, "local.driver"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"get", mp::petenv_key, mp::driver_key}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, set_cmd_fails_with_multiple_arguments)
 {
     EXPECT_CALL(mock_settings, set(_, _)).Times(0);
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "asdf"), "local.driver=qemu"}),
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "asdf"), keyval_arg(mp::driver_key, "qemu")}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 

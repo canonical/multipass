@@ -21,6 +21,8 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/format.h>
+#include <multipass/settings.h>
 #include <multipass/version.h>
 
 #include <QCoreApplication>
@@ -51,6 +53,19 @@ void cmd::GuiCmd::create_actions()
 {
     about_separator = tray_icon_menu.addSeparator();
     quit_action = tray_icon_menu.addAction("Quit");
+
+    petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
+    tray_icon_menu.insertActions(petenv_actions_separator,
+                                 {&petenv_start_action, &petenv_shell_action, &petenv_stop_action});
+
+    QObject::connect(&petenv_shell_action, &QAction::triggered,
+                     [] { mp::cli::platform::open_multipass_shell(QString()); });
+    QObject::connect(&petenv_stop_action, &QAction::triggered, [this] {
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, current_petenv_name));
+    });
+    QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
+    });
 }
 
 void cmd::GuiCmd::update_menu()
@@ -58,6 +73,8 @@ void cmd::GuiCmd::update_menu()
     std::vector<std::string> instances_to_remove;
 
     auto reply = list_future.result();
+
+    handle_petenv_instance(reply.instances());
 
     for (auto it = instances_entries.cbegin(); it != instances_entries.cend(); ++it)
     {
@@ -86,7 +103,7 @@ void cmd::GuiCmd::update_menu()
         if (it != instances_entries.end())
         {
             auto instance_state = it->second.state;
-            if (state.status() == InstanceStatus::DELETED)
+            if (name == current_petenv_name || state.status() == InstanceStatus::DELETED)
             {
                 instances_entries.erase(name);
             }
@@ -105,6 +122,9 @@ void cmd::GuiCmd::update_menu()
 
             continue;
         }
+
+        if (name == current_petenv_name)
+            continue;
 
         if (state.status() != InstanceStatus::DELETED)
         {
@@ -253,6 +273,73 @@ void cmd::GuiCmd::set_menu_actions_for(const std::string& instance_name, const m
     }
 
     tray_icon_menu.insertMenu(about_separator, instance_menu.get());
+}
+
+void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrField<mp::ListVMInstance>& instances)
+{
+    auto petenv_name = Settings::instance().get(petenv_key).toStdString();
+
+    auto petenv_instance =
+        std::find_if(instances.cbegin(), instances.cend(),
+                     [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
+
+    if (petenv_instance == instances.cend())
+    {
+        petenv_start_action.setText("Start");
+        petenv_start_action.setEnabled(false);
+        petenv_stop_action.setEnabled(false);
+        petenv_shell_action.setEnabled(true);
+
+        return;
+    }
+
+    auto state = petenv_instance->instance_status();
+    auto state_string = QString::fromStdString(mp::format::status_string_for(state));
+
+    if (petenv_state.status() != state.status() || petenv_name != current_petenv_name)
+    {
+        petenv_start_action.setText(QString::fromStdString(
+            fmt::format("Start \"{}\"{}", petenv_name,
+                        (state.status() != InstanceStatus::STOPPED) ? fmt::format(" ({})", state_string) : "")));
+
+        set_petenv_actions_for(state);
+        petenv_state = state;
+        current_petenv_name = petenv_name;
+    }
+}
+
+void cmd::GuiCmd::set_petenv_actions_for(const mp::InstanceStatus& state)
+{
+    switch (state.status())
+    {
+    case InstanceStatus::UNKNOWN:
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(false);
+        petenv_stop_action.setEnabled(true);
+        break;
+    case InstanceStatus::RUNNING:
+    case InstanceStatus::DELAYED_SHUTDOWN:
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(true);
+        petenv_stop_action.setEnabled(true);
+        break;
+    case InstanceStatus::STOPPED:
+    case InstanceStatus::SUSPENDED:
+        petenv_start_action.setEnabled(true);
+        petenv_shell_action.setEnabled(true);
+        petenv_stop_action.setEnabled(false);
+        break;
+    case InstanceStatus::DELETED:
+    case InstanceStatus::SUSPENDING:
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(false);
+        petenv_stop_action.setEnabled(false);
+        break;
+    default:
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(true);
+        petenv_stop_action.setEnabled(false);
+    }
 }
 
 void cmd::GuiCmd::start_instance_for(const std::string& instance_name)

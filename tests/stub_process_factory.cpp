@@ -57,7 +57,7 @@ public:
     }
     void kill() override
     {
-        mp::ProcessExitState exit_state;
+        mp::ProcessState exit_state;
         exit_state.exit_code = 0;
         emit finished(exit_state);
     }
@@ -76,6 +76,11 @@ public:
         return true;
     }
 
+    mp::ProcessState process_state() const override
+    {
+        return mp::ProcessState();
+    }
+
     QByteArray read_all_standard_output() override
     {
         return "";
@@ -90,11 +95,15 @@ public:
         return 0;
     }
 
-    const mp::ProcessExitState execute(const int /*timeout*/ = 3000) override
+    void close_write_channel() override
     {
-        mp::ProcessExitState exit_state;
-        exit_state.exit_code = 0;
-        return exit_state;
+    }
+
+    mp::ProcessState execute(const int /*timeout*/ = 3000) override
+    {
+        mp::ProcessState process_state;
+        process_state.exit_code = 0;
+        return process_state;
     }
 };
 } // namespace

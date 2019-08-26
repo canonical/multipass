@@ -217,9 +217,9 @@ QString mp::utils::get_driver_str()
     auto driver = qgetenv(mp::driver_env_var);
     if (!driver.isEmpty())
     {
-        mpl::log(
-            mpl::Level::warning, "platform",
-            fmt::format("{} is now ignored, please use `multipass set local.driver` instead.", mp::driver_env_var));
+        mpl::log(mpl::Level::warning, "platform",
+                 fmt::format("{} is now ignored, please use `multipass set {}` instead.", mp::driver_env_var,
+                             mp::driver_key));
     }
     return mp::Settings::instance().get(mp::driver_key);
 }

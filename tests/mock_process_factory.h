@@ -76,7 +76,8 @@ public:
     MOCK_METHOD0(start, void());
     MOCK_METHOD0(kill, void());
     MOCK_CONST_METHOD0(running, bool());
-    MOCK_METHOD1(execute, const ProcessExitState(int));
+    MOCK_CONST_METHOD0(process_state, ProcessState());
+    MOCK_METHOD1(execute, ProcessState(int));
 
     MockProcess(std::unique_ptr<ProcessSpec>&& spec, std::vector<MockProcessFactory::ProcessInfo>& process_list);
 
@@ -90,10 +91,11 @@ public:
     MOCK_METHOD0(read_all_standard_output, QByteArray());
     MOCK_METHOD0(read_all_standard_error, QByteArray());
     qint64 write(const QByteArray& data) override;
+    void close_write_channel() override;
 
 private:
     const std::unique_ptr<ProcessSpec> spec;
-    ProcessExitState success_exit_state;
+    ProcessState success_exit_state;
 };
 } // namespace test
 } // namespace multipass

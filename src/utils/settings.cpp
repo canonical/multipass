@@ -57,19 +57,19 @@ QString file_for(const QString& key) // the key should have passed checks at thi
 {
     // static consts ensure these stay fixed
     static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
-    static const auto client_dir_path = QDir{QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)};
+    static const auto user_config_path = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
+    static const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
     static const auto daemon_dir_path = QDir{mp::platform::daemon_config_home()}; // temporary, replace w/ AppConfigLoc
-    static const auto client_file_path = client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
+    static const auto client_file_path = cli_client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
     static const auto daemon_file_path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 
     assert(key.startsWith(daemon_root) || key.startsWith("client"));
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
-std::unique_ptr<QSettings> persistent_settings(const QString& key)
+QSettings persistent_settings(const QString& key)
 {
-    return std::make_unique<QSettings>(file_for(key), QSettings::IniFormat); /* unique_ptr to circumvent absent
-                                                                  copy-ctor and no RVO guarantee (until C++17) */
+    return {file_for(key), QSettings::IniFormat};
 }
 
 bool exists_but_unreadable(const QString& filename)
@@ -120,7 +120,8 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
 QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
-    return checked_get(*persistent_settings(key), key, default_ret);
+    auto settings = persistent_settings(key);
+    return checked_get(settings, key, default_ret);
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
@@ -130,7 +131,9 @@ void mp::Settings::set(const QString& key, const QString& val)
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
     else if (key == driver_key && !mp::platform::is_backend_supported(val))
         throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
-    checked_set(*persistent_settings(key), key, val);
+
+    auto settings = persistent_settings(key);
+    checked_set(settings, key, val);
 }
 
 const QString& mp::Settings::get_default(const QString& key) const

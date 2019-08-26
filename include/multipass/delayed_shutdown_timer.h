@@ -25,6 +25,7 @@
 #include <QTimer>
 
 #include <chrono>
+#include <functional>
 
 namespace multipass
 {
@@ -33,7 +34,9 @@ class DelayedShutdownTimer : public QObject
     Q_OBJECT
 
 public:
-    DelayedShutdownTimer(VirtualMachine* virtual_machine, optional<SSHSession>&& session);
+    using StopMounts = std::function<void(const std::string&)>;
+    DelayedShutdownTimer(VirtualMachine* virtual_machine, optional<SSHSession>&& session,
+                         const StopMounts& stop_mounts);
     ~DelayedShutdownTimer();
 
     void start(const std::chrono::milliseconds delay);
@@ -48,6 +51,7 @@ private:
     QTimer shutdown_timer;
     VirtualMachine* virtual_machine;
     optional<SSHSession> ssh_session;
+    const StopMounts stop_mounts;
     std::chrono::milliseconds delay;
     std::chrono::milliseconds time_remaining;
 };

@@ -233,7 +233,7 @@ public:
     }
     ~DeleteOnException()
     {
-        if (std::uncaught_exception())
+        if (std::uncaught_exceptions() > initial_exc_count)
         {
             file.remove();
         }
@@ -241,6 +241,7 @@ public:
 
 private:
     QFile file;
+    const int initial_exc_count = std::uncaught_exceptions();
 };
 } // namespace
 

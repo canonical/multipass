@@ -125,20 +125,13 @@ std::string cmd::update_notice(const mp::UpdateInfo& update_info)
                          update_info.url());
 }
 
-namespace
-{
-void check(mp::ParseCode code)
-{
-    assert(code == mp::ParseCode::Ok);
-    static_cast<void>(code); // replace with [[maybe_unused]] in param decl in C++17
-}
-} // namespace
-
 mp::ReturnCode cmd::run_cmd(const QStringList& args, const mp::ArgParser* parser, std::ostream& cout,
                             std::ostream& cerr)
 {
     ArgParser aux_parser{args, parser->getCommands(), cout, cerr};
-    check(aux_parser.parse());
+
+    [[maybe_unused]] auto code = aux_parser.parse();
+    assert(code == mp::ParseCode::Ok);
 
     return aux_parser.chosenCommand()->run(&aux_parser);
 }
