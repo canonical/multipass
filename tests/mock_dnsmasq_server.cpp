@@ -19,8 +19,12 @@
 #include <QCoreApplication>
 #include <QFile>
 
-#include <sys/types.h>
+#include <cerrno>
+#include <cstring>
+#include <iostream>
 #include <unistd.h>
+
+const auto unexpected_error = 5;
 
 int main(int argc, char* argv[])
 {
@@ -35,7 +39,11 @@ int main(int argc, char* argv[])
     parser.parse(QCoreApplication::arguments());
 
     int pipefd[2];
-    pipe(pipefd);
+    if (pipe(pipefd))
+    {
+        std::cerr << "Failed to create pipe: " << std::strerror(errno) << std::endl;
+        return unexpected_error;
+    }
 
     char exit_code;
 
@@ -54,21 +62,29 @@ int main(int argc, char* argv[])
         if (parser.isSet(listenOption))
         {
             auto address = parser.value(listenOption);
-            if (address.contains("0.0.0"))
+            auto contains000 = address.contains("0.0.0");
+
+            if (write(pipefd[1], contains000 ? "1" : "0", 1) < 1)
             {
-                write(pipefd[1], "1", 1);
-                return 1;
+                std::cerr << "Failed to write to pipe: " << std::strerror(errno) << std::endl;
+                return unexpected_error;
             }
 
-            write(pipefd[1], "0", 1);
+            if (contains000)
+                return 1;
         }
+
         return QCoreApplication::exec();
     }
     else if (pid > 0)
     {
         close(pipefd[1]);
 
-        read(pipefd[0], &exit_code, 1);
+        if (read(pipefd[0], &exit_code, 1) < 1)
+        {
+            std::cerr << "Failed to read from pipe: " << std::strerror(errno) << std::endl;
+            return unexpected_error;
+        }
 
         return static_cast<int>(exit_code);
     }
