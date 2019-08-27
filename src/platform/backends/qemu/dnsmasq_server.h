@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,30 +21,33 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-#include <multipass/process.h>
-
-#include <QDir>
 
 #include <memory>
 #include <string>
 
 namespace multipass
 {
+class Process;
+
 class DNSMasqServer
 {
 public:
-    DNSMasqServer(const Path& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
-                  const IPAddress& start, const IPAddress& end);
+    DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 
     optional<IPAddress> get_ip_for(const std::string& hw_addr);
     void release_mac(const std::string& hw_addr);
+    void check_dnsmasq_running();
 
 private:
-    const QDir data_dir;
+    void start_dnsmasq();
+
+    const QString data_dir;
+    const QString bridge_name;
+    const QString pid_file_path;
+    const std::string subnet;
     std::unique_ptr<Process> dnsmasq_cmd;
-    QString bridge_name;
 };
 } // namespace multipass
 #endif // MULTIPASS_DNSMASQ_SERVER_H

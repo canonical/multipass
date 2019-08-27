@@ -17,12 +17,13 @@
 
 #include "dnsmasq_process_spec.h"
 
+#include <multipass/format.h>
+
 namespace mp = multipass;
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir, const QString& bridge_name,
-                                           const mp::IPAddress& bridge_addr, const mp::IPAddress& start_ip,
-                                           const mp::IPAddress& end_ip)
-    : data_dir(data_dir), bridge_name(bridge_name), bridge_addr(bridge_addr), start_ip(start_ip), end_ip(end_ip)
+                                           const QString& pid_file_path, const std::string& subnet)
+    : data_dir(data_dir), bridge_name(bridge_name), pid_file_path{pid_file_path}, subnet{subnet}
 {
 }
 
@@ -33,10 +34,12 @@ QString mp::DNSMasqProcessSpec::program() const
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
 {
-    return QStringList() << "--keep-in-foreground"
-                         << "--strict-order"
-                         << "--bind-interfaces"
-                         << "--domain=multipass"
+    const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
+    const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
+    const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
+
+    return QStringList() << "--strict-order"
+                         << "--bind-interfaces" << QString("--pid-file=%1").arg(pid_file_path) << "--domain=multipass"
                          << "--local=/multipass/"
                          << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                          << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
