@@ -38,6 +38,16 @@ int main(int argc, char* argv[])
 
     parser.parse(QCoreApplication::arguments());
 
+    if (parser.isSet(listenOption))
+    {
+        auto address = parser.value(listenOption);
+        // For testing, we treat a 0.0.0 subnet as an error
+        if (address.contains("0.0.0"))
+        {
+            return 1;
+        }
+    }
+
     int pipefd[2];
     if (pipe(pipefd))
     {
@@ -59,20 +69,13 @@ int main(int argc, char* argv[])
             pid_file.write(QString::number(getpid()).toUtf8());
         }
 
-        if (parser.isSet(listenOption))
+        if (write(pipefd[1], "0", 1) < 1)
         {
-            auto address = parser.value(listenOption);
-            auto contains000 = address.contains("0.0.0");
-
-            if (write(pipefd[1], contains000 ? "1" : "0", 1) < 1)
-            {
                 std::cerr << "Failed to write to pipe: " << std::strerror(errno) << std::endl;
                 return unexpected_error;
-            }
-
-            if (contains000)
-                return 1;
         }
+
+        close(pipefd[1]);
 
         return QCoreApplication::exec();
     }
@@ -86,6 +89,8 @@ int main(int argc, char* argv[])
             return unexpected_error;
         }
 
-        return static_cast<int>(exit_code);
+        close(pipefd[0]);
+
+        return atoi(&exit_code);
     }
 }
