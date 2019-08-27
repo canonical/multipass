@@ -23,14 +23,16 @@
 #include <multipass/path.h>
 #include <shared/linux/process_spec.h>
 
+#include <string>
+
 namespace multipass
 {
 
 class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
-    explicit DNSMasqProcessSpec(const Path& data_dir, const QString& bridge_name, const IPAddress& bridge_addr,
-                                const IPAddress& start_ip, const IPAddress& end_ip);
+    explicit DNSMasqProcessSpec(const Path& data_dir, const QString& bridge_name, const QString& pid_file_path,
+                                const std::string& subnet);
 
     QString program() const override;
     QStringList arguments() const override;
@@ -40,8 +42,9 @@ public:
 
 private:
     const Path data_dir;
-    const QString bridge_name, pid_file;
-    const IPAddress bridge_addr, start_ip, end_ip;
+    const QString bridge_name;
+    const QString pid_file_path;
+    const std::string subnet;
 };
 
 } // namespace multipass

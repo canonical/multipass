@@ -18,34 +18,14 @@
 #include "dnsmasq_process_spec.h"
 
 #include <multipass/snap_utils.h>
+#include <multipass/format.h>
 
 namespace mp = multipass;
 namespace mu = multipass::utils;
 
-namespace
-{
-static QString pid_file()
-{
-    if (mu::is_snap())
-    {
-        return QString(mu::snap_common_dir() + "/dnsmasq.pid");
-    }
-    else
-    {
-        return QString();
-    }
-}
-} // namespace
-
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir, const QString& bridge_name,
-                                           const mp::IPAddress& bridge_addr, const mp::IPAddress& start_ip,
-                                           const mp::IPAddress& end_ip)
-    : data_dir(data_dir),
-      bridge_name(bridge_name),
-      pid_file{::pid_file()},
-      bridge_addr(bridge_addr),
-      start_ip(start_ip),
-      end_ip(end_ip)
+                                           const QString& pid_file_path, const std::string& subnet)
+    : data_dir(data_dir), bridge_name(bridge_name), pid_file_path{pid_file_path}, subnet{subnet}
 {
 }
 
@@ -56,15 +36,12 @@ QString mp::DNSMasqProcessSpec::program() const
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
 {
-    QString pid;
-    if (!pid_file.isNull())
-    {
-        pid = QString("--pid-file=%1").arg(pid_file);
-    }
+    const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
+    const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
+    const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
 
-    return QStringList() << "--keep-in-foreground" << pid << "--strict-order"
-                         << "--bind-interfaces"
-                         << "--domain=multipass"
+    return QStringList() << "--strict-order"
+                         << "--bind-interfaces" << QString("--pid-file=%1").arg(pid_file_path) << "--domain=multipass"
                          << "--local=/multipass/"
                          << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                          << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
@@ -137,16 +114,5 @@ profile %1 flags=(attach_disconnected) {
         signal_peer = "unconfined";
     }
 
-    /* Need to supply either the pid file we specified, or the default dnsmasq creates */
-    QString pid;
-    if (pid_file.isNull())
-    {
-        pid = "/{,var/}run/*dnsmasq*.pid";
-    }
-    else
-    {
-        pid = pid_file;
-    }
-
-    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, pid);
+    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, pid_file_path);
 }

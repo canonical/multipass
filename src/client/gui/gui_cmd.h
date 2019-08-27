@@ -73,6 +73,8 @@ private:
     void initiate_about_menu_layout();
     ListReply retrieve_all_instances();
     void set_menu_actions_for(const std::string& instance_name, const InstanceStatus& state);
+    void handle_petenv_instance(const google::protobuf::RepeatedPtrField<ListVMInstance>&);
+    void set_petenv_actions_for(const InstanceStatus& state);
     void start_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
     void suspend_instance_for(const std::string& instance_name);
@@ -81,6 +83,13 @@ private:
     QSystemTrayIcon tray_icon;
     QMenu tray_icon_menu;
 
+    QAction petenv_start_action;
+    QAction petenv_shell_action{"Open Shell"};
+    QAction petenv_stop_action{"Stop"};
+    InstanceStatus petenv_state;
+    std::string current_petenv_name;
+
+    QAction* petenv_actions_separator;
     QAction* about_separator;
     QAction* quit_action;
     QAction update_action{"Update available"};
