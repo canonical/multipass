@@ -27,6 +27,8 @@
 #include <multipass/constants.h>
 #include <multipass/platform.h>
 
+#include <QDir>
+#include <QFile>
 #include <QString>
 
 #include <gtest/gtest.h>
@@ -76,6 +78,23 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
+
+TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
+{
+    QByteArray test_dir_path = "/tmp";
+    QString expected_filename = "multipass-gui.conditional-autostart.desktop";
+    QString expected_filepath = QDir{test_dir_path}.filePath(expected_filename);
+
+    QFile::remove(expected_filepath);
+    auto config_home_save = qgetenv("XDG_CONFIG_HOME");
+    qputenv("XDG_CONFIG_HOME", test_dir_path);
+
+    mp::platform::preliminary_gui_autostart_setup();
+    // TODO test expectations
+
+    QFile::remove(expected_filepath);             // TODO @ricab get into scope guard
+    qputenv("XDG_CONFIG_HOME", config_home_save); // TODO @ricab get into scope guard
+}
 
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
 {

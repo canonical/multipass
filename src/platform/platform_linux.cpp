@@ -33,6 +33,11 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
+void mp::platform::preliminary_gui_autostart_setup()
+{
+    // TODO
+}
+
 std::string mp::platform::default_server_address()
 {
     std::string base_dir;

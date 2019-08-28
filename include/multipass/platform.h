@@ -34,6 +34,7 @@ namespace multipass
 {
 namespace platform
 {
+void preliminary_gui_autostart_setup();
 std::string default_server_address();
 QString default_driver();
 QString daemon_config_home(); // temporary
