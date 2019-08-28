@@ -96,7 +96,13 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
     qputenv("XDG_CONFIG_HOME", test_dir_path);
 
     mp::platform::preliminary_gui_autostart_setup();
-    // TODO test expectations
+
+    QFile f{expected_filepath};
+    ASSERT_TRUE(f.exists());
+    ASSERT_TRUE(f.open(QIODevice::ReadOnly | QIODevice::Text));
+
+    auto contents = QString{f.readAll()};
+    EXPECT_TRUE(contents.contains("Exec=multipass.gui --autostarting"));
 }
 
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
