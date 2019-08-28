@@ -32,6 +32,35 @@ namespace
 {
 const QStringList select_object{"|", "Select-Object", "-ExpandProperty"};
 
+void ensure_hyperv_service_is_running(mp::PowerShell& power_shell)
+{
+    QString ps_output;
+    const QStringList get_vmms_service{"Get-Service", "-Name", "vmms"};
+
+    if (!power_shell.run(QStringList() << get_vmms_service << select_object << "Status", ps_output))
+    {
+        throw std::runtime_error("The Hyper-V service does not exist. Ensure Hyper-V is installed correctly.");
+    }
+
+    if (ps_output == "Stopped")
+    {
+        power_shell.run(QStringList() << get_vmms_service << select_object << "StartType", ps_output);
+
+        if (ps_output == "Disabled")
+        {
+            throw std::runtime_error("The Hyper-V service is set to disabled. Please re-enable \"vmms\".");
+        }
+
+        if (!power_shell.run(QStringList() << "Start-Service"
+                                           << "-Name"
+                                           << "vmms",
+                             ps_output))
+        {
+            throw std::runtime_error("Could not start the Hyper-V service");
+        }
+    }
+}
+
 void check_host_hyperv_support(mp::PowerShell& power_shell)
 {
     QString ps_output;
@@ -121,6 +150,8 @@ void check_hyperv_support()
     power_shell.run(QStringList() << get_reg_version_info << select_object << "ReleaseId", ps_output);
     if (ps_output.toInt() < 1803)
         throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
+
+    ensure_hyperv_service_is_running(power_shell);
 }
 } // namespace
 
