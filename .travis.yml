@@ -58,6 +58,10 @@ jobs:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
       - /snap/bin/review-tools.snap-review --allow-classic *.snap
 
+    - env: BUILD_TYPE=Clang
+      script:
+      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+
     - env: BUILD_TYPE=Debug
       script:
       - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'

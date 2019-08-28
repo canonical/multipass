@@ -1,0 +1,19 @@
+--- a/snap/snapcraft.yaml
++++ b/snap/snapcraft.yaml
+@@ -60,6 +60,7 @@ parts:
+     - build-essential
+     - ccache
+     - cmake-extras
++    - clang
+     - git
+     - golang
+     - libsystemd-dev
+@@ -84,6 +85,8 @@ parts:
+     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+     - -DCMAKE_INSTALL_PREFIX=/
+     - -DMULTIPASS_ENABLE_TESTS=off
++    - -DCMAKE_C_COMPILER=clang
++    - -DCMAKE_CXX_COMPILER=clang++
+     override-build: |
+       update-ccache-symlinks
+       snapcraftctl build
