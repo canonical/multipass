@@ -4,7 +4,7 @@ Welcome to the Multipass installer. This will set up Multipass on your computer.
 
 Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch` and it'll do all the setup for you.
 
-For more information, visit our website https://github.com/CanonicalLtd/multipass
+For more information, visit https://multipass.run/
 
 
 You will be guided through the steps necessary to install this software.
