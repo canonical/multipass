@@ -1,4 +1,4 @@
-# What is multipass?
+# What is Multipass?
 
 Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed
 for developers who want a fresh Ubuntu environment with a single command. It uses
@@ -125,7 +125,7 @@ multipass help <command>
 
 # Get involved!
 
-Here's a set of steps to build and run your own build of multipass:
+Here's a set of steps to build and run your own build of Multipass:
 
 ## Build Dependencies
 
@@ -146,7 +146,7 @@ cmake ../
 make
 ```
 
-## Running multipass daemon and client
+## Running Multipass daemon and client
 
 ```
 sudo <multipass>/build/bin/multipassd &
