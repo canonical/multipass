@@ -38,6 +38,10 @@ public:
     virtual QString working_directory() const;
 
     virtual logging::Level error_log_level() const;
+
+    virtual QString apparmor_profile() const = 0;
+    const QString apparmor_profile_name() const;
+    virtual QString identifier() const;
 };
 
 } // namespace multipass

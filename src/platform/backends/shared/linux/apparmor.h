@@ -15,32 +15,28 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_FACTORY_H
-#define MULTIPASS_PROCESS_FACTORY_H
+#ifndef MULTIPASS_APPARMOR_H
+#define MULTIPASS_APPARMOR_H
 
-#include <memory>
-
-#include "apparmor.h"
-#include "process_spec.h"
-#include <multipass/optional.h>
-#include <multipass/singleton.h>
+#include <QStringList>
 
 namespace multipass
 {
-class Process;
 
-class ProcessFactory : public Singleton<ProcessFactory>
+class AppArmor
 {
 public:
-    ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
+    AppArmor();
 
-    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
-    std::unique_ptr<Process> create_process(const QString& command, const QStringList& = QStringList()) const;
+    void load_policy(const QByteArray& aa_policy) const;
+    void remove_policy(const QByteArray& aa_policy) const;
+
+    void next_exec_under_policy(const QByteArray& aa_policy_name) const;
 
 private:
-    const multipass::optional<AppArmor> apparmor;
+    const QStringList apparmor_args;
 };
 
 } // namespace multipass
 
-#endif // MULTIPASS_PROCESS_FACTORY_H
+#endif // MULTIPASS_APPARMOR_CONFINEMENT_H

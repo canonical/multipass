@@ -38,6 +38,8 @@ public:
     QStringList arguments() const override;
     logging::Level error_log_level() const override;
 
+    QString apparmor_profile() const override;
+
 private:
     const Path data_dir;
     const QString bridge_name;

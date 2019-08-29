@@ -126,3 +126,7 @@ qint64 mpt::MockProcess::write(const QByteArray&)
 void mpt::MockProcess::close_write_channel()
 {
 }
+
+void mpt::MockProcess::setup_child_process()
+{
+}

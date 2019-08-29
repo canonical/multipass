@@ -17,6 +17,8 @@
 
 #include <shared/linux/process_spec.h>
 
+#include <QFileInfo>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -42,4 +44,26 @@ QString mp::ProcessSpec::working_directory() const
 mpl::Level mp::ProcessSpec::error_log_level() const
 {
     return mpl::Level::warning;
+}
+
+// For cases when multiple instances of this process need different AppArmor profiles, use this
+// identifier to distinguish them
+QString multipass::ProcessSpec::identifier() const
+{
+    return QString();
+}
+
+// String used to register this profile with AppArmor
+const QString mp::ProcessSpec::apparmor_profile_name() const
+{
+    const QString executable_name = QFileInfo(program()).fileName(); // in case full path is specified
+
+    if (!identifier().isNull())
+    {
+        return "multipass." + identifier() + '.' + executable_name;
+    }
+    else
+    {
+        return "multipass." + executable_name;
+    }
 }

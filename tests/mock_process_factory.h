@@ -92,6 +92,7 @@ public:
     MOCK_METHOD0(read_all_standard_error, QByteArray());
     qint64 write(const QByteArray& data) override;
     void close_write_channel() override;
+    void setup_child_process() override;
 
 private:
     const std::unique_ptr<ProcessSpec> spec;

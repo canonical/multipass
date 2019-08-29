@@ -26,11 +26,15 @@ include(c_mock_defines.cmake)
 list(APPEND PLATFORM_TESTS
   mock_libvirt.cpp
   mock_process_factory.cpp
+  reset_process_factory.cpp
   stub_process_factory.cpp
+  test_apparmored_process.cpp
   test_platform_linux.cpp
   test_qemu_backend.cpp
   test_qemu_vm_process_spec.cpp
+  test_qemuimg_process_spec.cpp
   test_dnsmasq_server.cpp
+  test_dnsmasq_process_spec.cpp
   test_linux_process.cpp
   test_libvirt_backend.cpp
   test_snap_utils.cpp
@@ -82,6 +86,15 @@ add_executable(mock_process
   mock_process.cpp)
 
 set_target_properties(mock_process
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+add_executable(apparmor_parser
+  mock_apparmor_parser.cpp)
+
+set_target_properties(apparmor_parser
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"

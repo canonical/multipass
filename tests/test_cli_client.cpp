@@ -84,7 +84,8 @@ struct MockDaemonRpc : public mp::DaemonRpc
                                       grpc::ServerWriter<mp::UmountReply>* response));
     MOCK_METHOD3(version, grpc::Status(grpc::ServerContext* context, const mp::VersionRequest* request,
                                        grpc::ServerWriter<mp::VersionReply>* response));
-    MOCK_METHOD3(ping, grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
+    MOCK_METHOD3(ping,
+                 grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
 };
 
 struct Client : public Test
@@ -196,8 +197,10 @@ struct Client : public Test
                                           cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
                                                                               reset at the end of each test */
-    inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
+    static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
+
+std::stringstream Client::trash_stream; // replace with inline in C++17
 
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
@@ -914,7 +917,6 @@ TEST_F(Client, start_cmd_fails_on_other_absent_instances_with_petenv)
 
     const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto aborted = aborted_start_status({}, {"zzz"});
-
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
     EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
 }
@@ -1526,4 +1528,4 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
     EXPECT_THAT(help_cmd_launch.str(), Ne(""));
     EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
 }
-}
+} // namespace
