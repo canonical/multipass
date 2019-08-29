@@ -22,12 +22,8 @@ architectures:
   run-on: arm64
 
 layout:
-  /usr/lib/x86_64-linux-gnu/qemu:
-    bind: $SNAP/usr/lib/x86_64-linux-gnu/qemu
-  /usr/lib/arm-linux-gnueabihf/qemu:
-    bind: $SNAP/usr/lib/arm-linux-gnueabihf/qemu
-  /usr/lib/aarch64-linux-gnu/qemu:
-    bind: $SNAP/usr/lib/aarch64-linux-gnu/qemu
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
 
 apps:
   multipassd:
