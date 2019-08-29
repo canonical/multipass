@@ -1,0 +1,29 @@
+diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
+index d8644d4a..d4683cc6 100644
+--- a/snap/snapcraft.yaml
++++ b/snap/snapcraft.yaml
+@@ -60,10 +60,12 @@ parts:
+     - build-essential
+     - ccache
+     - cmake-extras
++    - clang
+     - git
+     - golang
+     - libsystemd-dev
+     - libvirt-dev
++    - lld
+     - pkg-config
+     - qtbase5-dev
+     - qtbase5-dev-tools
+@@ -84,6 +86,11 @@ parts:
+     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+     - -DCMAKE_INSTALL_PREFIX=/
+     - -DMULTIPASS_ENABLE_TESTS=off
++    - -DCMAKE_C_COMPILER=clang
++    - -DCMAKE_CXX_COMPILER=clang++
++    - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
++    - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
++    - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
+     override-build: |
+       update-ccache-symlinks
+       snapcraftctl build

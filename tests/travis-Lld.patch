@@ -1,0 +1,20 @@
+--- a/snap/snapcraft.yaml
++++ b/snap/snapcraft.yaml
+@@ -64,6 +64,7 @@ parts:
+     - golang
+     - libsystemd-dev
+     - libvirt-dev
++    - lld
+     - pkg-config
+     - qtbase5-dev
+     - qtbase5-dev-tools
+@@ -84,6 +85,9 @@ parts:
+     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+     - -DCMAKE_INSTALL_PREFIX=/
+     - -DMULTIPASS_ENABLE_TESTS=off
++    - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
++    - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
++    - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
+     override-build: |
+       update-ccache-symlinks
+       snapcraftctl build

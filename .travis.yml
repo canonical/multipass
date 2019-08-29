@@ -48,66 +48,23 @@ cache: ccache
 
 jobs:
   include:
-    - addons:
-        snaps:
-        - *lxd
-        - *snapcraft
-        - review-tools
-      env: BUILD_TYPE=RelWithDebInfo
+    - &build
+      env: BUILD_TYPE=Defaults
       script:
-      - sg lxd -c '/snap/bin/snapcraft --use-lxd'
-      - /snap/bin/review-tools.snap-review --allow-classic *.snap
-
-    - env: BUILD_TYPE=Clang
-      script:
+      - sg lxd -c '/snap/bin/snapcraft pull --use-lxd multipass'
       - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
 
-    - env: BUILD_TYPE=Debug
-      script:
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-      - sg lxd -c
-          '/snap/bin/lxc exec snapcraft-multipass --
-             env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/
-                 /root/parts/multipass/build/bin/multipass_tests'
+    - <<: *build
+      env: BUILD_TYPE=Clang
 
-    - env: BUILD_TYPE=Coverage
-      script:
-      - mkdir "${HOME}/parts"
-      - sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-      - sg lxd -c
-          '/snap/bin/lxc exec snapcraft-multipass --
-             env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/
-                 cmake --build /root/parts/multipass/build --target covreport'
-      after_success:
-      - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
-    - if: |
-        repo = CanonicalLtd/multipass
-               AND (type != pull_request
-                    OR head_repo = repo)
-      env: BUILD_TYPE=macOS
-      git:
-        submodules: false
-      sudo: false
-      addons: ~
-      before_install:
-      - openssl aes-256-cbc -K $encrypted_8d49841daf21_key -iv $encrypted_8d49841daf21_iv
-        -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
-      - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
-      install: ~
-      before_script: ~
-      script:
-      - |
-        if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
-          REF="+refs/pull/${TRAVIS_PULL_REQUEST}/merge"
-        else
-          REF="${TRAVIS_COMMIT}"
-        fi
-        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
-      after_success: ~
-      after_failure: ~
-      cache: ~
+    - <<: *build
+      env: BUILD_TYPE=Gold
+
+    - <<: *build
+      env: BUILD_TYPE=Lld
+
+    - <<: *build
+      env: BUILD_TYPE=ClangGold
+
+    - <<: *build
+      env: BUILD_TYPE=ClangLld

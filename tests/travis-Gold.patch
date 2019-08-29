@@ -1,0 +1,12 @@
+--- a/snap/snapcraft.yaml
++++ b/snap/snapcraft.yaml
+@@ -84,6 +84,9 @@ parts:
+     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+     - -DCMAKE_INSTALL_PREFIX=/
+     - -DMULTIPASS_ENABLE_TESTS=off
++    - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=gold
++    - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=gold
++    - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=gold
+     override-build: |
+       update-ccache-symlinks
+       snapcraftctl build
