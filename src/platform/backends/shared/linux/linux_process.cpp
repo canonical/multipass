@@ -17,7 +17,6 @@
 
 #include "linux_process.h"
 #include "process_spec.h"
-#include <QProcess>
 
 #include <multipass/logging/log.h>
 
