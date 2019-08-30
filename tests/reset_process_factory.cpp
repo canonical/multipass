@@ -15,28 +15,31 @@
  *
  */
 
-#ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-#define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#include "reset_process_factory.h"
 
-#include "process_spec.h"
+namespace mp = multipass;
+namespace mpt = multipass::test;
 
-namespace multipass
+namespace
 {
-
-class QemuImgProcessSpec : public ProcessSpec
+class ResetableProcessFactory : public mp::ProcessFactory
 {
 public:
-    explicit QemuImgProcessSpec(const QStringList& args);
+    static void Reset()
+    {
+        mp::ProcessFactory::reset();
+    }
 
-    QString program() const override;
-    QStringList arguments() const override;
-
-    QString apparmor_profile() const override;
-
-private:
-    const QStringList args;
+    using mp::ProcessFactory::ProcessFactory;
 };
+} // namespace
 
-} // namespace multipass
+mpt::ResetProcessFactory::ResetProcessFactory()
+{
+    ResetableProcessFactory::Reset();
+}
 
-#endif // MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+mpt::ResetProcessFactory::~ResetProcessFactory()
+{
+    ResetableProcessFactory::Reset();
+}

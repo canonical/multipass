@@ -13,7 +13,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 set (CMAKE_AUTOMOC ON)
+
+include(FindPkgConfig)
+pkg_search_module(APPARMOR libapparmor REQUIRED)
+
 add_library(shared_linux STATIC
+  apparmor.cpp
   backend_utils.cpp
   linux_process.cpp
   process_spec.cpp
@@ -21,6 +26,7 @@ add_library(shared_linux STATIC
   qemuimg_process_spec.cpp)
 
 target_link_libraries(shared_linux
+  apparmor
   fmt
   utils
   Qt5::Core)

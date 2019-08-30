@@ -16,19 +16,18 @@
  */
 
 #include "fake_handle.h"
+#include "mock_environment_helpers.h"
 #include "mock_libvirt.h"
 #include "mock_settings.h"
+#include "test_with_mocked_bin_path.h"
 
 #include "src/platform/backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "src/platform/backends/qemu/qemu_virtual_machine_factory.h"
 
 #include <multipass/constants.h>
-#include <multipass/optional.h>
 #include <multipass/platform.h>
 
-#include <QProcessEnvironment>
 #include <QString>
-#include <QtGlobal>
 
 #include <gtest/gtest.h>
 
@@ -49,25 +48,8 @@ void setup_driver_settings(const QString& driver)
         expectation.WillRepeatedly(Return(driver));
 }
 
-struct PlatformLinux : public Test
+struct PlatformLinux : public mpt::TestWithMockedBinPath
 {
-    void SetUp() override
-    {
-        if (QProcessEnvironment::systemEnvironment().contains(mp::driver_env_var))
-        {
-            env_driver_backup = qgetenv(mp::driver_env_var);
-            qunsetenv(mp::driver_env_var);
-        }
-    }
-
-    void TearDown() override
-    {
-        if (env_driver_backup)
-            qputenv(mp::driver_env_var, *env_driver_backup);
-        else
-            qunsetenv(mp::driver_env_var);
-    }
-
     template <typename VMFactoryType>
     void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
     {
@@ -91,7 +73,8 @@ struct PlatformLinux : public Test
         test_contents();
     }
 
-    mp::optional<QByteArray> env_driver_backup = mp::nullopt;
+    mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
+    mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
@@ -112,14 +95,14 @@ TEST_F(PlatformLinux, test_libvirt_driver_produces_correct_factory)
 
 TEST_F(PlatformLinux, test_qemu_in_env_var_is_ignored)
 {
-    qputenv(mp::driver_env_var, "QEMU");
+    mpt::SetEnvScope env(mp::driver_env_var, "QEMU");
     auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
     with_minimally_mocked_libvirt(test);
 }
 
 TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 {
-    qputenv(mp::driver_env_var, "LIBVIRT");
+    mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 

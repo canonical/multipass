@@ -105,6 +105,10 @@ public:
         process_state.exit_code = 0;
         return process_state;
     }
+
+    void setup_child_process() override
+    {
+    }
 };
 } // namespace
 

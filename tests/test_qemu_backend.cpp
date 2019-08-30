@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
+#include "mock_environment_helpers.h"
 #include "mock_process_factory.h"
 #include "mock_status_monitor.h"
 #include "stub_process_factory.h"
@@ -68,6 +69,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
             ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(suspend_tag));
         }
     };
+    mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
 };
 
 TEST_F(QemuBackend, creates_in_off_state)

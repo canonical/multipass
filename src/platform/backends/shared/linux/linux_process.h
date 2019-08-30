@@ -19,18 +19,18 @@
 #define MULTIPASS_LINUXPROCESS_H
 
 #include "process_spec.h"
-#include <QProcess>
 #include <memory>
 #include <multipass/process.h>
 
 namespace multipass
 {
+class CustomQProcess;
 
 class LinuxProcess : public Process
 {
     Q_OBJECT
 public:
-    virtual ~LinuxProcess() = default;
+    virtual ~LinuxProcess();
 
     QString program() const override;
     QStringList arguments() const override;
@@ -58,7 +58,22 @@ protected:
     LinuxProcess(std::unique_ptr<ProcessSpec>&& spec);
     const std::unique_ptr<ProcessSpec> process_spec;
 
-    QProcess process; // ease testing
+    void setup_child_process() override;
+
+    class CustomQProcess : public QProcess
+    {
+    public:
+        CustomQProcess(LinuxProcess* p);
+        void setupChildProcess() override;
+
+    private:
+        LinuxProcess* p;
+    };
+
+    CustomQProcess process; // ease testing
+
+private:
+    void run_and_wait_until_finished(const int timeout);
 };
 
 } // namespace multipass

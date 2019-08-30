@@ -295,17 +295,24 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
         else
         {
             mpl::log(mpl::Level::error, "daemon",
-                     fmt::format("Failed to parse QEMU version out:\n{}", process->read_all_standard_output()));
+                     fmt::format("Failed to parse QEMU version out: '{}'", process->read_all_standard_output()));
             return QString("qemu-unknown");
         }
     }
-
-    if (exit_state.error)
-        mpl::log(mpl::Level::error, "daemon",
-                 fmt::format("Failed to determine QEMU version (exec error):\n{}", exit_state.error->message));
     else
-        mpl::log(mpl::Level::error, "daemon",
-                 fmt::format("Failed to determine QEMU version (process error):\n{}{}",
-                             process->read_all_standard_output(), process->read_all_standard_error()));
+    {
+        if (exit_state.error)
+        {
+            mpl::log(mpl::Level::error, "daemon",
+                     fmt::format("Qemu failed to start: {}", exit_state.failure_message()));
+        }
+        else if (exit_state.exit_code)
+        {
+            mpl::log(mpl::Level::error, "daemon",
+                     fmt::format("Qemu fail: '{}' with outputs:\n{}\n{}", exit_state.failure_message(),
+                                 process->read_all_standard_output(), process->read_all_standard_error()));
+        }
+    }
+
     return QString("qemu-unknown");
 }

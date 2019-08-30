@@ -21,6 +21,10 @@ architectures:
 - build-on: arm64
   run-on: arm64
 
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+
 apps:
   multipassd:
     command: bin/launch-multipassd
@@ -61,6 +65,7 @@ parts:
     - cmake-extras
     - git
     - golang
+    - libapparmor-dev
     - libsystemd-dev
     - libvirt-dev
     - pkg-config

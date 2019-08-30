@@ -17,9 +17,11 @@
 
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
+#include "mock_environment_helpers.h"
 #include <gmock/gmock.h>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 using namespace testing;
 
 struct TestQemuVMProcessSpec : public Test
@@ -143,7 +145,7 @@ TEST_F(TestQemuVMProcessSpec, resume_arguments_taken_from_resumedata)
     EXPECT_EQ(spec.arguments(), QStringList({"-one", "-two", "-loadvm", "suspend_tag", "-machine", "machine_type"}));
 }
 
-TEST_F(TestQemuVMProcessSpec, reusme_with_missing_machine_type_guesses_correctly)
+TEST_F(TestQemuVMProcessSpec, resume_with_missing_machine_type_guesses_correctly)
 {
     mp::QemuVMProcessSpec::ResumeData resume_data_missing_machine_info;
     resume_data_missing_machine_info.suspend_tag = "suspend_tag";
@@ -152,4 +154,46 @@ TEST_F(TestQemuVMProcessSpec, reusme_with_missing_machine_type_guesses_correctly
     mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data_missing_machine_info);
 
     EXPECT_EQ(spec.arguments(), QStringList({"-args", "-loadvm", "suspend_tag", "-machine", "pc-i440fx-xenial"}));
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_has_correct_name)
+{
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.vm_name.qemu-system-"));
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_includes_disk_images)
+{
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/image rwk,"));
+    EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/cloud_init.iso rk,"));
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_identifier)
+{
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+
+    EXPECT_EQ(spec.identifier(), "vm_name");
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
+{
+    mpt::SetEnvScope e("SNAP", "/something");
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
+    EXPECT_TRUE(spec.apparmor_profile().contains("/something/qemu/* r,"));
+    EXPECT_TRUE(spec.apparmor_profile().contains("/something/usr/bin/qemu-system-"));
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
+{
+    mpt::UnsetEnvScope e("SNAP");
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));
+    EXPECT_TRUE(spec.apparmor_profile().contains("/usr/share/seabios/* r,"));
+    EXPECT_TRUE(spec.apparmor_profile().contains(" /usr/bin/qemu-system-")); // space wanted
 }
