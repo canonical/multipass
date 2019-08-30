@@ -29,13 +29,35 @@
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
 
+#include <QStandardPaths>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
+namespace
+{
+constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
+                                            "Name=Multipass\n"
+                                            "Exec=multipass.gui --autostarting\n"
+                                            "Icon=${SNAP}/meta/gui/multipass-gui.svg\n"
+                                            "Type=Application\n"
+                                            "Terminal=false\n"
+                                            "Categories=Utility;\n";
+}
+
 void mp::platform::preliminary_gui_autostart_setup()
 {
-    // TODO
+    static const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
+    static const auto autostart_dir = QDir{config_dir.filePath("autostart")};
+    static const auto fname = autostart_dir.filePath(QStringLiteral("multipass-gui.conditional-autostart.desktop"));
+    // TODO @ricab make base filename constant
+
+    autostart_dir.mkpath(".");
+    QFile f{fname};
+    if (!f.exists())                                        // assuming correct contents otherwise
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) // TODO @ricab handle failure
+            f.write(autostart_desktop_contents);
 }
 
 std::string mp::platform::default_server_address()
