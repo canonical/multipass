@@ -83,17 +83,18 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
 
 TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 {
-    QByteArray test_dir_path = "/tmp";
+    QDir tmp_dir = QDir::temp();
+    QDir expected_dir{tmp_dir.filePath("autostart")};
     QString expected_filename = "multipass-gui.conditional-autostart.desktop";
-    QString expected_filepath = QDir{test_dir_path}.filePath(expected_filename);
+    QString expected_filepath = expected_dir.filePath(expected_filename);
 
-    auto cleanup = sg::make_scope_guard([expected_filepath, config_home_save = qgetenv("XDG_CONFIG_HOME")]() {
-        QFile::remove(expected_filepath);
+    auto cleanup = sg::make_scope_guard([&expected_dir, config_home_save = qgetenv("XDG_CONFIG_HOME")]() {
+        expected_dir.removeRecursively();
         qputenv("XDG_CONFIG_HOME", config_home_save);
     });
 
-    QFile::remove(expected_filepath);
-    qputenv("XDG_CONFIG_HOME", test_dir_path);
+    expected_dir.removeRecursively();
+    qputenv("XDG_CONFIG_HOME", tmp_dir.path().toLatin1());
 
     mp::platform::preliminary_gui_autostart_setup();
 
