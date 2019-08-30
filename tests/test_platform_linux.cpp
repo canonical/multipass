@@ -85,7 +85,7 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 {
     QDir tmp_dir = QDir::temp();
     QDir expected_dir{tmp_dir.filePath("autostart")};
-    QString expected_filename = "multipass-gui.conditional-autostart.desktop";
+    QString expected_filename = "multipass.gui.conditional-autostart.desktop";
     QString expected_filepath = expected_dir.filePath(expected_filename);
 
     auto cleanup = sg::make_scope_guard([&expected_dir, config_home_save = qgetenv("XDG_CONFIG_HOME")]() {

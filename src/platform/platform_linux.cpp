@@ -50,7 +50,7 @@ void mp::platform::preliminary_gui_autostart_setup()
 {
     static const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     static const auto autostart_dir = QDir{config_dir.filePath("autostart")};
-    static const auto fname = autostart_dir.filePath(QStringLiteral("multipass-gui.conditional-autostart.desktop"));
+    static const auto fname = autostart_dir.filePath(QStringLiteral("multipass.gui.conditional-autostart.desktop"));
     // TODO @ricab make base filename constant
 
     autostart_dir.mkpath(".");

@@ -53,7 +53,8 @@ apps:
     completer: etc/bash_completion.d/snap.multipass
   gui:
     environment: *client-environment
-    command: bin/multipass-gui
+    command: bin/multipass.gui
+    autostart: multipass.gui.conditional-autostart.desktop
 
 parts:
   multipass:
