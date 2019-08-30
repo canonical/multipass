@@ -18,6 +18,7 @@
 #include "client_gui.h"
 
 #include <multipass/cli/client_common.h>
+#include <multipass/platform.h>
 
 #include <QApplication>
 
@@ -27,6 +28,8 @@ int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
     app.setApplicationName("multipass-gui");
+
+    mp::platform::preliminary_gui_autostart_setup();
 
     mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl,
                             mp::client::get_cert_provider()};
