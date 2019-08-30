@@ -25,7 +25,7 @@
 #include "mock_environment_helpers.h"
 
 namespace mp = multipass;
-namespace mpt = multipass::testing;
+namespace mpt = multipass::test;
 namespace mu = multipass::utils;
 
 using namespace testing;

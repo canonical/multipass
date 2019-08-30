@@ -15,32 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_FACTORY_H
-#define MULTIPASS_PROCESS_FACTORY_H
+#ifndef MULTIPASS_RESETABLE_PROCESS_FACTORY_H
+#define MULTIPASS_RESETABLE_PROCESS_FACTORY_H
 
-#include <memory>
-
-#include "apparmor.h"
-#include "process_spec.h"
-#include <multipass/optional.h>
-#include <multipass/singleton.h>
+#include <src/platform/backends/shared/linux/process_factory.h>
 
 namespace multipass
 {
-class Process;
-
-class ProcessFactory : public Singleton<ProcessFactory>
+namespace test
 {
-public:
-    ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
 
-    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
-    std::unique_ptr<Process> create_process(const QString& command, const QStringList& = QStringList()) const;
-
-private:
-    const multipass::optional<AppArmor> apparmor;
+// This resets the ProcessFactory on creation & destruction
+struct ResetProcessFactory
+{
+    ResetProcessFactory();
+    ~ResetProcessFactory();
 };
 
+} // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_PROCESS_FACTORY_H
+#endif // MULTIPASS_RESETABLE_PROCESS_FACTORY_H

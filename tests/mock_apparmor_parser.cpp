@@ -15,28 +15,32 @@
  *
  */
 
-#ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-#define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
-#include "process_spec.h"
+using namespace std;
 
-namespace multipass
+int main(int argc, char* argv[])
 {
+    // looks for version just to ensure existance
+    if (argc == 2 && strcmp(argv[1], "-V") == 0)
+    {
+        cout << "AppArmor parser version 1.11" << endl;
+        return 0;
+    }
 
-class QemuImgProcessSpec : public ProcessSpec
-{
-public:
-    explicit QemuImgProcessSpec(const QStringList& args);
+    // stick all input in a file named /tmp/multipass-apparmor-profile.txt
+    fstream out("/tmp/multipass-apparmor-profile.txt", fstream::out);
 
-    QString program() const override;
-    QStringList arguments() const override;
-
-    QString apparmor_profile() const override;
-
-private:
-    const QStringList args;
-};
-
-} // namespace multipass
-
-#endif // MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+    out << "args: ";
+    for (int i = 1; i < argc; i++)
+    {
+        out << argv[i] << ", ";
+    }
+    out << endl;
+    string s;
+    getline(cin, s, '\0');
+    out << s;
+    return 0;
+}

@@ -272,9 +272,16 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         }
         if (process_state.error)
         {
-            mpl::log(
-                mpl::Level::error, vm_name,
-                fmt::format("process returned error {}: {}", process_state.error->state, process_state.error->message));
+            if (process_state.error->state == QProcess::Crashed &&
+                (state == State::suspending || state == State::suspended))
+            {
+                // when suspending, we ask Qemu to savevm. Once it confirms that's done, we kill it. Catch the "crash"
+                mpl::log(mpl::Level::debug, vm_name, "Suspended VM successfully stopped");
+            }
+            else
+            {
+                mpl::log(mpl::Level::error, vm_name, fmt::format("error: {}", process_state.error->message));
+            }
         }
 
         if (update_shutdown_status || state == State::starting)

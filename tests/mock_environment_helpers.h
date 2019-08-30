@@ -18,9 +18,11 @@
 #ifndef MULTIPASS_MOCK_ENVIRONMENT_HELPER_H
 #define MULTIPASS_MOCK_ENVIRONMENT_HELPER_H
 
+#include <QByteArray>
+
 namespace multipass
 {
-namespace testing
+namespace test
 {
 
 class SetEnvScope
@@ -63,7 +65,7 @@ private:
     QByteArray name, old_value;
 };
 
-} // namespace testing
+} // namespace test
 } // namespace multipass
 
 #endif // MULTIPASS_MOCK_ENVIRONMENT_HELPER_H

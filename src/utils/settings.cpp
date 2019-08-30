@@ -28,7 +28,6 @@
 #include <cassert>
 #include <cerrno>
 #include <fstream>
-#include <memory>
 #include <stdexcept>
 
 namespace mp = multipass;
