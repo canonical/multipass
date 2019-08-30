@@ -40,7 +40,7 @@ int mp::ClientGui::run(const QStringList& arguments)
     auto ret = 0;
     ArgParser parser;
 
-    QCommandLineOption autostart{"exit-unless-autostart",
+    QCommandLineOption autostart{"autostarting",
                                  "Exit right away, not actually creating a GUI, unless configured to autostart. "
                                  "Pass this option when auto-starting to honor the autostart setting."};
     autostart.setFlags(QCommandLineOption::HiddenFromHelp);
