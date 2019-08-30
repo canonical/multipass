@@ -47,7 +47,7 @@ apps:
         QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
         XDG_DATA_HOME: $SNAP_USER_DATA/data
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
-        XDG_CONFIG_HOME: $SNAP_USER_DATA/config
+        XDG_CONFIG_HOME: $SNAP_USER_DATA/.config # TODO @ricab revisit this
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     command: bin/multipass
     completer: etc/bash_completion.d/snap.multipass
