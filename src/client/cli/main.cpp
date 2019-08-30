@@ -20,6 +20,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/console.h>
 #include <multipass/constants.h>
+#include <multipass/platform.h>
 
 #include <QCoreApplication>
 
@@ -32,6 +33,8 @@ int main(int argc, char* argv[])
 
     mp::Console::setup_environment();
     auto term = mp::Terminal::make_terminal();
+
+    mp::platform::preliminary_gui_autostart_setup();
 
     mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl,
                             mp::client::get_cert_provider(), term.get()};
