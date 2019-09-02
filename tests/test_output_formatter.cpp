@@ -112,6 +112,14 @@ auto construct_unsorted_list_reply()
     return list_reply;
 }
 
+auto add_petenv_to_reply(mp::ListReply& reply)
+{
+    auto instance = reply.add_instances();
+    instance->set_name(petenv_name());
+    instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+    instance->set_current_release("Not Available");
+}
+
 auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
@@ -318,88 +326,95 @@ class CSVFormatter : public LocaleSettingTest
 class YamlFormatter : public LocaleSettingTest
 {
 };
-}
 
-TEST_F(TableFormatter, single_instance_list_output)
+typedef std::tuple<const mp::ListReply, std::string, std::string> FormatterParamType;
+
+struct ListFormatterSuite : public LocaleSettingTest, public WithParamInterface<FormatterParamType>
 {
-    auto list_reply = construct_single_instance_list_reply();
+};
 
-    auto expected_table_output = "Name                    State             IPv4             Image\n"
-                                 "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_table_output));
-}
-
-TEST_F(TableFormatter, multiple_instance_list_output)
+auto print_list_param_name(const testing::TestParamInfo<ListFormatterSuite::ParamType>& info)
 {
-    auto list_reply = construct_multiple_instances_list_reply();
-
-    auto expected_table_output = "Name                    State             IPv4             Image\n"
-                                 "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
-                                 "bombastic               Stopped           --               Ubuntu 18.04 LTS\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_table_output));
+    return std::get<2>(info.param);
 }
 
-TEST_F(TableFormatter, multiple_instance_sorted_output)
+struct PetenvListFormatterSuite : public LocaleSettingTest,
+                                  public WithParamInterface<std::tuple<QString, FormatterParamType>>
 {
-    auto list_reply = construct_unsorted_list_reply();
+};
 
-    auto expected_table_output = "Name                    State             IPv4             Image\n"
-                                 "trusty-190611-1529      Deleted           --               Ubuntu N/A\n"
-                                 "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
-                                 "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
-                                 "trusty-190611-1542      Running           --               Ubuntu N/A\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(list_reply);
-
-    EXPECT_EQ(output, expected_table_output);
+auto print_petenv_list_param_name(const testing::TestParamInfo<PetenvListFormatterSuite::ParamType>& info)
+{
+    const auto list_name = std::get<2>(std::get<1>(info.param));
+    const auto petenv_name = std::get<0>(info.param);
+    return fmt::format("{}_{}", list_name, petenv_name.isEmpty() ? "default" : petenv_name);
 }
+
+struct TableListFormatter : public ListFormatterSuite
+{
+};
+
+const std::vector<FormatterParamType> table_list_outputs{
+    {mp::ListReply(), "No instances found.\n", "empty"},
+    {construct_single_instance_list_reply(),
+     "Name                    State             IPv4             Image\n"
+     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n",
+     "single"},
+    {construct_multiple_instances_list_reply(),
+     "Name                    State             IPv4             Image\n"
+     "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
+     "bombastic               Stopped           --               Ubuntu 18.04 LTS\n",
+     "multiple"},
+    {construct_unsorted_list_reply(),
+     "Name                    State             IPv4             Image\n"
+     "trusty-190611-1529      Deleted           --               Ubuntu N/A\n"
+     "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
+     "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
+     "trusty-190611-1542      Running           --               Ubuntu N/A\n",
+     "unsorted"}};
+} // namespace
+
+TEST_P(TableListFormatter, properly_formats_output)
+{
+    mp::TableFormatter table_formatter;
+    const auto param = GetParam();
+    auto output = table_formatter.format(std::get<0>(param));
+
+    EXPECT_EQ(output, std::get<1>(param));
+}
+
+INSTANTIATE_TEST_SUITE_P(OutputFormatter, TableListFormatter, ValuesIn(table_list_outputs), print_list_param_name);
 
 #if GTEST_HAS_POSIX_RE
-TEST_F(TableFormatter, pet_env_first_in_list_output)
+struct TableListPetenvFormatter : public PetenvListFormatterSuite
+{
+};
+
+TEST_P(TableListPetenvFormatter, pet_env_first_in_list_output)
 {
     const mp::TableFormatter formatter;
-    const auto reply = construct_multiple_instances_including_petenv_list_reply();
+    const auto param = GetParam();
+    auto reply = std::get<0>(std::get<1>(param));
+    const auto petenv_nname = std::get<0>(param);
+
+    if (!petenv_nname.isEmpty())
+    {
+        EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(petenv_nname));
+    }
+
+    add_petenv_to_reply(reply);
+
     const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
-
     const auto output = formatter.format(reply);
+
     EXPECT_THAT(output, MatchesRegex(regex));
 }
 
-TEST_F(TableFormatter, custom_pet_env_first_in_list_output)
-{
-    const mp::TableFormatter formatter;
-
-    const auto custom = "toto";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
-
-    const auto reply = construct_multiple_instances_including_petenv_list_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", custom);
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
+INSTANTIATE_TEST_SUITE_P(OutputFormatter, TableListPetenvFormatter,
+                         Combine(Values(QStringLiteral(), QStringLiteral("aaa"), QStringLiteral("zzz")),
+                                 ValuesIn(table_list_outputs)),
+                         print_petenv_list_param_name);
 #endif
-
-TEST_F(TableFormatter, no_instances_list_output)
-{
-    mp::ListReply list_reply;
-
-    auto expected_table_output = "No instances found.\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_table_output));
-}
 
 TEST_F(TableFormatter, single_instance_info_output)
 {
