@@ -320,10 +320,6 @@ private:
     std::locale saved_locale;
 };
 
-class CSVFormatter : public LocaleSettingTest
-{
-};
-
 class YamlFormatter : public LocaleSettingTest
 {
 };
@@ -354,6 +350,7 @@ auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::
 
 const mp::TableFormatter table_formatter;
 const mp::JsonFormatter json_formatter;
+const mp::CSVFormatter csv_formatter;
 const auto empty_list_reply = mp::ListReply();
 const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
@@ -420,8 +417,43 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Load:           --\n"
      "Disk usage:     --\n"
      "Memory usage:   --\n",
-     "table_info_multiple"}};
-} //namespace
+     "table_info_multiple"},
+    {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release\n", "csv_list_empty"},
+    {&csv_formatter, &single_instance_list_reply,
+     "Name,State,IPv4,IPv6,Release\n"
+     "foo,Running,10.168.32.2,,16.04 LTS\n",
+     "csv_list_single"},
+    {&csv_formatter, &multiple_instances_list_reply,
+     "Name,State,IPv4,IPv6,Release\n"
+     "bogus-instance,Running,10.21.124.56,,16.04 LTS\n"
+     "bombastic,Stopped,,,18.04 LTS\n",
+     "csv_list_multiple"},
+    {&csv_formatter, &unsorted_list_reply,
+     "Name,State,IPv4,IPv6,Release\n"
+     "trusty-190611-1529,Deleted,,,N/A\n"
+     "trusty-190611-1535,Stopped,,,N/A\n"
+     "trusty-190611-1539,Suspended,,,N/A\n"
+     "trusty-190611-1542,Running,,,N/A\n",
+     "csv_list_unsorted"},
+    {&csv_formatter, &empty_info_reply,
+     "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+     "usage,Memory total,Mounts\n",
+     "csv_info_empty"},
+    {&csv_formatter, &single_instance_info_reply,
+     "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+     "usage,Memory total,Mounts\nfoo,Running,10.168.32.2,,Ubuntu 16.04.3 "
+     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
+     "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
+     "=> test_dir;\n",
+     "csv_info_single"},
+    {&csv_formatter, &multiple_instances_info_reply,
+     "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+     "usage,Memory total,Mounts\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
+     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
+     "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
+     "source;\nbombastic,Stopped,,,,"
+     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n",
+     "csv_info_multiple"}};
 
 const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
     {&json_formatter, &empty_list_reply,
@@ -686,7 +718,23 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "        }\n"
      "    }\n"
      "}\n",
-     "json_find_multiple_duplicate_image"}};
+     "json_find_multiple_duplicate_image"},
+    {&csv_formatter, &empty_find_reply, "Image,Remote,Aliases,OS,Release,Version\n", "csv_find_empty"},
+    {&csv_formatter, &find_one_reply,
+     "Image,Remote,Aliases,OS,Release,Version\n"
+     "ubuntu,,,Ubuntu,18.04 LTS,20190516\n",
+     "csv_find_one"},
+    {&csv_formatter, &find_multiple_reply,
+     "Image,Remote,Aliases,OS,Release,Version\n"
+     "lts,,,Ubuntu,18.04 LTS,20190516\n"
+     "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516\n",
+     "csv_find_multiple"},
+    {&csv_formatter, &find_multiple_reply_duplicate_image,
+     "Image,Remote,Aliases,OS,Release,Version\n"
+     "core18,,,Ubuntu,Core 18,20190520\n"
+     "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520\n",
+     "csv_find_multiple_duplicate_image"}};
+} // namespace
 
 TEST_P(FormatterSuite, properly_formats_output)
 {
@@ -738,6 +786,8 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
             regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
+        else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
+            regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -749,6 +799,8 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
             regex = fmt::format("Name:[[:space:]]+{}.+", petenv_name());
+        else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
+            regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -763,211 +815,6 @@ INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter, PetenvFormatterSuite,
                                  ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
-
-TEST_F(CSVFormatter, single_instance_list_output)
-{
-    auto list_reply = construct_single_instance_list_reply();
-
-    auto expected_output = "Name,State,IPv4,IPv6,Release\n"
-                           "foo,Running,10.168.32.2,,16.04 LTS\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(CSVFormatter, multiple_instance_list_output)
-{
-    auto list_reply = construct_multiple_instances_list_reply();
-
-    auto expected_output = "Name,State,IPv4,IPv6,Release\n"
-                           "bogus-instance,Running,10.21.124.56,,16.04 LTS\n"
-                           "bombastic,Stopped,,,18.04 LTS\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(CSVFormatter, multiple_instance_sorted_output)
-{
-    auto list_reply = construct_unsorted_list_reply();
-
-    auto expected_output = "Name,State,IPv4,IPv6,Release\n"
-                           "trusty-190611-1529,Deleted,,,N/A\n"
-                           "trusty-190611-1535,Stopped,,,N/A\n"
-                           "trusty-190611-1539,Suspended,,,N/A\n"
-                           "trusty-190611-1542,Running,,,N/A\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(list_reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-#if GTEST_HAS_POSIX_RE
-TEST_F(CSVFormatter, pet_env_first_in_list_output)
-{
-    const mp::CSVFormatter formatter;
-    const auto reply = construct_multiple_instances_including_petenv_list_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-
-TEST_F(CSVFormatter, custom_pet_env_first_in_list_output)
-{
-    const mp::CSVFormatter formatter;
-
-    const auto custom = "toto";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
-
-    const auto reply = construct_multiple_instances_including_petenv_list_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", custom);
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-#endif
-
-TEST_F(CSVFormatter, no_instances_list_output)
-{
-    mp::ListReply list_reply;
-
-    auto expected_output = "Name,State,IPv4,IPv6,Release\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(CSVFormatter, single_instance_info_output)
-{
-    auto info_reply = construct_single_instance_info_reply();
-
-    auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-                           "usage,Memory total,Mounts\nfoo,Running,10.168.32.2,,Ubuntu 16.04.3 "
-                           "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
-                           "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
-                           "=> test_dir;\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(CSVFormatter, multiple_instances_info_output)
-{
-    auto info_reply = construct_multiple_instances_info_reply();
-
-    auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-                           "usage,Memory total,Mounts\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
-                           "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
-                           "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
-                           "source;\nbombastic,Stopped,,,,"
-                           "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-#if GTEST_HAS_POSIX_RE
-TEST_F(CSVFormatter, pet_env_first_in_info_output)
-{
-    const mp::CSVFormatter formatter;
-    const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-
-TEST_F(CSVFormatter, custom_pet_env_first_in_info_output)
-{
-    const mp::CSVFormatter formatter;
-
-    const auto custom = "toto";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
-
-    const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("Name[[:print:]]*\n{},.*", custom);
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-#endif
-
-TEST_F(CSVFormatter, no_instances_info_output)
-{
-    mp::InfoReply info_reply;
-
-    auto expected_output = "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-                           "usage,Memory total,Mounts\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(CSVFormatter, at_least_one_alias_in_find_output)
-{
-    mp::CSVFormatter formatter;
-    const auto reply = construct_find_one_reply();
-
-    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
-                           "ubuntu,,,Ubuntu,18.04 LTS,20190516\n";
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(CSVFormatter, filtered_aliases_in_find_output)
-{
-    mp::CSVFormatter formatter;
-    const auto reply = construct_find_multiple_reply();
-
-    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
-                           "lts,,,Ubuntu,18.04 LTS,20190516\n"
-                           "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(CSVFormatter, duplicate_images_in_find_output)
-{
-    mp::CSVFormatter formatter;
-    const auto reply = construct_find_multiple_reply_duplicate_image();
-
-    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
-                           "core18,,,Ubuntu,Core 18,20190520\n"
-                           "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(CSVFormatter, no_images_find_output)
-{
-    mp::FindReply find_reply;
-
-    auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n";
-
-    mp::CSVFormatter csv_formatter;
-    auto output = csv_formatter.format(find_reply);
-
-    EXPECT_EQ(output, expected_output);
-}
 
 TEST_F(YamlFormatter, single_instance_list_output)
 {
