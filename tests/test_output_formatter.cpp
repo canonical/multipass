@@ -327,7 +327,7 @@ class YamlFormatter : public LocaleSettingTest
 {
 };
 
-typedef std::tuple<const mp::ListReply, std::string, std::string> FormatterParamType;
+typedef std::tuple<const mp::Formatter*, mp::ListReply, std::string, std::string> FormatterParamType;
 
 struct ListFormatterSuite : public LocaleSettingTest, public WithParamInterface<FormatterParamType>
 {
@@ -335,7 +335,7 @@ struct ListFormatterSuite : public LocaleSettingTest, public WithParamInterface<
 
 auto print_list_param_name(const testing::TestParamInfo<ListFormatterSuite::ParamType>& info)
 {
-    return std::get<2>(info.param);
+    return std::get<3>(info.param);
 }
 
 struct PetenvListFormatterSuite : public LocaleSettingTest,
@@ -345,56 +345,52 @@ struct PetenvListFormatterSuite : public LocaleSettingTest,
 
 auto print_petenv_list_param_name(const testing::TestParamInfo<PetenvListFormatterSuite::ParamType>& info)
 {
-    const auto list_name = std::get<2>(std::get<1>(info.param));
+    const auto list_name = std::get<3>(std::get<1>(info.param));
     const auto petenv_name = std::get<0>(info.param);
     return fmt::format("{}_{}", list_name, petenv_name.isEmpty() ? "default" : petenv_name);
 }
 
-struct TableListFormatter : public ListFormatterSuite
-{
-};
+const mp::TableFormatter table_formatter;
 
 const std::vector<FormatterParamType> table_list_outputs{
-    {mp::ListReply(), "No instances found.\n", "empty"},
-    {construct_single_instance_list_reply(),
+    {&table_formatter, mp::ListReply(), "No instances found.\n", "table_empty"},
+    {&table_formatter, construct_single_instance_list_reply(),
      "Name                    State             IPv4             Image\n"
      "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n",
-     "single"},
-    {construct_multiple_instances_list_reply(),
+     "table_single"},
+    {&table_formatter, construct_multiple_instances_list_reply(),
      "Name                    State             IPv4             Image\n"
      "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
      "bombastic               Stopped           --               Ubuntu 18.04 LTS\n",
-     "multiple"},
-    {construct_unsorted_list_reply(),
+     "table_multiple"},
+    {&table_formatter, construct_unsorted_list_reply(),
      "Name                    State             IPv4             Image\n"
      "trusty-190611-1529      Deleted           --               Ubuntu N/A\n"
      "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
      "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
      "trusty-190611-1542      Running           --               Ubuntu N/A\n",
-     "unsorted"}};
+     "table_unsorted"}};
 } // namespace
 
-TEST_P(TableListFormatter, properly_formats_output)
+TEST_P(ListFormatterSuite, properly_formats_output)
 {
-    mp::TableFormatter table_formatter;
     const auto param = GetParam();
-    auto output = table_formatter.format(std::get<0>(param));
+    const auto formatter = std::get<0>(param);
+    const auto reply = std::get<1>(param);
+    const auto expected_output = std::get<2>(param);
+    auto output = formatter->format(reply);
 
-    EXPECT_EQ(output, std::get<1>(param));
+    EXPECT_EQ(output, expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(OutputFormatter, TableListFormatter, ValuesIn(table_list_outputs), print_list_param_name);
+INSTANTIATE_TEST_SUITE_P(OutputFormatter, ListFormatterSuite, ValuesIn(table_list_outputs), print_list_param_name);
 
 #if GTEST_HAS_POSIX_RE
-struct TableListPetenvFormatter : public PetenvListFormatterSuite
+TEST_P(PetenvListFormatterSuite, pet_env_first_in_list_output)
 {
-};
-
-TEST_P(TableListPetenvFormatter, pet_env_first_in_list_output)
-{
-    const mp::TableFormatter formatter;
     const auto param = GetParam();
-    auto reply = std::get<0>(std::get<1>(param));
+    const auto formatter = std::get<0>(std::get<1>(param));
+    auto reply = std::get<1>(std::get<1>(param));
     const auto petenv_nname = std::get<0>(param);
 
     if (!petenv_nname.isEmpty())
@@ -404,13 +400,18 @@ TEST_P(TableListPetenvFormatter, pet_env_first_in_list_output)
 
     add_petenv_to_reply(reply);
 
-    const auto regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
-    const auto output = formatter.format(reply);
+    const auto output = formatter->format(reply);
+    std::string regex;
+
+    if (dynamic_cast<const mp::TableFormatter*>(formatter))
+        regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
+    else
+        FAIL() << "Not a supported formatter.";
 
     EXPECT_THAT(output, MatchesRegex(regex));
 }
 
-INSTANTIATE_TEST_SUITE_P(OutputFormatter, TableListPetenvFormatter,
+INSTANTIATE_TEST_SUITE_P(OutputFormatter, PetenvListFormatterSuite,
                          Combine(Values(QStringLiteral(), QStringLiteral("aaa"), QStringLiteral("zzz")),
                                  ValuesIn(table_list_outputs)),
                          print_petenv_list_param_name);
