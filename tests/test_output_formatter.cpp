@@ -244,7 +244,7 @@ auto construct_find_one_reply_no_os()
     return reply;
 }
 
-auto construct_find_multiple_replies()
+auto construct_find_multiple_reply()
 {
     auto reply = mp::FindReply();
 
@@ -276,7 +276,7 @@ auto construct_find_multiple_replies()
     return reply;
 }
 
-auto construct_find_multiple_replies_duplicate_image()
+auto construct_find_multiple_reply_duplicate_image()
 {
     auto reply = mp::FindReply();
 
@@ -318,10 +318,6 @@ protected:
 
 private:
     std::locale saved_locale;
-};
-
-class TableFormatter : public LocaleSettingTest
-{
 };
 
 class JsonFormatter : public LocaleSettingTest
@@ -370,7 +366,7 @@ const auto empty_info_reply = mp::InfoReply();
 const auto single_instance_info_reply = construct_single_instance_info_reply();
 const auto multiple_instances_info_reply = construct_multiple_instances_info_reply();
 
-const std::vector<FormatterParamType> formatter_outputs{
+const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
     {&table_formatter, &single_instance_list_reply,
      "Name                    State             IPv4             Image\n"
@@ -428,6 +424,33 @@ const std::vector<FormatterParamType> formatter_outputs{
      "table_info_multiple"}};
 } //namespace
 
+const auto empty_find_reply = mp::FindReply();
+const auto find_one_reply = construct_find_one_reply();
+const auto find_multiple_reply = construct_find_multiple_reply();
+const auto find_one_reply_no_os = construct_find_one_reply_no_os();
+const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_duplicate_image();
+
+const std::vector<FormatterParamType> find_formatter_outputs{
+    {&table_formatter, &empty_find_reply, "No images found.\n", "table_find_empty"},
+    {&table_formatter, &find_one_reply,
+     "Image                   Aliases           Version          Description\n"
+     "ubuntu                                    20190516         Ubuntu 18.04 LTS\n",
+     "table_find_one"},
+    {&table_formatter, &find_multiple_reply,
+     "Image                   Aliases           Version          Description\n"
+     "lts                                       20190516         Ubuntu 18.04 LTS\n"
+     "daily:19.10             eoan,devel        20190516         Ubuntu 19.10\n",
+     "table_find_multiple"},
+    {&table_formatter, &find_one_reply_no_os,
+     "Image                   Aliases           Version          Description\n"
+     "snapcraft:core18                          20190520         Snapcraft builder for core18\n",
+     "table_find_no_os"},
+    {&table_formatter, &find_multiple_reply_duplicate_image,
+     "Image                   Aliases           Version          Description\n"
+     "core18                                    20190520         Ubuntu Core 18\n"
+     "snapcraft:core18                          20190520         Snapcraft builder for core18\n",
+     "table_find_multiple_duplicate_image"}};
+
 TEST_P(FormatterSuite, properly_formats_output)
 {
     const auto param = GetParam();
@@ -441,13 +464,17 @@ TEST_P(FormatterSuite, properly_formats_output)
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::FindReply*>(reply))
+        output = formatter->format(*input);
     else
         FAIL() << "Not a supported reply type.";
 
     EXPECT_EQ(output, expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(OutputFormatter, FormatterSuite, ValuesIn(formatter_outputs), print_param_name);
+INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter, FormatterSuite,
+                         ValuesIn(orderable_list_info_formatter_outputs), print_param_name);
+INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_formatter_outputs), print_param_name);
 
 #if GTEST_HAS_POSIX_RE
 TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
@@ -492,77 +519,11 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     EXPECT_THAT(output, MatchesRegex(regex));
 }
 
-INSTANTIATE_TEST_SUITE_P(OutputFormatter, PetenvFormatterSuite,
+INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter, PetenvFormatterSuite,
                          Combine(Values(QStringLiteral(), QStringLiteral("aaa"), QStringLiteral("zzz")),
-                                 ValuesIn(formatter_outputs)),
+                                 ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
-
-TEST_F(TableFormatter, at_least_one_alias_in_find_output)
-{
-    mp::TableFormatter formatter;
-    const auto reply = construct_find_one_reply();
-
-    auto expected_output = "Image                   Aliases           Version          Description\n"
-                           "ubuntu                                    20190516         Ubuntu 18.04 LTS\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(TableFormatter, filtered_aliases_in_find_output)
-{
-    mp::TableFormatter formatter;
-    const auto reply = construct_find_multiple_replies();
-
-    auto expected_output = "Image                   Aliases           Version          Description\n"
-                           "lts                                       20190516         Ubuntu 18.04 LTS\n"
-                           "daily:19.10             eoan,devel        20190516         Ubuntu 19.10\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(TableFormatter, well_formatted_empty_os_find_output)
-{
-    mp::TableFormatter formatter;
-    const auto reply = construct_find_one_reply_no_os();
-
-    auto expected_output = "Image                   Aliases           Version          Description\n"
-                           "snapcraft:core18                          20190520         Snapcraft builder for core18\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(TableFormatter, duplicate_images_in_find_output)
-{
-    mp::TableFormatter formatter;
-    const auto reply = construct_find_multiple_replies_duplicate_image();
-
-    auto expected_output = "Image                   Aliases           Version          Description\n"
-                           "core18                                    20190520         Ubuntu Core 18\n"
-                           "snapcraft:core18                          20190520         Snapcraft builder for core18\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(TableFormatter, no_images_find_output)
-{
-    mp::FindReply find_reply;
-
-    auto expected_table_output = "No images found.\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(find_reply);
-
-    EXPECT_EQ(output, expected_table_output);
-}
 
 TEST_F(JsonFormatter, single_instance_list_output)
 {
@@ -810,7 +771,7 @@ TEST_F(JsonFormatter, at_least_one_alias_in_find_output)
 TEST_F(JsonFormatter, filtered_aliases_in_find_output)
 {
     mp::JsonFormatter formatter;
-    const auto reply = construct_find_multiple_replies();
+    const auto reply = construct_find_multiple_reply();
 
     auto expected_output = "{\n"
                            "    \"errors\": [\n"
@@ -862,7 +823,7 @@ TEST_F(JsonFormatter, no_images_find_output)
 TEST_F(JsonFormatter, duplicate_images_in_find_output)
 {
     mp::JsonFormatter formatter;
-    const auto reply = construct_find_multiple_replies_duplicate_image();
+    const auto reply = construct_find_multiple_reply_duplicate_image();
 
     auto expected_output = "{\n"
                            "    \"errors\": [\n"
@@ -1060,7 +1021,7 @@ TEST_F(CSVFormatter, at_least_one_alias_in_find_output)
 TEST_F(CSVFormatter, filtered_aliases_in_find_output)
 {
     mp::CSVFormatter formatter;
-    const auto reply = construct_find_multiple_replies();
+    const auto reply = construct_find_multiple_reply();
 
     auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
                            "lts,,,Ubuntu,18.04 LTS,20190516\n"
@@ -1074,7 +1035,7 @@ TEST_F(CSVFormatter, filtered_aliases_in_find_output)
 TEST_F(CSVFormatter, duplicate_images_in_find_output)
 {
     mp::CSVFormatter formatter;
-    const auto reply = construct_find_multiple_replies_duplicate_image();
+    const auto reply = construct_find_multiple_reply_duplicate_image();
 
     auto expected_output = "Image,Remote,Aliases,OS,Release,Version\n"
                            "core18,,,Ubuntu,Core 18,20190520\n"
@@ -1356,7 +1317,7 @@ TEST_F(YamlFormatter, at_least_one_alias_in_find_output)
 TEST_F(YamlFormatter, filtered_aliases_in_find_output)
 {
     mp::YamlFormatter formatter;
-    const auto reply = construct_find_multiple_replies();
+    const auto reply = construct_find_multiple_reply();
 
     auto expected_output = "errors:\n"
                            "  []\n"
@@ -1385,7 +1346,7 @@ TEST_F(YamlFormatter, filtered_aliases_in_find_output)
 TEST_F(YamlFormatter, duplicate_images_in_find_output)
 {
     mp::YamlFormatter formatter;
-    const auto reply = construct_find_multiple_replies_duplicate_image();
+    const auto reply = construct_find_multiple_reply_duplicate_image();
 
     auto expected_output = "errors:\n"
                            "  []\n"
