@@ -308,15 +308,17 @@ auto print_param_name(const testing::TestParamInfo<FormatterSuite::ParamType>& i
 }
 
 struct PetenvFormatterSuite : public LocaleSettingTest,
-                              public WithParamInterface<std::tuple<QString, FormatterParamType>>
+                              public WithParamInterface<std::tuple<QString, bool, FormatterParamType>>
 {
 };
 
 auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::ParamType>& info)
 {
-    const auto param_name = std::get<3>(std::get<1>(info.param));
+    const auto param_name = std::get<3>(std::get<2>(info.param));
     const auto petenv_name = std::get<0>(info.param);
-    return fmt::format("{}_{}", param_name, petenv_name.isEmpty() ? "default" : petenv_name);
+    const auto prepend = std::get<1>(info.param);
+    return fmt::format("{}_{}_{}", param_name, petenv_name.isEmpty() ? "default" : petenv_name,
+                       prepend ? "prepend" : "append");
 }
 
 const mp::TableFormatter table_formatter;
@@ -916,9 +918,10 @@ INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_form
 TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 {
     const auto param = GetParam();
-    const auto formatter = std::get<0>(std::get<1>(param));
-    auto reply = std::get<1>(std::get<1>(param));
+    const auto formatter = std::get<0>(std::get<2>(param));
+    auto reply = std::get<1>(std::get<2>(param));
     const auto petenv_nname = std::get<0>(param);
+    auto prepend = std::get<1>(param);
 
     if (!petenv_nname.isEmpty())
     {
@@ -929,8 +932,17 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
     {
-        auto reply_copy = mp::ListReply(*input);
-        add_petenv_to_reply(reply_copy);
+        mp::ListReply reply_copy;
+        if (prepend)
+        {
+            add_petenv_to_reply(reply_copy);
+            reply_copy.MergeFrom(*input);
+        }
+        else
+        {
+            reply_copy.CopyFrom(*input);
+            add_petenv_to_reply(reply_copy);
+        }
         output = formatter->format(reply_copy);
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
@@ -944,8 +956,17 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     }
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
     {
-        auto reply_copy = mp::InfoReply(*input);
-        add_petenv_to_reply(reply_copy);
+        mp::InfoReply reply_copy;
+        if (prepend)
+        {
+            add_petenv_to_reply(reply_copy);
+            reply_copy.MergeFrom(*input);
+        }
+        else
+        {
+            reply_copy.CopyFrom(*input);
+            add_petenv_to_reply(reply_copy);
+        }
         output = formatter->format(reply_copy);
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
@@ -964,7 +985,7 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 }
 
 INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter, PetenvFormatterSuite,
-                         Combine(Values(QStringLiteral(), QStringLiteral("aaa"), QStringLiteral("zzz")),
+                         Combine(Values(QStringLiteral(), QStringLiteral("aaa"), QStringLiteral("zzz")), Bool(),
                                  ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
