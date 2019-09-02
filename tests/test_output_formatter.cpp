@@ -73,18 +73,6 @@ auto construct_multiple_instances_list_reply()
     return list_reply;
 }
 
-auto construct_multiple_instances_including_petenv_list_reply()
-{
-    auto reply = construct_multiple_instances_list_reply();
-
-    auto instance = reply.add_instances();
-    instance->set_name(petenv_name());
-    instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
-    instance->set_current_release("Not Available");
-
-    return reply;
-}
-
 auto construct_unsorted_list_reply()
 {
     mp::ListReply list_reply;
@@ -190,19 +178,6 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
 
     return info_reply;
-}
-
-auto construct_multiple_instances_including_petenv_info_reply()
-{
-    auto reply = construct_multiple_instances_info_reply();
-
-    auto entry = reply.add_info();
-    entry->set_name(petenv_name());
-    entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
-    entry->set_image_release("18.10");
-    entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
-
-    return reply;
 }
 
 auto add_petenv_to_reply(mp::InfoReply& reply)
@@ -320,10 +295,6 @@ private:
     std::locale saved_locale;
 };
 
-class YamlFormatter : public LocaleSettingTest
-{
-};
-
 typedef std::tuple<const mp::Formatter*, const ::google::protobuf::Message*, std::string, std::string>
     FormatterParamType;
 
@@ -351,6 +322,7 @@ auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::
 const mp::TableFormatter table_formatter;
 const mp::JsonFormatter json_formatter;
 const mp::CSVFormatter csv_formatter;
+const mp::YamlFormatter yaml_formatter;
 const auto empty_list_reply = mp::ListReply();
 const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
@@ -453,7 +425,127 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
      "source;\nbombastic,Stopped,,,,"
      "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n",
-     "csv_info_multiple"}};
+     "csv_info_multiple"},
+    {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
+    {&yaml_formatter, &single_instance_list_reply,
+     "foo:\n"
+     "  - state: Running\n"
+     "    ipv4:\n"
+     "      - 10.168.32.2\n"
+     "    release: 16.04 LTS\n",
+     "yaml_list_single"},
+    {&yaml_formatter, &multiple_instances_list_reply,
+     "bogus-instance:\n"
+     "  - state: Running\n"
+     "    ipv4:\n"
+     "      - 10.21.124.56\n"
+     "    release: 16.04 LTS\n"
+     "bombastic:\n"
+     "  - state: Stopped\n"
+     "    ipv4:\n"
+     "      - \"\"\n"
+     "    release: 18.04 LTS\n",
+     "yaml_list_multiple"},
+    {&yaml_formatter, &unsorted_list_reply,
+     "trusty-190611-1529:\n"
+     "  - state: Deleted\n"
+     "    ipv4:\n"
+     "      - \"\"\n"
+     "    release: N/A\n"
+     "trusty-190611-1535:\n"
+     "  - state: Stopped\n"
+     "    ipv4:\n"
+     "      - \"\"\n"
+     "    release: N/A\n"
+     "trusty-190611-1539:\n"
+     "  - state: Suspended\n"
+     "    ipv4:\n"
+     "      - \"\"\n"
+     "    release: N/A\n"
+     "trusty-190611-1542:\n"
+     "  - state: Running\n"
+     "    ipv4:\n"
+     "      - \"\"\n"
+     "    release: N/A\n",
+     "yaml_list_unsorted"},
+    {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
+    {&yaml_formatter, &single_instance_info_reply,
+     "errors:\n"
+     "  - ~\n"
+     "foo:\n"
+     "  - state: Running\n"
+     "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
+     "    image_release: 16.04 LTS\n"
+     "    release: Ubuntu 16.04.3 LTS\n"
+     "    load:\n"
+     "      - 0.45\n"
+     "      - 0.51\n"
+     "      - 0.15\n"
+     "    disks:\n"
+     "      - sda1:\n"
+     "          used: 1288490188\n"
+     "          total: 5153960756\n"
+     "    memory:\n"
+     "      usage: 60817408\n"
+     "      total: 1503238554\n"
+     "    ipv4:\n"
+     "      - 10.168.32.2\n"
+     "    mounts:\n"
+     "      foo:\n"
+     "        uid_mappings:\n"
+     "          - 1000:1000\n"
+     "        gid_mappings:\n"
+     "          - 1000:1000\n"
+     "        source_path: /home/user/foo\n"
+     "      test_dir:\n"
+     "        uid_mappings:\n"
+     "          - 1000:1000\n"
+     "        gid_mappings:\n"
+     "          - 1000:1000\n"
+     "        source_path: /home/user/test_dir\n",
+     "yaml_info_single"},
+    {&yaml_formatter, &multiple_instances_info_reply,
+     "errors:\n"
+     "  - ~\n"
+     "bogus-instance:\n"
+     "  - state: Running\n"
+     "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
+     "    image_release: 16.04 LTS\n"
+     "    release: Ubuntu 16.04.3 LTS\n"
+     "    load:\n"
+     "      - 0.03\n"
+     "      - 0.1\n"
+     "      - 0.15\n"
+     "    disks:\n"
+     "      - sda1:\n"
+     "          used: 1932735284\n"
+     "          total: 6764573492\n"
+     "    memory:\n"
+     "      usage: 38797312\n"
+     "      total: 1610612736\n"
+     "    ipv4:\n"
+     "      - 10.21.124.56\n"
+     "    mounts:\n"
+     "      source:\n"
+     "        uid_mappings:\n"
+     "          - 1000:501\n"
+     "        gid_mappings:\n"
+     "          - 1000:501\n"
+     "        source_path: /home/user/source\n"
+     "bombastic:\n"
+     "  - state: Stopped\n"
+     "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
+     "    image_release: 18.04 LTS\n"
+     "    release: ~\n"
+     "    disks:\n"
+     "      - sda1:\n"
+     "          used: ~\n"
+     "          total: ~\n"
+     "    memory:\n"
+     "      usage: ~\n"
+     "      total: ~\n"
+     "    mounts: ~\n",
+     "yaml_info_multiple"}};
 
 const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
     {&json_formatter, &empty_list_reply,
@@ -733,7 +825,64 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "Image,Remote,Aliases,OS,Release,Version\n"
      "core18,,,Ubuntu,Core 18,20190520\n"
      "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520\n",
-     "csv_find_multiple_duplicate_image"}};
+     "csv_find_multiple_duplicate_image"},
+    {&yaml_formatter, &empty_find_reply,
+     "errors:\n"
+     "  []\n"
+     "images:\n"
+     "  {}\n",
+     "yaml_find_empty"},
+    {&yaml_formatter, &find_one_reply,
+     "errors:\n"
+     "  []\n"
+     "images:\n"
+     "  ubuntu:\n"
+     "    aliases:\n"
+     "      []\n"
+     "    os: Ubuntu\n"
+     "    release: 18.04 LTS\n"
+     "    version: 20190516\n"
+     "    remote: \"\"\n",
+     "yaml_find_one"},
+    {&yaml_formatter, &find_multiple_reply,
+     "errors:\n"
+     "  []\n"
+     "images:\n"
+     "  lts:\n"
+     "    aliases:\n"
+     "      []\n"
+     "    os: Ubuntu\n"
+     "    release: 18.04 LTS\n"
+     "    version: 20190516\n"
+     "    remote: \"\"\n"
+     "  daily:19.10:\n"
+     "    aliases:\n"
+     "      - eoan\n"
+     "      - devel\n"
+     "    os: Ubuntu\n"
+     "    release: 19.10\n"
+     "    version: 20190516\n"
+     "    remote: daily\n",
+     "yaml_find_multiple"},
+    {&yaml_formatter, &find_multiple_reply_duplicate_image,
+     "errors:\n"
+     "  []\n"
+     "images:\n"
+     "  core18:\n"
+     "    aliases:\n"
+     "      []\n"
+     "    os: Ubuntu\n"
+     "    release: Core 18\n"
+     "    version: 20190520\n"
+     "    remote: \"\"\n"
+     "  snapcraft:core18:\n"
+     "    aliases:\n"
+     "      []\n"
+     "    os: \"\"\n"
+     "    release: Snapcraft builder for core18\n"
+     "    version: 20190520\n"
+     "    remote: snapcraft\n",
+     "yaml_find_multiple_duplicate_image"}};
 } // namespace
 
 TEST_P(FormatterSuite, properly_formats_output)
@@ -788,6 +937,8 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
             regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
         else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
             regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
+        else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
+            regex = fmt::format("{}:.*", petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -801,6 +952,8 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
             regex = fmt::format("Name:[[:space:]]+{}.+", petenv_name());
         else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
             regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
+        else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
+            regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -815,331 +968,3 @@ INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter, PetenvFormatterSuite,
                                  ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
-
-TEST_F(YamlFormatter, single_instance_list_output)
-{
-    auto list_reply = construct_single_instance_list_reply();
-
-    auto expected_output = "foo:\n"
-                           "  - state: Running\n"
-                           "    ipv4:\n"
-                           "      - 10.168.32.2\n"
-                           "    release: 16.04 LTS\n";
-
-    mp::YamlFormatter formatter;
-    auto output = formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(YamlFormatter, multiple_instance_list_output)
-{
-    auto list_reply = construct_multiple_instances_list_reply();
-
-    auto expected_output = "bogus-instance:\n"
-                           "  - state: Running\n"
-                           "    ipv4:\n"
-                           "      - 10.21.124.56\n"
-                           "    release: 16.04 LTS\n"
-                           "bombastic:\n"
-                           "  - state: Stopped\n"
-                           "    ipv4:\n"
-                           "      - \"\"\n"
-                           "    release: 18.04 LTS\n";
-
-    mp::YamlFormatter formatter;
-    auto output = formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(YamlFormatter, multiple_instance_sorted_output)
-{
-    auto list_reply = construct_unsorted_list_reply();
-
-    auto expected_output = "trusty-190611-1529:\n"
-                           "  - state: Deleted\n"
-                           "    ipv4:\n"
-                           "      - \"\"\n"
-                           "    release: N/A\n"
-                           "trusty-190611-1535:\n"
-                           "  - state: Stopped\n"
-                           "    ipv4:\n"
-                           "      - \"\"\n"
-                           "    release: N/A\n"
-                           "trusty-190611-1539:\n"
-                           "  - state: Suspended\n"
-                           "    ipv4:\n"
-                           "      - \"\"\n"
-                           "    release: N/A\n"
-                           "trusty-190611-1542:\n"
-                           "  - state: Running\n"
-                           "    ipv4:\n"
-                           "      - \"\"\n"
-                           "    release: N/A\n";
-
-    mp::YamlFormatter formatter;
-    auto output = formatter.format(list_reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(YamlFormatter, pet_env_first_in_list_output)
-{
-    const mp::YamlFormatter formatter;
-    const auto reply = construct_multiple_instances_including_petenv_list_reply();
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, StartsWith(petenv_name()));
-}
-
-TEST_F(YamlFormatter, custom_pet_env_first_in_list_output)
-{
-    const mp::YamlFormatter formatter;
-
-    const auto custom = "toto";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
-
-    const auto reply = construct_multiple_instances_including_petenv_list_reply();
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, StartsWith(custom));
-}
-
-TEST_F(YamlFormatter, no_instances_list_output)
-{
-    mp::ListReply list_reply;
-
-    auto expected_output = "\n";
-
-    mp::YamlFormatter formatter;
-    auto output = formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(YamlFormatter, single_instance_info_output)
-{
-    auto info_reply = construct_single_instance_info_reply();
-
-    auto expected_output = "errors:\n"
-                           "  - ~\n"
-                           "foo:\n"
-                           "  - state: Running\n"
-                           "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-                           "    image_release: 16.04 LTS\n"
-                           "    release: Ubuntu 16.04.3 LTS\n"
-                           "    load:\n"
-                           "      - 0.45\n"
-                           "      - 0.51\n"
-                           "      - 0.15\n"
-                           "    disks:\n"
-                           "      - sda1:\n"
-                           "          used: 1288490188\n"
-                           "          total: 5153960756\n"
-                           "    memory:\n"
-                           "      usage: 60817408\n"
-                           "      total: 1503238554\n"
-                           "    ipv4:\n"
-                           "      - 10.168.32.2\n"
-                           "    mounts:\n"
-                           "      foo:\n"
-                           "        uid_mappings:\n"
-                           "          - 1000:1000\n"
-                           "        gid_mappings:\n"
-                           "          - 1000:1000\n"
-                           "        source_path: /home/user/foo\n"
-                           "      test_dir:\n"
-                           "        uid_mappings:\n"
-                           "          - 1000:1000\n"
-                           "        gid_mappings:\n"
-                           "          - 1000:1000\n"
-                           "        source_path: /home/user/test_dir\n";
-
-    mp::YamlFormatter formatter;
-    auto output = formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(YamlFormatter, multiple_instances_info_output)
-{
-    auto info_reply = construct_multiple_instances_info_reply();
-
-    auto expected_output = "errors:\n"
-                           "  - ~\n"
-                           "bogus-instance:\n"
-                           "  - state: Running\n"
-                           "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-                           "    image_release: 16.04 LTS\n"
-                           "    release: Ubuntu 16.04.3 LTS\n"
-                           "    load:\n"
-                           "      - 0.03\n"
-                           "      - 0.1\n"
-                           "      - 0.15\n"
-                           "    disks:\n"
-                           "      - sda1:\n"
-                           "          used: 1932735284\n"
-                           "          total: 6764573492\n"
-                           "    memory:\n"
-                           "      usage: 38797312\n"
-                           "      total: 1610612736\n"
-                           "    ipv4:\n"
-                           "      - 10.21.124.56\n"
-                           "    mounts:\n"
-                           "      source:\n"
-                           "        uid_mappings:\n"
-                           "          - 1000:501\n"
-                           "        gid_mappings:\n"
-                           "          - 1000:501\n"
-                           "        source_path: /home/user/source\n"
-                           "bombastic:\n"
-                           "  - state: Stopped\n"
-                           "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
-                           "    image_release: 18.04 LTS\n"
-                           "    release: ~\n"
-                           "    disks:\n"
-                           "      - sda1:\n"
-                           "          used: ~\n"
-                           "          total: ~\n"
-                           "    memory:\n"
-                           "      usage: ~\n"
-                           "      total: ~\n"
-                           "    mounts: ~\n";
-
-    mp::YamlFormatter formatter;
-    auto output = formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-#if GTEST_HAS_POSIX_RE
-TEST_F(YamlFormatter, pet_env_first_in_info_output)
-{
-    const mp::YamlFormatter formatter;
-    const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-
-TEST_F(YamlFormatter, custom_pet_env_first_in_info_output)
-{
-    const mp::YamlFormatter formatter;
-
-    const auto custom = "toto";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
-
-    const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", custom);
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-#endif
-
-TEST_F(YamlFormatter, no_instances_info_output)
-{
-    mp::InfoReply info_reply;
-
-    auto expected_output = "errors:\n  - ~\n";
-
-    mp::YamlFormatter formatter;
-    auto output = formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_output));
-}
-
-TEST_F(YamlFormatter, at_least_one_alias_in_find_output)
-{
-    mp::YamlFormatter formatter;
-    const auto reply = construct_find_one_reply();
-
-    auto expected_output = "errors:\n"
-                           "  []\n"
-                           "images:\n"
-                           "  ubuntu:\n"
-                           "    aliases:\n"
-                           "      []\n"
-                           "    os: Ubuntu\n"
-                           "    release: 18.04 LTS\n"
-                           "    version: 20190516\n"
-                           "    remote: \"\"\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(YamlFormatter, filtered_aliases_in_find_output)
-{
-    mp::YamlFormatter formatter;
-    const auto reply = construct_find_multiple_reply();
-
-    auto expected_output = "errors:\n"
-                           "  []\n"
-                           "images:\n"
-                           "  lts:\n"
-                           "    aliases:\n"
-                           "      []\n"
-                           "    os: Ubuntu\n"
-                           "    release: 18.04 LTS\n"
-                           "    version: 20190516\n"
-                           "    remote: \"\"\n"
-                           "  daily:19.10:\n"
-                           "    aliases:\n"
-                           "      - eoan\n"
-                           "      - devel\n"
-                           "    os: Ubuntu\n"
-                           "    release: 19.10\n"
-                           "    version: 20190516\n"
-                           "    remote: daily\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(YamlFormatter, duplicate_images_in_find_output)
-{
-    mp::YamlFormatter formatter;
-    const auto reply = construct_find_multiple_reply_duplicate_image();
-
-    auto expected_output = "errors:\n"
-                           "  []\n"
-                           "images:\n"
-                           "  core18:\n"
-                           "    aliases:\n"
-                           "      []\n"
-                           "    os: Ubuntu\n"
-                           "    release: Core 18\n"
-                           "    version: 20190520\n"
-                           "    remote: \"\"\n"
-                           "  snapcraft:core18:\n"
-                           "    aliases:\n"
-                           "      []\n"
-                           "    os: \"\"\n"
-                           "    release: Snapcraft builder for core18\n"
-                           "    version: 20190520\n"
-                           "    remote: snapcraft\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(YamlFormatter, no_images_find_output)
-{
-    mp::FindReply find_reply;
-
-    auto expected_output = "errors:\n"
-                           "  []\n"
-                           "images:\n"
-                           "  {}\n";
-
-    mp::YamlFormatter yaml_formatter;
-    auto output = yaml_formatter.format(find_reply);
-
-    EXPECT_EQ(output, expected_output);
-}
