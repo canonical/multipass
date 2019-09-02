@@ -320,10 +320,6 @@ private:
     std::locale saved_locale;
 };
 
-class JsonFormatter : public LocaleSettingTest
-{
-};
-
 class CSVFormatter : public LocaleSettingTest
 {
 };
@@ -357,6 +353,7 @@ auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::
 }
 
 const mp::TableFormatter table_formatter;
+const mp::JsonFormatter json_formatter;
 const auto empty_list_reply = mp::ListReply();
 const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
@@ -372,11 +369,13 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Name                    State             IPv4             Image\n"
      "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n",
      "table_list_single"},
+
     {&table_formatter, &multiple_instances_list_reply,
      "Name                    State             IPv4             Image\n"
      "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
      "bombastic               Stopped           --               Ubuntu 18.04 LTS\n",
      "table_list_multiple"},
+
     {&table_formatter, &unsorted_list_reply,
      "Name                    State             IPv4             Image\n"
      "trusty-190611-1529      Deleted           --               Ubuntu N/A\n"
@@ -424,6 +423,170 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "table_info_multiple"}};
 } //namespace
 
+const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
+    {&json_formatter, &empty_list_reply,
+     "{\n"
+     "    \"list\": [\n"
+     "    ]\n"
+     "}\n",
+     "json_list_empty"},
+    {&json_formatter, &single_instance_list_reply,
+     "{\n"
+     "    \"list\": [\n"
+     "        {\n"
+     "            \"ipv4\": [\n"
+     "                \"10.168.32.2\"\n"
+     "            ],\n"
+     "            \"name\": \"foo\",\n"
+     "            \"release\": \"16.04 LTS\",\n"
+     "            \"state\": \"Running\"\n"
+     "        }\n"
+     "    ]\n"
+     "}\n",
+     "json_list_single"},
+    {&json_formatter, &multiple_instances_list_reply,
+     "{\n"
+     "    \"list\": [\n"
+     "        {\n"
+     "            \"ipv4\": [\n"
+     "                \"10.21.124.56\"\n"
+     "            ],\n"
+     "            \"name\": \"bogus-instance\",\n"
+     "            \"release\": \"16.04 LTS\",\n"
+     "            \"state\": \"Running\"\n"
+     "        },\n"
+     "        {\n"
+     "            \"ipv4\": [\n"
+     "            ],\n"
+     "            \"name\": \"bombastic\",\n"
+     "            \"release\": \"18.04 LTS\",\n"
+     "            \"state\": \"Stopped\"\n"
+     "        }\n"
+     "    ]\n"
+     "}\n",
+     "json_list_multiple"},
+    {&json_formatter, &empty_info_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"info\": {\n"
+     "    }\n"
+     "}\n",
+     "json_info_empty"},
+    {&json_formatter, &single_instance_info_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"info\": {\n"
+     "        \"foo\": {\n"
+     "            \"disks\": {\n"
+     "                \"sda1\": {\n"
+     "                    \"total\": \"5153960756\",\n"
+     "                    \"used\": \"1288490188\"\n"
+     "                }\n"
+     "            },\n"
+     "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
+     "            \"image_release\": \"16.04 LTS\",\n"
+     "            \"ipv4\": [\n"
+     "                \"10.168.32.2\"\n"
+     "            ],\n"
+     "            \"load\": [\n"
+     "                0.45,\n"
+     "                0.51,\n"
+     "                0.15\n"
+     "            ],\n"
+     "            \"memory\": {\n"
+     "                \"total\": 1503238554,\n"
+     "                \"used\": 60817408\n"
+     "            },\n"
+     "            \"mounts\": {\n"
+     "                \"foo\": {\n"
+     "                    \"gid_mappings\": [\n"
+     "                        \"1000:1000\"\n"
+     "                    ],\n"
+     "                    \"source_path\": \"/home/user/foo\",\n"
+     "                    \"uid_mappings\": [\n"
+     "                        \"1000:1000\"\n"
+     "                    ]\n"
+     "                },\n"
+     "                \"test_dir\": {\n"
+     "                    \"gid_mappings\": [\n"
+     "                        \"1000:1000\"\n"
+     "                    ],\n"
+     "                    \"source_path\": \"/home/user/test_dir\",\n"
+     "                    \"uid_mappings\": [\n"
+     "                        \"1000:1000\"\n"
+     "                    ]\n"
+     "                }\n"
+     "            },\n"
+     "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
+     "            \"state\": \"Running\"\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_info_single"},
+    {&json_formatter, &multiple_instances_info_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"info\": {\n"
+     "        \"bogus-instance\": {\n"
+     "            \"disks\": {\n"
+     "                \"sda1\": {\n"
+     "                    \"total\": \"6764573492\",\n"
+     "                    \"used\": \"1932735284\"\n"
+     "                }\n"
+     "            },\n"
+     "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
+     "            \"image_release\": \"16.04 LTS\",\n"
+     "            \"ipv4\": [\n"
+     "                \"10.21.124.56\"\n"
+     "            ],\n"
+     "            \"load\": [\n"
+     "                0.03,\n"
+     "                0.1,\n"
+     "                0.15\n"
+     "            ],\n"
+     "            \"memory\": {\n"
+     "                \"total\": 1610612736,\n"
+     "                \"used\": 38797312\n"
+     "            },\n"
+     "            \"mounts\": {\n"
+     "                \"source\": {\n"
+     "                    \"gid_mappings\": [\n"
+     "                        \"1000:501\"\n"
+     "                    ],\n"
+     "                    \"source_path\": \"/home/user/source\",\n"
+     "                    \"uid_mappings\": [\n"
+     "                        \"1000:501\"\n"
+     "                    ]\n"
+     "                }\n"
+     "            },\n"
+     "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
+     "            \"state\": \"Running\"\n"
+     "        },\n"
+     "        \"bombastic\": {\n"
+     "            \"disks\": {\n"
+     "                \"sda1\": {\n"
+     "                }\n"
+     "            },\n"
+     "            \"image_hash\": \"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
+     "            \"image_release\": \"18.04 LTS\",\n"
+     "            \"ipv4\": [\n"
+     "            ],\n"
+     "            \"load\": [\n"
+     "            ],\n"
+     "            \"memory\": {\n"
+     "            },\n"
+     "            \"mounts\": {\n"
+     "            },\n"
+     "            \"release\": \"\",\n"
+     "            \"state\": \"Stopped\"\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_info_multiple"}};
+
 const auto empty_find_reply = mp::FindReply();
 const auto find_one_reply = construct_find_one_reply();
 const auto find_multiple_reply = construct_find_multiple_reply();
@@ -449,7 +612,81 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "Image                   Aliases           Version          Description\n"
      "core18                                    20190520         Ubuntu Core 18\n"
      "snapcraft:core18                          20190520         Snapcraft builder for core18\n",
-     "table_find_multiple_duplicate_image"}};
+     "table_find_multiple_duplicate_image"},
+    {&json_formatter, &empty_find_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"images\": {\n"
+     "    }\n"
+     "}\n",
+     "json_find_empty"},
+    {&json_formatter, &find_one_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"images\": {\n"
+     "        \"ubuntu\": {\n"
+     "            \"aliases\": [\n"
+     "            ],\n"
+     "            \"os\": \"Ubuntu\",\n"
+     "            \"release\": \"18.04 LTS\",\n"
+     "            \"remote\": \"\",\n"
+     "            \"version\": \"20190516\"\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_find_one"},
+    {&json_formatter, &find_multiple_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"images\": {\n"
+     "        \"daily:19.10\": {\n"
+     "            \"aliases\": [\n"
+     "                \"eoan\",\n"
+     "                \"devel\"\n"
+     "            ],\n"
+     "            \"os\": \"Ubuntu\",\n"
+     "            \"release\": \"19.10\",\n"
+     "            \"remote\": \"daily\",\n"
+     "            \"version\": \"20190516\"\n"
+     "        },\n"
+     "        \"lts\": {\n"
+     "            \"aliases\": [\n"
+     "            ],\n"
+     "            \"os\": \"Ubuntu\",\n"
+     "            \"release\": \"18.04 LTS\",\n"
+     "            \"remote\": \"\",\n"
+     "            \"version\": \"20190516\"\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_find_multiple"},
+    {&json_formatter, &find_multiple_reply_duplicate_image,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"images\": {\n"
+     "        \"core18\": {\n"
+     "            \"aliases\": [\n"
+     "            ],\n"
+     "            \"os\": \"Ubuntu\",\n"
+     "            \"release\": \"Core 18\",\n"
+     "            \"remote\": \"\",\n"
+     "            \"version\": \"20190520\"\n"
+     "        },\n"
+     "        \"snapcraft:core18\": {\n"
+     "            \"aliases\": [\n"
+     "            ],\n"
+     "            \"os\": \"\",\n"
+     "            \"release\": \"Snapcraft builder for core18\",\n"
+     "            \"remote\": \"snapcraft\",\n"
+     "            \"version\": \"20190520\"\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_find_multiple_duplicate_image"}};
 
 TEST_P(FormatterSuite, properly_formats_output)
 {
@@ -474,6 +711,8 @@ TEST_P(FormatterSuite, properly_formats_output)
 
 INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter, FormatterSuite,
                          ValuesIn(orderable_list_info_formatter_outputs), print_param_name);
+INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter, FormatterSuite,
+                         ValuesIn(non_orderable_list_info_formatter_outputs), print_param_name);
 INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_formatter_outputs), print_param_name);
 
 #if GTEST_HAS_POSIX_RE
@@ -524,334 +763,6 @@ INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter, PetenvFormatterSuite,
                                  ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
-
-TEST_F(JsonFormatter, single_instance_list_output)
-{
-    auto list_reply = construct_single_instance_list_reply();
-
-    auto expected_json_output = "{\n"
-                                "    \"list\": [\n"
-                                "        {\n"
-                                "            \"ipv4\": [\n"
-                                "                \"10.168.32.2\"\n"
-                                "            ],\n"
-                                "            \"name\": \"foo\",\n"
-                                "            \"release\": \"16.04 LTS\",\n"
-                                "            \"state\": \"Running\"\n"
-                                "        }\n"
-                                "    ]\n"
-                                "}\n";
-
-    mp::JsonFormatter json_formatter;
-    auto output = json_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_json_output));
-}
-
-TEST_F(JsonFormatter, multiple_instances_list_output)
-{
-    auto list_reply = construct_multiple_instances_list_reply();
-
-    auto expected_json_output = "{\n"
-                                "    \"list\": [\n"
-                                "        {\n"
-                                "            \"ipv4\": [\n"
-                                "                \"10.21.124.56\"\n"
-                                "            ],\n"
-                                "            \"name\": \"bogus-instance\",\n"
-                                "            \"release\": \"16.04 LTS\",\n"
-                                "            \"state\": \"Running\"\n"
-                                "        },\n"
-                                "        {\n"
-                                "            \"ipv4\": [\n"
-                                "            ],\n"
-                                "            \"name\": \"bombastic\",\n"
-                                "            \"release\": \"18.04 LTS\",\n"
-                                "            \"state\": \"Stopped\"\n"
-                                "        }\n"
-                                "    ]\n"
-                                "}\n";
-
-    mp::JsonFormatter json_formatter;
-    auto output = json_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_json_output));
-}
-
-TEST_F(JsonFormatter, no_instances_list_output)
-{
-    mp::ListReply list_reply;
-
-    auto expected_json_output = "{\n"
-                                "    \"list\": [\n"
-                                "    ]\n"
-                                "}\n";
-
-    mp::JsonFormatter json_formatter;
-    auto output = json_formatter.format(list_reply);
-
-    EXPECT_THAT(output, Eq(expected_json_output));
-}
-
-TEST_F(JsonFormatter, single_instance_info_output)
-{
-    auto info_reply = construct_single_instance_info_reply();
-
-    auto expected_json_output =
-        "{\n"
-        "    \"errors\": [\n"
-        "    ],\n"
-        "    \"info\": {\n"
-        "        \"foo\": {\n"
-        "            \"disks\": {\n"
-        "                \"sda1\": {\n"
-        "                    \"total\": \"5153960756\",\n"
-        "                    \"used\": \"1288490188\"\n"
-        "                }\n"
-        "            },\n"
-        "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-        "            \"image_release\": \"16.04 LTS\",\n"
-        "            \"ipv4\": [\n"
-        "                \"10.168.32.2\"\n"
-        "            ],\n"
-        "            \"load\": [\n"
-        "                0.45,\n"
-        "                0.51,\n"
-        "                0.15\n"
-        "            ],\n"
-        "            \"memory\": {\n"
-        "                \"total\": 1503238554,\n"
-        "                \"used\": 60817408\n"
-        "            },\n"
-        "            \"mounts\": {\n"
-        "                \"foo\": {\n"
-        "                    \"gid_mappings\": [\n"
-        "                        \"1000:1000\"\n"
-        "                    ],\n"
-        "                    \"source_path\": \"/home/user/foo\",\n"
-        "                    \"uid_mappings\": [\n"
-        "                        \"1000:1000\"\n"
-        "                    ]\n"
-        "                },\n"
-        "                \"test_dir\": {\n"
-        "                    \"gid_mappings\": [\n"
-        "                        \"1000:1000\"\n"
-        "                    ],\n"
-        "                    \"source_path\": \"/home/user/test_dir\",\n"
-        "                    \"uid_mappings\": [\n"
-        "                        \"1000:1000\"\n"
-        "                    ]\n"
-        "                }\n"
-        "            },\n"
-        "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
-        "            \"state\": \"Running\"\n"
-        "        }\n"
-        "    }\n"
-        "}\n";
-
-    mp::JsonFormatter json_formatter;
-    auto output = json_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_json_output));
-}
-
-TEST_F(JsonFormatter, multiple_instances_info_output)
-{
-    auto info_reply = construct_multiple_instances_info_reply();
-
-    auto expected_json_output =
-        "{\n"
-        "    \"errors\": [\n"
-        "    ],\n"
-        "    \"info\": {\n"
-        "        \"bogus-instance\": {\n"
-        "            \"disks\": {\n"
-        "                \"sda1\": {\n"
-        "                    \"total\": \"6764573492\",\n"
-        "                    \"used\": \"1932735284\"\n"
-        "                }\n"
-        "            },\n"
-        "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-        "            \"image_release\": \"16.04 LTS\",\n"
-        "            \"ipv4\": [\n"
-        "                \"10.21.124.56\"\n"
-        "            ],\n"
-        "            \"load\": [\n"
-        "                0.03,\n"
-        "                0.1,\n"
-        "                0.15\n"
-        "            ],\n"
-        "            \"memory\": {\n"
-        "                \"total\": 1610612736,\n"
-        "                \"used\": 38797312\n"
-        "            },\n"
-        "            \"mounts\": {\n"
-        "                \"source\": {\n"
-        "                    \"gid_mappings\": [\n"
-        "                        \"1000:501\"\n"
-        "                    ],\n"
-        "                    \"source_path\": \"/home/user/source\",\n"
-        "                    \"uid_mappings\": [\n"
-        "                        \"1000:501\"\n"
-        "                    ]\n"
-        "                }\n"
-        "            },\n"
-        "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
-        "            \"state\": \"Running\"\n"
-        "        },\n"
-        "        \"bombastic\": {\n"
-        "            \"disks\": {\n"
-        "                \"sda1\": {\n"
-        "                }\n"
-        "            },\n"
-        "            \"image_hash\": \"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
-        "            \"image_release\": \"18.04 LTS\",\n"
-        "            \"ipv4\": [\n"
-        "            ],\n"
-        "            \"load\": [\n"
-        "            ],\n"
-        "            \"memory\": {\n"
-        "            },\n"
-        "            \"mounts\": {\n"
-        "            },\n"
-        "            \"release\": \"\",\n"
-        "            \"state\": \"Stopped\"\n"
-        "        }\n"
-        "    }\n"
-        "}\n";
-
-    mp::JsonFormatter json_formatter;
-    auto output = json_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_json_output));
-}
-
-TEST_F(JsonFormatter, no_instances_info_output)
-{
-    mp::InfoReply info_reply;
-
-    auto expected_json_output = "{\n"
-                                "    \"errors\": [\n"
-                                "    ],\n"
-                                "    \"info\": {\n"
-                                "    }\n"
-                                "}\n";
-
-    mp::JsonFormatter json_formatter;
-    auto output = json_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_json_output));
-}
-
-TEST_F(JsonFormatter, at_least_one_alias_in_find_output)
-{
-    mp::JsonFormatter formatter;
-    const auto reply = construct_find_one_reply();
-
-    auto expected_output = "{\n"
-                           "    \"errors\": [\n"
-                           "    ],\n"
-                           "    \"images\": {\n"
-                           "        \"ubuntu\": {\n"
-                           "            \"aliases\": [\n"
-                           "            ],\n"
-                           "            \"os\": \"Ubuntu\",\n"
-                           "            \"release\": \"18.04 LTS\",\n"
-                           "            \"remote\": \"\",\n"
-                           "            \"version\": \"20190516\"\n"
-                           "        }\n"
-                           "    }\n"
-                           "}\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(JsonFormatter, filtered_aliases_in_find_output)
-{
-    mp::JsonFormatter formatter;
-    const auto reply = construct_find_multiple_reply();
-
-    auto expected_output = "{\n"
-                           "    \"errors\": [\n"
-                           "    ],\n"
-                           "    \"images\": {\n"
-                           "        \"daily:19.10\": {\n"
-                           "            \"aliases\": [\n"
-                           "                \"eoan\",\n"
-                           "                \"devel\"\n"
-                           "            ],\n"
-                           "            \"os\": \"Ubuntu\",\n"
-                           "            \"release\": \"19.10\",\n"
-                           "            \"remote\": \"daily\",\n"
-                           "            \"version\": \"20190516\"\n"
-                           "        },\n"
-                           "        \"lts\": {\n"
-                           "            \"aliases\": [\n"
-                           "            ],\n"
-                           "            \"os\": \"Ubuntu\",\n"
-                           "            \"release\": \"18.04 LTS\",\n"
-                           "            \"remote\": \"\",\n"
-                           "            \"version\": \"20190516\"\n"
-                           "        }\n"
-                           "    }\n"
-                           "}\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(JsonFormatter, no_images_find_output)
-{
-    mp::FindReply find_reply;
-
-    auto expected_output = "{\n"
-                           "    \"errors\": [\n"
-                           "    ],\n"
-                           "    \"images\": {\n"
-                           "    }\n"
-                           "}\n";
-
-    mp::JsonFormatter json_formatter;
-    auto output = json_formatter.format(find_reply);
-
-    EXPECT_EQ(output, expected_output);
-}
-
-TEST_F(JsonFormatter, duplicate_images_in_find_output)
-{
-    mp::JsonFormatter formatter;
-    const auto reply = construct_find_multiple_reply_duplicate_image();
-
-    auto expected_output = "{\n"
-                           "    \"errors\": [\n"
-                           "    ],\n"
-                           "    \"images\": {\n"
-                           "        \"core18\": {\n"
-                           "            \"aliases\": [\n"
-                           "            ],\n"
-                           "            \"os\": \"Ubuntu\",\n"
-                           "            \"release\": \"Core 18\",\n"
-                           "            \"remote\": \"\",\n"
-                           "            \"version\": \"20190520\"\n"
-                           "        },\n"
-                           "        \"snapcraft:core18\": {\n"
-                           "            \"aliases\": [\n"
-                           "            ],\n"
-                           "            \"os\": \"\",\n"
-                           "            \"release\": \"Snapcraft builder for core18\",\n"
-                           "            \"remote\": \"snapcraft\",\n"
-                           "            \"version\": \"20190520\"\n"
-                           "        }\n"
-                           "    }\n"
-                           "}\n";
-
-    auto output = formatter.format(reply);
-
-    EXPECT_EQ(output, expected_output);
-}
 
 TEST_F(CSVFormatter, single_instance_list_output)
 {
