@@ -205,6 +205,15 @@ auto construct_multiple_instances_including_petenv_info_reply()
     return reply;
 }
 
+auto add_petenv_to_reply(mp::InfoReply& reply)
+{
+    auto entry = reply.add_info();
+    entry->set_name(petenv_name());
+    entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+    entry->set_image_release("18.10");
+    entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+}
+
 auto construct_find_one_reply()
 {
     auto reply = mp::FindReply();
@@ -357,6 +366,10 @@ const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
 const auto unsorted_list_reply = construct_unsorted_list_reply();
 
+const auto empty_info_reply = mp::InfoReply();
+const auto single_instance_info_reply = construct_single_instance_info_reply();
+const auto multiple_instances_info_reply = construct_multiple_instances_info_reply();
+
 const std::vector<FormatterParamType> formatter_outputs{
     {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
     {&table_formatter, &single_instance_list_reply,
@@ -374,8 +387,46 @@ const std::vector<FormatterParamType> formatter_outputs{
      "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
      "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
      "trusty-190611-1542      Running           --               Ubuntu N/A\n",
-     "table_list_unsorted"}};
-} // namespace
+     "table_list_unsorted"},
+    {&table_formatter, &empty_info_reply, "\n", "table_info_empty"},
+    {&table_formatter, &single_instance_info_reply,
+     "Name:           foo\n"
+     "State:          Running\n"
+     "IPv4:           10.168.32.2\n"
+     "Release:        Ubuntu 16.04.3 LTS\n"
+     "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
+     "Load:           0.45 0.51 0.15\n"
+     "Disk usage:     1.2G out of 4.8G\n"
+     "Memory usage:   58.0M out of 1.4G\n"
+     "Mounts:         /home/user/foo      => foo\n"
+     "                    UID map: 1000:1000\n"
+     "                    GID map: 1000:1000\n"
+     "                /home/user/test_dir => test_dir\n"
+     "                    UID map: 1000:1000\n"
+     "                    GID map: 1000:1000\n",
+     "table_info_single"},
+    {&table_formatter, &multiple_instances_info_reply,
+     "Name:           bogus-instance\n"
+     "State:          Running\n"
+     "IPv4:           10.21.124.56\n"
+     "Release:        Ubuntu 16.04.3 LTS\n"
+     "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
+     "Load:           0.03 0.10 0.15\n"
+     "Disk usage:     1.8G out of 6.3G\n"
+     "Memory usage:   37.0M out of 1.5G\n"
+     "Mounts:         /home/user/source => source\n"
+     "                    UID map: 1000:501\n"
+     "                    GID map: 1000:501\n\n"
+     "Name:           bombastic\n"
+     "State:          Stopped\n"
+     "IPv4:           --\n"
+     "Release:        --\n"
+     "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
+     "Load:           --\n"
+     "Disk usage:     --\n"
+     "Memory usage:   --\n",
+     "table_info_multiple"}};
+} //namespace
 
 TEST_P(FormatterSuite, properly_formats_output)
 {
@@ -387,6 +438,8 @@ TEST_P(FormatterSuite, properly_formats_output)
     std::string output;
 
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
+        output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
     else
         FAIL() << "Not a supported reply type.";
@@ -422,6 +475,17 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
         else
             FAIL() << "Not a supported formatter.";
     }
+    else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
+    {
+        auto reply_copy = mp::InfoReply(*input);
+        add_petenv_to_reply(reply_copy);
+        output = formatter->format(reply_copy);
+
+        if (dynamic_cast<const mp::TableFormatter*>(formatter))
+            regex = fmt::format("Name:[[:space:]]+{}.+", petenv_name());
+        else
+            FAIL() << "Not a supported formatter.";
+    }
     else
         FAIL() << "Not a supported reply type.";
 
@@ -433,98 +497,6 @@ INSTANTIATE_TEST_SUITE_P(OutputFormatter, PetenvFormatterSuite,
                                  ValuesIn(formatter_outputs)),
                          print_petenv_param_name);
 #endif
-
-TEST_F(TableFormatter, single_instance_info_output)
-{
-    auto info_reply = construct_single_instance_info_reply();
-
-    auto expected_table_output = "Name:           foo\n"
-                                 "State:          Running\n"
-                                 "IPv4:           10.168.32.2\n"
-                                 "Release:        Ubuntu 16.04.3 LTS\n"
-                                 "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
-                                 "Load:           0.45 0.51 0.15\n"
-                                 "Disk usage:     1.2G out of 4.8G\n"
-                                 "Memory usage:   58.0M out of 1.4G\n"
-                                 "Mounts:         /home/user/foo      => foo\n"
-                                 "                    UID map: 1000:1000\n"
-                                 "                    GID map: 1000:1000\n"
-                                 "                /home/user/test_dir => test_dir\n"
-                                 "                    UID map: 1000:1000\n"
-                                 "                    GID map: 1000:1000\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_table_output));
-}
-
-TEST_F(TableFormatter, multiple_instances_info_output)
-{
-    auto info_reply = construct_multiple_instances_info_reply();
-
-    auto expected_table_output = "Name:           bogus-instance\n"
-                                 "State:          Running\n"
-                                 "IPv4:           10.21.124.56\n"
-                                 "Release:        Ubuntu 16.04.3 LTS\n"
-                                 "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
-                                 "Load:           0.03 0.10 0.15\n"
-                                 "Disk usage:     1.8G out of 6.3G\n"
-                                 "Memory usage:   37.0M out of 1.5G\n"
-                                 "Mounts:         /home/user/source => source\n"
-                                 "                    UID map: 1000:501\n"
-                                 "                    GID map: 1000:501\n\n"
-                                 "Name:           bombastic\n"
-                                 "State:          Stopped\n"
-                                 "IPv4:           --\n"
-                                 "Release:        --\n"
-                                 "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
-                                 "Load:           --\n"
-                                 "Disk usage:     --\n"
-                                 "Memory usage:   --\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_table_output));
-}
-
-#if GTEST_HAS_POSIX_RE
-TEST_F(TableFormatter, pet_env_first_in_info_output)
-{
-    const mp::TableFormatter formatter;
-    const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("Name:[[:space:]]+{}.+", petenv_name());
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-TEST_F(TableFormatter, custom_pet_env_first_in_info_output)
-{
-    const mp::TableFormatter formatter;
-
-    const auto custom = "toto";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom));
-
-    const auto reply = construct_multiple_instances_including_petenv_info_reply();
-    const auto regex = fmt::format("Name:[[:space:]]+{}.+", custom);
-
-    const auto output = formatter.format(reply);
-    EXPECT_THAT(output, MatchesRegex(regex));
-}
-#endif
-
-TEST_F(TableFormatter, no_instances_info_output)
-{
-    mp::InfoReply info_reply;
-
-    auto expected_table_output = "\n";
-
-    mp::TableFormatter table_formatter;
-    auto output = table_formatter.format(info_reply);
-
-    EXPECT_THAT(output, Eq(expected_table_output));
-}
 
 TEST_F(TableFormatter, at_least_one_alias_in_find_output)
 {
