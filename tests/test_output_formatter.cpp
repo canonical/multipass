@@ -327,66 +327,77 @@ class YamlFormatter : public LocaleSettingTest
 {
 };
 
-typedef std::tuple<const mp::Formatter*, mp::ListReply, std::string, std::string> FormatterParamType;
+typedef std::tuple<const mp::Formatter*, const ::google::protobuf::Message*, std::string, std::string>
+    FormatterParamType;
 
-struct ListFormatterSuite : public LocaleSettingTest, public WithParamInterface<FormatterParamType>
+struct FormatterSuite : public LocaleSettingTest, public WithParamInterface<FormatterParamType>
 {
 };
 
-auto print_list_param_name(const testing::TestParamInfo<ListFormatterSuite::ParamType>& info)
+auto print_param_name(const testing::TestParamInfo<FormatterSuite::ParamType>& info)
 {
     return std::get<3>(info.param);
 }
 
-struct PetenvListFormatterSuite : public LocaleSettingTest,
-                                  public WithParamInterface<std::tuple<QString, FormatterParamType>>
+struct PetenvFormatterSuite : public LocaleSettingTest,
+                              public WithParamInterface<std::tuple<QString, FormatterParamType>>
 {
 };
 
-auto print_petenv_list_param_name(const testing::TestParamInfo<PetenvListFormatterSuite::ParamType>& info)
+auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::ParamType>& info)
 {
-    const auto list_name = std::get<3>(std::get<1>(info.param));
+    const auto param_name = std::get<3>(std::get<1>(info.param));
     const auto petenv_name = std::get<0>(info.param);
-    return fmt::format("{}_{}", list_name, petenv_name.isEmpty() ? "default" : petenv_name);
+    return fmt::format("{}_{}", param_name, petenv_name.isEmpty() ? "default" : petenv_name);
 }
 
 const mp::TableFormatter table_formatter;
+const auto empty_list_reply = mp::ListReply();
+const auto single_instance_list_reply = construct_single_instance_list_reply();
+const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
+const auto unsorted_list_reply = construct_unsorted_list_reply();
 
-const std::vector<FormatterParamType> table_list_outputs{
-    {&table_formatter, mp::ListReply(), "No instances found.\n", "table_empty"},
-    {&table_formatter, construct_single_instance_list_reply(),
+const std::vector<FormatterParamType> formatter_outputs{
+    {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
+    {&table_formatter, &single_instance_list_reply,
      "Name                    State             IPv4             Image\n"
      "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n",
-     "table_single"},
-    {&table_formatter, construct_multiple_instances_list_reply(),
+     "table_list_single"},
+    {&table_formatter, &multiple_instances_list_reply,
      "Name                    State             IPv4             Image\n"
      "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
      "bombastic               Stopped           --               Ubuntu 18.04 LTS\n",
-     "table_multiple"},
-    {&table_formatter, construct_unsorted_list_reply(),
+     "table_list_multiple"},
+    {&table_formatter, &unsorted_list_reply,
      "Name                    State             IPv4             Image\n"
      "trusty-190611-1529      Deleted           --               Ubuntu N/A\n"
      "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
      "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
      "trusty-190611-1542      Running           --               Ubuntu N/A\n",
-     "table_unsorted"}};
+     "table_list_unsorted"}};
 } // namespace
 
-TEST_P(ListFormatterSuite, properly_formats_output)
+TEST_P(FormatterSuite, properly_formats_output)
 {
     const auto param = GetParam();
     const auto formatter = std::get<0>(param);
     const auto reply = std::get<1>(param);
     const auto expected_output = std::get<2>(param);
-    auto output = formatter->format(reply);
+
+    std::string output;
+
+    if (auto input = dynamic_cast<const mp::ListReply*>(reply))
+        output = formatter->format(*input);
+    else
+        FAIL() << "Not a supported reply type.";
 
     EXPECT_EQ(output, expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(OutputFormatter, ListFormatterSuite, ValuesIn(table_list_outputs), print_list_param_name);
+INSTANTIATE_TEST_SUITE_P(OutputFormatter, FormatterSuite, ValuesIn(formatter_outputs), print_param_name);
 
 #if GTEST_HAS_POSIX_RE
-TEST_P(PetenvListFormatterSuite, pet_env_first_in_list_output)
+TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 {
     const auto param = GetParam();
     const auto formatter = std::get<0>(std::get<1>(param));
@@ -398,23 +409,29 @@ TEST_P(PetenvListFormatterSuite, pet_env_first_in_list_output)
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(petenv_nname));
     }
 
-    add_petenv_to_reply(reply);
+    std::string output, regex;
 
-    const auto output = formatter->format(reply);
-    std::string regex;
+    if (auto input = dynamic_cast<const mp::ListReply*>(reply))
+    {
+        auto reply_copy = mp::ListReply(*input);
+        add_petenv_to_reply(reply_copy);
+        output = formatter->format(reply_copy);
 
-    if (dynamic_cast<const mp::TableFormatter*>(formatter))
-        regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
+        if (dynamic_cast<const mp::TableFormatter*>(formatter))
+            regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
+        else
+            FAIL() << "Not a supported formatter.";
+    }
     else
-        FAIL() << "Not a supported formatter.";
+        FAIL() << "Not a supported reply type.";
 
     EXPECT_THAT(output, MatchesRegex(regex));
 }
 
-INSTANTIATE_TEST_SUITE_P(OutputFormatter, PetenvListFormatterSuite,
+INSTANTIATE_TEST_SUITE_P(OutputFormatter, PetenvFormatterSuite,
                          Combine(Values(QStringLiteral(), QStringLiteral("aaa"), QStringLiteral("zzz")),
-                                 ValuesIn(table_list_outputs)),
-                         print_petenv_list_param_name);
+                                 ValuesIn(formatter_outputs)),
+                         print_petenv_param_name);
 #endif
 
 TEST_F(TableFormatter, single_instance_info_output)
