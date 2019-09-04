@@ -37,6 +37,7 @@ namespace mu = multipass::utils;
 
 namespace
 {
+constexpr auto autostart_filename = "multipass.gui.conditional-autostart.desktop";
 constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
                                             "Name=Multipass\n"
                                             "Exec=multipass.gui --autostarting\n"
@@ -50,8 +51,7 @@ void mp::platform::preliminary_gui_autostart_setup()
 {
     static const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     static const auto autostart_dir = QDir{config_dir.filePath("autostart")};
-    static const auto fname = autostart_dir.filePath(QStringLiteral("multipass.gui.conditional-autostart.desktop"));
-    // TODO @ricab make base filename constant
+    static const auto fname = autostart_dir.filePath(autostart_filename);
 
     autostart_dir.mkpath(".");
     QFile f{fname};
