@@ -1,0 +1,6 @@
+#!/bin/bash -e
+
+rm -rf ${SNAP_COMMON}/cache
+rm -rf ${SNAP_COMMON}/apparmor.d
+rm ${SNAP_COMMON}/dnsmasq.pid
+rm ${SNAP_COMMON}/snap_config
