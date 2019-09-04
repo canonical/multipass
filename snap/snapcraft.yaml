@@ -47,13 +47,13 @@ apps:
         QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
         XDG_DATA_HOME: $SNAP_USER_DATA/data
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
-        XDG_CONFIG_HOME: $SNAP_USER_DATA/.config # TODO @ricab revisit this
+        XDG_CONFIG_HOME: $SNAP_USER_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
-    command: bin/multipass
+    command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
   gui:
     environment: *client-environment
-    command: bin/multipass.gui
+    command: bin/launch-multipass-gui
     autostart: multipass.gui.conditional-autostart.desktop
 
 parts:
