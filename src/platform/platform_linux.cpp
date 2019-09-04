@@ -49,7 +49,7 @@ constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
                                             "Type=Application\n"
                                             "Terminal=false\n"
                                             "Categories=Utility;\n";
-}
+} // namespace
 
 void mp::platform::preliminary_gui_autostart_setup()
 {
@@ -59,13 +59,10 @@ void mp::platform::preliminary_gui_autostart_setup()
 
     autostart_dir.mkpath(".");
     QFile f{fname};
-    if (!f.exists())                                        // assuming correct contents otherwise
-    {
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text))
-            f.write(autostart_desktop_contents);
-        else
-            throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", fname, strerror(errno), errno));
-    }
+    if (!f.exists()) // assuming correct contents otherwise
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Text) ||
+            f.write(autostart_desktop_contents) < qstrlen(autostart_desktop_contents))
+            throw std::runtime_error(fmt::format("failed to write file '{}': {}({})", fname, strerror(errno), errno));
 }
 
 std::string mp::platform::default_server_address()
