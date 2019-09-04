@@ -136,21 +136,34 @@ void check_hyperv_support()
     if (ps_output != "10")
         throw std::runtime_error("Multipass support for Hyper-V requires Windows 10");
 
-    // Check if HypervisorPresent is true- implies Hyper-V is running as this is "False"
-    // when another HyperVisor is running
-    power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << select_object << "HypervisorPresent",
-                    ps_output);
-    if (ps_output == "False")
-    {
-        check_host_hyperv_support(power_shell);
-        check_hyperv_feature_enabled(power_shell);
-    }
-
     // Check if it's a version less than 1803
     power_shell.run(QStringList() << get_reg_version_info << select_object << "ReleaseId", ps_output);
     if (ps_output.toInt() < 1803)
         throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
 
+    // Check if HypervisorPresent is true- implies either Hyper-V is running or running under a
+    //   different virtualized environment like VirtualBox or QEMU.
+    // If it's running under a different virtualized environment, we can't check if nesting is
+    //   available, so the user is on their own and we'll bubble up any failures at `launch`.
+    power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << select_object << "HypervisorPresent",
+                    ps_output);
+
+    // Implies Hyper-V is not running (or any hypervisor for that matter).
+    // Determine why it is not running.
+    if (ps_output == "False")
+    {
+        // First check if the CPU has the proper virtualization support.
+        // This is only accurate when "HypervisorPresent" returns false.
+        // This throws if the support is not found.
+        check_host_hyperv_support(power_shell);
+    }
+
+    // Check if the Hyper-V feature is enabled.
+    // Throws if the Hyper-V feature is not enabled.
+    check_hyperv_feature_enabled(power_shell);
+
+    // Check to make sure the service is running.
+    // Throws when it's not running.
     ensure_hyperv_service_is_running(power_shell);
 }
 } // namespace
