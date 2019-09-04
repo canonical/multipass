@@ -295,7 +295,8 @@ private:
     std::locale saved_locale;
 };
 
-typedef std::tuple<const mp::Formatter*, const ::google::protobuf::Message*, std::string, std::string>
+typedef std::tuple<const mp::Formatter*, const ::google::protobuf::Message*, std::string /* output */,
+                   std::string /* test name */>
     FormatterParamType;
 
 struct FormatterSuite : public LocaleSettingTest, public WithParamInterface<FormatterParamType>
@@ -985,7 +986,8 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 }
 
 INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter, PetenvFormatterSuite,
-                         Combine(Values(QStringLiteral(), QStringLiteral("aaa"), QStringLiteral("zzz")), Bool(),
-                                 ValuesIn(orderable_list_info_formatter_outputs)),
+                         Combine(Values(QStringLiteral(), QStringLiteral("aaa"),
+                                        QStringLiteral("zzz")) /* primary name */,
+                                 Bool() /* prepend or append */, ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
