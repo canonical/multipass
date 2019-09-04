@@ -45,6 +45,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
+#include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -102,6 +103,15 @@ int mp::Client::run(const QStringList& arguments)
 
     auto logger = std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel()));
     mpl::set_logger(logger);
+
+    try
+    {
+        mp::platform::preliminary_gui_autostart_setup();
+    }
+    catch (std::runtime_error& e)
+    {
+        mpl::log(logging::Level::warning, "client", e.what());
+    }
 
     return parser.chosenCommand()->run(&parser);
 }

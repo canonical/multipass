@@ -31,6 +31,10 @@
 
 #include <QStandardPaths>
 
+#include <cerrno>
+#include <cstring>
+#include <stdexcept>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
@@ -51,13 +55,17 @@ void mp::platform::preliminary_gui_autostart_setup()
 {
     static const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     static const auto autostart_dir = QDir{config_dir.filePath("autostart")};
-    static const auto fname = autostart_dir.filePath(autostart_filename);
+    static const auto fname = autostart_dir.filePath(autostart_filename); // TODO @ricab return to use in tests
 
     autostart_dir.mkpath(".");
     QFile f{fname};
     if (!f.exists())                                        // assuming correct contents otherwise
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) // TODO @ricab handle failure
+    {
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text))
             f.write(autostart_desktop_contents);
+        else
+            throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", fname, strerror(errno), errno));
+    }
 }
 
 std::string mp::platform::default_server_address()
