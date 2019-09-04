@@ -55,16 +55,17 @@ QString mp::platform::preliminary_gui_autostart_setup()
 {
     static const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     static const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
-    static const auto fname = autostart_dir.absoluteFilePath(autostart_filename);
+    static const auto filepath = autostart_dir.absoluteFilePath(autostart_filename);
 
     autostart_dir.mkpath(".");
-    QFile f{fname};
+    QFile f{filepath};
     if (!f.exists()) // assuming correct contents otherwise
         if (!f.open(QIODevice::WriteOnly | QIODevice::Text) ||
             f.write(autostart_desktop_contents) < qstrlen(autostart_desktop_contents))
-            throw std::runtime_error(fmt::format("failed to write file '{}': {}({})", fname, strerror(errno), errno));
+            throw std::runtime_error(
+                fmt::format("failed to write file '{}': {}({})", filepath, strerror(errno), errno));
 
-    return fname;
+    return filepath;
 }
 
 std::string mp::platform::default_server_address()
