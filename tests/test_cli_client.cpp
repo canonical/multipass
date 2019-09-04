@@ -1408,14 +1408,10 @@ TEST_F(Client, get_returns_acceptable_autostart_value_by_default)
     EXPECT_THAT(get_setting(mp::autostart_key), AnyOf("true", "false"));
 }
 
-TEST_F(Client, set_cmd_rejects_bad_autostart_value)
+TEST_F(Client, set_cmd_rejects_bad_autostart_values)
 {
     aux_set_cmd_rejects_bad_val(mp::autostart_key, "asdf");
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "True");
     aux_set_cmd_rejects_bad_val(mp::autostart_key, "trueasdf");
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "False");
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "0");
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "1");
     aux_set_cmd_rejects_bad_val(mp::autostart_key, "123");
     aux_set_cmd_rejects_bad_val(mp::autostart_key, "");
 }

@@ -24,6 +24,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+#include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <fstream>
@@ -109,6 +110,20 @@ void checked_set(QSettings& settings, const QString& key, const QString& val)
     check_status(settings, QStringLiteral("read/write"));
 }
 
+QString interpret_bool(QString val)
+{ // constrain accepted values to avoid QVariant::toBool interpreting non-empty strings (such as "nope") as true
+    static constexpr auto convert_to_true = std::array{"on", "yes", "1"};
+    static constexpr auto convert_to_false = std::array{"off", "no", "0"};
+    val = val.toLower();
+
+    if (std::find(cbegin(convert_to_true), cend(convert_to_true), val) != cend(convert_to_true))
+        return QStringLiteral("true");
+    else if (std::find(cbegin(convert_to_false), cend(convert_to_false), val) != cend(convert_to_false))
+        return QStringLiteral("false");
+    else
+        return val;
+}
+
 } // namespace
 
 mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
@@ -127,15 +142,7 @@ QString mp::Settings::get(const QString& key) const
 void mp::Settings::set(const QString& key, const QString& val)
 {
     get_default(key); // make sure the key is valid before setting
-    if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
-        throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
-    else if (key == driver_key && !mp::platform::is_backend_supported(val))
-        throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
-    else if (key == autostart_key && val != "true" && val != "false")
-        throw InvalidSettingsException(key, val, "Invalid flag, need \"true\" or \"false\"");
-        
-    auto settings = persistent_settings(key);
-    checked_set(settings, key, val);
+    set_aux(key, val);
 }
 
 const QString& mp::Settings::get_default(const QString& key) const
@@ -153,4 +160,17 @@ const QString& mp::Settings::get_default(const QString& key) const
 QString mp::Settings::get_daemon_settings_file_path() // temporary
 {
     return file_for(daemon_root);
+}
+
+void multipass::Settings::set_aux(const QString& key, QString val) // work with a copy of val
+{
+    if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
+        throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
+    else if (key == driver_key && !mp::platform::is_backend_supported(val))
+        throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
+    else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
+        throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
+
+    auto settings = persistent_settings(key);
+    checked_set(settings, key, val);
 }

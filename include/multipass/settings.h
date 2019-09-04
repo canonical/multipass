@@ -45,6 +45,8 @@ protected:
     const QString& get_default(const QString& key) const; // throws on unknown key
 
 private:
+    void set_aux(const QString& key, QString val);
+
     std::map<QString, QString> defaults;
 };
 } // namespace multipass
