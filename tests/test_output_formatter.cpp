@@ -890,10 +890,8 @@ const std::vector<FormatterParamType> find_formatter_outputs{
 
 TEST_P(FormatterSuite, properly_formats_output)
 {
-    const auto param = GetParam();
-    const auto formatter = std::get<0>(param);
-    const auto reply = std::get<1>(param);
-    const auto expected_output = std::get<2>(param);
+    const auto& [formatter, reply, expected_output, test_name] = GetParam();
+    Q_UNUSED(test_name); // gcc 7.4 can't do [[maybe_unused]] for structured bindings
 
     std::string output;
 
@@ -918,11 +916,10 @@ INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_form
 #if GTEST_HAS_POSIX_RE
 TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 {
-    const auto param = GetParam();
-    const auto formatter = std::get<0>(std::get<2>(param));
-    auto reply = std::get<1>(std::get<2>(param));
-    const auto petenv_nname = std::get<0>(param);
-    auto prepend = std::get<1>(param);
+    const auto& [petenv_nname, prepend, param] = GetParam();
+    const auto& [formatter, reply, expected_output, test_name] = param;
+    Q_UNUSED(expected_output);
+    Q_UNUSED(test_name); // gcc 7.4 can't do [[maybe_unused]] for structured bindings
 
     if (!petenv_nname.isEmpty())
     {
