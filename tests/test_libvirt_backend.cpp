@@ -336,6 +336,31 @@ TEST_F(LibVirtBackend, current_state_delayed_shutdown_domain_off)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
+TEST_F(LibVirtBackend, current_state_off_domain_starts_running)
+{
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_SHUTOFF;
+        return 0;
+    });
+    REPLACE(virDomainManagedSave, [](auto...) { return 0; });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+
+    REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_RUNNING;
+        return 0;
+    });
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::running));
+}
+
 TEST_F(LibVirtBackend, returns_version_string)
 {
     REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });

@@ -209,7 +209,12 @@ auto domain_state_for(const mp::VirtualMachine::State& current_instance_state, v
     if (virDomainHasManagedSaveImage(domain, 0) == 1)
         return mp::VirtualMachine::State::suspended;
 
-    if (domain_state == VIR_DOMAIN_SHUTOFF)
+    // Most of these libvirt domain states don't have a Multipass instance state
+    // analogue, so we'll treat them as "off".
+    const auto domain_off_states = {VIR_DOMAIN_BLOCKED, VIR_DOMAIN_PAUSED,  VIR_DOMAIN_SHUTDOWN,
+                                    VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_CRASHED, VIR_DOMAIN_PMSUSPENDED};
+
+    if (std::find(domain_off_states.begin(), domain_off_states.end(), domain_state) != domain_off_states.end())
         return mp::VirtualMachine::State::off;
 
     if (domain_state == VIR_DOMAIN_RUNNING && current_instance_state == mp::VirtualMachine::State::off)
@@ -395,7 +400,7 @@ void mp::LibVirtVirtualMachine::ensure_vm_is_running()
         state = State::off;
         state_wait.notify_all();
 
-        throw mp::StartException(vm_name, "Instance shut down while starting");
+        throw mp::StartException(vm_name, "Instance failed to start");
     }
 }
 
