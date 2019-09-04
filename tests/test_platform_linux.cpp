@@ -85,8 +85,6 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 {
     QDir tmp_dir = QDir::temp();
     QDir expected_dir{tmp_dir.filePath("autostart")};
-    QString expected_filename = "multipass.gui.conditional-autostart.desktop";
-    QString expected_filepath = expected_dir.filePath(expected_filename);
 
     auto cleanup = sg::make_scope_guard([&expected_dir, config_home_save = qgetenv("XDG_CONFIG_HOME")]() {
         expected_dir.removeRecursively();
@@ -96,9 +94,11 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
     expected_dir.removeRecursively();
     qputenv("XDG_CONFIG_HOME", tmp_dir.path().toLatin1());
 
-    mp::platform::preliminary_gui_autostart_setup();
+    auto filepath = mp::platform::preliminary_gui_autostart_setup();
+    EXPECT_THAT(filepath.toStdString(), AllOf(StartsWith(expected_dir.absolutePath().toStdString()),
+                                              HasSubstr("multipass"), HasSubstr("gui"), EndsWith(".desktop")));
 
-    QFile f{expected_filepath};
+    QFile f{filepath};
     ASSERT_TRUE(f.exists());
     ASSERT_TRUE(f.open(QIODevice::ReadOnly | QIODevice::Text));
 

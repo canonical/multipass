@@ -51,11 +51,11 @@ constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
                                             "Categories=Utility;\n";
 } // namespace
 
-void mp::platform::preliminary_gui_autostart_setup()
+QString mp::platform::preliminary_gui_autostart_setup()
 {
     static const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
-    static const auto autostart_dir = QDir{config_dir.filePath("autostart")};
-    static const auto fname = autostart_dir.filePath(autostart_filename); // TODO @ricab return to use in tests
+    static const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
+    static const auto fname = autostart_dir.absoluteFilePath(autostart_filename);
 
     autostart_dir.mkpath(".");
     QFile f{fname};
@@ -63,6 +63,8 @@ void mp::platform::preliminary_gui_autostart_setup()
         if (!f.open(QIODevice::WriteOnly | QIODevice::Text) ||
             f.write(autostart_desktop_contents) < qstrlen(autostart_desktop_contents))
             throw std::runtime_error(fmt::format("failed to write file '{}': {}({})", fname, strerror(errno), errno));
+
+    return fname;
 }
 
 std::string mp::platform::default_server_address()
