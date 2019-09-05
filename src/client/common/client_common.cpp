@@ -22,8 +22,11 @@
 #include <QStandardPaths>
 
 #include <fmt/ostream.h>
+#include <multipass/logging/log.h>
+#include <multipass/logging/standard_logger.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -90,4 +93,26 @@ std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
     auto data_dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     auto client_cert_dir = mp::utils::make_dir(data_dir, "client-certificate");
     return std::make_unique<mp::SSLCertProvider>(client_cert_dir);
+}
+
+void mp::client::set_logger()
+{
+    set_logger(mpl::Level::info);
+}
+
+void mp::client::set_logger(mpl::Level verbosity)
+{
+    mpl::set_logger(std::make_shared<mpl::StandardLogger>(verbosity));
+}
+
+void mp::client::preliminary_setup()
+{
+    try
+    {
+        mp::platform::preliminary_gui_autostart_setup();
+    }
+    catch (std::runtime_error& e)
+    {
+        mpl::log(mpl::Level::warning, "client", e.what());
+    }
 }

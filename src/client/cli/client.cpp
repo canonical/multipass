@@ -44,31 +44,10 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/logging/log.h>
-#include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-
-namespace
-{
-void set_logger(const mp::ArgParser& parser)
-{
-    mpl::set_logger(std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel())));
-}
-
-void preliminary_setup()
-{
-    try
-    {
-        mp::platform::preliminary_gui_autostart_setup();
-    }
-    catch (std::runtime_error& e)
-    {
-        mpl::log(mpl::Level::warning, "client", e.what());
-    }
-}
-} // namespace
 
 mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
@@ -117,8 +96,8 @@ int mp::Client::run(const QStringList& arguments)
 
     ParseCode parse_status = parser.parse();
 
-    set_logger(parser);  // we need logging for...
-    preliminary_setup(); // ... something we want to do even if the command was wrong
+    mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
+    mp::client::preliminary_setup(); // ... something we want to do even if the command was wrong
 
     if (parse_status != ParseCode::Ok)
     {

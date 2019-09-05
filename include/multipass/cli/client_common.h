@@ -31,6 +31,11 @@
 
 namespace multipass
 {
+namespace logging
+{
+enum class Level : int; // Fwd decl
+}
+
 namespace cmd
 {
 multipass::ReturnCode standard_failure_handler_for(const std::string& command, std::ostream& cerr,
@@ -45,6 +50,9 @@ std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, R
                                             CertProvider& cert_provider);
 std::string get_server_address();
 std::unique_ptr<SSLCertProvider> get_cert_provider();
+void set_logger();
+void set_logger(multipass::logging::Level verbosity); // full param qualification makes sure msvc is happy
+void preliminary_setup();
 }
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_COMMON_H
