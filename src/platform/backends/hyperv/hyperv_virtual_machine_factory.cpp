@@ -148,9 +148,10 @@ void check_hyperv_support()
     power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << select_object << "HypervisorPresent",
                     ps_output);
 
+    QString hypervisor_present{ps_output};
     // Implies Hyper-V is not running (or any hypervisor for that matter).
     // Determine why it is not running.
-    if (ps_output == "False")
+    if (hypervisor_present == "False")
     {
         // First check if the CPU has the proper virtualization support.
         // This is only accurate when "HypervisorPresent" returns false.
@@ -165,6 +166,14 @@ void check_hyperv_support()
     // Check to make sure the service is running.
     // Throws when it's not running.
     ensure_hyperv_service_is_running(power_shell);
+
+    // Lastly, if we make it this far, check hypervisor_present again.
+    // If it's false, then we know Hyper-V is enabled, but the host has
+    // not rebooted yet.
+    if (hypervisor_present == "False")
+    {
+        throw std::runtime_error("The computer needs to be rebooted in order for Hyper-V to be fully available");
+    }
 }
 } // namespace
 
