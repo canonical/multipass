@@ -17,8 +17,8 @@
 
 #include "process_factory.h"
 #include "linux_process.h"
-#include "process_spec.h"
 #include <multipass/logging/log.h>
+#include <multipass/process_spec.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
