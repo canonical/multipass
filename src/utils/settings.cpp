@@ -37,7 +37,7 @@ namespace
 const auto file_extension = QStringLiteral("conf");
 const auto daemon_root = QStringLiteral("local");
 const auto petenv_name = QStringLiteral("primary");
-const auto autostart_default = QStringLiteral("true");
+const auto autostart_default = QStringLiteral("false");
 
 std::map<QString, QString> make_defaults()
 { // clang-format off
