@@ -44,15 +44,15 @@ auto set_title_string_for(const std::string& text, const mp::InstanceStatus& sta
                                                   : ""));
 }
 
+// actions are in the following order:
+// - Start action
+// - Open Shell action
+// - Stop action
 void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& state)
 {
     if (actions.isEmpty())
         return;
 
-    // actions are in the following order:
-    // - Start action
-    // - Open Shell action
-    // - Stop action
     enum ActionType
     {
         start,
