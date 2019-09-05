@@ -36,7 +36,6 @@ mp::ClientGui::ClientGui(ClientConfig& config)
 
 int mp::ClientGui::run(const QStringList& arguments)
 {
-    auto ret = 0;
     mp::client::set_logger();        // we need logging for...
     mp::client::preliminary_setup(); // ... something we want to do even if the command was wrong
 
@@ -51,10 +50,9 @@ int mp::ClientGui::run(const QStringList& arguments)
     parser.addHelpOption();
     parser.process(arguments);
 
+    auto ret = ReturnCode::Ok;
     if (!parser.isSet(autostart) || Settings::instance().get_as<bool>(autostart_key))
-    {
         ret = gui_cmd->run(&parser);
-    }
 
     return ret;
 }
