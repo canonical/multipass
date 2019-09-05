@@ -199,7 +199,7 @@ auto domain_by_definition_for(const mp::VirtualMachineDescription& desc, const s
     return domain;
 }
 
-auto domain_state_for(const mp::VirtualMachine::State& current_instance_state, virDomainPtr domain)
+auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMachine::State& current_instance_state)
 {
     auto domain_state{0};
 
@@ -266,7 +266,7 @@ void mp::LibVirtVirtualMachine::start()
     else
         domain = domain_by_name_for(vm_name, connection.get());
 
-    state = domain_state_for(state, domain.get());
+    state = refresh_instance_state_for_domain(domain.get(), state);
     if (state == State::running)
         return;
 
@@ -310,7 +310,7 @@ void mp::LibVirtVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
-    state = domain_state_for(state, domain.get());
+    state = refresh_instance_state_for_domain(domain.get(), state);
     if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
     {
         if (!domain || virDomainShutdown(domain.get()) == -1)
@@ -341,7 +341,7 @@ void mp::LibVirtVirtualMachine::shutdown()
 void mp::LibVirtVirtualMachine::suspend()
 {
     auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
-    state = domain_state_for(state, domain.get());
+    state = refresh_instance_state_for_domain(domain.get(), state);
     if (state == State::running || state == State::delayed_shutdown)
     {
         if (!domain || virDomainManagedSave(domain.get(), 0) < 0)
@@ -374,7 +374,7 @@ mp::VirtualMachine::State mp::LibVirtVirtualMachine::current_state()
         if (!domain)
             initialize_domain_info(connection.get());
 
-        state = domain_state_for(state, domain.get());
+        state = refresh_instance_state_for_domain(domain.get(), state);
     }
     catch (const std::exception&)
     {
@@ -472,7 +472,7 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
         mac_addr = instance_mac_addr_for(domain.get());
 
     ipv4(); // To set ip
-    state = domain_state_for(state, domain.get());
+    state = refresh_instance_state_for_domain(domain.get(), state);
 
     return domain;
 }
