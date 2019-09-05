@@ -53,9 +53,9 @@ constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
 
 QString mp::platform::preliminary_gui_autostart_setup()
 {
-    static const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
-    static const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
-    static const auto filepath = autostart_dir.absoluteFilePath(autostart_filename);
+    const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
+    const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
+    const auto filepath = autostart_dir.absoluteFilePath(autostart_filename);
 
     autostart_dir.mkpath(".");
     QFile f{filepath};
