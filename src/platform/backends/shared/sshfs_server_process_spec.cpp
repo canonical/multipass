@@ -18,8 +18,6 @@
 #include "sshfs_server_process_spec.h"
 
 #include <QCoreApplication>
-#include <QCryptographicHash>
-#include <QDir>
 
 namespace mp = multipass;
 

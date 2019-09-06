@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/sshfs_mount/sshfs_mounts.h>
 #include <multipass/sshfs_server_config.h>
+#include <multipass/virtual_machine.h>
 
 #include <QEventLoop>
 
