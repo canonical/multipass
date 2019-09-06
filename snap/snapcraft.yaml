@@ -54,7 +54,7 @@ apps:
   gui:
     environment: *client-environment
     command: bin/launch-multipass-gui
-    autostart: multipass.gui.conditional-autostart.desktop
+    autostart: multipass.gui.autostart.desktop
 
 parts:
   multipass:

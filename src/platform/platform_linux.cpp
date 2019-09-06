@@ -41,7 +41,7 @@ namespace mu = multipass::utils;
 
 namespace
 {
-constexpr auto autostart_filename = "multipass.gui.conditional-autostart.desktop";
+constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
                                             "Name=Multipass\n"
                                             "Exec=multipass.gui --autostarting\n"
