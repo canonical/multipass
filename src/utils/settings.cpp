@@ -113,8 +113,8 @@ void checked_set(QSettings& settings, const QString& key, const QString& val)
 
 QString interpret_bool(QString val)
 { // constrain accepted values to avoid QVariant::toBool interpreting non-empty strings (such as "nope") as true
-    static constexpr auto convert_to_true = std::array{"on", "yes", "1"};
-    static constexpr auto convert_to_false = std::array{"off", "no", "0"};
+    static constexpr auto convert_to_true = {"on", "yes", "1"};
+    static constexpr auto convert_to_false = {"off", "no", "0"};
     val = val.toLower();
 
     if (std::find(cbegin(convert_to_true), cend(convert_to_true), val) != cend(convert_to_true))
