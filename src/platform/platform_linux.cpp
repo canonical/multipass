@@ -45,7 +45,6 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
                                             "Name=Multipass\n"
                                             "Exec=multipass.gui --autostarting\n"
-                                            "Icon=${SNAP}/meta/gui/multipass-gui.svg\n"
                                             "Type=Application\n"
                                             "Terminal=false\n"
                                             "Categories=Utility;\n";
