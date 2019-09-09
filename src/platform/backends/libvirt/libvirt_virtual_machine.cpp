@@ -199,22 +199,38 @@ auto domain_by_definition_for(const mp::VirtualMachineDescription& desc, const s
     return domain;
 }
 
-auto domain_state_for(virDomainPtr domain)
+auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMachine::State& current_instance_state)
 {
-    auto state{0};
+    auto domain_state{0};
 
-    if (!domain)
+    if (!domain || virDomainGetState(domain, &domain_state, nullptr, 0) == -1 || domain_state == VIR_DOMAIN_NOSTATE)
         return mp::VirtualMachine::State::unknown;
 
     if (virDomainHasManagedSaveImage(domain, 0) == 1)
         return mp::VirtualMachine::State::suspended;
 
-    if (virDomainGetState(domain, &state, nullptr, 0) == -1)
-    {
-        return mp::VirtualMachine::State::unknown;
-    }
+    // Most of these libvirt domain states don't have a Multipass instance state
+    // analogue, so we'll treat them as "off".
+    const auto domain_off_states = {VIR_DOMAIN_BLOCKED, VIR_DOMAIN_PAUSED,  VIR_DOMAIN_SHUTDOWN,
+                                    VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_CRASHED, VIR_DOMAIN_PMSUSPENDED};
 
-    return (state == VIR_DOMAIN_RUNNING) ? mp::VirtualMachine::State::running : mp::VirtualMachine::State::off;
+    if (std::find(domain_off_states.begin(), domain_off_states.end(), domain_state) != domain_off_states.end())
+        return mp::VirtualMachine::State::off;
+
+    if (domain_state == VIR_DOMAIN_RUNNING && current_instance_state == mp::VirtualMachine::State::off)
+        return mp::VirtualMachine::State::running;
+
+    return current_instance_state;
+}
+
+bool domain_is_running(virDomainPtr domain)
+{
+    auto domain_state{0};
+
+    if (virDomainGetState(domain, &domain_state, nullptr, 0) == -1 || domain_state != VIR_DOMAIN_RUNNING)
+        return false;
+
+    return true;
 }
 } // namespace
 
@@ -242,9 +258,6 @@ mp::LibVirtVirtualMachine::~LibVirtVirtualMachine()
 
 void mp::LibVirtVirtualMachine::start()
 {
-    if (state == State::running)
-        return;
-
     auto connection = open_libvirt_connection();
     DomainUPtr domain{nullptr, nullptr};
 
@@ -252,6 +265,10 @@ void mp::LibVirtVirtualMachine::start()
         domain = initialize_domain_info(connection.get());
     else
         domain = domain_by_name_for(vm_name, connection.get());
+
+    state = refresh_instance_state_for_domain(domain.get(), state);
+    if (state == State::running)
+        return;
 
     if (state == State::suspended)
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
@@ -293,8 +310,8 @@ void mp::LibVirtVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
-    auto present_state = domain_state_for(domain.get());
-    if (present_state == State::running || present_state == State::delayed_shutdown || present_state == State::unknown)
+    state = refresh_instance_state_for_domain(domain.get(), state);
+    if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
     {
         if (!domain || virDomainShutdown(domain.get()) == -1)
         {
@@ -324,8 +341,8 @@ void mp::LibVirtVirtualMachine::shutdown()
 void mp::LibVirtVirtualMachine::suspend()
 {
     auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
-    auto libvirt_state = domain_state_for(domain.get());
-    if (libvirt_state == State::running || state == State::delayed_shutdown)
+    state = refresh_instance_state_for_domain(domain.get(), state);
+    if (state == State::running || state == State::delayed_shutdown)
     {
         if (!domain || virDomainManagedSave(domain.get(), 0) < 0)
         {
@@ -357,11 +374,7 @@ mp::VirtualMachine::State mp::LibVirtVirtualMachine::current_state()
         if (!domain)
             initialize_domain_info(connection.get());
 
-        auto libvirt_state = domain_state_for(domain.get());
-        if (libvirt_state == VirtualMachine::State::unknown || libvirt_state == VirtualMachine::State::off)
-        {
-            state = libvirt_state;
-        }
+        state = refresh_instance_state_for_domain(domain.get(), state);
     }
     catch (const std::exception&)
     {
@@ -380,17 +393,14 @@ void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 {
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
     auto domain = domain_by_name_for(vm_name, open_libvirt_connection().get());
-    auto present_state = domain_state_for(domain.get());
-    if (present_state != VirtualMachine::State::running)
+    if (!domain_is_running(domain.get()))
     {
         // Have to set 'off' here so there is an actual state change to compare to for
         // the cond var's predicate
         state = State::off;
         state_wait.notify_all();
-        if (present_state == VirtualMachine::State::unknown)
-            throw mp::StartException(vm_name, "Unable to determine state");
 
-        throw mp::StartException(vm_name, "Instance shutdown during start");
+        throw mp::StartException(vm_name, "Instance failed to start");
     }
 }
 
@@ -462,7 +472,7 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
         mac_addr = instance_mac_addr_for(domain.get());
 
     ipv4(); // To set ip
-    state = domain_state_for(domain.get());
+    state = refresh_instance_state_for_domain(domain.get(), state);
 
     return domain;
 }
