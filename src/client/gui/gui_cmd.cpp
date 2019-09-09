@@ -332,12 +332,18 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
         std::find_if(instances.cbegin(), instances.cend(),
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
 
+    // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
     {
-        petenv_start_action.setText("Start");
-        petenv_start_action.setEnabled(false);
-        petenv_shell_action.setEnabled(true);
-        petenv_stop_action.setEnabled(false);
+        if (current_petenv_name != petenv_name)
+        {
+            petenv_start_action.setText("Start");
+            petenv_start_action.setEnabled(false);
+            petenv_shell_action.setEnabled(true);
+            petenv_stop_action.setEnabled(false);
+
+            current_petenv_name = petenv_name;
+        }
 
         return;
     }
