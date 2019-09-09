@@ -487,6 +487,8 @@ bool mp::DefaultVMImageVault::has_record_for(const std::string& name)
 void mp::DefaultVMImageVault::prune_expired_images()
 {
     std::vector<decltype(prepared_image_records)::key_type> expired_keys;
+    std::lock_guard lock{fetch_mutex};
+
     for (const auto& record : prepared_image_records)
     {
         // Expire source images if they aren't persistent and haven't been accessed in 14 days
@@ -512,6 +514,8 @@ void mp::DefaultVMImageVault::prune_expired_images()
 void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                             const ProgressMonitor& monitor)
 {
+    mpl::log(mpl::Level::debug, category, "Checking for images to update...");
+
     std::vector<decltype(prepared_image_records)::key_type> keys_to_update;
     for (const auto& record : prepared_image_records)
     {

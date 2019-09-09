@@ -701,34 +701,36 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     // Fire timer every six hours to perform maintenance on source images such as
     // pruning expired images and updating to newly released images.
     connect(&source_images_maintenance_task, &QTimer::timeout, [this]() {
-        config->vault->prune_expired_images();
+        QtConcurrent::run([this] {
+            config->vault->prune_expired_images();
 
-        auto prepare_action = [this](const VMImage& source_image) -> VMImage {
-            return config->factory->prepare_source_image(source_image);
-        };
+            auto prepare_action = [this](const VMImage& source_image) -> VMImage {
+                return config->factory->prepare_source_image(source_image);
+            };
 
-        auto download_monitor = [](int download_type, int percentage) {
-            static int last_percentage_logged = -1;
-            if (percentage % 10 == 0)
-            {
-                // Note: The progress callback may be called repeatedly with the same percentage,
-                // so this logic is to only log it once
-                if (last_percentage_logged != percentage)
+            auto download_monitor = [](int download_type, int percentage) {
+                static int last_percentage_logged = -1;
+                if (percentage % 10 == 0)
                 {
-                    mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
-                    last_percentage_logged = percentage;
+                    // Note: The progress callback may be called repeatedly with the same percentage,
+                    // so this logic is to only log it once
+                    if (last_percentage_logged != percentage)
+                    {
+                        mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
+                        last_percentage_logged = percentage;
+                    }
                 }
+                return true;
+            };
+            try
+            {
+                config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
             }
-            return true;
-        };
-        try
-        {
-            config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
-        }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
+            }
+        });
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
