@@ -25,6 +25,7 @@ include_directories(platform
   backends)
 
 target_link_libraries(platform
+  shared
   update
   utils)
 

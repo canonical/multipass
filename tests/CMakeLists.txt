@@ -35,10 +35,8 @@ list(APPEND PLATFORM_TESTS
   test_qemuimg_process_spec.cpp
   test_dnsmasq_server.cpp
   test_dnsmasq_process_spec.cpp
-  test_linux_process.cpp
   test_libvirt_backend.cpp
-  test_snap_utils.cpp
-  test_with_mocked_bin_path.cpp)
+  test_snap_utils.cpp)
 
 add_executable(qemu-system-x86_64
         mock_qemu_system.cpp)
@@ -82,24 +80,6 @@ set_target_properties(qemu-img
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_executable(mock_process
-  mock_process.cpp)
-
-set_target_properties(mock_process
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
-add_executable(apparmor_parser
-  mock_apparmor_parser.cpp)
-
-set_target_properties(apparmor_parser
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
 list(APPEND CMOCK_TARGETS libvirt_backend_test)
 target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
@@ -121,6 +101,7 @@ add_executable(multipass_tests
   path.cpp
   temp_dir.cpp
   temp_file.cpp
+  test_basic_process.cpp
   test_cli_client.cpp
   test_client_cert_store.cpp
   test_cloud_init_iso.cpp
@@ -151,6 +132,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp
+  test_with_mocked_bin_path.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process.h # need to run MOC on this
 
   ${PLATFORM_TESTS}
@@ -205,3 +187,23 @@ add_test(NAME multipass_tests
 )
 
 file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+
+# Mock binaries for testing BasicProcess (cross-platform compatible)
+add_executable(mock_process
+  mock_process.cpp)
+
+set_target_properties(mock_process
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+add_executable(apparmor_parser
+  mock_apparmor_parser.cpp)
+
+set_target_properties(apparmor_parser
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
