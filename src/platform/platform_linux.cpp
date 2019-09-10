@@ -59,7 +59,7 @@ QString find_desktop_target()
 
 } // namespace
 
-QString mp::platform::preliminary_gui_autostart_setup()
+QString mp::platform::setup_gui_autostart_prerequisites()
 {
     const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};

@@ -109,7 +109,7 @@ void mp::client::preliminary_setup()
 {
     try
     {
-        mp::platform::preliminary_gui_autostart_setup();
+        mp::platform::setup_gui_autostart_prerequisites();
     }
     catch (std::runtime_error& e)
     {

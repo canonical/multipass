@@ -94,7 +94,7 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
     expected_dir.removeRecursively();
     qputenv("XDG_CONFIG_HOME", tmp_dir.path().toLatin1());
 
-    auto filepath = mp::platform::preliminary_gui_autostart_setup();
+    auto filepath = mp::platform::setup_gui_autostart_prerequisites();
     EXPECT_THAT(filepath.toStdString(), AllOf(StartsWith(expected_dir.absolutePath().toStdString()),
                                               HasSubstr("multipass"), HasSubstr("gui"), EndsWith(".desktop")));
 
