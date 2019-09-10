@@ -113,6 +113,6 @@ void mp::client::preliminary_setup()
     }
     catch (std::runtime_error& e)
     {
-        mpl::log(mpl::Level::error, "client", fmt::format("Error setting up autostart prerequisites: {}", e.what()));
+        mpl::log(mpl::Level::error, "client", fmt::format("Failed to setup autostart prerequisites: {}", e.what()));
     }
 }
