@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -48,10 +49,13 @@ QString find_desktop_target()
     const auto target_path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, target_subpath);
 
     if (target_path.isEmpty())
-        throw std::runtime_error(fmt::format(
-            "could not locate the autostart .desktop file '{}', tried:\n  {}", autostart_filename,
+    {
+        const auto detail =
             (QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation) << QStringLiteral("\b\b\b"))
-                .join(QString{"/%1\n  "}.arg(target_subpath))));
+                .join(QString{"/%1\n  "}.arg(target_subpath));
+        throw mp::AutostartSetupException{
+            fmt::format("could not locate the autostart .desktop file '{}'", autostart_filename), detail.toStdString()};
+    }
 
     return target_path;
 }

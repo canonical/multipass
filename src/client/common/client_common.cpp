@@ -22,6 +22,7 @@
 #include <QStandardPaths>
 
 #include <fmt/ostream.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 
@@ -109,10 +110,11 @@ void mp::client::preliminary_setup()
 {
     try
     {
-        mp::platform::setup_gui_autostart_prerequisites();
+        platform::setup_gui_autostart_prerequisites();
     }
-    catch (std::runtime_error& e)
+    catch (AutostartSetupException& e)
     {
         mpl::log(mpl::Level::error, "client", fmt::format("Failed to set up autostart prerequisites: {}", e.what()));
+        mpl::log(mpl::Level::debug, "client", fmt::format("Tried:\n  {}", e.get_detail()));
     }
 }
