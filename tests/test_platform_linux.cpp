@@ -130,6 +130,15 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
     EXPECT_EQ(actual_contents, autostart_contents);
 }
 
+TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
+{
+    const auto cleanup =
+        sg::make_scope_guard([data_dir_save = qgetenv("XDG_DATA_DIRS")]() { qputenv("XDG_DATA_DIRS", data_dir_save); });
+
+    qputenv("XDG_DATA_DIRS", "/dadgad/bad/dir");
+    EXPECT_THROW(mp::platform::setup_gui_autostart_prerequisites(), std::runtime_error);
+}
+
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
 {
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>();
