@@ -42,29 +42,39 @@ namespace mu = multipass::utils;
 namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
-constexpr auto autostart_desktop_contents = "[Desktop Entry]\n"
-                                            "Name=Multipass\n"
-                                            "Exec=multipass.gui --autostarting\n"
-                                            "Type=Application\n"
-                                            "Terminal=false\n"
-                                            "Categories=Utility;\n";
+
+QString find_desktop_target()
+{
+    const auto target_subpath = QDir{mp::client_name}.filePath(autostart_filename);
+    const auto target_path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, target_subpath);
+
+    if (target_path.isEmpty())
+        throw std::runtime_error(fmt::format(
+            "could not locate the autostart .desktop file '{}', tried:\n  {}", autostart_filename,
+            (QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation) << QStringLiteral("\b\b\b"))
+                .join(QString{"/%1\n  "}.arg(target_subpath))));
+
+    return target_path;
+}
+
 } // namespace
 
 QString mp::platform::preliminary_gui_autostart_setup()
 {
     const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
-    const auto filepath = autostart_dir.absoluteFilePath(autostart_filename);
+    const auto link_path = autostart_dir.absoluteFilePath(autostart_filename);
+    const auto target_path = find_desktop_target();
 
-    autostart_dir.mkpath(".");
-    QFile f{filepath};
-    if (!f.exists()) // assuming correct contents otherwise
-        if (!f.open(QIODevice::WriteOnly | QIODevice::Text) ||
-            f.write(autostart_desktop_contents) < qstrlen(autostart_desktop_contents))
-            throw std::runtime_error(
-                fmt::format("failed to write file '{}': {}({})", filepath, strerror(errno), errno));
+    if (!QFile(link_path).exists())
+    {
+        autostart_dir.mkpath(".");
+        if (!QFile{target_path}.link(link_path))
+            throw std::runtime_error(fmt::format("failed to link file '{}' to '{}': {}({})", link_path, target_path,
+                                                 strerror(errno), errno));
+    }
 
-    return filepath;
+    return link_path;
 }
 
 std::string mp::platform::default_server_address()
