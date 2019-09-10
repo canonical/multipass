@@ -95,6 +95,11 @@ add_library(premock INTERFACE)
 target_include_directories(premock INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/premock)
 
+# scope_guard header only library
+add_library(scope_guard INTERFACE)
+target_include_directories(scope_guard INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/scope_guard)
+
 # semver library
 # Set option to disable tests, avoid a Boost dependency that is test-only
 set(ENABLE_TESTS OFF CACHE BOOL "Disable tests in Semver lib" FORCE)

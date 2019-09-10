@@ -58,6 +58,16 @@ public:
     }
 };
 
+template <typename T>
+class UnsupportedSettingValueType : public SettingsException
+{
+public:
+    UnsupportedSettingValueType(const QString& key)
+        : SettingsException{fmt::format("Invalid value type for key {}. Type hint: {}", key, typeid(T).name())}
+    {
+    }
+};
+
 } // namespace multipass
 
 #endif // MULTIPASS_SETTINGS_EXCEPTIONS_H

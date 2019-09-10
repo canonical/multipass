@@ -15,19 +15,29 @@
  *
  */
 
-#ifndef MULTIPASS_CONSTANTS_H
-#define MULTIPASS_CONSTANTS_H
+#ifndef MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
+#define MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
+
+#include <stdexcept>
+#include <string>
 
 namespace multipass
 {
-constexpr auto client_name = "multipass";
-constexpr auto daemon_name = "multipassd";
-constexpr auto min_memory_size = "128M";
-constexpr auto min_disk_size = "512M";
-constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
-constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
-constexpr auto driver_key = "local.driver";            // idem
-constexpr auto autostart_key = "client.gui.autostart"; // idem
+class AutostartSetupException : public std::runtime_error
+{
+public:
+    AutostartSetupException(const std::string& why, const std::string& detail) : runtime_error(why), detail{detail}
+    {
+    }
+
+    const std::string& get_detail() const
+    {
+        return detail;
+    }
+
+private:
+    std::string detail;
+};
 } // namespace multipass
 
-#endif // MULTIPASS_CONSTANTS_H
+#endif // MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H

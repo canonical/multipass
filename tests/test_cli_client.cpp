@@ -127,7 +127,12 @@ struct Client : public Test
         EXPECT_THAT(send_command({"get", key}, out), Eq(mp::ReturnCode::Ok));
 
         auto ret = out.str();
-        ret.pop_back(); // drop newline
+        if (!ret.empty())
+        {
+            EXPECT_EQ(ret.back(), '\n');
+            ret.pop_back(); // drop newline
+        }
+
         return ret;
     }
 
@@ -184,6 +189,12 @@ struct Client : public Test
 
             return grpc::Status{};
         };
+    }
+
+    std::string negate_flag_string(const std::string& orig)
+    {
+        auto flag = QVariant{QString::fromStdString(orig)}.toBool();
+        return QVariant::fromValue(!flag).toString().toStdString();
     }
 
 #ifdef WIN32
@@ -1318,7 +1329,7 @@ TEST_P(TestBasicGetSetOptions, set_can_write_settings)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions, Values(mp::petenv_key, mp::driver_key));
+INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions, Values(mp::petenv_key, mp::driver_key, mp::autostart_key));
 
 TEST_F(Client, get_cmd_fails_with_no_arguments)
 {
@@ -1392,6 +1403,31 @@ TEST_F(Client, set_handles_persistent_settings_errors)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandFail));
 }
 
+TEST_F(Client, get_returns_acceptable_autostart_value_by_default)
+{
+    EXPECT_THAT(get_setting(mp::autostart_key), AnyOf("true", "false"));
+}
+
+TEST_F(Client, set_cmd_rejects_bad_autostart_values)
+{
+    aux_set_cmd_rejects_bad_val(mp::autostart_key, "asdf");
+    aux_set_cmd_rejects_bad_val(mp::autostart_key, "trueasdf");
+    aux_set_cmd_rejects_bad_val(mp::autostart_key, "123");
+    aux_set_cmd_rejects_bad_val(mp::autostart_key, "");
+}
+
+TEST_F(Client, get_and_set_can_read_and_write_autostart_flag)
+{
+    const auto orig = get_setting((mp::autostart_key));
+    const auto novel = negate_flag_string(orig);
+
+    EXPECT_CALL(mock_settings, set(Eq(mp::autostart_key), Eq(QString::fromStdString(novel))));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::autostart_key, novel)}), Eq(mp::ReturnCode::Ok));
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::autostart_key))).WillRepeatedly(Return(QString::fromStdString(novel)));
+    EXPECT_THAT(get_setting(mp::autostart_key), Eq(novel));
+}
+
 TEST_F(Client, get_and_set_can_read_and_write_primary_name)
 {
     const auto name = "xyz";
@@ -1401,8 +1437,6 @@ TEST_F(Client, get_and_set_can_read_and_write_primary_name)
 
     EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(name)));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, name)}), Eq(mp::ReturnCode::Ok));
-
-    // EXPECT_THAT(get_setting(mp::petenv_key), StrEq(name));
 
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(name));
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));

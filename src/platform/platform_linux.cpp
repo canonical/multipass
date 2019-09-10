@@ -16,10 +16,10 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
@@ -29,9 +29,60 @@
 #include "logger/journald_logger.h"
 #include <disabled_update_prompt.h>
 
+#include <QStandardPaths>
+
+#include <cerrno>
+#include <cstring>
+#include <stdexcept>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
+
+namespace
+{
+constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
+
+QString find_desktop_target()
+{
+    const auto target_subpath = QDir{mp::client_name}.filePath(autostart_filename);
+    const auto target_path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, target_subpath);
+
+    if (target_path.isEmpty())
+    {
+        QString detail{};
+        for (const auto& path : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation))
+            detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
+
+        throw mp::AutostartSetupException{
+            fmt::format("could not locate the autostart .desktop file '{}'", autostart_filename), detail.toStdString()};
+    }
+
+    return target_path;
+}
+
+} // namespace
+
+QString mp::platform::autostart_test_data()
+{
+    return autostart_filename;
+}
+
+void mp::platform::setup_gui_autostart_prerequisites()
+{
+    const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
+    const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
+    const auto link_path = autostart_dir.absoluteFilePath(autostart_filename);
+    const auto target_path = find_desktop_target();
+
+    if (!QFile(link_path).exists())
+    {
+        autostart_dir.mkpath(".");
+        if (!QFile{target_path}.link(link_path))
+            throw std::runtime_error(fmt::format("failed to link file '{}' to '{}': {}({})", link_path, target_path,
+                                                 strerror(errno), errno));
+    }
+}
 
 std::string mp::platform::default_server_address()
 {
