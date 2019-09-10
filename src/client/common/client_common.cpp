@@ -115,6 +115,6 @@ void mp::client::preliminary_setup()
     catch (AutostartSetupException& e)
     {
         mpl::log(mpl::Level::error, "client", fmt::format("Failed to set up autostart prerequisites: {}", e.what()));
-        mpl::log(mpl::Level::debug, "client", fmt::format("Tried:\n  {}", e.get_detail()));
+        mpl::log(mpl::Level::debug, "client", fmt::format("Tried: {}", e.get_detail()));
     }
 }

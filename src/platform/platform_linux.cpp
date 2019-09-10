@@ -50,9 +50,10 @@ QString find_desktop_target()
 
     if (target_path.isEmpty())
     {
-        const auto detail =
-            (QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation) << QStringLiteral("\b\b\b"))
-                .join(QString{"/%1\n  "}.arg(target_subpath));
+        QString detail{};
+        for (const auto& path : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation))
+            detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
+
         throw mp::AutostartSetupException{
             fmt::format("could not locate the autostart .desktop file '{}'", autostart_filename), detail.toStdString()};
     }
