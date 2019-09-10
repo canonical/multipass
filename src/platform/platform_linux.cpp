@@ -19,7 +19,6 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
