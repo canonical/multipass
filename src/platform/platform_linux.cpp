@@ -59,7 +59,12 @@ QString find_desktop_target()
 
 } // namespace
 
-QString mp::platform::setup_gui_autostart_prerequisites()
+QString mp::platform::autostart_test_data()
+{
+    return autostart_filename;
+}
+
+void mp::platform::setup_gui_autostart_prerequisites()
 {
     const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
@@ -73,8 +78,6 @@ QString mp::platform::setup_gui_autostart_prerequisites()
             throw std::runtime_error(fmt::format("failed to link file '{}' to '{}': {}({})", link_path, target_path,
                                                  strerror(errno), errno));
     }
-
-    return link_path;
 }
 
 std::string mp::platform::default_server_address()
