@@ -18,6 +18,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -40,7 +41,7 @@ int main(int argc, char* argv[])
     }
     out << endl;
     string s;
-    getline(cin, s, '\0');
+    std::getline(cin, s, '\0');
     out << s;
     return 0;
 }

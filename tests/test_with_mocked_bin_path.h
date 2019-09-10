@@ -19,6 +19,7 @@
 #define MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
 
 #include <gmock/gmock.h>
+#include "mock_environment_helpers.h"
 
 namespace multipass
 {
@@ -26,9 +27,10 @@ namespace test
 {
 struct TestWithMockedBinPath : public testing::Test
 {
-    void SetUp();
-    void TearDown();
-    std::string old_path;
+    void SetUp() override;
+    void TearDown() override;
+private:
+    std::unique_ptr<SetEnvScope> env;
 };
 } // namespace test
 } // namespace multipass
