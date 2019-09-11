@@ -20,6 +20,8 @@ project(Multipass)
 
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
 
+include(GNUInstallDirs)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
@@ -180,6 +182,7 @@ include_directories(
   include
   ${MULTIPASS_GENERATED_SOURCE_DIR})
 
+add_subdirectory(data)
 add_subdirectory(src)
 
 if(MULTIPASS_ENABLE_TESTS)

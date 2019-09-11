@@ -27,7 +27,11 @@
 #include <multipass/constants.h>
 #include <multipass/platform.h>
 
+#include <QDir>
+#include <QFile>
 #include <QString>
+
+#include <scope_guard.hpp>
 
 #include <gtest/gtest.h>
 
@@ -76,6 +80,64 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
+
+TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
+{
+    // Test setup
+    // Mock filesystem tree and environment
+
+    QDir test_dir{QDir::temp().filePath(QString{"%1_%2"}.arg(mp::client_name, "autostart_test"))};
+    ASSERT_FALSE(test_dir.exists());
+
+    const auto cleanup = sg::make_scope_guard(
+        [&test_dir, config_home_save = qgetenv("XDG_CONFIG_HOME"), data_dir_save = qgetenv("XDG_DATA_DIRS")]() {
+            test_dir.removeRecursively(); // succeeds if not there
+            qputenv("XDG_CONFIG_HOME", config_home_save);
+            qputenv("XDG_DATA_DIRS", data_dir_save);
+        });
+
+    QDir data_dir{test_dir.filePath("data")};
+    QDir config_dir{test_dir.filePath("config")};
+    qputenv("XDG_CONFIG_HOME", config_dir.path().toLatin1());
+    qputenv("XDG_DATA_DIRS", data_dir.path().toLatin1());
+
+    QDir mp_data_dir{data_dir.filePath(mp::client_name)};
+    QDir autostart_dir{config_dir.filePath("autostart")};
+    ASSERT_TRUE(mp_data_dir.mkpath("."));
+    ASSERT_TRUE(autostart_dir.mkpath("."));
+
+    const auto desktop_filename = mp::platform::autostart_test_data();
+    const auto desktop_filepath = mp_data_dir.filePath(desktop_filename);
+    const auto autostart_contents = "Exec=multipass.gui --autostarting\n";
+
+    {
+        QFile desktop_file{desktop_filepath};
+        ASSERT_TRUE(desktop_file.open(QIODevice::WriteOnly)); // create desktop file to link against
+        EXPECT_EQ(desktop_file.write(autostart_contents), qstrlen(autostart_contents));
+    }
+
+    // Test setup done
+    // Actual tests follows
+
+    mp::platform::setup_gui_autostart_prerequisites();
+    const auto expected_autostart_path = autostart_dir.filePath(desktop_filename);
+
+    QFile f{expected_autostart_path};
+    ASSERT_TRUE(f.exists());
+    ASSERT_TRUE(f.open(QIODevice::ReadOnly | QIODevice::Text));
+
+    auto actual_contents = QString{f.readAll()};
+    EXPECT_EQ(actual_contents, autostart_contents);
+}
+
+TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
+{
+    const auto cleanup =
+        sg::make_scope_guard([data_dir_save = qgetenv("XDG_DATA_DIRS")]() { qputenv("XDG_DATA_DIRS", data_dir_save); });
+
+    qputenv("XDG_DATA_DIRS", "/dadgad/bad/dir");
+    EXPECT_THROW(mp::platform::setup_gui_autostart_prerequisites(), std::runtime_error);
+}
 
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
 {

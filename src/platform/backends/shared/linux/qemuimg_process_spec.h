@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
 #define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
 
-#include "process_spec.h"
+#include <multipass/process_spec.h>
 
 namespace multipass
 {

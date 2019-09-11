@@ -72,9 +72,8 @@ private:
     void initiate_menu_layout();
     void initiate_about_menu_layout();
     ListReply retrieve_all_instances();
-    void set_menu_actions_for(const std::string& instance_name, const InstanceStatus& state);
+    void create_menu_actions_for(const std::string& instance_name, const InstanceStatus& state);
     void handle_petenv_instance(const google::protobuf::RepeatedPtrField<ListVMInstance>&);
-    void set_petenv_actions_for(const InstanceStatus& state);
     void start_instance_for(const std::string& instance_name);
     void stop_instance_for(const std::string& instance_name);
     void suspend_instance_for(const std::string& instance_name);

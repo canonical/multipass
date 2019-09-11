@@ -19,8 +19,9 @@
 #include "argparser.h"
 
 #include <multipass/cli/client_common.h>
-#include <multipass/logging/log.h>
-#include <multipass/logging/standard_logger.h>
+#include <multipass/constants.h>
+#include <multipass/platform.h>
+#include <multipass/settings.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -35,10 +36,23 @@ mp::ClientGui::ClientGui(ClientConfig& config)
 
 int mp::ClientGui::run(const QStringList& arguments)
 {
+    mp::client::set_logger();        // we need logging for...
+    mp::client::preliminary_setup(); // ... something we want to do even if the command was wrong
+
     ArgParser parser;
 
-    auto logger = std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel()));
-    mpl::set_logger(logger);
+    QCommandLineOption autostart{"autostarting",
+                                 "Exit right away, not actually creating a GUI, unless configured to autostart. "
+                                 "Pass this option when auto-starting to honor the autostart setting."};
+    autostart.setFlags(QCommandLineOption::HiddenFromHelp);
 
-    return gui_cmd->run(&parser);
+    parser.addOption(autostart);
+    parser.addHelpOption();
+    parser.process(arguments);
+
+    auto ret = ReturnCode::Ok;
+    if (!parser.isSet(autostart) || Settings::instance().get_as<bool>(autostart_key))
+        ret = gui_cmd->run(&parser);
+
+    return ret;
 }

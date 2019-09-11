@@ -202,6 +202,7 @@ target_link_libraries(multipass_tests
   utils
   # 3rd-party
   premock
+  scope_guard
   yaml
   ${CMOCK_TARGETS}
 )
