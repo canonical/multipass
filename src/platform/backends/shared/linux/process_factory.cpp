@@ -75,6 +75,7 @@ mp::optional<mp::AppArmor> create_apparmor()
 mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass& pass)
     : Singleton<ProcessFactory>::Singleton{pass}, apparmor{create_apparmor()}
 {
+    qRegisterMetaType<multipass::ProcessState>();
 }
 
 // This is the default ProcessFactory that creates a Process with no security mechanisms enabled
