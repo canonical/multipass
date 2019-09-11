@@ -17,6 +17,7 @@
 
 #include "test_with_mocked_bin_path.h"
 #include "path.h"
+#include <QDir>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -24,13 +25,8 @@ using namespace testing;
 
 void mpt::TestWithMockedBinPath::SetUp()
 {
-#ifdef WIN32
-    auto separator = ";";
-#else
-    auto separator = ":";
-#endif
-
-    QByteArray new_path = QByteArray::fromStdString(mpt::mock_bin_path()) + separator + qgetenv("PATH");
+    QByteArray new_path =
+        QByteArray::fromStdString(mpt::mock_bin_path()) + QDir::listSeparator().toLatin1() + qgetenv("PATH");
     env = std::make_unique<SetEnvScope>("PATH", new_path);
 }
 
