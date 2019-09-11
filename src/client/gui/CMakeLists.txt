@@ -24,7 +24,7 @@ add_executable(multipass_gui
 
 set_target_properties(multipass_gui
   PROPERTIES
-  OUTPUT_NAME multipass-gui)
+  OUTPUT_NAME multipass.gui)
 
 target_link_libraries(multipass_gui
   client_common

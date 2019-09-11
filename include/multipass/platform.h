@@ -34,6 +34,8 @@ namespace multipass
 {
 namespace platform
 {
+QString autostart_test_data(); // returns a platform-specific string, for testing purposes
+void setup_gui_autostart_prerequisites();
 std::string default_server_address();
 QString default_driver();
 QString daemon_config_home(); // temporary

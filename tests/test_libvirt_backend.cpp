@@ -19,6 +19,7 @@
 
 #include "fake_handle.h"
 #include "mock_libvirt.h"
+#include "mock_ssh.h"
 #include "mock_status_monitor.h"
 #include "stub_process_factory.h"
 #include "stub_ssh_key_provider.h"
@@ -40,6 +41,7 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
+using namespace std::chrono_literals;
 
 struct LibVirtBackend : public Test
 {
@@ -95,7 +97,10 @@ TEST_F(LibVirtBackend, creates_in_off_state)
 {
     REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
     REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
-    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_SHUTOFF;
+        return 0;
+    });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
@@ -109,7 +114,10 @@ TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
 {
     REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
     REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
-    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_SHUTOFF;
+        return 0;
+    });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 1; });
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
@@ -124,11 +132,23 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
     REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
     REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
     REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
-        *state = VIR_DOMAIN_NOSTATE;
+        *state = VIR_DOMAIN_SHUTOFF;
         return 0;
     });
     REPLACE(virDomainManagedSave, [](auto...) { return 0; });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
+
+    REPLACE(virNetworkGetDHCPLeases, [](auto, auto, auto leases, auto) {
+        virNetworkDHCPLeasePtr* leases_ret;
+        leases_ret = (virNetworkDHCPLeasePtr*)calloc(1, sizeof(virNetworkDHCPLeasePtr));
+        leases_ret[0] = (virNetworkDHCPLeasePtr)calloc(1, sizeof(virNetworkDHCPLease));
+        leases_ret[0]->ipaddr = strdup("0.0.0.0");
+        *leases = leases_ret;
+
+        return 1;
+    });
+
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
@@ -141,6 +161,9 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
         *state = VIR_DOMAIN_RUNNING;
         return 0;
     });
+
+    machine->wait_until_ssh_up(2min);
+
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
 
@@ -152,7 +175,10 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
 {
     REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
     REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
-    REPLACE(virDomainGetState, [](auto...) { return VIR_DOMAIN_NOSTATE; });
+    REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_SHUTOFF;
+        return 0;
+    });
     REPLACE(virDomainManagedSave, [](auto...) { return 0; });
     REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
 
@@ -308,6 +334,31 @@ TEST_F(LibVirtBackend, current_state_delayed_shutdown_domain_off)
     machine->state = mp::VirtualMachine::State::delayed_shutdown;
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
+
+TEST_F(LibVirtBackend, current_state_off_domain_starts_running)
+{
+    REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
+    REPLACE(virDomainLookupByName, [](auto...) { return mpt::fake_handle<virDomainPtr>(); });
+    REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_SHUTOFF;
+        return 0;
+    });
+    REPLACE(virDomainManagedSave, [](auto...) { return 0; });
+    REPLACE(virDomainHasManagedSaveImage, [](auto...) { return 0; });
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path()};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+
+    REPLACE(virDomainGetState, [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_RUNNING;
+        return 0;
+    });
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::running));
 }
 
 TEST_F(LibVirtBackend, returns_version_string)

@@ -44,7 +44,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/logging/log.h>
-#include <multipass/logging/standard_logger.h>
+#include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -95,13 +95,14 @@ int mp::Client::run(const QStringList& arguments)
     parser.setApplicationDescription(description);
 
     ParseCode parse_status = parser.parse();
+
+    mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
+    mp::client::preliminary_setup(); // ... something we want to do even if the command was wrong
+
     if (parse_status != ParseCode::Ok)
     {
         return parser.returnCodeFrom(parse_status);
     }
-
-    auto logger = std::make_shared<mpl::StandardLogger>(mpl::level_from(parser.verbosityLevel()));
-    mpl::set_logger(logger);
 
     return parser.chosenCommand()->run(&parser);
 }

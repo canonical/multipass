@@ -15,32 +15,29 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_FACTORY_H
-#define MULTIPASS_PROCESS_FACTORY_H
+#ifndef MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
+#define MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
 
-#include <memory>
-
-#include "apparmor.h"
-#include <multipass/optional.h>
-#include <multipass/process_spec.h>
-#include <multipass/singleton.h>
+#include <stdexcept>
+#include <string>
 
 namespace multipass
 {
-class Process;
-
-class ProcessFactory : public Singleton<ProcessFactory>
+class AutostartSetupException : public std::runtime_error
 {
 public:
-    ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
+    AutostartSetupException(const std::string& why, const std::string& detail) : runtime_error(why), detail{detail}
+    {
+    }
 
-    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
-    std::unique_ptr<Process> create_process(const QString& command, const QStringList& = QStringList()) const;
+    const std::string& get_detail() const
+    {
+        return detail;
+    }
 
 private:
-    const multipass::optional<AppArmor> apparmor;
+    std::string detail;
 };
-
 } // namespace multipass
 
-#endif // MULTIPASS_PROCESS_FACTORY_H
+#endif // MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H

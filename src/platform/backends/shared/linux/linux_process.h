@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_LINUXPROCESS_H
 #define MULTIPASS_LINUXPROCESS_H
 
-#include "process_spec.h"
-#include <memory>
 #include <multipass/process.h>
+#include <multipass/process_spec.h>
+
+#include <memory>
 
 namespace multipass
 {
