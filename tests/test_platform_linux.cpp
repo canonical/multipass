@@ -52,6 +52,7 @@ void setup_driver_settings(const QString& driver)
         expectation.WillRepeatedly(Return(driver));
 }
 
+// hold on to return until the change is to be discarded
 auto temporarily_change_env(const char* var_name, QByteArray var_value)
 {
     auto guard = sg::make_scope_guard([var_name, var_save = qgetenv(var_name)]() { qputenv(var_name, var_save); });
