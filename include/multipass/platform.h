@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace multipass
 {
@@ -55,6 +56,9 @@ int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 bool is_alias_supported(const std::string& alias, const std::string& remote);
 bool is_remote_supported(const std::string& remote);
 bool is_image_url_supported();
+
+void emit_signal_when_parent_dies(int sig);
+int wait_for_signals(const std::vector<int>& sigs);
 } // namespace platform
 } // namespace multipass
 #endif // MULTIPASS_PLATFORM_H

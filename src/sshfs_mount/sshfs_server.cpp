@@ -25,14 +25,15 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
+#include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 
 #include <signal.h>
-#include <sys/prctl.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpp = multipass::platform;
 using namespace std;
 
 namespace
@@ -66,7 +67,7 @@ unordered_map<int, int> deserialise_id_map(const char* in)
 
 int main(int argc, char* argv[])
 {
-    prctl(PR_SET_PDEATHSIG, SIGHUP); // ensure if parent dies, this process gets the SIGHUP signal
+    mpp::emit_signal_when_parent_dies(SIGHUP); // works on linux only
 
     if (argc != 8)
     {
@@ -99,15 +100,7 @@ int main(int argc, char* argv[])
         mp::SshfsMount sshfs_mount(move(session), source_path, target_path, gid_map, uid_map);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
-        sigset_t sigset;
-        sigemptyset(&sigset);
-        sigaddset(&sigset, SIGQUIT);
-        sigaddset(&sigset, SIGTERM);
-        sigaddset(&sigset, SIGHUP);
-        sigprocmask(SIG_BLOCK, &sigset, nullptr);
-        int sig = -1;
-
-        sigwait(&sigset, &sig);
+        int sig = mpp::wait_for_signals({SIGQUIT, SIGTERM, SIGHUP});
         cout << "Received signal " << sig << ". Stopping" << endl;
         sshfs_mount.stop();
         exit(0);

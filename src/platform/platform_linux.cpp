@@ -33,6 +33,9 @@
 
 #include <QStandardPaths>
 
+#include <signal.h>
+#include <sys/prctl.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
@@ -162,4 +165,9 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 bool mp::platform::is_image_url_supported()
 {
     return true;
+}
+
+void mp::platform::emit_signal_when_parent_dies(int sig)
+{
+    prctl(PR_SET_PDEATHSIG, sig); // ensures if parent dies, this process it sent this signal
 }
