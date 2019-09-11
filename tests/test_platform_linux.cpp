@@ -99,6 +99,7 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 
     QDir data_dir{test_dir.filePath("data")};
     QDir config_dir{test_dir.filePath("config")};
+    const auto guard_home = temporarily_change_env("HOME", "hide/me");
     const auto guard_xdg_config = temporarily_change_env("XDG_CONFIG_HOME", config_dir.path().toLatin1());
     const auto guard_xdg_data = temporarily_change_env("XDG_DATA_DIRS", data_dir.path().toLatin1());
 
