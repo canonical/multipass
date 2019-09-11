@@ -150,6 +150,8 @@ make
 
 ```
 sudo <multipass>/build/bin/multipassd &
+mkdir -p ~/.local/share/multipass/
+cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
 <multipass>/build/bin/multipass launch --name foo
 ```
 
