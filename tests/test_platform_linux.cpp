@@ -52,6 +52,14 @@ void setup_driver_settings(const QString& driver)
         expectation.WillRepeatedly(Return(driver));
 }
 
+auto temporarily_change_env(const char* var_name, QByteArray var_value)
+{
+    auto guard = sg::make_scope_guard([var_name, var_save = qgetenv(var_name)]() { qputenv(var_name, var_save); });
+    qputenv(var_name, var_value);
+
+    return guard;
+}
+
 struct PlatformLinux : public mpt::TestWithMockedBinPath
 {
     template <typename VMFactoryType>
@@ -132,10 +140,9 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 
 TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
 {
-    const auto cleanup =
-        sg::make_scope_guard([data_dir_save = qgetenv("XDG_DATA_DIRS")]() { qputenv("XDG_DATA_DIRS", data_dir_save); });
+    const auto guard_xdg = temporarily_change_env("XDG_DATA_DIRS", "/dadgad/bad/dir");
+    const auto guard_home = temporarily_change_env("HOME", "dadgbd/bad/too");
 
-    qputenv("XDG_DATA_DIRS", "/dadgad/bad/dir");
     EXPECT_THROW(mp::platform::setup_gui_autostart_prerequisites(), std::runtime_error);
 }
 
