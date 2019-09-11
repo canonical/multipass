@@ -73,6 +73,16 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 }
 } // namespace
 
+QString mp::platform::autostart_test_data()
+{
+    return "stub"; // TODO
+}
+
+void mp::platform::setup_gui_autostart_prerequisites()
+{
+    // TODO
+}
+
 std::string mp::platform::default_server_address()
 {
     return {"localhost:50051"};

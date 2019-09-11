@@ -35,6 +35,16 @@
 
 namespace mp = multipass;
 
+QString mp::platform::autostart_test_data()
+{
+    return "stub"; // TODO
+}
+
+void mp::platform::setup_gui_autostart_prerequisites()
+{
+    // TODO
+}
+
 std::string mp::platform::default_server_address()
 {
     return {"unix:/var/run/multipass_socket"};
