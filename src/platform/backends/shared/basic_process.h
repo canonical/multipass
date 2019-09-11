@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_LINUXPROCESS_H
-#define MULTIPASS_LINUXPROCESS_H
+#ifndef MULTIPASS_BASIC_PROCESS_H
+#define MULTIPASS_BASIC_PROCESS_H
 
 #include <multipass/process.h>
 #include <multipass/process_spec.h>
@@ -27,11 +27,14 @@ namespace multipass
 {
 class CustomQProcess;
 
-class LinuxProcess : public Process
+// BasicProcess implements the Process interface without using any platform-specifics.
+
+class BasicProcess : public Process
 {
     Q_OBJECT
 public:
-    virtual ~LinuxProcess();
+    BasicProcess(std::unique_ptr<ProcessSpec>&& spec);
+    virtual ~BasicProcess();
 
     QString program() const override;
     QStringList arguments() const override;
@@ -56,7 +59,6 @@ public:
     ProcessState execute(const int timeout = 30000) override;
 
 protected:
-    LinuxProcess(std::unique_ptr<ProcessSpec>&& spec);
     const std::unique_ptr<ProcessSpec> process_spec;
 
     void setup_child_process() override;
@@ -64,11 +66,11 @@ protected:
     class CustomQProcess : public QProcess
     {
     public:
-        CustomQProcess(LinuxProcess* p);
+        CustomQProcess(BasicProcess* p);
         void setupChildProcess() override;
 
     private:
-        LinuxProcess* p;
+        BasicProcess* p;
     };
 
     CustomQProcess process; // ease testing
@@ -79,4 +81,4 @@ private:
 
 } // namespace multipass
 
-#endif // MULTIPASS_LINUXPROCESS_H
+#endif // MULTIPASS_BASIC_PROCESS_H

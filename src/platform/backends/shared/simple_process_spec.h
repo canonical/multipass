@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,14 @@
  *
  */
 
-#ifndef MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
-#define MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+#ifndef SIMPLE_PROCESS_SPEC_H
+#define SIMPLE_PROCESS_SPEC_H
 
-#include <gmock/gmock.h>
-#include "mock_environment_helpers.h"
+#include <memory>
+#include <multipass/process_spec.h>
 
 namespace multipass
 {
-namespace test
-{
-struct TestWithMockedBinPath : public testing::Test
-{
-    void SetUp() override;
-    void TearDown() override;
-private:
-    std::unique_ptr<SetEnvScope> env;
-};
-} // namespace test
-} // namespace multipass
-
-#endif // MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+std::unique_ptr<ProcessSpec> simple_process_spec(const QString& cmd, const QStringList& args = QStringList());
+}
+#endif // SIMPLE_PROCESS_SPEC_H
