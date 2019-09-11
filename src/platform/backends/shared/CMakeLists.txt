@@ -17,7 +17,8 @@ set (CMAKE_AUTOMOC ON)
 add_library(shared STATIC
   basic_process.cpp
   process_spec.cpp
-  simple_process_spec.cpp)
+  simple_process_spec.cpp
+  sshfs_server_process_spec.cpp)
 
 target_link_libraries(shared
   Qt5::Core)

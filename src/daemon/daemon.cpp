@@ -613,9 +613,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
-      metrics_provider{"https://api.jujucharms.com/omnibus/v4/multipass/metrics",
-                       get_unique_id(config->data_directory), config->data_directory},
-      metrics_opt_in{get_metrics_opt_in(config->data_directory)}
+      metrics_provider{"https://api.jujucharms.com/omnibus/v4/multipass/metrics", get_unique_id(config->data_directory),
+                       config->data_directory},
+      metrics_opt_in{get_metrics_opt_in(config->data_directory)},
+      instance_mounts{*config->ssh_key_provider}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -1223,8 +1224,7 @@ try // clang-format on
             continue;
         }
 
-        auto entry = mount_threads.find(name);
-        if (entry != mount_threads.end() && entry->second.find(target_path) != entry->second.end())
+        if (instance_mounts.has_instance_already_mounted(name, target_path))
         {
             fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
@@ -1236,7 +1236,7 @@ try // clang-format on
         {
             try
             {
-                start_mount(vm.get(), name, request->source_path(), target_path, gid_map, uid_map);
+                instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1246,7 +1246,7 @@ try // clang-format on
                     mount_reply.set_mount_message("Enabling support for mounting");
                     server->Write(mount_reply);
                     install_sshfs(vm.get(), name);
-                    start_mount(vm.get(), name, request->source_path(), target_path, gid_map, uid_map);
+                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
@@ -1496,7 +1496,7 @@ try // clang-format on
         }
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-            this->stop_mounts_for_instance(vm.vm_name);
+            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
             vm.suspend();
             return grpc::Status::OK;
         });
@@ -1563,7 +1563,7 @@ try // clang-format on
             if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
 
-            stop_mounts_for_instance(name);
+            instance_mounts.stop_all_mounts_for_instance(name);
             instance->shutdown();
 
             if (purge)
@@ -1618,36 +1618,17 @@ try // clang-format on
         auto& mounts = vm_instance_specs[name].mounts;
         auto& vm = it->second;
 
-        auto stop_sshfs_for = [this, name](const std::string& target_path) {
-            auto sshfs_mount_it = mount_threads.find(name);
-            if (sshfs_mount_it == mount_threads.end())
-            {
-                return false;
-            }
-
-            auto& sshfs_mount_map = sshfs_mount_it->second;
-            auto map_entry = sshfs_mount_map.find(target_path);
-            if (map_entry != sshfs_mount_map.end())
-            {
-                auto& sshfs_mount = map_entry->second;
-                sshfs_mount->stop();
-                return true;
-            }
-            return false;
-        };
-
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
         {
-            stop_mounts_for_instance(name);
+            instance_mounts.stop_all_mounts_for_instance(name);
             mounts.clear();
         }
         else
         {
             if (vm->current_state() == mp::VirtualMachine::State::running)
             {
-                auto found = stop_sshfs_for(target_path);
-                if (!found)
+                if (!instance_mounts.stop_mount(name, target_path))
                 {
                     fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
                 }
@@ -1783,46 +1764,6 @@ void mp::Daemon::persist_instances()
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
-void mp::Daemon::start_mount(VirtualMachine* vm, const std::string& name, const std::string& source_path,
-                             const std::string& target_path, const std::unordered_map<int, int>& gid_map,
-                             const std::unordered_map<int, int>& uid_map)
-{
-    auto& key_provider = *config->ssh_key_provider;
-
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
-
-    mpl::log(mpl::Level::info, category, fmt::format("mounting {} => {} in {}", source_path, target_path, name));
-
-    auto sshfs_mount = std::make_unique<mp::SshfsMount>(std::move(session), source_path, target_path, gid_map, uid_map);
-    mount_threads[name][target_path] = std::move(sshfs_mount);
-
-    QObject::connect(mount_threads[name][target_path].get(), &SshfsMount::finished, this,
-                     [this, name, target_path]() {
-                         mount_threads[name].erase(target_path);
-                         mpl::log(mpl::Level::debug, category,
-                                  fmt::format("Mount stopped: '{}' in instance \"{}\"", target_path, name));
-                     },
-                     Qt::QueuedConnection);
-}
-
-void mp::Daemon::stop_mounts_for_instance(const std::string& instance)
-{
-    auto mounts_it = mount_threads.find(instance);
-    if (mounts_it == mount_threads.end() || mounts_it->second.empty())
-    {
-        mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
-    }
-    else
-    {
-        for (auto& sshfs_mount : mounts_it->second)
-        {
-            mpl::log(mpl::Level::debug, category,
-                     fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
-            sshfs_mount.second->stop();
-        }
-    }
-}
-
 void mp::Daemon::release_resources(const std::string& instance)
 {
     config->factory->remove_resources_for(instance);
@@ -1949,69 +1890,69 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             delete prepare_future_watcher;
         });
 
-    prepare_future_watcher->setFuture(QtConcurrent::run([this, server, request, name,
-                                                         checked_args]() -> VirtualMachineDescription {
-        try
-        {
-            auto query = query_from(request, name);
-
-            auto progress_monitor = [server](int progress_type, int percentage) {
-                CreateReply create_reply;
-                create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
-                create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
-                return server->Write(create_reply);
-            };
-
-            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
-                CreateReply reply;
-                reply.set_create_message("Preparing image for " + name);
-                server->Write(reply);
-
-                return config->factory->prepare_source_image(source_image);
-            };
-
-            auto fetch_type = config->factory->fetch_type();
-
-            CreateReply reply;
-            reply.set_create_message("Creating " + name);
-            server->Write(reply);
-            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
-
-            reply.set_create_message("Configuring " + name);
-            server->Write(reply);
-            auto vendor_data_cloud_init_config =
-                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                              config->factory->get_backend_version_string().toStdString());
-            auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
-            auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
-            config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
-
-            std::string mac_addr;
-            while (true)
+    prepare_future_watcher->setFuture(
+        QtConcurrent::run([this, server, request, name, checked_args]() -> VirtualMachineDescription {
+            try
             {
-                mac_addr = mp::utils::generate_mac_address();
+                auto query = query_from(request, name);
 
-                auto it = allocated_mac_addrs.find(mac_addr);
-                if (it == allocated_mac_addrs.end())
+                auto progress_monitor = [server](int progress_type, int percentage) {
+                    CreateReply create_reply;
+                    create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
+                    create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
+                    return server->Write(create_reply);
+                };
+
+                auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+                    CreateReply reply;
+                    reply.set_create_message("Preparing image for " + name);
+                    server->Write(reply);
+
+                    return config->factory->prepare_source_image(source_image);
+                };
+
+                auto fetch_type = config->factory->fetch_type();
+
+                CreateReply reply;
+                reply.set_create_message("Creating " + name);
+                server->Write(reply);
+                auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
+
+                reply.set_create_message("Configuring " + name);
+                server->Write(reply);
+                auto vendor_data_cloud_init_config =
+                    make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
+                                                  config->factory->get_backend_version_string().toStdString());
+                auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
+                auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
+                prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+                config->factory->configure(name, meta_data_cloud_init_config, vendor_data_cloud_init_config);
+
+                std::string mac_addr;
+                while (true)
                 {
-                    allocated_mac_addrs.insert(mac_addr);
-                    break;
+                    mac_addr = mp::utils::generate_mac_address();
+
+                    auto it = allocated_mac_addrs.find(mac_addr);
+                    if (it == allocated_mac_addrs.end())
+                    {
+                        allocated_mac_addrs.insert(mac_addr);
+                        break;
+                    }
                 }
+                auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr,
+                                               config->ssh_username, vm_image, meta_data_cloud_init_config,
+                                               user_data_cloud_init_config, vendor_data_cloud_init_config);
+
+                config->factory->prepare_instance_image(vm_image, vm_desc);
+
+                return vm_desc;
             }
-            auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr,
-                                           config->ssh_username, vm_image, meta_data_cloud_init_config,
-                                           user_data_cloud_init_config, vendor_data_cloud_init_config);
-
-            config->factory->prepare_instance_image(vm_image, vm_desc);
-
-            return vm_desc;
-        }
-        catch (const std::exception& e)
-        {
-            throw CreateImageException(e.what());
-        }
-    }));
+            catch (const std::exception& e)
+            {
+                throw CreateImageException(e.what());
+            }
+        }));
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
@@ -2051,7 +1992,8 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
         }
 
         auto& shutdown_timer = delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(
-            &vm, std::move(session), std::bind(&Daemon::stop_mounts_for_instance, this, std::placeholders::_1));
+            &vm, std::move(session),
+            std::bind(&SSHFSMounts::stop_all_mounts_for_instance, &instance_mounts, std::placeholders::_1));
 
         QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
                          [this, name]() { delayed_shutdown_instances.erase(name); });
@@ -2174,7 +2116,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
             try
             {
-                start_mount(vm.get(), name, source_path, target_path, gid_map, uid_map);
+                instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -2188,7 +2130,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                     }
 
                     install_sshfs(vm.get(), name);
-                    start_mount(vm.get(), name, source_path, target_path, gid_map, uid_map);
+                    instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
@@ -2201,6 +2143,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
                 invalid_mounts.push_back(target_path);
             }
+            persist_instances();
         }
     }
     catch (const std::exception& e)

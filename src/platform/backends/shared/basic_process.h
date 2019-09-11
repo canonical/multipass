@@ -42,6 +42,7 @@ public:
     QProcessEnvironment process_environment() const override;
 
     void start() override;
+    void terminate() override;
     void kill() override;
 
     bool wait_for_started(int msecs = 30000) override;

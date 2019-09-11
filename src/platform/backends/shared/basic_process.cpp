@@ -97,6 +97,11 @@ void mp::BasicProcess::start()
     process.start();
 }
 
+void mp::BasicProcess::terminate()
+{
+    process.terminate();
+}
+
 void mp::BasicProcess::kill()
 {
     process.kill();

@@ -22,16 +22,12 @@
 #include <thread>
 #include <unordered_map>
 
-#include <QObject>
-
 namespace multipass
 {
 class SSHSession;
 class SftpServer;
-class SshfsMount : public QObject
+class SshfsMount
 {
-    Q_OBJECT
-
 public:
     SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
                const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map);
@@ -40,14 +36,11 @@ public:
 
     void stop();
 
-signals:
-    void finished();
-
 private:
     // sftp_server Doesn't need to be a pointer, but done for now to avoid bringing sftp.h
     // which has an error with -pedantic.
     std::unique_ptr<SftpServer> sftp_server;
     std::thread sftp_thread;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SSHFS_MOUNT

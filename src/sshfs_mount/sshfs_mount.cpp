@@ -25,6 +25,8 @@
 
 #include <multipass/format.h>
 
+#include <iostream>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -95,13 +97,14 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
                                             default_gid);
 }
 
-} // namespace anonymous
+} // namespace
 
 mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
     : sftp_server{make_sftp_server(std::move(session), source, target, gid_map, uid_map)}, sftp_thread{[this] {
+          std::cout << "Connected" << std::endl;
           sftp_server->run();
-          emit finished();
+          std::cout << "Stopped" << std::endl;
       }}
 {
 }

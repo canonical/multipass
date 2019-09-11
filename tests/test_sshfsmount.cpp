@@ -200,7 +200,7 @@ TEST_F(SshfsMount, throws_when_unable_to_obtain_gid)
     EXPECT_TRUE(gid_invoked);
 }
 
-TEST_F(SshfsMount, emits_finished_when_sftpserver_exits)
+TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
 {
     bool invoked{false};
     std::string output{"1000"};
@@ -230,13 +230,14 @@ TEST_F(SshfsMount, emits_finished_when_sftpserver_exits)
     };
     REPLACE(sftp_get_client_message, get_client_msg);
 
-    auto sshfs_mount = make_sshfsmount();
-
-    mpt::Signal finished;
-    QObject::connect(&sshfs_mount, &mp::SshfsMount::finished, [&finished] { finished.signal(); });
+    bool stopped_ok = false;
+    std::thread mount([&] {
+        auto sshfs_mount = make_sshfsmount(); // blocks until it asked to quit
+        stopped_ok = true;
+    });
 
     client_message.signal();
 
-    auto finish_invoked = finished.wait_for(std::chrono::seconds(1));
-    EXPECT_TRUE(finish_invoked);
+    mount.join();
+    EXPECT_TRUE(stopped_ok);
 }

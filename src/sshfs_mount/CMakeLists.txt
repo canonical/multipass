@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -18,8 +18,11 @@ function(add_sshfs_mount_target TARGET_NAME)
 
   add_library(${TARGET_NAME} STATIC
     sshfs_mount.cpp
+    sshfs_mounts.cpp
     sftp_server.cpp
-    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount.h)
+    # Need to run MOC on these
+    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount.h
+    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mounts.h)
 
   target_link_libraries(${TARGET_NAME}
     fmt
@@ -34,3 +37,14 @@ add_sshfs_mount_target(sshfs_mount)
 if(MULTIPASS_ENABLE_TESTS)
   add_sshfs_mount_target(sshfs_mount_test)
 endif()
+
+add_executable(sshfs_server
+  sshfs_server.cpp)
+
+target_link_libraries(sshfs_server
+  logger
+  sshfs_mount)
+
+install(TARGETS sshfs_server
+  DESTINATION bin
+  COMPONENT multipassd)
