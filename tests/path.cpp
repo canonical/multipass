@@ -45,5 +45,5 @@ std::string mpt::mock_bin_path()
     const auto mocks_dir_exists = dir.cd("mocks");
     if (!mocks_dir_exists)
         throw std::runtime_error("could not find mock binaries directory");
-    return dir.path().toStdString();
+    return QDir::toNativeSeparators(dir.path()).toStdString();
 }

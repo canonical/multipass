@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,27 @@
  *
  */
 
-#ifndef MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
-#define MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+#ifndef MULTIPASS_SSHFS_SERVER_CONFIG_H
+#define MULTIPASS_SSHFS_SERVER_CONFIG_H
 
-#include <gmock/gmock.h>
-#include "mock_environment_helpers.h"
+#include <string>
+#include <unordered_map>
 
 namespace multipass
 {
-namespace test
-{
-struct TestWithMockedBinPath : public testing::Test
-{
-    void SetUp() override;
-    void TearDown() override;
-private:
-    std::unique_ptr<SetEnvScope> env;
-};
-} // namespace test
-} // namespace multipass
 
-#endif // MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+struct SSHFSServerConfig
+{
+    std::string host;
+    int port;
+    std::string username;
+    std::string instance;
+    std::string private_key;
+    std::string source_path;
+    std::string target_path;
+    std::unordered_map<int, int> gid_map;
+    std::unordered_map<int, int> uid_map;
+};
+
+} // namespace multipass
+#endif // MULTIPASS_SSHFS_SERVER_CONFIG_H

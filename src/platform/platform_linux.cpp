@@ -28,13 +28,14 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
+#include "shared/linux/process_factory.h"
+#include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
 #include <QStandardPaths>
 
-#include <cerrno>
-#include <cstring>
-#include <stdexcept>
+#include <signal.h>
+#include <sys/prctl.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -134,6 +135,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
+std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
+{
+    return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
+}
+
 mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 {
     return std::make_unique<DisabledUpdatePrompt>();
@@ -162,4 +168,9 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 bool mp::platform::is_image_url_supported()
 {
     return true;
+}
+
+void mp::platform::emit_signal_when_parent_dies(int sig)
+{
+    prctl(PR_SET_PDEATHSIG, sig); // ensures if parent dies, this process it sent this signal
 }

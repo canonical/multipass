@@ -418,7 +418,7 @@ void mp::SftpServer::run()
             {
                 status = sshfs_process->exit_code(250ms);
             }
-            catch (const mp::ExitlessSSHProcessException& e)
+            catch (const mp::ExitlessSSHProcessException&)
             {
                 status = 1;
             }

@@ -21,6 +21,8 @@
 #define MULTIPASS_PLATFORM_H
 
 #include <multipass/logging/logger.h>
+#include <multipass/process.h>
+#include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -28,7 +30,9 @@
 
 #include <QString>
 
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace multipass
 {
@@ -38,11 +42,12 @@ QString autostart_test_data(); // returns a platform-specific string, for testin
 void setup_gui_autostart_prerequisites();
 std::string default_server_address();
 QString default_driver();
-QString daemon_config_home(); // temporary
+QString daemon_config_home();                      // temporary
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
+std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);
 bool link(const char* target, const char* link);
@@ -51,6 +56,9 @@ int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 bool is_alias_supported(const std::string& alias, const std::string& remote);
 bool is_remote_supported(const std::string& remote);
 bool is_image_url_supported();
+
+void emit_signal_when_parent_dies(int sig);
+int wait_for_signals(const std::vector<int>& sigs);
 } // namespace platform
 } // namespace multipass
 #endif // MULTIPASS_PLATFORM_H

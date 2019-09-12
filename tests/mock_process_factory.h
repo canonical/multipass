@@ -74,6 +74,7 @@ class MockProcess : public Process
 {
 public:
     MOCK_METHOD0(start, void());
+    MOCK_METHOD0(terminate, void());
     MOCK_METHOD0(kill, void());
     MOCK_CONST_METHOD0(running, bool());
     MOCK_CONST_METHOD0(process_state, ProcessState());
