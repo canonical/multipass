@@ -123,7 +123,7 @@ if (MSVC)
     WriteRegDWORD HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass' 'TypesSupported' '7'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' '' '$INSTDIR\\\\bin\\\\multipass.exe'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' 'Path' '$INSTDIR\\\\bin'
-    WriteRegStr HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui' '$INSTDIR\\\\bin\\\\multipass-gui.exe'
+    WriteRegStr HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui' '$INSTDIR\\\\bin\\\\multipass-gui.exe --autostarting'
     nsExec::ExecToLog '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /install'
     "
   )
@@ -190,8 +190,8 @@ if(APPLE)
   # CPack.distribution.dist.in is searched for in the CMAKE_MODULE_PATH before CMAKE_ROOT, so as a hack,
   # point it to a local directory with our custom template
   set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/packaging/macos")
-  
-  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/uninstall.sh" 
+
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/uninstall.sh"
           DESTINATION . COMPONENT multipassd)
 endif()
 
