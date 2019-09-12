@@ -15,23 +15,23 @@
  *
  */
 
-#include "linux_process.h"
+#include "basic_process.h"
 
 #include <multipass/logging/log.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mp::LinuxProcess::CustomQProcess::CustomQProcess(LinuxProcess* p) : p{p}
+mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : p{p}
 {
 }
 
-void mp::LinuxProcess::CustomQProcess::setupChildProcess()
+void mp::BasicProcess::CustomQProcess::setupChildProcess()
 {
     p->setup_child_process();
 }
 
-mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}, process{this}
+mp::BasicProcess::BasicProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}, process{this}
 {
     connect(&process, &QProcess::started, this, &mp::Process::started);
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
@@ -60,54 +60,64 @@ mp::LinuxProcess::LinuxProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : proces
 
     // TODO: multiline output produces poor formatting in logs, needs improving
     QObject::connect(&process, &QProcess::readyReadStandardError, [this]() {
-        mpl::log(process_spec->error_log_level(), qPrintable(process_spec->program()),
-                 qPrintable(process.readAllStandardError()));
+        // Using readAllStandardError() removes it from buffer for Process consumers, so peek() instead.
+        // This copies the implementation of QProcess::readAllStandardError() replacing the read with peek.
+        auto original = process.readChannel();
+        process.setReadChannel(QProcess::StandardError);
+        QByteArray data = process.peek(process.bytesAvailable());
+        process.setReadChannel(original);
+        mpl::log(process_spec->error_log_level(), qPrintable(process_spec->program()), qPrintable(data));
     });
 }
 
-mp::LinuxProcess::~LinuxProcess() = default;
+mp::BasicProcess::~BasicProcess() = default;
 
-QString mp::LinuxProcess::program() const
+QString mp::BasicProcess::program() const
 {
     return process.program();
 }
 
-QStringList mp::LinuxProcess::arguments() const
+QStringList mp::BasicProcess::arguments() const
 {
     return process.arguments();
 }
 
-QString mp::LinuxProcess::working_directory() const
+QString mp::BasicProcess::working_directory() const
 {
     return process.workingDirectory();
 }
 
-QProcessEnvironment mp::LinuxProcess::process_environment() const
+QProcessEnvironment mp::BasicProcess::process_environment() const
 {
     return process.processEnvironment();
 }
 
-void mp::LinuxProcess::start()
+void mp::BasicProcess::start()
 {
     process.start();
 }
 
-void mp::LinuxProcess::kill()
+void mp::BasicProcess::terminate()
+{
+    process.terminate();
+}
+
+void mp::BasicProcess::kill()
 {
     process.kill();
 }
 
-bool mp::LinuxProcess::wait_for_started(int msecs)
+bool mp::BasicProcess::wait_for_started(int msecs)
 {
     return process.waitForStarted(msecs);
 }
 
-bool mp::LinuxProcess::wait_for_finished(int msecs)
+bool mp::BasicProcess::wait_for_finished(int msecs)
 {
     return process.waitForFinished(msecs);
 }
 
-mp::ProcessState mp::LinuxProcess::process_state() const
+mp::ProcessState mp::BasicProcess::process_state() const
 {
     mp::ProcessState state;
 
@@ -123,32 +133,32 @@ mp::ProcessState mp::LinuxProcess::process_state() const
     return state;
 }
 
-bool mp::LinuxProcess::running() const
+bool mp::BasicProcess::running() const
 {
     return process.state() == QProcess::Running;
 }
 
-QByteArray mp::LinuxProcess::read_all_standard_output()
+QByteArray mp::BasicProcess::read_all_standard_output()
 {
     return process.readAllStandardOutput();
 }
 
-QByteArray mp::LinuxProcess::read_all_standard_error()
+QByteArray mp::BasicProcess::read_all_standard_error()
 {
     return process.readAllStandardError();
 }
 
-qint64 mp::LinuxProcess::write(const QByteArray& data)
+qint64 mp::BasicProcess::write(const QByteArray& data)
 {
     return process.write(data);
 }
 
-void mp::LinuxProcess::close_write_channel()
+void mp::BasicProcess::close_write_channel()
 {
     process.closeWriteChannel();
 }
 
-mp::ProcessState mp::LinuxProcess::execute(const int timeout)
+mp::ProcessState mp::BasicProcess::execute(const int timeout)
 {
     mp::ProcessState exit_state;
     start();
@@ -165,6 +175,6 @@ mp::ProcessState mp::LinuxProcess::execute(const int timeout)
     return exit_state;
 }
 
-void mp::LinuxProcess::setup_child_process()
+void mp::BasicProcess::setup_child_process()
 {
 }

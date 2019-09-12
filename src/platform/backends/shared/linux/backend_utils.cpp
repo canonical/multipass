@@ -16,11 +16,11 @@
  */
 
 #include "backend_utils.h"
-#include "linux_process.h"
 #include "process_factory.h"
 #include "qemuimg_process_spec.h"
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
+#include <multipass/process.h>
 #include <multipass/utils.h>
 
 #include <multipass/format.h>

@@ -16,7 +16,8 @@
  */
 
 #include "process_factory.h"
-#include "linux_process.h"
+#include "basic_process.h"
+#include "simple_process_spec.h"
 #include <multipass/logging/log.h>
 #include <multipass/process_spec.h>
 #include <multipass/utils.h>
@@ -26,52 +27,18 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-class SimpleProcessSpec : public mp::ProcessSpec
-{
-public:
-    SimpleProcessSpec(const QString& cmd, const QStringList& args) : cmd{cmd}, args{args}
-    {
-    }
-
-    QString program() const override
-    {
-        return cmd;
-    }
-    QStringList arguments() const override
-    {
-        return args;
-    }
-
-    QString apparmor_profile() const override
-    {
-        return QString();
-    }
-
-private:
-    const QString cmd;
-    const QStringList args;
-};
-
-class UnsecuredProcess : public mp::LinuxProcess
-{
-public:
-    UnsecuredProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : LinuxProcess{std::move(spec)}
-    {
-    }
-};
-
-class AppArmoredProcess : public mp::LinuxProcess
+class AppArmoredProcess : public mp::BasicProcess
 {
 public:
     AppArmoredProcess(const mp::AppArmor& aa, std::unique_ptr<mp::ProcessSpec>&& spec)
-        : mp::LinuxProcess{std::move(spec)}, apparmor{aa}
+        : mp::BasicProcess{std::move(spec)}, apparmor{aa}
     {
         apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
     }
 
     void setup_child_process() final
     {
-        mp::LinuxProcess::setup_child_process();
+        mp::BasicProcess::setup_child_process();
 
         apparmor.next_exec_under_policy(process_spec->apparmor_profile_name().toLatin1());
     }
@@ -108,6 +75,7 @@ mp::optional<mp::AppArmor> create_apparmor()
 mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass& pass)
     : Singleton<ProcessFactory>::Singleton{pass}, apparmor{create_apparmor()}
 {
+    qRegisterMetaType<multipass::ProcessState>();
 }
 
 // This is the default ProcessFactory that creates a Process with no security mechanisms enabled
@@ -119,12 +87,12 @@ std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<
     }
     else
     {
-        return std::make_unique<UnsecuredProcess>(std::move(process_spec));
+        return std::make_unique<BasicProcess>(std::move(process_spec));
     }
 }
 
 std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(const QString& command,
                                                                 const QStringList& arguments) const
 {
-    return create_process(std::make_unique<SimpleProcessSpec>(command, arguments));
+    return create_process(simple_process_spec(command, arguments));
 }

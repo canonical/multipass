@@ -72,7 +72,9 @@ int mp::platform::utime(const char* path, int atime, int mtime)
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
-    struct stat st{};
+    struct stat st
+    {
+    };
 
     auto ret = lstat(path, &st);
 
@@ -100,4 +102,12 @@ sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
     auto sigset{make_sigset(sigs)};
     sigprocmask(SIG_BLOCK, &sigset, nullptr);
     return sigset;
+}
+
+int mp::platform::wait_for_signals(const std::vector<int>& sigs)
+{
+    auto sigset{make_and_block_signals(sigs)};
+    int sig = -1;
+    sigwait(&sigset, &sig);
+    return sig;
 }

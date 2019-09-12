@@ -85,6 +85,7 @@ public:
     virtual QProcessEnvironment process_environment() const = 0;
 
     virtual void start() = 0;
+    virtual void terminate() = 0;
     virtual void kill() = 0;
 
     virtual bool wait_for_started(int msecs = 30000) = 0;
@@ -103,7 +104,7 @@ public:
 
 signals:
     void started();
-    void finished(ProcessState process_state);
+    void finished(multipass::ProcessState process_state);
     void state_changed(QProcess::ProcessState state);  // not running, starting, running
     void error_occurred(QProcess::ProcessError error); // FailedToStart (file not found / resource error) Crashed,
                                                        // Timedout, ReadError, WriteError, UnknownError
@@ -114,4 +115,7 @@ protected:
     virtual void setup_child_process() = 0;
 };
 } // namespace multipass
+
+Q_DECLARE_METATYPE(multipass::ProcessState)
+
 #endif // MULTIPASS_PROCESS_H
