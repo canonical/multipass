@@ -127,6 +127,7 @@ parts:
     override-pull: ""
     stage-packages:
     - iproute2
+    - iptables
     - iputils-ping
     - libatm1
     - libxtables12
