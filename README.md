@@ -155,3 +155,6 @@ cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
 <multipass>/build/bin/multipass launch --name foo
 ```
 
+# More information
+
+See [the Multipass documentation](https://discourse.ubuntu.com/c/multipass/doc).
