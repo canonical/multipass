@@ -5,6 +5,6 @@ set -e
 mkdir -p ${3}usr/local/bin
 
 ### Set up symlink to the multipass-gui binary
-ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass-gui" "${3}usr/local/bin/multipass-gui"
+ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass.gui" "${3}usr/local/bin/multipass.gui"
 
 echo 0
