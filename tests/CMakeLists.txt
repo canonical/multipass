@@ -135,7 +135,6 @@ add_executable(multipass_tests
   test_ubuntu_image_host.cpp
   test_utils.cpp
   test_with_mocked_bin_path.cpp
-  ${CMAKE_SOURCE_DIR}/include/multipass/process.h # need to run MOC on this
 
   ${PLATFORM_TESTS}
 

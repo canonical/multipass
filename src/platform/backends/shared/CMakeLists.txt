@@ -18,7 +18,8 @@ add_library(shared STATIC
   basic_process.cpp
   process_spec.cpp
   simple_process_spec.cpp
-  sshfs_server_process_spec.cpp)
+  sshfs_server_process_spec.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/process.h)
 
 target_link_libraries(shared
   Qt5::Core)
