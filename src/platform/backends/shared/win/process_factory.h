@@ -18,18 +18,24 @@
 #ifndef MULTIPASS_WINDOWS_PROCESS_FACTORY_H
 #define MULTIPASS_WINDOWS_PROCESS_FACTORY_H
 
-#include <multipass/process_factory.h>
+#include <memory>
+
+#include <multipass/process_spec.h>
+#include <multipass/singleton.h>
+
 #include <windows.h>
 
 namespace multipass
 {
+class Process;
 
-class WindowsProcessFactory : public ProcessFactory
+class ProcessFactory : public Singleton<ProcessFactory>
 {
 public:
-    WindowsProcessFactory();
+    ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
 
-    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const override;
+    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
+    std::unique_ptr<Process> create_process(const QString& command, const QStringList& = QStringList()) const;
 
 private:
     HANDLE ghJob;

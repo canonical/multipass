@@ -24,6 +24,8 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
+#include "shared/win/process_factory.h"
+#include "shared/sshfs_server_process_spec.h"
 #include <github_update_prompt.h>
 
 #include <QDir>
@@ -129,6 +131,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
+}
+
+std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
+{
+    return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
@@ -245,4 +252,10 @@ bool mp::platform::is_image_url_supported()
 void mp::platform::emit_signal_when_parent_dies(int /*sig*/)
 {
     // NO-OP, instead use WindowsProcess which will reap children if parent dies
+}
+
+int mp::platform::wait_for_signals(const std::vector<int>& sigs)
+{
+    // FIXME
+    return 0;
 }
