@@ -28,6 +28,7 @@ if(MSVC)
   list(APPEND PLATFORM_TESTS test_hyperv_backend.cpp)
 elseif(APPLE)
   list(APPEND PLATFORM_TESTS test_hyperkit_backend.cpp)
+  set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
 else()
   list(APPEND PLATFORM_TESTS
     mock_libvirt.cpp
@@ -45,16 +46,16 @@ else()
     test_snap_utils.cpp)
 
   add_executable(qemu-system-x86_64
-          mock_qemu_system.cpp)
+    mock_qemu_system.cpp)
 
   set_target_properties(qemu-system-x86_64
-          PROPERTIES
-          RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-          RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-          RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
   target_link_libraries(qemu-system-x86_64
-          Qt5::Core)
+    Qt5::Core)
 
   add_executable(dnsmasq
     mock_dnsmasq_server.cpp)
@@ -86,6 +87,24 @@ else()
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
+  add_executable(mock_process
+    mock_process.cpp)
+
+  set_target_properties(mock_process
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+  add_executable(apparmor_parser
+    mock_apparmor_parser.cpp)
+
+  set_target_properties(apparmor_parser
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
   list(APPEND CMOCK_TARGETS libvirt_backend_test)
   target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
@@ -105,6 +124,9 @@ add_executable(multipass_tests
   mock_sftpserver.cpp
   mock_ssh.cpp
   mock_ssh_client.cpp
+  mock_process_factory.cpp
+  reset_process_factory.cpp
+  stub_process_factory.cpp
   path.cpp
   temp_dir.cpp
   temp_file.cpp
@@ -157,6 +179,14 @@ target_include_directories(multipass_tests
   PRIVATE ${MULTIPASS_GMOCK_DIR}
   PRIVATE ${MULTIPASS_GMOCK_DIR}/include
 )
+
+if(MSVC)
+  target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/win)
+elseif(APPLE)
+  target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos)
+else()
+  target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
+endif()
 
 add_definitions(-DWITH_SERVER)
 target_compile_definitions(ssh_test PRIVATE

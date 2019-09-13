@@ -15,24 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_RESETABLE_PROCESS_FACTORY_H
-#define MULTIPASS_RESETABLE_PROCESS_FACTORY_H
+#ifndef MULTIPASS_WINDOWS_PROCESS_FACTORY_H
+#define MULTIPASS_WINDOWS_PROCESS_FACTORY_H
 
-#include "process_factory.h" // rely on build system to include the right implementation
+#include <multipass/process_factory.h>
+#include <windows.h>
 
 namespace multipass
 {
-namespace test
-{
 
-// This resets the ProcessFactory on creation & destruction
-struct ResetProcessFactory
+class WindowsProcessFactory : public ProcessFactory
 {
-    ResetProcessFactory();
-    ~ResetProcessFactory();
+public:
+    WindowsProcessFactory();
+
+    std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const override;
+
+private:
+    HANDLE ghJob;
 };
 
-} // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_RESETABLE_PROCESS_FACTORY_H
+#endif // MULTIPASS_WINDOWS_PROCESS_FACTORY_H

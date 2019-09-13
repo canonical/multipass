@@ -24,6 +24,8 @@
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "platform_proprietary.h"
+#include "shared/macos/process_factory.h"
+#include "shared/sshfs_server_process_spec.h"
 #include <github_update_prompt.h>
 
 #include <QDir>
@@ -86,6 +88,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     }
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+}
+
+std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
+{
+    return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
@@ -164,4 +171,9 @@ bool mp::platform::is_image_url_supported()
         return check_unlock_code();
 
     return false;
+}
+
+void mp::platform::emit_signal_when_parent_dies(int /*sig*/)
+{
+    // NO-OP, daemon should use process group instead
 }
