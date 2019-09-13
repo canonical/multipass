@@ -85,8 +85,8 @@ TEST_F(SSHFSMountsTest, mount_creates_sshfs_process)
     EXPECT_EQ(sshfs_command.arguments[3], "/my/source/path");
     EXPECT_EQ(sshfs_command.arguments[4], "/the/target/path");
     // Ordering of below options not guaranteed, hence the or-s.
-    EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," || sshfs_command.arguments[6] == "6:10,5:-1,");
-    EXPECT_TRUE(sshfs_command.arguments[5] == "3:4,1:2," || sshfs_command.arguments[6] == "3:4,1:2,");
+    EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," || sshfs_command.arguments[5] == "5:-1,6:10,");
+    EXPECT_TRUE(sshfs_command.arguments[6] == "3:4,1:2," || sshfs_command.arguments[6] == "1:2,3:4,");
 }
 
 TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exception)
