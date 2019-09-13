@@ -21,6 +21,8 @@ list(APPEND CMOCK_TARGETS
   scp_test
   ssh_client_test)
 
+set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
+
 include(c_mock_defines.cmake)
 
 if(MSVC)

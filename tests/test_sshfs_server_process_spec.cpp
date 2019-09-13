@@ -56,8 +56,8 @@ TEST_F(TestSSHFSServerProcessSpec, arguments_correct)
     EXPECT_EQ(spec.arguments()[3], "source_path");
     EXPECT_EQ(spec.arguments()[4], "target_path");
     // Ordering of below options not guaranteed, hence the or-s.
-    EXPECT_TRUE(spec.arguments()[5] == "6:10,5:-1," || spec.arguments()[6] == "6:10,5:-1,");
-    EXPECT_TRUE(spec.arguments()[5] == "3:4,1:2," || spec.arguments()[6] == "3:4,1:2,");
+    EXPECT_TRUE(spec.arguments()[5] == "6:10,5:-1," || spec.arguments()[5] == "5:-1,6:10,");
+    EXPECT_TRUE(spec.arguments()[6] == "3:4,1:2," || spec.arguments()[6] == "1:2,3:4,");
 }
 
 TEST_F(TestSSHFSServerProcessSpec, environment_correct)
