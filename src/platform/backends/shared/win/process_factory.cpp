@@ -52,7 +52,8 @@ public:
 };
 } // namespace
 
-mp::ProcessFactory::ProcessFactory()
+mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass& pass)
+    : Singleton<ProcessFactory>::Singleton{pass}
 {
     /* Create a Windows Job Object that will ensure all child processes are collected on stop */
     BOOL alreadyInProcessJob;
@@ -85,8 +86,7 @@ mp::ProcessFactory::ProcessFactory()
     }
 }
 
-std::unique_ptr<mp::Process>
-mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
+std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
 {
     return std::make_unique<::WindowsProcess>(ghJob, std::move(process_spec));
 }
