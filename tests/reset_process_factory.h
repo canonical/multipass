@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_RESETABLE_PROCESS_FACTORY_H
 #define MULTIPASS_RESETABLE_PROCESS_FACTORY_H
 
-#include <src/platform/backends/shared/linux/process_factory.h>
+#include "process_factory.h" // rely on build system to include the right implementation
 
 namespace multipass
 {

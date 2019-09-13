@@ -21,13 +21,12 @@ list(APPEND CMOCK_TARGETS
   scp_test
   ssh_client_test)
 
+set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
+
 include(c_mock_defines.cmake)
 
 list(APPEND PLATFORM_TESTS
   mock_libvirt.cpp
-  mock_process_factory.cpp
-  reset_process_factory.cpp
-  stub_process_factory.cpp
   test_apparmored_process.cpp
   test_platform_linux.cpp
   test_qemu_backend.cpp
@@ -92,6 +91,7 @@ add_executable(multipass_tests
   image_host_remote_count.cpp
   main.cpp
   mischievous_url_downloader.cpp
+  mock_process_factory.cpp
   mock_scp.cpp
   mock_settings.cpp
   mock_sftp.cpp
@@ -99,6 +99,8 @@ add_executable(multipass_tests
   mock_ssh.cpp
   mock_ssh_client.cpp
   path.cpp
+  reset_process_factory.cpp
+  stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
   test_basic_process.cpp
@@ -143,6 +145,7 @@ add_executable(multipass_tests
 )
 
 target_include_directories(multipass_tests
+  PRIVATE ${PLATFORM_INCLUDES}
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
   PRIVATE ${MULTIPASS_GTEST_DIR}
