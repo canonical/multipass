@@ -75,12 +75,12 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 
 QString mp::platform::autostart_test_data()
 {
-    return "stub"; // TODO
+    return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass set client.gui.autostart`
 }
 
 void mp::platform::setup_gui_autostart_prerequisites()
 {
-    // TODO
+    // TODO implement this to use as the sole backend to `multipass set client.gui.autostart`
 }
 
 std::string mp::platform::default_server_address()
