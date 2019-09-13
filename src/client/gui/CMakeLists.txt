@@ -54,7 +54,7 @@ if(APPLE)
   # Copy any framework depenencies into the install directory for packaging
   install(CODE "
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass-gui\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
     " COMPONENT multipass_gui)
 
   install(CODE "
@@ -75,7 +75,7 @@ if(MSVC)
   install(CODE "
     include(BundleUtilities)
     fixup_bundle(
-      \"\${CMAKE_INSTALL_PREFIX}/bin/multipass-gui.exe\"
+      \"\${CMAKE_INSTALL_PREFIX}/bin/multipass.gui.exe\"
       \"\${CMAKE_INSTALL_PREFIX}/bin/platforms/qwindows.dll\"
       \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
     " COMPONENT multipass_gui)
