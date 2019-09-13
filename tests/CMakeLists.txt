@@ -26,15 +26,14 @@ include(c_mock_defines.cmake)
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
   list(APPEND PLATFORM_TESTS test_hyperv_backend.cpp)
+  set(PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/win)
 elseif(APPLE)
   list(APPEND PLATFORM_TESTS test_hyperkit_backend.cpp)
   set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
+  set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos)
 else()
   list(APPEND PLATFORM_TESTS
     mock_libvirt.cpp
-    mock_process_factory.cpp
-    reset_process_factory.cpp
-    stub_process_factory.cpp
     test_apparmored_process.cpp
     test_platform_linux.cpp
     test_qemu_backend.cpp
@@ -44,6 +43,8 @@ else()
     test_dnsmasq_process_spec.cpp
     test_libvirt_backend.cpp
     test_snap_utils.cpp)
+
+  set(PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
 
   add_executable(qemu-system-x86_64
     mock_qemu_system.cpp)
@@ -118,6 +119,7 @@ add_executable(multipass_tests
   image_host_remote_count.cpp
   main.cpp
   mischievous_url_downloader.cpp
+  mock_process_factory.cpp
   mock_scp.cpp
   mock_settings.cpp
   mock_sftp.cpp
@@ -128,6 +130,8 @@ add_executable(multipass_tests
   reset_process_factory.cpp
   stub_process_factory.cpp
   path.cpp
+  reset_process_factory.cpp
+  stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
   test_basic_process.cpp
@@ -172,6 +176,7 @@ add_executable(multipass_tests
 )
 
 target_include_directories(multipass_tests
+  PRIVATE ${PLATFORM_INCLUDES}
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
   PRIVATE ${MULTIPASS_GTEST_DIR}
@@ -179,14 +184,6 @@ target_include_directories(multipass_tests
   PRIVATE ${MULTIPASS_GMOCK_DIR}
   PRIVATE ${MULTIPASS_GMOCK_DIR}/include
 )
-
-if(MSVC)
-  target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/win)
-elseif(APPLE)
-  target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos)
-else()
-  target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
-endif()
 
 add_definitions(-DWITH_SERVER)
 target_compile_definitions(ssh_test PRIVATE
