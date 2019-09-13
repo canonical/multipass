@@ -27,6 +27,7 @@
 
 namespace multipass
 {
+class Process;
 
 class ProcessFactory : public Singleton<ProcessFactory>
 {

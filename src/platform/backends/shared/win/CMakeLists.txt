@@ -16,6 +16,9 @@ set (CMAKE_AUTOMOC ON)
 add_library(shared_win STATIC
   process_factory.cpp)
 
+include_directories(shared_win
+  ..)
+
 target_link_libraries(shared_win
   fmt
   Qt5::Core)
