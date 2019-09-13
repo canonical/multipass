@@ -101,6 +101,7 @@ if (MSVC)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
     " COMPONENT multipassd)
 
+  set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}\\\\packaging\\\\windows\\\\multipass.bmp")
   set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.rtf")
   set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/windows/README.txt")
