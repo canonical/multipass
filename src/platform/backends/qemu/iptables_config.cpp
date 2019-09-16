@@ -18,10 +18,12 @@
 #include "iptables_config.h"
 
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/process.h>
 #include <shared/linux/process_factory.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -121,8 +123,8 @@ void delete_iptables_rule(const QString& table, const QStringList& rule)
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw std::runtime_error(fmt::format("Failed to delete iptables rule for table {}: {} {}", table,
-                                             process->read_all_standard_output(), process->read_all_standard_error()));
+        throw std::runtime_error(
+            fmt::format("Failed to delete iptables rule for table {}: {}", table, process->read_all_standard_error()));
 }
 
 auto get_iptables_rules(const QString& table)
@@ -133,7 +135,8 @@ auto get_iptables_rules(const QString& table)
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw std::runtime_error(fmt::format("Failed to get iptables list for table {}", table));
+        throw std::runtime_error(
+            fmt::format("Failed to get iptables list for table {}: {}", table, process->read_all_standard_error()));
 
     return process->read_all_standard_output();
 }
@@ -226,16 +229,36 @@ mp::IPTablesConfig::IPTablesConfig(const QString& bridge_name, const std::string
       cidr{QString("%1.0/24").arg(QString::fromStdString(subnet))},
       comment{multipass_iptables_comment(bridge_name)}
 {
-    set_iptables_rules(bridge_name, cidr, comment);
+    try
+    {
+        set_iptables_rules(bridge_name, cidr, comment);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::warning, "iptables", e.what());
+        iptables_error = true;
+        error_string = e.what();
+    }
 }
 
 mp::IPTablesConfig::~IPTablesConfig()
 {
-    clear_all_iptables_rules();
+    try
+    {
+        clear_all_iptables_rules();
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::warning, "iptables", e.what());
+    }
 }
 
 void mp::IPTablesConfig::verify_iptables_rules()
 {
+    if (iptables_error)
+    {
+        throw std::runtime_error(error_string);
+    }
 }
 
 void mp::IPTablesConfig::clear_all_iptables_rules()

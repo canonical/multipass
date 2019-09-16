@@ -181,6 +181,7 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
     mp::backend::check_if_kvm_is_in_use();
 
     dnsmasq_server.check_dnsmasq_running();
+    iptables_config.verify_iptables_rules();
 }
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()

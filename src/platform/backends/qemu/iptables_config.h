@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_IPTABLES_CONFIG_H
 #define MULTIPASS_IPTABLES_CONFIG_H
 
+#include <string>
+
 #include <QString>
 
 namespace multipass
@@ -36,6 +38,9 @@ private:
     const QString bridge_name;
     const QString cidr;
     const QString comment;
+
+    bool iptables_error{false};
+    std::string error_string;
 };
 } // namespace multipass
 #endif // MULTIPASS_IPTABLES_CONFIG_H
