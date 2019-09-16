@@ -107,109 +107,11 @@ void set_ip_forward()
     }
 }
 
-void set_nat_iptables(const std::string& subnet, const QString& bridge_name)
+mp::DNSMasqServer create_dnsmasq_server(const mp::Path& network_dir, const QString& bridge_name,
+                                        const std::string& subnet)
 {
-    const auto cidr = QString::fromStdString(fmt::format("{}.0/24", subnet));
-
-    // Setup basic iptables overrides for DHCP/DNS
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "67", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "67", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "INPUT", "-i", bridge_name, "-p", "udp", "--dport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "INPUT", "-i", bridge_name, "-p", "tcp", "--dport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "INPUT", "-i", bridge_name, "-p", "tcp", "--dport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "67", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-I", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "67", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-I", "OUTPUT", "-o", bridge_name, "-p", "udp", "--sport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "OUTPUT", "-o", bridge_name, "-p", "tcp", "--sport", "53", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-I", "OUTPUT", "-o", bridge_name, "-p", "tcp", "--sport", "53", "-j", "ACCEPT"});
-
-    if (!mp::utils::run_cmd_for_status("iptables", {"-t", "mangle", "-C", "POSTROUTING", "-o", bridge_name, "-p", "udp",
-                                                    "--dport", "68", "-j", "CHECKSUM", "--checksum-fill"}))
-        mp::utils::run_cmd_for_status("iptables", {"-t", "mangle", "-I", "POSTROUTING", "-o", bridge_name, "-p", "udp",
-                                                   "--dport", "68", "-j", "CHECKSUM", "--checksum-fill"});
-
-    // Do not masquerade to these reserved address blocks.
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "-d", "224.0.0.0/24", "-j", "RETURN"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "-d", "224.0.0.0/24", "-j", "RETURN"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "-d", "255.255.255.255/32", "-j", "RETURN"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "-d", "255.255.255.255/32", "-j", "RETURN"});
-
-    // Masquerade all packets going from VMs to the LAN/Internet
-    if (!mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
-                                                    "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
-        mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
-                                                   "tcp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
-
-    if (!mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
-                                                    "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"}))
-        mp::utils::run_cmd_for_status("iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-p",
-                                                   "udp", "-j", "MASQUERADE", "--to-ports", "1024-65535"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-t", "nat", "-C", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-j", "MASQUERADE"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-t", "nat", "-I", "POSTROUTING", "-s", cidr, "!", "-d", cidr, "-j", "MASQUERADE"});
-
-    // Allow established traffic to the private subnet
-    if (!mp::utils::run_cmd_for_status("iptables", {"-C", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack",
-                                                    "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables", {"-I", "FORWARD", "-d", cidr, "-o", bridge_name, "-m", "conntrack",
-                                                   "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"});
-
-    // Allow outbound traffic from the private subnet
-    if (!mp::utils::run_cmd_for_status("iptables", {"-C", "FORWARD", "-s", cidr, "-i", bridge_name, "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables", {"-I", "FORWARD", "-s", cidr, "-i", bridge_name, "-j", "ACCEPT"});
-
-    // Allow traffic between virtual machines
-    if (!mp::utils::run_cmd_for_status("iptables",
-                                       {"-C", "FORWARD", "-i", bridge_name, "-o", bridge_name, "-j", "ACCEPT"}))
-        mp::utils::run_cmd_for_status("iptables",
-                                      {"-I", "FORWARD", "-i", bridge_name, "-o", bridge_name, "-j", "ACCEPT"});
-
-    // Reject everything else
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "FORWARD", "-i", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-I", "FORWARD", "-i", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
-
-    if (!mp::utils::run_cmd_for_status(
-            "iptables", {"-C", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"}))
-        mp::utils::run_cmd_for_status(
-            "iptables", {"-I", "FORWARD", "-o", bridge_name, "-j", "REJECT", "--reject-with icmp-port-unreachable"});
-}
-
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString& bridge_name)
-{
-    auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
-    const auto subnet = mp::backend::get_subnet(network_dir, bridge_name);
-
     create_virtual_switch(subnet, bridge_name);
     set_ip_forward();
-    set_nat_iptables(subnet, bridge_name);
 
     return {network_dir, bridge_name, subnet};
 }
@@ -217,7 +119,10 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& data_dir, const QString&
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
     : bridge_name{QString::fromStdString(multipass_bridge_name)},
-      dnsmasq_server{create_dnsmasq_server(data_dir, bridge_name)}
+      network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
+      subnet{mp::backend::get_subnet(network_dir, bridge_name)},
+      dnsmasq_server{create_dnsmasq_server(network_dir, bridge_name, subnet)},
+      iptables_config{bridge_name, subnet}
 {
 }
 
