@@ -104,9 +104,9 @@ sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
     return sigset;
 }
 
-int mp::platform::wait_for_signals(const std::vector<int>& sigs)
+int mp::platform::wait_for_quit_signals()
 {
-    auto sigset{make_and_block_signals(sigs)};
+    auto sigset{make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP})};
     int sig = -1;
     sigwait(&sigset, &sig);
     return sig;
