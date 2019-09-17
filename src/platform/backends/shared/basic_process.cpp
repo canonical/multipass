@@ -25,7 +25,11 @@ namespace mpl = multipass::logging;
 namespace
 {
 // Want to call qRegisterMetaType just once
-static auto reg = qRegisterMetaType<multipass::ProcessState>();
+static auto reg = []() -> bool {
+    qRegisterMetaType<multipass::ProcessState>();
+    qRegisterMetaType<QProcess::ProcessError>();
+    return true;
+}();
 } // namespace
 
 mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : p{p}
