@@ -253,16 +253,17 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                  fmt::format("process state changed to {}", utils::qenum_to_string(newState)));
     });
 
-    QObject::connect(vm_process.get(), &Process::error_occurred, [this](QProcess::ProcessError error) {
-        // We just kill the process when suspending, so we don't want to print
-        // out any scary error messages for this state
-        if (update_shutdown_status)
-        {
-            mpl::log(mpl::Level::error, vm_name,
-                     fmt::format("process error occurred {}", utils::qenum_to_string(error)));
-            on_error();
-        }
-    });
+    QObject::connect(
+        vm_process.get(), &Process::error_occurred, [this](QProcess::ProcessError error, QString error_string) {
+            // We just kill the process when suspending, so we don't want to print
+            // out any scary error messages for this state
+            if (update_shutdown_status)
+            {
+                mpl::log(mpl::Level::error, vm_name,
+                         fmt::format("process error occurred {} {}", utils::qenum_to_string(error), error_string));
+                on_error();
+            }
+        });
 
     QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
         if (process_state.exit_code)
