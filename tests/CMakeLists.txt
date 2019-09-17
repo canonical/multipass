@@ -34,6 +34,7 @@ list(APPEND PLATFORM_TESTS
   test_qemuimg_process_spec.cpp
   test_dnsmasq_server.cpp
   test_dnsmasq_process_spec.cpp
+  test_iptables_config.cpp
   test_libvirt_backend.cpp
   test_snap_utils.cpp)
 

@@ -68,6 +68,12 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
             ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
             ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(suspend_tag));
         }
+        else if (process->program() == "iptables")
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+        }
     };
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
 };
@@ -157,32 +163,47 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 3u);
-    EXPECT_EQ(factory->process_list()[0].command, "dnsmasq");
-    EXPECT_EQ(factory->process_list()[1].command, "qemu-img"); // checks for suspended image
-    EXPECT_TRUE(factory->process_list()[2].command.startsWith("qemu-system-"));
+    auto processes = factory->process_list();
+    EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command == "dnsmasq";
+                             }) != processes.cend());
+    EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command == "qemu-img";
+                             }) != processes.cend());
+    EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith("qemu-system-");
+                             }) != processes.cend());
 }
 
 TEST_F(QemuBackend, verify_some_common_qemu_arguments)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto factory = mpt::StubProcessFactory::Inject();
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(qemu_img_snapshot_returns_true);
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 3u);
-    auto qemu = factory->process_list()[2];
-    EXPECT_TRUE(qemu.arguments.contains("--enable-kvm"));
-    EXPECT_TRUE(qemu.arguments.contains("virtio-net-pci,netdev=hostnet0,id=net0,mac="));
-    EXPECT_TRUE(qemu.arguments.contains("-nographic"));
-    EXPECT_TRUE(qemu.arguments.contains("-serial"));
-    EXPECT_TRUE(qemu.arguments.contains("-qmp"));
-    EXPECT_TRUE(qemu.arguments.contains("stdio"));
-    EXPECT_TRUE(qemu.arguments.contains("-cpu"));
-    EXPECT_TRUE(qemu.arguments.contains("host"));
-    EXPECT_TRUE(qemu.arguments.contains("-chardev"));
-    EXPECT_TRUE(qemu.arguments.contains("null,id=char0"));
+    auto processes = factory->process_list();
+    auto qemu = std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith("qemu-system-");
+                             });
+
+    ASSERT_TRUE(qemu != processes.cend());
+    EXPECT_TRUE(qemu->arguments.contains("--enable-kvm"));
+    EXPECT_TRUE(qemu->arguments.contains("virtio-net-pci,netdev=hostnet0,id=net0,mac="));
+    EXPECT_TRUE(qemu->arguments.contains("-nographic"));
+    EXPECT_TRUE(qemu->arguments.contains("-serial"));
+    EXPECT_TRUE(qemu->arguments.contains("-qmp"));
+    EXPECT_TRUE(qemu->arguments.contains("stdio"));
+    EXPECT_TRUE(qemu->arguments.contains("-cpu"));
+    EXPECT_TRUE(qemu->arguments.contains("host"));
+    EXPECT_TRUE(qemu->arguments.contains("-chardev"));
+    EXPECT_TRUE(qemu->arguments.contains("null,id=char0"));
 }
 
 TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
@@ -197,13 +218,17 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 3u);
-    auto qemu = factory->process_list()[2];
-    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
-    EXPECT_TRUE(qemu.arguments.contains("-loadvm"));
-    EXPECT_TRUE(qemu.arguments.contains(suspend_tag));
-    EXPECT_TRUE(qemu.arguments.contains("-machine"));
-    EXPECT_TRUE(qemu.arguments.contains(default_machine_type));
+    auto processes = factory->process_list();
+    auto qemu = std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith("qemu-system-");
+                             });
+
+    ASSERT_TRUE(qemu != processes.cend());
+    EXPECT_TRUE(qemu->arguments.contains("-loadvm"));
+    EXPECT_TRUE(qemu->arguments.contains(suspend_tag));
+    EXPECT_TRUE(qemu->arguments.contains("-machine"));
+    EXPECT_TRUE(qemu->arguments.contains(default_machine_type));
 }
 
 TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metadata)
@@ -220,11 +245,16 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 3u);
-    auto qemu = factory->process_list()[2];
-    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
-    EXPECT_TRUE(qemu.arguments.contains("-machine"));
-    EXPECT_TRUE(qemu.arguments.contains(machine_type));
+    auto processes = factory->process_list();
+    auto qemu = std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith("qemu-system-");
+                             });
+
+    ASSERT_TRUE(qemu != processes.cend());
+    ASSERT_TRUE(qemu->command.startsWith("qemu-system-"));
+    EXPECT_TRUE(qemu->arguments.contains("-machine"));
+    EXPECT_TRUE(qemu->arguments.contains(machine_type));
 }
 
 TEST_F(QemuBackend, verify_qemu_command_version_when_resuming_suspend_image_using_cdrom_key)
@@ -239,10 +269,15 @@ TEST_F(QemuBackend, verify_qemu_command_version_when_resuming_suspend_image_usin
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 3u);
-    auto qemu = factory->process_list()[2];
-    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
-    EXPECT_TRUE(qemu.arguments.contains("-cdrom"));
+    auto processes = factory->process_list();
+    auto qemu = std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith("qemu-system-");
+                             });
+
+    ASSERT_TRUE(qemu != processes.cend());
+    ASSERT_TRUE(qemu->command.startsWith("qemu-system-"));
+    EXPECT_TRUE(qemu->arguments.contains("-cdrom"));
 }
 
 TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
@@ -270,11 +305,15 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
-    ASSERT_EQ(factory->process_list().size(), 3u);
-    auto qemu = factory->process_list()[2];
-    ASSERT_TRUE(qemu.command.startsWith("qemu-system-"));
-    EXPECT_TRUE(qemu.arguments.contains("-hi_there"));
-    EXPECT_TRUE(qemu.arguments.contains("-hows_it_going"));
+    auto processes = factory->process_list();
+    auto qemu = std::find_if(processes.cbegin(), processes.cend(),
+                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith("qemu-system-");
+                             });
+
+    ASSERT_TRUE(qemu != processes.cend());
+    EXPECT_TRUE(qemu->arguments.contains("-hi_there"));
+    EXPECT_TRUE(qemu->arguments.contains("-hows_it_going"));
 }
 
 TEST_F(QemuBackend, returns_version_string)

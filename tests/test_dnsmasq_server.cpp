@@ -20,8 +20,9 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
 
-#include "mock_environment_helpers.h"
 #include "file_operations.h"
+#include "mock_environment_helpers.h"
+#include "reset_process_factory.h"
 #include "temp_dir.h"
 #include "test_with_mocked_bin_path.h"
 #include <QDir>
@@ -65,6 +66,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     }
 
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
+    mpt::ResetProcessFactory scope; // will otherwise pollute other tests
     mpt::TempDir data_dir;
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
     const QString bridge_name{"dummy-bridge"};
