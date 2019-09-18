@@ -99,10 +99,10 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
         power_shell->run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)});
 
-        power_shell->run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", desc.image.image_path, "-BootDevice",
+        power_shell->run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", '"' + desc.image.image_path + '"', "-BootDevice",
                           "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size});
         power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
-        power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", desc.cloud_init_iso});
+        power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'});
 
         state = State::off;
     }
