@@ -24,8 +24,8 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
-#include "shared/win/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
+#include "shared/win/process_factory.h"
 #include <github_update_prompt.h>
 
 #include <QDir>
@@ -77,7 +77,8 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 
 QString mp::platform::autostart_test_data()
 {
-    return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass set client.gui.autostart`
+    return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass
+                   // set client.gui.autostart`
 }
 
 void mp::platform::setup_gui_autostart_prerequisites()
@@ -102,7 +103,8 @@ QString mp::platform::daemon_config_home() // temporary
     ret = QDir{ret}.absoluteFilePath("config");
     ret = QDir{ret}.absoluteFilePath("systemprofile");
     ret = QDir{ret}.absoluteFilePath("AppData");
-    ret = QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
+    ret =
+        QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
 
     return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
@@ -256,6 +258,11 @@ void mp::platform::emit_signal_when_parent_dies(int /*sig*/)
 
 int mp::platform::wait_for_signals(const std::vector<int>& sigs)
 {
-    // FIXME
+    HANDLE hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr);
+
+    if (hSemaphore == (HANDLE) nullptr)
+        printf("Unable to create semaphore\n");
+
+    WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
     return 0;
 }
