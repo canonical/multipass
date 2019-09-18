@@ -105,9 +105,10 @@ public:
 signals:
     void started();
     void finished(multipass::ProcessState process_state);
-    void state_changed(QProcess::ProcessState state);  // not running, starting, running
-    void error_occurred(QProcess::ProcessError error); // FailedToStart (file not found / resource error) Crashed,
-                                                       // Timedout, ReadError, WriteError, UnknownError
+    void state_changed(QProcess::ProcessState state); // not running, starting, running
+    void error_occurred(QProcess::ProcessError error,
+                        QString error_string); // FailedToStart (file not found / resource error) Crashed,
+                                               // Timedout, ReadError, WriteError, UnknownError
     void ready_read_standard_output();
     void ready_read_standard_error();
 
