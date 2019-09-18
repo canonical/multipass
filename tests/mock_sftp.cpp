@@ -23,7 +23,6 @@ extern "C"
     IMPL_MOCK_DEFAULT(1, sftp_init);
     IMPL_MOCK_DEFAULT(4, sftp_open);
     IMPL_MOCK_DEFAULT(3, sftp_write);
-    IMPL_MOCK_DEFAULT(2, sftp_stat);
     IMPL_MOCK_DEFAULT(3, sftp_read);
     IMPL_MOCK_DEFAULT(1, sftp_get_error);
     IMPL_MOCK_DEFAULT(1, sftp_close);

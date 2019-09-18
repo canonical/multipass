@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -32,10 +32,9 @@ if(MULTIPASS_ENABLE_TESTS)
   add_ssh_target(ssh_test)
 endif()
 
-function(add_scp_client_target TARGET_NAME)
+function(add_sftp_client_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     sftp_client.cpp
-    scp_client.cpp
     ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
@@ -45,9 +44,9 @@ function(add_scp_client_target TARGET_NAME)
     Qt5::Core)
 endfunction()
 
-add_scp_client_target(scp_client)
+add_sftp_client_target(sftp_client)
 if(MULTIPASS_ENABLE_TESTS)
-  add_scp_client_target(scp_test)
+  add_sftp_client_target(sftp_test)
 endif()
 
 function(add_ssh_client_target TARGET_NAME)
