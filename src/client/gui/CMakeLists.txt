@@ -20,6 +20,7 @@ add_executable(multipass_gui
   client_gui.cpp
   main.cpp
   gui_cmd.cpp
+  resources/gui.rc
   resources/resources.qrc)
 
 set_target_properties(multipass_gui
