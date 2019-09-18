@@ -45,6 +45,9 @@ target_link_libraries(sshfs_server
   logger
   sshfs_mount)
 
+set_target_properties(sshfs_server
+  PROPERTIES INSTALL_RPATH "@executable_path/../lib")
+
 install(TARGETS sshfs_server
   DESTINATION bin
   COMPONENT multipassd)

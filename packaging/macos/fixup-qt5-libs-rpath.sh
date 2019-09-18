@@ -13,7 +13,7 @@
 set -u
 
 QT_FRAMEWORKS="QtCore QtNetwork QtWidgets QtGui QtDBus QtPrintSupport"
-BINARIES="multipass multipass.gui multipassd platforms/libqcocoa.dylib"
+BINARIES="multipass multipass.gui multipassd platforms/libqcocoa.dylib sshfs_server"
 
 if [ $# -ne 1 ]; then
     echo "Argument required"
