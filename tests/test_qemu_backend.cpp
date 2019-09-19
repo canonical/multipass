@@ -59,7 +59,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       dummy_cloud_init_iso.name()};
     mpt::TempDir data_dir;
 
-    mpt::MockProcessFactory::Callback qemu_img_snapshot_returns_true = [](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback handle_external_process_calls = [](mpt::MockProcess* process) {
         // Have "qemu-img snapshot" return a string with the suspend tag in it
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
         {
@@ -182,7 +182,7 @@ TEST_F(QemuBackend, verify_some_common_qemu_arguments)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(qemu_img_snapshot_returns_true);
+    factory->register_callback(handle_external_process_calls);
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
@@ -211,7 +211,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
     constexpr auto default_machine_type = "pc-i440fx-xenial";
 
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(qemu_img_snapshot_returns_true);
+    factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
@@ -236,7 +236,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
     constexpr auto machine_type = "k0mPuT0R";
 
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(qemu_img_snapshot_returns_true);
+    factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"machine_type", machine_type}})));
@@ -260,7 +260,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
 TEST_F(QemuBackend, verify_qemu_command_version_when_resuming_suspend_image_using_cdrom_key)
 {
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(qemu_img_snapshot_returns_true);
+    factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"use_cdrom", true}})));

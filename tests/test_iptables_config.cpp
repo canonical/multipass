@@ -17,7 +17,9 @@
 
 #include <src/platform/backends/qemu/iptables_config.h>
 
+#include "mock_environment_helpers.h"
 #include "mock_process_factory.h"
+#include "reset_process_factory.h"
 
 #include <QString>
 
@@ -29,25 +31,38 @@ namespace
 {
 struct IPTablesConfig : public Test
 {
+    mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
+    mpt::ResetProcessFactory scope; // will otherwise pollute other tests
+
     const QString goodbr0{QStringLiteral("goodbr0")};
     const QString evilbr0{QStringLiteral("evilbr0")};
     const std::string subnet{"192.168.2"};
+
+    mpt::MockProcessFactory::Callback iptables_callback = [this](mpt::MockProcess* process) {
+        if (process->program() == "iptables")
+        {
+            if (process->arguments().contains(goodbr0))
+            {
+                mp::ProcessState exit_state;
+                exit_state.exit_code = 0;
+                EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            }
+            else if (process->arguments().contains(evilbr0))
+            {
+                mp::ProcessState exit_state;
+                exit_state.exit_code = 1;
+                EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+                ON_CALL(*process, read_all_standard_error()).WillByDefault(Return("Evil bridge detected!\n"));
+            }
+        }
+    };
 };
 } // namespace
 
 TEST_F(IPTablesConfig, iptables_no_error_no_throw)
 {
-    mpt::MockProcessFactory::Callback callback = [this](mpt::MockProcess* process) {
-        if (process->program() == "iptables" && process->arguments().contains(goodbr0))
-        {
-            mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-        }
-    };
-
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(callback);
+    factory->register_callback(iptables_callback);
 
     mp::IPTablesConfig iptables_config{goodbr0, subnet};
 
@@ -56,18 +71,8 @@ TEST_F(IPTablesConfig, iptables_no_error_no_throw)
 
 TEST_F(IPTablesConfig, iptables_error_throws)
 {
-    mpt::MockProcessFactory::Callback callback = [this](mpt::MockProcess* process) {
-        if (process->program() == "iptables" && process->arguments().contains(evilbr0))
-        {
-            mp::ProcessState exit_state;
-            exit_state.exit_code = 1;
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-            ON_CALL(*process, read_all_standard_error()).WillByDefault(Return("Evil bridge detected!\n"));
-        }
-    };
-
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(callback);
+    factory->register_callback(iptables_callback);
 
     mp::IPTablesConfig iptables_config{evilbr0, subnet};
 
