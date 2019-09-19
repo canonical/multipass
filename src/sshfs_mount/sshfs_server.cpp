@@ -29,8 +29,6 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 
-#include <signal.h>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpp = multipass::platform;
@@ -67,7 +65,7 @@ unordered_map<int, int> deserialise_id_map(const char* in)
 
 int main(int argc, char* argv[])
 {
-    mpp::emit_signal_when_parent_dies(SIGHUP); // works on linux only
+    mpp::emit_signal_when_parent_dies(); // works on linux only
 
     if (argc != 8)
     {
@@ -75,7 +73,7 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
-    const auto key = getenv("KEY");
+    const auto key = qgetenv("KEY");
     if (key == nullptr)
     {
         cerr << "KEY not set" << endl;
@@ -100,7 +98,7 @@ int main(int argc, char* argv[])
         mp::SshfsMount sshfs_mount(move(session), source_path, target_path, gid_map, uid_map);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
-        int sig = mpp::wait_for_signals({SIGQUIT, SIGTERM, SIGHUP});
+        int sig = mpp::wait_for_quit_signals();
         cout << "Received signal " << sig << ". Stopping" << endl;
         sshfs_mount.stop();
         exit(0);

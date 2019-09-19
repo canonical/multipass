@@ -118,7 +118,7 @@ public:
 };
 } // namespace
 
-std::unique_ptr<mp::Process> mpt::StubProcessFactory::create_process(std::unique_ptr<ProcessSpec>&& spec) const
+std::unique_ptr<mp::Process> mpt::StubProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& spec) const
 {
     return std::make_unique<StubProcess>(std::move(spec),
                                          const_cast<std::vector<mpt::StubProcessFactory::ProcessInfo>&>(process_list));
