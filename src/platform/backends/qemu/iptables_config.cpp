@@ -29,7 +29,7 @@ namespace
 {
 // QString constants for all of the different iptables calls
 const QString iptables{QStringLiteral("iptables")};
-const QString exclamation{QStringLiteral("!")};
+const QString negate{QStringLiteral("!")};
 
 //   Different tables to use
 const QString filter{QStringLiteral("filter")};
@@ -43,19 +43,19 @@ const QString POSTROUTING{QStringLiteral("POSTROUTING")};
 const QString FORWARD{QStringLiteral("FORWARD")};
 
 //   option constants
-const QString dash_C{QStringLiteral("-C")};
-const QString dash_d{QStringLiteral("-d")};
-const QString dash_D{QStringLiteral("-D")};
-const QString dash_i{QStringLiteral("-i")};
-const QString dash_I{QStringLiteral("-I")};
-const QString dash_j{QStringLiteral("-j")};
-const QString dash_m{QStringLiteral("-m")};
-const QString dash_o{QStringLiteral("-o")};
-const QString dash_p{QStringLiteral("-p")};
-const QString dash_s{QStringLiteral("-s")};
-const QString dash_S{QStringLiteral("-S")};
-const QString dash_t{QStringLiteral("-t")};
-const QString dash_w{QStringLiteral("-w")};
+const QString check_rule{QStringLiteral("--check")};
+const QString destination{QStringLiteral("--destination")};
+const QString delete_rule{QStringLiteral("--delete")};
+const QString in_interface{QStringLiteral("--in-interface")};
+const QString insert_rule{QStringLiteral("--insert")};
+const QString jump{QStringLiteral("--jump")};
+const QString match{QStringLiteral("--match")};
+const QString out_interface{QStringLiteral("--out-interface")};
+const QString protocol{QStringLiteral("--protocol")};
+const QString source{QStringLiteral("--source")};
+const QString list_rules{QStringLiteral("--list-rules")};
+const QString dash_t{QStringLiteral("-t")}; // Use short option for specifying table to avoid var conflicts
+const QString wait{QStringLiteral("--wait")};
 
 //   protocol constants
 const QString udp{QStringLiteral("udp")};
@@ -85,26 +85,26 @@ auto multipass_iptables_comment(const QString& bridge_name)
     return QString("generated for Multipass network %1").arg(bridge_name);
 }
 
-auto iptables_rule_exists(const QString& table, const QStringList& rule)
+auto iptables_rule_exists(const QString& table, const QString& chain, const QStringList& rule)
 {
-    auto process =
-        mp::ProcessFactory::instance().create_process(iptables, QStringList() << dash_t << table << dash_C << rule);
+    auto process = mp::ProcessFactory::instance().create_process(
+        iptables, QStringList() << dash_t << table << check_rule << chain << rule);
 
     auto exit_state = process->execute();
 
     return exit_state.completed_successfully();
 }
 
-void insert_iptables_rule(const QString& table, const QStringList& rule)
+void insert_iptables_rule(const QString& table, const QString& chain, const QStringList& rule)
 {
     // Check if rule already exists in the table
-    if (iptables_rule_exists(table, rule))
+    if (iptables_rule_exists(table, chain, rule))
     {
         return;
     }
 
-    auto process = mp::ProcessFactory::instance().create_process(iptables, QStringList() << dash_w << dash_t << table
-                                                                                         << dash_I << rule);
+    auto process = mp::ProcessFactory::instance().create_process(
+        iptables, QStringList() << wait << dash_t << table << insert_rule << chain << rule);
 
     auto exit_state = process->execute();
 
@@ -113,9 +113,9 @@ void insert_iptables_rule(const QString& table, const QStringList& rule)
             fmt::format("Failed to set iptables rule for table {}: {}", table, process->read_all_standard_error()));
 }
 
-void delete_iptables_rule(const QString& table, const QStringList& rule)
+void delete_iptables_rule(const QString& table, const QStringList& chain_and_rule)
 {
-    auto args = QStringList() << iptables << dash_w << dash_t << table << dash_D << rule;
+    auto args = QStringList() << iptables << wait << dash_t << table << delete_rule << chain_and_rule;
 
     auto process = mp::ProcessFactory::instance().create_process(
         QStringLiteral("sh"), QStringList() << QStringLiteral("-c") << args.join(" "));
@@ -130,7 +130,7 @@ void delete_iptables_rule(const QString& table, const QStringList& rule)
 auto get_iptables_rules(const QString& table)
 {
     auto process =
-        mp::ProcessFactory::instance().create_process(iptables, QStringList() << dash_w << dash_t << table << dash_S);
+        mp::ProcessFactory::instance().create_process(iptables, QStringList() << wait << dash_t << table << list_rules);
 
     auto exit_state = process->execute();
 
@@ -143,69 +143,84 @@ auto get_iptables_rules(const QString& table)
 
 void set_iptables_rules(const QString& bridge_name, const QString& cidr, const QString& comment)
 {
-    const QStringList comment_option{dash_m, QStringLiteral("comment"), QStringLiteral("--comment"), comment};
+    const QStringList comment_option{match, QStringLiteral("comment"), QStringLiteral("--comment"), comment};
 
     // Setup basic iptables overrides for DHCP/DNS
-    insert_iptables_rule(filter, QStringList() << INPUT << dash_i << bridge_name << dash_p << udp << dport << port_67
-                                               << dash_j << ACCEPT << comment_option);
+    insert_iptables_rule(filter, INPUT,
+                         QStringList() << in_interface << bridge_name << protocol << udp << dport << port_67 << jump
+                                       << ACCEPT << comment_option);
 
-    insert_iptables_rule(filter, QStringList() << INPUT << dash_i << bridge_name << dash_p << udp << dport << port_53
-                                               << dash_j << ACCEPT << comment_option);
+    insert_iptables_rule(filter, INPUT,
+                         QStringList() << in_interface << bridge_name << protocol << udp << dport << port_53 << jump
+                                       << ACCEPT << comment_option);
 
-    insert_iptables_rule(filter, QStringList() << INPUT << dash_i << bridge_name << dash_p << tcp << dport << port_53
-                                               << dash_j << ACCEPT << comment_option);
+    insert_iptables_rule(filter, INPUT,
+                         QStringList() << in_interface << bridge_name << protocol << tcp << dport << port_53 << jump
+                                       << ACCEPT << comment_option);
 
-    insert_iptables_rule(filter, QStringList() << OUTPUT << dash_o << bridge_name << dash_p << udp << sport << port_67
-                                               << dash_j << ACCEPT << comment_option);
+    insert_iptables_rule(filter, OUTPUT,
+                         QStringList() << out_interface << bridge_name << protocol << udp << sport << port_67 << jump
+                                       << ACCEPT << comment_option);
 
-    insert_iptables_rule(filter, QStringList() << OUTPUT << dash_o << bridge_name << dash_p << udp << sport << port_53
-                                               << dash_j << ACCEPT << comment_option);
+    insert_iptables_rule(filter, OUTPUT,
+                         QStringList() << out_interface << bridge_name << protocol << udp << sport << port_53 << jump
+                                       << ACCEPT << comment_option);
 
-    insert_iptables_rule(filter, QStringList() << OUTPUT << dash_o << bridge_name << dash_p << tcp << sport << port_53
-                                               << dash_j << ACCEPT << comment_option);
+    insert_iptables_rule(filter, OUTPUT,
+                         QStringList() << out_interface << bridge_name << protocol << tcp << sport << port_53 << jump
+                                       << ACCEPT << comment_option);
 
-    insert_iptables_rule(mangle, QStringList() << POSTROUTING << dash_o << bridge_name << dash_p << udp << dport
-                                               << port_68 << dash_j << QStringLiteral("CHECKSUM")
-                                               << QStringLiteral("--checksum-fill") << comment_option);
+    insert_iptables_rule(mangle, POSTROUTING,
+                         QStringList() << out_interface << bridge_name << protocol << udp << dport << port_68 << jump
+                                       << QStringLiteral("CHECKSUM") << QStringLiteral("--checksum-fill")
+                                       << comment_option);
 
     // Do not masquerade to these reserved address blocks.
-    insert_iptables_rule(nat, QStringList() << POSTROUTING << dash_s << cidr << dash_d << QStringLiteral("224.0.0.0/24")
-                                            << dash_j << RETURN << comment_option);
+    insert_iptables_rule(nat, POSTROUTING,
+                         QStringList() << source << cidr << destination << QStringLiteral("224.0.0.0/24") << jump
+                                       << RETURN << comment_option);
 
-    insert_iptables_rule(nat, QStringList()
-                                  << POSTROUTING << dash_s << cidr << dash_d << QStringLiteral("255.255.255.255/32")
-                                  << dash_j << RETURN << comment_option);
+    insert_iptables_rule(nat, POSTROUTING,
+                         QStringList() << source << cidr << destination << QStringLiteral("255.255.255.255/32") << jump
+                                       << RETURN << comment_option);
 
     // Masquerade all packets going from VMs to the LAN/Internet
-    insert_iptables_rule(nat, QStringList() << POSTROUTING << dash_s << cidr << exclamation << dash_d << cidr << dash_p
-                                            << tcp << dash_j << MASQUERADE << to_ports << port_range << comment_option);
+    insert_iptables_rule(nat, POSTROUTING,
+                         QStringList() << source << cidr << negate << destination << cidr << protocol << tcp << jump
+                                       << MASQUERADE << to_ports << port_range << comment_option);
 
-    insert_iptables_rule(nat, QStringList() << POSTROUTING << dash_s << cidr << exclamation << dash_d << cidr << dash_p
-                                            << udp << dash_j << MASQUERADE << to_ports << port_range << comment_option);
+    insert_iptables_rule(nat, POSTROUTING,
+                         QStringList() << source << cidr << negate << destination << cidr << protocol << udp << jump
+                                       << MASQUERADE << to_ports << port_range << comment_option);
 
-    insert_iptables_rule(nat, QStringList() << POSTROUTING << dash_s << cidr << exclamation << dash_d << cidr << dash_j
-                                            << MASQUERADE << comment_option);
+    insert_iptables_rule(nat, POSTROUTING,
+                         QStringList() << source << cidr << negate << destination << cidr << jump << MASQUERADE
+                                       << comment_option);
 
     // Allow established traffic to the private subnet
-    insert_iptables_rule(filter, QStringList()
-                                     << FORWARD << dash_d << cidr << dash_o << bridge_name << dash_m
-                                     << QStringLiteral("conntrack") << QStringLiteral("--ctstate")
-                                     << QStringLiteral("RELATED,ESTABLISHED") << dash_j << ACCEPT << comment_option);
+    insert_iptables_rule(filter, FORWARD,
+                         QStringList() << destination << cidr << out_interface << bridge_name << match
+                                       << QStringLiteral("conntrack") << QStringLiteral("--ctstate")
+                                       << QStringLiteral("RELATED,ESTABLISHED") << jump << ACCEPT << comment_option);
 
     // Allow outbound traffic from the private subnet
-    insert_iptables_rule(filter, QStringList() << FORWARD << dash_s << cidr << dash_i << bridge_name << dash_j << ACCEPT
-                                               << comment_option);
+    insert_iptables_rule(filter, FORWARD,
+                         QStringList() << source << cidr << in_interface << bridge_name << jump << ACCEPT
+                                       << comment_option);
 
     // Allow traffic between virtual machines
-    insert_iptables_rule(filter, QStringList() << FORWARD << dash_i << bridge_name << dash_o << bridge_name << dash_j
-                                               << ACCEPT << comment_option);
+    insert_iptables_rule(filter, FORWARD,
+                         QStringList() << in_interface << bridge_name << out_interface << bridge_name << jump << ACCEPT
+                                       << comment_option);
 
     // Reject everything else
-    insert_iptables_rule(filter, QStringList() << FORWARD << dash_i << bridge_name << dash_j << REJECT << reject_with
-                                               << icmp_port_unreachable << comment_option);
+    insert_iptables_rule(filter, FORWARD,
+                         QStringList() << in_interface << bridge_name << jump << REJECT << reject_with
+                                       << icmp_port_unreachable << comment_option);
 
-    insert_iptables_rule(filter, QStringList() << FORWARD << dash_o << bridge_name << dash_j << REJECT << reject_with
-                                               << icmp_port_unreachable << comment_option);
+    insert_iptables_rule(filter, FORWARD,
+                         QStringList() << out_interface << bridge_name << jump << REJECT << reject_with
+                                       << icmp_port_unreachable << comment_option);
 }
 
 void clear_iptables_rules_for(const QString& table, const QString& bridge_name, const QString& cidr,
@@ -217,7 +232,10 @@ void clear_iptables_rules_for(const QString& table, const QString& bridge_name, 
     {
         if (rule.contains(comment) || rule.contains(bridge_name) || rule.contains(cidr))
         {
+            // Remove the policy type since delete doesn't use that
             rule.remove(0, 3);
+
+            // Pass the chain and rule wholesale since we capture the whole line
             delete_iptables_rule(table, QStringList() << rule);
         }
     }
