@@ -47,6 +47,7 @@ apps:
     daemon: simple
     plugs:
       - kvm
+      - libvirt
       - multipass-support
       - network-bind
       - network-control
