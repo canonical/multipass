@@ -56,7 +56,8 @@ QString find_desktop_target()
             detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
 
         throw mp::AutostartSetupException{
-            fmt::format("could not locate the autostart .desktop file '{}'", autostart_filename), detail.toStdString()};
+            fmt::format("could not locate the autostart .desktop file '{}'", autostart_filename),
+            fmt::format("Tried: {}", detail.toStdString())};
     }
 
     return target_path;
@@ -80,8 +81,8 @@ void mp::platform::setup_gui_autostart_prerequisites()
     {
         autostart_dir.mkpath(".");
         if (!QFile{target_path}.link(link_path))
-            throw std::runtime_error(fmt::format("failed to link file '{}' to '{}': {}({})", link_path, target_path,
-                                                 strerror(errno), errno));
+            throw AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
+                                          fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
     }
 }
 
