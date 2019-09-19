@@ -251,12 +251,12 @@ bool mp::platform::is_image_url_supported()
     return check_unlock_code();
 }
 
-void mp::platform::emit_signal_when_parent_dies(int /*sig*/)
+void mp::platform::emit_signal_when_parent_dies()
 {
     // NO-OP, instead use WindowsProcess which will reap children if parent dies
 }
 
-int mp::platform::wait_for_signals(const std::vector<int>& sigs)
+int mp::platform::wait_for_quit_signals()
 {
     HANDLE hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr);
 
