@@ -17,9 +17,14 @@
 
 #include "sshfs_server_process_spec.h"
 
+#include <multipass/snap_utils.h>
+
 #include <QCoreApplication>
+#include <QCryptographicHash>
+#include <QDir>
 
 namespace mp = multipass;
+namespace mu = multipass::utils;
 
 namespace
 {
@@ -32,9 +37,17 @@ QString serialise_id_map(const std::unordered_map<int, int>& id_map)
     }
     return out;
 }
+
+QByteArray gen_hash(const std::string& path)
+{
+    // need to return unique name for each mount.  The target directory string will be unique,
+    // so hash it and return first 8 hex chars.
+    return QCryptographicHash::hash(QByteArray::fromStdString(path), QCryptographicHash::Sha256).toHex().left(8);
+}
 } // namespace
 
-mp::SSHFSServerProcessSpec::SSHFSServerProcessSpec(const SSHFSServerConfig& config) : config(config)
+mp::SSHFSServerProcessSpec::SSHFSServerProcessSpec(const SSHFSServerConfig& config)
+    : config(config), target_hash(gen_hash(config.source_path))
 {
 }
 
@@ -65,5 +78,69 @@ mp::logging::Level mp::SSHFSServerProcessSpec::error_log_level() const
 
 QString mp::SSHFSServerProcessSpec::apparmor_profile() const
 {
-    return QString();
+    QString profile_template(R"END(
+#include <tunables/global>
+profile %1 flags=(attach_disconnected) {
+    #include <abstractions/base>
+    #include <abstractions/nameservice>
+
+    # Sshfs_server requires broad filesystem altering permissions, but only for the
+    # host directory the user has specified to be shared with the VM.
+
+    # Required for reading and searching host directories
+    capability dac_override,
+    capability dac_read_search,
+    # Enables modifying of file ownership and permissions
+    capability chown,
+    capability fsetid,
+    capability fowner,
+    # Multipass allows user to specify arbitrary uid/gid mappings
+    capability setuid,
+    capability setgid,
+
+    # Allow multipassd send sshfs_server signals
+    signal (receive) peer=%2,
+
+    # sshfs gathers some info about system resources
+    /sys/devices/system/node/ r,
+    /sys/devices/system/node/node[0-9]*/meminfo r,
+
+    # binary and its libs
+    %3/bin/sshfs_server ixr,
+    %3/{usr/,}lib/** rm,
+
+    # CLASSIC ONLY: need to specify required libs from core snap
+    /snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
+
+    # allow full access just to this user-specified source directory on the host
+    %4/ rw,
+    %4/** rwlk,
+}
+    )END");
+
+    /* Customisations depending on if running inside snap or not */
+    QString root_dir; // sshfs_server is a multipass utility, is located relative to the multipassd binary if not in a
+                      // snap. If snapped, is located relative to $SNAP
+    QString signal_peer; // if snap confined, specify only multipassd can kill dnsmasq
+
+    if (mu::is_snap())
+    {
+        root_dir = mu::snap_dir();
+        signal_peer = "snap.multipass.multipassd";
+    }
+    else
+    {
+        QDir application_dir(QCoreApplication::applicationDirPath());
+        application_dir.cdUp();
+        root_dir = application_dir.absolutePath();
+        signal_peer = "unconfined";
+    }
+
+    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir,
+                                QString::fromStdString(config.source_path));
+}
+
+QString mp::SSHFSServerProcessSpec::identifier() const
+{
+    return QString::fromStdString(config.instance) + "." + target_hash;
 }
