@@ -27,7 +27,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-// QString constants for all if the different iptables calls
+// QString constants for all of the different iptables calls
 const QString iptables{QStringLiteral("iptables")};
 const QString exclamation{QStringLiteral("!")};
 
