@@ -17,9 +17,12 @@
 #ifndef MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
 
+#include "libvirt_wrapper.h"
+
 #include <multipass/virtual_machine_factory.h>
 
 #include <memory>
+#include <string>
 
 namespace multipass
 {
@@ -44,6 +47,7 @@ public:
         return {};
     };
     QString get_backend_version_string() override;
+    LibvirtWrapper libvirt_wrapper;
 
 private:
     const Path data_dir;

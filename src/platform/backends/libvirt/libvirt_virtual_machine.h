@@ -18,12 +18,12 @@
 #ifndef MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_H
 #define MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_H
 
+#include "libvirt_wrapper.h"
+
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <libvirt/libvirt.h>
 
 namespace multipass
 {
@@ -37,7 +37,7 @@ public:
     using NetworkUPtr = std::unique_ptr<virNetwork, decltype(virNetworkFree)*>;
 
     LibVirtVirtualMachine(const VirtualMachineDescription& desc, const std::string& bridge_name,
-                          VMStatusMonitor& monitor);
+                          VMStatusMonitor& monitor, LibvirtWrapper& libvirt_wrapper);
     ~LibVirtVirtualMachine();
 
     void start() override;
@@ -54,7 +54,7 @@ public:
     void ensure_vm_is_running() override;
     void update_state() override;
 
-    static ConnectionUPtr open_libvirt_connection();
+    static ConnectionUPtr open_libvirt_connection(LibvirtWrapper& libvirt_wrapper);
 
 private:
     DomainUPtr initialize_domain_info(virConnectPtr connection);
@@ -65,6 +65,7 @@ private:
     optional<IPAddress> ip;
     VMStatusMonitor* monitor;
     const std::string bridge_name;
+    LibvirtWrapper libvirt_wrapper;
     bool update_suspend_status{true};
 };
 } // namespace multipass

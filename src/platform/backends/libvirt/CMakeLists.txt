@@ -1,4 +1,4 @@
-#Copyright © 2018 Canonical Ltd.
+#Copyright © 2018-2019 Canonical Ltd.
 #
 #This program is free software : you can redistribute it and / or modify
 #it under the terms of the GNU General Public License version 3 as
@@ -19,7 +19,8 @@ pkg_check_modules(LIBVIRT libvirt REQUIRED)
 function(add_libvirt_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     libvirt_virtual_machine_factory.cpp
-    libvirt_virtual_machine.cpp)
+    libvirt_virtual_machine.cpp
+    libvirt_wrapper.cpp)
 
   target_include_directories(${TARGET_NAME} PRIVATE ${LIBVIRT_INCLUDE_DIRS})
   target_link_libraries(${TARGET_NAME}
@@ -29,7 +30,7 @@ function(add_libvirt_target TARGET_NAME)
     shared_linux
     ssh
     utils
-    ${LIBVIRT_LIBRARIES})
+    ${CMAKE_DL_LIBS})
 endfunction()
 
 add_libvirt_target(libvirt_backend)
