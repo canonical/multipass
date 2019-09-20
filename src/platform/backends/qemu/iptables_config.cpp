@@ -43,7 +43,6 @@ const QString POSTROUTING{QStringLiteral("POSTROUTING")};
 const QString FORWARD{QStringLiteral("FORWARD")};
 
 //   option constants
-const QString check_rule{QStringLiteral("--check")};
 const QString destination{QStringLiteral("--destination")};
 const QString delete_rule{QStringLiteral("--delete")};
 const QString in_interface{QStringLiteral("--in-interface")};
@@ -85,24 +84,8 @@ auto multipass_iptables_comment(const QString& bridge_name)
     return QString("generated for Multipass network %1").arg(bridge_name);
 }
 
-auto iptables_rule_exists(const QString& table, const QString& chain, const QStringList& rule)
-{
-    auto process = mp::ProcessFactory::instance().create_process(
-        iptables, QStringList() << dash_t << table << check_rule << chain << rule);
-
-    auto exit_state = process->execute();
-
-    return exit_state.completed_successfully();
-}
-
 void insert_iptables_rule(const QString& table, const QString& chain, const QStringList& rule)
 {
-    // Check if rule already exists in the table
-    if (iptables_rule_exists(table, chain, rule))
-    {
-        return;
-    }
-
     auto process = mp::ProcessFactory::instance().create_process(
         iptables, QStringList() << wait << dash_t << table << insert_rule << chain << rule);
 
