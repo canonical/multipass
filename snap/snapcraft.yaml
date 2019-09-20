@@ -1,6 +1,6 @@
 name: multipass
 title: Multipass
-icon: snap/gui/multipass-gui.svg
+icon: data/multipass.gui.svg
 summary: Instant Ubuntu VMs
 description: |
   Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that
@@ -55,6 +55,7 @@ apps:
   gui:
     environment: *client-environment
     command: bin/launch-multipass-gui
+    desktop: usr/share/applications/multipass.gui.desktop
     autostart: multipass.gui.autostart.desktop
 
 parts:
@@ -99,6 +100,7 @@ parts:
       VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
       snapcraftctl set-version ${VERSION}
       snapcraftctl set-grade $( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+$' && echo stable || echo devel )
+      sed -i -e 's@^Icon=@Icon=/usr/share/icons/hicolor/scalable/apps/@' ${SNAPCRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
 
   qemu:
     plugin: nil
