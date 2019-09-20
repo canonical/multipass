@@ -25,6 +25,7 @@
 #include "src/platform/backends/qemu/qemu_virtual_machine_factory.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/platform.h>
 
 #include <QDir>
@@ -142,7 +143,7 @@ TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
     const auto guard_xdg = temporarily_change_env("XDG_DATA_DIRS", "/dadgad/bad/dir");
     const auto guard_home = temporarily_change_env("HOME", "dadgbd/bad/too");
 
-    EXPECT_THROW(mp::platform::setup_gui_autostart_prerequisites(), std::runtime_error);
+    EXPECT_THROW(mp::platform::setup_gui_autostart_prerequisites(), mp::AutostartSetupException);
 }
 
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
