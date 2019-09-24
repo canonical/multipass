@@ -193,10 +193,11 @@ TEST_F(PlatformLinux, test_autostart_setup_replaces_wrong_link)
 
         const auto bad_filename = autostart_dir.filePath("wrong_file");
         QFile bad_file{bad_filename};
-        {
-            EXPECT_TRUE(bad_file.open(QIODevice::WriteOnly)); // create desktop file to link against
-            bad_file.write("bad contents");
-        }
+
+        EXPECT_TRUE(bad_file.open(QIODevice::WriteOnly)); // create desktop file to link against
+        bad_file.write("bad contents");
+        bad_file.close();
+
         bad_file.link(autostart_dir.filePath(autostart_filename)); // link to a bad file
 
         mp::platform::setup_gui_autostart_prerequisites();
