@@ -182,6 +182,31 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
     }
 }
 
+TEST_F(PlatformLinux, test_autostart_setup_replaces_wrong_link)
+{
+    try
+    {
+        const auto& [autostart_dir, autostart_filename, autostart_contents, guards] =
+            setup_autostart_desktop_file_test();
+
+        ASSERT_FALSE(HasFailure()) << "autostart test setup failed";
+
+        const auto bad_filename = autostart_dir.filePath("wrong_file");
+        QFile bad_file{bad_filename};
+        {
+            EXPECT_TRUE(bad_file.open(QIODevice::WriteOnly)); // create desktop file to link against
+            bad_file.write("bad contents");
+        }
+        bad_file.link(autostart_dir.filePath(autostart_filename)); // link to a bad file
+
+        mp::platform::setup_gui_autostart_prerequisites();
+        check_autostart_file(autostart_dir, autostart_filename, autostart_contents);
+    }
+    catch (autostart_test_setup_error& e)
+    {
+        FAIL() << e.what();
+    }
+}
 TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
 {
     const auto guard_xdg = temporarily_change_env("XDG_DATA_DIRS", "/dadgad/bad/dir");
