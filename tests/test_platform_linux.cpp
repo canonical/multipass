@@ -124,6 +124,17 @@ auto setup_autostart_desktop_file_test()
     return autostart_test_record{autostart_dir, autostart_filename, autostart_contents, std::move(guards)};
 }
 
+void check_autostart_file(const QDir& autostart_dir, const QString& autostart_filename,
+                          const QString& autostart_contents)
+{
+    QFile f{autostart_dir.filePath(autostart_filename)};
+    ASSERT_TRUE(f.exists());
+    ASSERT_TRUE(f.open(QIODevice::ReadOnly | QIODevice::Text));
+
+    auto actual_contents = QString{f.readAll()};
+    EXPECT_EQ(actual_contents, autostart_contents);
+}
+
 struct PlatformLinux : public mpt::TestWithMockedBinPath
 {
     template <typename VMFactoryType>
@@ -163,13 +174,7 @@ TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
         ASSERT_FALSE(HasFailure()) << "autostart test setup failed";
 
         mp::platform::setup_gui_autostart_prerequisites();
-
-        QFile f{autostart_dir.filePath(autostart_filename)};
-        ASSERT_TRUE(f.exists());
-        ASSERT_TRUE(f.open(QIODevice::ReadOnly | QIODevice::Text));
-
-        auto actual_contents = QString{f.readAll()};
-        EXPECT_EQ(actual_contents, autostart_contents);
+        check_autostart_file(autostart_dir, autostart_filename, autostart_contents);
     }
     catch (autostart_test_setup_error& e)
     {
