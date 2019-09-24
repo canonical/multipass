@@ -77,10 +77,19 @@ void mp::platform::setup_gui_autostart_prerequisites()
     const auto link_path = autostart_dir.absoluteFilePath(autostart_filename);
     const auto target_path = find_desktop_target();
 
-    if (!QFile(link_path).exists())
+    const auto link_info = QFileInfo{link_path};
+    const auto target_info = QFileInfo{target_path};
+    auto target_file = QFile{target_path};
+    auto link_file = QFile{link_path};
+
+    if (link_info.isSymLink() && link_info.symLinkTarget() != target_info.absoluteFilePath())
+        link_file.remove(); // get rid of outdated and broken links
+
+    if (!link_file.exists())
     {
         autostart_dir.mkpath(".");
-        if (!QFile{target_path}.link(link_path))
+        if (!target_file.link(link_path))
+
             throw AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
                                           fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
     }
