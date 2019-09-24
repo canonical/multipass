@@ -62,6 +62,68 @@ auto temporarily_change_env(const char* var_name, QByteArray var_value)
     return guard;
 }
 
+template <typename Guards>
+struct autostart_test_record
+{
+    autostart_test_record(const QDir& autostart_dir, const QString& autostart_filename,
+                          const QString& autostart_contents, Guards&& guards)
+        : autostart_dir{autostart_dir},
+          autostart_filename{autostart_filename},
+          autostart_contents{autostart_contents},
+          guards{std::forward<Guards>(guards)} // this should always move, since scope guards are not copyable
+    {
+    }
+
+    QDir autostart_dir;
+    QString autostart_filename;
+    QString autostart_contents;
+    Guards guards;
+};
+
+struct autostart_test_setup_error : public std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
+
+auto setup_autostart_desktop_file_test()
+{
+    QDir test_dir{QDir::temp().filePath(QString{"%1_%2"}.arg(mp::client_name, "autostart_test"))};
+    if (test_dir.exists() || QFile{test_dir.path()}.exists()) // avoid touching this at all if it already exists
+        throw autostart_test_setup_error{fmt::format("Test dir or file already exists: {}", test_dir.path())}; /*
+                           use exception to abort the test, since ASSERTS only work in void-returning functions */
+
+    // Now mock filesystem tree and environment, reverting when done
+
+    auto guard_fs = sg::make_scope_guard([test_dir]() mutable {
+        test_dir.removeRecursively(); // succeeds if not there
+    });
+
+    QDir data_dir{test_dir.filePath("data")};
+    QDir config_dir{test_dir.filePath("config")};
+    auto guard_home = temporarily_change_env("HOME", "hide/me");
+    auto guard_xdg_config = temporarily_change_env("XDG_CONFIG_HOME", config_dir.path().toLatin1());
+    auto guard_xdg_data = temporarily_change_env("XDG_DATA_DIRS", data_dir.path().toLatin1());
+
+    QDir mp_data_dir{data_dir.filePath(mp::client_name)};
+    QDir autostart_dir{config_dir.filePath("autostart")};
+    EXPECT_TRUE(mp_data_dir.mkpath("."));   // this is where the directories are actually created
+    EXPECT_TRUE(autostart_dir.mkpath(".")); // idem
+
+    const auto autostart_filename = mp::platform::autostart_test_data();
+    const auto autostart_filepath = mp_data_dir.filePath(autostart_filename);
+    const auto autostart_contents = "Exec=multipass.gui --autostarting\n";
+
+    {
+        QFile autostart_file{autostart_filepath};
+        EXPECT_TRUE(autostart_file.open(QIODevice::WriteOnly)); // create desktop file to link against
+        EXPECT_EQ(autostart_file.write(autostart_contents), qstrlen(autostart_contents));
+    }
+
+    auto guards = std::make_tuple(std::move(guard_home), std::move(guard_xdg_config), std::move(guard_xdg_data),
+                                  std::move(guard_fs));
+    return autostart_test_record{autostart_dir, autostart_filename, autostart_contents, std::move(guards)};
+}
+
 struct PlatformLinux : public mpt::TestWithMockedBinPath
 {
     template <typename VMFactoryType>
@@ -93,49 +155,26 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
 
 TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 {
-    // Test setup
-    // Mock filesystem tree and environment
-
-    QDir test_dir{QDir::temp().filePath(QString{"%1_%2"}.arg(mp::client_name, "autostart_test"))};
-    ASSERT_FALSE(test_dir.exists());
-
-    QDir data_dir{test_dir.filePath("data")};
-    QDir config_dir{test_dir.filePath("config")};
-    const auto guard_home = temporarily_change_env("HOME", "hide/me");
-    const auto guard_xdg_config = temporarily_change_env("XDG_CONFIG_HOME", config_dir.path().toLatin1());
-    const auto guard_xdg_data = temporarily_change_env("XDG_DATA_DIRS", data_dir.path().toLatin1());
-
-    const auto cleanup = sg::make_scope_guard([&test_dir]() {
-        test_dir.removeRecursively(); // succeeds if not there
-    });
-
-    QDir mp_data_dir{data_dir.filePath(mp::client_name)};
-    QDir autostart_dir{config_dir.filePath("autostart")};
-    ASSERT_TRUE(mp_data_dir.mkpath("."));
-    ASSERT_TRUE(autostart_dir.mkpath("."));
-
-    const auto desktop_filename = mp::platform::autostart_test_data();
-    const auto desktop_filepath = mp_data_dir.filePath(desktop_filename);
-    const auto autostart_contents = "Exec=multipass.gui --autostarting\n";
-
+    try
     {
-        QFile desktop_file{desktop_filepath};
-        ASSERT_TRUE(desktop_file.open(QIODevice::WriteOnly)); // create desktop file to link against
-        EXPECT_EQ(desktop_file.write(autostart_contents), qstrlen(autostart_contents));
+        const auto& [autostart_dir, autostart_filename, autostart_contents, guards] =
+            setup_autostart_desktop_file_test();
+
+        ASSERT_FALSE(HasFailure()) << "autostart test setup failed";
+
+        mp::platform::setup_gui_autostart_prerequisites();
+
+        QFile f{autostart_dir.filePath(autostart_filename)};
+        ASSERT_TRUE(f.exists());
+        ASSERT_TRUE(f.open(QIODevice::ReadOnly | QIODevice::Text));
+
+        auto actual_contents = QString{f.readAll()};
+        EXPECT_EQ(actual_contents, autostart_contents);
     }
-
-    // Test setup done
-    // Actual tests follows
-
-    mp::platform::setup_gui_autostart_prerequisites();
-    const auto expected_autostart_path = autostart_dir.filePath(desktop_filename);
-
-    QFile f{expected_autostart_path};
-    ASSERT_TRUE(f.exists());
-    ASSERT_TRUE(f.open(QIODevice::ReadOnly | QIODevice::Text));
-
-    auto actual_contents = QString{f.readAll()};
-    EXPECT_EQ(actual_contents, autostart_contents);
+    catch (autostart_test_setup_error& e)
+    {
+        FAIL() << e.what();
+    }
 }
 
 TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
