@@ -117,6 +117,7 @@ if (MSVC)
   # about missing EVENT ID sources, which makes it harder to read the log entries.
   # The App Paths registry entries are to register multipass.exe as a valid command that can be called via ShellExecute
   # The Run key is to autostart the gui - explicit WOW6432Node as it'd go there anyway - see https://is.gd/lMTxdb
+  # create shortcut installs a start-menu item for the multipass gui
   SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
     "
     WriteRegStr HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass' 'EventMessageFile' '%SystemRoot%\\\\\\\\System32\\\\EventCreate.exe'
@@ -125,6 +126,7 @@ if (MSVC)
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' 'Path' '$INSTDIR\\\\bin'
     WriteRegStr HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui' '$INSTDIR\\\\bin\\\\multipass.gui.exe --autostarting'
     nsExec::ExecToLog '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /install'
+    CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass.gui.exe'
     "
   )
 
@@ -144,6 +146,7 @@ if (MSVC)
     StrCpy $REMOVE_SETTINGS_AND_CACHE 1
 
     basic_uninst:
+    Delete '$SMPROGRAMS\\\\Multipass.lnk'
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
     DeleteRegKey HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass'
     DeleteRegKey HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe'
