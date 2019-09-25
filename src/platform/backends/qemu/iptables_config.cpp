@@ -46,6 +46,7 @@ const QString FORWARD{QStringLiteral("FORWARD")};
 const QString destination{QStringLiteral("--destination")};
 const QString delete_rule{QStringLiteral("--delete")};
 const QString in_interface{QStringLiteral("--in-interface")};
+const QString append_rule{QStringLiteral("--append")};
 const QString insert_rule{QStringLiteral("--insert")};
 const QString jump{QStringLiteral("--jump")};
 const QString match{QStringLiteral("--match")};
@@ -88,6 +89,18 @@ void insert_iptables_rule(const QString& table, const QString& chain, const QStr
 {
     auto process = mp::ProcessFactory::instance().create_process(
         iptables, QStringList() << wait << dash_t << table << insert_rule << chain << rule);
+
+    auto exit_state = process->execute();
+
+    if (!exit_state.completed_successfully())
+        throw std::runtime_error(
+            fmt::format("Failed to set iptables rule for table {}: {}", table, process->read_all_standard_error()));
+}
+
+void append_iptables_rule(const QString& table, const QString& chain, const QStringList& rule)
+{
+    auto process = mp::ProcessFactory::instance().create_process(
+        iptables, QStringList() << wait << dash_t << table << append_rule << chain << rule);
 
     auto exit_state = process->execute();
 
@@ -197,11 +210,11 @@ void set_iptables_rules(const QString& bridge_name, const QString& cidr, const Q
                                        << comment_option);
 
     // Reject everything else
-    insert_iptables_rule(filter, FORWARD,
+    append_iptables_rule(filter, FORWARD,
                          QStringList() << in_interface << bridge_name << jump << REJECT << reject_with
                                        << icmp_port_unreachable << comment_option);
 
-    insert_iptables_rule(filter, FORWARD,
+    append_iptables_rule(filter, FORWARD,
                          QStringList() << out_interface << bridge_name << jump << REJECT << reject_with
                                        << icmp_port_unreachable << comment_option);
 }
