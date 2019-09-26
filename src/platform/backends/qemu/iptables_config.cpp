@@ -232,6 +232,7 @@ mp::IPTablesConfig::IPTablesConfig(const QString& bridge_name, const std::string
 {
     try
     {
+        clear_all_iptables_rules();
         set_iptables_rules(bridge_name, cidr, comment);
     }
     catch (const std::exception& e)
