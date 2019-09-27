@@ -60,11 +60,8 @@ QString cmd::Get::short_help() const
 
 QString cmd::Get::description() const
 {
-    auto desc = QStringLiteral("Get the configuration setting corresponding to the given key.\n\n"
-                               "Keys:");
-    const auto keys = Settings::instance().keys();
-
-    return std::accumulate(cbegin(keys), cend(keys), desc, [](const auto& a, const auto& b) { return a + "\n  " + b; });
+    auto desc = QStringLiteral("Get the configuration setting corresponding to the given key.");
+    return desc + "\n\n" + describe_settings_keys();
 }
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
