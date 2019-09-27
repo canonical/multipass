@@ -25,6 +25,7 @@
 #include <QVariant>
 
 #include <map>
+#include <set>
 
 namespace multipass
 {
@@ -33,6 +34,7 @@ class Settings : public Singleton<Settings>
 public:
     Settings(const Singleton<Settings>::PrivatePass&);
 
+    std::set<QString> keys() const;
     virtual QString get(const QString& key) const;            // throws on unknown key
     virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
 
