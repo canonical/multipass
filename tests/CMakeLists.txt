@@ -18,7 +18,7 @@ set (CMAKE_AUTOMOC ON)
 list(APPEND CMOCK_TARGETS
   ssh_test
   sshfs_mount_test
-  scp_test
+  sftp_test
   ssh_client_test)
 
 set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
@@ -93,7 +93,6 @@ add_executable(multipass_tests
   main.cpp
   mischievous_url_downloader.cpp
   mock_process_factory.cpp
-  mock_scp.cpp
   mock_settings.cpp
   mock_sftp.cpp
   mock_sftpserver.cpp
@@ -124,7 +123,6 @@ add_executable(multipass_tests
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_singleton.cpp
-  test_scp_client.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
   test_ssl_cert_provider.cpp
@@ -160,7 +158,7 @@ target_compile_definitions(ssh_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(sshfs_mount_test PRIVATE
   ${c_mock_defines})
-target_compile_definitions(scp_test PRIVATE
+target_compile_definitions(sftp_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
@@ -176,7 +174,7 @@ target_link_libraries(multipass_tests
   metrics
   petname
   simplestreams
-  scp_test
+  sftp_test
   ssh_test
   ssh_client_test
   sshfs_mount_test

@@ -20,7 +20,6 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
-#include <multipass/ssh/scp_client.h>
 #include <multipass/ssh/sftp_client.h>
 
 #include <QDir>
@@ -69,9 +68,10 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 
             try
             {
+                mp::SFTPClient sftp_client{host, port, username, priv_key_blob};
+
                 if (streaming_enabled)
                 {
-                    mp::SFTPClient sftp_client{host, port, username, priv_key_blob};
                     if (destination.first.empty())
                         sftp_client.stream_file(source.second, term->cout());
                     else
@@ -79,12 +79,10 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
                 }
                 else
                 {
-                    // TODO: Switch to using SFTPClient push/pull
-                    mp::SCPClient scp_client{host, port, username, priv_key_blob};
                     if (!destination.first.empty())
-                        scp_client.push_file(source.second, destination.second);
+                        sftp_client.push_file(source.second, destination.second);
                     else
-                        scp_client.pull_file(source.second, destination.second);
+                        sftp_client.pull_file(source.second, destination.second);
                 }
             }
             catch (const std::exception& e)

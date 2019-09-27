@@ -41,7 +41,7 @@ add_library(commands STATIC
 target_link_libraries(commands
   client_common
   client_platform
-  scp_client
+  sftp_client
   ssh_client
   rpc
   Qt5::Core
