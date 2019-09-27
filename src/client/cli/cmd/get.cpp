@@ -55,17 +55,17 @@ std::string cmd::Get::name() const
 
 QString cmd::Get::short_help() const
 {
-    return QStringLiteral("Get a configuration option");
+    return QStringLiteral("Get a configuration setting");
 }
 
 QString cmd::Get::description() const
 {
-    return QStringLiteral("Get the configuration option corresponding to the given key");
+    return QStringLiteral("Get the configuration setting corresponding to the given key");
 }
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("key", "Path to the option whose configured value should be obtained.", "<key>");
+    parser->addPositionalArgument("key", "Path to the setting whose configured value should be obtained.", "<key>");
 
     auto status = parser->commandParse(this);
     if (status == ParseCode::Ok)
@@ -77,7 +77,7 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
         }
         else
         {
-            cerr << "Need exactly one option key.\n";
+            cerr << "Need exactly one setting key.\n";
             status = ParseCode::CommandLineError;
         }
     }
