@@ -120,14 +120,24 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    if (reply.instances().empty())
+    auto instances = reply.instances();
+
+    if (instances.empty())
         return "No instances found.\n";
 
-    fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", "Name", "State", "IPv4", "Image");
+    auto max_instance_name_length = std::max_element(instances.begin(), instances.end(),
+        [] (auto &lhs, auto &rhs) { return lhs.name().length() < rhs.name().length(); })->name().length();
+
+    auto name_column_width = max_instance_name_length + 1;
+
+    if (name_column_width < 24)
+        name_column_width = 24;
+
+    fmt::format_to(buf, "{:<{}}{:<18}{:<17}{:<}\n", "Name", name_column_width, "State", "IPv4", "Image");
 
     for (const auto& instance : format::sorted(reply.instances()))
     {
-        fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", instance.name(),
+        fmt::format_to(buf, "{:<{}}{:<18}{:<17}{:<}\n", instance.name(), name_column_width,
                        mp::format::status_string_for(instance.instance_status()),
                        instance.ipv4().empty() ? "--" : instance.ipv4(),
                        instance.current_release().empty() ? "Not Available"
