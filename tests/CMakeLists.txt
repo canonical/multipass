@@ -108,6 +108,7 @@ add_executable(multipass_tests
   test_cli_client.cpp
   test_client_cert_store.cpp
   test_cloud_init_iso.cpp
+  test_constants.cpp
   test_custom_image_host.cpp
   test_daemon.cpp
   test_delayed_shutdown.cpp
