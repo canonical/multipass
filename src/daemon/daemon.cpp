@@ -177,7 +177,9 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
                                               YAML::Node& user_data_config, YAML::Node& vendor_data_config)
 {
-    const auto num_cores = request->num_cores() < std::stoi(multipass::min_cpu_cores) ? std::stoi(multipass::default_cpu_cores) : request->num_cores();
+    const auto num_cores = request->num_cores() < std::stoi(multipass::min_cpu_cores)
+                               ? std::stoi(multipass::default_cpu_cores)
+                               : request->num_cores();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);

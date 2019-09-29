@@ -88,17 +88,20 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",
-                                                                     min_cpu_cores, default_cpu_cores)), "cpus", QString::fromUtf8(default_cpu_cores));
-    QCommandLineOption diskOption({"d", "disk"},
-                                  QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
-                                                                     "bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
-                                                                     min_disk_size, default_disk_size)),
-                                  "disk", QString::fromUtf8(default_disk_size));
-    QCommandLineOption memOption({"m", "mem"},
-                                 QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
-                                                                    "in bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
-                                                                    min_memory_size, default_memory_size)),
-                                 "mem", QString::fromUtf8(default_memory_size)); // In MB's
+                                                                     min_cpu_cores, default_cpu_cores)),
+                                  "cpus", QString::fromUtf8(default_cpu_cores));
+    QCommandLineOption diskOption(
+        {"d", "disk"},
+        QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
+                                           "bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
+                                           min_disk_size, default_disk_size)),
+        "disk", QString::fromUtf8(default_disk_size));
+    QCommandLineOption memOption(
+        {"m", "mem"},
+        QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
+                                           "in bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
+                                           min_memory_size, default_memory_size)),
+        "mem", QString::fromUtf8(default_memory_size)); // In MB's
     QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
