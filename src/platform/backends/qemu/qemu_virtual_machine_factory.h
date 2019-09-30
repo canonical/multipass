@@ -18,9 +18,14 @@
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 
 #include "dnsmasq_server.h"
+#include "iptables_config.h"
 
+#include <multipass/path.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include <QString>
+
+#include <string>
 #include <unordered_map>
 
 namespace multipass
@@ -47,7 +52,10 @@ public:
 
 private:
     const QString bridge_name;
+    const Path network_dir;
+    const std::string subnet;
     DNSMasqServer dnsmasq_server;
+    IPTablesConfig iptables_config;
     std::unordered_map<std::string, std::string> name_to_mac_map;
 };
 } // namespace multipass

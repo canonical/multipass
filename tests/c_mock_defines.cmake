@@ -65,7 +65,6 @@ add_c_mocks(
   sftp_init
   sftp_open
   sftp_write
-  sftp_stat
   sftp_read
   sftp_free
   sftp_get_error
