@@ -33,7 +33,7 @@ set(CPACK_COMPONENTS_ALL multipassd multipass multipass_gui)
 set(CPACK_COMPONENT_MULTIPASSD_DISPLAY_NAME "Multipass Daemon")
 set(CPACK_COMPONENT_MULTIPASSD_DESCRIPTION
    "Background process that creates and manages virtual machines")
-set(CPACK_COMPONENT_MULTIPASS_DISPLAY_NAME "Command line tooling (multipass)")
+set(CPACK_COMPONENT_MULTIPASS_DISPLAY_NAME "Clients (CLI and GUI)")
 set(CPACK_COMPONENT_MULTIPASS_DESCRIPTION
    "Command line tool to talk to the multipass daemon")
 set(CPACK_COMPONENT_MULTIPASS_GUI_DISPLAY_NAME "Multipass Status Menu")
