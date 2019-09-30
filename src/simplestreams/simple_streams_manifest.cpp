@@ -17,6 +17,8 @@
 
 #include <multipass/simple_streams_manifest.h>
 
+#include <multipass/format.h>
+
 #include <QFileInfo>
 #include <QHash>
 #include <QJsonDocument>
@@ -83,7 +85,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
     auto arch = arch_to_manifest.value(QSysInfo::currentCpuArchitecture());
 
     if (arch.isEmpty())
-        throw std::runtime_error("Unsupported cloud image architecture");
+        throw std::runtime_error(fmt::format("Unsupported cloud image architecture: {}", QSysInfo::currentCpuArchitecture());
 
     std::vector<VMImageInfo> products;
     for (const auto& value : manifest_products)
