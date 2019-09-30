@@ -18,7 +18,7 @@ set (CMAKE_AUTOMOC ON)
 list(APPEND CMOCK_TARGETS
   ssh_test
   sshfs_mount_test
-  scp_test
+  sftp_test
   ssh_client_test)
 
 include(c_mock_defines.cmake)
@@ -41,22 +41,21 @@ else()
     test_qemuimg_process_spec.cpp
     test_dnsmasq_server.cpp
     test_dnsmasq_process_spec.cpp
+    test_iptables_config.cpp
     test_libvirt_backend.cpp
     test_snap_utils.cpp)
 
-  set(PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
-
   add_executable(qemu-system-x86_64
-    mock_qemu_system.cpp)
+          mock_qemu_system.cpp)
 
   set_target_properties(qemu-system-x86_64
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+          PROPERTIES
+          RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+          RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+          RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
   target_link_libraries(qemu-system-x86_64
-    Qt5::Core)
+          Qt5::Core)
 
   add_executable(dnsmasq
     mock_dnsmasq_server.cpp)
@@ -88,24 +87,6 @@ else()
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-  add_executable(mock_process
-    mock_process.cpp)
-
-  set_target_properties(mock_process
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
-  add_executable(apparmor_parser
-    mock_apparmor_parser.cpp)
-
-  set_target_properties(apparmor_parser
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
   list(APPEND CMOCK_TARGETS libvirt_backend_test)
   target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
@@ -120,7 +101,6 @@ add_executable(multipass_tests
   main.cpp
   mischievous_url_downloader.cpp
   mock_process_factory.cpp
-  mock_scp.cpp
   mock_settings.cpp
   mock_sftp.cpp
   mock_sftpserver.cpp
@@ -154,7 +134,6 @@ add_executable(multipass_tests
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_singleton.cpp
-  test_scp_client.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
   test_ssl_cert_provider.cpp
@@ -190,7 +169,7 @@ target_compile_definitions(ssh_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(sshfs_mount_test PRIVATE
   ${c_mock_defines})
-target_compile_definitions(scp_test PRIVATE
+target_compile_definitions(sftp_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
@@ -205,7 +184,7 @@ target_link_libraries(multipass_tests
   metrics
   petname
   simplestreams
-  scp_test
+  sftp_test
   ssh_test
   ssh_client_test
   sshfs_mount_test

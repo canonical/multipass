@@ -17,6 +17,7 @@ set (CMAKE_AUTOMOC ON)
 add_library(qemu_backend STATIC
   dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
+  iptables_config.cpp
   qemu_vm_process_spec.cpp
   qemu_virtual_machine_factory.cpp
   qemu_virtual_machine.cpp)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +15,32 @@
  *
  */
 
-#include "mock_scp.h"
-extern "C" {
-IMPL_MOCK_DEFAULT(3, ssh_scp_new);
-IMPL_MOCK_DEFAULT(1, ssh_scp_free);
-IMPL_MOCK_DEFAULT(1, ssh_scp_init);
-IMPL_MOCK_DEFAULT(4, ssh_scp_push_file);
-IMPL_MOCK_DEFAULT(3, ssh_scp_write);
-IMPL_MOCK_DEFAULT(1, ssh_scp_pull_request);
-IMPL_MOCK_DEFAULT(1, ssh_scp_request_get_size);
-IMPL_MOCK_DEFAULT(1, ssh_scp_request_get_filename);
-IMPL_MOCK_DEFAULT(1, ssh_scp_accept_request);
-IMPL_MOCK_DEFAULT(3, ssh_scp_read);
-IMPL_MOCK_DEFAULT(1, ssh_scp_close);
-}
+#ifndef MULTIPASS_IPTABLES_CONFIG_H
+#define MULTIPASS_IPTABLES_CONFIG_H
+
+#include <string>
+
+#include <QString>
+
+namespace multipass
+{
+class IPTablesConfig
+{
+public:
+    IPTablesConfig(const QString& bridge_name, const std::string& subnet);
+    ~IPTablesConfig();
+
+    void verify_iptables_rules();
+
+private:
+    void clear_all_iptables_rules();
+
+    const QString bridge_name;
+    const QString cidr;
+    const QString comment;
+
+    bool iptables_error{false};
+    std::string error_string;
+};
+} // namespace multipass
+#endif // MULTIPASS_IPTABLES_CONFIG_H

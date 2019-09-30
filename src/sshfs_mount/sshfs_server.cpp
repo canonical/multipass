@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
         sshfs_mount.stop();
         exit(0);
     }
-    catch (const mp::SSHFSMissingError)
+    catch (const mp::SSHFSMissingError&)
     {
         cerr << "SSHFS was not found on the host: " << host << endl;
         exit(9);
