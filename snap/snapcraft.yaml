@@ -38,6 +38,7 @@ apps:
       XDG_CACHE_HOME: $SNAP_COMMON/cache
       XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
+      XTABLES_LIBDIR: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/xtables
     daemon: simple
   multipass:
     environment:
