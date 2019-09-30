@@ -125,21 +125,27 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     if (instances.empty())
         return "No instances found.\n";
 
-    auto max_instance_name_length = std::max_element(instances.begin(), instances.end(),
-        [] (auto &lhs, auto &rhs) { return lhs.name().length() < rhs.name().length(); })->name().length();
+    const std::string::size_type minimal_name_column_width = 24;
+    const std::string::size_type state_column_width = 18;
+    const std::string::size_type ip_column_width = 17;
+    const auto get_name_length = [](const auto& instance) { return instance.name().length(); };
 
-    auto name_column_width = max_instance_name_length + 1;
+    auto largest_name_it =
+        std::max_element(instances.begin(), instances.end(), [&get_name_length](auto& lhs, auto& rhs) {
+            return get_name_length(lhs) < get_name_length(rhs);
+        });
 
-    if (name_column_width < 24)
-        name_column_width = 24;
+    const auto name_column_width = std::max(get_name_length(*largest_name_it) + 1, minimal_name_column_width);
 
-    fmt::format_to(buf, "{:<{}}{:<18}{:<17}{:<}\n", "Name", name_column_width, "State", "IPv4", "Image");
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    fmt::format_to(buf, row_format, "Name", name_column_width, "State", state_column_width, "IPv4", ip_column_width,
+                   "Image");
 
     for (const auto& instance : format::sorted(reply.instances()))
     {
-        fmt::format_to(buf, "{:<{}}{:<18}{:<17}{:<}\n", instance.name(), name_column_width,
-                       mp::format::status_string_for(instance.instance_status()),
-                       instance.ipv4().empty() ? "--" : instance.ipv4(),
+        fmt::format_to(buf, row_format, instance.name(), name_column_width,
+                       mp::format::status_string_for(instance.instance_status()), state_column_width,
+                       instance.ipv4().empty() ? "--" : instance.ipv4(), ip_column_width,
                        instance.current_release().empty() ? "Not Available"
                                                           : fmt::format("Ubuntu {}", instance.current_release()));
     }
