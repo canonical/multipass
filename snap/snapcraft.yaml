@@ -13,14 +13,6 @@ adopt-info: multipass
 confinement: classic
 base: core18
 
-architectures:
-- build-on: amd64
-  run-on: amd64
-- build-on: armhf
-  run-on: armhf
-- build-on: arm64
-  run-on: arm64
-
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
@@ -61,8 +53,7 @@ parts:
   multipass:
     plugin: cmake
     build-packages:
-    - on arm64: [libgles2-mesa-dev]
-    - on armhf: [libgles2-mesa-dev]
+    - on arm64,armhf: [libgles2-mesa-dev]
     - build-essential
     - cmake-extras
     - git
@@ -74,9 +65,8 @@ parts:
     - qtbase5-dev
     - qtbase5-dev-tools
     stage-packages:
-    - on amd64: [libgl1]
-    - on armhf: [libgles2-mesa]
-    - on arm64: [libgles2-mesa]
+    - on arm64,armhf: [libgles2-mesa]
+    - else: [libgl1]
     - libpng16-16
     - libqt5core5a
     - libqt5gui5
@@ -104,9 +94,10 @@ parts:
     plugin: nil
     override-pull: ""
     stage-packages:
-    - on amd64: [qemu-system-x86]
-    - on armhf: [qemu-system-arm]
-    - on arm64: [qemu-system-arm]
+    - on amd64,i386: [qemu-system-x86]
+    - on arm64,armhf: [qemu-system-arm]
+    - on powerpc,ppc64el: [qemu-system-ppc]
+    - on s390x: [qemu-system-s390x]
     - qemu-utils
     - libslang2
     organize:
