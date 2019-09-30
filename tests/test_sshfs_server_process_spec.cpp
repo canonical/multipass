@@ -49,8 +49,15 @@ TEST_F(TestSSHFSServerProcessSpec, program_correct)
 TEST_F(TestSSHFSServerProcessSpec, arguments_correct)
 {
     mp::SSHFSServerProcessSpec spec(config);
-    EXPECT_EQ(spec.arguments(),
-              QStringList({"host", "42", "username", "source_path", "target_path", "6:10,5:-1,", "3:4,1:2,"}));
+    ASSERT_EQ(spec.arguments().size(), 7);
+    EXPECT_EQ(spec.arguments()[0], "host");
+    EXPECT_EQ(spec.arguments()[1], "42");
+    EXPECT_EQ(spec.arguments()[2], "username");
+    EXPECT_EQ(spec.arguments()[3], "source_path");
+    EXPECT_EQ(spec.arguments()[4], "target_path");
+    // Ordering of below options not guaranteed, hence the or-s.
+    EXPECT_TRUE(spec.arguments()[5] == "6:10,5:-1," || spec.arguments()[5] == "5:-1,6:10,");
+    EXPECT_TRUE(spec.arguments()[6] == "3:4,1:2," || spec.arguments()[6] == "1:2,3:4,");
 }
 
 TEST_F(TestSSHFSServerProcessSpec, environment_correct)

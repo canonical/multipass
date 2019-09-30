@@ -77,8 +77,16 @@ TEST_F(SSHFSMountsTest, mount_creates_sshfs_process)
     ASSERT_EQ(factory->process_list().size(), 1u);
     auto sshfs_command = factory->process_list()[0];
     EXPECT_TRUE(sshfs_command.command.endsWith("sshfs_server"));
-    EXPECT_EQ(sshfs_command.arguments, QStringList({"localhost", "42", "ubuntu", "/my/source/path", "/the/target/path",
-                                                    "6:10,5:-1,", "3:4,1:2,"}));
+
+    ASSERT_EQ(sshfs_command.arguments.size(), 7);
+    EXPECT_EQ(sshfs_command.arguments[0], "localhost");
+    EXPECT_EQ(sshfs_command.arguments[1], "42");
+    EXPECT_EQ(sshfs_command.arguments[2], "ubuntu");
+    EXPECT_EQ(sshfs_command.arguments[3], "/my/source/path");
+    EXPECT_EQ(sshfs_command.arguments[4], "/the/target/path");
+    // Ordering of below options not guaranteed, hence the or-s.
+    EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," || sshfs_command.arguments[5] == "5:-1,6:10,");
+    EXPECT_TRUE(sshfs_command.arguments[6] == "3:4,1:2," || sshfs_command.arguments[6] == "1:2,3:4,");
 }
 
 TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exception)

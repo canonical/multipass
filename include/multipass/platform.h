@@ -57,8 +57,8 @@ bool is_alias_supported(const std::string& alias, const std::string& remote);
 bool is_remote_supported(const std::string& remote);
 bool is_image_url_supported();
 
-void emit_signal_when_parent_dies(int sig);
-int wait_for_signals(const std::vector<int>& sigs);
+void emit_signal_when_parent_dies();
+int wait_for_quit_signals();
 } // namespace platform
 } // namespace multipass
 #endif // MULTIPASS_PLATFORM_H

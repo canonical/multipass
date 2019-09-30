@@ -12,22 +12,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set (CMAKE_AUTOMOC ON)
+add_library(shared_macos STATIC
+  process_factory.cpp)
 
-add_library(shared STATIC
-  basic_process.cpp
-  process_spec.cpp
-  simple_process_spec.cpp
-  sshfs_server_process_spec.cpp
-  ${CMAKE_SOURCE_DIR}/include/multipass/process.h)
+include_directories(shared_macos
+  ..)
 
-target_link_libraries(shared
+target_link_libraries(shared_macos
+  fmt
   Qt5::Core)
-
-if(MSVC)
-  add_subdirectory(win)
-elseif(APPLE)
-  add_subdirectory(macos)
-else()
-  add_subdirectory(linux)
-endif()

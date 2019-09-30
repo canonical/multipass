@@ -22,6 +22,16 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+namespace
+{
+// Want to call qRegisterMetaType just once
+static auto reg = []() -> bool {
+    qRegisterMetaType<multipass::ProcessState>();
+    qRegisterMetaType<QProcess::ProcessError>();
+    return true;
+}();
+} // namespace
+
 mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : p{p}
 {
 }
@@ -48,7 +58,8 @@ mp::BasicProcess::BasicProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : proces
                 }
                 emit mp::Process::finished(process_state);
             });
-    connect(&process, &QProcess::errorOccurred, this, &mp::Process::error_occurred);
+    connect(&process, &QProcess::errorOccurred,
+            [this](QProcess::ProcessError error) { emit mp::Process::error_occurred(error, process.errorString()); });
     connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
     connect(&process, &QProcess::readyReadStandardError, this, &mp::Process::ready_read_standard_error);
 

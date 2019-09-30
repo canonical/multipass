@@ -24,6 +24,8 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
+#include "shared/sshfs_server_process_spec.h"
+#include "shared/win/process_factory.h"
 #include <github_update_prompt.h>
 
 #include <QDir>
@@ -75,7 +77,8 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 
 QString mp::platform::autostart_test_data()
 {
-    return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass set client.gui.autostart`
+    return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass
+                   // set client.gui.autostart`
 }
 
 void mp::platform::setup_gui_autostart_prerequisites()
@@ -100,7 +103,8 @@ QString mp::platform::daemon_config_home() // temporary
     ret = QDir{ret}.absoluteFilePath("config");
     ret = QDir{ret}.absoluteFilePath("systemprofile");
     ret = QDir{ret}.absoluteFilePath("AppData");
-    ret = QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
+    ret =
+        QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
 
     return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
@@ -129,6 +133,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
+}
+
+std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
+{
+    return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
@@ -240,4 +249,20 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 bool mp::platform::is_image_url_supported()
 {
     return check_unlock_code();
+}
+
+void mp::platform::emit_signal_when_parent_dies()
+{
+    // NO-OP, instead use WindowsProcess which will reap children if parent dies
+}
+
+int mp::platform::wait_for_quit_signals()
+{
+    HANDLE hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr);
+
+    if (hSemaphore == (HANDLE) nullptr)
+        printf("Unable to create semaphore\n");
+
+    WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
+    return 0;
 }

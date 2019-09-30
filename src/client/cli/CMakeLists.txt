@@ -21,6 +21,7 @@ target_link_libraries(client
   fmt
   formatter
   rpc
+  shared
   Qt5::Core)
 
 add_executable(multipass

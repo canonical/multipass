@@ -26,14 +26,14 @@ include(c_mock_defines.cmake)
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
   list(APPEND PLATFORM_TESTS test_hyperv_backend.cpp)
+  set(PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/win)
 elseif(APPLE)
   list(APPEND PLATFORM_TESTS test_hyperkit_backend.cpp)
+  set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
+  set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos)
 else()
   list(APPEND PLATFORM_TESTS
     mock_libvirt.cpp
-    mock_process_factory.cpp
-    reset_process_factory.cpp
-    stub_process_factory.cpp
     test_apparmored_process.cpp
     test_platform_linux.cpp
     test_qemu_backend.cpp
@@ -44,17 +44,19 @@ else()
     test_libvirt_backend.cpp
     test_snap_utils.cpp)
 
+  set(PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
+
   add_executable(qemu-system-x86_64
-          mock_qemu_system.cpp)
+    mock_qemu_system.cpp)
 
   set_target_properties(qemu-system-x86_64
-          PROPERTIES
-          RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-          RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-          RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
   target_link_libraries(qemu-system-x86_64
-          Qt5::Core)
+    Qt5::Core)
 
   add_executable(dnsmasq
     mock_dnsmasq_server.cpp)
@@ -86,6 +88,24 @@ else()
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
+  add_executable(mock_process
+    mock_process.cpp)
+
+  set_target_properties(mock_process
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+  add_executable(apparmor_parser
+    mock_apparmor_parser.cpp)
+
+  set_target_properties(apparmor_parser
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
   list(APPEND CMOCK_TARGETS libvirt_backend_test)
   target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
@@ -99,13 +119,19 @@ add_executable(multipass_tests
   image_host_remote_count.cpp
   main.cpp
   mischievous_url_downloader.cpp
+  mock_process_factory.cpp
   mock_scp.cpp
   mock_settings.cpp
   mock_sftp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
   mock_ssh_client.cpp
+  mock_process_factory.cpp
+  reset_process_factory.cpp
+  stub_process_factory.cpp
   path.cpp
+  reset_process_factory.cpp
+  stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
   test_basic_process.cpp
@@ -142,7 +168,6 @@ add_executable(multipass_tests
   test_ubuntu_image_host.cpp
   test_utils.cpp
   test_with_mocked_bin_path.cpp
-  ${CMAKE_SOURCE_DIR}/include/multipass/process.h # need to run MOC on this
 
   ${PLATFORM_TESTS}
 
@@ -151,6 +176,7 @@ add_executable(multipass_tests
 )
 
 target_include_directories(multipass_tests
+  PRIVATE ${PLATFORM_INCLUDES}
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
   PRIVATE ${MULTIPASS_GTEST_DIR}

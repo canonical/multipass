@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_STUB_PROCESS_FACTORY_H
 #define MULTIPASS_STUB_PROCESS_FACTORY_H
 
+#include "process_factory.h" // rely on build system to include the right implementation
 #include <multipass/process.h>
-#include <src/platform/backends/shared/linux/process_factory.h>
 
 #include <gtest/gtest.h>
 

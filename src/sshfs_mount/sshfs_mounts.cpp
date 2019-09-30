@@ -22,6 +22,7 @@
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/sshfs_mount/sshfs_mounts.h>
 #include <multipass/sshfs_server_config.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
 #include <QEventLoop>
@@ -103,10 +104,11 @@ void mp::SSHFSMounts::start_mount(VirtualMachine* vm, const std::string& source_
 
     QObject::connect(
         sshfs_server_process.get(), &mp::Process::error_occurred, this,
-        [instance = vm->vm_name, target_path, process = sshfs_server_process.get()](QProcess::ProcessError error) {
+        [instance = vm->vm_name, target_path, process = sshfs_server_process.get()](QProcess::ProcessError error,
+                                                                                    QString error_string) {
             mpl::log(mpl::Level::error, category,
-                     fmt::format("There was an error with sshfs_server for instance \"{}\" with path '{}': {}",
-                                 instance, target_path, error));
+                     fmt::format("There was an error with sshfs_server for instance \"{}\" with path '{}': {} - {}",
+                                 instance, target_path, mp::utils::qenum_to_string(error), error_string));
         });
 
     mpl::log(mpl::Level::info, category, fmt::format("mounting {} => {} in {}", source_path, target_path, vm->vm_name));

@@ -170,7 +170,7 @@ bool mp::platform::is_image_url_supported()
     return true;
 }
 
-void mp::platform::emit_signal_when_parent_dies(int sig)
+void mp::platform::emit_signal_when_parent_dies()
 {
-    prctl(PR_SET_PDEATHSIG, sig); // ensures if parent dies, this process it sent this signal
+    prctl(PR_SET_PDEATHSIG, SIGHUP); // ensures if parent dies, this process it sent this signal
 }
