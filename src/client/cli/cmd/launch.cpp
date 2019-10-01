@@ -89,7 +89,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",
                                                                      min_cpu_cores, default_cpu_cores)),
-                                  "cpus", QString::fromUtf8(default_cpu_cores));
+                                  "cpus", default_cpu_cores);
     QCommandLineOption diskOption(
         {"d", "disk"},
         QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
