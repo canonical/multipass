@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/memory_size.h>
 
 #include <gtest/gtest.h>
 
