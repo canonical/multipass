@@ -21,6 +21,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/settings.h>
 
 #include <fmt/ostream.h>
 #include <sstream>
@@ -153,4 +154,11 @@ mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgPars
 auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
 {
     return dynamic_cast<const InvalidSettingsException*>(&e) ? ReturnCode::CommandLineError : ReturnCode::CommandFail;
+}
+
+QString multipass::cmd::describe_settings_keys()
+{
+    const auto keys = Settings::instance().keys();
+    return std::accumulate(cbegin(keys), cend(keys), QStringLiteral("Keys:"),
+                           [](const auto& a, const auto& b) { return a + "\n  " + b; });
 }
