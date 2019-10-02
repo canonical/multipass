@@ -105,7 +105,7 @@ if (MSVC)
   set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.rtf")
   set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/windows/README.txt")
-  set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/packaging/windows/multipass.ico")
+  set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/data/icon.ico")
 
   # Inserts an extra page in the installer asking the user if they want to modify their users or system PATH variable
   # This is useful to make "multipass.exe" findable on a shell
