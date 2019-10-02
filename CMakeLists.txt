@@ -118,8 +118,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
-  # Build with multiple processes
-  add_definitions(/MP)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
   add_definitions(-DNOMINMAX) # otherwise windows defines macros which interfere with std::min, std::max
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
