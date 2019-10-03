@@ -17,6 +17,7 @@
 
 #include <multipass/url_downloader.h>
 
+#include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 
@@ -97,7 +98,11 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
         on_error();
 
         const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
-        throw mp::DownloadException{url.toString().toStdString(), msg};
+
+        if (reply->error() == QNetworkReply::OperationCanceledError)
+            throw mp::AbortedDownloadException{msg};
+        else
+            throw mp::DownloadException{url.toString().toStdString(), msg};
     }
     return reply->readAll();
 }
@@ -135,7 +140,13 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
         }
     };
 
-    auto on_download = [&file](QNetworkReply* reply, QTimer& download_timeout) {
+    auto on_download = [this, &file](QNetworkReply* reply, QTimer& download_timeout) {
+        if (abort_download)
+        {
+            reply->abort();
+            return;
+        }
+
         if (download_timeout.isActive())
             download_timeout.stop();
         else
@@ -181,7 +192,15 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 
     // This will connect to the QNetworkReply::readReady signal and when emitted,
     // reset the timer.
-    auto on_download = [](QNetworkReply*, QTimer& download_timeout) { download_timeout.start(); };
+    auto on_download = [this](QNetworkReply* reply, QTimer& download_timeout) {
+        if (abort_download)
+        {
+            reply->abort();
+            return;
+        }
+
+        download_timeout.start();
+    };
 
     try
     {
@@ -234,4 +253,9 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
     }
 
     return reply->header(QNetworkRequest::LastModifiedHeader).toDateTime();
+}
+
+void mp::URLDownloader::abort_all_downloads()
+{
+    abort_download = true;
 }
