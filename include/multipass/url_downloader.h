@@ -24,6 +24,7 @@
 #include <QByteArray>
 #include <QDateTime>
 
+#include <atomic>
 #include <chrono>
 
 class QUrl;
@@ -48,7 +49,7 @@ private:
 
     const Path cache_dir_path;
     std::chrono::milliseconds timeout;
-    bool abort_download{false};
+    std::atomic_bool abort_download{false};
 };
 }
 #endif // MULTIPASS_URL_DOWNLOADER_H
