@@ -19,6 +19,7 @@
 #include "json_writer.h"
 
 #include <multipass/exceptions/create_image_exception.h>
+#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -530,10 +531,9 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
                     keys_to_update.push_back(record.first);
                 }
             }
-            catch (const std::exception& e)
+            catch (const mp::UnsupportedImageException& e)
             {
-                mpl::log(mpl::Level::warning, category,
-                         fmt::format("Skipping {}: {}", record.second.query.release, e.what()));
+                mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
             }
         }
     }
