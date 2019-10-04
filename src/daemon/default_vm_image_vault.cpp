@@ -19,6 +19,7 @@
 #include "json_writer.h"
 
 #include <multipass/exceptions/create_image_exception.h>
+#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -522,10 +523,17 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         if (record.second.query.query_type == Query::Type::Alias &&
             record.first.compare(0, record.second.query.release.length(), record.second.query.release) != 0)
         {
-            auto info = info_for(record.second.query);
-            if (info.id.toStdString() != record.first)
+            try
             {
-                keys_to_update.push_back(record.first);
+                auto info = info_for(record.second.query);
+                if (info.id.toStdString() != record.first)
+                {
+                    keys_to_update.push_back(record.first);
+                }
+            }
+            catch (const mp::UnsupportedImageException& e)
+            {
+                mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
             }
         }
     }
@@ -534,7 +542,15 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     {
         const auto& record = prepared_image_records[key];
         mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
-        fetch_image(fetch_type, record.query, prepare, monitor);
+        try
+        {
+            fetch_image(fetch_type, record.query, prepare, monitor);
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("Cannot update source image {}: {}", record.query.release, e.what()));
+        }
     }
 }
 
