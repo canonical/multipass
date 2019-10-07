@@ -54,12 +54,12 @@ mp::BasicProcess::BasicProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : proces
                 }
                 else // crash
                 {
-                    process_state.error = mp::ProcessState::Error{process.error(), process.errorString()};
+                    process_state.error = mp::ProcessState::Error{process.error(), error_string()};
                 }
                 emit mp::Process::finished(process_state);
             });
     connect(&process, &QProcess::errorOccurred,
-            [this](QProcess::ProcessError error) { emit mp::Process::error_occurred(error, process.errorString()); });
+            [this](QProcess::ProcessError error) { emit mp::Process::error_occurred(error, error_string()); });
     connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
     connect(&process, &QProcess::readyReadStandardError, this, &mp::Process::ready_read_standard_error);
 
@@ -134,7 +134,7 @@ mp::ProcessState mp::BasicProcess::process_state() const
 
     if (process.error() != QProcess::ProcessError::UnknownError)
     {
-        state.error = mp::ProcessState::Error{process.error(), process.errorString()};
+        state.error = mp::ProcessState::Error{process.error(), error_string()};
     }
     else if (process.state() != QProcess::Running && process.exitStatus() == QProcess::NormalExit)
     {
@@ -178,12 +178,17 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
         process.exitStatus() != QProcess::NormalExit)
     {
         mpl::log(mpl::Level::error, qPrintable(process_spec->program()), qPrintable(process.errorString()));
-        exit_state.error = mp::ProcessState::Error{process.error(), process.errorString()};
+        exit_state.error = mp::ProcessState::Error{process.error(), error_string()};
         return exit_state;
     }
 
     exit_state.exit_code = process.exitCode();
     return exit_state;
+}
+
+QString mp::BasicProcess::error_string() const
+{
+    return QString{"program: %1; error: %2"}.arg(process_spec->program(), process.errorString());
 }
 
 void mp::BasicProcess::setup_child_process()

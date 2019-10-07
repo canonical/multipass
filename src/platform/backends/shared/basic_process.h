@@ -62,6 +62,7 @@ public:
 protected:
     const std::unique_ptr<ProcessSpec> process_spec;
 
+    QString error_string() const;
     void setup_child_process() override;
 
     class CustomQProcess : public QProcess
