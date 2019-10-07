@@ -87,6 +87,7 @@ parts:
     - libxml2
     - libvirt0
     - dnsmasq
+    - dnsmasq-utils
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
