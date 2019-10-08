@@ -50,6 +50,7 @@ public:
 
     bool running() const override;
     ProcessState process_state() const override;
+    QString error_string() const;
 
     QByteArray read_all_standard_output() override;
     QByteArray read_all_standard_error() override;
@@ -62,7 +63,6 @@ public:
 protected:
     const std::unique_ptr<ProcessSpec> process_spec;
 
-    QString error_string() const;
     void setup_child_process() override;
 
     class CustomQProcess : public QProcess

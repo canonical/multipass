@@ -144,6 +144,11 @@ mp::ProcessState mp::BasicProcess::process_state() const
     return state;
 }
 
+QString mp::BasicProcess::error_string() const
+{
+    return QString{"program: %1; error: %2"}.arg(process_spec->program(), process.errorString());
+}
+
 bool mp::BasicProcess::running() const
 {
     return process.state() == QProcess::Running;
@@ -184,11 +189,6 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
 
     exit_state.exit_code = process.exitCode();
     return exit_state;
-}
-
-QString mp::BasicProcess::error_string() const
-{
-    return QString{"program: %1; error: %2"}.arg(process_spec->program(), process.errorString());
 }
 
 void mp::BasicProcess::setup_child_process()

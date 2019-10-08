@@ -190,3 +190,39 @@ TEST_F(BasicProcessTest, process_state_when_runs_and_stops_immediately)
 
     EXPECT_FALSE(process_state.error);
 }
+
+TEST_F(BasicProcessTest, error_string_when_not_run)
+{
+    const auto program = "foo";
+    mp::BasicProcess process{mp::simple_process_spec(program)};
+    EXPECT_THAT(process.error_string().toStdString(), HasSubstr(program));
+    EXPECT_THAT(process.error_string().toStdString(), HasSubstr("Unknown"));
+}
+
+TEST_F(BasicProcessTest, error_string_when_completing_successfully)
+{
+    const auto program = "mock_process";
+    mp::BasicProcess process{mp::simple_process_spec(program, {"0"})};
+
+    EXPECT_TRUE(process.execute().completed_successfully());
+    EXPECT_THAT(process.error_string().toStdString(), HasSubstr(program));
+    EXPECT_THAT(process.error_string().toStdString(), HasSubstr("Unknown"));
+}
+
+TEST_F(BasicProcessTest, error_string_when_crashing)
+{
+    const auto program = "mock_process";
+    mp::BasicProcess process(mp::simple_process_spec(program));
+
+    EXPECT_FALSE(process.execute().completed_successfully());
+    EXPECT_THAT(process.error_string().toStdString(), HasSubstr(program));
+}
+
+TEST_F(BasicProcessTest, error_string_when_missing_command)
+{
+    const auto program = "no_bin_named_like_this";
+    mp::BasicProcess process{mp::simple_process_spec(program)};
+
+    EXPECT_FALSE(process.execute().completed_successfully());
+    EXPECT_THAT(process.error_string().toStdString(), HasSubstr(program));
+}
