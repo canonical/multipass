@@ -50,6 +50,7 @@ public:
 
     bool running() const override;
     ProcessState process_state() const override;
+    QString error_string() const;
 
     QByteArray read_all_standard_output() override;
     QByteArray read_all_standard_error() override;
