@@ -36,7 +36,8 @@ list(APPEND PLATFORM_TESTS
   test_dnsmasq_process_spec.cpp
   test_iptables_config.cpp
   test_libvirt_backend.cpp
-  test_snap_utils.cpp)
+  test_snap_utils.cpp
+  test_backend_utils.cpp)
 
 add_executable(qemu-system-x86_64
         mock_qemu_system.cpp)
