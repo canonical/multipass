@@ -83,20 +83,19 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respecte
 {
     const auto img = "/fake/img/path";
     const auto size = mp::MemorySize{"3G"};
+    auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
 
-    mock_factory_scope->register_callback([&img, &size](mpt::MockProcess* process) {
-        static auto call_count = 0;
+    mock_factory_scope->register_callback([&img, &size, &process_count](mpt::MockProcess* process) {
         mp::ProcessState success{0, mp::nullopt};
 
-        if (++call_count == 1)
+        ASSERT_LE(++process_count, 2);
+        if (process_count == 1)
             simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"1G"}));
         else
-        {
-            ASSERT_EQ(call_count, 2); // no more than 2 processes should be executed
             simulate_qemuimg_resize(process, img, size, success);
-        }
     });
 
     mp::backend::resize_instance_image(size, img);
+    ASSERT_EQ(process_count, 2);
 }
