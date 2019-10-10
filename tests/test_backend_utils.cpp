@@ -58,10 +58,7 @@ void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& expec
     else if (produce_result.exit_code)
         EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
     else
-    {
-        EXPECT_CALL(*process, read_all_standard_output).Times(0);
-        EXPECT_CALL(*process, read_all_standard_error).Times(0);
-    }
+        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(produce_output));
 }
 
 void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& expect_img,
