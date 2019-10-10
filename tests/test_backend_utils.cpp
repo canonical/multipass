@@ -39,25 +39,25 @@ QByteArray fake_img_info(const mp::MemorySize& size)
                     size.in_bytes()));
 }
 
-void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& img, const mp::ProcessState& result,
-                           const QByteArray& output = {})
+void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& expect_img,
+                           const mp::ProcessState& produce_result, const QByteArray& produce_output = {})
 {
     ASSERT_EQ(process->program().toStdString(), "qemu-img");
 
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 2);
     EXPECT_EQ(args.constFirst(), "info");
-    EXPECT_EQ(args.constLast(), img);
+    EXPECT_EQ(args.constLast(), expect_img);
 
     InSequence s;
 
-    EXPECT_CALL(*process, execute).WillOnce(Return(result));
-    if (result.exit_code)
+    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+    if (produce_result.exit_code)
     {
-        if (*result.exit_code == 0)
-            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+        if (*produce_result.exit_code == 0)
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
         else
-            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
+            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
     }
     else
     {
