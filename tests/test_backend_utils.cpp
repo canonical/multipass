@@ -99,3 +99,37 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respecte
     mp::backend::resize_instance_image(requested_size, img);
     ASSERT_EQ(process_count, 2);
 }
+
+TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_crashes_on_info)
+{
+    const auto img = "foobar";
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    const auto qemu_msg = "about to crash";
+    const auto system_msg = "core dumped";
+
+    mock_factory_scope->register_callback(
+        [&img, &qemu_msg, &system_msg, process_count = 0](mpt::MockProcess* process) mutable {
+            ASSERT_EQ(++process_count, 1);
+
+            mp::ProcessState crash{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, system_msg}};
+            simulate_qemuimg_info(process, img, crash, qemu_msg);
+        });
+
+    try
+    {
+        mp::backend::resize_instance_image(mp::MemorySize{}, img);
+        ADD_FAILURE();
+    }
+    catch (std::runtime_error& e)
+    {
+        const auto msg = e.what();
+        EXPECT_THAT(msg, HasSubstr("qemu-img failed"));
+        EXPECT_THAT(msg, HasSubstr(qemu_msg));
+        EXPECT_THAT(msg, HasSubstr(system_msg));
+    }
+    catch (...)
+    {
+        ADD_FAILURE();
+    }
+}
