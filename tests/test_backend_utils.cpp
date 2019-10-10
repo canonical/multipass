@@ -82,20 +82,20 @@ void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& exp
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respected)
 {
     const auto img = "/fake/img/path";
-    const auto size = mp::MemorySize{"3G"};
+    const auto requested_size = mp::MemorySize{"3G"};
     auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
 
-    mock_factory_scope->register_callback([&img, &size, &process_count](mpt::MockProcess* process) {
+    mock_factory_scope->register_callback([&img, &requested_size, &process_count](mpt::MockProcess* process) {
         mp::ProcessState success{0, mp::nullopt};
 
         ASSERT_LE(++process_count, 2);
         if (process_count == 1)
             simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"1G"}));
         else
-            simulate_qemuimg_resize(process, img, size, success);
+            simulate_qemuimg_resize(process, img, requested_size, success);
     });
 
-    mp::backend::resize_instance_image(size, img);
+    mp::backend::resize_instance_image(requested_size, img);
     ASSERT_EQ(process_count, 2);
 }
