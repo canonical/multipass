@@ -64,6 +64,22 @@ void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& expec
     }
 }
 
+void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& expect_img,
+                             const mp::MemorySize& expect_size, const mp::ProcessState& produce_result)
+{
+    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+
+    const auto args = process->arguments();
+    ASSERT_EQ(args.size(), 3);
+
+    EXPECT_EQ(args.at(0).toStdString(), "resize");
+    EXPECT_EQ(args.at(1), expect_img);
+    EXPECT_THAT(args.at(2),
+                ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; }, Eq(expect_size)));
+
+    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+}
+
 } // namespace
 
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respected)
@@ -80,15 +96,8 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respecte
             simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"1G"}));
         else
         {
-            const auto args = process->arguments();
             ASSERT_EQ(call_count, 2); // this should only be called twice
-            ASSERT_EQ(args.size(), 3);
-            EXPECT_EQ(args.at(0).toStdString(), "resize");
-            EXPECT_EQ(args.at(1), img);
-            EXPECT_THAT(args.at(2),
-                        ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; }, Eq(size)));
-
-            EXPECT_CALL(*process, execute).WillOnce(Return(success));
+            simulate_qemuimg_resize(process, img, size, success);
         }
     });
 
