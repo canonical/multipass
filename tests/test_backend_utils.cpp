@@ -59,6 +59,11 @@ void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& img, 
         else
             EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
     }
+    else
+    {
+        EXPECT_CALL(*process, read_all_standard_output).Times(0);
+        EXPECT_CALL(*process, read_all_standard_error).Times(0);
+    }
 }
 
 } // namespace
