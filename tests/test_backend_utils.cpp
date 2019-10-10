@@ -38,6 +38,29 @@ QByteArray fake_img_info(const mp::MemorySize& size)
         fmt::format("some\nother\ninfo\nfirst\nvirtual size: {} ({} bytes)\nmore\ninfo\nafter\n", size.in_gigabytes(),
                     size.in_bytes()));
 }
+
+void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& img, const mp::ProcessState& result,
+                           const QByteArray& output = {})
+{
+    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+
+    const auto args = process->arguments();
+    ASSERT_EQ(args.size(), 2);
+    EXPECT_EQ(args.constFirst(), "info");
+    EXPECT_EQ(args.constLast(), img);
+
+    InSequence s;
+
+    EXPECT_CALL(*process, execute).WillOnce(Return(result));
+    if (result.exit_code)
+    {
+        if (*result.exit_code == 0)
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+        else
+            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
+    }
+}
+
 } // namespace
 
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respected)
@@ -48,23 +71,13 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respecte
 
     mock_factory_scope->register_callback([&img, &size](mpt::MockProcess* process) {
         static auto call_count = 0;
-
-        ASSERT_EQ(process->program().toStdString(), "qemu-img");
-
-        const auto args = process->arguments();
         mp::ProcessState success{0, mp::nullopt};
-        if (++call_count == 1)
-        {
-            ASSERT_EQ(args.size(), 2);
-            EXPECT_EQ(args.constFirst(), "info");
-            EXPECT_EQ(args.constLast().toStdString(), img);
 
-            InSequence s;
-            EXPECT_CALL(*process, execute).WillOnce(Return(success));
-            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(fake_img_info(mp::MemorySize{"1G"})));
-        }
+        if (++call_count == 1)
+            simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"1G"}));
         else
         {
+            const auto args = process->arguments();
             ASSERT_EQ(call_count, 2); // this should only be called twice
             ASSERT_EQ(args.size(), 3);
             EXPECT_EQ(args.at(0).toStdString(), "resize");
