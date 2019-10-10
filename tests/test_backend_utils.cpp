@@ -46,19 +46,17 @@ void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& expec
 
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 2);
+
     EXPECT_EQ(args.constFirst(), "info");
     EXPECT_EQ(args.constLast(), expect_img);
 
     InSequence s;
 
     EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
-    if (produce_result.exit_code)
-    {
-        if (*produce_result.exit_code == 0)
-            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
-        else
-            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
-    }
+    if (produce_result.completed_successfully())
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
+    else if (produce_result.exit_code)
+        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
     else
     {
         EXPECT_CALL(*process, read_all_standard_output).Times(0);
