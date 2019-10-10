@@ -96,7 +96,7 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respecte
             simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"1G"}));
         else
         {
-            ASSERT_EQ(call_count, 2); // this should only be called twice
+            ASSERT_EQ(call_count, 2); // no more than 2 processes should be executed
             simulate_qemuimg_resize(process, img, size, success);
         }
     });
