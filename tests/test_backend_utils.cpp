@@ -186,7 +186,8 @@ TEST(BackendUtils, image_resize_detects_resizing_crash_failure_and_throws)
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = crash;
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
+    const auto throw_msg_matcher =
+        mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
