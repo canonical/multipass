@@ -201,7 +201,7 @@ TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_info_crashes)
     const auto qemuimg_info_stderr = "about to crash";
     const auto qemuimg_info_result = crash;
     const auto attempt_resize = false;
-    const auto qemuimg_resize_result = success;
+    const auto qemuimg_resize_result = mp::ProcessState{};
     const auto throw_msg_matcher = mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemuimg_info_stderr),
                                                            HasSubstr(crash.failure_message().toStdString())));
 
