@@ -150,23 +150,14 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
 TEST(BackendUtils, image_resize_detects_resizing_failure_and_throws)
 {
     const auto img = "imagine";
-    const auto requested_size = mp::MemorySize{"400M"};
-    auto process_count = 0;
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    const auto min_size = mp::MemorySize{"100M"};
+    const auto request_size = mp::MemorySize{"400M"};
+    const auto success = mp::ProcessState{0, mp::nullopt};
+    const auto attempt_resize = true;
+    const auto failure = mp::ProcessState{42, mp::nullopt};
+    const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
 
-    mock_factory_scope->register_callback([&img, &requested_size, &process_count](mpt::MockProcess* process) {
-        mp::ProcessState success{0, mp::nullopt}, failure{42, mp::nullopt};
-
-        ASSERT_LE(++process_count, 2);
-        if (process_count == 1)
-            simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"100M"}));
-        else
-            simulate_qemuimg_resize(process, img, requested_size, failure);
-    });
-
-    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(requested_size, img), std::runtime_error,
-                         Property(&std::runtime_error::what, HasSubstr("qemu-img failed")));
-    EXPECT_EQ(process_count, 2);
+    test_image_resizing(img, min_size, request_size, success, attempt_resize, failure, throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resizing_not_attempted_when_below_minimum)
