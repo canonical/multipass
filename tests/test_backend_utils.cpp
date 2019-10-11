@@ -34,6 +34,7 @@ using namespace testing;
 namespace
 {
 const auto success = mp::ProcessState{0, mp::nullopt};
+const auto crash = mp::ProcessState{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
 const auto null_string_matcher = static_cast<mp::optional<decltype(_)>>(mp::nullopt);
 
 QByteArray fake_img_info(const mp::MemorySize& size)
@@ -168,20 +169,16 @@ TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_info_crashes)
 {
     const auto img = "foo";
     const auto qemu_msg = "about to crash";
-    const auto system_msg = "core dumped";
 
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
-    mock_factory_scope->register_callback(
-        [&img, &qemu_msg, &system_msg, process_count = 0](mpt::MockProcess* process) mutable {
-            ASSERT_EQ(++process_count, 1);
-
-            mp::ProcessState crash{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, system_msg}};
-            simulate_qemuimg_info(process, img, crash, qemu_msg);
-        });
+    mock_factory_scope->register_callback([&img, &qemu_msg, process_count = 0](mpt::MockProcess* process) mutable {
+        ASSERT_EQ(++process_count, 1);
+        simulate_qemuimg_info(process, img, crash, qemu_msg);
+    });
 
     MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{}, img), std::runtime_error,
-                         Property(&std::runtime_error::what,
-                                  AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemu_msg), HasSubstr(system_msg))));
+                         Property(&std::runtime_error::what, AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemu_msg),
+                                                                   HasSubstr(crash.failure_message().toStdString()))));
 }
 
 TEST(BackendUtils, image_resizing_not_attempted_when_img_not_found)
