@@ -212,16 +212,16 @@ TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_info_crashes)
 TEST(BackendUtils, image_resizing_not_attempted_when_img_not_found)
 {
     const auto img = "bar";
-    const auto qemu_msg = "not found";
+    const auto min_size = mp::MemorySize{"12345M"};
+    const auto request_size = min_size;
+    const auto qemuimg_info_stderr = "not found";
+    const auto qemuimg_info_result = failure;
+    const auto attempt_resize = false;
+    const auto qemuimg_resize_result = mp::ProcessState{};
+    const auto throw_msg_matcher = mp::make_optional(HasSubstr(qemuimg_info_stderr));
 
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
-    mock_factory_scope->register_callback([&img, &qemu_msg, process_count = 0](mpt::MockProcess* process) mutable {
-        ASSERT_EQ(++process_count, 1);
-        simulate_qemuimg_info(process, img, failure, qemu_msg);
-    });
-
-    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{"12345M"}, img), std::runtime_error,
-                         Property(&std::runtime_error::what, HasSubstr(qemu_msg)));
+    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+                        qemuimg_resize_result, throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resizing_not_attempted_when_minimum_size_not_understood)
