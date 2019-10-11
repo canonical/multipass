@@ -34,6 +34,7 @@ using namespace testing;
 namespace
 {
 const auto success = mp::ProcessState{0, mp::nullopt};
+const auto failure = mp::ProcessState{1, mp::nullopt};
 const auto crash = mp::ProcessState{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
 const auto null_string_matcher = static_cast<mp::optional<decltype(_)>>(mp::nullopt);
 
@@ -158,7 +159,7 @@ TEST(BackendUtils, image_resize_detects_resizing_exit_failure_and_throws)
     const auto request_size = mp::MemorySize{"400M"};
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
-    const auto qemuimg_resize_result = mp::ProcessState{42, mp::nullopt};
+    const auto qemuimg_resize_result = failure;
     const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_result, attempt_resize, qemuimg_resize_result,
@@ -203,8 +204,6 @@ TEST(BackendUtils, image_resizing_not_attempted_when_img_not_found)
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
     mock_factory_scope->register_callback([&img, &qemu_msg, process_count = 0](mpt::MockProcess* process) mutable {
         ASSERT_EQ(++process_count, 1);
-
-        mp::ProcessState failure{1, mp::nullopt};
         simulate_qemuimg_info(process, img, failure, qemu_msg);
     });
 
