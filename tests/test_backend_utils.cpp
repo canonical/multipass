@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/shared/linux/backend_utils.h>
 
+#include "extra_assertions.h"
 #include "mock_process_factory.h"
 
 #include <multipass/format.h>
@@ -116,20 +117,7 @@ TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_crashes_on_info)
             simulate_qemuimg_info(process, img, crash, qemu_msg);
         });
 
-    try
-    {
-        mp::backend::resize_instance_image(mp::MemorySize{}, img);
-        ADD_FAILURE();
-    }
-    catch (std::runtime_error& e)
-    {
-        const auto msg = e.what();
-        EXPECT_THAT(msg, HasSubstr("qemu-img failed"));
-        EXPECT_THAT(msg, HasSubstr(qemu_msg));
-        EXPECT_THAT(msg, HasSubstr(system_msg));
-    }
-    catch (...)
-    {
-        ADD_FAILURE();
-    }
+    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{}, img), std::runtime_error,
+                         Property(&std::runtime_error::what,
+                                  AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemu_msg), HasSubstr(system_msg))));
 }
