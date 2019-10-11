@@ -151,7 +151,7 @@ TEST(BackendUtils, image_resizing_not_attempted_when_below_minimum)
                         throw_msg_matcher);
 }
 
-TEST(BackendUtils, image_resize_detects_resizing_failure_and_throws)
+TEST(BackendUtils, image_resize_detects_resizing_exit_failure_and_throws)
 {
     const auto img = "imagine";
     const auto min_size = mp::MemorySize{"100M"};
@@ -159,6 +159,20 @@ TEST(BackendUtils, image_resize_detects_resizing_failure_and_throws)
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = mp::ProcessState{42, mp::nullopt};
+    const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
+
+    test_image_resizing(img, min_size, request_size, qemuimg_info_result, attempt_resize, qemuimg_resize_result,
+                        throw_msg_matcher);
+}
+
+TEST(BackendUtils, image_resize_detects_resizing_crash_failure_and_throws)
+{
+    const auto img = "ubuntu";
+    const auto min_size = mp::MemorySize{"100M"};
+    const auto request_size = mp::MemorySize{"400M"};
+    const auto qemuimg_info_result = success;
+    const auto attempt_resize = true;
+    const auto qemuimg_resize_result = crash;
     const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_result, attempt_resize, qemuimg_resize_result,
