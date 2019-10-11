@@ -85,7 +85,7 @@ void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& exp
 
 template <class Matcher>
 void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size, const mp::MemorySize& requested_size,
-                         const char* qemuimg_info_stderr, const mp::ProcessState& qemuimg_info_result,
+                         const char* qemuimg_info_output, const mp::ProcessState& qemuimg_info_result,
                          bool attempt_resize, const mp::ProcessState& qemuimg_resize_result,
                          mp::optional<Matcher> throw_msg_matcher)
 {
@@ -97,7 +97,7 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
         ASSERT_LE(++process_count, expected_final_process_count);
         if (process_count == 1)
         {
-            auto msg = QByteArray{qemuimg_info_stderr};
+            auto msg = QByteArray{qemuimg_info_output};
             if (msg.isEmpty())
                 msg = fake_img_info(img_virtual_size);
 
@@ -122,13 +122,13 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
     const auto img = "/fake/img/path";
     const auto min_size = mp::MemorySize{"1G"};
     const auto request_size = mp::MemorySize{"3G"};
-    const auto qemuimg_info_stderr = "";
+    const auto qemuimg_info_output = "";
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = success;
     const auto throw_msg_matcher = null_string_matcher;
 
-    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
@@ -137,13 +137,13 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
     const auto img = "/fake/img/path";
     const auto min_size = mp::MemorySize{"1234554321"};
     const auto request_size = min_size;
-    const auto qemuimg_info_stderr = "";
+    const auto qemuimg_info_output = "";
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = success;
     const auto throw_msg_matcher = null_string_matcher;
 
-    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
@@ -152,13 +152,13 @@ TEST(BackendUtils, image_resizing_not_attempted_when_below_minimum)
     const auto img = "SomeImg";
     const auto min_size = mp::MemorySize{"2200M"};
     const auto request_size = mp::MemorySize{"2G"};
-    const auto qemuimg_info_stderr = "";
+    const auto qemuimg_info_output = "";
     const auto qemuimg_info_result = success;
     const auto attempt_resize = false;
     const auto qemuimg_resize_result = success;
     const auto throw_msg_matcher = mp::make_optional(HasSubstr("below minimum"));
 
-    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
@@ -167,13 +167,13 @@ TEST(BackendUtils, image_resize_detects_resizing_exit_failure_and_throws)
     const auto img = "imagine";
     const auto min_size = mp::MemorySize{"100M"};
     const auto request_size = mp::MemorySize{"400M"};
-    const auto qemuimg_info_stderr = "";
+    const auto qemuimg_info_output = "";
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = failure;
     const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
 
-    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
@@ -182,14 +182,14 @@ TEST(BackendUtils, image_resize_detects_resizing_crash_failure_and_throws)
     const auto img = "ubuntu";
     const auto min_size = mp::MemorySize{"100M"};
     const auto request_size = mp::MemorySize{"400M"};
-    const auto qemuimg_info_stderr = "";
+    const auto qemuimg_info_output = "";
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = crash;
     const auto throw_msg_matcher =
         mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
 
-    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
@@ -198,14 +198,14 @@ TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_info_crashes)
     const auto img = "foo";
     const auto min_size = mp::MemorySize{};
     const auto request_size = min_size;
-    const auto qemuimg_info_stderr = "about to crash";
+    const auto qemuimg_info_output = "about to crash";
     const auto qemuimg_info_result = crash;
     const auto attempt_resize = false;
     const auto qemuimg_resize_result = mp::ProcessState{};
-    const auto throw_msg_matcher = mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemuimg_info_stderr),
+    const auto throw_msg_matcher = mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemuimg_info_output),
                                                            HasSubstr(crash.failure_message().toStdString())));
 
-    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
@@ -214,26 +214,27 @@ TEST(BackendUtils, image_resizing_not_attempted_when_img_not_found)
     const auto img = "bar";
     const auto min_size = mp::MemorySize{"12345M"};
     const auto request_size = min_size;
-    const auto qemuimg_info_stderr = "not found";
+    const auto qemuimg_info_output = "not found";
     const auto qemuimg_info_result = failure;
     const auto attempt_resize = false;
     const auto qemuimg_resize_result = mp::ProcessState{};
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr(qemuimg_info_stderr));
+    const auto throw_msg_matcher = mp::make_optional(HasSubstr(qemuimg_info_output));
 
-    test_image_resizing(img, min_size, request_size, qemuimg_info_stderr, qemuimg_info_result, attempt_resize,
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resizing_not_attempted_when_minimum_size_not_understood)
 {
     const auto img = "baz";
+    const auto min_size = mp::MemorySize{};
+    const auto request_size = mp::MemorySize{"5G"};
+    const auto qemuimg_info_output = "rubbish";
+    const auto qemuimg_info_result = success;
+    const auto attempt_resize = false;
+    const auto qemuimg_resize_result = mp::ProcessState{};
+    const auto throw_msg_matcher = mp::make_optional(AllOf(HasSubstr("not"), HasSubstr("size")));
 
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
-    mock_factory_scope->register_callback([&img, process_count = 0](mpt::MockProcess* process) mutable {
-        ASSERT_EQ(++process_count, 1);
-        simulate_qemuimg_info(process, img, success, "rubbish");
-    });
-
-    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{"5G"}, img), std::runtime_error,
-                         Property(&std::runtime_error::what, AllOf(HasSubstr("not"), HasSubstr("size"))));
+    test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
+                        qemuimg_resize_result, throw_msg_matcher);
 }
