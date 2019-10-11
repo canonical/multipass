@@ -77,6 +77,32 @@ void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& exp
 
     EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
 }
+
+template <class Matcher>
+void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size, const mp::MemorySize& requested_size,
+                         const mp::ProcessState& qemuimg_info_result, bool attempt_resize,
+                         const mp::ProcessState& qemuimg_resize_result, mp::optional<Matcher> throw_msg_matcher)
+{
+    auto process_count = 0;
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    const auto expected_final_process_count = attempt_resize ? 2 : 1;
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_LE(++process_count, expected_final_process_count);
+        if (process_count == 1)
+            simulate_qemuimg_info(process, img, qemuimg_info_result, fake_img_info(img_virtual_size));
+        else
+            simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
+    });
+
+    if (throw_msg_matcher)
+        MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(requested_size, img), std::runtime_error,
+                             Property(&std::runtime_error::what, *throw_msg_matcher));
+    else
+        mp::backend::resize_instance_image(requested_size, img);
+
+    EXPECT_EQ(process_count, expected_final_process_count);
+}
 } // namespace
 
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
@@ -146,16 +172,13 @@ TEST(BackendUtils, image_resize_detects_resizing_failure_and_throws)
 TEST(BackendUtils, image_resizing_not_attempted_when_below_minimum)
 {
     const auto img = "SomeImg";
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
-    mock_factory_scope->register_callback([&img, process_count = 0](mpt::MockProcess* process) mutable {
-        ASSERT_EQ(++process_count, 1);
+    const auto min_size = mp::MemorySize{"2200M"};
+    const auto request_size = mp::MemorySize{"2G"};
+    const auto attempt_resize = false;
+    const auto success = mp::ProcessState{0, mp::nullopt};
+    const auto throw_msg_matcher = mp::make_optional(HasSubstr("below minimum"));
 
-        mp::ProcessState success{0, mp::nullopt};
-        simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"2200M"}));
-    });
-
-    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{"2G"}, img), std::runtime_error,
-                         Property(&std::runtime_error::what, HasSubstr("below minimum")));
+    test_image_resizing(img, min_size, request_size, success, attempt_resize, success, throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_info_crashes)
