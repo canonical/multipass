@@ -77,10 +77,9 @@ void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& exp
 
     EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
 }
-
 } // namespace
 
-TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respected)
+TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
 {
     const auto img = "/fake/img/path";
     const auto requested_size = mp::MemorySize{"3G"};
@@ -98,17 +97,74 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_respecte
     });
 
     mp::backend::resize_instance_image(requested_size, img);
-    ASSERT_EQ(process_count, 2);
+    EXPECT_EQ(process_count, 2);
 }
 
-TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_crashes_on_info)
+TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
 {
-    const auto img = "foobar";
+    const auto img = "/fake/img/path";
+    const auto requested_size = mp::MemorySize{"1234554321"};
+    auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
 
+    mock_factory_scope->register_callback([&img, &requested_size, &process_count](mpt::MockProcess* process) {
+        mp::ProcessState success{0, mp::nullopt};
+
+        ASSERT_LE(++process_count, 2);
+        if (process_count == 1)
+            simulate_qemuimg_info(process, img, success, fake_img_info(requested_size));
+        else
+            simulate_qemuimg_resize(process, img, requested_size, success);
+    });
+
+    mp::backend::resize_instance_image(requested_size, img);
+    EXPECT_EQ(process_count, 2);
+}
+
+TEST(BackendUtils, image_resize_detects_resizing_failure_and_throws)
+{
+    const auto img = "imagine";
+    const auto requested_size = mp::MemorySize{"400M"};
+    auto process_count = 0;
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&img, &requested_size, &process_count](mpt::MockProcess* process) {
+        mp::ProcessState success{0, mp::nullopt}, failure{42, mp::nullopt};
+
+        ASSERT_LE(++process_count, 2);
+        if (process_count == 1)
+            simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"100M"}));
+        else
+            simulate_qemuimg_resize(process, img, requested_size, failure);
+    });
+
+    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(requested_size, img), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr("qemu-img failed")));
+    EXPECT_EQ(process_count, 2);
+}
+
+TEST(BackendUtils, image_resizing_not_attempted_when_below_minimum)
+{
+    const auto img = "SomeImg";
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&img, process_count = 0](mpt::MockProcess* process) mutable {
+        ASSERT_EQ(++process_count, 1);
+
+        mp::ProcessState success{0, mp::nullopt};
+        simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"2200M"}));
+    });
+
+    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{"2G"}, img), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr("below minimum")));
+}
+
+TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_info_crashes)
+{
+    const auto img = "foo";
     const auto qemu_msg = "about to crash";
     const auto system_msg = "core dumped";
 
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
     mock_factory_scope->register_callback(
         [&img, &qemu_msg, &system_msg, process_count = 0](mpt::MockProcess* process) mutable {
             ASSERT_EQ(++process_count, 1);
@@ -120,4 +176,37 @@ TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_crashes_on_info)
     MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{}, img), std::runtime_error,
                          Property(&std::runtime_error::what,
                                   AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemu_msg), HasSubstr(system_msg))));
+}
+
+TEST(BackendUtils, image_resizing_not_attempted_when_img_not_found)
+{
+    const auto img = "bar";
+    const auto qemu_msg = "not found";
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&img, &qemu_msg, process_count = 0](mpt::MockProcess* process) mutable {
+        ASSERT_EQ(++process_count, 1);
+
+        mp::ProcessState failure{1, mp::nullopt};
+        simulate_qemuimg_info(process, img, failure, qemu_msg);
+    });
+
+    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{"12345M"}, img), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr(qemu_msg)));
+}
+
+TEST(BackendUtils, image_resizing_not_attempted_when_minimum_size_not_understood)
+{
+    const auto img = "baz";
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&img, process_count = 0](mpt::MockProcess* process) mutable {
+        ASSERT_EQ(++process_count, 1);
+
+        mp::ProcessState success{0, mp::nullopt};
+        simulate_qemuimg_info(process, img, success, "rubbish");
+    });
+
+    MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(mp::MemorySize{"5G"}, img), std::runtime_error,
+                         Property(&std::runtime_error::what, AllOf(HasSubstr("not"), HasSubstr("size"))));
 }
