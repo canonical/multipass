@@ -34,6 +34,7 @@ using namespace testing;
 namespace
 {
 const auto success = mp::ProcessState{0, mp::nullopt};
+const auto null_string_matcher = static_cast<mp::optional<decltype(_)>>(mp::nullopt);
 
 QByteArray fake_img_info(const mp::MemorySize& size)
 {
@@ -110,39 +111,29 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
 {
     const auto img = "/fake/img/path";
-    const auto requested_size = mp::MemorySize{"3G"};
-    auto process_count = 0;
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    const auto min_size = mp::MemorySize{"1G"};
+    const auto request_size = mp::MemorySize{"3G"};
+    const auto qemuimg_info_result = success;
+    const auto attempt_resize = true;
+    const auto qemuimg_resize_result = success;
+    const auto throw_msg_matcher = null_string_matcher;
 
-    mock_factory_scope->register_callback([&img, &requested_size, &process_count](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, 2);
-        if (process_count == 1)
-            simulate_qemuimg_info(process, img, success, fake_img_info(mp::MemorySize{"1G"}));
-        else
-            simulate_qemuimg_resize(process, img, requested_size, success);
-    });
-
-    mp::backend::resize_instance_image(requested_size, img);
-    EXPECT_EQ(process_count, 2);
+    test_image_resizing(img, min_size, request_size, qemuimg_info_result, attempt_resize, qemuimg_resize_result,
+                        throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
 {
     const auto img = "/fake/img/path";
-    const auto requested_size = mp::MemorySize{"1234554321"};
-    auto process_count = 0;
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    const auto min_size = mp::MemorySize{"1234554321"};
+    const auto request_size = min_size;
+    const auto qemuimg_info_result = success;
+    const auto attempt_resize = true;
+    const auto qemuimg_resize_result = success;
+    const auto throw_msg_matcher = null_string_matcher;
 
-    mock_factory_scope->register_callback([&img, &requested_size, &process_count](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, 2);
-        if (process_count == 1)
-            simulate_qemuimg_info(process, img, success, fake_img_info(requested_size));
-        else
-            simulate_qemuimg_resize(process, img, requested_size, success);
-    });
-
-    mp::backend::resize_instance_image(requested_size, img);
-    EXPECT_EQ(process_count, 2);
+    test_image_resizing(img, min_size, request_size, qemuimg_info_result, attempt_resize, qemuimg_resize_result,
+                        throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resize_detects_resizing_failure_and_throws)
