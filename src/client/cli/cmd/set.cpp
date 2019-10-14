@@ -96,19 +96,20 @@ std::string cmd::Set::name() const
 
 QString cmd::Set::short_help() const
 {
-    return QStringLiteral("Set a configuration option");
+    return QStringLiteral("Set a configuration setting");
 }
 
 QString cmd::Set::description() const
 {
-    return QStringLiteral("Set, to the given value, the configuration option corresponding to the given key");
+    auto desc = QStringLiteral("Set, to the given value, the configuration setting corresponding to the given key.");
+    return desc + "\n\n" + describe_settings_keys();
 }
 
 mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument(
         "keyval",
-        "A key-value pair. The key specifies a path to the option to configure. The value is its intended value.",
+        "A key-value pair. The key specifies a path to the setting to configure. The value is its intended value.",
         "<key>=<value>");
 
     auto status = parser->commandParse(this);

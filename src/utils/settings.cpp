@@ -29,6 +29,7 @@
 #include <cassert>
 #include <cerrno>
 #include <fstream>
+#include <iterator>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -130,6 +131,15 @@ QString interpret_bool(QString val)
 mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
     : Singleton<Settings>::Singleton{pass}, defaults{make_defaults()}
 {
+}
+
+std::set<QString> multipass::Settings::keys() const
+{
+    std::set<QString> ret{};
+    std::transform(cbegin(defaults), cend(defaults), std::inserter(ret, begin(ret)),
+                   [](const auto& elem) { return elem.first; }); // I wish get<0> worked here... maybe in C++20
+
+    return ret;
 }
 
 // TODO try installing yaml backend

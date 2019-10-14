@@ -22,6 +22,7 @@
 #include "path.h"
 #include "stub_url_downloader.h"
 
+#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/query.h>
 
 #include <QUrl>
@@ -275,4 +276,11 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
         url_downloader.mischiefs = i;
         EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
     }
+}
+
+TEST_F(UbuntuImageHost, throws_unsupported_image_when_image_not_supported)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    EXPECT_THROW(*host.info_for(make_query("artful", release_remote_spec.first)), mp::UnsupportedImageException);
 }

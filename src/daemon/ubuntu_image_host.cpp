@@ -22,6 +22,7 @@
 #include <multipass/url_downloader.h>
 
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/unsupported_image_exception.h>
 
 #include <multipass/format.h>
 
@@ -108,7 +109,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
     if (info)
     {
         if (!info->supported && !query.allow_unsupported)
-            throw std::runtime_error(fmt::format("The {} release is no longer supported.", query.release));
+            throw mp::UnsupportedImageException(query.release);
 
         return with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info);
     }
