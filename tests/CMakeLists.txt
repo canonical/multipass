@@ -32,6 +32,7 @@ elseif(APPLE)
   set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
   set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos)
 else()
+  set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
   list(APPEND PLATFORM_TESTS
     mock_libvirt.cpp
     test_apparmored_process.cpp
