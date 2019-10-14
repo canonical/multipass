@@ -21,7 +21,10 @@
 #include "vmprocess.h"
 
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/format.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
+#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -32,8 +35,56 @@
 #include <QString>
 #include <QTimer>
 
+#include <iostream>
+#include <regex>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+namespace
+{
+mp::optional<mp::IPAddress> get_ip_for(const std::string& hw_addr, std::istream& data)
+{
+    // bootpd leases entries consist of:
+    // {
+    //        name=<name>
+    //        ip_address=<ipv4>
+    //        hw_address=1,<mac addr>
+    //        identifier=1,<mac addr>
+    //        lease=<lease expiration timestamp in hex>
+    // }
+    const std::regex name_re{fmt::format("\\s*name={}", hw_addr)};
+    const std::regex ipv4_re{"\\s*ip_address=(.+)"};
+    const std::regex known_lines{"^\\s*($|\\}$|name=|hw_address=|identifier=|lease=)"};
+
+    std::string line;
+    std::smatch match;
+    bool name_matched = false;
+    mp::optional<mp::IPAddress> ip_address;
+
+    while (getline(data, line))
+    {
+        if (line == "{")
+        {
+            name_matched = false;
+            ip_address.reset();
+        }
+        else if (regex_match(line, name_re))
+            name_matched = true;
+        else if (regex_match(line, match, ipv4_re))
+            ip_address.emplace(match[1]);
+        else if (line == "}" && name_matched && !ip_address)
+            throw std::runtime_error("Failed to parse IP address out of the leases file.");
+        else if (!regex_search(line, known_lines))
+            mpl::log(mpl::Level::warning, "hyperkit",
+                     fmt::format("Got unexpected line when parsing the leases file: {}", line));
+
+        if (name_matched && ip_address)
+            return ip_address;
+    }
+    return mp::nullopt;
+}
+} // namespace
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
     : VirtualMachine{State::off, desc.vm_name},
