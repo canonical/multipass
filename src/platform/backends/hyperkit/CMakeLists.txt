@@ -17,7 +17,6 @@ set(CMAKE_AUTOMOC ON)
 add_library(hyperkit_backend STATIC
   hyperkit_virtual_machine_factory.cpp
   hyperkit_virtual_machine.cpp
-  ptyreader.cpp
   vmprocess.cpp)
 
 target_link_libraries(hyperkit_backend

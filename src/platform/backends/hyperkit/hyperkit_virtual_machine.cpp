@@ -35,7 +35,7 @@
 #include <QString>
 #include <QTimer>
 
-#include <iostream>
+#include <fstream>
 #include <regex>
 
 namespace mp = multipass;
@@ -43,6 +43,8 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+const mp::Path leases_path{"/var/db/dhcpd_leases"};
+
 mp::optional<mp::IPAddress> get_ip_for(const std::string& hw_addr, std::istream& data)
 {
     // bootpd leases entries consist of:
@@ -112,8 +114,6 @@ void mp::HyperkitVirtualMachine::start()
 
         QObject::connect(vm_process.get(), &VMProcess::started, [=]() { on_start(); });
         QObject::connect(vm_process.get(), &VMProcess::stopped, [=](bool) { thread.quit(); });
-        QObject::connect(vm_process.get(), &VMProcess::ip_address_found,
-                         [=](std::string ip) { on_ip_address_found(ip); });
 
         // cross-thread control
         QObject::connect(&thread, &QThread::started, vm_process.get(), [=]() { vm_process->start(desc); });
@@ -167,16 +167,11 @@ void mp::HyperkitVirtualMachine::on_shutdown()
         state = State::off;
     }
 
-    ip_address.clear();
+    ip.reset();
     update_state();
     lock.unlock();
     monitor->on_shutdown();
     vm_process.reset();
-}
-
-void multipass::HyperkitVirtualMachine::on_ip_address_found(std::string ip)
-{
-    ip_address = ip;
 }
 
 void mp::HyperkitVirtualMachine::ensure_vm_is_running()
@@ -209,7 +204,27 @@ int mp::HyperkitVirtualMachine::ssh_port()
 
 std::string mp::HyperkitVirtualMachine::ssh_hostname()
 {
-    return ipv4();
+    if (!ip)
+    {
+        auto action = [this] {
+            ensure_vm_is_running();
+            std::ifstream leases_file(leases_path.toStdString());
+            auto result = get_ip_for(vm_name, leases_file);
+            if (result)
+            {
+                ip.emplace(result.value());
+                return mp::utils::TimeoutAction::done;
+            }
+            else
+            {
+                return mp::utils::TimeoutAction::retry;
+            }
+        };
+        auto on_timeout = [] { return std::runtime_error("failed to determine IP address"); };
+        mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
+    }
+
+    return ip.value().as_string();
 }
 
 std::string mp::HyperkitVirtualMachine::ssh_username()
@@ -219,24 +234,17 @@ std::string mp::HyperkitVirtualMachine::ssh_username()
 
 std::string mp::HyperkitVirtualMachine::ipv4()
 {
-    if (state == State::starting && ip_address.empty())
+    if (!ip)
     {
-        QEventLoop loop;
-        QObject::connect(vm_process.get(), &VMProcess::ip_address_found, &loop, [this, &loop](std::string ip) {
-            ip_address = ip;
-            state = State::running;
-            update_state();
-            loop.quit();
-        });
-        QTimer::singleShot(40000, &loop, [&loop, this]() {
-            mpl::log(mpl::Level::error, desc.vm_name, "Unable to determine IP address");
-            state = State::unknown;
-            update_state();
-            loop.quit();
-        });
-        loop.exec();
+        std::ifstream leases_file(leases_path.toStdString());
+        auto result = get_ip_for(vm_name, leases_file);
+        if (result)
+            ip.emplace(result.value());
+        else
+            return "UNKNOWN";
     }
-    return ip_address;
+
+    return ip.value().as_string();
 }
 
 std::string mp::HyperkitVirtualMachine::ipv6()

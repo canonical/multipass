@@ -19,6 +19,8 @@
 #ifndef MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_H
 #define MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_H
 
+#include <multipass/ip_address.h>
+#include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -52,12 +54,11 @@ public:
 private:
     void on_start();
     void on_shutdown();
-    void on_ip_address_found(std::string ip);
     VMStatusMonitor* monitor;
     std::unique_ptr<VMProcess> vm_process;
     const std::string username;
     QThread thread;
-    std::string ip_address;
+    multipass::optional<IPAddress> ip;
     const VirtualMachineDescription desc;
     bool update_shutdown_status;
 };

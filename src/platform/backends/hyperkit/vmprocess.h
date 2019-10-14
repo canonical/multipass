@@ -44,18 +44,13 @@ public slots:
 signals:
     void started();
     void stopped(bool unexpected = false);
-    void ip_address_found(std::string ip_address);
 
 private slots:
-    void pty_available(const QString& pty);
-    void console_output(const QByteArray& line);
     void on_ready_read_standard_error();
 
 private:
     std::unique_ptr<QProcess> vm_process;
-    std::unique_ptr<PtyReader> pty_reader;
     bool network_configured;
-    QFileSystemWatcher pty_watcher;
     std::string vm_name;
 };
 
