@@ -150,7 +150,7 @@ make
 
 First, install multipass's runtime dependencies. On amd64 architecture, you can achieve that with:
 
-```console
+```
 sudo apt update
 sudo apt install libgl1 libpng16-16 libqt5core5a libqt5gui5 \
     libqt5network5 libqt5widgets5 libxml2 libvirt0 dnsmasq-base \
@@ -159,13 +159,13 @@ sudo apt install libgl1 libpng16-16 libqt5core5a libqt5gui5 \
 ```
 
 Then run multipass's daemon:
-```console
+```
 sudo <multipass>/build/bin/multipassd &
 ```
 
 Copy the desktop file multipass clients expect to find in your home:
 
-```console
+```
 mkdir -p ~/.local/share/multipass/
 cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
 ```
