@@ -152,7 +152,10 @@ First, install multipass's runtime dependencies. On amd64 architecture, you can 
 
 ```console
 sudo apt update
-sudo apt install libgl1 libpng16-16 libqt5core5a libqt5gui5 libqt5network5 libqt5widgets5 libxml2 libvirt0 dnsmasq-base dnsmasq-utils qemu-system-x86 qemu-utils libslang2 iproute2 iptables iputils-ping libatm1 libxtables12 xterm
+sudo apt install libgl1 libpng16-16 libqt5core5a libqt5gui5 \
+    libqt5network5 libqt5widgets5 libxml2 libvirt0 dnsmasq-base \
+    dnsmasq-utils qemu-system-x86 qemu-utils libslang2 iproute2 \
+    iptables iputils-ping libatm1 libxtables12 xterm
 ```
 
 Then run multipass's daemon:
