@@ -51,18 +51,7 @@ struct ImageHost : public mp::VMImageHost
 {
     mp::optional<mp::VMImageInfo> info_for(const mp::Query& query) override
     {
-        return mp::optional<mp::VMImageInfo>{mp::VMImageInfo{{"default"},
-                                                             "Ubuntu",
-                                                             "xenial",
-                                                             "16.04 LTS",
-                                                             true,
-                                                             image.url(),
-                                                             kernel.url(),
-                                                             initrd.url(),
-                                                             default_id,
-                                                             default_version,
-                                                             1,
-                                                             true}};
+        return mp::optional<mp::VMImageInfo>{mock_image_info};
     }
 
     std::vector<mp::VMImageInfo> all_info_for(const mp::Query& query) override
@@ -92,6 +81,8 @@ struct ImageHost : public mp::VMImageHost
     mpt::TempFile image;
     mpt::TempFile kernel;
     mpt::TempFile initrd;
+    mp::VMImageInfo mock_image_info{{"default"},  "Ubuntu",     "xenial",   "16.04 LTS",     true, image.url(),
+                                    kernel.url(), initrd.url(), default_id, default_version, 1,    true};
 };
 
 struct TrackingURLDownloader : public mp::URLDownloader
@@ -370,6 +361,23 @@ TEST_F(ImageVault, image_exists_not_expired)
     EXPECT_TRUE(QFileInfo::exists(file_name));
 }
 
+TEST_F(ImageVault, invalid_image_dir_is_removed)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
+
+    QDir invalid_image_dir(mp::utils::make_dir(cache_dir.path(), "vault/images/invalid_image"));
+    auto file_name = invalid_image_dir.filePath("mock_image.img");
+
+    mpt::make_file_with_content(file_name);
+
+    EXPECT_TRUE(QFileInfo::exists(file_name));
+
+    vault.prune_expired_images();
+
+    EXPECT_FALSE(QFileInfo::exists(file_name));
+    EXPECT_FALSE(QFileInfo::exists(invalid_image_dir.absolutePath()));
+}
+
 TEST_F(ImageVault, invalid_custom_image_file_throws)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -463,4 +471,31 @@ TEST_F(ImageVault, http_download_returns_expected_image_info)
     // Hash is based on image url
     EXPECT_THAT(image.id, Eq("7404f51c9b4f40312fa048a0ad36e07b74b718a2d3a5a08e8cca906c69059ddf"));
     EXPECT_THAT(image.release_date, Eq(default_last_modified.toString().toStdString()));
+}
+
+TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
+    vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
+
+    auto original_file{url_downloader.downloaded_files[0]};
+    auto original_absolute_path{QFileInfo(original_file).absolutePath()};
+    EXPECT_TRUE(QFileInfo::exists(original_file));
+    EXPECT_TRUE(original_absolute_path.contains(default_version));
+
+    // Mock an update to the image and don't verify because of hash mismatch
+    const QString new_date_string{"20180825"};
+    host.mock_image_info.id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b856";
+    host.mock_image_info.version = new_date_string;
+    host.mock_image_info.verify = false;
+
+    vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
+
+    auto updated_file{url_downloader.downloaded_files[1]};
+    EXPECT_TRUE(QFileInfo::exists(updated_file));
+    EXPECT_TRUE(QFileInfo(updated_file).absolutePath().contains(new_date_string));
+
+    // Old image and directory should be removed
+    EXPECT_FALSE(QFileInfo::exists(original_file));
+    EXPECT_FALSE(QFileInfo::exists(original_absolute_path));
 }
