@@ -17,15 +17,15 @@
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
-#include "mock_environment_helpers.h"
-#include "mock_process_factory.h"
-#include "mock_status_monitor.h"
-#include "stub_process_factory.h"
-#include "stub_ssh_key_provider.h"
-#include "stub_status_monitor.h"
-#include "temp_dir.h"
-#include "temp_file.h"
-#include "test_with_mocked_bin_path.h"
+#include "tests/mock_environment_helpers.h"
+#include "tests/mock_process_factory.h"
+#include "tests/mock_status_monitor.h"
+#include "tests/stub_process_factory.h"
+#include "tests/stub_ssh_key_provider.h"
+#include "tests/stub_status_monitor.h"
+#include "tests/temp_dir.h"
+#include "tests/temp_file.h"
+#include "tests/test_with_mocked_bin_path.h"
 
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>

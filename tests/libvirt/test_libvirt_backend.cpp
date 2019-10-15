@@ -17,15 +17,15 @@
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 
-#include "fake_handle.h"
-#include "mock_libvirt.h"
-#include "mock_ssh.h"
-#include "mock_status_monitor.h"
-#include "stub_process_factory.h"
-#include "stub_ssh_key_provider.h"
-#include "stub_status_monitor.h"
-#include "temp_dir.h"
-#include "temp_file.h"
+#include "tests/fake_handle.h"
+#include "tests/libvirt/mock_libvirt.h"
+#include "tests/mock_ssh.h"
+#include "tests/mock_status_monitor.h"
+#include "tests/stub_process_factory.h"
+#include "tests/stub_ssh_key_provider.h"
+#include "tests/stub_status_monitor.h"
+#include "tests/temp_dir.h"
+#include "tests/temp_file.h"
 
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
