@@ -57,6 +57,7 @@ jobs:
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
       - /snap/bin/review-tools.snap-review --allow-classic *.snap
+      - [ -n "${TRAVIS_PULL_REQUEST}" ] && curl --fail --max-time 600 --write-out "\n" --upload-file *.snap https://transfer.sh/
 
     - env: BUILD_TYPE=Clang
       script:
