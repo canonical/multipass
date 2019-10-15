@@ -78,8 +78,6 @@ constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used
 constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 constexpr auto max_install_sshfs_retries = 3;
-constexpr auto default_mem = "1G";
-constexpr auto default_disk = "5G";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -179,7 +177,9 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
                                               const mp::VMImage& image, YAML::Node& meta_data_config,
                                               YAML::Node& user_data_config, YAML::Node& vendor_data_config)
 {
-    const auto num_cores = request->num_cores() < 1 ? 1 : request->num_cores();
+    const auto num_cores = request->num_cores() < std::stoi(mp::min_cpu_cores)
+                               ? std::stoi(mp::default_cpu_cores)
+                               : request->num_cores();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
@@ -273,8 +273,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         reconstructed_records[key] = {num_cores,
-                                      mp::MemorySize{mem_size.empty() ? default_mem : mem_size},
-                                      mp::MemorySize{disk_space.empty() ? default_disk : disk_space},
+                                      mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
+                                      mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
                                       mac_addr,
                                       ssh_username,
                                       static_cast<mp::VirtualMachine::State>(state),
@@ -319,8 +319,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     auto instance_name = request->instance_name();
     auto option_errors = mp::LaunchError{};
 
-    const auto opt_mem_size = try_mem_size(mem_size_str.empty() ? default_mem : mem_size_str);
-    const auto opt_disk_space = try_mem_size(disk_space_str.empty() ? default_disk : disk_space_str);
+    const auto opt_mem_size = try_mem_size(mem_size_str.empty() ? mp::default_memory_size : mem_size_str);
+    const auto opt_disk_space = try_mem_size(disk_space_str.empty() ? mp::default_disk_size : disk_space_str);
 
     mp::MemorySize mem_size{}, disk_space{};
     if (opt_mem_size && *opt_mem_size >= min_mem)
@@ -701,34 +701,36 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     // Fire timer every six hours to perform maintenance on source images such as
     // pruning expired images and updating to newly released images.
     connect(&source_images_maintenance_task, &QTimer::timeout, [this]() {
-        config->vault->prune_expired_images();
+        QtConcurrent::run([this] {
+            config->vault->prune_expired_images();
 
-        auto prepare_action = [this](const VMImage& source_image) -> VMImage {
-            return config->factory->prepare_source_image(source_image);
-        };
+            auto prepare_action = [this](const VMImage& source_image) -> VMImage {
+                return config->factory->prepare_source_image(source_image);
+            };
 
-        auto download_monitor = [](int download_type, int percentage) {
-            static int last_percentage_logged = -1;
-            if (percentage % 10 == 0)
-            {
-                // Note: The progress callback may be called repeatedly with the same percentage,
-                // so this logic is to only log it once
-                if (last_percentage_logged != percentage)
+            auto download_monitor = [](int download_type, int percentage) {
+                static int last_percentage_logged = -1;
+                if (percentage % 10 == 0)
                 {
-                    mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
-                    last_percentage_logged = percentage;
+                    // Note: The progress callback may be called repeatedly with the same percentage,
+                    // so this logic is to only log it once
+                    if (last_percentage_logged != percentage)
+                    {
+                        mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
+                        last_percentage_logged = percentage;
+                    }
                 }
+                return true;
+            };
+            try
+            {
+                config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
             }
-            return true;
-        };
-        try
-        {
-            config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
-        }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
+            }
+        });
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
 }

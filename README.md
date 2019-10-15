@@ -148,11 +148,33 @@ make
 
 ## Running Multipass daemon and client
 
+First, install multipass's runtime dependencies. On amd64 architecture, you can achieve that with:
+
+```
+sudo apt update
+sudo apt install libgl1 libpng16-16 libqt5core5a libqt5gui5 \
+    libqt5network5 libqt5widgets5 libxml2 libvirt0 dnsmasq-base \
+    dnsmasq-utils qemu-system-x86 qemu-utils libslang2 iproute2 \
+    iptables iputils-ping libatm1 libxtables12 xterm
+```
+
+Then run multipass's daemon:
 ```
 sudo <multipass>/build/bin/multipassd &
+```
+
+Copy the desktop file multipass clients expect to find in your home:
+
+```
 mkdir -p ~/.local/share/multipass/
 cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
-<multipass>/build/bin/multipass launch --name foo
+```
+
+Finally, use multipass's clients:
+
+```
+<multipass>/build/bin/multipass launch --name foo  # CLI client
+<multipass>/build/bin/multipass.gui                # GUI client
 ```
 
 # More information
