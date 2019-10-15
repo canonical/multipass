@@ -20,11 +20,11 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
-#include <src/platform/backends/hyperkit/hyperkit_virtual_machine_factory.h>
+#include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
 
-#include "stub_ssh_key_provider.h"
-#include "stub_status_monitor.h"
-#include "temp_file.h"
+#include "tests/stub_ssh_key_provider.h"
+#include "tests/stub_status_monitor.h"
+#include "tests/temp_file.h"
 
 #include <gmock/gmock.h>
 
@@ -32,22 +32,25 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
-struct HyperkitBackend : public testing::Test
+namespace
+{
+struct HyperVBackend : public testing::Test
 {
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mp::VirtualMachineDescription default_description{2,
                                                       mp::MemorySize{"3M"},
-                                                      mp::MemorySize{}, // not used
+                                                      mp::MemorySize{}, // not used,
                                                       "pied-piper-valley",
                                                       "",
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
-    mp::HyperkitVirtualMachineFactory backend;
+    mp::HyperVVirtualMachineFactory backend;
 };
+} // namespace
 
-TEST_F(HyperkitBackend, creates_in_off_state)
+TEST_F(HyperVBackend, creates_in_off_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);

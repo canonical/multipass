@@ -22,7 +22,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "mock_environment_helpers.h"
+#include "tests/mock_environment_helpers.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

@@ -18,9 +18,9 @@
 #include <multipass/process.h>
 #include <src/platform/backends/shared/linux/process_factory.h>
 
-#include "mock_environment_helpers.h"
-#include "reset_process_factory.h"
-#include "test_with_mocked_bin_path.h"
+#include "tests/mock_environment_helpers.h"
+#include "tests/reset_process_factory.h"
+#include "tests/test_with_mocked_bin_path.h"
 
 #include <gmock/gmock.h>
 
