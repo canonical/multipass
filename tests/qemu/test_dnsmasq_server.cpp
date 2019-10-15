@@ -20,11 +20,11 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
 
-#include "file_operations.h"
-#include "mock_environment_helpers.h"
-#include "reset_process_factory.h"
-#include "temp_dir.h"
-#include "test_with_mocked_bin_path.h"
+#include "tests/file_operations.h"
+#include "tests/mock_environment_helpers.h"
+#include "tests/reset_process_factory.h"
+#include "tests/temp_dir.h"
+#include "tests/test_with_mocked_bin_path.h"
 #include <QDir>
 
 #include <memory>

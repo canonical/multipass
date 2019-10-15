@@ -15,11 +15,11 @@
  *
  */
 
-#include "fake_handle.h"
-#include "mock_environment_helpers.h"
-#include "mock_libvirt.h"
-#include "mock_settings.h"
-#include "test_with_mocked_bin_path.h"
+#include "tests/fake_handle.h"
+#include "tests/mock_environment_helpers.h"
+#include "tests/libvirt/mock_libvirt.h"
+#include "tests/mock_settings.h"
+#include "tests/test_with_mocked_bin_path.h"
 
 #include "src/platform/backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "src/platform/backends/qemu/qemu_virtual_machine_factory.h"
