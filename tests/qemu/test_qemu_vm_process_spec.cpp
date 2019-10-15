@@ -17,7 +17,7 @@
 
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
-#include "mock_environment_helpers.h"
+#include "tests/mock_environment_helpers.h"
 #include <gmock/gmock.h>
 
 namespace mp = multipass;

@@ -17,9 +17,9 @@
 
 #include <src/platform/backends/qemu/iptables_config.h>
 
-#include "mock_environment_helpers.h"
-#include "mock_process_factory.h"
-#include "reset_process_factory.h"
+#include "tests/mock_environment_helpers.h"
+#include "tests/mock_process_factory.h"
+#include "tests/reset_process_factory.h"
 
 #include <QString>
 
