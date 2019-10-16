@@ -728,7 +728,10 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
     }
 
-    prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
+    // Do not save the instance name for prepared images
+    Query prepared_query{query};
+    prepared_query.name = "";
+    prepared_image_records[id] = {prepared_image, prepared_query, std::chrono::system_clock::now()};
 
     persist_instance_records();
     persist_image_records();
