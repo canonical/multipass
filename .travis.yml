@@ -21,22 +21,16 @@ env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
 
+before_install:
+# determine build identifier
+- '[ -n "${TRAVIS_PULL_REQUEST}" ] && export MULTIPASS_BUILD_ID="pr${TRAVIS_PULL_REQUEST}"'
+
 install:
 - sudo apt remove --purge --assume-yes lxd lxd-client
 - sudo /snap/bin/lxd waitready
 - sudo /snap/bin/lxd init --auto
 - sudo adduser $USER lxd
 - ccache --max-size=5G
-
-before_script:
-# patch build system for the build type being processed
-- "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
-- "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
-
-# set up ccache
-- sg lxd -c '/snap/bin/lxc profile set default environment.PATH "/usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"'
-- sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
-- ccache --zero-stats
 
 after_failure:
 - cat /tmp/*/trace.txt
@@ -54,16 +48,31 @@ jobs:
         - *snapcraft
         - review-tools
       env: BUILD_TYPE=RelWithDebInfo
+      before_script: &before_snapcraft
+      # patch build system for the build type being processed
+      - "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
+      - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
+
+      # set up ccache
+      - sg lxd -c '/snap/bin/lxc profile set default environment.PATH "/usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"'
+      - sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
+      - ccache --zero-stats
+
+      # inject build identifier
+      - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_ID=${MULTIPASS_BUILD_ID}" snap/snapcraft.yaml
+
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
       - /snap/bin/review-tools.snap-review --allow-classic *.snap
       - [ -n "${TRAVIS_PULL_REQUEST}" ] && curl --fail --max-time 600 --write-out "\n" --upload-file *.snap https://transfer.sh/
 
     - env: BUILD_TYPE=Clang
+      before_script: *before_snapcraft
       script:
       - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
 
     - env: BUILD_TYPE=Debug
+      before_script: *before_snapcraft
       script:
       - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
@@ -74,6 +83,7 @@ jobs:
                  /root/parts/multipass/build/bin/multipass_tests'
 
     - env: BUILD_TYPE=Coverage
+      before_script: *before_snapcraft
       script:
       - mkdir "${HOME}/parts"
       - sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
@@ -86,6 +96,7 @@ jobs:
                  cmake --build /root/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
+
     - if: |
         repo = CanonicalLtd/multipass
                AND (type != pull_request
@@ -95,12 +106,10 @@ jobs:
         submodules: false
       sudo: false
       addons: ~
-      before_install:
+      install:
       - openssl aes-256-cbc -K $encrypted_8d49841daf21_key -iv $encrypted_8d49841daf21_iv
         -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
       - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
-      install: ~
-      before_script: ~
       script:
       - |
         if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
@@ -109,7 +118,7 @@ jobs:
           REF="${TRAVIS_COMMIT}"
         fi
         ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
-        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}"
+        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_ID}"
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       - [ -n "${TRAVIS_PULL_REQUEST}" ] && curl --fail --max-time 600 --write-out "\n" --upload-file *.pkg https://transfer.sh/
       after_success: ~
