@@ -15,75 +15,7 @@
 
 set (CMAKE_AUTOMOC ON)
 
-list(APPEND CMOCK_TARGETS
-  ssh_test
-  sshfs_mount_test
-  sftp_test
-  ssh_client_test)
-
-set (PLATFORM_INCLUDES ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux)
-
 include(c_mock_defines.cmake)
-
-list(APPEND PLATFORM_TESTS
-  mock_libvirt.cpp
-  test_apparmored_process.cpp
-  test_platform_linux.cpp
-  test_qemu_backend.cpp
-  test_qemu_vm_process_spec.cpp
-  test_qemuimg_process_spec.cpp
-  test_dnsmasq_server.cpp
-  test_dnsmasq_process_spec.cpp
-  test_iptables_config.cpp
-  test_libvirt_backend.cpp
-  test_snap_utils.cpp
-  test_backend_utils.cpp)
-
-add_executable(qemu-system-x86_64
-        mock_qemu_system.cpp)
-
-set_target_properties(qemu-system-x86_64
-        PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
-target_link_libraries(qemu-system-x86_64
-        Qt5::Core)
-
-add_executable(dnsmasq
-  mock_dnsmasq_server.cpp)
-
-set_target_properties(dnsmasq
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
-target_link_libraries(dnsmasq
-        Qt5::Core)
-
-add_executable(dhcp_release
-  mock_dhcp_release.cpp)
-
-set_target_properties(dhcp_release
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
-add_executable(qemu-img
-  mock_qemuimg.cpp)
-
-set_target_properties(qemu-img
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
-list(APPEND CMOCK_TARGETS libvirt_backend_test)
-target_compile_definitions(libvirt_backend_test PRIVATE
-    ${c_mock_defines})
 
 set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googlemock)
 set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googletest)
@@ -139,14 +71,11 @@ add_executable(multipass_tests
   test_utils.cpp
   test_with_mocked_bin_path.cpp
 
-  ${PLATFORM_TESTS}
-
   ${MULTIPASS_GMOCK_DIR}/src/gmock-all.cc
   ${MULTIPASS_GTEST_DIR}/src/gtest-all.cc
 )
 
 target_include_directories(multipass_tests
-  PRIVATE ${PLATFORM_INCLUDES}
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
   PRIVATE ${MULTIPASS_GTEST_DIR}
@@ -172,7 +101,6 @@ target_link_libraries(multipass_tests
   delayed_shutdown
   ip_address
   iso
-  libvirt_backend_test
   metrics
   petname
   simplestreams
@@ -185,7 +113,6 @@ target_link_libraries(multipass_tests
   premock
   scope_guard
   yaml
-  ${CMOCK_TARGETS}
 )
 
 add_test(NAME multipass_tests
@@ -193,7 +120,6 @@ add_test(NAME multipass_tests
 )
 
 file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-
 
 # Mock binaries for testing BasicProcess (cross-platform compatible)
 add_executable(mock_process
@@ -205,11 +131,12 @@ set_target_properties(mock_process
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_executable(apparmor_parser
-  mock_apparmor_parser.cpp)
+add_dependencies(multipass_tests mock_process)
 
-set_target_properties(apparmor_parser
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+target_include_directories(multipass_tests
+  BEFORE
+    PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
+)
+add_subdirectory(linux)
+add_subdirectory(qemu)
+include(libvirt/CMakeLists.txt) # with add_subdirectory it's not possible to target_link_libraries

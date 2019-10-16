@@ -71,8 +71,8 @@ int main(int argc, char* argv[])
 
         if (write(pipefd[1], "0", 1) < 1)
         {
-                std::cerr << "Failed to write to pipe: " << std::strerror(errno) << std::endl;
-                return unexpected_error;
+            std::cerr << "Failed to write to pipe: " << std::strerror(errno) << std::endl;
+            return unexpected_error;
         }
 
         close(pipefd[1]);

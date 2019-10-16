@@ -17,11 +17,11 @@
 
 #include <src/platform/backends/shared/linux/backend_utils.h>
 
-#include "extra_assertions.h"
-#include "mock_process_factory.h"
-
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+
+#include "tests/extra_assertions.h"
+#include "tests/mock_process_factory.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

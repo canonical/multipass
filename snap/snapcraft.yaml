@@ -86,7 +86,7 @@ parts:
     - libqt5widgets5
     - libxml2
     - libvirt0
-    - dnsmasq
+    - dnsmasq-base
     - dnsmasq-utils
     source: .
     configflags:
