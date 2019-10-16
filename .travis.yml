@@ -64,7 +64,11 @@ jobs:
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
       - /snap/bin/review-tools.snap-review --allow-classic *.snap
-      - [ -n "${TRAVIS_PULL_REQUEST}" ] && curl --fail --max-time 600 --write-out "\n" --upload-file *.snap https://transfer.sh/
+      after_success:
+      - '[ -z "${TRAVIS_PULL_REQUEST}" ] && exit'
+      - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.snap https://transfer.sh/ )
+        && ./tools/report-build.py Snap ${CURL_OUTPUT};
+        echo ${CURL_OUTPUT}
 
     - env: BUILD_TYPE=Clang
       before_script: *before_snapcraft
@@ -120,7 +124,11 @@ jobs:
         ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_ID}"
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
-      - [ -n "${TRAVIS_PULL_REQUEST}" ] && curl --fail --max-time 600 --write-out "\n" --upload-file *.pkg https://transfer.sh/
+      after_success:
+      - '[ -z "${TRAVIS_PULL_REQUEST}" ] && exit'
+      - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.pkg https://transfer.sh/ )
+        && ./tools/report-build.py macOS ${CURL_OUTPUT};
+        echo ${CURL_OUTPUT}
       after_script: ~
       after_failure: ~
       cache: ~
