@@ -170,6 +170,12 @@ mkdir -p ~/.local/share/multipass/
 cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
 ```
 
+Optionally, enable auto-complete in bash:
+
+```
+source <multipass>/completions/bash/multipass
+```
+
 Finally, use multipass's clients:
 
 ```

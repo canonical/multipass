@@ -8,4 +8,3 @@ target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
 
 target_link_libraries(multipass_tests libvirt_backend_test)
-
