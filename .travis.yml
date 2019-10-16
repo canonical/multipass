@@ -35,7 +35,7 @@ install:
 after_failure:
 - cat /tmp/*/trace.txt
 
-after_success:
+after_script:
 - ccache --show-stats
 
 cache: ccache
@@ -94,7 +94,7 @@ jobs:
              env CTEST_OUTPUT_ON_FAILURE=1
                  LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/
                  cmake --build /root/parts/multipass/build --target covreport'
-      after_success:
+      after_script:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
 
     - if: |
@@ -121,6 +121,6 @@ jobs:
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_ID}"
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       - [ -n "${TRAVIS_PULL_REQUEST}" ] && curl --fail --max-time 600 --write-out "\n" --upload-file *.pkg https://transfer.sh/
-      after_success: ~
+      after_script: ~
       after_failure: ~
       cache: ~
