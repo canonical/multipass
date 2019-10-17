@@ -43,13 +43,15 @@ public:
     virtual QDateTime last_modified(const QUrl& url);
     virtual void abort_all_downloads();
 
+protected:
+    std::atomic_bool abort_download{false};
+
 private:
     URLDownloader(const URLDownloader&) = delete;
     URLDownloader& operator=(const URLDownloader&) = delete;
 
     const Path cache_dir_path;
     std::chrono::milliseconds timeout;
-    std::atomic_bool abort_download{false};
 };
 }
 #endif // MULTIPASS_URL_DOWNLOADER_H
