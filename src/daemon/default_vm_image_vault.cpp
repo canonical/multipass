@@ -226,6 +226,18 @@ void verify_image_download(const mp::Path& image_path, const std::string& image_
     }
 }
 
+void delete_image_dir(const mp::Path& image_path)
+{
+    QFileInfo image_file{image_path};
+    if (image_file.exists())
+    {
+        if (image_file.isDir())
+            QDir(image_path).removeRecursively();
+        else
+            image_file.dir().removeRecursively();
+    }
+}
+
 class DeleteOnException
 {
 public:
@@ -498,11 +510,24 @@ void mp::DefaultVMImageVault::prune_expired_images()
         {
             mpl::log(
                 mpl::Level::info, category,
-                fmt::format("Source image {} is expired. Removing it from the cache.\n", record.second.query.release));
+                fmt::format("Source image {} is expired. Removing it from the cache.", record.second.query.release));
             expired_keys.push_back(record.first);
-            QFileInfo image_file{record.second.image.image_path};
-            if (image_file.exists())
-                image_file.dir().removeRecursively();
+            delete_image_dir(record.second.image.image_path);
+        }
+    }
+
+    // Remove any image directories that have no corresponding database entry
+    for (const auto& entry : images_dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot))
+    {
+        if (std::find_if(prepared_image_records.cbegin(), prepared_image_records.cend(),
+                         [&entry](const std::pair<std::string, VaultRecord>& record) {
+                             return record.second.image.image_path.contains(entry.absoluteFilePath());
+                         }) == prepared_image_records.cend())
+        {
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Source image {} is no longer valid. Removing it from the cache.",
+                                 entry.absoluteFilePath()));
+            delete_image_dir(entry.absoluteFilePath());
         }
     }
 
@@ -515,7 +540,7 @@ void mp::DefaultVMImageVault::prune_expired_images()
 void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                             const ProgressMonitor& monitor)
 {
-    mpl::log(mpl::Level::debug, category, "Checking for images to update...");
+    mpl::log(mpl::Level::debug, category, "Checking for images to update…");
 
     std::vector<decltype(prepared_image_records)::key_type> keys_to_update;
     for (const auto& record : prepared_image_records)
@@ -545,6 +570,12 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         try
         {
             fetch_image(fetch_type, record.query, prepare, monitor);
+
+            // Remove old image
+            std::lock_guard lock{fetch_mutex};
+            delete_image_dir(record.image.image_path);
+            prepared_image_records.erase(key);
+            persist_image_records();
         }
         catch (const std::exception& e)
         {
@@ -697,7 +728,10 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
     }
 
-    prepared_image_records[id] = {prepared_image, query, std::chrono::system_clock::now()};
+    // Do not save the instance name for prepared images
+    Query prepared_query{query};
+    prepared_query.name = "";
+    prepared_image_records[id] = {prepared_image, prepared_query, std::chrono::system_clock::now()};
 
     persist_instance_records();
     persist_image_records();
