@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,12 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Gerry Boland <gerry.boland@canonical.com>
  */
 
 #ifndef MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_H
 #define MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_H
 
+#include <multipass/ip_address.h>
+#include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -52,12 +53,11 @@ public:
 private:
     void on_start();
     void on_shutdown();
-    void on_ip_address_found(std::string ip);
     VMStatusMonitor* monitor;
     std::unique_ptr<VMProcess> vm_process;
     const std::string username;
     QThread thread;
-    std::string ip_address;
+    multipass::optional<IPAddress> ip;
     const VirtualMachineDescription desc;
     bool update_shutdown_status;
 };

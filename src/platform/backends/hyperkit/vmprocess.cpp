@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,12 +13,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Gerry Boland <gerry.boland@canonical.com>
  */
 
 #include "vmprocess.h"
-
-#include "ptyreader.h"
 
 #include <multipass/logging/log.h>
 #include <multipass/virtual_machine_description.h>
@@ -208,18 +205,6 @@ void mp::VMProcess::start(const VirtualMachineDescription& desc)
         emit stopped(true);
     });
 
-    /* Hyperkit PTY socket monitoring and opening
-     *
-     * We've specified to hyperkit the desired path for the PTY socket, and need to wait for it to be
-     * created before connecting to it and reading.
-     */
-    if (QFile::exists(pty))
-        QFile::remove(pty);
-
-    mpl::log(mpl::Level::info, vm_name, fmt::format("setting up watch for PTY in dir {}", dir(pty).toStdString()));
-    pty_watcher.addPath(dir(pty));
-
-    connect(&pty_watcher, &QFileSystemWatcher::directoryChanged, this, &mp::VMProcess::pty_available);
     vm_process->start();
 }
 
@@ -245,50 +230,6 @@ void mp::VMProcess::stop()
     }
 
     vm_process.reset();
-}
-
-void mp::VMProcess::pty_available(const QString& dir)
-{
-    const QString pty = QString("%1/pty").arg(dir);
-    if (QFile::exists(pty))
-    {
-        pty_watcher.removePath(dir);
-        QObject::disconnect(&pty_watcher, &QFileSystemWatcher::directoryChanged, nullptr, nullptr);
-
-        mpl::log(mpl::Level::info, vm_name, fmt::format("hyperkit PTY found, opening {}", pty.toStdString()));
-        try
-        {
-            pty_reader = std::make_unique<PtyReader>(pty);
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, vm_name, fmt::format("failed to instantiate PtyReader: {}", e.what()));
-            stop(); // FIXME: is this the most suitable decision?
-            return;
-        }
-
-        connect(pty_reader.get(), &mp::PtyReader::lineRead, this, &mp::VMProcess::console_output);
-    }
-}
-
-void mp::VMProcess::console_output(const QByteArray& line)
-{
-    if (!network_configured)
-    {
-        // Need to use Regex to parse VM output to find the IP address - happens to be the first
-        // mention of 192.168.*.* in the output.
-        QRegExp ip_regex("192\\.168\\.(\\d{1,3})\\.(\\d{1,3})");
-        if (ip_regex.indexIn(line) > -1)
-        {
-            uint8_t third = ip_regex.cap(1).toUInt();
-            uint8_t fourth = ip_regex.cap(2).toUInt();
-
-            std::string ip_address = "192.168." + std::to_string(third) + "." + std::to_string(fourth);
-            mpl::log(mpl::Level::info, vm_name, fmt::format("IP address found: {}", ip_address.c_str()));
-            emit ip_address_found(ip_address);
-            network_configured = true;
-        }
-    }
 }
 
 void mp::VMProcess::on_ready_read_standard_error()

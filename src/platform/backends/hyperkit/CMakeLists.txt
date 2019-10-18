@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2019 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -17,7 +17,6 @@ set(CMAKE_AUTOMOC ON)
 add_library(hyperkit_backend STATIC
   hyperkit_virtual_machine_factory.cpp
   hyperkit_virtual_machine.cpp
-  ptyreader.cpp
   vmprocess.cpp)
 
 target_link_libraries(hyperkit_backend

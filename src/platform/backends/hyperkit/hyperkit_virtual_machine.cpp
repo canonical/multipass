@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Gerry Boland <gerry.boland@canonical.com>
  */
 
 #include "hyperkit_virtual_machine.h"
@@ -21,7 +20,10 @@
 #include "vmprocess.h"
 
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/format.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
+#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -32,8 +34,58 @@
 #include <QString>
 #include <QTimer>
 
+#include <fstream>
+#include <regex>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+namespace
+{
+const mp::Path leases_path{"/var/db/dhcpd_leases"};
+
+mp::optional<mp::IPAddress> get_ip_for(const std::string& hw_addr, std::istream& data)
+{
+    // bootpd leases entries consist of:
+    // {
+    //        name=<name>
+    //        ip_address=<ipv4>
+    //        hw_address=1,<mac addr>
+    //        identifier=1,<mac addr>
+    //        lease=<lease expiration timestamp in hex>
+    // }
+    const std::regex name_re{fmt::format("\\s*name={}", hw_addr)};
+    const std::regex ipv4_re{"\\s*ip_address=(.+)"};
+    const std::regex known_lines{"^\\s*($|\\}$|name=|hw_address=|identifier=|lease=)"};
+
+    std::string line;
+    std::smatch match;
+    bool name_matched = false;
+    mp::optional<mp::IPAddress> ip_address;
+
+    while (getline(data, line))
+    {
+        if (line == "{")
+        {
+            name_matched = false;
+            ip_address.reset();
+        }
+        else if (regex_match(line, name_re))
+            name_matched = true;
+        else if (regex_match(line, match, ipv4_re))
+            ip_address.emplace(match[1]);
+        else if (line == "}" && name_matched && !ip_address)
+            throw std::runtime_error("Failed to parse IP address out of the leases file.");
+        else if (!regex_search(line, known_lines))
+            mpl::log(mpl::Level::warning, "hyperkit",
+                     fmt::format("Got unexpected line when parsing the leases file: {}", line));
+
+        if (name_matched && ip_address)
+            return ip_address;
+    }
+    return mp::nullopt;
+}
+} // namespace
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
     : VirtualMachine{State::off, desc.vm_name},
@@ -61,8 +113,6 @@ void mp::HyperkitVirtualMachine::start()
 
         QObject::connect(vm_process.get(), &VMProcess::started, [=]() { on_start(); });
         QObject::connect(vm_process.get(), &VMProcess::stopped, [=](bool) { thread.quit(); });
-        QObject::connect(vm_process.get(), &VMProcess::ip_address_found,
-                         [=](std::string ip) { on_ip_address_found(ip); });
 
         // cross-thread control
         QObject::connect(&thread, &QThread::started, vm_process.get(), [=]() { vm_process->start(desc); });
@@ -116,16 +166,11 @@ void mp::HyperkitVirtualMachine::on_shutdown()
         state = State::off;
     }
 
-    ip_address.clear();
+    ip.reset();
     update_state();
     lock.unlock();
     monitor->on_shutdown();
     vm_process.reset();
-}
-
-void multipass::HyperkitVirtualMachine::on_ip_address_found(std::string ip)
-{
-    ip_address = ip;
 }
 
 void mp::HyperkitVirtualMachine::ensure_vm_is_running()
@@ -158,7 +203,27 @@ int mp::HyperkitVirtualMachine::ssh_port()
 
 std::string mp::HyperkitVirtualMachine::ssh_hostname()
 {
-    return ipv4();
+    if (!ip)
+    {
+        auto action = [this] {
+            ensure_vm_is_running();
+            std::ifstream leases_file(leases_path.toStdString());
+            auto result = get_ip_for(vm_name, leases_file);
+            if (result)
+            {
+                ip.emplace(result.value());
+                return mp::utils::TimeoutAction::done;
+            }
+            else
+            {
+                return mp::utils::TimeoutAction::retry;
+            }
+        };
+        auto on_timeout = [] { return std::runtime_error("failed to determine IP address"); };
+        mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
+    }
+
+    return ip.value().as_string();
 }
 
 std::string mp::HyperkitVirtualMachine::ssh_username()
@@ -168,24 +233,17 @@ std::string mp::HyperkitVirtualMachine::ssh_username()
 
 std::string mp::HyperkitVirtualMachine::ipv4()
 {
-    if (state == State::starting && ip_address.empty())
+    if (!ip)
     {
-        QEventLoop loop;
-        QObject::connect(vm_process.get(), &VMProcess::ip_address_found, &loop, [this, &loop](std::string ip) {
-            ip_address = ip;
-            state = State::running;
-            update_state();
-            loop.quit();
-        });
-        QTimer::singleShot(40000, &loop, [&loop, this]() {
-            mpl::log(mpl::Level::error, desc.vm_name, "Unable to determine IP address");
-            state = State::unknown;
-            update_state();
-            loop.quit();
-        });
-        loop.exec();
+        std::ifstream leases_file(leases_path.toStdString());
+        auto result = get_ip_for(vm_name, leases_file);
+        if (result)
+            ip.emplace(result.value());
+        else
+            return "UNKNOWN";
     }
-    return ip_address;
+
+    return ip.value().as_string();
 }
 
 std::string mp::HyperkitVirtualMachine::ipv6()

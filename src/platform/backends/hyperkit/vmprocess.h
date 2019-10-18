@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Gerry Boland <gerry.boland@canonical.com>
  */
 
 #ifndef VMPROCESS_H
@@ -44,18 +43,13 @@ public slots:
 signals:
     void started();
     void stopped(bool unexpected = false);
-    void ip_address_found(std::string ip_address);
 
 private slots:
-    void pty_available(const QString& pty);
-    void console_output(const QByteArray& line);
     void on_ready_read_standard_error();
 
 private:
     std::unique_ptr<QProcess> vm_process;
-    std::unique_ptr<PtyReader> pty_reader;
     bool network_configured;
-    QFileSystemWatcher pty_watcher;
     std::string vm_name;
 };
 
