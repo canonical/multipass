@@ -67,7 +67,7 @@ auto get_network_cache_data(QAbstractNetworkCache* network_cache, const QUrl& ur
 
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
 QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
-                    DownloadAction&& on_download, ErrorAction&& on_error)
+                    DownloadAction&& on_download, ErrorAction&& on_error, const bool& abort_download)
 {
     QEventLoop event_loop;
     QTimer download_timeout;
@@ -99,7 +99,7 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 
         const auto msg = reply->errorString().toStdString();
 
-        if (reply->error() == QNetworkReply::OperationCanceledError)
+        if (abort_download)
             throw mp::AbortedDownloadException{msg};
         else
             throw mp::DownloadException{url.toString().toStdString(), download_timeout.isActive() ? msg : "Network timeout"};
@@ -162,7 +162,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
     auto on_error = [&file]() { file.remove(); };
 
-    ::download(manager.get(), timeout, url, progress_monitor, on_download, on_error);
+    ::download(manager.get(), timeout, url, progress_monitor, on_download, on_error, abort_download);
 }
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
@@ -204,7 +204,8 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 
     try
     {
-        return ::download(manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {});
+        return ::download(manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {},
+                          abort_download);
     }
     catch (const std::exception& e)
     {
