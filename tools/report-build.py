@@ -115,9 +115,8 @@ class MinimizeComment(GitHubQLQuery):
 
 def main():
     build_id = sys.argv[1]
-    build_url = sys.argv[2]
-    comment_body = ["{} build available: [{}]({})".format(
-        build_id, build_url.split("/")[-1], build_url)]
+    comment_body = ["{} build available: {}".format(
+        build_id, " or ".join(sys.argv[2:]))]
 
     events_d = GetEvents().run({
         "owner": os.environ["TRAVIS_REPO_SLUG"].split("/")[0],
