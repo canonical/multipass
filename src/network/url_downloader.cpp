@@ -67,7 +67,7 @@ auto get_network_cache_data(QAbstractNetworkCache* network_cache, const QUrl& ur
 
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
 QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
-                    DownloadAction&& on_download, ErrorAction&& on_error, const bool& abort_download)
+                    DownloadAction&& on_download, ErrorAction&& on_error, const std::atomic_bool& abort_download)
 {
     QEventLoop event_loop;
     QTimer download_timeout;
