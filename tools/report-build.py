@@ -7,9 +7,10 @@ import sys
 
 GITHUB_ENDPOINT = "https://api.github.com/graphql"
 GITHUB_HEADERS = {
-    "Authorization": "Bearer {}".format(os.environ["GITHUB_TOKEN"])
+    "Authorization": "Bearer {}".format(os.environ["GITHUB_TOKEN"]),
+    "Accept": "application/vnd.github.queen-beryl-preview+json",
 }
-EVENT_COUNT = 10
+EVENT_COUNT = 50
 
 
 class GraphQLQuery():
@@ -60,6 +61,8 @@ class GetEvents(GitHubQLQuery):
                       }
                       body
                       id
+                      isMinimized
+                      viewerCanMinimize
                       viewerCanUpdate
                     }
                   }
@@ -92,6 +95,18 @@ class UpdateComment(GitHubQLQuery):
           updateIssueComment(input: $comment) {
             issueComment {
               id
+            }
+          }
+        }
+    """
+
+
+class MinimizeComment(GitHubQLQuery):
+    query = """
+        mutation MinimizeComment($input: MinimizeCommentInput!) {
+          minimizeComment(input: $input) {
+            minimizedComment {
+              isMinimized
             }
           }
         }
@@ -139,6 +154,21 @@ def main():
             # we've encountered a commit or a force event,
             # break out and add a new comment below
             break
+
+    for event in events:
+        try:
+            if(event["node"]["author"]["login"] == viewer["login"]
+               and not event["node"]["isMinimized"]
+               and event["node"]["viewerCanMinimize"]):
+                MinimizeComment().run({
+                    "input": {
+                        "subjectId": event["node"]["id"],
+                        "classifier": "OUTDATED",
+                    }
+                })
+        except KeyError:
+            # not a comment, continue
+            pass
 
     AddComment().run({
         "comment": {
