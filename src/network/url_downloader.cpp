@@ -97,12 +97,12 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     {
         on_error();
 
-        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
+        const auto msg = reply->errorString().toStdString();
 
         if (reply->error() == QNetworkReply::OperationCanceledError)
             throw mp::AbortedDownloadException{msg};
         else
-            throw mp::DownloadException{url.toString().toStdString(), msg};
+            throw mp::DownloadException{url.toString().toStdString(), download_timeout.isActive() ? msg : "Network timeout"};
     }
     return reply->readAll();
 }
