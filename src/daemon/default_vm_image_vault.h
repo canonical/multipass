@@ -49,6 +49,8 @@ class DefaultVMImageVault final : public VMImageVault
 public:
     DefaultVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, multipass::Path cache_dir_path,
                         multipass::Path data_dir_path, multipass::days days_to_expire);
+    ~DefaultVMImageVault();
+
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;
     void remove(const std::string& name) override;

@@ -23,6 +23,7 @@
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/optional.h>
 #include <multipass/query.h>
@@ -30,6 +31,7 @@
 #include <multipass/utils.h>
 #include <multipass/vm_image_host.h>
 
+#include <QThread>
 #include <QUrl>
 
 #include <gmock/gmock.h>
@@ -154,6 +156,26 @@ struct HttpURLDownloader : public mp::URLDownloader
 
     QStringList downloaded_files;
     QStringList downloaded_urls;
+};
+
+struct RunningURLDownloader : public mp::URLDownloader
+{
+    RunningURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
+    {
+    }
+    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+                     const mp::ProgressMonitor&) override
+    {
+        while (!abort_download)
+            QThread::yieldCurrentThread();
+
+        throw mp::AbortedDownloadException("Aborted!");
+    }
+
+    QByteArray download(const QUrl& url) override
+    {
+        return {};
+    }
 };
 
 struct ImageVault : public testing::Test
@@ -498,4 +520,15 @@ TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)
     // Old image and directory should be removed
     EXPECT_FALSE(QFileInfo::exists(original_file));
     EXPECT_FALSE(QFileInfo::exists(original_absolute_path));
+}
+
+TEST_F(ImageVault, aborted_download_throws)
+{
+    RunningURLDownloader running_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &running_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+
+    running_url_downloader.abort_all_downloads();
+
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
+                 mp::AbortedDownloadException);
 }

@@ -18,6 +18,7 @@
 #include "default_vm_image_vault.h"
 #include "json_writer.h"
 
+#include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/logging/log.h>
@@ -279,6 +280,11 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
     }
 }
 
+mp::DefaultVMImageVault::~DefaultVMImageVault()
+{
+    url_downloader->abort_all_downloads();
+}
+
 mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                                  const PrepareAction& prepare, const ProgressMonitor& monitor)
 {
@@ -469,6 +475,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             in_progress_image_fetches.erase(id);
             return finalize_image_records(query, prepared_image, id);
         }
+        catch (const AbortedDownloadException&)
+        {
+            throw;
+        }
         catch (const std::exception& e)
         {
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -577,7 +587,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
             prepared_image_records.erase(key);
             persist_image_records();
         }
-        catch (const std::exception& e)
+        catch (const CreateImageException& e)
         {
             mpl::log(mpl::Level::warning, category,
                      fmt::format("Cannot update source image {}: {}", record.query.release, e.what()));
@@ -636,6 +646,10 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         remove_source_images(source_image, prepared_image);
 
         return prepared_image;
+    }
+    catch (const AbortedDownloadException&)
+    {
+        throw;
     }
     catch (const std::exception& e)
     {
