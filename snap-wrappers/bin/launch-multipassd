@@ -14,7 +14,4 @@ fi
 
 export MULTIPASS_VM_DRIVER
 
-# iptables needs
-export XTABLES_LIBDIR=$SNAP/usr/lib/x86_64-linux-gnu/xtables
-
 exec "$SNAP/bin/multipassd" --verbosity debug --logger platform
