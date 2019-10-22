@@ -7,9 +7,13 @@ import sys
 
 import requests
 
+from github import Github
+
+
 GITHUB_ENDPOINT = "https://api.github.com/graphql"
+GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 GITHUB_HEADERS = {
-    "Authorization": "Bearer {}".format(os.environ["GITHUB_TOKEN"]),
+    "Authorization": "Bearer {}".format(GITHUB_TOKEN),
     "Accept": "application/vnd.github.queen-beryl-preview+json",
 }
 COMMENT_TYPES = ("IssueComment",)
@@ -180,6 +184,30 @@ class MinimizeComment(GitHubQLQuery):
           }
         }
     """
+
+
+class GitHubV3Call():
+    variables = {}
+
+    def __init__(self, variables={}):
+        self.github = Github(os.environ["GITHUB_TOKEN"])
+        self.variables = variables
+
+    def run(self, variables={}):
+        raise NotImplementedError(
+            "You need to subclass GitHubV3Call and"
+            " provide the run(self, variables={}) method"
+        )
+
+    def _vars(self, variables):
+        return dict_merge(self.variables, variables)
+
+class AddCommitComment(GitHubV3Call):
+    def run(self, variables={}):
+        variables = self._vars(variables)
+        repo = self.github.get_repo("{owner}/{name}".format(**variables))
+        return (repo.get_commit(variables["sha"])
+                .create_comment(variables["comment"]["body"]))
 
 
 def main():
