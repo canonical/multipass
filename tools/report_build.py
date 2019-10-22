@@ -16,7 +16,7 @@ GITHUB_HEADERS = {
     "Authorization": "Bearer {}".format(GITHUB_TOKEN),
     "Accept": "application/vnd.github.queen-beryl-preview+json",
 }
-COMMENT_TYPES = ("IssueComment",)
+COMMENT_TYPES = ("IssueComment", "CommitComment")
 EVENT_COUNT = 50
 
 
@@ -98,6 +98,7 @@ class GetEvents(GitHubQLQuery):
                         login
                       }
                       body
+                      databaseId
                       id
                       isMinimized
                       viewerCanMinimize
@@ -133,6 +134,7 @@ class GetCommitComments(GitHubQLQuery):
                       login
                     }
                     body
+                    databaseId
                     id
                     isMinimized
                     viewerCanMinimize
@@ -202,12 +204,26 @@ class GitHubV3Call():
     def _vars(self, variables):
         return dict_merge(self.variables, variables)
 
-class AddCommitComment(GitHubV3Call):
+
+class RepoCall(GitHubV3Call):
     def run(self, variables={}):
-        variables = self._vars(variables)
-        repo = self.github.get_repo("{owner}/{name}".format(**variables))
-        return (repo.get_commit(variables["sha"])
-                .create_comment(variables["comment"]["body"]))
+        self._repo = self.github.get_repo(
+            "{owner}/{name}".format(**self._vars(variables)))
+
+
+class AddCommitComment(RepoCall):
+    def run(self, variables={}):
+        super().run(variables)
+        return (self._repo.get_commit(self._vars(variables)["sha"])
+                .create_comment(self._vars(variables)["comment"]["body"]))
+
+
+class UpdateCommitComment(RepoCall):
+    def run(self, variables={}):
+        super().run(variables)
+        return (self._repo.get_comment(
+            self._vars(variables)["comment"]["databaseId"])
+            .edit(self._vars(variables)["comment"]["body"]))
 
 
 def main():
@@ -233,6 +249,7 @@ def main():
                 "subjectId": events_d["repository"]["pullRequest"]["id"]
             }
         }))
+        update_comment = UpdateComment()
         events = (events_d["repository"]["pullRequest"]
                   ["timelineItems"]["edges"])
 
@@ -243,6 +260,7 @@ def main():
         add_comment = AddCommitComment(dict(common_d, **{
             "sha": os.environ["TRAVIS_COMMIT"]
         }))
+        update_comment = UpdateCommitComment(common_d)
         events = events_d["repository"]["object"]["comments"]["edges"]
     else:
         raise Exception(
@@ -264,7 +282,7 @@ def main():
 
             comment_body.sort(key=lambda v: (v.upper(), v))
 
-            UpdateComment().run({
+            update_comment.run({
                 "comment": {
                     "id": event["node"]["id"],
                     "body": "\n".join(comment_body),
