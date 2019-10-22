@@ -216,17 +216,39 @@ def main():
         build_name, " or ".join(sys.argv[2:]))]
 
     owner, name = os.environ["TRAVIS_REPO_SLUG"].split("/")
+    travis_event = os.environ["TRAVIS_EVENT_TYPE"]
 
-    events_d = GetEvents().run({
+    common_d = {
         "owner": owner,
         "name": name,
-        "pull_request": int(os.environ["TRAVIS_PULL_REQUEST"]),
-        "count": EVENT_COUNT
-    })["data"]
+    }
+
+    if travis_event == "pull_request":
+        events_d = GetEvents(common_d).run({
+            "pull_request": int(os.environ["TRAVIS_PULL_REQUEST"]),
+            "count": EVENT_COUNT
+        })["data"]
+        add_comment = AddComment(dict(common_d, **{
+            "comment": {
+                "subjectId": events_d["repository"]["pullRequest"]["id"]
+            }
+        }))
+        events = (events_d["repository"]["pullRequest"]
+                  ["timelineItems"]["edges"])
+
+    elif travis_event == "push":
+        events_d = GetCommitComments(common_d).run({
+            "commit": os.environ["TRAVIS_COMMIT"]
+        })["data"]
+        add_comment = AddCommitComment(dict(common_d, **{
+            "sha": os.environ["TRAVIS_COMMIT"]
+        }))
+        events = events_d["repository"]["object"]["comments"]["edges"]
+    else:
+        raise Exception(
+            "This tool needs to run in a Travis PR or a branch build")
 
     viewer = events_d["viewer"]
-    pull_request = events_d["repository"]["pullRequest"]
-    events = pull_request["timelineItems"]["edges"]
 
     for event in reversed(events):
         if event["node"]["__typename"] not in COMMENT_TYPES:
@@ -265,9 +287,8 @@ def main():
                 }
             })
 
-    AddComment().run({
+    add_comment.run({
         "comment": {
-            "subjectId": pull_request["id"],
             "body": "\n".join(comment_body),
         }
     })
