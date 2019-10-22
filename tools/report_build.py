@@ -2,8 +2,9 @@
 
 import os
 import pprint
-import requests
 import sys
+
+import requests
 
 GITHUB_ENDPOINT = "https://api.github.com/graphql"
 GITHUB_HEADERS = {
@@ -48,7 +49,10 @@ class GitHubQLQuery(GraphQLQuery):
 
 class GetEvents(GitHubQLQuery):
     query = """
-        query GetEvents($owner: String!, $name: String!, $pull_request: Int!, $count: Int!) {
+        query GetEvents($owner: String!,
+                        $name: String!,
+                        $pull_request: Int!,
+                        $count: Int!) {
           repository(owner: $owner, name: $name) {
             pullRequest(number: $pull_request) {
               id

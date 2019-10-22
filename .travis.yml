@@ -84,7 +84,7 @@ jobs:
       - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.snap https://transfer.sh/ )
         && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
         echo ${CURL_OUTPUT}
-      - ./tools/report-build.py Snap "${BUILDS[@]}"
+      - ./tools/report_build.py Snap "${BUILDS[@]}"
 
     - env: BUILD_TYPE=Clang
       before_script: *before_snapcraft
@@ -140,7 +140,7 @@ jobs:
       after_success:
       - '[ -z "${TRAVIS_PULL_REQUEST}" ] && exit'
       - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.pkg https://transfer.sh/ )
-        && ./tools/report-build.py macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
+        && ./tools/report_build.py macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
       after_script: ~
       after_failure: ~
