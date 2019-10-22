@@ -24,7 +24,7 @@ env:
 before_install:
 # determine build properties and targets
 - |
-  if [ -n "${TRAVIS_PULL_REQUEST}" ]; then
+  if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
     export MULTIPASS_BUILD_ID="pr${TRAVIS_PULL_REQUEST}"
     export MULTIPASS_CHANNEL="edge/${MULTIPASS_BUILD_ID}"
   fi
@@ -77,7 +77,7 @@ jobs:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
       - /snap/bin/review-tools.snap-review --allow-classic *.snap
       after_success:
-      - '[[ -z "${TRAVIS_PULL_REQUEST}" || "${TRAVIS_SECURE_ENV_VARS}" == "false" ]] && exit'
+      - '[[ "${TRAVIS_EVENT_TYPE}" != "pull_request" || "${TRAVIS_SECURE_ENV_VARS}" == "false" ]] && exit'
       - BUILDS=()
       - >-
         [ -n "${MULTIPASS_CHANNEL}" ]
@@ -141,7 +141,7 @@ jobs:
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_ID}"
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       after_success:
-      - '[ -z "${TRAVIS_PULL_REQUEST}" ] && exit'
+      - '[ "${TRAVIS_EVENT_TYPE}" != "pull_request" ] && exit'
       - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.pkg https://transfer.sh/ )
         && ./tools/report_build.py macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
