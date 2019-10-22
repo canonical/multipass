@@ -25,11 +25,6 @@ layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
 
-plugs:
-  all-home:
-    interface: home
-    read: all
-
 apps:
   multipassd:
     command: bin/launch-multipassd
@@ -51,9 +46,7 @@ apps:
       - multipass-support
       - network-bind
       - network-control
-      - network-manager
       - firewall-control
-
   multipass:
     environment:
       <<: &client-environment
@@ -68,7 +61,7 @@ apps:
     command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
     plugs:
-      - all-home
+      - home
       - network
   gui:
     environment: *client-environment
@@ -76,7 +69,7 @@ apps:
     desktop: usr/share/applications/multipass.gui.desktop
     autostart: multipass.gui.autostart.desktop
     plugs:
-      - all-home
+      - home
       - network
 
 parts:
@@ -145,9 +138,6 @@ parts:
       usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
       usr/share/seabios/*: qemu/
       usr/lib/ipxe/qemu/*: qemu/
-    stage:
-    - -usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libcurl-gnutls.so.4.5.0
-    - -usr/share/doc/libcurl3-gnutls/changelog.Debian.gz
 
   kvm-support:
     plugin: nil
@@ -176,9 +166,6 @@ parts:
     - -usr/share/doc/libfreetype6/TODO
     - -usr/share/doc/libfreetype6/changelog.Debian.gz
     - -usr/share/doc/libfreetype6/pcf/README
-    - -lib/$SNAPCRAFT_ARCH_TRIPLET/libexpat.so.1.6.7
-    - -usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libexpatw.so.1.6.7
-    - -usr/share/doc/libexpat1/changelog.Debian.gz
 
   glue:
     plugin: dump
