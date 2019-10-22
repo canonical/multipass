@@ -111,6 +111,41 @@ class GetEvents(GitHubQLQuery):
     """
 
 
+class GetCommitComments(GitHubQLQuery):
+    query = """
+        query GetCommitComments($owner: String!,
+                                $name: String!,
+                                $commit: String!,
+                                $count: Int = 10) {
+        repository(owner: $owner, name: $name) {
+          object(expression: $commit) {
+            id
+            ... on Commit {
+              comments(last: $count) {
+                edges {
+                  node {
+                    __typename
+                    author {
+                      login
+                    }
+                    body
+                    id
+                    isMinimized
+                    viewerCanMinimize
+                    viewerCanUpdate
+                  }
+                }
+              }
+            }
+          }
+        }
+        viewer {
+          login
+        }
+      }
+    """
+
+
 class AddComment(GitHubQLQuery):
     query = """
         mutation AddComment($comment: AddCommentInput!) {
