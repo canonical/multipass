@@ -36,6 +36,10 @@ class GraphQLQuery():
     headers = {}
     query = None
     request = None
+    variables = None
+
+    def __init__(self, variables={}):
+        self.variables = variables
 
     def run(self, variables={}):
         if None in (self.api_endpoint, self.query):
@@ -45,7 +49,9 @@ class GraphQLQuery():
 
         self.request = requests.post(
             self.api_endpoint, headers=self.headers,
-            json={'query': self.query, 'variables': variables})
+            json={
+                'query': self.query,
+                'variables': dict_merge(variables, self.variables)})
 
         if self.request.status_code != 200:
             raise Exception("Query failed with status code {}:\n{}".format(
