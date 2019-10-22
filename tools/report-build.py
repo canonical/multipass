@@ -52,7 +52,13 @@ class GetEvents(GitHubQLQuery):
           repository(owner: $owner, name: $name) {
             pullRequest(number: $pull_request) {
               id
-              timelineItems(last: $count, itemTypes: [PULL_REQUEST_COMMIT, ISSUE_COMMENT, HEAD_REF_FORCE_PUSHED_EVENT]) {
+              timelineItems(last: $count, itemTypes: [
+                BASE_REF_CHANGED_EVENT,
+                BASE_REF_FORCE_PUSHED_EVENT,
+                HEAD_REF_FORCE_PUSHED_EVENT,
+                ISSUE_COMMENT,
+                PULL_REQUEST_COMMIT
+              ]) {
                 edges {
                   node {
                     ... on IssueComment {
@@ -114,13 +120,15 @@ class MinimizeComment(GitHubQLQuery):
 
 
 def main():
-    build_id = sys.argv[1]
+    build_name = sys.argv[1]
     comment_body = ["{} build available: {}".format(
-        build_id, " or ".join(sys.argv[2:]))]
+        build_name, " or ".join(sys.argv[2:]))]
+
+    owner, name = os.environ["TRAVIS_REPO_SLUG"].split("/")
 
     events_d = GetEvents().run({
-        "owner": os.environ["TRAVIS_REPO_SLUG"].split("/")[0],
-        "name": os.environ["TRAVIS_REPO_SLUG"].split("/")[1],
+        "owner": owner,
+        "name": name,
         "pull_request": int(os.environ["TRAVIS_PULL_REQUEST"]),
         "count": EVENT_COUNT
     })["data"]
@@ -135,8 +143,8 @@ def main():
                and event["node"]["viewerCanUpdate"]):
                 # found a recent commit we can update
                 for line in event["node"]["body"].splitlines():
-                    # include all builds with a different id
-                    if not line.startswith(build_id):
+                    # include all builds with a different build_name
+                    if not line.startswith(build_name):
                         comment_body.append(line)
 
                 comment_body.sort(key=lambda v: (v.upper(), v))

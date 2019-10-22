@@ -76,9 +76,9 @@ jobs:
       after_success:
       - '[ -z "${TRAVIS_PULL_REQUEST}" ] && exit'
       - BUILDS=()
-      - snapcraft login --with ${HOME}/snap-login
       - >-
         [ -n "${MULTIPASS_CHANNEL}" ]
+        && snapcraft login --with ${HOME}/snap-login
         && snapcraft push multipass_*.snap --release ${MULTIPASS_CHANNEL}
         && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_CHANNEL}\`")
       - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.snap https://transfer.sh/ )
@@ -114,7 +114,7 @@ jobs:
              env CTEST_OUTPUT_ON_FAILURE=1
                  LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/
                  cmake --build /root/parts/multipass/build --target covreport'
-      after_script:
+      after_success:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
 
     - if: |
