@@ -37,6 +37,10 @@ before_install:
     tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
   fi
 
+# install tooling requiements
+- pyenv local 3.7.1
+- python3 -m pip install --requirement tools/requirements.txt
+
 install:
 - sudo apt remove --purge --assume-yes lxd lxd-client
 - sudo /snap/bin/lxd waitready
@@ -87,7 +91,7 @@ jobs:
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.snap https://transfer.sh/ )
         && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
         echo ${CURL_OUTPUT}
-      - ./tools/report_build.py Snap "${BUILDS[@]}"
+      - python3 -m tools.report_build Snap "${BUILDS[@]}"
 
     - env: BUILD_TYPE=Clang
       before_script: *before_snapcraft
@@ -143,7 +147,7 @@ jobs:
       after_success:
       - '[ "${TRAVIS_EVENT_TYPE}" != "pull_request" ] && exit'
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
-        && ./tools/report_build.py macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
+        && python3 -m tools.report_build macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
       after_script: ~
       after_failure: ~
