@@ -45,7 +45,15 @@ public:
 
     ~AppArmoredProcess()
     {
-        apparmor.remove_policy(process_spec->apparmor_profile().toLatin1());
+        try
+        {
+            apparmor.remove_policy(process_spec->apparmor_profile().toLatin1());
+        }
+        catch (const std::exception& e)
+        {
+            // It's not considered an error when an apparmor cannot be removed
+            mpl::log(mpl::Level::info, "apparmor", e.what());
+        }
     }
 
 private:
