@@ -21,6 +21,22 @@ env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
 
+before_install:
+# determine build properties and targets
+- |
+  if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
+    export MULTIPASS_BUILD_LABEL="pr${TRAVIS_PULL_REQUEST}"
+    export MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
+  fi
+
+# extract credentials
+- |
+  if [ "${TRAVIS_SECURE_ENV_VARS}" == "true" ]; then
+    openssl aes-256-cbc -K $encrypted_1b80fb3c7803_key -iv $encrypted_1b80fb3c7803_iv \
+      -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
+    tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
+  fi
+
 install:
 - sudo apt remove --purge --assume-yes lxd lxd-client
 - sudo /snap/bin/lxd waitready
@@ -28,20 +44,10 @@ install:
 - sudo adduser $USER lxd
 - ccache --max-size=5G
 
-before_script:
-# patch build system for the build type being processed
-- "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
-- "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
-
-# set up ccache
-- sg lxd -c '/snap/bin/lxc profile set default environment.PATH "/usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"'
-- sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
-- ccache --zero-stats
-
 after_failure:
 - cat /tmp/*/trace.txt
 
-after_success:
+after_script:
 - ccache --show-stats
 
 cache: ccache
@@ -54,15 +60,42 @@ jobs:
         - *snapcraft
         - review-tools
       env: BUILD_TYPE=RelWithDebInfo
+      before_script: &before_snapcraft
+      # patch build system for the build type being processed
+      - "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
+      - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
+
+      # set up ccache
+      - sg lxd -c '/snap/bin/lxc profile set default environment.PATH "/usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"'
+      - sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
+      - ccache --zero-stats
+
+      # inject build identifier
+      - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${MULTIPASS_BUILD_LABEL}" snap/snapcraft.yaml
+
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
       - /snap/bin/review-tools.snap-review --allow-classic *.snap
+      after_success:
+      - '[[ "${TRAVIS_EVENT_TYPE}" != "pull_request" || "${TRAVIS_SECURE_ENV_VARS}" == "false" ]] && exit'
+      - BUILDS=()
+      - >-
+        [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
+        && snapcraft login --with ${HOME}/snap-login
+        && snapcraft push multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
+        && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
+      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.snap https://transfer.sh/ )
+        && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
+        echo ${CURL_OUTPUT}
+      - ./tools/report_build.py Snap "${BUILDS[@]}"
 
     - env: BUILD_TYPE=Clang
+      before_script: *before_snapcraft
       script:
       - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
 
     - env: BUILD_TYPE=Debug
+      before_script: *before_snapcraft
       script:
       - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
@@ -73,6 +106,7 @@ jobs:
                  /root/parts/multipass/build/bin/multipass_tests'
 
     - env: BUILD_TYPE=Coverage
+      before_script: *before_snapcraft
       script:
       - mkdir "${HOME}/parts"
       - sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
@@ -85,6 +119,7 @@ jobs:
                  cmake --build /root/parts/multipass/build --target covreport'
       after_success:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
+
     - if: |
         repo = CanonicalLtd/multipass
                AND (type != pull_request
@@ -94,12 +129,7 @@ jobs:
         submodules: false
       sudo: false
       addons: ~
-      before_install:
-      - openssl aes-256-cbc -K $encrypted_8d49841daf21_key -iv $encrypted_8d49841daf21_iv
-        -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
-      - tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
       install: ~
-      before_script: ~
       script:
       - |
         if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
@@ -107,7 +137,14 @@ jobs:
         else
           REF="${TRAVIS_COMMIT}"
         fi
-        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh "${REF}"
-      after_success: ~
+        ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
+        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_LABEL}"
+        scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
+      after_success:
+      - '[ "${TRAVIS_EVENT_TYPE}" != "pull_request" ] && exit'
+      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
+        && ./tools/report_build.py macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
+        echo ${CURL_OUTPUT}
+      after_script: ~
       after_failure: ~
       cache: ~
