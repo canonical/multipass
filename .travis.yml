@@ -84,7 +84,7 @@ jobs:
         && snapcraft login --with ${HOME}/snap-login
         && snapcraft push multipass_*.snap --release ${MULTIPASS_CHANNEL}
         && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_CHANNEL}\`")
-      - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.snap https://transfer.sh/ )
+      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.snap https://transfer.sh/ )
         && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
         echo ${CURL_OUTPUT}
       - ./tools/report_build.py Snap "${BUILDS[@]}"
@@ -142,7 +142,7 @@ jobs:
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       after_success:
       - '[ "${TRAVIS_EVENT_TYPE}" != "pull_request" ] && exit'
-      - CURL_OUTPUT=$( curl --fail --progress-bar --max-time 600 --upload-file *.pkg https://transfer.sh/ )
+      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
         && ./tools/report_build.py macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
       after_script: ~
