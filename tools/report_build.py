@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
+import argparse
 import copy
 import os
 import pprint
-import sys
 
 import requests
 
@@ -226,10 +226,24 @@ class UpdateCommitComment(RepoCall):
             .edit(self._vars(variables)["comment"]["body"]))
 
 
+class ArgParser(argparse.ArgumentParser):
+    def __init__(self):
+        super().__init__(description="Report build availability to GitHub")
+        self.add_argument(
+            "build_name",
+            help="a unique build name (e.g. \"Snap\", \"macOS\", \"Windows\")")
+        self.add_argument(
+            "body", nargs="+",
+            help="Markdown-formatted string(s) for each individual publishing"
+                 " (e.g. a command to install, a URL)")
+
+
 def main():
-    build_name = sys.argv[1]
+    parser = ArgParser()
+    args = parser.parse_args()
+
     comment_body = ["{} build available: {}".format(
-        build_name, " or ".join(sys.argv[2:]))]
+        args.build_name, " or ".join(args.body))]
 
     owner, name = os.environ["TRAVIS_REPO_SLUG"].split("/")
     travis_event = os.environ["TRAVIS_EVENT_TYPE"]
@@ -277,7 +291,7 @@ def main():
             # found a recent commit we can update
             for line in event["node"]["body"].splitlines():
                 # include all builds with a different build_name
-                if not line.startswith(build_name):
+                if not line.startswith(args.build_name):
                     comment_body.append(line)
 
             comment_body.sort(key=lambda v: (v.upper(), v))
