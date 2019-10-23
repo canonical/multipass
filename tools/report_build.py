@@ -37,6 +37,7 @@ def dict_merge(a, b):
 
 class GraphQLQuery():
     api_endpoint = None
+    data = None
     headers = {}
     query = None
     request = None
@@ -66,7 +67,8 @@ class GraphQLQuery():
                 pprint.pformat(self.request.json())
             ))
         else:
-            return self.request.json()
+            self.data = self.request.json()["data"]
+            return self
 
 
 class GitHubQLQuery(GraphQLQuery):
@@ -115,14 +117,33 @@ class GetEvents(GitHubQLQuery):
         }
     """
 
+    @property
+    def pull_request(self):
+        return self.data["repository"]["pullRequest"]
+
+    @property
+    def events(self):
+        return self.pull_request["timelineItems"]["edges"]
+
 
 class GetCommitComments(GitHubQLQuery):
     query = """
         query GetCommitComments($owner: String!,
                                 $name: String!,
+                                $branch: String = null,
                                 $commit: String!,
                                 $count: Int = 10) {
         repository(owner: $owner, name: $name) {
+          ref(qualifiedName: $branch) {
+            associatedPullRequests(states: OPEN, last: 1) {
+              edges {
+                node {
+                  id
+                  number
+                }
+              }
+            }
+          }
           object(expression: $commit) {
             id
             ... on Commit {
@@ -150,6 +171,21 @@ class GetCommitComments(GitHubQLQuery):
         }
       }
     """
+
+    @property
+    def ref(self):
+        return self.data["repository"]["ref"]
+
+    @property
+    def pull_request(self):
+        try:
+            return self.ref["associatedPullRequests"]["edges"][0]["node"]
+        except (TypeError, IndexError):
+            return None
+
+    @property
+    def events(self):
+        return self.data["repository"]["object"]["comments"]["edges"]
 
 
 class AddComment(GitHubQLQuery):
@@ -230,6 +266,11 @@ class ArgParser(argparse.ArgumentParser):
     def __init__(self):
         super().__init__(description="Report build availability to GitHub")
         self.add_argument(
+            "--branch",
+            help="report on the last PR associated with the given branch,"
+                 " rather than on the commit being built."
+                 " Falls back to the commit if a PR is not found")
+        self.add_argument(
             "build_name",
             help="a unique build name (e.g. \"Snap\", \"macOS\", \"Windows\")")
         self.add_argument(
@@ -251,36 +292,50 @@ def main():
     common_d = {
         "owner": owner,
         "name": name,
+        "count": EVENT_COUNT,
     }
 
     if travis_event == "pull_request":
-        events_d = GetEvents(common_d).run({
+        events_o = GetEvents(common_d).run({
             "pull_request": int(os.environ["TRAVIS_PULL_REQUEST"]),
-            "count": EVENT_COUNT
-        })["data"]
+        })
         add_comment = AddComment(dict(common_d, **{
             "comment": {
-                "subjectId": events_d["repository"]["pullRequest"]["id"]
+                "subjectId": events_o.pull_request["id"]
             }
         }))
         update_comment = UpdateComment()
-        events = (events_d["repository"]["pullRequest"]
-                  ["timelineItems"]["edges"])
+        events = events_o.events
 
     elif travis_event == "push":
-        events_d = GetCommitComments(common_d).run({
-            "commit": os.environ["TRAVIS_COMMIT"]
-        })["data"]
-        add_comment = AddCommitComment(dict(common_d, **{
-            "sha": os.environ["TRAVIS_COMMIT"]
-        }))
-        update_comment = UpdateCommitComment(common_d)
-        events = events_d["repository"]["object"]["comments"]["edges"]
+        events_o = GetCommitComments(common_d).run({
+            "branch": args.branch and f"refs/heads/{args.branch}",
+            "commit": os.environ["TRAVIS_COMMIT"],
+        })
+
+        # if there's an open pull request associated with the given branch
+        if None not in (args.branch, events_o.pull_request):
+            add_comment = AddComment(dict(common_d, **{
+                "comment": {
+                    "subjectId": events_o.pull_request["id"]
+                }
+            }))
+            update_comment = UpdateComment()
+            events = GetEvents(common_d).run({
+                "pull_request": events_o.pull_request["number"]
+            }).events
+        # otherwise report on the commit
+        else:
+            add_comment = AddCommitComment(dict(common_d, **{
+                "sha": os.environ["TRAVIS_COMMIT"]
+            }))
+            update_comment = UpdateCommitComment(common_d)
+            events = events_o.events
     else:
         raise Exception(
             "This tool needs to run in a Travis PR or a branch build")
 
-    viewer = events_d["viewer"]
+    viewer = events_o.data["viewer"]
 
     for event in reversed(events):
         if event["node"]["__typename"] not in COMMENT_TYPES:
