@@ -26,7 +26,7 @@ before_install:
 - |
   if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
     export MULTIPASS_BUILD_ID="pr${TRAVIS_PULL_REQUEST}"
-    export MULTIPASS_CHANNEL="edge/${MULTIPASS_BUILD_ID}"
+    export MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_ID}"
   fi
 
 # extract credentials
@@ -80,10 +80,10 @@ jobs:
       - '[[ "${TRAVIS_EVENT_TYPE}" != "pull_request" || "${TRAVIS_SECURE_ENV_VARS}" == "false" ]] && exit'
       - BUILDS=()
       - >-
-        [ -n "${MULTIPASS_CHANNEL}" ]
+        [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
         && snapcraft login --with ${HOME}/snap-login
-        && snapcraft push multipass_*.snap --release ${MULTIPASS_CHANNEL}
-        && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_CHANNEL}\`")
+        && snapcraft push multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
+        && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.snap https://transfer.sh/ )
         && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
         echo ${CURL_OUTPUT}
