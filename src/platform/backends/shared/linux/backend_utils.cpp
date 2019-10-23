@@ -100,16 +100,15 @@ void check_min_img_size(const mp::MemorySize& requested_size, const mp::Path& im
                                              qemuimg_process->read_all_standard_error()));
 
     const auto img_info = QString{qemuimg_process->read_all_standard_output()};
-    const auto capture_name = QStringLiteral("size");
-    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<%1>\\d+) bytes\\)$").arg(capture_name);
+    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)$");
     const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
 
     if (const auto match = re.match(img_info); match.hasMatch())
     {
-        const auto min_size = match.captured(capture_name).toStdString();
+        const auto min_size = match.captured("size").toStdString();
         if (requested_size < mp::MemorySize{min_size})
             throw std::runtime_error(fmt::format("Requested disk ({} bytes) below minimum for this image ({} bytes)",
-                                                 requested_size.in_bytes(), min_size));
+                                                 requested_size.in_bytes(), min_size)); // TODO use human-readable sizes
     }
     else
         throw std::runtime_error{fmt::format("Could not obtain image's virtual size")};
