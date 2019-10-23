@@ -28,17 +28,19 @@ env:
   - MULTIPASS_PUBLISH=""
   # which channel to publish to
   - MULTIPASS_SNAP_CHANNEL=""
+  # options to pass to the build reporter
+  - MULTIPASS_REPORT_OPTIONS=()
 
 before_install:
 # determine build properties and targets
 - |
   # tag all PR builds with their number
   if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
-    export MULTIPASS_BUILD_LABEL="pr${TRAVIS_PULL_REQUEST}"
+    MULTIPASS_BUILD_LABEL="pr${TRAVIS_PULL_REQUEST}"
 
   # and all other non-branch builds with their Travis job number
   elif [ "${TRAVIS_EVENT_TYPE}" != "push" ]; then
-    export MULTIPASS_BUILD_LABEL="ci${TRAVIS_JOB_NUMBER}"
+    MULTIPASS_BUILD_LABEL="ci${TRAVIS_JOB_NUMBER}"
   fi
 
   # can't publish anything without credentials
@@ -50,20 +52,25 @@ before_install:
 
       # publish pushes on beta/*
       if [ "${TRAVIS_EVENT_TYPE}" == "push" ]; then
-        export MULTIPASS_PUBLISH="true"
-        export MULTIPASS_SNAP_CHANNEL="beta/${BASH_REMATCH[1]}"
+        MULTIPASS_PUBLISH="true"
+        MULTIPASS_SNAP_CHANNEL="beta/${BASH_REMATCH[1]}"
+      fi
+
+      # but report on the PR if it's a release branch
+      if [[ "${TRAVIS_BRANCH}" == release/* ]]; then
+        MULTIPASS_REPORT_OPTIONS+=("--branch" "${TRAVIS_BRANCH}")
       fi
 
     # other branches only publish on the commits
     # skip staging as the same commit will be published from master if all is good
     elif [[ "${TRAVIS_EVENT_TYPE}" == "push" \
             && "${TRAVIS_BRANCH}" != "staging" ]]; then
-      export MULTIPASS_PUBLISH="true"
+      MULTIPASS_PUBLISH="true"
 
     # non-release publish on edge/pr*
     elif [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
-      export MULTIPASS_PUBLISH="true"
-      export MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
+      MULTIPASS_PUBLISH="true"
+      MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
     fi
   fi
 
@@ -129,7 +136,7 @@ jobs:
         && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
         echo ${CURL_OUTPUT}
       - >-
-        [ -n "${MULTIPASS_PUBLISH}" ] && python3 -m tools.report_build Snap "${BUILDS[@]}"
+        [ -n "${MULTIPASS_PUBLISH}" ] && python3 -m tools.report_build ${MULTIPASS_REPORT_OPTIONS[@]} Snap "${BUILDS[@]}"
 
     - env: BUILD_TYPE=Clang
       before_script: *before_snapcraft
@@ -185,7 +192,7 @@ jobs:
       after_success:
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
         && [ -n "${MULTIPASS_PUBLISH}" ]
-        && python3 -m tools.report_build macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
+        && python3 -m tools.report_build ${MULTIPASS_REPORT_OPTIONS[@]} macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
       after_script: ~
       after_failure: ~
