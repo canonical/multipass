@@ -25,8 +25,8 @@ before_install:
 # determine build properties and targets
 - |
   if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
-    export MULTIPASS_BUILD_ID="pr${TRAVIS_PULL_REQUEST}"
-    export MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_ID}"
+    export MULTIPASS_BUILD_LABEL="pr${TRAVIS_PULL_REQUEST}"
+    export MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
   fi
 
 # extract credentials
@@ -71,7 +71,7 @@ jobs:
       - ccache --zero-stats
 
       # inject build identifier
-      - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_ID=${MULTIPASS_BUILD_ID}" snap/snapcraft.yaml
+      - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${MULTIPASS_BUILD_LABEL}" snap/snapcraft.yaml
 
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
@@ -138,7 +138,7 @@ jobs:
           REF="${TRAVIS_COMMIT}"
         fi
         ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
-        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_ID}"
+        ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_LABEL}"
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       after_success:
       - '[ "${TRAVIS_EVENT_TYPE}" != "pull_request" ] && exit'
