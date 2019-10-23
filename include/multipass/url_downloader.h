@@ -13,9 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *              Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_URL_DOWNLOADER_H
@@ -27,6 +24,7 @@
 #include <QByteArray>
 #include <QDateTime>
 
+#include <atomic>
 #include <chrono>
 
 class QUrl;
@@ -43,6 +41,10 @@ public:
                              const ProgressMonitor& monitor);
     virtual QByteArray download(const QUrl& url);
     virtual QDateTime last_modified(const QUrl& url);
+    virtual void abort_all_downloads();
+
+protected:
+    std::atomic_bool abort_download{false};
 
 private:
     URLDownloader(const URLDownloader&) = delete;

@@ -177,6 +177,7 @@ private:
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
+    QFuture<void> image_update_future;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H
