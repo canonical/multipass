@@ -11,6 +11,7 @@ GITHUB_HEADERS = {
     "Authorization": "Bearer {}".format(os.environ["GITHUB_TOKEN"]),
     "Accept": "application/vnd.github.queen-beryl-preview+json",
 }
+COMMENT_TYPES = ("IssueComment",)
 EVENT_COUNT = 50
 
 
@@ -65,6 +66,7 @@ class GetEvents(GitHubQLQuery):
               ]) {
                 edges {
                   node {
+                    __typename
                     ... on IssueComment {
                       author {
                         login
@@ -142,44 +144,41 @@ def main():
     events = pull_request["timelineItems"]["edges"]
 
     for event in reversed(events):
-        try:
-            if(event["node"]["author"]["login"] == viewer["login"]
-               and event["node"]["viewerCanUpdate"]):
-                # found a recent commit we can update
-                for line in event["node"]["body"].splitlines():
-                    # include all builds with a different build_name
-                    if not line.startswith(build_name):
-                        comment_body.append(line)
-
-                comment_body.sort(key=lambda v: (v.upper(), v))
-
-                UpdateComment().run({
-                    "comment": {
-                        "id": event["node"]["id"],
-                        "body": "\n".join(comment_body),
-                    }
-                })
-
-                sys.exit(0)
-        except KeyError:
-            # we've encountered a commit or a force event,
-            # break out and add a new comment below
+        if event["node"]["__typename"] not in COMMENT_TYPES:
             break
 
+        if(event["node"]["author"]["login"] == viewer["login"]
+           and event["node"]["viewerCanUpdate"]):
+            # found a recent commit we can update
+            for line in event["node"]["body"].splitlines():
+                # include all builds with a different build_name
+                if not line.startswith(build_name):
+                    comment_body.append(line)
+
+            comment_body.sort(key=lambda v: (v.upper(), v))
+
+            UpdateComment().run({
+                "comment": {
+                    "id": event["node"]["id"],
+                    "body": "\n".join(comment_body),
+                }
+            })
+
+            return
+
     for event in events:
-        try:
-            if(event["node"]["author"]["login"] == viewer["login"]
-               and not event["node"]["isMinimized"]
-               and event["node"]["viewerCanMinimize"]):
-                MinimizeComment().run({
-                    "input": {
-                        "subjectId": event["node"]["id"],
-                        "classifier": "OUTDATED",
-                    }
-                })
-        except KeyError:
-            # not a comment, continue
-            pass
+        if event["node"]["__typename"] not in COMMENT_TYPES:
+            continue
+
+        if(event["node"]["author"]["login"] == viewer["login"]
+           and not event["node"]["isMinimized"]
+           and event["node"]["viewerCanMinimize"]):
+            MinimizeComment().run({
+                "input": {
+                    "subjectId": event["node"]["id"],
+                    "classifier": "OUTDATED",
+                }
+            })
 
     AddComment().run({
         "comment": {
