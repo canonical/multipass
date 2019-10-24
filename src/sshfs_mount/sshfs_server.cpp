@@ -65,8 +65,6 @@ unordered_map<int, int> deserialise_id_map(const char* in)
 
 int main(int argc, char* argv[])
 {
-    mpp::emit_signal_when_parent_dies(); // works on linux only
-
     if (argc != 8)
     {
         cerr << "Incorrect arguments" << endl;
