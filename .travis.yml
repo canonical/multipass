@@ -133,6 +133,7 @@ jobs:
         && snapcraft push multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
         && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.snap https://transfer.sh/ )
+        || ( echo "Upload failed..."; false )
         && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
         echo ${CURL_OUTPUT}
       - >-
@@ -191,6 +192,7 @@ jobs:
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       after_success:
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
+        || ( echo "Upload failed..."; false )
         && [ -n "${MULTIPASS_PUBLISH}" ]
         && python3 -m tools.report_build ${MULTIPASS_REPORT_OPTIONS[@]} macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
