@@ -64,11 +64,18 @@ before_install:
         MULTIPASS_REPORT_OPTIONS+=("--branch" "${TRAVIS_BRANCH}")
       fi
 
-    # other branches only publish on the commits
+    # other branches publish on the commits by default
     # skip staging as the same commit will be published from master if all is good
     elif [[ "${TRAVIS_EVENT_TYPE}" == "push" \
             && "${TRAVIS_BRANCH}" != "staging" ]]; then
       MULTIPASS_PUBLISH="true"
+
+      # except for `trying`, which publishes on the parent's PR
+      if [[ "${TRAVIS_BRANCH}" == "trying" \
+            && "${TRAVIS_COMMIT_MESSAGE}" =~ ^Try\ #([0-9]+): ]]; then
+        MULTIPASS_BUILD_LABEL="try${BASH_REMATCH[1]}"
+        MULTIPASS_REPORT_OPTIONS+=("--parent")
+      fi
 
     # non-release publish on edge/pr*
     elif [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
