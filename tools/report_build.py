@@ -147,6 +147,20 @@ class GetCommitComments(GitHubQLQuery):
           object(expression: $commit) {
             id
             ... on Commit {
+              parents(last: 1) {
+                edges {
+                  node {
+                    associatedPullRequests(last: 1) {
+                      edges {
+                        node {
+                          id
+                          number
+                        }
+                      }
+                    }
+                  }
+                }
+              }
               comments(last: $count) {
                 edges {
                   node {
@@ -181,6 +195,14 @@ class GetCommitComments(GitHubQLQuery):
         try:
             return self.ref["associatedPullRequests"]["edges"][0]["node"]
         except (TypeError, IndexError):
+            return None
+
+    @property
+    def parent_pull_request(self):
+        try:
+            return (self.data["repository"]["object"]["parents"]["edges"][0]
+                    ["node"]["associatedPullRequests"]["edges"][0]["node"])
+        except IndexError:
             return None
 
     @property
@@ -265,11 +287,17 @@ class UpdateCommitComment(RepoCall):
 class ArgParser(argparse.ArgumentParser):
     def __init__(self):
         super().__init__(description="Report build availability to GitHub")
-        self.add_argument(
-            "--branch",
+        target = self.add_mutually_exclusive_group()
+        target.add_argument(
+            "-b", "--branch",
             help="report on the last PR associated with the given branch,"
                  " rather than on the commit being built."
                  " Falls back to the commit if a PR is not found")
+        target.add_argument(
+            "-p", "--parent", action="store_true",
+            help="similar to --branch, but look up the last pull request of"
+                 " the last parent (i.e. the branch that got merged into the"
+                 " current commit)")
         self.add_argument(
             "build_name",
             help="a unique build name (e.g. \"Snap\", \"macOS\", \"Windows\")")
@@ -313,16 +341,20 @@ def main():
             "commit": os.environ["TRAVIS_COMMIT"],
         })
 
-        # if there's an open pull request associated with the given branch
-        if None not in (args.branch, events_o.pull_request):
+        # if there's an open pull request associated
+        # with the given branch or parent
+        pull_request = (args.branch and events_o.pull_request or
+                        args.parent and events_o.parent_pull_request)
+
+        if pull_request:
             add_comment = AddComment(dict(common_d, **{
                 "comment": {
-                    "subjectId": events_o.pull_request["id"]
+                    "subjectId": pull_request["id"]
                 }
             }))
             update_comment = UpdateComment()
             events = GetEvents(common_d).run({
-                "pull_request": events_o.pull_request["number"]
+                "pull_request": pull_request["number"]
             }).events
         # otherwise report on the commit
         else:
