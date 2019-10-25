@@ -173,7 +173,3 @@ bool mp::platform::is_image_url_supported()
     return false;
 }
 
-void mp::platform::emit_signal_when_parent_dies()
-{
-    // NO-OP, daemon should use process group instead
-}
