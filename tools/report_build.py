@@ -410,7 +410,7 @@ def main():
             # found a recent commit we can update
             for line in event["node"]["body"].splitlines():
                 # include all builds with a different build_type
-                if not line.startswith(args.build_type):
+                if not line.startswith(f"{args.build_type} "):
                     comment_body.append(line)
 
             comment_body.sort(key=lambda v: (v.upper(), v))
