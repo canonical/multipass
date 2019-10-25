@@ -137,7 +137,7 @@ jobs:
         && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
         echo ${CURL_OUTPUT}
       - >-
-        [ -n "${MULTIPASS_PUBLISH}" ] && python3 -m tools.report_build ${MULTIPASS_REPORT_OPTIONS[@]} Snap "${BUILDS[@]}"
+        [ -n "${MULTIPASS_PUBLISH}" ] && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" Snap "${BUILDS[@]}"
 
     - env: BUILD_TYPE=Clang
       before_script: *before_snapcraft
@@ -194,7 +194,7 @@ jobs:
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
         || ( echo "Upload failed..."; false )
         && [ -n "${MULTIPASS_PUBLISH}" ]
-        && python3 -m tools.report_build ${MULTIPASS_REPORT_OPTIONS[@]} macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
+        && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
       after_script: ~
       after_failure: ~
