@@ -115,7 +115,7 @@ jobs:
 
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
-      - SNAP_ENFORCE_RESQUASHFS=0 /snap/bin/review-tools.snap-review --allow-classic *.snap
+      - SNAP_ENFORCE_RESQUASHFS=0 /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap
 
       after_success:
       - &python-requirements pyenv local 3.8.1 && python3 -m pip install --requirement tools/requirements.txt boto3
