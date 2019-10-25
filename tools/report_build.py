@@ -308,9 +308,7 @@ class UpdateCommitComment(RepoCall, CommentURLMixin):
         super().run(variables)
         self.data = self._repo.get_comment(
             self._vars(variables)["databaseId"])
-        (self._repo.get_comment(
-            self._vars(variables)["databaseId"])
-            .edit(self._vars(variables)["comment"]["body"]))
+        self.data.edit(self._vars(variables)["comment"]["body"])
         self.data.update()
         return self
 
