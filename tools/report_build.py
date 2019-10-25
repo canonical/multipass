@@ -214,12 +214,18 @@ class AddComment(GitHubQLQuery):
     query = """
         mutation AddComment($comment: AddCommentInput!) {
           addComment(input: $comment) {
-            subject {
-              id
+            commentEdge {
+              node {
+                url
+              }
             }
           }
         }
     """
+
+    @property
+    def url(self):
+        return self.data["addComment"]["commentEdge"]["node"]["url"]
 
 
 class UpdateComment(GitHubQLQuery):
@@ -227,11 +233,15 @@ class UpdateComment(GitHubQLQuery):
         mutation UpdateComment($comment: UpdateIssueCommentInput!) {
           updateIssueComment(input: $comment) {
             issueComment {
-              id
+              url
             }
           }
         }
     """
+
+    @property
+    def url(self):
+        return self.data["updateIssueComment"]["issueComment"]["url"]
 
 
 class MinimizeComment(GitHubQLQuery):
@@ -239,11 +249,20 @@ class MinimizeComment(GitHubQLQuery):
         mutation MinimizeComment($input: MinimizeCommentInput!) {
           minimizeComment(input: $input) {
             minimizedComment {
-              isMinimized
+              ...on IssueComment {
+                url
+              }
+              ...on CommitComment {
+                url
+              }
             }
           }
         }
     """
+
+    @property
+    def url(self):
+        return self.data["minimizeComment"]["minimizedComment"]["url"]
 
 
 class GitHubV3Call():
@@ -267,21 +286,33 @@ class RepoCall(GitHubV3Call):
     def run(self, variables={}):
         self._repo = self.github.get_repo(
             "{owner}/{name}".format(**self._vars(variables)))
+        return self
 
 
-class AddCommitComment(RepoCall):
+class CommentURLMixin():
+    @property
+    def url(self):
+        return self.data.html_url
+
+
+class AddCommitComment(RepoCall, CommentURLMixin):
     def run(self, variables={}):
         super().run(variables)
-        return (self._repo.get_commit(self._vars(variables)["sha"])
-                .create_comment(self._vars(variables)["comment"]["body"]))
+        self.data = (self._repo.get_commit(self._vars(variables)["sha"])
+                     .create_comment(self._vars(variables)["comment"]["body"]))
+        return self
 
 
-class UpdateCommitComment(RepoCall):
+class UpdateCommitComment(RepoCall, CommentURLMixin):
     def run(self, variables={}):
         super().run(variables)
-        return (self._repo.get_comment(
+        self.data = self._repo.get_comment(
+            self._vars(variables)["databaseId"])
+        (self._repo.get_comment(
             self._vars(variables)["databaseId"])
             .edit(self._vars(variables)["comment"]["body"]))
+        self.data.update()
+        return self
 
 
 class ArgParser(argparse.ArgumentParser):
@@ -383,13 +414,14 @@ def main():
 
             comment_body.sort(key=lambda v: (v.upper(), v))
 
-            update_comment.run({
+            comment = update_comment.run({
                 "comment": {
                     "id": event["node"]["id"],
                     "body": "\n".join(comment_body),
                 },
                 "databaseId": event["node"]["databaseId"],
             })
+            print(f"Updated comment: {comment.url}")
 
             return
 
@@ -407,11 +439,13 @@ def main():
                 }
             })
 
-    add_comment.run({
+    comment = add_comment.run({
         "comment": {
             "body": "\n".join(comment_body),
         }
     })
+
+    print(f"Added comment: {comment.url}")
 
 
 if __name__ == "__main__":
