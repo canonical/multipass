@@ -22,7 +22,7 @@ EVENT_COUNT = 50
 
 def dict_merge(a, b):
     """recursively merges dict's. not just simple a['key'] = b['key'], if
-    both a and have a key whose value is a dict then dict_merge is called
+    both a and b have a key whose value is a dict then dict_merge is called
     on both values and the result stored in the returned dictionary."""
     if not isinstance(b, dict):
         return b
@@ -228,7 +228,7 @@ class GitHubV3Call():
     variables = {}
 
     def __init__(self, variables={}):
-        self.github = Github(os.environ["GITHUB_TOKEN"])
+        self.github = Github(GITHUB_TOKEN)
         self.variables = variables
 
     def run(self, variables={}):
@@ -271,8 +271,9 @@ class ArgParser(argparse.ArgumentParser):
                  " rather than on the commit being built."
                  " Falls back to the commit if a PR is not found")
         self.add_argument(
-            "build_name",
-            help="a unique build name (e.g. \"Snap\", \"macOS\", \"Windows\")")
+            "build_type",
+            help="a short string describing the build type (e.g. \"Snap\","
+                 " \"macOS\", \"Windows\")")
         self.add_argument(
             "body", nargs="+",
             help="Markdown-formatted string(s) for each individual publishing"
@@ -284,7 +285,7 @@ def main():
     args = parser.parse_args()
 
     comment_body = ["{} build available: {}".format(
-        args.build_name, " or ".join(args.body))]
+        args.build_type, " or ".join(args.body))]
 
     owner, name = os.environ["TRAVIS_REPO_SLUG"].split("/")
     travis_event = os.environ["TRAVIS_EVENT_TYPE"]
@@ -345,8 +346,8 @@ def main():
            and event["node"]["viewerCanUpdate"]):
             # found a recent commit we can update
             for line in event["node"]["body"].splitlines():
-                # include all builds with a different build_name
-                if not line.startswith(args.build_name):
+                # include all builds with a different build_type
+                if not line.startswith(args.build_type):
                     comment_body.append(line)
 
             comment_body.sort(key=lambda v: (v.upper(), v))
