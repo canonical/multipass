@@ -108,6 +108,7 @@ parts:
     plugin: nil
     override-pull: ""
     stage-packages:
+    - ipxe-qemu-256k-compat-efi-roms
     - on amd64: [qemu-system-x86]
     - on armhf: [qemu-system-arm]
     - on arm64: [qemu-system-arm]
@@ -115,10 +116,8 @@ parts:
     - libslang2
     organize:
       usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
-      usr/share/seabios/bios-256k.bin: qemu/
-      usr/share/seabios/vgabios-stdvga.bin: qemu/
-      usr/share/seabios/kvmvapic.bin: qemu/
-      usr/lib/ipxe/qemu/efi-virtio.rom: qemu/
+      usr/share/seabios/*: qemu/
+      usr/lib/ipxe/qemu/*: qemu/
 
   kvm-support:
     plugin: nil
