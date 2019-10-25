@@ -1251,6 +1251,10 @@ try // clang-format on
             {
                 try
                 {
+                    // Force the deleteLater() event to process now to avoid unloading the apparmor profile
+                    // later.  See https://github.com/CanonicalLtd/multipass/issues/1131
+                    QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
+
                     MountReply mount_reply;
                     mount_reply.set_mount_message("Enabling support for mounting");
                     server->Write(mount_reply);
