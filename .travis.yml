@@ -6,10 +6,25 @@ language: cpp
 git:
   depth: false
 
+env:
+  global:
+  - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
+  # regexes for release branch and tag
+  - MULTIPASS_RELEASE_BRANCH_PATTERN="^release/([0-9\.]+)$"
+  - MULTIPASS_RELEASE_TAG_PATTERN="^v([0-9]+\.[0-9]+)\.[0-9]+$"
+  # build label added to the version string
+  - MULTIPASS_BUILD_LABEL=""
+  # whether to publish the built packages
+  - MULTIPASS_PUBLISH=""
+  # which channel to publish to
+  - MULTIPASS_SNAP_CHANNEL=""
+  # options to pass to the build reporter
+  - MULTIPASS_REPORT_OPTIONS=()
+
 if: | # bors and release branches, release tags and all pull requests
   branch IN (staging, trying, master)
-  OR branch ~= /^release\/[\d\.]+$/
-  OR branch ~= /^v[\d\.]+$/
+  OR branch ~= env(MULTIPASS_RELEASE_BRANCH_PATTERN)
+  OR branch ~= env(MULTIPASS_RELEASE_TAG_PATTERN)
   OR type = pull_request
 
 addons:
@@ -18,18 +33,6 @@ addons:
   - &snapcraft
     name: snapcraft
     classic: true
-
-env:
-  global:
-  - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
-  # build identifier added to the version string
-  - MULTIPASS_BUILD_LABEL=""
-  # whether to publish the built packages
-  - MULTIPASS_PUBLISH=""
-  # which channel to publish to
-  - MULTIPASS_SNAP_CHANNEL=""
-  # options to pass to the build reporter
-  - MULTIPASS_REPORT_OPTIONS=()
 
 before_install:
 # determine build properties and targets
@@ -47,8 +50,8 @@ before_install:
   if [ "${TRAVIS_SECURE_ENV_VARS}" == "true" ]; then
 
     # when it's a release branch or tag
-    if [[ "${TRAVIS_BRANCH}" =~ ^release/([0-9\.]+)$ \
-          || "${TRAVIS_BRANCH}" =~ ^v([0-9]+\.[0-9]+)\.[0-9]+$ ]]; then
+    if [[ "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
+          || "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_TAG_PATTERN} ]]; then
 
       # publish pushes on beta/*
       if [ "${TRAVIS_EVENT_TYPE}" == "push" ]; then
