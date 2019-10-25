@@ -47,8 +47,9 @@ add_subdirectory(3rd-party)
 find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
-  execute_process(COMMAND git rev-parse --abbrev-ref HEAD
+  execute_process(COMMAND git describe --all --match release/*
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                  ERROR_QUIET
                   OUTPUT_VARIABLE GIT_BRANCH
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
@@ -64,7 +65,7 @@ function(determine_version OUTPUT_VARIABLE)
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   # only use -rc tags on release/* branches
-  string(REGEX MATCH "^release/[0-9]+.[0-9]+$" GIT_BRANCH_MATCH ${GIT_BRANCH})
+  string(REGEX MATCH "release/[0-9]+.[0-9]+$" GIT_BRANCH_MATCH "${GIT_BRANCH}")
   if(GIT_BRANCH_MATCH)
       execute_process(COMMAND git describe --tags --match *-rc --abbrev=0
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
