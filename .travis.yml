@@ -73,7 +73,8 @@ before_install:
       # except for `trying`, which publishes on the parent's PR
       if [[ "${TRAVIS_BRANCH}" == "trying" \
             && "${TRAVIS_COMMIT_MESSAGE}" =~ ^Try\ #([0-9]+): ]]; then
-        MULTIPASS_BUILD_LABEL="try${BASH_REMATCH[1]}"
+        MULTIPASS_BUILD_LABEL="pr${BASH_REMATCH[1]}"
+        MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
         MULTIPASS_REPORT_OPTIONS+=("--parent")
       fi
 
