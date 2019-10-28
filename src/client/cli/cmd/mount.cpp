@@ -153,7 +153,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
     for (auto i = 1; i < parser->positionalArguments().count(); ++i)
     {
-        auto parsed_target = QString(parser->positionalArguments().at(i)).split(":");
+        auto parsed_target = QString(parser->positionalArguments().at(i)).split(":", QString::SkipEmptyParts);
 
         auto entry = request.add_target_paths();
         entry->set_instance_name(parsed_target.at(0).toStdString());
