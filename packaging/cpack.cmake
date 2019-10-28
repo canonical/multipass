@@ -178,7 +178,7 @@ if(APPLE)
   set(CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qt5-libs-rpath.sh ${CMAKE_BINARY_DIR}")
 
   set(MULTIPASSD_PLIST "com.canonical.multipassd.plist")
-  set(MULTIPASSGUI_PLIST "com.canonical.multipass.gui.plist")
+  set(MULTIPASSGUI_PLIST "com.canonical.multipass.gui.autostart.plist")
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSD_PLIST}.in"
                  "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipassd.sh.in"

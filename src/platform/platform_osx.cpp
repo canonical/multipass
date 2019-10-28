@@ -40,7 +40,7 @@ namespace mp = multipass;
 
 namespace
 {
-constexpr auto autostart_filename = "com.canonical.multipass.gui.plist";
+constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
 constexpr auto autostart_contents =
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
     "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN"
