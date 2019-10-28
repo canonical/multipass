@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
@@ -41,39 +42,12 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
-constexpr auto autostart_contents =
-    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-    "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN"
-    "http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
-    "<plist version=\"1.0\">\n"
-    "<dict>\n"
-    "    <key>Label</key>\n"
-    "    <string>com.canonical.multipass.gui</string>\n"
-    "\n"
-    "    <key>Program</key>\n"
-    "    <string>/Library/Application Support/com.canonical.multipass/bin/multipass.gui</string>\n"
-    "\n"
-    "    <key>ProgramArguments</key>\n"
-    "    <array>\n"
-    "        <string>--autostart</string>\n"
-    "    </array>\n"
-    "\n"
-    "    <key>KeepAlive</key>\n"
-    "    <dict>\n"
-    "        <key>SuccessfulExit</key>\n"
-    "        <false/>\n"
-    "    </dict>\n"
-    "\n"
-    "    <key>RunAtLoad</key>\n"
-    "    <true/>\n"
-    "\n"
-    "    <key>ThrottleInterval</key>\n"
-    "    <integer>0</integer>\n"
-    "\n"
-    "    <key>ProcessType</key>\n"
-    "    <string>Interactive</string>\n"
-    "</dict>\n"
-    "</plist>\n";
+constexpr auto autostart_subdir = "Library/LaunchdAgents";
+
+QString find_plist_target()
+{
+    return "TODO"; // TODO @ricab
+}
 } // namespace
 
 QString mp::platform::autostart_test_data()
@@ -83,22 +57,25 @@ QString mp::platform::autostart_test_data()
 
 void mp::platform::setup_gui_autostart_prerequisites()
 {
-    const auto subpath = "Library/LaunchdAgents";
-    auto dir = QDir::home();
-    dir.mkpath(subpath);
-    dir.cd(subpath);
-    if (!dir.exists(autostart_filename))
+    const auto autostart_dir = QDir{QDir::home().absoluteFilePath(autostart_subdir)};
+    const auto link_path = autostart_dir.absoluteFilePath(autostart_filename);
+    const auto target_path = find_plist_target();
+
+    const auto link_info = QFileInfo{link_path};
+    const auto target_info = QFileInfo{target_path};
+    auto target_file = QFile{target_path};
+    auto link_file = QFile{link_path};
+
+    if (link_info.isSymLink() && link_info.symLinkTarget() != target_info.absoluteFilePath())
+        link_file.remove(); // get rid of outdated and broken links
+
+    if (!link_file.exists())
     {
-        QFile file(dir.filePath(autostart_filename));
-        if (file.open(QIODevice::WriteOnly))
-        {
-            QTextStream out{&file};
-            out << autostart_contents;
-        }
-        else
-        {
-            ; // TODO @ricab
-        }
+        autostart_dir.mkpath(".");
+        if (!target_file.link(link_path))
+
+            throw AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
+                                          fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
     }
 }
 
