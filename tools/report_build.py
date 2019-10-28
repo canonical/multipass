@@ -147,6 +147,20 @@ class GetCommitComments(GitHubQLQuery):
           object(expression: $commit) {
             id
             ... on Commit {
+              parents(last: 1) {
+                edges {
+                  node {
+                    associatedPullRequests(last: 1) {
+                      edges {
+                        node {
+                          id
+                          number
+                        }
+                      }
+                    }
+                  }
+                }
+              }
               comments(last: $count) {
                 edges {
                   node {
@@ -184,6 +198,14 @@ class GetCommitComments(GitHubQLQuery):
             return None
 
     @property
+    def parent_pull_request(self):
+        try:
+            return (self.data["repository"]["object"]["parents"]["edges"][0]
+                    ["node"]["associatedPullRequests"]["edges"][0]["node"])
+        except IndexError:
+            return None
+
+    @property
     def events(self):
         return self.data["repository"]["object"]["comments"]["edges"]
 
@@ -192,12 +214,18 @@ class AddComment(GitHubQLQuery):
     query = """
         mutation AddComment($comment: AddCommentInput!) {
           addComment(input: $comment) {
-            subject {
-              id
+            commentEdge {
+              node {
+                url
+              }
             }
           }
         }
     """
+
+    @property
+    def url(self):
+        return self.data["addComment"]["commentEdge"]["node"]["url"]
 
 
 class UpdateComment(GitHubQLQuery):
@@ -205,11 +233,15 @@ class UpdateComment(GitHubQLQuery):
         mutation UpdateComment($comment: UpdateIssueCommentInput!) {
           updateIssueComment(input: $comment) {
             issueComment {
-              id
+              url
             }
           }
         }
     """
+
+    @property
+    def url(self):
+        return self.data["updateIssueComment"]["issueComment"]["url"]
 
 
 class MinimizeComment(GitHubQLQuery):
@@ -217,11 +249,20 @@ class MinimizeComment(GitHubQLQuery):
         mutation MinimizeComment($input: MinimizeCommentInput!) {
           minimizeComment(input: $input) {
             minimizedComment {
-              isMinimized
+              ...on IssueComment {
+                url
+              }
+              ...on CommitComment {
+                url
+              }
             }
           }
         }
     """
+
+    @property
+    def url(self):
+        return self.data["minimizeComment"]["minimizedComment"]["url"]
 
 
 class GitHubV3Call():
@@ -245,31 +286,47 @@ class RepoCall(GitHubV3Call):
     def run(self, variables={}):
         self._repo = self.github.get_repo(
             "{owner}/{name}".format(**self._vars(variables)))
+        return self
 
 
-class AddCommitComment(RepoCall):
+class CommentURLMixin():
+    @property
+    def url(self):
+        return self.data.html_url
+
+
+class AddCommitComment(RepoCall, CommentURLMixin):
     def run(self, variables={}):
         super().run(variables)
-        return (self._repo.get_commit(self._vars(variables)["sha"])
-                .create_comment(self._vars(variables)["comment"]["body"]))
+        self.data = (self._repo.get_commit(self._vars(variables)["sha"])
+                     .create_comment(self._vars(variables)["comment"]["body"]))
+        return self
 
 
-class UpdateCommitComment(RepoCall):
+class UpdateCommitComment(RepoCall, CommentURLMixin):
     def run(self, variables={}):
         super().run(variables)
-        return (self._repo.get_comment(
+        self.data = self._repo.get_comment(
             self._vars(variables)["databaseId"])
-            .edit(self._vars(variables)["comment"]["body"]))
+        self.data.edit(self._vars(variables)["comment"]["body"])
+        self.data.update()
+        return self
 
 
 class ArgParser(argparse.ArgumentParser):
     def __init__(self):
         super().__init__(description="Report build availability to GitHub")
-        self.add_argument(
-            "--branch",
+        target = self.add_mutually_exclusive_group()
+        target.add_argument(
+            "-b", "--branch",
             help="report on the last PR associated with the given branch,"
                  " rather than on the commit being built."
                  " Falls back to the commit if a PR is not found")
+        target.add_argument(
+            "-p", "--parent", action="store_true",
+            help="similar to --branch, but look up the last pull request of"
+                 " the last parent (i.e. the branch that got merged into the"
+                 " current commit)")
         self.add_argument(
             "build_type",
             help="a short string describing the build type (e.g. \"Snap\","
@@ -314,16 +371,20 @@ def main():
             "commit": os.environ["TRAVIS_COMMIT"],
         })
 
-        # if there's an open pull request associated with the given branch
-        if None not in (args.branch, events_o.pull_request):
+        # if there's an open pull request associated
+        # with the given branch or parent
+        pull_request = (args.branch and events_o.pull_request or
+                        args.parent and events_o.parent_pull_request)
+
+        if pull_request:
             add_comment = AddComment(dict(common_d, **{
                 "comment": {
-                    "subjectId": events_o.pull_request["id"]
+                    "subjectId": pull_request["id"]
                 }
             }))
             update_comment = UpdateComment()
             events = GetEvents(common_d).run({
-                "pull_request": events_o.pull_request["number"]
+                "pull_request": pull_request["number"]
             }).events
         # otherwise report on the commit
         else:
@@ -347,18 +408,19 @@ def main():
             # found a recent commit we can update
             for line in event["node"]["body"].splitlines():
                 # include all builds with a different build_type
-                if not line.startswith(args.build_type):
+                if not line.startswith(f"{args.build_type} "):
                     comment_body.append(line)
 
             comment_body.sort(key=lambda v: (v.upper(), v))
 
-            update_comment.run({
+            comment = update_comment.run({
                 "comment": {
                     "id": event["node"]["id"],
                     "body": "\n".join(comment_body),
                 },
                 "databaseId": event["node"]["databaseId"],
             })
+            print(f"Updated comment: {comment.url}")
 
             return
 
@@ -376,11 +438,13 @@ def main():
                 }
             })
 
-    add_comment.run({
+    comment = add_comment.run({
         "comment": {
             "body": "\n".join(comment_body),
         }
     })
+
+    print(f"Added comment: {comment.url}")
 
 
 if __name__ == "__main__":
