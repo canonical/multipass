@@ -31,20 +31,75 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QString>
+#include <QTextStream> // TODO @ricab remove this when linking instead of writing
 #include <QtGlobal>
 
 #include <unistd.h>
 
 namespace mp = multipass;
 
+namespace
+{
+constexpr auto autostart_filename = "com.canonical.multipass.gui.plist";
+constexpr auto autostart_contents =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+    "<plist version=\"1.0\">\n"
+    "<dict>\n"
+    "    <key>Label</key>\n"
+    "    <string>com.canonical.multipass.gui</string>\n"
+    "\n"
+    "    <key>Program</key>\n"
+    "    <string>/Library/Application Support/com.canonical.multipass/bin/multipass.gui</string>\n"
+    "\n"
+    "    <key>ProgramArguments</key>\n"
+    "    <array>\n"
+    "        <string>--autostart</string>\n"
+    "    </array>\n"
+    "\n"
+    "    <key>KeepAlive</key>\n"
+    "    <dict>\n"
+    "        <key>SuccessfulExit</key>\n"
+    "        <false/>\n"
+    "    </dict>\n"
+    "\n"
+    "    <key>RunAtLoad</key>\n"
+    "    <true/>\n"
+    "\n"
+    "    <key>ThrottleInterval</key>\n"
+    "    <integer>0</integer>\n"
+    "\n"
+    "    <key>ProcessType</key>\n"
+    "    <string>Interactive</string>\n"
+    "</dict>\n"
+    "</plist>\n";
+} // namespace
+
 QString mp::platform::autostart_test_data()
 {
-    return "stub"; // TODO
+    return autostart_filename;
 }
 
 void mp::platform::setup_gui_autostart_prerequisites()
 {
-    // TODO
+    const auto subpath = "Library/LaunchdAgents";
+    auto dir = QDir::home();
+    dir.mkpath(subpath);
+    dir.cd(subpath);
+    if (!dir.exists(autostart_filename))
+    {
+        QFile file(dir.filePath(autostart_filename));
+        if (file.open(QIODevice::WriteOnly))
+        {
+            QTextStream out{&file};
+            out << autostart_contents;
+        }
+        else
+        {
+            ; // TODO @ricab
+        }
+    }
 }
 
 std::string mp::platform::default_server_address()
