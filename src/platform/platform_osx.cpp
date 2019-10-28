@@ -31,8 +31,8 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QString>
-#include <QTextStream> // TODO @ricab remove this when linking instead of writing
 #include <QtGlobal>
 
 #include <unistd.h>
@@ -41,12 +41,27 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto application_id = "com.canonical.multipass";
 constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
 constexpr auto autostart_subdir = "Library/LaunchdAgents";
 
 QString find_plist_target()
 {
-    return "TODO"; // TODO @ricab
+    const auto target_subpath = QStringLiteral("%1/Resources/%2").arg(application_id).arg(autostart_filename);
+    const auto target_path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, target_subpath);
+
+    if (target_path.isEmpty())
+    {
+        QString detail{};
+        for (const auto& path : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation))
+            detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
+
+        throw mp::AutostartSetupException{
+            fmt::format("could not locate the autostart .desktop file '{}'", autostart_filename),
+            fmt::format("Tried: {}", detail.toStdString())};
+    }
+
+    return target_path;
 }
 } // namespace
 
