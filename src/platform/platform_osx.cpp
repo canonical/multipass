@@ -57,7 +57,7 @@ QString find_plist_target()
             detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
 
         throw mp::AutostartSetupException{
-            fmt::format("could not locate the autostart .desktop file '{}'", autostart_filename),
+            fmt::format("could not locate the autostart .plist file '{}'", autostart_filename),
             fmt::format("Tried: {}", detail.toStdString())};
     }
 
