@@ -29,6 +29,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QString>
 #include <QSysInfo>
 
@@ -86,6 +87,33 @@ auto virtual_switch_subnet(const QString& bridge_name)
     }
     return subnet.toStdString();
 }
+
+void check_min_img_size(const mp::MemorySize& requested_size, const mp::Path& image_path)
+{
+    auto qemuimg_process = mp::ProcessFactory::instance().create_process(
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", image_path}));
+    auto process_state = qemuimg_process->execute();
+
+    if (!process_state.completed_successfully())
+        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(),
+                                             qemuimg_process->read_all_standard_error()));
+
+    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
+    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)$");
+    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+
+    if (const auto match = re.match(img_info); match.hasMatch())
+    {
+        const auto min_size = match.captured("size").toStdString();
+        if (requested_size < mp::MemorySize{min_size})
+            throw std::runtime_error(fmt::format("Requested disk ({} bytes) below minimum for this image ({} bytes)",
+                                                 requested_size.in_bytes(), min_size)); // TODO use human-readable sizes
+    }
+    else
+        throw std::runtime_error{fmt::format("Could not obtain image's virtual size")};
+}
+
 } // namespace
 
 std::string mp::backend::generate_random_subnet()
@@ -127,6 +155,8 @@ std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& 
 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
+    check_min_img_size(disk_space, image_path);
+
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"resize", image_path, disk_size});
     auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
@@ -134,7 +164,7 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
     auto process_state = qemuimg_process->execute();
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output: {}",
+        throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output:\n{}",
                                              process_state.failure_message(),
                                              qemuimg_process->read_all_standard_error()));
     }
@@ -152,7 +182,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     auto process_state = qemuimg_process->execute();
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("Cannot read image format: qemu-img failed ({}) with output: {}",
+        throw std::runtime_error(fmt::format("Cannot read image format: qemu-img failed ({}) with output:\n{}",
                                              process_state.failure_message(),
                                              qemuimg_process->read_all_standard_error()));
     }
@@ -169,9 +199,9 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
 
         if (!process_state.completed_successfully())
         {
-            throw std::runtime_error(fmt::format("Failed to convert image format: qemu-img failed ({}) with output: {}",
-                                                 process_state.failure_message(),
-                                                 qemuimg_process->read_all_standard_error()));
+            throw std::runtime_error(
+                fmt::format("Failed to convert image format: qemu-img failed ({}) with output:\n{}",
+                            process_state.failure_message(), qemuimg_process->read_all_standard_error()));
         }
         return qcow2_path;
     }

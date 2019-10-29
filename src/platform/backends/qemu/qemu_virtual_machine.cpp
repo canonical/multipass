@@ -144,7 +144,7 @@ bool instance_image_has_snapshot(const mp::Path& image_path)
     auto process_state = process->execute();
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output: {}",
+        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
 

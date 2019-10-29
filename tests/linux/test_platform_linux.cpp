@@ -16,8 +16,8 @@
  */
 
 #include "tests/fake_handle.h"
-#include "tests/mock_environment_helpers.h"
 #include "tests/libvirt/mock_libvirt.h"
+#include "tests/mock_environment_helpers.h"
 #include "tests/mock_settings.h"
 #include "tests/test_with_mocked_bin_path.h"
 
