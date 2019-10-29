@@ -2,6 +2,7 @@ target_sources(multipass_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../libvirt/mock_libvirt.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_apparmored_process.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_backend_utils.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_platform_linux.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_qemuimg_process_spec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_snap_utils.cpp

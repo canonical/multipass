@@ -140,5 +140,3 @@ target_include_directories(multipass_tests
 add_subdirectory(linux)
 add_subdirectory(qemu)
 include(libvirt/CMakeLists.txt) # with add_subdirectory it's not possible to target_link_libraries
-
-
