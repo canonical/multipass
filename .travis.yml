@@ -51,17 +51,18 @@ before_install:
 
     # when it's a release branch or tag
     if [[ "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
+          || "${TRAVIS_PULL_REQUEST_BRANCH}" =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
           || "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_TAG_PATTERN} ]]; then
 
-      # publish pushes on candidate/*
+      # only publish pushes, on candidate/*
       if [ "${TRAVIS_EVENT_TYPE}" == "push" ]; then
         MULTIPASS_PUBLISH="true"
         MULTIPASS_SNAP_CHANNEL="candidate/${BASH_REMATCH[1]}"
-      fi
 
-      # but report on the PR if it's a release branch
-      if [[ "${TRAVIS_BRANCH}" == release/* ]]; then
-        MULTIPASS_REPORT_OPTIONS+=("--branch" "${TRAVIS_BRANCH}")
+        # but report on the PR if it's a release branch
+        if [[ "${TRAVIS_BRANCH}" == release/* ]]; then
+          MULTIPASS_REPORT_OPTIONS+=("--branch" "${TRAVIS_BRANCH}")
+        fi
       fi
 
     # other branches publish on the commits by default
@@ -78,7 +79,7 @@ before_install:
         MULTIPASS_REPORT_OPTIONS+=("--parent")
       fi
 
-    # non-release publish on edge/pr*
+    # publish all other PRs on edge/pr*
     elif [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
       MULTIPASS_PUBLISH="true"
       MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
