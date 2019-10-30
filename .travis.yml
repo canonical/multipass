@@ -12,6 +12,8 @@ env:
   # regexes for release branch and tag
   - MULTIPASS_RELEASE_BRANCH_PATTERN="^release/([0-9\.]+)$"
   - MULTIPASS_RELEASE_TAG_PATTERN="^v([0-9]+\.[0-9]+)\.[0-9]+$"
+  # upstream to use as reference for release version matching
+  - MULTIPASS_UPSTREAM="origin"
   # build label added to the version string
   - MULTIPASS_BUILD_LABEL=""
   # whether to publish the built packages

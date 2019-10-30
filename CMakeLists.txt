@@ -62,32 +62,38 @@ add_subdirectory(3rd-party)
 find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
-  # default to the "origin" remote when checking for release status
+  # use upstream repo as the authoritative reference when checking for release status
+  # set MULTIPASS_UPSTREAM="*" to use the local repository
   set(MULTIPASS_UPSTREAM $ENV{MULTIPASS_UPSTREAM})
-  if(NOT MULTIPASS_UPSTREAM)
-    set(MULTIPASS_UPSTREAM origin)
+  if(MULTIPASS_UPSTREAM)
+    set(MULTIPASS_UPSTREAM "${MULTIPASS_UPSTREAM}/")
   endif()
 
-  execute_process(COMMAND git describe --all --match ${MULTIPASS_UPSTREAM}/release/*
+  execute_process(COMMAND git describe --all --exact --match "${MULTIPASS_UPSTREAM}release/*"
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  ERROR_QUIET
-                  OUTPUT_VARIABLE GIT_BRANCH
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  execute_process(COMMAND git describe --exact
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  OUTPUT_VARIABLE GIT_RELEASE
+                  OUTPUT_VARIABLE GIT_RELEASE_BRANCH
                   OUTPUT_STRIP_TRAILING_WHITESPACE
                   ERROR_QUIET)
 
-  execute_process(COMMAND git describe
+  execute_process(COMMAND git describe --long
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   # only use -rc tags on release/* branches
-  string(REGEX MATCH "release/[0-9]+.[0-9]+$" GIT_BRANCH_MATCH "${GIT_BRANCH}")
-  if(GIT_BRANCH_MATCH)
+  string(REGEX MATCH "release/[0-9]+.[0-9]+" GIT_RELEASE_MATCH "${GIT_RELEASE_BRANCH}")
+  if(GIT_RELEASE_MATCH)
+      if(NOT DEFINED ENV{MULTIPASS_UPSTREAM})
+        message(FATAL_ERROR "You need to set MULTIPASS_UPSTREAM for a release build.\
+                             \nUse an empty string to make local the authoritative repository.")
+      endif()
+
+      execute_process(COMMAND git describe --exact
+                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                      OUTPUT_VARIABLE GIT_RELEASE
+                      OUTPUT_STRIP_TRAILING_WHITESPACE
+                      ERROR_QUIET)
+
       execute_process(COMMAND git describe --tags --match *-rc --abbrev=0
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                       OUTPUT_VARIABLE GIT_TAG
