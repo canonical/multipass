@@ -83,8 +83,8 @@ int main(int argc, char* argv[])
     const auto username = string(argv[3]);
     const auto source_path = string(argv[4]);
     const auto target_path = string(argv[5]);
-    const unordered_map<int, int> gid_map = deserialise_id_map(argv[6]);
-    const unordered_map<int, int> uid_map = deserialise_id_map(argv[7]);
+    const unordered_map<int, int> uid_map = deserialise_id_map(argv[6]);
+    const unordered_map<int, int> gid_map = deserialise_id_map(argv[7]);
 
     auto logger = std::make_shared<mpl::StandardLogger>(mpl::Level::error); // QUESTION - how to pass verbosity level?
     mpl::set_logger(logger);
