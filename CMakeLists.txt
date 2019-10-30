@@ -62,13 +62,13 @@ add_subdirectory(3rd-party)
 find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
-  # default to the "origin" remote when checking for release status
-  set(MULTIPASS_UPSTREAM $ENV{MULTIPASS_UPSTREAM})
-  if(NOT MULTIPASS_UPSTREAM)
-    set(MULTIPASS_UPSTREAM origin)
+  # use upstream repo as the authoritative reference when checking for release status
+  set(MULTIPASS_RELEASE_UPSTREAM $ENV{MULTIPASS_RELEASE_UPSTREAM})
+  if(MULTIPASS_RELEASE_UPSTREAM)
+    set(MULTIPASS_RELEASE_UPSTREAM "${MULTIPASS_RELEASE_UPSTREAM}/")
   endif()
 
-  execute_process(COMMAND git describe --all --match ${MULTIPASS_UPSTREAM}/release/*
+  execute_process(COMMAND git describe --all --match ${MULTIPASS_RELEASE_UPSTREAM}release/*
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   ERROR_QUIET
                   OUTPUT_VARIABLE GIT_BRANCH
