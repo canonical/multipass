@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_LIBVIRT_WRAPPER_H
 #define MULTIPASS_LIBVIRT_WRAPPER_H
 
+#include <string>
+
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
 
@@ -26,6 +28,7 @@ namespace multipass
 class LibvirtWrapper
 {
 public:
+    LibvirtWrapper(const std::string& filename);
     LibvirtWrapper();
     ~LibvirtWrapper();
 

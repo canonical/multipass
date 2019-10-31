@@ -37,7 +37,7 @@ public:
     using NetworkUPtr = std::unique_ptr<virNetwork, decltype(virNetworkFree)*>;
 
     LibVirtVirtualMachine(const VirtualMachineDescription& desc, const std::string& bridge_name,
-                          VMStatusMonitor& monitor, LibvirtWrapper& libvirt_wrapper);
+                          VMStatusMonitor& monitor, const LibvirtWrapper& libvirt_wrapper);
     ~LibVirtVirtualMachine();
 
     void start() override;
@@ -54,7 +54,7 @@ public:
     void ensure_vm_is_running() override;
     void update_state() override;
 
-    static ConnectionUPtr open_libvirt_connection(LibvirtWrapper& libvirt_wrapper);
+    static ConnectionUPtr open_libvirt_connection(const LibvirtWrapper& libvirt_wrapper);
 
 private:
     DomainUPtr initialize_domain_info(virConnectPtr connection);
@@ -65,7 +65,8 @@ private:
     optional<IPAddress> ip;
     VMStatusMonitor* monitor;
     const std::string bridge_name;
-    LibvirtWrapper libvirt_wrapper;
+    // Needs to be a reference so testing can override the various libvirt functions
+    const LibvirtWrapper& libvirt_wrapper;
     bool update_suspend_status{true};
 };
 } // namespace multipass

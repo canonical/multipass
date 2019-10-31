@@ -23,16 +23,18 @@ namespace mp = multipass;
 
 namespace
 {
-auto open_libvirt_handle()
+auto open_libvirt_handle(const std::string& filename)
 {
-    auto handle = dlopen("libvirt.so", RTLD_NOW | RTLD_GLOBAL);
-
-    return handle;
+    // For testing, ie, opening the executable itself
+    if (filename.empty())
+        return dlopen(nullptr, RTLD_NOW | RTLD_GLOBAL);
+    else
+        return dlopen(filename.c_str(), RTLD_NOW | RTLD_GLOBAL);
 }
 } // namespace
 
-mp::LibvirtWrapper::LibvirtWrapper()
-    : handle{open_libvirt_handle()},
+mp::LibvirtWrapper::LibvirtWrapper(const std::string& filename)
+    : handle{open_libvirt_handle(filename)},
       virConnectOpen{reinterpret_cast<virConnectPtr (*)(const char*)>(dlsym(handle, "virConnectOpen"))},
       virConnectClose{reinterpret_cast<int (*)(virConnectPtr)>(dlsym(handle, "virConnectClose"))},
       virConnectGetCapabilities{reinterpret_cast<char* (*)(virConnectPtr)>(dlsym(handle, "virConnectGetCapabilities"))},
@@ -70,6 +72,10 @@ mp::LibvirtWrapper::LibvirtWrapper()
       virDomainHasManagedSaveImage{
           reinterpret_cast<int (*)(virDomainPtr, unsigned int)>(dlsym(handle, "virDomainHasManagedSaveImage"))},
       virGetLastErrorMessage{reinterpret_cast<const char* (*)(void)>(dlsym(handle, "virGetLastErrorMessage"))}
+{
+}
+
+mp::LibvirtWrapper::LibvirtWrapper() : LibvirtWrapper("libvirt.so")
 {
 }
 

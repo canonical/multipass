@@ -55,7 +55,7 @@ auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::str
                        bridge_name, subnet, subnet, subnet);
 }
 
-std::string enable_libvirt_network(const mp::Path& data_dir, mp::LibvirtWrapper& libvirt_wrapper)
+std::string enable_libvirt_network(const mp::Path& data_dir, const mp::LibvirtWrapper& libvirt_wrapper)
 {
     mp::LibVirtVirtualMachine::ConnectionUPtr connection{nullptr, nullptr};
     try
@@ -95,8 +95,16 @@ std::string enable_libvirt_network(const mp::Path& data_dir, mp::LibvirtWrapper&
 }
 } // namespace
 
+mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
+                                                               const std::string& libvirt_object_path)
+    : libvirt_wrapper{LibvirtWrapper(libvirt_object_path)},
+      data_dir{data_dir},
+      bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)}
+{
+}
+
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : data_dir{data_dir}, bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)}
+    : LibVirtVirtualMachineFactory(data_dir, "libvirt.so")
 {
 }
 

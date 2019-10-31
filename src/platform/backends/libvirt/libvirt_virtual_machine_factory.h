@@ -31,6 +31,7 @@ class ProcessFactory;
 class LibVirtVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
+    explicit LibVirtVirtualMachineFactory(const Path& data_dir, const std::string& libvirt_object_path); // For testing
     explicit LibVirtVirtualMachineFactory(const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
@@ -47,6 +48,8 @@ public:
         return {};
     };
     QString get_backend_version_string() override;
+
+    // Making this public makes this modifiable which is necessary for testing
     LibvirtWrapper libvirt_wrapper;
 
 private:

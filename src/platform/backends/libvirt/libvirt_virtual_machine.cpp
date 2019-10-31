@@ -35,7 +35,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto instance_mac_addr_for(virDomainPtr domain, mp::LibvirtWrapper& libvirt_wrapper)
+auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper& libvirt_wrapper)
 {
     std::string mac_addr;
     std::unique_ptr<char, decltype(free)*> desc{libvirt_wrapper.virDomainGetXMLDesc(domain, 0), free};
@@ -56,7 +56,7 @@ auto instance_mac_addr_for(virDomainPtr domain, mp::LibvirtWrapper& libvirt_wrap
     return mac_addr;
 }
 
-auto instance_ip_for(const std::string& mac_addr, mp::LibvirtWrapper& libvirt_wrapper)
+auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper& libvirt_wrapper)
 {
     mp::optional<mp::IPAddress> ip_address;
 
@@ -93,7 +93,7 @@ auto instance_ip_for(const std::string& mac_addr, mp::LibvirtWrapper& libvirt_wr
     return ip_address;
 }
 
-auto host_architecture_for(virConnectPtr connection, mp::LibvirtWrapper& libvirt_wrapper)
+auto host_architecture_for(virConnectPtr connection, const mp::LibvirtWrapper& libvirt_wrapper)
 {
     std::string arch;
     std::unique_ptr<char, decltype(free)*> capabilities{libvirt_wrapper.virConnectGetCapabilities(connection), free};
@@ -180,7 +180,7 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.mac_addr, bridge_name);
 }
 
-auto domain_by_name_for(const std::string& vm_name, virConnectPtr connection, mp::LibvirtWrapper& libvirt_wrapper)
+auto domain_by_name_for(const std::string& vm_name, virConnectPtr connection, const mp::LibvirtWrapper& libvirt_wrapper)
 {
     mp::LibVirtVirtualMachine::DomainUPtr domain{libvirt_wrapper.virDomainLookupByName(connection, vm_name.c_str()),
                                                  libvirt_wrapper.virDomainFree};
@@ -189,7 +189,7 @@ auto domain_by_name_for(const std::string& vm_name, virConnectPtr connection, mp
 }
 
 auto domain_by_definition_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
-                              virConnectPtr connection, mp::LibvirtWrapper& libvirt_wrapper)
+                              virConnectPtr connection, const mp::LibvirtWrapper& libvirt_wrapper)
 {
     mp::LibVirtVirtualMachine::DomainUPtr domain{
         libvirt_wrapper.virDomainDefineXML(
@@ -201,7 +201,7 @@ auto domain_by_definition_for(const mp::VirtualMachineDescription& desc, const s
 }
 
 auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMachine::State& current_instance_state,
-                                       mp::LibvirtWrapper& libvirt_wrapper)
+                                       const mp::LibvirtWrapper& libvirt_wrapper)
 {
     auto domain_state{0};
 
@@ -226,7 +226,7 @@ auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMac
     return current_instance_state;
 }
 
-bool domain_is_running(virDomainPtr domain, mp::LibvirtWrapper& libvirt_wrapper)
+bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper& libvirt_wrapper)
 {
     auto domain_state{0};
 
@@ -240,7 +240,7 @@ bool domain_is_running(virDomainPtr domain, mp::LibvirtWrapper& libvirt_wrapper)
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor,
-                                                 LibvirtWrapper& libvirt_wrapper)
+                                                 const LibvirtWrapper& libvirt_wrapper)
     : VirtualMachine{desc.vm_name},
       username{desc.ssh_username},
       desc{desc},
@@ -490,7 +490,7 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
 }
 
 mp::LibVirtVirtualMachine::ConnectionUPtr
-mp::LibVirtVirtualMachine::open_libvirt_connection(LibvirtWrapper& libvirt_wrapper)
+mp::LibVirtVirtualMachine::open_libvirt_connection(const LibvirtWrapper& libvirt_wrapper)
 {
     mp::LibVirtVirtualMachine::ConnectionUPtr connection{libvirt_wrapper.virConnectOpen("qemu:///system"),
                                                          libvirt_wrapper.virConnectClose};
