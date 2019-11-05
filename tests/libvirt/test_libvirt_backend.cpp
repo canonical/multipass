@@ -55,10 +55,24 @@ struct LibVirtBackend : public Test
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
     mpt::TempDir data_dir;
-    virError error{0, 0, nullptr, VIR_ERR_WARNING, nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, nullptr};
     // This indicates that LibvirtWrapper should open the test executable
     std::string fake_libvirt_path{""};
 };
+
+TEST_F(LibVirtBackend, libvirt_wrapper_missing_libvirt_throws)
+{
+    mp::LibvirtWrapper libvirt_wrapper{"missing_libvirt"};
+
+    EXPECT_THROW(libvirt_wrapper.initialize_libvirt_functions(), mp::LibvirtOpenException);
+}
+
+TEST_F(LibVirtBackend, libvirt_wrapper_missing_symbol_throws)
+{
+    // Need to set LD_LIBRARY_PATH to this .so for the multipass_tests executable
+    mp::LibvirtWrapper libvirt_wrapper{"libbroken_libvirt.so"};
+
+    EXPECT_THROW(libvirt_wrapper.initialize_libvirt_functions(), mp::LibvirtSymbolAddressException);
+}
 
 TEST_F(LibVirtBackend, health_check_failed_connection_throws)
 {

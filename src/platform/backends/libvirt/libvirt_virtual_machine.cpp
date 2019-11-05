@@ -492,6 +492,9 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
 mp::LibVirtVirtualMachine::ConnectionUPtr
 mp::LibVirtVirtualMachine::open_libvirt_connection(const LibvirtWrapper& libvirt_wrapper)
 {
+    if (!libvirt_wrapper.is_enabled())
+        throw std::runtime_error("The libvirt library is not loaded. Please ensure libvirt is installed and running.");
+
     mp::LibVirtVirtualMachine::ConnectionUPtr connection{libvirt_wrapper.virConnectOpen("qemu:///system"),
                                                          libvirt_wrapper.virConnectClose};
     if (!connection)

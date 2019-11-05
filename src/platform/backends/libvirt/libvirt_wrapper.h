@@ -18,50 +18,101 @@
 #ifndef MULTIPASS_LIBVIRT_WRAPPER_H
 #define MULTIPASS_LIBVIRT_WRAPPER_H
 
+#include <stdexcept>
 #include <string>
+
+#include <multipass/format.h>
 
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
 
 namespace multipass
 {
-class LibvirtWrapper
+class LibvirtOpenException : public std::runtime_error
 {
 public:
-    LibvirtWrapper(const std::string& filename);
-    LibvirtWrapper();
-    ~LibvirtWrapper();
+    LibvirtOpenException(const char* error_message)
+        : runtime_error(fmt::format("Failed to open the libvirt object: {}", error_message))
+    {
+    }
+};
 
+class LibvirtSymbolAddressException : public std::runtime_error
+{
+public:
+    LibvirtSymbolAddressException(const std::string& symbol, const char* error_message)
+        : runtime_error(fmt::format("Failed to load symbol \"{}\": {}", symbol, error_message))
+    {
+    }
+};
+
+class LibvirtWrapper
+{
 private:
-    void* handle;
+    typedef virConnectPtr (*virConnectOpen_t)(const char* name);
+    typedef int (*virConnectClose_t)(virConnectPtr conn);
+    typedef char* (*virConnectGetCapabilities_t)(virConnectPtr conn);
+    typedef int (*virConnectGetVersion_t)(virConnectPtr conn, unsigned long* hvVer);
+    typedef virNetworkPtr (*virNetworkLookupByName_t)(virConnectPtr conn, const char* name);
+    typedef virNetworkPtr (*virNetworkCreateXML_t)(virConnectPtr conn, const char* xmlDesc);
+    typedef int (*virNetworkDestroy_t)(virNetworkPtr network);
+    typedef int (*virNetworkFree_t)(virNetworkPtr network);
+    typedef char* (*virNetworkGetBridgeName_t)(virNetworkPtr network);
+    typedef int (*virNetworkIsActive_t)(virNetworkPtr network);
+    typedef int (*virNetworkCreate_t)(virNetworkPtr network);
+    typedef int (*virNetworkGetDHCPLeases_t)(virNetworkPtr network, const char* mac, virNetworkDHCPLeasePtr** leases,
+                                             unsigned int flags);
+    typedef void (*virNetworkDHCPLeaseFree_t)(virNetworkDHCPLeasePtr lease);
+    typedef int (*virDomainUndefine_t)(virDomainPtr domain);
+    typedef virDomainPtr (*virDomainLookupByName_t)(virConnectPtr conn, const char* name);
+    typedef char* (*virDomainGetXMLDesc_t)(virDomainPtr domain, unsigned int flags);
+    typedef int (*virDomainDestroy_t)(virDomainPtr domain);
+    typedef int (*virDomainFree_t)(virDomainPtr domain);
+    typedef virDomainPtr (*virDomainDefineXML_t)(virConnectPtr conn, const char* xml);
+    typedef int (*virDomainGetState_t)(virDomainPtr domain, int* state, int* reason, unsigned int flags);
+    typedef int (*virDomainCreate_t)(virDomainPtr domain);
+    typedef int (*virDomainShutdown_t)(virDomainPtr domain);
+    typedef int (*virDomainManagedSave_t)(virDomainPtr domain, unsigned int flags);
+    typedef int (*virDomainHasManagedSaveImage_t)(virDomainPtr domain, unsigned int flags);
+    typedef const char* (*virGetLastErrorMessage_t)();
 
 public:
-    virConnectPtr (*virConnectOpen)(const char* name);
-    int (*virConnectClose)(virConnectPtr conn);
-    char* (*virConnectGetCapabilities)(virConnectPtr conn);
-    int (*virConnectGetVersion)(virConnectPtr conn, unsigned long* hvVer);
-    virNetworkPtr (*virNetworkLookupByName)(virConnectPtr conn, const char* name);
-    virNetworkPtr (*virNetworkCreateXML)(virConnectPtr conn, const char* xmlDesc);
-    int (*virNetworkDestroy)(virNetworkPtr network);
-    int (*virNetworkFree)(virNetworkPtr network);
-    char* (*virNetworkGetBridgeName)(virNetworkPtr network);
-    int (*virNetworkIsActive)(virNetworkPtr network);
-    int (*virNetworkCreate)(virNetworkPtr network);
-    int (*virNetworkGetDHCPLeases)(virNetworkPtr network, const char* mac, virNetworkDHCPLeasePtr** leases,
-                                   unsigned int flags);
-    void (*virNetworkDHCPLeaseFree)(virNetworkDHCPLeasePtr lease);
-    int (*virDomainUndefine)(virDomainPtr domain);
-    virDomainPtr (*virDomainLookupByName)(virConnectPtr conn, const char* name);
-    char* (*virDomainGetXMLDesc)(virDomainPtr domain, unsigned int flags);
-    int (*virDomainDestroy)(virDomainPtr domain);
-    int (*virDomainFree)(virDomainPtr domain);
-    virDomainPtr (*virDomainDefineXML)(virConnectPtr conn, const char* xml);
-    int (*virDomainGetState)(virDomainPtr domain, int* state, int* reason, unsigned int flags);
-    int (*virDomainCreate)(virDomainPtr domain);
-    int (*virDomainShutdown)(virDomainPtr domain);
-    int (*virDomainManagedSave)(virDomainPtr domain, unsigned int flags);
-    int (*virDomainHasManagedSaveImage)(virDomainPtr domain, unsigned int flags);
-    const char* (*virGetLastErrorMessage)(void);
+    LibvirtWrapper(const std::string& filename = "libvirt.so");
+    ~LibvirtWrapper();
+
+    void initialize_libvirt_functions();
+    bool is_enabled() const;
+    void ensure_libvirt_loaded();
+
+    virConnectOpen_t virConnectOpen;
+    virConnectClose_t virConnectClose;
+    virConnectGetCapabilities_t virConnectGetCapabilities;
+    virConnectGetVersion_t virConnectGetVersion;
+    virNetworkLookupByName_t virNetworkLookupByName;
+    virNetworkCreateXML_t virNetworkCreateXML;
+    virNetworkDestroy_t virNetworkDestroy;
+    virNetworkFree_t virNetworkFree;
+    virNetworkGetBridgeName_t virNetworkGetBridgeName;
+    virNetworkIsActive_t virNetworkIsActive;
+    virNetworkCreate_t virNetworkCreate;
+    virNetworkGetDHCPLeases_t virNetworkGetDHCPLeases;
+    virNetworkDHCPLeaseFree_t virNetworkDHCPLeaseFree;
+    virDomainUndefine_t virDomainUndefine;
+    virDomainLookupByName_t virDomainLookupByName;
+    virDomainGetXMLDesc_t virDomainGetXMLDesc;
+    virDomainDestroy_t virDomainDestroy;
+    virDomainFree_t virDomainFree;
+    virDomainDefineXML_t virDomainDefineXML;
+    virDomainGetState_t virDomainGetState;
+    virDomainCreate_t virDomainCreate;
+    virDomainShutdown_t virDomainShutdown;
+    virDomainManagedSave_t virDomainManagedSave;
+    virDomainHasManagedSaveImage_t virDomainHasManagedSaveImage;
+    virGetLastErrorMessage_t virGetLastErrorMessage;
+
+private:
+    std::string filename;
+    void* handle{nullptr};
 };
 } // namespace multipass
 

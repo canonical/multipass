@@ -4,6 +4,9 @@ target_sources(multipass_tests
     ${CMAKE_CURRENT_LIST_DIR}/test_libvirt_backend.cpp
 )
 
+add_library(broken_libvirt SHARED
+    ${CMAKE_CURRENT_LIST_DIR}/broken_libvirt_library.cpp)
+
 target_compile_options(multipass_tests PRIVATE -rdynamic)
 
 target_compile_definitions(libvirt_backend_test PRIVATE

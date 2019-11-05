@@ -17,69 +17,127 @@
 
 #include "libvirt_wrapper.h"
 
+#include <multipass/logging/log.h>
+
 #include <dlfcn.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto logging_category = "libvirt-wrapper";
+
 auto open_libvirt_handle(const std::string& filename)
 {
-    // For testing, ie, opening the executable itself
-    if (filename.empty())
-        return dlopen(nullptr, RTLD_NOW | RTLD_GLOBAL);
-    else
-        return dlopen(filename.c_str(), RTLD_NOW | RTLD_GLOBAL);
+    // If filename is empty, it's for testing, ie, opening the test executable itself
+    auto handle = dlopen(filename.empty() ? nullptr : filename.c_str(), RTLD_NOW | RTLD_GLOBAL);
+
+    if (!handle)
+        throw mp::LibvirtOpenException(dlerror());
+
+    return handle;
+}
+
+auto get_symbol_address_for(const std::string& symbol, void* handle)
+{
+    auto address = dlsym(handle, symbol.c_str());
+
+    if (!address)
+        throw mp::LibvirtSymbolAddressException(symbol, dlerror());
+
+    return address;
 }
 } // namespace
 
-mp::LibvirtWrapper::LibvirtWrapper(const std::string& filename)
-    : handle{open_libvirt_handle(filename)},
-      virConnectOpen{reinterpret_cast<virConnectPtr (*)(const char*)>(dlsym(handle, "virConnectOpen"))},
-      virConnectClose{reinterpret_cast<int (*)(virConnectPtr)>(dlsym(handle, "virConnectClose"))},
-      virConnectGetCapabilities{reinterpret_cast<char* (*)(virConnectPtr)>(dlsym(handle, "virConnectGetCapabilities"))},
-      virConnectGetVersion{
-          reinterpret_cast<int (*)(virConnectPtr, unsigned long*)>(dlsym(handle, "virConnectGetVersion"))},
-      virNetworkLookupByName{
-          reinterpret_cast<virNetworkPtr (*)(virConnectPtr, const char*)>(dlsym(handle, "virNetworkLookupByName"))},
-      virNetworkCreateXML{
-          reinterpret_cast<virNetworkPtr (*)(virConnectPtr, const char*)>(dlsym(handle, "virNetworkCreateXML"))},
-      virNetworkDestroy{reinterpret_cast<int (*)(virNetworkPtr)>(dlsym(handle, "virNetworkDestroy"))},
-      virNetworkFree{reinterpret_cast<int (*)(virNetworkPtr)>(dlsym(handle, "virNetworkFree"))},
-      virNetworkGetBridgeName{reinterpret_cast<char* (*)(virNetworkPtr)>(dlsym(handle, "virNetworkGetBridgeName"))},
-      virNetworkIsActive{reinterpret_cast<int (*)(virNetworkPtr)>(dlsym(handle, "virNetworkIsActive"))},
-      virNetworkCreate{reinterpret_cast<int (*)(virNetworkPtr)>(dlsym(handle, "virNetworkCreate"))},
-      virNetworkGetDHCPLeases{
-          reinterpret_cast<int (*)(virNetworkPtr, const char*, virNetworkDHCPLeasePtr**, unsigned int)>(
-              dlsym(handle, "virNetworkGetDHCPLeases"))},
-      virNetworkDHCPLeaseFree{
-          reinterpret_cast<void (*)(virNetworkDHCPLeasePtr)>(dlsym(handle, "virNetworkDHCPLeaseFree"))},
-      virDomainUndefine{reinterpret_cast<int (*)(virDomainPtr)>(dlsym(handle, "virDomainUndefine"))},
-      virDomainLookupByName{
-          reinterpret_cast<virDomainPtr (*)(virConnectPtr, const char*)>(dlsym(handle, "virDomainLookupByName"))},
-      virDomainGetXMLDesc{
-          reinterpret_cast<char* (*)(virDomainPtr, unsigned int)>(dlsym(handle, "virDomainGetXMLDesc"))},
-      virDomainDestroy{reinterpret_cast<int (*)(virDomainPtr)>(dlsym(handle, "virDomainDestroy"))},
-      virDomainFree{reinterpret_cast<int (*)(virDomainPtr)>(dlsym(handle, "virDomainFree"))},
-      virDomainDefineXML{
-          reinterpret_cast<virDomainPtr (*)(virConnectPtr, const char*)>(dlsym(handle, "virDomainDefineXML"))},
-      virDomainGetState{
-          reinterpret_cast<int (*)(virDomainPtr, int*, int*, unsigned int)>(dlsym(handle, "virDomainGetState"))},
-      virDomainCreate{reinterpret_cast<int (*)(virDomainPtr)>(dlsym(handle, "virDomainCreate"))},
-      virDomainShutdown{reinterpret_cast<int (*)(virDomainPtr)>(dlsym(handle, "virDomainShutdown"))},
-      virDomainManagedSave{
-          reinterpret_cast<int (*)(virDomainPtr, unsigned int)>(dlsym(handle, "virDomainManagedSave"))},
-      virDomainHasManagedSaveImage{
-          reinterpret_cast<int (*)(virDomainPtr, unsigned int)>(dlsym(handle, "virDomainHasManagedSaveImage"))},
-      virGetLastErrorMessage{reinterpret_cast<const char* (*)(void)>(dlsym(handle, "virGetLastErrorMessage"))}
+mp::LibvirtWrapper::LibvirtWrapper(const std::string& filename) : filename{filename}
 {
-}
-
-mp::LibvirtWrapper::LibvirtWrapper() : LibvirtWrapper("libvirt.so")
-{
+    try
+    {
+        initialize_libvirt_functions();
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error, logging_category, e.what());
+    }
 }
 
 mp::LibvirtWrapper::~LibvirtWrapper()
 {
-    dlclose(handle);
+    if (handle)
+        dlclose(handle);
+}
+
+void mp::LibvirtWrapper::initialize_libvirt_functions()
+{
+    handle = open_libvirt_handle(filename);
+
+    try
+    {
+        virConnectOpen = reinterpret_cast<virConnectOpen_t>(get_symbol_address_for("virConnectOpen", handle));
+        virConnectClose = reinterpret_cast<virConnectClose_t>(get_symbol_address_for("virConnectClose", handle));
+        virConnectGetCapabilities =
+            reinterpret_cast<virConnectGetCapabilities_t>(get_symbol_address_for("virConnectGetCapabilities", handle));
+        virConnectGetVersion =
+            reinterpret_cast<virConnectGetVersion_t>(get_symbol_address_for("virConnectGetVersion", handle));
+        virNetworkLookupByName =
+            reinterpret_cast<virNetworkLookupByName_t>(get_symbol_address_for("virNetworkLookupByName", handle));
+        virNetworkCreateXML =
+            reinterpret_cast<virNetworkCreateXML_t>(get_symbol_address_for("virNetworkCreateXML", handle));
+        virNetworkDestroy = reinterpret_cast<virNetworkDestroy_t>(get_symbol_address_for("virNetworkDestroy", handle));
+        virNetworkFree = reinterpret_cast<virNetworkFree_t>(get_symbol_address_for("virNetworkFree", handle));
+        virNetworkGetBridgeName =
+            reinterpret_cast<virNetworkGetBridgeName_t>(get_symbol_address_for("virNetworkGetBridgeName", handle));
+        virNetworkIsActive =
+            reinterpret_cast<virNetworkIsActive_t>(get_symbol_address_for("virNetworkIsActive", handle));
+        virNetworkCreate = reinterpret_cast<virNetworkCreate_t>(get_symbol_address_for("virNetworkCreate", handle));
+        virNetworkGetDHCPLeases =
+            reinterpret_cast<virNetworkGetDHCPLeases_t>(get_symbol_address_for("virNetworkGetDHCPLeases", handle));
+        virNetworkDHCPLeaseFree =
+            reinterpret_cast<virNetworkDHCPLeaseFree_t>(get_symbol_address_for("virNetworkDHCPLeaseFree", handle));
+        virDomainUndefine = reinterpret_cast<virDomainUndefine_t>(get_symbol_address_for("virDomainUndefine", handle));
+        virDomainLookupByName =
+            reinterpret_cast<virDomainLookupByName_t>(get_symbol_address_for("virDomainLookupByName", handle));
+        virDomainGetXMLDesc =
+            reinterpret_cast<virDomainGetXMLDesc_t>(get_symbol_address_for("virDomainGetXMLDesc", handle));
+        virDomainDestroy = reinterpret_cast<virDomainDestroy_t>(get_symbol_address_for("virDomainDestroy", handle));
+        virDomainFree = reinterpret_cast<virDomainFree_t>(get_symbol_address_for("virDomainFree", handle));
+        virDomainDefineXML =
+            reinterpret_cast<virDomainDefineXML_t>(get_symbol_address_for("virDomainDefineXML", handle));
+        virDomainGetState = reinterpret_cast<virDomainGetState_t>(get_symbol_address_for("virDomainGetState", handle));
+        virDomainCreate = reinterpret_cast<virDomainCreate_t>(get_symbol_address_for("virDomainCreate", handle));
+        virDomainShutdown = reinterpret_cast<virDomainShutdown_t>(get_symbol_address_for("virDomainShutdown", handle));
+        virDomainManagedSave =
+            reinterpret_cast<virDomainManagedSave_t>(get_symbol_address_for("virDomainManagedSave", handle));
+        virDomainHasManagedSaveImage = reinterpret_cast<virDomainHasManagedSaveImage_t>(
+            get_symbol_address_for("virDomainHasManagedSaveImage", handle));
+        virGetLastErrorMessage =
+            reinterpret_cast<virGetLastErrorMessage_t>(get_symbol_address_for("virGetLastErrorMessage", handle));
+    }
+    catch (const mp::LibvirtSymbolAddressException& e)
+    {
+        dlclose(handle);
+        handle = nullptr;
+
+        throw;
+    }
+}
+
+bool mp::LibvirtWrapper::is_enabled() const
+{
+    if (!handle || !virConnectOpen || !virConnectClose || !virConnectGetCapabilities || !virConnectGetVersion ||
+        !virNetworkLookupByName || !virNetworkCreateXML || !virNetworkDestroy || !virNetworkFree ||
+        !virNetworkGetBridgeName || !virNetworkIsActive || !virNetworkCreate || !virNetworkGetDHCPLeases ||
+        !virNetworkDHCPLeaseFree || !virDomainUndefine || !virDomainLookupByName || !virDomainGetXMLDesc ||
+        !virDomainDestroy || !virDomainFree || !virDomainDefineXML || !virDomainGetState || !virDomainCreate ||
+        !virDomainShutdown || !virDomainManagedSave || !virDomainHasManagedSaveImage || !virGetLastErrorMessage)
+        return false;
+
+    return true;
+}
+
+void mp::LibvirtWrapper::ensure_libvirt_loaded()
+{
+    if (!is_enabled())
+        initialize_libvirt_functions();
 }

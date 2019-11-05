@@ -164,7 +164,8 @@ void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
     mp::backend::check_for_kvm_support();
     mp::backend::check_if_kvm_is_in_use();
 
-    auto connection = LibVirtVirtualMachine::open_libvirt_connection(libvirt_wrapper);
+    libvirt_wrapper.ensure_libvirt_loaded();
+    LibVirtVirtualMachine::open_libvirt_connection(libvirt_wrapper);
 
     if (bridge_name.empty())
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);
