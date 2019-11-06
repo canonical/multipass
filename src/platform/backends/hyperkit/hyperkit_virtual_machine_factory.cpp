@@ -77,7 +77,7 @@ mp::VMImage mp::HyperkitVirtualMachineFactory::prepare_source_image(const VMImag
 
     QProcess uncompress;
     uncompress.start(QCoreApplication::applicationDirPath() + "/qemu-img", uncompress_args);
-    uncompress.waitForFinished();
+    uncompress.waitForFinished(-1);
 
     if (uncompress.exitCode() != QProcess::NormalExit)
     {
