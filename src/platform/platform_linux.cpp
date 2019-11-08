@@ -44,19 +44,10 @@ namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
-} // namespace
-
-QString mp::platform::autostart_test_data()
+void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename)
 {
-    return autostart_filename;
-}
-
-void mp::platform::setup_gui_autostart_prerequisites()
-{
-    const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
-    const auto autostart_dir = QDir{config_dir.absoluteFilePath("autostart")};
-    const auto link_path = autostart_dir.absoluteFilePath(autostart_filename);
-    const auto target_path = mu::find_autostart_target(mp::client_name, autostart_filename);
+    const auto link_path = link_dir.absoluteFilePath(autostart_filename);
+    const auto target_path = mu::find_autostart_target(autostart_subdir, autostart_filename);
 
     const auto link_info = QFileInfo{link_path};
     const auto target_info = QFileInfo{target_path};
@@ -68,12 +59,26 @@ void mp::platform::setup_gui_autostart_prerequisites()
 
     if (!link_file.exists())
     {
-        autostart_dir.mkpath(".");
+        link_dir.mkpath(".");
         if (!target_file.link(link_path))
 
-            throw AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
-                                          fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
+            throw mp::AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
+                                              fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
     }
+}
+
+} // namespace
+
+QString mp::platform::autostart_test_data()
+{
+    return autostart_filename;
+}
+
+void mp::platform::setup_gui_autostart_prerequisites()
+{
+    const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
+    const auto link_dir = QDir{config_dir.absoluteFilePath("autostart")};
+    link_autostart_file(link_dir, mp::client_name, autostart_filename);
 }
 
 std::string mp::platform::default_server_address()
