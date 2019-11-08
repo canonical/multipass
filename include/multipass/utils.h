@@ -56,6 +56,7 @@ QDir base_dir(const QString& path);
 multipass::Path make_dir(const QDir& a_dir, const QString& name);
 bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
+QString find_autostart_target(const QString& subdir, const QString& autostart_filename);
 QString get_driver_str();
 std::string filename_for(const std::string& path);
 QString make_uuid();
