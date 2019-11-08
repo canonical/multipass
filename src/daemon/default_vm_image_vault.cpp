@@ -621,6 +621,9 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
     DeleteOnException image_file{source_image.image_path};
 
+    if (fetch_type == FetchType::None)
+        return source_image;
+
     try
     {
         url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
