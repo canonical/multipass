@@ -55,13 +55,22 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
 {
     if (shutdown_timer.isActive())
     {
-        if (ssh_session)
+        try
         {
-            // exit_code() is here to make sure the command finishes before continuing in the dtor
-            ssh_session->exec("wall The system shutdown has been cancelled").exit_code();
+            if (ssh_session)
+            {
+                // exit_code() is here to make sure the command finishes before continuing in the dtor
+                ssh_session->exec("wall The system shutdown has been cancelled").exit_code();
+            }
+            mpl::log(mpl::Level::info, virtual_machine->vm_name, fmt::format("Cancelling delayed shutdown"));
+            virtual_machine->state = VirtualMachine::State::running;
         }
-        mpl::log(mpl::Level::info, virtual_machine->vm_name, fmt::format("Cancelling delayed shutdown"));
-        virtual_machine->state = VirtualMachine::State::running;
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, virtual_machine->vm_name,
+                     fmt::format("Unable to cancel delayed shutdown: {}", e.what()));
+            virtual_machine->state = VirtualMachine::State::unknown;
+        }
     }
 }
 
