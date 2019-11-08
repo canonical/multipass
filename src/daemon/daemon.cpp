@@ -1968,7 +1968,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                                config->ssh_username, vm_image, meta_data_cloud_init_config,
                                                user_data_cloud_init_config, vendor_data_cloud_init_config);
 
-                config->factory->prepare_instance_image(vm_image, vm_desc);
+                if (fetch_type != mp::FetchType::None)
+                    config->factory->prepare_instance_image(vm_image, vm_desc);
 
                 return vm_desc;
             }
