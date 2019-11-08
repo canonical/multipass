@@ -51,6 +51,24 @@ auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
         return "";
     return arg.find('\'') == std::string::npos ? "'" : "\"";
 }
+
+QString find_autostart_target(const QString& subdir, const QString& autostart_filename)
+{
+    const auto target_subpath = QDir{subdir}.filePath(autostart_filename);
+    const auto target_path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, target_subpath);
+
+    if (target_path.isEmpty())
+    {
+        QString detail{};
+        for (const auto& path : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation))
+            detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
+
+        throw mp::AutostartSetupException{fmt::format("could not locate the autostart file '{}'", autostart_filename),
+                                          fmt::format("Tried: {}", detail.toStdString())};
+    }
+
+    return target_path;
+}
 } // namespace
 
 QDir mp::utils::base_dir(const QString& path)
@@ -234,24 +252,6 @@ QString mp::utils::backend_directory_path(const mp::Path& path, const QString& s
         return path;
 
     return mp::Path("%1/%2").arg(path).arg(subdirectory);
-}
-
-QString mp::utils::find_autostart_target(const QString& subdir, const QString& autostart_filename)
-{
-    const auto target_subpath = QDir{subdir}.filePath(autostart_filename);
-    const auto target_path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, target_subpath);
-
-    if (target_path.isEmpty())
-    {
-        QString detail{};
-        for (const auto& path : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation))
-            detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
-
-        throw mp::AutostartSetupException{fmt::format("could not locate the autostart file '{}'", autostart_filename),
-                                          fmt::format("Tried: {}", detail.toStdString())};
-    }
-
-    return target_path;
 }
 
 QString mp::utils::get_driver_str()
