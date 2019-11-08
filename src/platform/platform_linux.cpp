@@ -27,6 +27,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
+#include "backends/lxd/lxd_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 #include "shared/linux/process_factory.h"
@@ -107,7 +108,7 @@ QString mp::platform::daemon_config_home() // temporary
 
 bool mp::platform::is_backend_supported(const QString& backend)
 {
-    return backend == "qemu" || backend == "libvirt";
+    return backend == "qemu" || backend == "libvirt" || backend == "lxd";
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
@@ -117,6 +118,8 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
     else if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
+    else if (driver == QStringLiteral("lxd"))
+        return std::make_unique<LXDVirtualMachineFactory>(data_dir);
     else
         throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
@@ -153,5 +156,8 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 
 bool mp::platform::is_image_url_supported()
 {
+    const auto& driver = utils::get_driver_str();
+    if (driver == "lxd")
+        return false;
     return true;
 }
