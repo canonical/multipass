@@ -44,29 +44,6 @@ namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
-void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename)
-{
-    const auto link_path = link_dir.absoluteFilePath(autostart_filename);
-    const auto target_path = mu::find_autostart_target(autostart_subdir, autostart_filename);
-
-    const auto link_info = QFileInfo{link_path};
-    const auto target_info = QFileInfo{target_path};
-    auto target_file = QFile{target_path};
-    auto link_file = QFile{link_path};
-
-    if (link_info.isSymLink() && link_info.symLinkTarget() != target_info.absoluteFilePath())
-        link_file.remove(); // get rid of outdated and broken links
-
-    if (!link_file.exists())
-    {
-        link_dir.mkpath(".");
-        if (!target_file.link(link_path))
-
-            throw mp::AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
-                                              fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
-    }
-}
-
 } // namespace
 
 QString mp::platform::autostart_test_data()
@@ -78,7 +55,7 @@ void mp::platform::setup_gui_autostart_prerequisites()
 {
     const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
     const auto link_dir = QDir{config_dir.absoluteFilePath("autostart")};
-    link_autostart_file(link_dir, mp::client_name, autostart_filename);
+    mu::link_autostart_file(link_dir, mp::client_name, autostart_filename);
 }
 
 std::string mp::platform::default_server_address()

@@ -194,6 +194,30 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
+void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autostart_subdir,
+                                    const QString& autostart_filename)
+{
+    const auto link_path = link_dir.absoluteFilePath(autostart_filename);
+    const auto target_path = find_autostart_target(autostart_subdir, autostart_filename);
+
+    const auto link_info = QFileInfo{link_path};
+    const auto target_info = QFileInfo{target_path};
+    auto target_file = QFile{target_path};
+    auto link_file = QFile{link_path};
+
+    if (link_info.isSymLink() && link_info.symLinkTarget() != target_info.absoluteFilePath())
+        link_file.remove(); // get rid of outdated and broken links
+
+    if (!link_file.exists())
+    {
+        link_dir.mkpath(".");
+        if (!target_file.link(link_path))
+
+            throw mp::AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
+                                              fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
+    }
+}
+
 mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
 {
     if (!a_dir.mkpath(name))
