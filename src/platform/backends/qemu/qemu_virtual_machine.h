@@ -23,6 +23,7 @@
 #include <multipass/process.h>
 #include <multipass/virtual_machine.h>
 
+#include <QObject>
 #include <QStringList>
 
 namespace multipass
@@ -31,8 +32,9 @@ class DNSMasqServer;
 class VMStatusMonitor;
 class VirtualMachineDescription;
 
-class QemuVirtualMachine final : public VirtualMachine
+class QemuVirtualMachine final : public QObject, public VirtualMachine
 {
+    Q_OBJECT
 public:
     QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
                        DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
@@ -51,6 +53,9 @@ public:
     void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
+
+signals:
+    void on_delete_memory_snapshot();
 
 private:
     void on_started();
