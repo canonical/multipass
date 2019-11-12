@@ -33,6 +33,7 @@ public:
     Path kernel_path;
     Path initrd_path;
     std::string id;
+    std::string stream_location;
     std::string original_release;
     std::string current_release;
     std::string release_date;

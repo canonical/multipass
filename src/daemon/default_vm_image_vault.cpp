@@ -73,6 +73,7 @@ auto image_to_json(const mp::VMImage& image)
     json.insert("kernel_path", image.kernel_path);
     json.insert("initrd_path", image.initrd_path);
     json.insert("id", QString::fromStdString(image.id));
+    json.insert("stream_location", QString::fromStdString(image.stream_location));
     json.insert("original_release", QString::fromStdString(image.original_release));
     json.insert("current_release", QString::fromStdString(image.current_release));
     json.insert("release_date", QString::fromStdString(image.release_date));
@@ -133,6 +134,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         auto kernel_path = image["kernel_path"].toString();
         auto initrd_path = image["initrd_path"].toString();
         auto image_id = image["id"].toString().toStdString();
+        auto stream_location = image["stream_location"].toString().toStdString();
         auto original_release = image["original_release"].toString().toStdString();
         auto current_release = image["current_release"].toString().toStdString();
         auto release_date = image["release_date"].toString().toStdString();
@@ -168,7 +170,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         }
 
         reconstructed_records[key] = {
-            {image_path, kernel_path, initrd_path, image_id, original_release, current_release, release_date, aliases},
+            {image_path, kernel_path, initrd_path, image_id, stream_location, original_release, current_release, release_date, aliases},
             {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
             last_accessed};
     }
@@ -380,6 +382,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                                        {},
                                        {},
                                        true,
+                                       image_url.url(),
                                        image_url.url(),
                                        kernel_info.kernel_location,
                                        kernel_info.initrd_location,
@@ -609,6 +612,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     else
     {
         source_image.id = id;
+        source_image.stream_location = info.stream_location.toStdString();
         source_image.image_path = image_dir.filePath(filename_for(info.image_location));
         source_image.original_release = info.release_title.toStdString();
         source_image.release_date = info.version.toStdString();
@@ -622,7 +626,10 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     DeleteOnException image_file{source_image.image_path};
 
     if (fetch_type == FetchType::None)
+    {
+        source_image.image_path = "";
         return source_image;
+    }
 
     try
     {
@@ -696,16 +703,22 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
                                                          const VMImage& prepared_image)
 {
     auto name = QString::fromStdString(instance_name);
-    auto output_dir = mp::utils::make_dir(instances_dir, name);
+    if (prepared_image.image_path.isEmpty())
+        return prepared_image;
+    else
+    {
+        auto output_dir = mp::utils::make_dir(instances_dir, name);
 
-    return {copy(prepared_image.image_path, output_dir),
-            copy(prepared_image.kernel_path, output_dir),
-            copy(prepared_image.initrd_path, output_dir),
-            prepared_image.id,
-            prepared_image.original_release,
-            prepared_image.current_release,
-            prepared_image.release_date,
-            {}};
+        return {copy(prepared_image.image_path, output_dir),
+                copy(prepared_image.kernel_path, output_dir),
+                copy(prepared_image.initrd_path, output_dir),
+                prepared_image.id,
+                prepared_image.stream_location,
+                prepared_image.original_release,
+                prepared_image.current_release,
+                prepared_image.release_date,
+                {}};
+    }
 }
 
 mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image,

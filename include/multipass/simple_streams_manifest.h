@@ -36,7 +36,7 @@ struct SimpleStreamsManifest
 {
     SimpleStreamsManifest(const SimpleStreamsManifest&) = delete;
     SimpleStreamsManifest& operator=(const SimpleStreamsManifest&) = delete;
-    static std::unique_ptr<SimpleStreamsManifest> fromJson(const QByteArray& json);
+    static std::unique_ptr<SimpleStreamsManifest> fromJson(const QByteArray& json, const QString& host_url);
 
     const QString updated_at;
     const std::vector<VMImageInfo> products;
