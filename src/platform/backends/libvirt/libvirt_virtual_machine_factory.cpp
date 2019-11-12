@@ -25,9 +25,6 @@
 
 #include <multipass/format.h>
 
-#include <libvirt/libvirt.h>
-#include <libvirt/virterror.h>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
