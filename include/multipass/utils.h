@@ -77,6 +77,7 @@ void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::millisecond
                        std::function<void()> const& ensure_vm_is_running = []() {});
 void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                          const SSHKeyProvider& key_provider);
+void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
