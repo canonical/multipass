@@ -158,5 +158,6 @@ virNetworkPtr virNetworkLookupByName(virConnectPtr /*conn*/, const char* /*name*
 
 const char* virGetLastErrorMessage()
 {
-    return strdup("");
+    static char fake_error[64] = "";
+    return fake_error;
 }
