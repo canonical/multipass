@@ -140,7 +140,13 @@ void mp::WindowsConsole::write_console()
     }
 
     if (num_bytes < 1)
+    {
+        // Force the channel to close if EOF is detected from the channel_read
+        if (num_bytes == SSH_EOF)
+            ssh_channel_close(channel);
+
         return;
+    }
 
     DWORD mode;
     if (GetConsoleMode(output_handle, &mode))
