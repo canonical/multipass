@@ -50,11 +50,12 @@ public:
     QString get_backend_version_string() override;
 
     // Making this public makes this modifiable which is necessary for testing
-    LibvirtWrapper libvirt_wrapper;
+    LibvirtWrapper::UPtr libvirt_wrapper;
 
 private:
     const Path data_dir;
     std::string bridge_name;
+    const std::string libvirt_object_path;
 };
 } // namespace multipass
 

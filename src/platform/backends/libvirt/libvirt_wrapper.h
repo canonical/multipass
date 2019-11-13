@@ -76,13 +76,13 @@ private:
     typedef int (*virDomainHasManagedSaveImage_t)(virDomainPtr domain, unsigned int flags);
     typedef const char* (*virGetLastErrorMessage_t)();
 
+    void* handle{nullptr};
+
 public:
+    using UPtr = std::unique_ptr<LibvirtWrapper>;
+
     LibvirtWrapper(const std::string& filename = "libvirt.so");
     ~LibvirtWrapper();
-
-    void initialize_libvirt_functions();
-    bool is_enabled() const;
-    void ensure_libvirt_loaded();
 
     virConnectOpen_t virConnectOpen;
     virConnectClose_t virConnectClose;
@@ -109,10 +109,6 @@ public:
     virDomainManagedSave_t virDomainManagedSave;
     virDomainHasManagedSaveImage_t virDomainHasManagedSaveImage;
     virGetLastErrorMessage_t virGetLastErrorMessage;
-
-private:
-    std::string filename;
-    void* handle{nullptr};
 };
 } // namespace multipass
 

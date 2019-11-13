@@ -35,10 +35,10 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper& libvirt_wrapper)
+auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     std::string mac_addr;
-    std::unique_ptr<char, decltype(free)*> desc{libvirt_wrapper.virDomainGetXMLDesc(domain, 0), free};
+    std::unique_ptr<char, decltype(free)*> desc{libvirt_wrapper->virDomainGetXMLDesc(domain, 0), free};
 
     QXmlStreamReader reader(desc.get());
 
@@ -56,7 +56,7 @@ auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper& libvir
     return mac_addr;
 }
 
-auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper& libvirt_wrapper)
+auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     mp::optional<mp::IPAddress> ip_address;
 
@@ -70,16 +70,16 @@ auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper& libv
         return ip_address;
     }
 
-    mp::LibVirtVirtualMachine::NetworkUPtr network{libvirt_wrapper.virNetworkLookupByName(connection.get(), "default"),
-                                                   libvirt_wrapper.virNetworkFree};
+    mp::LibVirtVirtualMachine::NetworkUPtr network{libvirt_wrapper->virNetworkLookupByName(connection.get(), "default"),
+                                                   libvirt_wrapper->virNetworkFree};
 
     virNetworkDHCPLeasePtr* leases = nullptr;
-    auto nleases = libvirt_wrapper.virNetworkGetDHCPLeases(network.get(), mac_addr.c_str(), &leases, 0);
+    auto nleases = libvirt_wrapper->virNetworkGetDHCPLeases(network.get(), mac_addr.c_str(), &leases, 0);
 
     auto leases_deleter = [&nleases, &libvirt_wrapper](virNetworkDHCPLeasePtr* leases) {
         for (auto i = 0; i < nleases; ++i)
         {
-            libvirt_wrapper.virNetworkDHCPLeaseFree(leases[i]);
+            libvirt_wrapper->virNetworkDHCPLeaseFree(leases[i]);
         }
         free(leases);
     };
@@ -93,10 +93,10 @@ auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper& libv
     return ip_address;
 }
 
-auto host_architecture_for(virConnectPtr connection, const mp::LibvirtWrapper& libvirt_wrapper)
+auto host_architecture_for(virConnectPtr connection, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     std::string arch;
-    std::unique_ptr<char, decltype(free)*> capabilities{libvirt_wrapper.virConnectGetCapabilities(connection), free};
+    std::unique_ptr<char, decltype(free)*> capabilities{libvirt_wrapper->virConnectGetCapabilities(connection), free};
 
     QXmlStreamReader reader(capabilities.get());
 
@@ -180,36 +180,37 @@ auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const st
         desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.mac_addr, bridge_name);
 }
 
-auto domain_by_name_for(const std::string& vm_name, virConnectPtr connection, const mp::LibvirtWrapper& libvirt_wrapper)
+auto domain_by_name_for(const std::string& vm_name, virConnectPtr connection,
+                        const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
-    mp::LibVirtVirtualMachine::DomainUPtr domain{libvirt_wrapper.virDomainLookupByName(connection, vm_name.c_str()),
-                                                 libvirt_wrapper.virDomainFree};
+    mp::LibVirtVirtualMachine::DomainUPtr domain{libvirt_wrapper->virDomainLookupByName(connection, vm_name.c_str()),
+                                                 libvirt_wrapper->virDomainFree};
 
     return domain;
 }
 
 auto domain_by_definition_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
-                              virConnectPtr connection, const mp::LibvirtWrapper& libvirt_wrapper)
+                              virConnectPtr connection, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     mp::LibVirtVirtualMachine::DomainUPtr domain{
-        libvirt_wrapper.virDomainDefineXML(
+        libvirt_wrapper->virDomainDefineXML(
             connection,
             generate_xml_config_for(desc, bridge_name, host_architecture_for(connection, libvirt_wrapper)).c_str()),
-        libvirt_wrapper.virDomainFree};
+        libvirt_wrapper->virDomainFree};
 
     return domain;
 }
 
 auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMachine::State& current_instance_state,
-                                       const mp::LibvirtWrapper& libvirt_wrapper)
+                                       const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     auto domain_state{0};
 
-    if (!domain || libvirt_wrapper.virDomainGetState(domain, &domain_state, nullptr, 0) == -1 ||
+    if (!domain || libvirt_wrapper->virDomainGetState(domain, &domain_state, nullptr, 0) == -1 ||
         domain_state == VIR_DOMAIN_NOSTATE)
         return mp::VirtualMachine::State::unknown;
 
-    if (libvirt_wrapper.virDomainHasManagedSaveImage(domain, 0) == 1)
+    if (libvirt_wrapper->virDomainHasManagedSaveImage(domain, 0) == 1)
         return mp::VirtualMachine::State::suspended;
 
     // Most of these libvirt domain states don't have a Multipass instance state
@@ -226,11 +227,11 @@ auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMac
     return current_instance_state;
 }
 
-bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper& libvirt_wrapper)
+bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     auto domain_state{0};
 
-    if (libvirt_wrapper.virDomainGetState(domain, &domain_state, nullptr, 0) == -1 ||
+    if (libvirt_wrapper->virDomainGetState(domain, &domain_state, nullptr, 0) == -1 ||
         domain_state != VIR_DOMAIN_RUNNING)
         return false;
 
@@ -240,7 +241,7 @@ bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper& libvirt_wr
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor,
-                                                 const LibvirtWrapper& libvirt_wrapper)
+                                                 const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
     : VirtualMachine{desc.vm_name},
       username{desc.ssh_username},
       desc{desc},
@@ -286,12 +287,12 @@ void mp::LibVirtVirtualMachine::start()
     state = State::starting;
     update_state();
 
-    if (libvirt_wrapper.virDomainCreate(domain.get()) == -1)
+    if (libvirt_wrapper->virDomainCreate(domain.get()) == -1)
     {
         state = State::suspended;
         update_state();
 
-        std::string error_string{libvirt_wrapper.virGetLastErrorMessage()};
+        std::string error_string{libvirt_wrapper->virGetLastErrorMessage()};
         if (error_string.find("virtio-net-pci.rom: 0x80000 in != 0x40000") != std::string::npos)
         {
             error_string = fmt::format("Unable to start suspended instance due to incompatible save image.\n"
@@ -323,10 +324,10 @@ void mp::LibVirtVirtualMachine::shutdown()
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
     if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
     {
-        if (!domain || libvirt_wrapper.virDomainShutdown(domain.get()) == -1)
+        if (!domain || libvirt_wrapper->virDomainShutdown(domain.get()) == -1)
         {
             auto warning_string{
-                fmt::format("Cannot shutdown '{}': {}", vm_name, libvirt_wrapper.virGetLastErrorMessage())};
+                fmt::format("Cannot shutdown '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
             mpl::log(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
@@ -336,7 +337,7 @@ void mp::LibVirtVirtualMachine::shutdown()
     }
     else if (state == State::starting)
     {
-        libvirt_wrapper.virDomainDestroy(domain.get());
+        libvirt_wrapper->virDomainDestroy(domain.get());
         state_wait.wait(lock, [this] { return state == State::off; });
         update_state();
     }
@@ -355,10 +356,10 @@ void mp::LibVirtVirtualMachine::suspend()
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
     if (state == State::running || state == State::delayed_shutdown)
     {
-        if (!domain || libvirt_wrapper.virDomainManagedSave(domain.get(), 0) < 0)
+        if (!domain || libvirt_wrapper->virDomainManagedSave(domain.get(), 0) < 0)
         {
             auto warning_string{
-                fmt::format("Cannot suspend '{}': {}", vm_name, libvirt_wrapper.virGetLastErrorMessage())};
+                fmt::format("Cannot suspend '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
             mpl::log(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
@@ -490,18 +491,18 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
 }
 
 mp::LibVirtVirtualMachine::ConnectionUPtr
-mp::LibVirtVirtualMachine::open_libvirt_connection(const LibvirtWrapper& libvirt_wrapper)
+mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
-    if (!libvirt_wrapper.is_enabled())
+    if (!libvirt_wrapper)
         throw std::runtime_error("The libvirt library is not loaded. Please ensure libvirt is installed and running.");
 
-    mp::LibVirtVirtualMachine::ConnectionUPtr connection{libvirt_wrapper.virConnectOpen("qemu:///system"),
-                                                         libvirt_wrapper.virConnectClose};
+    mp::LibVirtVirtualMachine::ConnectionUPtr connection{libvirt_wrapper->virConnectOpen("qemu:///system"),
+                                                         libvirt_wrapper->virConnectClose};
     if (!connection)
     {
         throw std::runtime_error(
             fmt::format("Cannot connect to libvirtd: {}\nPlease ensure libvirt is installed and running.",
-                        libvirt_wrapper.virGetLastErrorMessage()));
+                        libvirt_wrapper->virGetLastErrorMessage()));
     }
 
     return connection;
