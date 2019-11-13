@@ -66,11 +66,6 @@ bool mp::Terminal::is_live() const
 
 std::string mp::Terminal::read_all_cin()
 {
-    if (!cin_is_live())
-    {
-        throw std::runtime_error("cannot read from stdin without a TTY");
-    }
-
     std::string content;
     char arr[1024];
     while (!cin().eof())
