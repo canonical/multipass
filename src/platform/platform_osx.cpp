@@ -44,7 +44,7 @@ namespace
 {
 constexpr auto application_id = "com.canonical.multipass";
 constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
-constexpr auto autostart_link_subdir = "Library/LaunchdAgents";
+constexpr auto autostart_link_subdir = "Library/LaunchAgents";
 
 } // namespace
 
