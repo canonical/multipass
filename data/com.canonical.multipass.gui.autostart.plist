@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.canonical.multipass.gui</string>
+    <string>com.canonical.multipass.gui.autostart</string>
 
     <key>Program</key>
     <string>/Library/Application Support/com.canonical.multipass/bin/multipass.gui</string>
