@@ -28,20 +28,28 @@
 
 namespace multipass
 {
-class LibvirtOpenException : public std::runtime_error
+class BaseLibvirtException : public std::runtime_error
 {
 public:
-    LibvirtOpenException(const char* error_message)
-        : runtime_error(fmt::format("Failed to open the libvirt object: {}", error_message))
+    BaseLibvirtException(const std::string& error_message) : runtime_error(error_message)
     {
     }
 };
 
-class LibvirtSymbolAddressException : public std::runtime_error
+class LibvirtOpenException : public BaseLibvirtException
+{
+public:
+    LibvirtOpenException(const char* error_message)
+        : BaseLibvirtException(fmt::format("Failed to open the libvirt object: {}", error_message))
+    {
+    }
+};
+
+class LibvirtSymbolAddressException : public BaseLibvirtException
 {
 public:
     LibvirtSymbolAddressException(const std::string& symbol, const char* error_message)
-        : runtime_error(fmt::format("Failed to load symbol \"{}\": {}", symbol, error_message))
+        : BaseLibvirtException(fmt::format("Failed to load symbol \"{}\": {}", symbol, error_message))
     {
     }
 };
