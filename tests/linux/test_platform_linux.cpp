@@ -16,13 +16,13 @@
  */
 
 #include "tests/fake_handle.h"
-#include "tests/libvirt/mock_libvirt.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_settings.h"
 #include "tests/test_with_mocked_bin_path.h"
 
-#include "src/platform/backends/libvirt/libvirt_virtual_machine_factory.h"
-#include "src/platform/backends/qemu/qemu_virtual_machine_factory.h"
+#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
+#include <src/platform/backends/libvirt/libvirt_wrapper.h>
+#include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
@@ -150,13 +150,7 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
 
     void with_minimally_mocked_libvirt(std::function<void()> test_contents)
     {
-        REPLACE(virConnectOpen, [](auto...) { return mpt::fake_handle<virConnectPtr>(); });
-        REPLACE(virNetworkLookupByName, [](auto...) { return mpt::fake_handle<virNetworkPtr>(); });
-        REPLACE(virNetworkIsActive, [](auto...) { return 1; });
-        REPLACE(virNetworkFree, [](auto...) { return 0; });
-        REPLACE(virConnectClose, [](auto...) { return 0; });
-        REPLACE(virNetworkGetBridgeName, [](auto...) { return strdup("where's that confounded bridge?"); });
-
+        mp::LibvirtWrapper libvirt_wrapper{""};
         test_contents();
     }
 

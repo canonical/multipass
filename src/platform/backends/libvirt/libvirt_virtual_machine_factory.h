@@ -17,9 +17,12 @@
 #ifndef MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
 
+#include "libvirt_wrapper.h"
+
 #include <multipass/virtual_machine_factory.h>
 
 #include <memory>
+#include <string>
 
 namespace multipass
 {
@@ -28,6 +31,7 @@ class ProcessFactory;
 class LibVirtVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
+    explicit LibVirtVirtualMachineFactory(const Path& data_dir, const std::string& libvirt_object_path); // For testing
     explicit LibVirtVirtualMachineFactory(const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
@@ -45,9 +49,13 @@ public:
     };
     QString get_backend_version_string() override;
 
+    // Making this public makes this modifiable which is necessary for testing
+    LibvirtWrapper::UPtr libvirt_wrapper;
+
 private:
     const Path data_dir;
     std::string bridge_name;
+    const std::string libvirt_object_path;
 };
 } // namespace multipass
 
