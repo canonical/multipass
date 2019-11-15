@@ -18,5 +18,6 @@ add_library(metrics STATIC
 target_link_libraries(metrics
   fmt
   ssh_common
+  utils
   Qt5::Core
   Qt5::Network)
