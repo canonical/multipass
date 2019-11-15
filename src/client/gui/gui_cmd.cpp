@@ -208,6 +208,7 @@ void cmd::GuiCmd::update_about_menu()
     {
         update_action.setWhatsThis(QString::fromStdString(reply.update_info().url()));
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
+        tray_icon.showMessage("New Multipass update available", QString::fromStdString(reply.update_info().url()));
     }
     else
     {
@@ -220,6 +221,9 @@ void cmd::GuiCmd::create_menu()
     tray_icon.setContextMenu(&tray_icon_menu);
 
     tray_icon.setIcon(QIcon{":images/multipass-icon.png"});
+
+    QObject::connect(&tray_icon, &QSystemTrayIcon::messageClicked,
+                     [this] { QDesktopServices::openUrl(QUrl(update_action.whatsThis())); });
 
     QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &GuiCmd::update_menu);
 
