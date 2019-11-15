@@ -21,8 +21,9 @@
 
 #include <multipass/logging/log.h>
 
-#include <QFile>
+#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QSslKey>
+#include <QFile>
 
 #include <multipass/format.h>
 #include <yaml-cpp/yaml.h>
@@ -37,7 +38,8 @@ constexpr auto category = "lxd factory";
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir)
     : data_dir{data_dir},
-      base_url{"https://10.225.118.1:8443/1.0"}
+      base_url{"https://10.225.118.1:8443/1.0"},
+      manager{std::make_unique<QNetworkAccessManager>()}
 {
 }
 
@@ -45,12 +47,12 @@ mp::VirtualMachine::UPtr
 mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                             VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, base_url);
+    return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url);
 }
 
-void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& /* name */)
+void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-
+    lxd_request(manager.get(), "DELETE", QUrl(QString("%1/containers/%2").arg(base_url.toString()).arg(name.c_str())));
 }
 
 mp::FetchType mp::LXDVirtualMachineFactory::fetch_type()
@@ -76,8 +78,6 @@ void mp::LXDVirtualMachineFactory::configure(const std::string& /* name */, YAML
 
 void mp::LXDVirtualMachineFactory::hypervisor_health_check()
 {
-    auto manager{make_network_manager()};
-
     auto reply = lxd_request(manager.get(), "GET", base_url);
 
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))
