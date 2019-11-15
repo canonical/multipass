@@ -20,6 +20,7 @@
 
 #include <multipass/virtual_machine_factory.h>
 
+#include <QtNetwork/QNetworkAccessManager>
 #include <QUrl>
 
 namespace multipass
@@ -49,6 +50,7 @@ public:
 private:
     const Path data_dir;
     const QUrl base_url;
+    std::unique_ptr<QNetworkAccessManager> manager;
 };
 } // namespace multipass
 

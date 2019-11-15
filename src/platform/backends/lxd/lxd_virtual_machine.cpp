@@ -18,8 +18,12 @@
 #include "lxd_virtual_machine.h"
 #include "lxd_request.h"
 
+#include <QJsonArray>
+#include <QtNetwork/QNetworkAccessManager>
+
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
+#include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -36,36 +40,100 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-
-auto instance_state_for(const QString& name, const QUrl& base_url)
+auto instance_state_for(const QString& name, QNetworkAccessManager* manager, const QUrl& url)
 {
-    auto manager{make_network_manager()};
+    auto json_reply = lxd_request(manager, "GET", url);
+    auto metadata = json_reply["metadata"].toObject();
+    mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
 
-    auto json_reply = lxd_request(manager.get(), "GET", QUrl(QString("%1/%2").arg(base_url.toString()).arg(name)));
-    mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Got LXD container state: {} is {}", name, name));
-
-    mpl::log(mpl::Level::error, name.toStdString(), fmt::format("Got unexpected LXD state."));
-    return mp::VirtualMachine::State::unknown;
+    switch(metadata["status_code"].toInt(-1))
+    {
+        case 101: // Started
+        case 103: // Running
+        case 107: // Stopping
+        case 111: // Thawed
+            return mp::VirtualMachine::State::running;
+        case 102: // Stopped
+            return mp::VirtualMachine::State::stopped;
+        case 106: // Starting
+            return mp::VirtualMachine::State::starting;
+        case 109: // Freezing
+            return mp::VirtualMachine::State::suspending;
+        case 110: // Frozen
+            return mp::VirtualMachine::State::suspended;
+        case 104: // Cancelling
+        case 108: // Aborting
+            return mp::VirtualMachine::State::unknown;
+        default:
+            mpl::log(mpl::Level::error, name.toStdString(), fmt::format("Got unexpected LXD state: {} ({})", metadata["status_code"].toString(), metadata["status"].toInt()));
+            return mp::VirtualMachine::State::unknown;
+    }
 }
+
+const mp::optional<mp::IPAddress> get_ip_for(const QString& name, QNetworkAccessManager* manager, const QUrl& url)
+{
+    const auto json_state = lxd_request(manager, "GET", url);
+    const auto addresses = json_state["metadata"].toObject()["network"].toObject()["eth0"].toObject()["addresses"].toArray();
+
+    for (const auto address : addresses)
+    {
+        if (address.toObject()["family"].toString() == "inet")
+            return mp::optional<mp::IPAddress>{address.toObject()["address"].toString().toStdString()};
+    }
+
+    mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("IP for {} not found...", name));
+    return mp::nullopt;
+}
+
 } // namespace
 
-mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, const QUrl& base_url)
+mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, QNetworkAccessManager* manager, const QUrl& base_url)
     : VirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor},
-      base_url{base_url}
+      base_url{base_url},
+      manager{manager}
 {
     try
     {
-        instance_state_for(name, base_url);
+        instance_state_for(name, manager, url());
     }
     catch(const LXDNotFoundException& e)
     {
-        // Start instance here.
-    }
+        mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Creating container with stream: {}, id: {}", desc.image.stream_location, desc.image.id));
 
-    throw std::runtime_error("New machine Unimplemented");
+        QJsonObject config{
+            {"limits.cpu", QString::number(desc.num_cores)},
+            {"limits.memory", QString::number(desc.mem_size.in_bytes())}
+        };
+
+        if (!desc.meta_data_config.IsNull())
+            config["user.meta-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.meta_data_config));
+
+        if (!desc.vendor_data_config.IsNull())
+            config["user.vendor-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.vendor_data_config));
+
+        if (!desc.user_data_config.IsNull())
+            config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
+
+        QJsonObject container{
+            {"name", name},
+            {"config", config},
+            {"source", QJsonObject{
+                {"type", "image"},
+                {"mode", "pull"},
+                {"server", QString::fromStdString(desc.image.stream_location)},
+                {"protocol", "simplestreams"},
+                {"fingerprint", QString::fromStdString(desc.image.id)}
+            }}
+        };
+
+        auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/containers").arg(base_url.toString())), container);
+        mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Got LXD creation reply: {}", QJsonDocument(json_reply).toJson()));
+
+        state = instance_state_for(name, manager, url());
+    }
 }
 
 mp::LXDVirtualMachine::~LXDVirtualMachine()
@@ -82,6 +150,8 @@ void mp::LXDVirtualMachine::start()
 
     if (present_state == State::running)
         return;
+
+    request_state("start");
 
     state = State::starting;
     update_state();
@@ -119,7 +189,7 @@ void mp::LXDVirtualMachine::shutdown()
 
 void mp::LXDVirtualMachine::suspend()
 {
-    auto present_state = instance_state_for(name, base_url);
+    auto present_state = instance_state_for(name, manager, base_url);
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
     {
@@ -139,7 +209,7 @@ void mp::LXDVirtualMachine::suspend()
 
 mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()
 {
-    auto present_state = instance_state_for(name, base_url);
+    auto present_state = instance_state_for(name, manager, url());
 
     if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
         return state;
@@ -173,7 +243,25 @@ void mp::LXDVirtualMachine::update_state()
 
 std::string mp::LXDVirtualMachine::ssh_hostname()
 {
-    return "127.0.0.1";
+    if (!ip)
+    {
+        auto action = [this] {
+            ensure_vm_is_running();
+            ip = get_ip_for(name, std::make_unique<QNetworkAccessManager>().get(), state_url());
+            if (ip)
+            {
+                return mp::utils::TimeoutAction::done;
+            }
+            else
+            {
+                return mp::utils::TimeoutAction::retry;
+            }
+        };
+        auto on_timeout = [] { return std::runtime_error("failed to determine IP address"); };
+        mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
+    }
+
+    return ip.value().as_string();
 }
 
 std::string mp::LXDVirtualMachine::ssh_username()
@@ -183,7 +271,14 @@ std::string mp::LXDVirtualMachine::ssh_username()
 
 std::string mp::LXDVirtualMachine::ipv4()
 {
-    return "127.0.0.1";
+    if (!ip)
+    {
+        ip = get_ip_for(name, manager, state_url());
+        if (!ip)
+            return "UNKNOWN";
+    }
+
+    return ip.value().as_string();
 }
 
 std::string mp::LXDVirtualMachine::ipv6()
@@ -194,4 +289,21 @@ std::string mp::LXDVirtualMachine::ipv6()
 void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     mpu::wait_until_ssh_up(this, timeout, std::bind(&LXDVirtualMachine::ensure_vm_is_running, this));
+}
+
+const QUrl mp::LXDVirtualMachine::url()
+{
+    return QString("%1/containers/%2").arg(base_url.toString()).arg(name);
+}
+
+const QUrl mp::LXDVirtualMachine::state_url()
+{
+    return url().toString() + "/state";
+}
+
+const QJsonObject mp::LXDVirtualMachine::request_state(const QString& new_state)
+{
+    const QJsonObject state_json{{"action", new_state}};
+
+    return lxd_request(manager, "PUT", state_url(), state_json, 5000, false);
 }
