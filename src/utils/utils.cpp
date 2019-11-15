@@ -440,3 +440,21 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
         config_file.open(QIODevice::WriteOnly);
     }
 }
+
+std::string mp::utils::emit_yaml(const YAML::Node& node)
+{
+    YAML::Emitter emitter;
+    emitter.SetIndent(4);
+    emitter << node;
+    if (!emitter.good())
+        throw std::runtime_error{
+            fmt::format("Failed to emit YAML: {}", emitter.GetLastError())};
+
+    emitter << YAML::Newline;
+    return emitter.c_str();
+}
+
+std::string mp::utils::emit_cloud_config(const YAML::Node& node)
+{
+    return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
+}

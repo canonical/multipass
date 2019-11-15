@@ -61,6 +61,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -133,18 +134,6 @@ auto make_cloud_init_meta_config(const std::string& name)
     return meta_data;
 }
 
-auto emit_yaml(YAML::Node& node, const std::string& node_name)
-{
-    YAML::Emitter emitter;
-    emitter.SetIndent(4);
-    emitter << node;
-    if (!emitter.good())
-        throw std::runtime_error{
-            fmt::format("Failed to emit {} cloud-init config: {}", node_name, emitter.GetLastError())};
-
-    return fmt::format("#cloud-config\n{}\n", emitter.c_str());
-}
-
 auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
                            YAML::Node& user_data_config, YAML::Node& vendor_data_config)
 {
@@ -153,9 +142,9 @@ auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YA
         return cloud_init_iso;
 
     mp::CloudInitIso iso;
-    iso.add_file("meta-data", emit_yaml(meta_data_config, "meta data"));
-    iso.add_file("vendor-data", emit_yaml(vendor_data_config, "vendor data"));
-    iso.add_file("user-data", emit_yaml(user_data_config, "user data"));
+    iso.add_file("meta-data", mpu::emit_cloud_config(meta_data_config));
+    iso.add_file("vendor-data", mpu::emit_cloud_config(vendor_data_config));
+    iso.add_file("user-data", mpu::emit_cloud_config(user_data_config));
     iso.write_to(cloud_init_iso);
 
     return cloud_init_iso;
