@@ -23,6 +23,8 @@
 #include <QJsonObject>
 #include <QSysInfo>
 
+#include <multipass/utils.h>
+
 namespace mp = multipass;
 
 namespace
@@ -113,16 +115,30 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             if (items.isEmpty())
                 continue;
 
-            const auto image = items["disk1.img"].toObject();
-            const auto image_location = image["path"].toString();
-            const auto sha256 = image["sha256"].toString();
-            const auto size = image["size"].toInt(-1);
+            const auto& driver = utils::get_driver_str();
 
-            // NOTE: These are not defined in the manifest itself
-            // so they are not guaranteed to be correct or exist in the server
-            const auto prefix = derive_unpacked_file_path_prefix_from(image_location);
-            const auto kernel_location = prefix + "-vmlinuz-generic";
-            const auto initrd_location = prefix + "-initrd-generic";
+            QJsonObject image;
+            QString sha256, image_location, kernel_location, initrd_location;
+            int size = -1;
+
+            if (driver == "lxd")
+            {
+                image = items["lxd.tar.xz"].toObject();
+                sha256 = image["combined_squashfs_sha256"].toString();
+            }
+            else
+            {
+                image = items["disk1.img"].toObject();
+                image_location = image["path"].toString();
+                sha256 = image["sha256"].toString();
+                size = image["size"].toInt(-1);
+
+                // NOTE: These are not defined in the manifest itself
+                // so they are not guaranteed to be correct or exist in the server
+                const auto prefix = derive_unpacked_file_path_prefix_from(image_location);
+                kernel_location = prefix + "-vmlinuz-generic";
+                initrd_location = prefix + "-initrd-generic";
+            }
 
             // Aliases always alias to the latest version
             const QStringList& aliases = version_string == latest_version ? product_aliases : QStringList();
