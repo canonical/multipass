@@ -20,9 +20,12 @@
 
 #include <QFile>
 #include <QEventLoop>
+#include <QBuffer>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
+#include <QUrl>
+#include <QUrlQuery>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -30,21 +33,20 @@
 #include <QtNetwork/QSslConfiguration>
 #include <QtNetwork/QSslKey>
 
+#include <multipass/optional.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
 #include <QDebug>
 
+namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
 typedef std::exception LXDNotFoundException;
 
-auto make_network_manager()
-{
-    return std::make_unique<QNetworkAccessManager>();
-}
+constexpr auto request_category = "lxd request";
 
 auto make_ssl_config()
 {
@@ -58,23 +60,32 @@ auto make_ssl_config()
     return ssl_config;
 }
 
-const auto lxd_request(QNetworkAccessManager* manager, std::string method, QUrl const& url)
+const QJsonObject lxd_request(QNetworkAccessManager* manager, std::string method, QUrl url, const mp::optional<QJsonObject>& json_data = mp::nullopt, int timeout = 5000, bool wait = true)
 {
-    mpl::log(mpl::Level::debug, "lxd request", fmt::format("Requesting LXD: {} {}", method, url.toString()));
+    mpl::log(mpl::Level::debug, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
 
     QEventLoop event_loop;
     QTimer download_timeout;
-    download_timeout.setInterval(5000);
+    download_timeout.setInterval(timeout);
+
+    url.setQuery("project=multipass");
 
     QNetworkRequest request{url};
     request.setSslConfiguration(make_ssl_config());
 
     auto verb = QByteArray::fromStdString(method);
-    auto reply = manager->sendCustomRequest(request, verb);
+    QByteArray data;
+    if (json_data)
+    {
+        data = QJsonDocument(*json_data).toJson();
+        mpl::log(mpl::Level::debug, request_category, fmt::format("Sending data: {}", data));
+    }
+
+    auto reply = manager->sendCustomRequest(request, verb, data);
 
     QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
     QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
-        mpl::log(mpl::Level::debug, "lxd request", fmt::format("Request timed out: {} {}", method, url.toString()));
+        mpl::log(mpl::Level::debug, request_category, fmt::format("Request timed out: {} {}", method, url.toString()));
         download_timeout.stop();
         reply->abort();
     });
@@ -97,6 +108,18 @@ const auto lxd_request(QNetworkAccessManager* manager, std::string method, QUrl 
 
     if (json_reply.isNull() || !json_reply.isObject())
         throw std::runtime_error(fmt::format("Invalid LXD response for url {}: {}", url.toString(), bytearray_reply));
+
+    mpl::log(mpl::Level::debug, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
+
+    if (wait && json_reply.object()["metadata"].toObject()["class"] == QStringLiteral("task") && json_reply.object()["status_code"].toInt(-1) == 100)
+    {
+        const auto task = json_reply.object()["metadata"].toObject();
+        QUrl task_url(url);
+        task_url.setPath(QString("%1/wait").arg(json_reply.object()["operation"].toString()));
+
+        mpl::log(mpl::Level::debug, request_category, fmt::format("Got LXD task \"{}\": \"{}\", waiting...", task["id"].toString(), task["description"].toString()));
+        return lxd_request(manager, "GET", task_url, mp::nullopt, 60000);
+    }
 
     return json_reply.object();
 }
