@@ -12,4 +12,11 @@ mkdir -p "${syspath}"
 sysbinpath="${syspath}/${thebin}"
 ln -fsv "${binpath}" "${sysbinpath}"
 
+# Create app
+appcontents="${3}/Applications/Multipass.app/Contents"
+mkdir -p ${appcontents}/{MacOS,Resources}
+ln -fsv "${binpath}" "${appcontents}/MacOS/Multipass"
+ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/Info.plist" "${appcontents}"
+ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/icon.icns" "${appcontents}/Resources"
+
 echo 0
