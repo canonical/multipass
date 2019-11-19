@@ -44,6 +44,7 @@ echo "Removing Multipass:"
 rm -fv "$LAUNCH_AGENT_DEST"
 
 rm -fv /usr/local/bin/multipass
+rm -rfv /Applications/Multipass.app
 
 rm -rfv "/Library/Application Support/com.canonical.multipass"
 rm -rfv "/var/root/Library/Caches/multipassd"
