@@ -189,9 +189,9 @@ if(APPLE)
                  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh" @ONLY)
 
   install(FILES "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" DESTINATION Resources COMPONENT multipassd)
-  install(FILES "${CMAKE_SOURCE_DIR}/data/${MULTIPASSGUI_PLIST}" DESTINATION Resources COMPONENT multipass_gui)
-  install(FILES "${CMAKE_SOURCE_DIR}/data/Info.plist" DESTINATION Resources COMPONENT multipass_gui)
-  install(FILES "${CMAKE_SOURCE_DIR}/data/icon.icns" DESTINATION Resources COMPONENT multipass_gui)
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSGUI_PLIST}" DESTINATION Resources COMPONENT multipass_gui)
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/Info.plist" DESTINATION Resources COMPONENT multipass_gui)
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/icon.icns" DESTINATION Resources COMPONENT multipass_gui)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions" DESTINATION Resources COMPONENT multipass)
 
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
