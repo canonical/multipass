@@ -61,6 +61,7 @@ rm -fv "/private/var/db/receipts/com.canonical.multipass.multipassd.bom"
 rm -fv "/private/var/db/receipts/com.canonical.multipass.multipassd.plist"
 rm -fv "/private/var/db/receipts/com.canonical.multipass.multipass.bom"
 rm -fv "/private/var/db/receipts/com.canonical.multipass.multipass.plist"
+rm -fv /private/var/db/receipts/com.canonical.multipass.multipass_gui.{bom,plist}
 
 echo .
 echo "Uninstall complete"
