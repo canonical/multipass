@@ -10,7 +10,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>--autostart</string>
+        <string>--autostarting</string>
     </array>
 
     <key>KeepAlive</key>
