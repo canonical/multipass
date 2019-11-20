@@ -4,5 +4,7 @@
 <dict>
     <key>CFBundleIconFile</key>
     <string>icon.icns</string>
+    <key>LSUIElement</key>
+    <true/>
 </dict>
 </plist>
