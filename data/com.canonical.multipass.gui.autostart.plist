@@ -10,6 +10,7 @@
 
     <key>ProgramArguments</key>
     <array>
+        <string>multipass.gui</string>
         <string>--autostarting</string>
     </array>
 
