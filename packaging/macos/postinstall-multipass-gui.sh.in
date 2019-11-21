@@ -4,6 +4,8 @@ set -e
 thebin="multipass.gui"
 binpath="${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/${thebin}"
 
+rm -fv "${3}usr/local/bin/${thebin}"  # this may have been leftover by earlier uninstalls
+
 # Create app
 appcontents="${3}/Applications/Multipass.app/Contents"
 mkdir -p ${appcontents}/{MacOS,Resources}
