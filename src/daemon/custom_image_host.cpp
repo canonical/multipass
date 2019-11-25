@@ -69,6 +69,14 @@ const QMap<QString, CustomImageInfo> multipass_image_info{
       "core-18",
       "Core 18",
       "",
+      ""}},
+    {{"ubuntu-core-20-amd64.img.xz"},
+     {"http://cdimage.ubuntu.com/ubuntu-core/20/stable/current/", // FIXME: does not yet exist
+      {"core20"},
+      "Ubuntu",
+      "core-20",
+      "Core 20",
+      "",
       ""}}};
 
 const QMap<QString, CustomImageInfo> snapcraft_image_info{
@@ -91,7 +99,17 @@ const QMap<QString, CustomImageInfo> snapcraft_image_info{
       "http://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
       "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
       "http://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-      "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}}};
+      "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}},
+    {{"ubuntu-20.04-minimal-cloudimg-amd64.img"},
+     {"https://cloud-images.ubuntu.com/minimal/daily/focal/current/",
+      {"core20"},
+      "",
+      "snapcraft-core20",
+      "Snapcraft builder for Core 20",
+      "https://cloud-images.ubuntu.com/minimal/daily/focal/current/unpacked/" // FIXME: these two binaries does not exist yet
+      "ubuntu-20.04-server-cloudimg-amd64-vmlinuz-generic",
+      "https://cloud-images.ubuntu.com/minimal/daily/focal/current/unpacked/"
+      "ubuntu-20.04-server-cloudimg-amd64-initrd-generic"}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
