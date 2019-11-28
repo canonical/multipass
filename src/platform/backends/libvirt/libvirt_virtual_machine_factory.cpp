@@ -115,7 +115,7 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& d
 }
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : LibVirtVirtualMachineFactory(data_dir, "libvirt.so")
+    : LibVirtVirtualMachineFactory(data_dir, "libvirt.so.0")
 {
 }
 

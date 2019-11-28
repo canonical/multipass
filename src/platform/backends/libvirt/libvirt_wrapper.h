@@ -89,7 +89,7 @@ private:
 public:
     using UPtr = std::unique_ptr<LibvirtWrapper>;
 
-    LibvirtWrapper(const std::string& filename = "libvirt.so");
+    LibvirtWrapper(const std::string& filename = "libvirt.so.0");
     ~LibvirtWrapper();
 
     virConnectOpen_t virConnectOpen;
