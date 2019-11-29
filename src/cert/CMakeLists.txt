@@ -25,6 +25,7 @@ target_include_directories(cert PRIVATE
 CHECK_CXX_COMPILER_FLAG("-Wno-nested-anon-types" COMPILER_SUPPORTS_NO_NESTED_ANON_TYPES)
 CHECK_CXX_COMPILER_FLAG("-Wno-gnu" COMPILER_SUPPORTS_NO_GNU)
 CHECK_CXX_COMPILER_FLAG("-Wno-pedantic" COMPILER_SUPPORTS_NO_PEDANTIC)
+CHECK_CXX_COMPILER_FLAG("-Wno-ignored-qualifiers" COMPILER_SUPPORTS_NO_IGNORED_QUALIFIERS)
 
 set(ssl_ignore_header_warning_flags "")
 if (COMPILER_SUPPORTS_NO_NESTED_ANON_TYPES)
@@ -39,9 +40,14 @@ if (COMPILER_SUPPORTS_NO_PEDANTIC)
   string(APPEND ssl_ignore_header_warning_flags " -Wno-pedantic ")
 endif()
 
+if (COMPILER_SUPPORTS_NO_IGNORED_QUALIFIERS)
+  string(APPEND ssl_ignore_header_warning_flags " -Wno-ignored-qualifiers ")
+endif()
+
 if (ssl_ignore_header_warning_flags)
   set_source_files_properties(ssl_cert_provider.cpp PROPERTIES COMPILE_FLAGS ${ssl_ignore_header_warning_flags})
   set_source_files_properties(client_cert_store.cpp PROPERTIES COMPILE_FLAGS ${ssl_ignore_header_warning_flags})
+  set_source_files_properties(biomem.cpp PROPERTIES COMPILE_FLAGS ${ssl_ignore_header_warning_flags})
 endif()
 
 target_link_libraries(cert
