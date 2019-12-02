@@ -1,10 +1,22 @@
 #!/bin/bash
 set -e
 
+thebin="multipass.gui"
+binpath="${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/${thebin}"
+syspath="${3}usr/local/bin/"
+
 ### /usr/local/bin doesn't exist on a clean OSX install, yet it is in the default $PATH!
-mkdir -p ${3}usr/local/bin
+mkdir -p "${syspath}"
 
 ### Set up symlink to the multipass.gui binary
-ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass.gui" "${3}usr/local/bin/multipass.gui"
+sysbinpath="${syspath}/${thebin}"
+ln -fsv "${binpath}" "${sysbinpath}"
+
+# Create app
+appcontents="${3}/Applications/Multipass.app/Contents"
+mkdir -p ${appcontents}/{MacOS,Resources}
+ln -fsv "${binpath}" "${appcontents}/MacOS/Multipass"
+ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/Info.plist" "${appcontents}"
+ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/icon.icns" "${appcontents}/Resources"
 
 echo 0
