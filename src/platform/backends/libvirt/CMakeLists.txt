@@ -13,12 +13,16 @@
 #along with this program.If not, see < http: // www.gnu.org/licenses/>.
 #
 
+find_package(PkgConfig)
+pkg_check_modules(LIBVIRT libvirt REQUIRED)
+
 function(add_libvirt_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     libvirt_virtual_machine_factory.cpp
     libvirt_virtual_machine.cpp
     libvirt_wrapper.cpp)
 
+  target_include_directories(${TARGET_NAME} PRIVATE ${LIBVIRT_INCLUDE_DIRS})
   target_link_libraries(${TARGET_NAME}
     fmt
     ip_address
