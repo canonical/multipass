@@ -105,7 +105,7 @@ if (MSVC)
   set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.rtf")
   set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/windows/README.txt")
-  set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/data/icon.ico")
+  set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/packaging/windows/icon.ico")
 
   # Inserts an extra page in the installer asking the user if they want to modify their users or system PATH variable
   # This is useful to make "multipass.exe" findable on a shell
@@ -189,9 +189,9 @@ if(APPLE)
                  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh" @ONLY)
 
   install(FILES "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" DESTINATION Resources COMPONENT multipassd)
-  install(FILES "${CMAKE_SOURCE_DIR}/data/${MULTIPASSGUI_PLIST}" DESTINATION Resources COMPONENT multipass_gui)
-  install(FILES "${CMAKE_SOURCE_DIR}/data/Info.plist" DESTINATION Resources COMPONENT multipass_gui)
-  install(FILES "${CMAKE_SOURCE_DIR}/data/icon.icns" DESTINATION Resources COMPONENT multipass_gui)
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSGUI_PLIST}" DESTINATION Resources COMPONENT multipass_gui)
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/Info.plist" DESTINATION Resources COMPONENT multipass_gui)
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/icon.icns" DESTINATION Resources COMPONENT multipass_gui)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions" DESTINATION Resources COMPONENT multipass)
 
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
