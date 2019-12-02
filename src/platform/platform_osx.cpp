@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
@@ -30,21 +31,33 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QString>
 #include <QtGlobal>
 
 #include <unistd.h>
 
 namespace mp = multipass;
+namespace mu = multipass::utils;
+
+namespace
+{
+constexpr auto application_id = "com.canonical.multipass";
+constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
+constexpr auto autostart_link_subdir = "Library/LaunchAgents";
+
+} // namespace
 
 QString mp::platform::autostart_test_data()
 {
-    return "stub"; // TODO
+    return autostart_filename;
 }
 
 void mp::platform::setup_gui_autostart_prerequisites()
 {
-    // TODO
+    const auto link_dir = QDir{QDir::home().absoluteFilePath(autostart_link_subdir)};
+    const auto autostart_subdir = QDir{application_id}.filePath("Resources");
+    mu::link_autostart_file(link_dir, autostart_subdir, autostart_filename);
 }
 
 std::string mp::platform::default_server_address()
