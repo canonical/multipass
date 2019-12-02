@@ -6,7 +6,7 @@
     <string>com.canonical.multipass.gui.autostart</string>
 
     <key>Program</key>
-    <string>/Library/Application Support/com.canonical.multipass/bin/multipass.gui</string>
+    <string>/Applications/Multipass.app/Contents/MacOS/Multipass</string>
 
     <key>ProgramArguments</key>
     <array>
