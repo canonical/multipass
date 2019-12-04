@@ -40,6 +40,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   endif()
 endif()
 
+if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 NEW)
+endif(COMMAND cmake_policy)
+
+if(cmake_build_type_lower MATCHES "coverage")
+  add_compile_options(-ftest-coverage -fprofile-arcs)
+  link_libraries(gcov)
+endif()
+
 # Needs to be here before we set our own compilation options
 add_subdirectory(3rd-party)
 
