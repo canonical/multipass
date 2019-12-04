@@ -42,8 +42,12 @@ endif()
 
 # these we want to apply even to 3rd-party
 if(cmake_build_type_lower MATCHES "coverage")
-  add_compile_options(--coverage)
-  add_link_options(--coverage)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(--coverage)
+    add_link_options(--coverage)
+  else()
+    message(FATAL_ERROR "Coverage build only supported with GCC")
+  endif()
 endif()
 
 # Needs to be here before we set further compilation options
