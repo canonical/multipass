@@ -40,16 +40,13 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   endif()
 endif()
 
-if(COMMAND cmake_policy)
-  cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
-
+# these we want to apply even to 3rd-party
 if(cmake_build_type_lower MATCHES "coverage")
-  add_compile_options(-ftest-coverage -fprofile-arcs)
-  link_libraries(gcov)
+  add_compile_options(--coverage)
+  add_link_options(--coverage)
 endif()
 
-# Needs to be here before we set our own compilation options
+# Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
 # Qt config
