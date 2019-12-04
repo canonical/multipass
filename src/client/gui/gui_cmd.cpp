@@ -25,8 +25,9 @@
 #include <multipass/settings.h>
 #include <multipass/version.h>
 
-#include <QCoreApplication>
+#include <QApplication>
 #include <QDesktopServices>
+#include <QStyle>
 #include <QtConcurrent/QtConcurrent>
 
 namespace mp = multipass;
@@ -206,9 +207,12 @@ void cmd::GuiCmd::update_about_menu()
 
     if (update_available(reply.update_info()))
     {
+        update_action.setIcon(QApplication::style()->standardIcon(QStyle::SP_MessageBoxInformation));
         update_action.setWhatsThis(QString::fromStdString(reply.update_info().url()));
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
-        tray_icon.showMessage("New Multipass update available", QString::fromStdString(reply.update_info().url()));
+        tray_icon.showMessage("New Multipass update available",
+                              QString("Version %1 is availble. Click for more information.")
+                                  .arg(QString::fromStdString(reply.update_info().version())));
     }
     else
     {
@@ -255,7 +259,7 @@ void cmd::GuiCmd::create_menu()
     initiate_about_menu_layout();
 
     menu_update_timer.start(1s);
-    about_update_timer.start(12h);
+    about_update_timer.start(24h);
 }
 
 void cmd::GuiCmd::initiate_menu_layout()
