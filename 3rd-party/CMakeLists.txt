@@ -1,3 +1,8 @@
+
+if(cmake_build_type_lower MATCHES "coverage")
+  add_link_options(--coverage)
+endif()
+
 # Workaround for zlib placing its generated zconf.h file in the build dir,
 # and protobuf not knowing so finding the system version instead
 include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
