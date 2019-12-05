@@ -17,6 +17,7 @@
 if(cmake_build_type_lower MATCHES "coverage")
   add_compile_options(-ftest-coverage -fprofile-arcs)
   link_libraries(gcov)
+  list(APPEND CMAKE_EXE_LINKER_FLAGS "--coverage")
 endif()
 
 configure_file(
