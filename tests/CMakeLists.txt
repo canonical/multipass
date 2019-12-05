@@ -13,6 +13,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if(cmake_build_type_lower MATCHES "coverage")
+  list(APPEND CMAKE_EXE_LINKER_FLAGS "--coverage")
+endif()
+
 set (CMAKE_AUTOMOC ON)
 
 include(c_mock_defines.cmake)
