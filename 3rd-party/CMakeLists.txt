@@ -1,6 +1,7 @@
 
 if(cmake_build_type_lower MATCHES "coverage")
   list(APPEND CMAKE_SHARED_LINKER_FLAGS "--coverage")
+  list(APPEND CMAKE_EXE_LINKER_FLAGS "--coverage")
 endif()
 
 # Workaround for zlib placing its generated zconf.h file in the build dir,
