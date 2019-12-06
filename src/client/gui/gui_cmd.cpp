@@ -106,6 +106,16 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     create_menu();
     tray_icon.show();
 
+    QFile first_run_file(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/first_run");
+
+    if (!first_run_file.exists())
+    {
+        tray_icon.showMessage("Multipass System Tray Menu", "The Multipass system tray menu is now running",
+                              tray_icon.icon());
+        first_run_file.open(QIODevice::WriteOnly);
+        first_run_file.close();
+    }
+
     return static_cast<ReturnCode>(QCoreApplication::exec());
 }
 
