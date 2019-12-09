@@ -19,6 +19,9 @@ NOTE: visualcpp-build-tools is only the installer package. For this reason, choc
 will report no new updates available. To update the compiler and related tooling, you will need to search for "Add or remove programs",
 find "Microsoft Visual Studio Installer" and click "Modify".
 
+### Git
+You need to enable symlinks in Windows Git, have a look at [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
+
 ### Assembler
 Previously, nasm had been used to build crypto modules in the boringssl module of grpc. However, there is a CMake bug that passes compiler options to nasm and nasm is unable to handle these options and fails.
 
