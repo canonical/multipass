@@ -34,40 +34,42 @@ using namespace testing;
 namespace
 {
 const auto timeout = std::chrono::milliseconds{250};
-const QString json_template = R"END({
-  "prefix_field": "foo",
-  "html_url": "%1",
-  "infix_field": "bar",
-  "tag_name": "%2",
-  "suffix_field": "baz"
-}
-)END";
+const QString yaml_template = R"(
+version: %1
+title: A suitable release title
+description: A suitable description
+download_url: https://multipass.run/#install
+release_url: %2
+installer_urls:
+  windows: https://fake.multipass.url/multipass_windows.exe
+  macos: https://fake.multipass.url/multipass_macos.pkg
+)";
 
-class StubUpdateJson
+class StubUpdateYAML
 {
 public:
-    StubUpdateJson(QString version, QString url)
+    StubUpdateYAML(QString version, QString url)
     {
-        json_file.open();
-        json_file.write(json_template.arg(url).arg(version).toUtf8());
-        json_file.close();
+        yaml_file.open();
+        yaml_file.write(yaml_template.arg(version).arg(url).toUtf8());
+        yaml_file.close();
     }
 
     QByteArray url() const
     {
-        return QUrl::fromLocalFile(json_file.fileName()).toEncoded();
+        return QUrl::fromLocalFile(yaml_file.fileName()).toEncoded();
     }
 
 private:
-    QTemporaryFile json_file;
+    QTemporaryFile yaml_file;
 };
 
 auto check_for_new_release(QString currentVersion, QString newVersion, QString newVersionUrl = "")
 {
     QEventLoop e;
-    StubUpdateJson json(newVersion, newVersionUrl);
+    StubUpdateYAML yaml(newVersion, newVersionUrl);
 
-    mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url());
+    mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), yaml.url());
     QTimer::singleShot(timeout, &e, &QEventLoop::quit); // TODO replace with a thread sync mechanism (e.g. condition)
     e.exec();
 
@@ -102,7 +104,7 @@ TEST(NewReleaseMonitor, checks_new_release_when_newer_than_available)
 TEST(NewReleaseMonitor, checks_new_release_when_download_fails)
 {
     QEventLoop e;
-    StubUpdateJson json("0.2.0", "https://something_unique.com");
+    StubUpdateYAML yaml("0.2.0", "https://something_unique.com");
 
     mp::NewReleaseMonitor monitor("0.1.0", std::chrono::hours(1), "file:///does/not/exist");
     QTimer::singleShot(timeout, &e, &QEventLoop::quit);
