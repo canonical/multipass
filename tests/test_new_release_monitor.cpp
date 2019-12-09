@@ -35,16 +35,8 @@ namespace
 {
 const auto timeout = std::chrono::milliseconds{250};
 const QString json_template = R"END({
-  "url": "https://api.github.com/repos/CanonicalLtd/multipass/releases/15103253",
-  "assets_url": "https://api.github.com/repos/CanonicalLtd/multipass/releases/15103253/assets",
-  "upload_url": "https://uploads.github.com/repos/CanonicalLtd/multipass/releases/15103253/assets{?name,label}",
   "html_url": "%1",
-  "id": 15103253,
-  "node_id": "MDc6UmVsZWFzZTE1MTAzMjUz",
-  "tag_name": "%2",
-  "target_commitish": "master",
-  "name": "Release 0.5.0",
-  "draft": false
+  "tag_name": "%2"
 }
 )END";
 
@@ -73,7 +65,7 @@ auto check_for_new_release(QString currentVersion, QString newVersion, QString n
     StubUpdateJson json(newVersion, newVersionUrl);
 
     mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url());
-    QTimer::singleShot(timeout, &e, &QEventLoop::quit); // TODO replace with a thread sycnh mechanism (e.g. condition)
+    QTimer::singleShot(timeout, &e, &QEventLoop::quit); // TODO replace with a thread sync mechanism (e.g. condition)
     e.exec();
 
     return monitor.get_new_release();
