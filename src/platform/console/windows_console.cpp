@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2019 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -139,7 +139,24 @@ void mp::WindowsConsole::write_console()
         num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 0);
     }
 
-    WriteConsole(output_handle, buffer.data(), num_bytes, &write, NULL);
+    if (num_bytes < 1)
+    {
+        // Force the channel to close if EOF is detected from the channel_read
+        if (num_bytes == SSH_EOF)
+            ssh_channel_close(channel);
+
+        return;
+    }
+
+    DWORD mode;
+    if (GetConsoleMode(output_handle, &mode))
+    {
+        WriteConsole(output_handle, buffer.data(), num_bytes, &write, nullptr);
+    }
+    else
+    {
+        WriteFile(output_handle, buffer.data(), num_bytes, &write, nullptr);
+    }
 }
 
 void mp::WindowsConsole::exit_console()
