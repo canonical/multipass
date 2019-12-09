@@ -44,7 +44,7 @@ class NewReleaseMonitor : public QObject
 {
     Q_OBJECT
 public:
-    static constexpr auto default_update_url = "https://api.github.com/repos/CanonicalLtd/multipass/releases/latest";
+    static constexpr auto default_update_url = "https://multipass.run/update.json";
 
     NewReleaseMonitor(const QString& current_version, std::chrono::steady_clock::duration refresh_rate,
                       const QString& update_url = default_update_url);
