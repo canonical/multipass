@@ -23,6 +23,7 @@ target_link_libraries(update
   fmt
   rpc
   semver
+  yaml
   Qt5::Core)
 
 target_include_directories(update

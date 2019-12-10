@@ -20,12 +20,12 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/url_downloader.h>
-
 #include <multipass/format.h>
+
+#include <yaml-cpp/yaml.h>
+
 #include <semver200.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QThread>
 
 namespace mp = multipass;
@@ -34,21 +34,9 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto timeout = std::chrono::minutes(1);
-constexpr auto json_tag_name = "tag_name";
-constexpr auto json_html_url = "html_url";
+constexpr auto yaml_tag_name = "version";
+constexpr auto yaml_html_url = "release_url";
 
-QJsonObject parse_manifest(const QByteArray& json)
-{
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    if (doc.isNull())
-        throw std::runtime_error(parse_error.errorString().toStdString());
-
-    if (!doc.isObject())
-        throw std::runtime_error("invalid JSON object");
-
-    return doc.object();
-}
 } // namespace
 
 class mp::LatestReleaseChecker : public QThread
@@ -65,17 +53,16 @@ public:
         try
         {
             mp::URLDownloader downloader(::timeout);
-            QByteArray json = downloader.download(url);
-            const auto manifest = ::parse_manifest(json);
-            if (!manifest.contains(::json_tag_name) || !manifest.contains(::json_html_url))
-                throw std::runtime_error("Update JSON missing required fields");
+            const auto manifest = YAML::Load(downloader.download(url).toStdString());
+            if (!manifest[yaml_tag_name] || !manifest[yaml_html_url])
+                throw std::runtime_error("Update YAML missing required fields");
 
             mp::NewReleaseInfo release;
-            release.version = manifest[::json_tag_name].toString();
+            release.version = QString::fromStdString(manifest[yaml_tag_name].as<std::string>());
             if (release.version[0] == 'v')
                 release.version.remove(0, 1);
 
-            release.url = manifest[::json_html_url].toString();
+            release.url = QString::fromStdString(manifest[yaml_html_url].as<std::string>());
 
             mpl::log(mpl::Level::debug, "update",
                      fmt::format("Latest Multipass release available is version {}", qPrintable(release.version)));
