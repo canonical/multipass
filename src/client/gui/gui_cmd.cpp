@@ -221,7 +221,7 @@ void cmd::GuiCmd::update_about_menu()
         update_action.setWhatsThis(QString::fromStdString(reply.update_info().url()));
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
         tray_icon.showMessage("New Multipass update available",
-                              QString("Version %1 is availble. Click for more information.")
+                              QString("Version %1 is available. Click here for more information.")
                                   .arg(QString::fromStdString(reply.update_info().version())));
     }
     else
