@@ -64,7 +64,8 @@ private:
     QTemporaryFile yaml_file;
 };
 
-auto check_for_new_release(QString currentVersion, QString newVersion, QString newVersionUrl = "")
+auto check_for_new_release(QString currentVersion, QString newVersion,
+                           QString newVersionUrl = "https://fake.multipass.url/release")
 {
     QEventLoop e;
     StubUpdateYAML yaml(newVersion, newVersionUrl);
