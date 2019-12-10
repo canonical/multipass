@@ -71,11 +71,11 @@ public:
         }
         catch (const mp::DownloadException& e)
         {
-            mpl::log(mpl::Level::info, "update", fmt::format("Failed to fetch update info: {}", qPrintable(e.what())));
+            mpl::log(mpl::Level::warning, "update", fmt::format("Failed to fetch update info: {}", e.what()));
         }
-        catch (const std::runtime_error& e)
+        catch (const std::runtime_error& e) // This covers YAML::Exception
         {
-            mpl::log(mpl::Level::info, "update", fmt::format("Failed to parse update info: {}", qPrintable(e.what())));
+            mpl::log(mpl::Level::warning, "update", fmt::format("Failed to parse update info: {}", e.what()));
         }
     }
 signals:
