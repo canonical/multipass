@@ -15,7 +15,7 @@
  *
  */
 
-#include "github_update_prompt.h"
+#include "default_update_prompt.h"
 
 #include <multipass/optional.h>
 #include <multipass/rpc/multipass.grpc.pb.h>

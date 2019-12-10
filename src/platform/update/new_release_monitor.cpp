@@ -68,7 +68,7 @@ public:
             QByteArray json = downloader.download(url);
             const auto manifest = ::parse_manifest(json);
             if (!manifest.contains(::json_tag_name) || !manifest.contains(::json_html_url))
-                throw std::runtime_error("Github JSON missing required fields");
+                throw std::runtime_error("Update JSON missing required fields");
 
             mp::NewReleaseInfo release;
             release.version = manifest[::json_tag_name].toString();
