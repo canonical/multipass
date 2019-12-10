@@ -81,11 +81,12 @@ auto check_for_new_release(QString currentVersion, QString newVersion,
 
 TEST(NewReleaseMonitor, checks_new_release)
 {
-    auto new_release = check_for_new_release("0.1.0", "0.2.0", "https://something_unique.com");
+    auto url = "https://something_unique.com";
+    auto new_release = check_for_new_release("0.1.0", "0.2.0", url);
 
     ASSERT_TRUE(new_release);
     EXPECT_EQ("0.2.0", new_release->version.toStdString());
-    EXPECT_EQ("https://something_unique.com", new_release->url.toString().toStdString());
+    EXPECT_EQ(url, new_release->url.toString().toStdString());
 }
 
 TEST(NewReleaseMonitor, checks_new_release_when_nothing_new)
