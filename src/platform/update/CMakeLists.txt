@@ -15,7 +15,7 @@
 set(CMAKE_AUTOMOC ON)
 
 add_library(update STATIC
-  github_update_prompt.cpp
+  default_update_prompt.cpp
   new_release_monitor.cpp)
 
 target_link_libraries(update
