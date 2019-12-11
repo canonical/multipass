@@ -110,7 +110,11 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
 
     if (!first_run_file.exists())
     {
-        tray_icon.showMessage("Multipass System Tray Menu", "The Multipass system tray menu is now running",
+        // Each platform refers to the "system tray", icons, and the "menu bar" by different terminology.
+        // A platform dependent mechanism is used to get the terms via a QStringList.
+        auto notification_area_terms = mp::cli::platform::gui_tray_notification_strings();
+        tray_icon.showMessage(QString("Multipass is in your %1").arg(notification_area_terms[0]),
+                              QString("Click on the %1 for available options").arg(notification_area_terms[1]),
                               tray_icon.icon());
         first_run_file.open(QIODevice::WriteOnly);
         first_run_file.close();
