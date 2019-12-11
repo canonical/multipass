@@ -34,6 +34,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+const int conversion_timeout = 300000; // Timeout in milliseconds
 constexpr auto category = "hyperkit-factory";
 }
 
@@ -77,7 +78,15 @@ mp::VMImage mp::HyperkitVirtualMachineFactory::prepare_source_image(const VMImag
 
     QProcess uncompress;
     uncompress.start(QCoreApplication::applicationDirPath() + "/qemu-img", uncompress_args);
-    uncompress.waitForFinished();
+    if (!uncompress.waitForFinished(conversion_timeout))
+    {
+        if (uncompress.state() == QProcess::Running)
+        {
+            uncompress.terminate();
+        }
+
+        throw std::runtime_error("Timed out waiting for source image conversion");
+    }
 
     if (uncompress.exitCode() != QProcess::NormalExit)
     {
