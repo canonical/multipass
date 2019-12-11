@@ -15,7 +15,7 @@
  *
  */
 
-#include "github_update_prompt.h"
+#include "default_update_prompt.h"
 
 #include <multipass/optional.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -31,20 +31,20 @@ constexpr auto new_release_check_frequency = std::chrono::hours(24);
 constexpr auto notify_user_frequency = std::chrono::hours(6);
 } // namespace
 
-mp::GithubUpdatePrompt::GithubUpdatePrompt()
+mp::DefaultUpdatePrompt::DefaultUpdatePrompt()
     : monitor{std::make_unique<NewReleaseMonitor>(mp::version_string, ::new_release_check_frequency)},
       last_shown{std::chrono::system_clock::now() - notify_user_frequency} // so we show update message soon after start
 {
 }
 
-mp::GithubUpdatePrompt::~GithubUpdatePrompt() = default;
+mp::DefaultUpdatePrompt::~DefaultUpdatePrompt() = default;
 
-bool mp::GithubUpdatePrompt::is_time_to_show()
+bool mp::DefaultUpdatePrompt::is_time_to_show()
 {
     return monitor->get_new_release() && last_shown + ::notify_user_frequency < std::chrono::system_clock::now();
 }
 
-void mp::GithubUpdatePrompt::populate(mp::UpdateInfo* update_info)
+void mp::DefaultUpdatePrompt::populate(mp::UpdateInfo* update_info)
 {
     auto new_release = monitor->get_new_release();
     if (new_release)
@@ -55,7 +55,7 @@ void mp::GithubUpdatePrompt::populate(mp::UpdateInfo* update_info)
     }
 }
 
-void mp::GithubUpdatePrompt::populate_if_time_to_show(mp::UpdateInfo* update_info)
+void mp::DefaultUpdatePrompt::populate_if_time_to_show(mp::UpdateInfo* update_info)
 {
     if (is_time_to_show())
         populate(update_info);
