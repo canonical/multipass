@@ -50,3 +50,8 @@ void mcp::open_multipass_shell(const QString& instance_name)
         }
     }
 }
+
+QStringList mcp::gui_tray_notification_strings()
+{
+    return {"Multipass is in your System menu", "Click on the icon in the menu bar for available options"};
+}
