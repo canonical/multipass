@@ -30,5 +30,5 @@ void mcp::open_multipass_shell(const QString& instance_name)
 
 QStringList mcp::gui_tray_notification_strings()
 {
-    return {"System tray", "status icon"};
+    return {"Multipass is in your System tray", "Click on the status icon for available options"};
 }
