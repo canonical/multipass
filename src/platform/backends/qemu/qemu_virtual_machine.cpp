@@ -38,7 +38,6 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QObject>
 #include <QProcess>
 #include <QString>
 #include <QStringList>
@@ -290,6 +289,14 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
             on_shutdown();
         }
     });
+
+    QObject::connect(this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
+                     [this] {
+                         mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
+                         vm_process->write(hmc_to_qmp_json("delvm " + QString::fromStdString(suspend_tag)));
+                         delete_memory_snapshot = false;
+                     },
+                     Qt::QueuedConnection);
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
@@ -528,8 +535,6 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
     if (delete_memory_snapshot)
     {
-        mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
-        vm_process->write(hmc_to_qmp_json("delvm " + QString::fromStdString(suspend_tag)));
-        delete_memory_snapshot = false;
+        emit on_delete_memory_snapshot();
     }
 }
