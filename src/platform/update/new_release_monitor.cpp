@@ -72,9 +72,6 @@ public:
 
             mp::NewReleaseInfo release;
             release.version = manifest[::json_tag_name].toString();
-            if (release.version[0] == 'v')
-                release.version.remove(0, 1);
-
             release.url = manifest[::json_html_url].toString();
 
             mpl::log(mpl::Level::debug, "update",

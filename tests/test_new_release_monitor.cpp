@@ -36,9 +36,9 @@ namespace
 const auto timeout = std::chrono::milliseconds{250};
 const QString json_template = R"END({
   "prefix_field": "foo",
-  "html_url": "%1",
+  "release_url": "%1",
   "infix_field": "bar",
-  "tag_name": "%2",
+  "version": "%2",
   "suffix_field": "baz"
 }
 )END";
