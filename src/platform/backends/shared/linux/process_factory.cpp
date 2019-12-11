@@ -31,8 +31,8 @@ namespace
 class AppArmoredProcess : public mp::BasicProcess
 {
 public:
-    AppArmoredProcess(const mp::AppArmor& aa, std::unique_ptr<mp::ProcessSpec>&& spec)
-        : mp::BasicProcess{std::move(spec)}, apparmor{aa}
+    AppArmoredProcess(const mp::AppArmor& aa, std::shared_ptr<mp::ProcessSpec> spec)
+        : mp::BasicProcess{spec}, apparmor{aa}
     {
         apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
     }
@@ -99,15 +99,16 @@ std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<
 {
     if (apparmor && !process_spec->apparmor_profile().isNull())
     {
+        std::shared_ptr<ProcessSpec> spec = std::move(process_spec);
         try
         {
-            return std::make_unique<AppArmoredProcess>(apparmor.value(), std::move(process_spec));
+            return std::make_unique<AppArmoredProcess>(apparmor.value(), spec);
         }
         catch (const mp::AppArmorException& e)
         {
             // TODO: This won't fly in strict mode (#1074), since we'll be confined by snapd
             mpl::log(mpl::Level::warning, "apparmor", e.what());
-            return std::make_unique<BasicProcess>(std::move(process_spec));
+            return std::make_unique<BasicProcess>(spec);
         }
     }
     else
