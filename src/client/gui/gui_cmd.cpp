@@ -25,8 +25,9 @@
 #include <multipass/settings.h>
 #include <multipass/version.h>
 
-#include <QCoreApplication>
+#include <QApplication>
 #include <QDesktopServices>
+#include <QStyle>
 #include <QtConcurrent/QtConcurrent>
 
 namespace mp = multipass;
@@ -104,6 +105,18 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     create_actions();
     create_menu();
     tray_icon.show();
+
+    QFile first_run_file(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/first_run");
+
+    if (!first_run_file.exists())
+    {
+        // Each platform refers to the "system tray", icons, and the "menu bar" by different terminology.
+        // A platform dependent mechanism is used to get the messages via a QStringList.
+        auto notification_area_strings = mp::cli::platform::gui_tray_notification_strings();
+        tray_icon.showMessage(notification_area_strings[0], notification_area_strings[1], tray_icon.icon());
+        first_run_file.open(QIODevice::WriteOnly);
+        first_run_file.close();
+    }
 
     return static_cast<ReturnCode>(QCoreApplication::exec());
 }
@@ -206,8 +219,12 @@ void cmd::GuiCmd::update_about_menu()
 
     if (update_available(reply.update_info()))
     {
+        update_action.setIcon(QApplication::style()->standardIcon(QStyle::SP_MessageBoxInformation));
         update_action.setWhatsThis(QString::fromStdString(reply.update_info().url()));
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
+        tray_icon.showMessage("New Multipass update available",
+                              QString("Version %1 is available. Click here for more information.")
+                                  .arg(QString::fromStdString(reply.update_info().version())));
     }
     else
     {
@@ -220,6 +237,9 @@ void cmd::GuiCmd::create_menu()
     tray_icon.setContextMenu(&tray_icon_menu);
 
     tray_icon.setIcon(QIcon{":images/multipass-icon.png"});
+
+    QObject::connect(&tray_icon, &QSystemTrayIcon::messageClicked,
+                     [this] { QDesktopServices::openUrl(QUrl(update_action.whatsThis())); });
 
     QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &GuiCmd::update_menu);
 
@@ -251,7 +271,7 @@ void cmd::GuiCmd::create_menu()
     initiate_about_menu_layout();
 
     menu_update_timer.start(1s);
-    about_update_timer.start(12h);
+    about_update_timer.start(24h);
 }
 
 void cmd::GuiCmd::initiate_menu_layout()
