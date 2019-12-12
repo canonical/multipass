@@ -68,5 +68,5 @@ void mcp::open_multipass_shell(const QString& instance_name)
 
 QStringList mcp::gui_tray_notification_strings()
 {
-    return {"Multipass is in your Notification area", "Click on the icon in the taskbar for available options"};
+    return {"Multipass is in your Notification area", "Right-click on the icon in the taskbar for available options"};
 }
