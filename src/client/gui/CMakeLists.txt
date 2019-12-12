@@ -42,7 +42,9 @@ install(TARGETS multipass_gui
   COMPONENT multipass_gui)
 
 if(APPLE)
-  set_target_properties( multipass_gui PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
+  set_target_properties( multipass_gui PROPERTIES
+    MACOSX_BUNDLE TRUE
+    INSTALL_RPATH "@executable_path/../../../../lib")
 
   # Copy the cocoa platform plugin
   file(COPY ${_qt5Gui_install_prefix}/plugins/platforms/libqcocoa.dylib
