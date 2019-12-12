@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_GITHUB_UPDATE_PROMPT_H
-#define MULTIPASS_GITHUB_UPDATE_PROMPT_H
+#ifndef MULTIPASS_DEFAULT_UPDATE_PROMPT_H
+#define MULTIPASS_DEFAULT_UPDATE_PROMPT_H
 
 #include <multipass/update_prompt.h>
 #include <chrono>
@@ -27,13 +27,13 @@ namespace multipass
 class NewReleaseMonitor;
 
 /*
- * Update Prompt that checks Github
+ * Update Prompt that checks Default
  */
-class GithubUpdatePrompt : public UpdatePrompt
+class DefaultUpdatePrompt : public UpdatePrompt
 {
 public:
-    GithubUpdatePrompt();
-    ~GithubUpdatePrompt();
+    DefaultUpdatePrompt();
+    ~DefaultUpdatePrompt();
 
     bool is_time_to_show() override;
     void populate(UpdateInfo *update_info) override;
@@ -45,4 +45,4 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_GITHUB_UPDATE_PROMPT_H
+#endif // MULTIPASS_DEFAULT_UPDATE_PROMPT_H

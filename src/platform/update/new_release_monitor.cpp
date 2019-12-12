@@ -34,8 +34,8 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto timeout = std::chrono::minutes(1);
-constexpr auto json_tag_name = "tag_name";
-constexpr auto json_html_url = "html_url";
+constexpr auto json_tag_name = "version";
+constexpr auto json_html_url = "release_url";
 
 QJsonObject parse_manifest(const QByteArray& json)
 {
@@ -68,13 +68,10 @@ public:
             QByteArray json = downloader.download(url);
             const auto manifest = ::parse_manifest(json);
             if (!manifest.contains(::json_tag_name) || !manifest.contains(::json_html_url))
-                throw std::runtime_error("Github JSON missing required fields");
+                throw std::runtime_error("Update JSON missing required fields");
 
             mp::NewReleaseInfo release;
             release.version = manifest[::json_tag_name].toString();
-            if (release.version[0] == 'v')
-                release.version.remove(0, 1);
-
             release.url = manifest[::json_html_url].toString();
 
             mpl::log(mpl::Level::debug, "update",

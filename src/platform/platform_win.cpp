@@ -26,7 +26,7 @@
 #include "platform_proprietary.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/win/process_factory.h"
-#include <github_update_prompt.h>
+#include <default_update_prompt.h>
 
 #include <QDir>
 #include <QFile>
@@ -147,7 +147,7 @@ mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 
 mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 {
-    return std::make_unique<GithubUpdatePrompt>();
+    return std::make_unique<DefaultUpdatePrompt>();
 }
 
 int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
