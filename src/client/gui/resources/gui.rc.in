@@ -8,7 +8,7 @@ BEGIN
   BEGIN
     BLOCK "040904B0"
     BEGIN
-      VALUE "CompanyName", "Canonical, Ltd."
+      VALUE "CompanyName", "Canonical Ltd."
       VALUE "FileDescription", "Multipass"
       VALUE "FileVersion", "@MULTIPASS_VERSION@"
       VALUE "InternalName", ""
