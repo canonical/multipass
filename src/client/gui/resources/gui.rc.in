@@ -1,0 +1,25 @@
+icon ICON "../data/icon.ico"
+
+1 VERSIONINFO
+// TODO: Fill in FILEVERSION with a real version
+FILEVERSION 0,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Canonical Ltd."
+      VALUE "FileDescription", "Multipass"
+      VALUE "FileVersion", "@MULTIPASS_VERSION@"
+      VALUE "InternalName", ""
+      VALUE "OriginalFilename", ""
+      VALUE "ProductName", "Multipass"
+      VALUE "ProductVersion", "@MULTIPASS_VERSION@"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 0x04B0
+  END
+END

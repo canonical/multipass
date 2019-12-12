@@ -20,7 +20,6 @@ add_executable(multipass_gui
   client_gui.cpp
   main.cpp
   gui_cmd.cpp
-  resources/gui.rc
   resources/resources.qrc)
 
 set_target_properties(multipass_gui
@@ -66,6 +65,15 @@ if(APPLE)
 endif(APPLE)
 
 if(MSVC)
+  set(RESOURCE_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/resources)
+  file(MAKE_DIRECTORY ${RESOURCE_GENERATED_SOURCE_DIR})
+  configure_file(
+    resources/gui.rc.in
+    ${RESOURCE_GENERATED_SOURCE_DIR}/gui.rc
+    @ONLY)
+
+  target_sources(multipass_gui PRIVATE
+    ${RESOURCE_GENERATED_SOURCE_DIR}/gui.rc)
   set_target_properties(multipass_gui PROPERTIES WIN32_EXECUTABLE true)
 
   # Copy the windows platform plugin

@@ -65,3 +65,8 @@ void mcp::open_multipass_shell(const QString& instance_name)
     QProcess::startDetached(
         "cmd", {"/c", "start", "PowerShell", "-NoLogo", "-Command", QString("multipass shell %1").arg(instance_name)});
 }
+
+QStringList mcp::gui_tray_notification_strings()
+{
+    return {"Multipass is in your Notification area", "Right-click on the icon in the taskbar for available options"};
+}
