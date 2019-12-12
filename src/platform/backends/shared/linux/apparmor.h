@@ -37,6 +37,14 @@ private:
     const QStringList apparmor_args;
 };
 
+class AppArmorException : public std::runtime_error
+{
+public:
+    AppArmorException(const std::string& msg) : runtime_error{msg}
+    {
+    }
+};
+
 } // namespace multipass
 
 #endif // MULTIPASS_APPARMOR_CONFINEMENT_H
