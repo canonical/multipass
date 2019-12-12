@@ -33,7 +33,7 @@ class BasicProcess : public Process
 {
     Q_OBJECT
 public:
-    BasicProcess(std::unique_ptr<ProcessSpec>&& spec);
+    BasicProcess(std::shared_ptr<ProcessSpec> spec);
     virtual ~BasicProcess();
 
     QString program() const override;
@@ -61,7 +61,7 @@ public:
     ProcessState execute(const int timeout = 30000) override;
 
 protected:
-    const std::unique_ptr<ProcessSpec> process_spec;
+    const std::shared_ptr<ProcessSpec> process_spec;
 
     void setup_child_process() override;
 
