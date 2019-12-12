@@ -18,6 +18,7 @@
 #include "process_factory.h"
 #include "basic_process.h"
 #include "simple_process_spec.h"
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process_spec.h>
 #include <multipass/utils.h>
@@ -30,8 +31,8 @@ namespace
 class AppArmoredProcess : public mp::BasicProcess
 {
 public:
-    AppArmoredProcess(const mp::AppArmor& aa, std::unique_ptr<mp::ProcessSpec>&& spec)
-        : mp::BasicProcess{std::move(spec)}, apparmor{aa}
+    AppArmoredProcess(const mp::AppArmor& aa, std::shared_ptr<mp::ProcessSpec> spec)
+        : mp::BasicProcess{spec}, apparmor{aa}
     {
         apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
     }
@@ -74,8 +75,16 @@ mp::optional<mp::AppArmor> create_apparmor()
     }
     else
     {
-        mpl::log(mpl::Level::info, "apparmor", "Using AppArmor support");
-        return mp::AppArmor{};
+        try
+        {
+            mpl::log(mpl::Level::info, "apparmor", "Using AppArmor support");
+            return mp::AppArmor{};
+        }
+        catch (mp::AppArmorException& e)
+        {
+            mpl::log(mpl::Level::warning, "apparmor", fmt::format("Failed to enable AppArmor: {}", e.what()));
+            return mp::nullopt;
+        }
     }
 }
 } // namespace
@@ -90,7 +99,17 @@ std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<
 {
     if (apparmor && !process_spec->apparmor_profile().isNull())
     {
-        return std::make_unique<AppArmoredProcess>(apparmor.value(), std::move(process_spec));
+        std::shared_ptr<ProcessSpec> spec = std::move(process_spec);
+        try
+        {
+            return std::make_unique<AppArmoredProcess>(apparmor.value(), spec);
+        }
+        catch (const mp::AppArmorException& e)
+        {
+            // TODO: This won't fly in strict mode (#1074), since we'll be confined by snapd
+            mpl::log(mpl::Level::warning, "apparmor", e.what());
+            return std::make_unique<BasicProcess>(spec);
+        }
     }
     else
     {

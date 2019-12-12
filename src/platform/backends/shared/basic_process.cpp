@@ -41,7 +41,7 @@ void mp::BasicProcess::CustomQProcess::setupChildProcess()
     p->setup_child_process();
 }
 
-mp::BasicProcess::BasicProcess(std::unique_ptr<mp::ProcessSpec>&& spec) : process_spec{std::move(spec)}, process{this}
+mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_spec{spec}, process{this}
 {
     connect(&process, &QProcess::started, this, &mp::Process::started);
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
