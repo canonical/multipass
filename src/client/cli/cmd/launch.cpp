@@ -22,11 +22,13 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
+#include <multipass/settings.h>
 
 #include <multipass/format.h>
 
 #include <yaml-cpp/yaml.h>
 
+#include <QDir>
 #include <QTimeZone>
 
 #include <regex>
@@ -47,15 +49,23 @@ const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
-    auto ret = parse_args(parser);
-    if (ret != ParseCode::Ok)
+    if (auto ret = parse_args(parser); ret != ParseCode::Ok)
     {
         return parser->returnCodeFrom(ret);
     }
 
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
 
-    return request_launch();
+    auto ret = request_launch();
+    const auto petenv_name = Settings::instance().get(petenv_key); // TODO@ricab make attr and reuse in help
+    if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
+    {
+        const auto mount_source = QDir::toNativeSeparators(QDir::homePath()); // TODO@ricab test on other platforms
+        const auto mount_target = QString{"%1:Home"}.arg(petenv_name);        // TODO@ricab extract home
+        ret = run_cmd_and_retry({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+    }
+
+    return ret;
 }
 
 std::string cmd::Launch::name() const
