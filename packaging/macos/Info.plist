@@ -10,8 +10,6 @@
     <string>Multipass</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
-    <key>CFBundleSignature</key>
-    <string>????</string>
     <key>LSMinimumSystemVersion</key>
     <string>10.12</string>
     <key>CFBundleIconFile</key>

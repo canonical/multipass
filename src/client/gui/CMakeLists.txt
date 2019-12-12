@@ -48,11 +48,7 @@ if(APPLE)
 
   # Copy the cocoa platform plugin
   file(COPY ${_qt5Gui_install_prefix}/plugins/platforms/libqcocoa.dylib
-    DESTINATION ${CMAKE_BINARY_DIR}/bin/platforms)
-
-  install(FILES ${CMAKE_BINARY_DIR}/bin/platforms/libqcocoa.dylib
-    DESTINATION bin/platforms
-    COMPONENT multipass_gui)
+    DESTINATION $<TARGET_BUNDLE_CONTENT_DIR:multipass_gui>/plugins/platforms)
 
   # Copy any framework depenencies into the install directory for packaging
   install(CODE "
