@@ -51,6 +51,8 @@ void mp::DefaultUpdatePrompt::populate(mp::UpdateInfo* update_info)
     {
         update_info->set_version(new_release->version.toStdString());
         update_info->set_url(new_release->url.toEncoded());
+        update_info->set_title(new_release->title.toStdString());
+        update_info->set_description(new_release->description.toStdString());
         last_shown = std::chrono::system_clock::now();
     }
 }

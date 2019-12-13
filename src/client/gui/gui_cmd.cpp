@@ -226,9 +226,9 @@ void cmd::GuiCmd::update_about_menu()
                          [this] { QDesktopServices::openUrl(QUrl(update_action.whatsThis())); });
 
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
-        tray_icon.showMessage("New Multipass update available",
-                              QString("Version %1 is available. Click here for more information.")
-                                  .arg(QString::fromStdString(reply.update_info().version())));
+        tray_icon.showMessage(QString("%1 is now available!").arg(QString::fromStdString(reply.update_info().title())),
+                              QString("Major changes and enhancements include:\n%1")
+                                  .arg(QString::fromStdString(reply.update_info().description())));
     }
     else
     {
