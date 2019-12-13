@@ -62,7 +62,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     {
         const auto mount_source = QDir::toNativeSeparators(QDir::homePath()); // TODO@ricab test on other platforms
         const auto mount_target = QString{"%1:Home"}.arg(petenv_name);        // TODO@ricab extract home
-        ret = run_cmd_and_retry({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+        ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
     }
 
     return ret;
