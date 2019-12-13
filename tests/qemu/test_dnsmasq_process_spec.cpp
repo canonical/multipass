@@ -21,6 +21,9 @@
 #include <gmock/gmock.h>
 #include <multipass/ip_address.h>
 
+#include <QFile>
+#include <QTemporaryDir>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -70,11 +73,25 @@ TEST_F(TestDnsmasqProcessSpec, apparmor_profile_identifier)
 
 TEST_F(TestDnsmasqProcessSpec, apparmor_profile_running_as_snap_correct)
 {
-    mpt::SetEnvScope e1("SNAP", "/something");
+    QTemporaryDir snap_dir;
+
+    mpt::SetEnvScope e1("SNAP", snap_dir.path().toUtf8());
     mp::DNSMasqProcessSpec spec(data_dir, bridge_name, pid_file_path, subnet);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/something/usr/sbin/dnsmasq ixr,"));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
+}
+
+TEST_F(TestDnsmasqProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
+{
+    QTemporaryDir snap_dir, link_dir;
+    link_dir.remove();
+    QFile::link(snap_dir.path(), link_dir.path());
+
+    mpt::SetEnvScope e1("SNAP", link_dir.path().toUtf8());
+    mp::DNSMasqProcessSpec spec(data_dir, bridge_name, pid_file_path, subnet);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
 }
 
 TEST_F(TestDnsmasqProcessSpec, apparmor_profile_not_running_as_snap_correct)
