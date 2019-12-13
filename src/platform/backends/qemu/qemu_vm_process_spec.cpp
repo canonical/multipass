@@ -234,7 +234,7 @@ profile %1 flags=(attach_disconnected) {
   %4/{,usr/}lib/{,@{multiarch}/}{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap
-  /snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
+  /{,var/lib/snapd/}snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
 
   # Disk images
   %6 rwk,  # QCow2 filesystem image
