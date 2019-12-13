@@ -20,6 +20,9 @@
 #include "tests/mock_environment_helpers.h"
 #include <gmock/gmock.h>
 
+#include <QFile>
+#include <QTemporaryDir>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -62,12 +65,29 @@ TEST(TestQemuImgProcessSpec, no_apparmor_profile_identifier)
 
 TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
 {
-    mpt::SetEnvScope e("SNAP", "/something");
-    mpt::SetEnvScope e2("SNAP_COMMON", "/snap/common");
+    QTemporaryDir snap_dir, common_dir;
+    mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
+    mpt::SetEnvScope e2("SNAP_COMMON", common_dir.path().toUtf8());
     mp::QemuImgProcessSpec spec({});
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("/something/usr/bin/qemu-img ixr,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/snap/common/** rwk,"));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/** rwk,").arg(common_dir.path())));
+}
+
+TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
+{
+    QTemporaryDir snap_dir, snap_link_dir, common_dir, common_link_dir;
+    snap_link_dir.remove();
+    common_link_dir.remove();
+    QFile::link(snap_dir.path(), snap_link_dir.path());
+    QFile::link(common_dir.path(), common_link_dir.path());
+
+    mpt::SetEnvScope e("SNAP", snap_link_dir.path().toUtf8());
+    mpt::SetEnvScope e2("SNAP_COMMON", common_link_dir.path().toUtf8());
+    mp::QemuImgProcessSpec spec({});
+
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/** rwk,").arg(common_dir.path())));
 }
 
 TEST(TestQemuImgProcessSpec, apparmor_profile_not_running_as_snap_correct)

@@ -17,6 +17,8 @@
 
 #include <multipass/snap_utils.h>
 
+#include <QFileInfo>
+
 namespace mu = multipass::utils;
 
 bool mu::is_snap()
@@ -28,10 +30,12 @@ bool mu::is_snap()
 
 QByteArray mu::snap_dir()
 {
-    return qgetenv("SNAP"); // Inside snap, this can be trusted.
+    auto snap_dir = qgetenv("SNAP");                         // Inside snap, this can be trusted.
+    return QFileInfo(snap_dir).canonicalFilePath().toUtf8(); // To resolve any symlinks
 }
 
 QByteArray mu::snap_common_dir()
 {
-    return qgetenv("SNAP_COMMON"); // Inside snap, this can be trusted
+    auto snap_common = qgetenv("SNAP_COMMON");                  // Inside snap, this can be trusted
+    return QFileInfo(snap_common).canonicalFilePath().toUtf8(); // To resolve any symlinks
 }
