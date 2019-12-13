@@ -349,6 +349,8 @@ TEST_F(Client, shell_cmd_launches_petenv_if_absent)
     const auto petenv_launch_matcher = Property(&mp::LaunchRequest::instance_name, StrEq(petenv_name()));
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
+    EXPECT_CALL(mock_daemon, mount).WillRepeatedly(Return(ok)); // 0 or more times
+
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_ssh_info_matcher, _)).WillOnce(Return(notfound));
     EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
@@ -845,6 +847,8 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent)
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
 
+    EXPECT_CALL(mock_daemon, mount).WillRepeatedly(Return(ok)); // 0 or more times
+
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
@@ -859,6 +863,8 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
     const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
+
+    EXPECT_CALL(mock_daemon, mount).WillRepeatedly(Return(ok)); // 0 or more times
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));
