@@ -91,7 +91,7 @@ profile %1 flags=(attach_disconnected) {
   %3/{usr/,}lib/@{multiarch}/{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap
-  /snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
+  /{,var/lib/snapd/}snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
 
   %5/dnsmasq.leases rw,           # Leases file
   %5/dnsmasq.hosts r,             # Hosts file
