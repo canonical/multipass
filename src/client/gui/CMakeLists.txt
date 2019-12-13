@@ -41,25 +41,29 @@ install(TARGETS multipass_gui
   COMPONENT multipass_gui)
 
 if(APPLE)
-  set_target_properties( multipass_gui PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
+  # TODO: Convert this all into a proper Mac Application Bundle
+
+  set_target_properties( multipass_gui PROPERTIES
+    MACOSX_BUNDLE TRUE
+    INSTALL_RPATH "@executable_path/../../../../lib")
 
   # Copy the cocoa platform plugin
   file(COPY ${_qt5Gui_install_prefix}/plugins/platforms/libqcocoa.dylib
-    DESTINATION ${CMAKE_BINARY_DIR}/bin/platforms)
+    DESTINATION ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms)
 
-  install(FILES ${CMAKE_BINARY_DIR}/bin/platforms/libqcocoa.dylib
-    DESTINATION bin/platforms
+  install(FILES ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib
+    DESTINATION bin/multipass.gui.app/Contents/plugins/platforms
     COMPONENT multipass_gui)
 
   # Copy any framework depenencies into the install directory for packaging
   install(CODE "
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/MacOS/multipass.gui\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
     " COMPONENT multipass_gui)
 
   install(CODE "
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
     " COMPONENT multipass_gui)
 
 endif(APPLE)
