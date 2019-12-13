@@ -145,7 +145,7 @@ for i in *.pkg ; do
     codesign_binaries "${WORKDIR}/${i}"
 
     rm "${i}/Payload"
-    tar -czv --format cpio -f "${i}/Payload" "${WORKDIR}/${i}"
+    tar -czv --format cpio -f "${i}/Payload" -C "${WORKDIR}/${i}" .
 done
 popd
 
