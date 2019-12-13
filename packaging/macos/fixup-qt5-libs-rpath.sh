@@ -12,8 +12,9 @@
 
 set -u
 
+BUNDLE_PATH="multipass.gui.app/Contents"
 QT_FRAMEWORKS="QtCore QtNetwork QtWidgets QtGui QtDBus QtPrintSupport"
-BINARIES="multipass multipass.gui.app/Contents/MacOS/multipass.gui multipassd platforms/libqcocoa.dylib sshfs_server"
+BINARIES="multipass ${BUNDLE_PATH}/MacOS/multipass.gui multipassd ${BUNDLE_PATH}/plugins/platforms/libqcocoa.dylib sshfs_server"
 
 if [ $# -ne 1 ]; then
     echo "Argument required"
