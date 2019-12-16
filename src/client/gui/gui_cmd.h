@@ -98,6 +98,7 @@ private:
     QAction about_client_version;
     QAction about_daemon_version;
     QAction about_copyright;
+    QAction autostart_option{"Autostart on login"};
 
     struct InstanceEntry
     {
