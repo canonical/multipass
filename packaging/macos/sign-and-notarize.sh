@@ -115,7 +115,7 @@ function sign_installer {
 function codesign_binaries {
     DIR="$1"
     # sign every file in the directory
-    find "${DIR}" -type f -exec \
+    find "${DIR}" -type f -not -name hyperkit -exec \
         codesign -v --timestamp --options runtime --force --strict \
             --prefix com.canonical.multipass. \
             --sign "${SIGN_APP}" "{}" \;
@@ -145,7 +145,7 @@ for i in *.pkg ; do
     codesign_binaries "${WORKDIR}/${i}"
 
     rm "${i}/Payload"
-    tar -czv --format cpio -f "${i}/Payload" "${WORKDIR}/${i}"
+    tar -czv --format cpio -f "${i}/Payload" -C "${WORKDIR}/${i}" .
 done
 popd
 
