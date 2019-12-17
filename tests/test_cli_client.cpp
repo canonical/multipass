@@ -570,6 +570,16 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
     EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
+{
+    const grpc::Status ok{}, mount_failure{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(mount_failure));
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
 {
     EXPECT_CALL(mock_daemon, launch(_, _, _));
