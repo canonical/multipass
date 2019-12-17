@@ -523,7 +523,13 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
     const mpt::SetEnvScope env_scope{"HOME", fake_home.path().toUtf8()};
     const grpc::Status ok{};
 
-    const auto home_automount_matcher = Property(&mp::MountRequest::source_path, StrEq(fake_home.path().toStdString()));
+    const auto automount_source_matcher =
+        Property(&mp::MountRequest::source_path, StrEq(fake_home.path().toStdString()));
+    const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name, StrEq(petenv_name()));
+    const auto target_info_matcher = AllOf(target_instance_matcher); // TODO@ricab check path
+    const auto automount_target_matcher =
+        Property(&mp::MountRequest::target_paths, AllOf(Contains(target_info_matcher), SizeIs(1)));
+    const auto home_automount_matcher = AllOf(automount_source_matcher, automount_target_matcher);
     // TODO@ricab check mount request further
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
 
