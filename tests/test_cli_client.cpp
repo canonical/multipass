@@ -558,7 +558,6 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
 TEST_F(Client, launch_cmd_automounts_home_in_petenv)
 {
     const auto fake_home = QTemporaryDir{}; // the client checks the mount source exists
-    // TODO@ricab generalize for other platforms
     const auto env_scope = mpt::SetEnvScope{"HOME", fake_home.path().toUtf8()};
     const auto home_automount_matcher = make_automount_matcher(fake_home);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
