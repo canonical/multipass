@@ -555,6 +555,7 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
 }
 
+#ifndef WIN32 // TODO make home mocking work for windows
 TEST_F(Client, launch_cmd_automounts_home_in_petenv)
 {
     const auto fake_home = QTemporaryDir{}; // the client checks the mount source exists
@@ -568,6 +569,7 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
     EXPECT_CALL(mock_daemon, mount(_, home_automount_matcher, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
+#endif
 
 TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
 {
