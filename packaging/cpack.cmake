@@ -138,6 +138,7 @@ if (MSVC)
   # Since multipassd is a 64-bit application, it uses the real system32 folder, which is where the settings and cache
   # directory live
   # The directories are removed after uninstalling the service to prevent removing data while multipassd is alive.
+  # If the daemon is still running after uninstallation, it's stuck and we need to kill it, otherwise it will break upgrades
   # The clients are killed, but they're not holding any state or data, so should not be a problem.
   SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
     "
@@ -151,6 +152,7 @@ if (MSVC)
     basic_uninst:
     Delete '$SMPROGRAMS\\\\Multipass.lnk'
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
+    nsExec::ExecToLog 'TaskKill /IM multipassd.exe /F'
     nsExec::ExecToLog 'TaskKill /IM multipass.exe /F'
     nsExec::ExecToLog 'TaskKill /IM multipass.gui.exe /F'
     DeleteRegKey HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass'
