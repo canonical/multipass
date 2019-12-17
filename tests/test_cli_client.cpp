@@ -15,6 +15,7 @@
  *
  */
 
+#include "mock_environment_helpers.h"
 #include "mock_settings.h"
 #include "mock_stdcin.h"
 #include "path.h"
@@ -35,6 +36,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <QtCore/QTemporaryDir>
 #include <sstream>
 
 namespace mp = multipass;
@@ -512,6 +514,23 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     std::stringstream ss;
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_automounts_home_in_petenv)
+{
+    const auto fake_home = QTemporaryDir{}; // the client checks the mount source exists
+    // TODO@ricab generalize for other platforms
+    const mpt::SetEnvScope env_scope{"HOME", fake_home.path().toUtf8()};
+    const grpc::Status ok{};
+
+    const auto home_automount_matcher = Property(&mp::MountRequest::source_path, StrEq(fake_home.path().toStdString()));
+    // TODO@ricab check mount request further
+    const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, home_automount_matcher, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests
