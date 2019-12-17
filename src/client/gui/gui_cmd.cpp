@@ -25,6 +25,8 @@
 #include <multipass/settings.h>
 #include <multipass/version.h>
 
+#include <QHotkey>
+
 #include <QApplication>
 #include <QDesktopServices>
 #include <QStyle>
@@ -101,6 +103,14 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
         cerr << "System tray not supported\n";
         return ReturnCode::CommandFail;
     }
+
+    auto hotkey = new QHotkey(QKeySequence("ctrl+alt+U"), true, qApp);
+    if (!hotkey->isRegistered())
+    {
+        cerr << "Failed to register hotkey.\n";
+    }
+
+    QObject::connect(hotkey, &QHotkey::activated, qApp, [&]() { mp::cli::platform::open_multipass_shell(QString()); });
 
     create_actions();
     create_menu();
