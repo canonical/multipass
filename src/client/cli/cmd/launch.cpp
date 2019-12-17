@@ -22,11 +22,13 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
+#include <multipass/settings.h>
 
 #include <multipass/format.h>
 
 #include <yaml-cpp/yaml.h>
 
+#include <QDir>
 #include <QTimeZone>
 
 #include <regex>
@@ -47,15 +49,26 @@ const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
-    auto ret = parse_args(parser);
-    if (ret != ParseCode::Ok)
+    petenv_name = Settings::instance().get(petenv_key);
+    if (auto ret = parse_args(parser); ret != ParseCode::Ok)
     {
         return parser->returnCodeFrom(ret);
     }
 
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
 
-    return request_launch();
+    auto ret = request_launch();
+    if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
+    {
+        const auto mount_source = QDir::toNativeSeparators(QDir::homePath());
+        const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
+
+        ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+        if (ret == ReturnCode::Ok)
+            cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
+    }
+
+    return ret;
 }
 
 std::string cmd::Launch::name() const
@@ -102,7 +115,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                            "in bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
                                            min_memory_size, default_memory_size)),
         "mem", QString::fromUtf8(default_memory_size)); // In MB's
-    QCommandLineOption nameOption({"n", "name"}, "Name for the instance", "name");
+    QCommandLineOption nameOption(
+        {"n", "name"},
+        QString{"Name for the instance. If it is '%1' (the configured primary instance name), the user's home "
+                "directory is mounted inside the newly launched instance, in '%2'."}
+            .arg(petenv_name, mp::home_automount_dir),
+        "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
     parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption});
