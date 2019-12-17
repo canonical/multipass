@@ -5,23 +5,52 @@ qt5_wrap_cpp(MOC_HEADERS
   QHotkey/QHotkey/qhotkey_p.h
 )
 
-find_package(X11 REQUIRED)
-find_package(Qt5X11Extras REQUIRED)
-
-include_directories(${X11_INCLUDE_DIR})
-
 add_library(qhotkey STATIC
   QHotkey/QHotkey/qhotkey.cpp
-  QHotkey/QHotkey/qhotkey_x11.cpp
   ${MOC_HEADERS}
 )
 
 target_link_libraries(qhotkey
   Qt5::Core
   Qt5::Widgets
-  Qt5::X11Extras
-  ${X11_LIBRARIES}
 )
+
+if(APPLE)
+  find_library(CARBON_LIBRARY Carbon)
+  mark_as_advanced(CARBON_LIBRARY)
+
+  target_sources(qhotkey
+    PRIVATE
+      QHotkey/QHotkey/qhotkey_mac.cpp
+  )
+
+  target_link_libraries(qhotkey
+    ${CARBON_LIBRARY}
+  )
+
+elseif(WIN32)
+  target_sources(qhotkey
+    PRIVATE
+      QHotkey/QHotkey/qhotkey_win.cpp
+  )
+
+else()
+  find_package(X11 REQUIRED)
+  find_package(Qt5X11Extras REQUIRED)
+
+  include_directories(${X11_INCLUDE_DIR})
+
+  target_sources(qhotkey
+    PRIVATE
+      QHotkey/QHotkey/qhotkey_x11.cpp
+  )
+
+  target_link_libraries(qhotkey
+    Qt5::X11Extras
+    ${X11_LIBRARIES}
+  )
+
+endif()
 
 target_include_directories(qhotkey
   PUBLIC
