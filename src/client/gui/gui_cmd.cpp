@@ -227,7 +227,7 @@ void cmd::GuiCmd::update_about_menu()
 
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
         tray_icon.showMessage(QString::fromStdString(reply.update_info().title()),
-                              QString("%1\n\n. Click here for more information.")
+                              QString("%1\n\nClick here for more information.")
                                   .arg(QString::fromStdString(reply.update_info().description())));
     }
     else
