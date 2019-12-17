@@ -63,7 +63,11 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     {
         const auto mount_source = QDir::toNativeSeparators(QDir::homePath()); // TODO@ricab test on other platforms
         const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mount_name);
+        cout << fmt::format("Now auto-mounting '{}' in '{}'\n", mount_source, mount_target);
+
         ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+        if (ret == ReturnCode::Ok)
+            cout << "Auto-mount succeeded\n";
     }
 
     return ret;
