@@ -539,6 +539,13 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
     EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0); // because we may want to move from a Strict mock in the future
+    EXPECT_THAT(send_command({"launch"}), Eq(mp::ReturnCode::Ok));
+}
+
 // purge cli tests
 TEST_F(Client, purge_cmd_ok_no_args)
 {
