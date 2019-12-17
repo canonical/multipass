@@ -15,6 +15,7 @@
  *
  */
 
+#include "mock_environment_helpers.h"
 #include "mock_settings.h"
 #include "mock_stdcin.h"
 #include "path.h"
@@ -35,6 +36,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <QtCore/QTemporaryDir>
 #include <sstream>
 
 namespace mp = multipass;
@@ -134,6 +136,20 @@ struct Client : public Test
         }
 
         return ret;
+    }
+
+    auto make_automount_matcher(const QTemporaryDir& fake_home) const
+    {
+        const auto automount_source_matcher =
+            Property(&mp::MountRequest::source_path, StrEq(fake_home.path().toStdString()));
+
+        const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name, StrEq(petenv_name()));
+        const auto target_path_matcher = Property(&mp::TargetPathInfo::target_path, StrEq(mp::home_automount_dir));
+        const auto target_info_matcher = AllOf(target_instance_matcher, target_path_matcher);
+        const auto automount_target_matcher =
+            Property(&mp::MountRequest::target_paths, AllOf(Contains(target_info_matcher), SizeIs(1)));
+
+        return AllOf(automount_source_matcher, automount_target_matcher);
     }
 
     auto make_launch_instance_matcher(const std::string& instance_name)
@@ -349,12 +365,39 @@ TEST_F(Client, shell_cmd_launches_petenv_if_absent)
     const auto petenv_launch_matcher = Property(&mp::LaunchRequest::instance_name, StrEq(petenv_name()));
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
+    EXPECT_CALL(mock_daemon, mount).WillRepeatedly(Return(ok)); // 0 or more times
+
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_ssh_info_matcher, _)).WillOnce(Return(notfound));
     EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, ssh_info(_, petenv_ssh_info_matcher, _)).WillOnce(Return(ok));
 
     EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_automounts_when_launching_petenv)
+{
+    const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_fails_when_automounting_in_petenv_fails)
+{
+    const auto ok = grpc::Status{};
+    const auto notfound = grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"};
+    const auto mount_failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(mount_failure));
+    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, shell_cmd_starts_instance_if_stopped_or_suspended)
@@ -510,6 +553,39 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     std::stringstream ss;
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
+}
+
+#ifndef WIN32 // TODO make home mocking work for windows
+TEST_F(Client, launch_cmd_automounts_home_in_petenv)
+{
+    const auto fake_home = QTemporaryDir{}; // the client checks the mount source exists
+    const auto env_scope = mpt::SetEnvScope{"HOME", fake_home.path().toUtf8()};
+    const auto home_automount_matcher = make_automount_matcher(fake_home);
+    const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
+    const auto ok = grpc::Status{};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, home_automount_matcher, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+#endif
+
+TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
+{
+    const grpc::Status ok{}, mount_failure{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(mount_failure));
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0); // because we may want to move from a Strict mock in the future
+    EXPECT_THAT(send_command({"launch"}), Eq(mp::ReturnCode::Ok));
 }
 
 // purge cli tests
@@ -845,11 +921,38 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent)
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
 
+    EXPECT_CALL(mock_daemon, mount).WillRepeatedly(Return(ok)); // 0 or more times
+
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch(_, petenv_launch_matcher, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, start(_, petenv_start_matcher, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_automounts_when_launching_petenv)
+{
+    const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_fails_when_automounting_in_petenv_fails)
+{
+    const auto ok = grpc::Status{};
+    const auto aborted = aborted_start_status({petenv_name()});
+    const auto mount_failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(mount_failure));
+    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
@@ -859,6 +962,8 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
     const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(instances);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
+
+    EXPECT_CALL(mock_daemon, mount).WillRepeatedly(Return(ok)); // 0 or more times
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, instance_start_matcher, _)).WillOnce(Return(aborted));

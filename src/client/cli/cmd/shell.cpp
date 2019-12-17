@@ -106,8 +106,9 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument(
         "name",
-        QString{"Name of the instance to open a shell on. If omitted, '%1' will be assumed. If "
-                "the instance is not running, an attempt is made to start it."}
+        QString{
+            "Name of the instance to open a shell on. If omitted, '%1' (the configured primary instance name) will be "
+            "assumed. If the instance is not running, an attempt is made to start it (see `start` for more info)."}
             .arg(petenv_name),
         "[<name>]");
 
