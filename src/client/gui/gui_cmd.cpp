@@ -133,6 +133,16 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
 
 void cmd::GuiCmd::create_actions()
 {
+    config_watcher.addPath(Settings::get_client_settings_file_path());
+    QObject::connect(&config_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString& path) {
+        autostart_option.setChecked(Settings::instance().get_as<bool>(autostart_key));
+        // Needed since the original watched file may be removed and opened as a new file
+        if (!config_watcher.files().contains(path) && QFile::exists(path))
+        {
+            config_watcher.addPath(path);
+        }
+    });
+
     about_separator = tray_icon_menu.addSeparator();
     quit_action = tray_icon_menu.addAction("Quit");
 
@@ -270,12 +280,17 @@ void cmd::GuiCmd::create_menu()
 
     about_menu.setTitle("About");
 
+    autostart_option.setCheckable(true);
+    autostart_option.setChecked(Settings::instance().get_as<bool>(autostart_key));
+    QObject::connect(&autostart_option, &QAction::toggled, this,
+                     [](bool checked) { Settings::instance().set(autostart_key, QVariant(checked).toString()); });
+
     about_client_version.setEnabled(false);
     about_daemon_version.setEnabled(false);
     about_copyright.setText("Copyright © 2017-2019 Canonical Ltd.");
     about_copyright.setEnabled(false);
 
-    about_menu.insertActions(0, {&about_client_version, &about_daemon_version, &about_copyright});
+    about_menu.insertActions(0, {&autostart_option, &about_client_version, &about_daemon_version, &about_copyright});
 
     tray_icon_menu.insertMenu(quit_action, &about_menu);
 

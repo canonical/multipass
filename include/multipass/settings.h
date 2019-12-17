@@ -42,6 +42,7 @@ public:
     T get_as(const QString& key) const;
 
     static QString get_daemon_settings_file_path(); // temporary
+    static QString get_client_settings_file_path(); // idem
 
 protected:
     const QString& get_default(const QString& key) const; // throws on unknown key
