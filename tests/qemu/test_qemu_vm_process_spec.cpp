@@ -20,6 +20,8 @@
 #include "tests/mock_environment_helpers.h"
 #include <gmock/gmock.h>
 
+#include <QTemporaryDir>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -180,12 +182,27 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_identifier)
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
 {
-    mpt::SetEnvScope e("SNAP", "/something");
+    QTemporaryDir snap_dir;
+
+    mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
     mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/something/qemu/* r,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/something/usr/bin/qemu-system-"));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
+{
+    QTemporaryDir snap_dir, link_dir;
+    link_dir.remove();
+    QFile::link(snap_dir.path(), link_dir.path());
+
+    mpt::SetEnvScope e("SNAP", link_dir.path().toUtf8());
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)

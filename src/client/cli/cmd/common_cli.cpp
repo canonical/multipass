@@ -120,10 +120,8 @@ std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_n
 
 std::string cmd::update_notice(const mp::UpdateInfo& update_info)
 {
-    return ::message_box("A new Multipass version " + update_info.version() +
-                         " is available!\n"
-                         "Find out more: " +
-                         update_info.url());
+    return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}", update_info.title(),
+                                     update_info.description(), update_info.url()));
 }
 
 mp::ReturnCode cmd::run_cmd(const QStringList& args, const mp::ArgParser* parser, std::ostream& cout,

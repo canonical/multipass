@@ -36,6 +36,8 @@ namespace
 constexpr auto timeout = std::chrono::minutes(1);
 constexpr auto json_tag_name = "version";
 constexpr auto json_html_url = "release_url";
+constexpr auto json_title = "title";
+constexpr auto json_description = "description";
 
 QJsonObject parse_manifest(const QByteArray& json)
 {
@@ -73,6 +75,8 @@ public:
             mp::NewReleaseInfo release;
             release.version = manifest[::json_tag_name].toString();
             release.url = manifest[::json_html_url].toString();
+            release.title = manifest[::json_title].toString();
+            release.description = manifest[::json_description].toString();
 
             mpl::log(mpl::Level::debug, "update",
                      fmt::format("Latest Multipass release available is version {}", qPrintable(release.version)));

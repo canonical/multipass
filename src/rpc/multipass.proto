@@ -101,6 +101,8 @@ message MetricsShowInfo {
 message UpdateInfo {
     string version = 1;
     string url = 2;
+    string title = 3;
+    string description = 4;
 }
 
 message LaunchReply {
