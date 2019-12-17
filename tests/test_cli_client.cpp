@@ -526,11 +526,11 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
     const auto automount_source_matcher =
         Property(&mp::MountRequest::source_path, StrEq(fake_home.path().toStdString()));
     const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name, StrEq(petenv_name()));
-    const auto target_info_matcher = AllOf(target_instance_matcher); // TODO@ricab check path
+    const auto target_path_matcher = Property(&mp::TargetPathInfo::target_path, StrEq(mp::home_automount_dir));
+    const auto target_info_matcher = AllOf(target_instance_matcher, target_path_matcher);
     const auto automount_target_matcher =
         Property(&mp::MountRequest::target_paths, AllOf(Contains(target_info_matcher), SizeIs(1)));
     const auto home_automount_matcher = AllOf(automount_source_matcher, automount_target_matcher);
-    // TODO@ricab check mount request further
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name());
 
     InSequence seq;

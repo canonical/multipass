@@ -41,7 +41,6 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
-constexpr auto mount_name = "Home";
 const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
 const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
@@ -62,7 +61,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
         const auto mount_source = QDir::toNativeSeparators(QDir::homePath()); // TODO@ricab test on other platforms
-        const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mount_name);
+        const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
         cout << fmt::format("Now auto-mounting '{}' in '{}'\n", mount_source, mount_target);
 
         ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
@@ -121,7 +120,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         {"n", "name"},
         QString{"Name for the instance. If it is '%1' (the configured primary instance name), the user's home "
                 "directory is mounted inside the newly launched instance, in '%2'."}
-            .arg(petenv_name, mount_name),
+            .arg(petenv_name, mp::home_automount_dir),
         "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
