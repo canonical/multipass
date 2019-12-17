@@ -894,6 +894,31 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent)
     EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, start_cmd_automounts_when_launching_petenv)
+{
+    const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_fails_when_automounting_in_petenv_fails)
+{
+    const auto ok = grpc::Status{};
+    const auto aborted = aborted_start_status({petenv_name()});
+    const auto mount_failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(mount_failure));
+    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
 {
     std::vector<std::string> instances{"a", "b", petenv_name(), "c"}, cmd = concat({"start"}, instances);
