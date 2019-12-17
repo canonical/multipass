@@ -375,6 +375,31 @@ TEST_F(Client, shell_cmd_launches_petenv_if_absent)
     EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, shell_cmd_automounts_when_launching_petenv)
+{
+    const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_fails_when_automounting_in_petenv_fails)
+{
+    const auto ok = grpc::Status{};
+    const auto notfound = grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"};
+    const auto mount_failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(mount_failure));
+    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, shell_cmd_starts_instance_if_stopped_or_suspended)
 {
     const auto instance = "ordinary";
