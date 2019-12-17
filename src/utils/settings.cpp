@@ -38,6 +38,7 @@ namespace
 {
 const auto file_extension = QStringLiteral("conf");
 const auto daemon_root = QStringLiteral("local");
+const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
@@ -66,7 +67,7 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     static const auto client_file_path = cli_client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
     static const auto daemon_file_path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 
-    assert(key.startsWith(daemon_root) || key.startsWith("client"));
+    assert(key.startsWith(daemon_root) || key.startsWith(client_root));
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
@@ -175,7 +176,7 @@ QString mp::Settings::get_daemon_settings_file_path() // temporary
 
 QString mp::Settings::get_client_settings_file_path() // idem
 {
-    return file_for("client");
+    return file_for(client_root);
 }
 
 void multipass::Settings::set_aux(const QString& key, QString val) // work with a copy of val
