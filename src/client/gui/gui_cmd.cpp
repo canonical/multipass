@@ -133,6 +133,16 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
 
 void cmd::GuiCmd::create_actions()
 {
+    config_watcher.addPath(Settings::get_client_settings_file_path());
+    QObject::connect(&config_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString& path) {
+        autostart_option.setChecked(Settings::instance().get_as<bool>(autostart_key));
+        // Needed since the original watched file may be removed and opened as a new file
+        if (!config_watcher.files().contains(path) && QFile::exists(path))
+        {
+            config_watcher.addPath(path);
+        }
+    });
+
     about_separator = tray_icon_menu.addSeparator();
     quit_action = tray_icon_menu.addAction("Quit");
 

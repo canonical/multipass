@@ -173,6 +173,11 @@ QString mp::Settings::get_daemon_settings_file_path() // temporary
     return file_for(daemon_root);
 }
 
+QString mp::Settings::get_client_settings_file_path() // idem
+{
+    return file_for("client");
+}
+
 void multipass::Settings::set_aux(const QString& key, QString val) // work with a copy of val
 {
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
