@@ -231,13 +231,18 @@ void cmd::GuiCmd::update_about_menu()
     {
         update_action.setIcon(QApplication::style()->standardIcon(QStyle::SP_MessageBoxInformation));
         update_action.setWhatsThis(QString::fromStdString(reply.update_info().url()));
+
+        QObject::connect(&tray_icon, &QSystemTrayIcon::messageClicked,
+                         [this] { QDesktopServices::openUrl(QUrl(update_action.whatsThis())); });
+
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
-        tray_icon.showMessage("New Multipass update available",
-                              QString("Version %1 is available. Click here for more information.")
-                                  .arg(QString::fromStdString(reply.update_info().version())));
+        tray_icon.showMessage(QString::fromStdString(reply.update_info().title()),
+                              QString("%1\n\nClick here for more information.")
+                                  .arg(QString::fromStdString(reply.update_info().description())));
     }
     else
     {
+        QObject::disconnect(&tray_icon, &QSystemTrayIcon::messageClicked, 0, 0);
         tray_icon_menu.removeAction(&update_action);
     }
 }
@@ -247,9 +252,6 @@ void cmd::GuiCmd::create_menu()
     tray_icon.setContextMenu(&tray_icon_menu);
 
     tray_icon.setIcon(QIcon{":images/multipass-icon.png"});
-
-    QObject::connect(&tray_icon, &QSystemTrayIcon::messageClicked,
-                     [this] { QDesktopServices::openUrl(QUrl(update_action.whatsThis())); });
 
     QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &GuiCmd::update_menu);
 

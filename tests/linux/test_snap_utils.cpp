@@ -17,6 +17,7 @@
 
 #include <multipass/snap_utils.h>
 
+#include <QFile>
 #include <QTemporaryDir>
 
 #include <gmock/gmock.h>
@@ -59,6 +60,16 @@ TEST(SnapUtils, test_snap_dir_null_if_not_set)
     EXPECT_EQ(QByteArray(), mu::snap_dir());
 }
 
+TEST(SnapUtils, test_snap_dir_resolves_links)
+{
+    QTemporaryDir snap_dir, link_dir;
+    link_dir.remove();
+    QFile::link(snap_dir.path(), link_dir.path());
+    mpt::SetEnvScope env("SNAP", link_dir.path().toUtf8());
+
+    EXPECT_EQ(snap_dir.path(), mu::snap_dir());
+}
+
 TEST(SnapUtils, test_snap_common_dir_read_ok)
 {
     QTemporaryDir snap_dir;
@@ -72,4 +83,14 @@ TEST(SnapUtils, test_snap_common_dir_null_if_not_set)
     mpt::UnsetEnvScope env("SNAP_COMMON");
 
     EXPECT_EQ(QByteArray(), mu::snap_common_dir());
+}
+
+TEST(SnapUtils, test_snap_common_resolves_links)
+{
+    QTemporaryDir common_dir, link_dir;
+    link_dir.remove();
+    QFile::link(common_dir.path(), link_dir.path());
+    mpt::SetEnvScope env("SNAP_COMMON", link_dir.path().toUtf8());
+
+    EXPECT_EQ(common_dir.path(), mu::snap_common_dir());
 }

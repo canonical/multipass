@@ -28,6 +28,8 @@ struct NewReleaseInfo
 {
     QString version;
     QUrl url;
+    QString title;
+    QString description;
 };
 
 } // namespace multipass
