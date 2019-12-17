@@ -14,6 +14,7 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
   - protobuf: https://github.com/google/protobuf
   - zlib: https://github.com/madler/zlib
 - libssh: https://git.libssh.org/projects/libssh.git/
+- qhotkey: https://github.com/Skycoder42/QHotkey/
 - qt: https://www.qt.io/
 - semver: https://github.com/zmarko/semver
 - xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
@@ -41,6 +42,7 @@ Below is a summary of the licensing used in the respective projects. See their s
 - libssh:
   - GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
   - OpenSSL Exception
+- qhotkey: BSD 3-Clause "New" or "Revised" License; Copyright (c) 2016, Felix Barz
 - qt: GNU LGPL Version 3; Copyright (c) 2016 The Qt Company
 - semver: MIT License; Copyright (c) 2015 Marko Živanović
 - xz-embedded: zx-embedded License;
