@@ -78,6 +78,8 @@ constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used
 constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 constexpr auto max_install_sshfs_retries = 3;
+const std::string sshfs_error_template = "Error enabling mount support in '{}'"
+                                         "\n\nPlease install 'sshfs' manually inside the instance.";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -348,8 +350,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
 {
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
-                        fmt::format("Error enabling mount support in '{}'", instance_name));
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
 }
 
 auto grpc_status_for(fmt::memory_buffer& errors)
@@ -2147,7 +2148,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    fmt::format_to(errors, "Error enabling mount support in '{}'\n", name);
+                    fmt::format_to(errors, sshfs_error_template + "\n", name);
                     break;
                 }
             }
