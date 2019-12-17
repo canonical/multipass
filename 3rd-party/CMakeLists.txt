@@ -109,3 +109,6 @@ target_include_directories(semver INTERFACE
 
 # xz-decoder config
 add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
+
+# qhotkey config
+add_subdirectory(qhotkey EXCLUDE_FROM_ALL)

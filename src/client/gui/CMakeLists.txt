@@ -32,6 +32,7 @@ target_link_libraries(multipass_gui
   fmt
   formatter
   rpc
+  qhotkey
   Qt5::Core
   Qt5::Network
   Qt5::Widgets)
