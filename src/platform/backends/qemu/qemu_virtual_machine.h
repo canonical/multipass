@@ -22,6 +22,7 @@
 #include <multipass/optional.h>
 #include <multipass/process.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <QObject>
 #include <QStringList>
@@ -30,7 +31,6 @@ namespace multipass
 {
 class DNSMasqServer;
 class VMStatusMonitor;
-class VirtualMachineDescription;
 
 class QemuVirtualMachine final : public QObject, public VirtualMachine
 {
@@ -63,7 +63,10 @@ private:
     void on_shutdown();
     void on_suspend();
     void on_restart();
+    void set_process_connections();
+
     const std::string tap_device_name;
+    const VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process;
     multipass::optional<IPAddress> ip;
     const std::string mac_addr;
