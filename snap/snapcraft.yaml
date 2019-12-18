@@ -106,6 +106,9 @@ parts:
       snapcraftctl set-grade $( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+$' && echo stable || echo devel )
       sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${SNAPCRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
 
+      cd ${SNAPCRAFT_PART_SRC}/3rd-party
+      find . -name 'LICENSE*' -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${SNAPCRAFT_PART_INSTALL}/licenses/FILE
+
   qemu:
     plugin: nil
     override-pull: ""
