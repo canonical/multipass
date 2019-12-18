@@ -20,6 +20,8 @@
 
 #include <multipass/cli/command.h>
 
+#include <QString>
+
 namespace multipass
 {
 namespace cmd
@@ -39,6 +41,7 @@ private:
     ReturnCode request_launch();
 
     LaunchRequest request;
+    QString petenv_name;
 };
 } // namespace cmd
 } // namespace multipass

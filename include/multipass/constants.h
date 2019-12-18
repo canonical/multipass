@@ -28,6 +28,7 @@ constexpr auto min_cpu_cores = "1";
 constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
+constexpr auto home_automount_dir = "Home";
 constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
 constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
 constexpr auto driver_key = "local.driver";            // idem

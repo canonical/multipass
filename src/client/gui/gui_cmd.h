@@ -20,6 +20,7 @@
 
 #include <multipass/cli/command.h>
 
+#include <QFileSystemWatcher>
 #include <QFutureSynchronizer>
 #include <QFutureWatcher>
 #include <QMenu>
@@ -98,6 +99,7 @@ private:
     QAction about_client_version;
     QAction about_daemon_version;
     QAction about_copyright;
+    QAction autostart_option{"Autostart on login"};
 
     struct InstanceEntry
     {
@@ -113,6 +115,8 @@ private:
     QFutureWatcher<VersionReply> version_watcher;
 
     QFutureSynchronizer<void> future_synchronizer;
+
+    QFileSystemWatcher config_watcher;
 
     QTimer menu_update_timer;
     QTimer about_update_timer;
