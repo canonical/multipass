@@ -27,7 +27,6 @@
 #include <multipass/process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
-#include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <multipass/format.h>
@@ -193,103 +192,12 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
-      vm_process{make_qemu_process(
-          desc, ((state == State::suspended) ? mp::make_optional(monitor.retrieve_metadata_for(vm_name)) : mp::nullopt),
-          tap_device_name)},
+      desc{desc},
       mac_addr{desc.mac_addr},
       username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor}
 {
-    QObject::connect(vm_process.get(), &Process::started, [this]() {
-        mpl::log(mpl::Level::info, vm_name, "process started");
-        on_started();
-    });
-    QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
-        auto qmp_output = vm_process->read_all_standard_output();
-        mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output));
-        auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
-        auto event = qmp_object["event"];
-
-        if (!event.isNull())
-        {
-            if (event.toString() == "RESET" && state != State::restarting)
-            {
-                mpl::log(mpl::Level::info, vm_name, "VM restarting");
-                on_restart();
-            }
-            else if (event.toString() == "POWERDOWN")
-            {
-                mpl::log(mpl::Level::info, vm_name, "VM powering down");
-            }
-            else if (event.toString() == "SHUTDOWN")
-            {
-                mpl::log(mpl::Level::info, vm_name, "VM shut down");
-            }
-            else if (event.toString() == "STOP")
-            {
-                mpl::log(mpl::Level::info, vm_name, "VM suspending");
-            }
-            else if (event.toString() == "RESUME")
-            {
-                mpl::log(mpl::Level::info, vm_name, "VM suspended");
-                if (state == State::suspending || state == State::running)
-                {
-                    vm_process->kill();
-                    on_suspend();
-                }
-            }
-        }
-    });
-
-    QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {
-        saved_error_msg = vm_process->read_all_standard_error().data();
-        mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
-    });
-
-    QObject::connect(vm_process.get(), &Process::state_changed, [this](QProcess::ProcessState newState) {
-        mpl::log(mpl::Level::info, vm_name,
-                 fmt::format("process state changed to {}", utils::qenum_to_string(newState)));
-    });
-
-    QObject::connect(
-        vm_process.get(), &Process::error_occurred, [this](QProcess::ProcessError error, QString error_string) {
-            // We just kill the process when suspending, so we don't want to print
-            // out any scary error messages for this state
-            if (update_shutdown_status)
-            {
-                mpl::log(mpl::Level::error, vm_name,
-                         fmt::format("process error occurred {} {}", utils::qenum_to_string(error), error_string));
-                on_error();
-            }
-        });
-
-    QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
-        if (process_state.exit_code)
-        {
-            mpl::log(mpl::Level::info, vm_name,
-                     fmt::format("process finished with exit code {}", process_state.exit_code.value()));
-        }
-        if (process_state.error)
-        {
-            if (process_state.error->state == QProcess::Crashed &&
-                (state == State::suspending || state == State::suspended))
-            {
-                // when suspending, we ask Qemu to savevm. Once it confirms that's done, we kill it. Catch the "crash"
-                mpl::log(mpl::Level::debug, vm_name, "Suspended VM successfully stopped");
-            }
-            else
-            {
-                mpl::log(mpl::Level::error, vm_name, fmt::format("error: {}", process_state.error->message));
-            }
-        }
-
-        if (update_shutdown_status || state == State::starting)
-        {
-            on_shutdown();
-        }
-    });
-
     QObject::connect(this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
                      [this] {
                          mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
@@ -301,14 +209,23 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
 {
-    update_shutdown_status = false;
-    if (state == State::running)
-        suspend();
-    else
-        shutdown();
+    if (vm_process)
+    {
+        update_shutdown_status = false;
+
+        if (state == State::running)
+        {
+            suspend();
+        }
+        else
+        {
+            shutdown();
+        }
+
+        vm_process->wait_for_finished();
+    }
 
     remove_tap_device(QString::fromStdString(tap_device_name));
-    vm_process->wait_for_finished();
 }
 
 void mp::QemuVirtualMachine::start()
@@ -319,11 +236,11 @@ void mp::QemuVirtualMachine::start()
     if (state == State::suspending)
         throw std::runtime_error("cannot start the instance while suspending");
 
+    initialize_vm_process();
+
     if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
-
-        auto metadata = monitor->retrieve_metadata_for(vm_name);
 
         update_shutdown_status = true;
         delete_memory_snapshot = true;
@@ -396,6 +313,7 @@ void mp::QemuVirtualMachine::suspend()
 
             update_shutdown_status = false;
             vm_process->wait_for_finished();
+            vm_process.reset(nullptr);
         }
     }
     else if (state == State::off || state == State::suspended)
@@ -448,6 +366,7 @@ void mp::QemuVirtualMachine::on_shutdown()
 
     ip = nullopt;
     update_state();
+    vm_process.reset(nullptr);
     lock.unlock();
     monitor->on_shutdown();
 }
@@ -537,4 +456,101 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     {
         emit on_delete_memory_snapshot();
     }
+}
+
+void mp::QemuVirtualMachine::initialize_vm_process()
+{
+    vm_process = make_qemu_process(
+        desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
+        tap_device_name);
+
+    QObject::connect(vm_process.get(), &Process::started, [this]() {
+        mpl::log(mpl::Level::info, vm_name, "process started");
+        on_started();
+    });
+
+    QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
+        auto qmp_output = vm_process->read_all_standard_output();
+        mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output));
+        auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
+        auto event = qmp_object["event"];
+
+        if (!event.isNull())
+        {
+            if (event.toString() == "RESET" && state != State::restarting)
+            {
+                mpl::log(mpl::Level::info, vm_name, "VM restarting");
+                on_restart();
+            }
+            else if (event.toString() == "POWERDOWN")
+            {
+                mpl::log(mpl::Level::info, vm_name, "VM powering down");
+            }
+            else if (event.toString() == "SHUTDOWN")
+            {
+                mpl::log(mpl::Level::info, vm_name, "VM shut down");
+            }
+            else if (event.toString() == "STOP")
+            {
+                mpl::log(mpl::Level::info, vm_name, "VM suspending");
+            }
+            else if (event.toString() == "RESUME")
+            {
+                mpl::log(mpl::Level::info, vm_name, "VM suspended");
+                if (state == State::suspending || state == State::running)
+                {
+                    vm_process->kill();
+                    on_suspend();
+                }
+            }
+        }
+    });
+
+    QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {
+        saved_error_msg = vm_process->read_all_standard_error().data();
+        mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
+    });
+
+    QObject::connect(vm_process.get(), &Process::state_changed, [this](QProcess::ProcessState newState) {
+        mpl::log(mpl::Level::info, vm_name,
+                 fmt::format("process state changed to {}", utils::qenum_to_string(newState)));
+    });
+
+    QObject::connect(
+        vm_process.get(), &Process::error_occurred, [this](QProcess::ProcessError error, QString error_string) {
+            // We just kill the process when suspending, so we don't want to print
+            // out any scary error messages for this state
+            if (update_shutdown_status)
+            {
+                mpl::log(mpl::Level::error, vm_name,
+                         fmt::format("process error occurred {} {}", utils::qenum_to_string(error), error_string));
+                on_error();
+            }
+        });
+
+    QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
+        if (process_state.exit_code)
+        {
+            mpl::log(mpl::Level::info, vm_name,
+                     fmt::format("process finished with exit code {}", process_state.exit_code.value()));
+        }
+        if (process_state.error)
+        {
+            if (process_state.error->state == QProcess::Crashed &&
+                (state == State::suspending || state == State::suspended))
+            {
+                // when suspending, we ask Qemu to savevm. Once it confirms that's done, we kill it. Catch the "crash"
+                mpl::log(mpl::Level::debug, vm_name, "Suspended VM successfully stopped");
+            }
+            else
+            {
+                mpl::log(mpl::Level::error, vm_name, fmt::format("error: {}", process_state.error->message));
+            }
+        }
+
+        if (update_shutdown_status || state == State::starting)
+        {
+            on_shutdown();
+        }
+    });
 }
