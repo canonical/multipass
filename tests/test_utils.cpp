@@ -19,7 +19,9 @@
 
 #include "file_operations.h"
 #include "temp_dir.h"
+#include "temp_file.h"
 
+#include <QDateTime>
 #include <QRegExp>
 
 #include <gmock/gmock.h>
@@ -371,7 +373,7 @@ TEST(Utils, vm_stopped_returns_false)
     EXPECT_FALSE(mp::utils::is_running(state));
 }
 
-TEST(Utils, no_config_file_and_dir_are_created)
+TEST(Utils, absent_config_file_and_dir_are_created)
 {
     mpt::TempDir temp_dir;
     const QString config_file_path{QString("%1/config_dir/config").arg(temp_dir.path())};
@@ -379,4 +381,18 @@ TEST(Utils, no_config_file_and_dir_are_created)
     mp::utils::check_and_create_config_file(config_file_path);
 
     EXPECT_TRUE(QFile::exists(config_file_path));
+}
+
+TEST(Utils, existing_config_file_is_untouched)
+{
+    mpt::TempFile config_file;
+    QFileInfo config_file_info{config_file.name()};
+
+    auto original_last_modified = config_file_info.lastModified();
+
+    mp::utils::check_and_create_config_file(config_file.name());
+
+    auto new_last_modified = config_file_info.lastModified();
+
+    EXPECT_THAT(new_last_modified, Eq(original_last_modified));
 }
