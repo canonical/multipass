@@ -133,7 +133,10 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
 
 void cmd::GuiCmd::create_actions()
 {
-    config_watcher.addPath(Settings::get_client_settings_file_path());
+    auto client_config_path = Settings::get_client_settings_file_path();
+
+    mp::utils::check_and_create_config_file(client_config_path);
+    config_watcher.addPath(client_config_path);
     QObject::connect(&config_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString& path) {
         autostart_option.setChecked(Settings::instance().get_as<bool>(autostart_key));
         // Needed since the original watched file may be removed and opened as a new file
