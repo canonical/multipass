@@ -183,7 +183,7 @@ jobs:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
 
     - if: |
-        repo = CanonicalLtd/multipass
+        repo = canonical/multipass
                AND (type != pull_request
                     OR head_repo = repo)
       env: BUILD_TYPE=macOS
