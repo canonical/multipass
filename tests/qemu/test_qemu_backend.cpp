@@ -162,6 +162,8 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
     EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
@@ -172,6 +174,7 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
                              [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
                                  return process_info.command == "qemu-img";
                              }) != processes.cend());
+
     EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
                              [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
                                  return process_info.command.startsWith("qemu-system-");
@@ -186,6 +189,8 @@ TEST_F(QemuBackend, verify_some_common_qemu_arguments)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
     auto qemu = std::find_if(processes.cbegin(), processes.cend(),
@@ -217,6 +222,8 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
     auto qemu = std::find_if(processes.cbegin(), processes.cend(),
@@ -244,6 +251,8 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
     auto qemu = std::find_if(processes.cbegin(), processes.cend(),
@@ -268,6 +277,8 @@ TEST_F(QemuBackend, verify_qemu_command_version_when_resuming_suspend_image_usin
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
     auto qemu = std::find_if(processes.cbegin(), processes.cend(),
@@ -304,6 +315,8 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
     auto qemu = std::find_if(processes.cbegin(), processes.cend(),
