@@ -209,10 +209,19 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
 {
-    update_shutdown_status = false;
-    if (state == State::running)
+    if (vm_process)
     {
-        suspend();
+        update_shutdown_status = false;
+
+        if (state == State::running)
+        {
+            suspend();
+        }
+        else
+        {
+            shutdown();
+        }
+
         vm_process->wait_for_finished();
     }
 
