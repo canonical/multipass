@@ -63,7 +63,7 @@ private:
     void on_shutdown();
     void on_suspend();
     void on_restart();
-    void set_process_connections();
+    void initialize_vm_process();
 
     const std::string tap_device_name;
     const VirtualMachineDescription desc;

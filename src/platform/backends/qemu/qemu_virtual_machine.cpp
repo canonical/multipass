@@ -227,10 +227,7 @@ void mp::QemuVirtualMachine::start()
     if (state == State::suspending)
         throw std::runtime_error("cannot start the instance while suspending");
 
-    vm_process = make_qemu_process(
-        desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
-        tap_device_name);
-    set_process_connections();
+    initialize_vm_process();
 
     if (state == State::suspended)
     {
@@ -452,8 +449,12 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     }
 }
 
-void mp::QemuVirtualMachine::set_process_connections()
+void mp::QemuVirtualMachine::initialize_vm_process()
 {
+    vm_process = make_qemu_process(
+        desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
+        tap_device_name);
+
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
         on_started();
