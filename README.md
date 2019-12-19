@@ -14,7 +14,7 @@ deployment on your laptop or workstation.
 On Linux it's available as a snap:
 
 ```
-sudo snap install multipass --beta --classic
+sudo snap install multipass --classic
 ```
 
 For macOS, you can download the installers [from GitHub](https://github.com/canonical/multipass/releases) or [use Homebrew](https://github.com/Homebrew/brew):
