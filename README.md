@@ -14,16 +14,16 @@ deployment on your laptop or workstation.
 On Linux it's available as a snap:
 
 ```
-sudo snap install multipass --beta --classic
+sudo snap install multipass --classic
 ```
 
-For macOS, you can download the installers [from GitHub](https://github.com/CanonicalLtd/multipass/releases) or [use Homebrew](https://github.com/Homebrew/brew):
+For macOS, you can download the installers [from GitHub](https://github.com/canonical/multipass/releases) or [use Homebrew](https://github.com/Homebrew/brew):
 
 ```
 brew cask install multipass
 ```
 
-On Windows, download the installer [from GitHub](https://github.com/CanonicalLtd/multipass/releases).
+On Windows, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
 # Usage
 

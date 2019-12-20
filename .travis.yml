@@ -53,10 +53,10 @@ before_install:
     if [[ "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
           || "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_TAG_PATTERN} ]]; then
 
-      # publish pushes on beta/*
+      # publish pushes on candidate/*
       if [ "${TRAVIS_EVENT_TYPE}" == "push" ]; then
         MULTIPASS_PUBLISH="true"
-        MULTIPASS_SNAP_CHANNEL="beta/${BASH_REMATCH[1]}"
+        MULTIPASS_SNAP_CHANNEL="candidate/${BASH_REMATCH[1]}"
       fi
 
       # but report on the PR if it's a release branch
@@ -183,7 +183,7 @@ jobs:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
 
     - if: |
-        repo = CanonicalLtd/multipass
+        repo = canonical/multipass
                AND (type != pull_request
                     OR head_repo = repo)
       env: BUILD_TYPE=macOS

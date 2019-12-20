@@ -301,7 +301,7 @@ void mp::LibVirtVirtualMachine::start()
                                        "  2. multipass start {}\n"
                                        "  3. Save any data in the instance\n"
                                        "  4. multipass stop {}\n"
-                                       "  5. snap refresh multipass --channel beta\n"
+                                       "  5. snap refresh multipass --channel stable\n"
                                        "  6. multipass start {}\n",
                                        vm_name, vm_name, vm_name);
         }
