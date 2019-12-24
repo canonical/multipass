@@ -1355,7 +1355,7 @@ try // clang-format on
 
         auto& vm = it->second;
         if (vm->current_state() == VirtualMachine::State::unknown)
-            throw std::runtime_error("Cannot retreive credentials in unknown state");
+            throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
         if (!mp::utils::is_running(vm->current_state()))
         {
