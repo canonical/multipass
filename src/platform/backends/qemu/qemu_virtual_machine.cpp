@@ -295,8 +295,11 @@ void mp::QemuVirtualMachine::shutdown()
         if (state == State::starting)
             update_shutdown_status = false;
 
-        vm_process->kill();
-        vm_process->wait_for_finished();
+        if (vm_process)
+        {
+            vm_process->kill();
+            vm_process->wait_for_finished();
+        }
     }
 }
 
