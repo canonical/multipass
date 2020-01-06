@@ -393,7 +393,7 @@ void mp::QemuVirtualMachine::on_restart()
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (!vm_process->running())
+    if (!vm_process || !vm_process->running())
     {
         // Have to set 'off' here so there is an actual state change to compare to for
         // the cond var's predicate
