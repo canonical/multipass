@@ -87,6 +87,18 @@ TEST_F(QemuBackend, creates_in_off_state)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
+TEST_F(QemuBackend, machine_in_off_state_handles_shutdown)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+
+    machine->shutdown();
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
+
 TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
