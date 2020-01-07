@@ -11,12 +11,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 if(cmake_build_type_lower MATCHES "coverage")
-  add_compile_options(-ftest-coverage -fprofile-arcs)
-  link_libraries(gcov)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(--coverage)
+    if(COMMAND add_link_options)
+      add_link_options(--coverage)
+    else()
+      string(APPEND CMAKE_SHARED_LINKER_FLAGS " --coverage")
+      string(APPEND CMAKE_EXE_LINKER_FLAGS " --coverage")
+    endif()
+  else()
+    message(FATAL_ERROR "Coverage build only supported with GCC")
+  endif()
 endif()
 
 configure_file(
