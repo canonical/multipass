@@ -2,6 +2,18 @@
 # and protobuf not knowing so finding the system version instead
 include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # add_compile_options(--coverage)
+  if(COMMAND add_link_options)
+    add_link_options(--coverage)
+  else()
+    string(APPEND CMAKE_SHARED_LINKER_FLAGS " --coverage")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS " --coverage")
+  endif()
+else()
+  message(FATAL_ERROR "Coverage build only supported with GCC")
+endif()
+
 # Add the subdir here to avoid polluting their cmake scope
 add_subdirectory(grpc EXCLUDE_FROM_ALL)
 

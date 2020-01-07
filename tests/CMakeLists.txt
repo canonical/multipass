@@ -13,6 +13,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # add_compile_options(--coverage)
+  if(COMMAND add_link_options)
+    add_link_options(--coverage)
+  else()
+    string(APPEND CMAKE_SHARED_LINKER_FLAGS " --coverage")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS " --coverage")
+  endif()
+else()
+  message(FATAL_ERROR "Coverage build only supported with GCC")
+endif()
+
 set (CMAKE_AUTOMOC ON)
 
 include(c_mock_defines.cmake)
