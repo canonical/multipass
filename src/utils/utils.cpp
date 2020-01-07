@@ -334,6 +334,17 @@ bool mp::utils::is_running(const VirtualMachine::State& state)
     return state == VirtualMachine::State::running || state == VirtualMachine::State::delayed_shutdown;
 }
 
+void mp::utils::check_and_create_config_file(const QString& config_file_path)
+{
+    QFile config_file{config_file_path};
+
+    if (!config_file.exists())
+    {
+        make_dir({}, QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
+        config_file.open(QIODevice::WriteOnly);
+    }
+}
+
 void mp::utils::process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
                                        const QString& category)
 {

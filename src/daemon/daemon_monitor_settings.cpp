@@ -21,8 +21,6 @@
 #include <multipass/utils.h>
 
 #include <QCoreApplication>
-#include <QFile>
-#include <QFileInfo>
 #include <QFileSystemWatcher>
 #include <QObject>
 
@@ -31,18 +29,12 @@ namespace mp = multipass;
 namespace
 {
 constexpr const int settings_changed_code = 42;
-void init_settings(const QString& filename)
-{
-    mp::utils::make_dir({}, QFileInfo{filename}.dir().path()); // make sure parent dir is there
-    QFile file{filename};
-    file.open(QIODevice::WriteOnly | QIODevice::Append);
-}
 } // namespace
 
 void multipass::monitor_and_quit_on_settings_change() // temporary
 {
     static const auto filename = mp::Settings::get_daemon_settings_file_path();
-    init_settings(filename); // create if not there
+    mp::utils::check_and_create_config_file(filename); // create if not there
 
     static QFileSystemWatcher monitor{{filename}};
     QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
