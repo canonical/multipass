@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
 
 #include <multipass/format.h>
 
+#include <QStandardPaths>
+
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -40,6 +42,8 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
 
     const long timeout_secs = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
     const int nodelay{1};
+    auto ssh_dir =
+        QString("%1/.ssh").arg(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)).toStdString();
 
     set_option(SSH_OPTIONS_HOST, host.c_str());
     set_option(SSH_OPTIONS_PORT, &port);
@@ -48,6 +52,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     set_option(SSH_OPTIONS_NODELAY, &nodelay);
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
+    set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
     SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
     if (key_provider)
@@ -106,6 +111,8 @@ const char* name_for(ssh_options_e type)
         return "client to server ciphers";
     case SSH_OPTIONS_CIPHERS_S_C:
         return "server to client ciphers";
+    case SSH_OPTIONS_SSH_DIR:
+        return "ssh config directory";
     default:
         break;
     }
@@ -120,6 +127,7 @@ std::string as_string(ssh_options_e type, const void* value)
     case SSH_OPTIONS_USER:
     case SSH_OPTIONS_CIPHERS_C_S:
     case SSH_OPTIONS_CIPHERS_S_C:
+    case SSH_OPTIONS_SSH_DIR:
         return std::string(reinterpret_cast<const char*>(value));
     case SSH_OPTIONS_PORT:
     case SSH_OPTIONS_NODELAY:
