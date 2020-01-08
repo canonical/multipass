@@ -169,6 +169,7 @@ if(cmake_build_type_lower MATCHES "coverage")
         --remove coverage.info
         '/usr/*'
         ${CMAKE_SOURCE_DIR}'/3rd-party/*'
+        ${CMAKE_SOURCE_DIR}'/tests/*'
         ${CMAKE_BINARY_DIR}
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
