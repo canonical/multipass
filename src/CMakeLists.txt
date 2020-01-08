@@ -12,6 +12,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# these we want to apply even to 3rd-party
+if(cmake_build_type_lower MATCHES "coverage")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(--coverage)
+  else()
+    message(FATAL_ERROR "Coverage build only supported with GCC")
+  endif()
+endif()
+
 configure_file(
   version.h.in
   ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/version.h
