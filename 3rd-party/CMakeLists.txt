@@ -3,7 +3,7 @@
 include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  # add_compile_options(--coverage)
+  add_compile_options(--coverage)
   if(COMMAND add_link_options)
     add_link_options(--coverage)
   else()
