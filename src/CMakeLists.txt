@@ -14,7 +14,7 @@
 
 if(cmake_build_type_lower MATCHES "coverage")
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    add_compile_options(--coverage)
+    add_compile_options(--coverage -O0)
     if(COMMAND add_link_options)
       add_link_options(--coverage)
     else()
