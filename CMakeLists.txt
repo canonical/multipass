@@ -40,7 +40,21 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   endif()
 endif()
 
-# Needs to be here before we set our own compilation options
+# these we want to apply even to 3rd-party
+if(cmake_build_type_lower MATCHES "coverage")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(COMMAND add_link_options)
+      add_link_options(--coverage)
+    else()
+      string(APPEND CMAKE_SHARED_LINKER_FLAGS " --coverage")
+      string(APPEND CMAKE_EXE_LINKER_FLAGS " --coverage")
+    endif()
+  else()
+    message(FATAL_ERROR "Coverage build only supported with GCC")
+  endif()
+endif()
+
+# Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
 # Qt config
