@@ -10,7 +10,7 @@ Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey
 
 After chocolatey is installed you can now install the rest of the dependencies:
 
-    choco install visualcpp-build-tools cmake ninja golang yasm cmder qemu-img nsis -yfd
+    choco install visualcpp-build-tools cmake ninja golang cmder qemu-img nsis -yfd
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker.
 Search for Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable Real-time protection.
@@ -29,7 +29,14 @@ yasm is another assembler that works and will only output a warning on these opt
 
     choco uninstall nasm -y
     C:\Program Files\NASM\Uninstall.exe
-    choco install yasm -y
+
+The Chocolatey version of yasm is quite old and no longer able to assemble the latest updated gRPC code. If the Chocolatey version of yasm is installed, you will need to uninstall it:
+
+    choco uninstall yasm -y
+
+You will need to download the latest version of yasm from: http://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe
+
+This is a stand-alone binary, so you'll need to either copy it to a directory in your PATH or use "-DCMAKE_ASM_NASM_COMPILER=/path/to/yasm" in the cmake command. However, if you do copy it in your path, you will need to rename it to 'yasm.exe' in order for cmake to detect it.
 
 You may need to clean your build directory and run cmake again to pick up the yasm assembler path.
 
