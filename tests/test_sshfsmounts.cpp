@@ -100,7 +100,7 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exceptio
             exit_state.exit_code = 9;
 
             // Have "sshfs_server" die after short delay
-            QTimer::singleShot(100, process, [process, exit_state]() { emit process->finished(exit_state); });
+            QTimer::singleShot(100, process, [process]() { emit process->finished({9, {}}); });
 
             ON_CALL(*process, process_state()).WillByDefault(Return(exit_state));
         }

@@ -20,6 +20,7 @@ sudo snap install multipass --classic
 For macOS, you can download the installers [from GitHub](https://github.com/canonical/multipass/releases) or [use Homebrew](https://github.com/Homebrew/brew):
 
 ```
+# Note, this may require you to enter your password for some sudo operations during install
 brew cask install multipass
 ```
 

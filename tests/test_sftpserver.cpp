@@ -210,7 +210,7 @@ enum class Permission
 };
 bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permission perm_type)
 {
-    uint16_t qt_perm_mask, ssh_perm_mask, qt_bitshift, ssh_bitshift;
+    uint16_t qt_perm_mask{0u}, ssh_perm_mask{0u}, qt_bitshift{0u}, ssh_bitshift{0u};
 
     // Comparing file permissions, sftp uses octal format: (aaabbbccc), QFileInfo uses hex format (aaaa----bbbbcccc)
     switch (perm_type)
