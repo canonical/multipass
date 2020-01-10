@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,8 +11,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 set(WITH_ZLIB FALSE)
 set(WITH_EXAMPLES FALSE)
@@ -32,6 +30,10 @@ set(LIBSSH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libssh/include)
 # Needed only because of libssh install target
 set(LIB_INSTALL_DIR lib)
 set(BIN_INSTALL_DIR bin)
+
+set(BUILD_SHARED_LIBS ON)
+set(GLOBAL_CLIENT_CONFIG "/etc/ssh/ssh_config")
+set(GLOBAL_BIND_CONFIG "/etc/ssh/libssh_server_config")
 
 include_directories(${LIBSSH_INCLUDE_DIR})
 include_directories(${OPENSSL_INCLUDE_DIR})
@@ -82,4 +84,4 @@ target_include_directories(libssh INTERFACE
   ${LIBSSH_INCLUDE_DIR})
 
 target_link_libraries(libssh INTERFACE
-  ssh_shared)
+  ssh)
