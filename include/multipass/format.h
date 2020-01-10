@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ struct formatter<QString>
     template <typename FormatContext>
     auto format(const QString& a, FormatContext& ctx)
     {
-        return format_to(ctx.begin(), "{}", a.toStdString()); // TODO: remove the copy?
+        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
     }
 };
 
