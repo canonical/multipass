@@ -34,7 +34,7 @@ The Chocolatey version of yasm is quite old and no longer able to assemble the l
 
     choco uninstall yasm -y
 
-You will need to download the latest version of yasm from: http://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe
+You will need to download the latest version of yasm from: https://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe
 
 This is a stand-alone binary, so you'll need to either copy it to a directory in your PATH or use "-DCMAKE_ASM_NASM_COMPILER=/path/to/yasm" in the cmake command. However, if you do copy it in your path, you will need to rename it to 'yasm.exe' in order for cmake to detect it.
 
