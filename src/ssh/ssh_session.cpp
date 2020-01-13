@@ -25,6 +25,7 @@
 
 #include <multipass/format.h>
 
+#include <QDir>
 #include <QStandardPaths>
 
 #include <sstream>
@@ -43,7 +44,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     const long timeout_secs = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
     const int nodelay{1};
     auto ssh_dir =
-        QString("%1/.ssh").arg(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)).toStdString();
+        QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)).filePath("ssh").toStdString();
 
     set_option(SSH_OPTIONS_HOST, host.c_str());
     set_option(SSH_OPTIONS_PORT, &port);
