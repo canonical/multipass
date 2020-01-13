@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ struct formatter<multipass::FindReply_AliasInfo>
     template <typename FormatContext>
     auto format(const multipass::FindReply_AliasInfo& a, FormatContext& ctx)
     {
-        return format_to(ctx.begin(), "{}", a.alias());
+        return format_to(ctx.out(), "{}", a.alias());
     }
 };
 } // namespace fmt
