@@ -25,6 +25,7 @@
 #include <QVariant>
 
 #include <map>
+#include <mutex>
 #include <set>
 
 namespace multipass
@@ -51,6 +52,7 @@ private:
     void set_aux(const QString& key, QString val);
 
     std::map<QString, QString> defaults;
+    mutable std::mutex mutex;
 };
 } // namespace multipass
 

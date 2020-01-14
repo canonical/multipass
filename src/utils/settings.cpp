@@ -97,16 +97,20 @@ void check_status(const QSettings& settings, const QString& attempted_operation)
                                      : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
-QString checked_get(QSettings& settings, const QString& key, const QString& fallback)
+QString checked_get(QSettings& settings, const QString& key, const QString& fallback, std::mutex& mutex)
 {
+    std::scoped_lock lock{mutex};
+
     auto ret = settings.value(key, fallback).toString();
 
     check_status(settings, QStringLiteral("read"));
     return ret;
 }
 
-void checked_set(QSettings& settings, const QString& key, const QString& val)
+void checked_set(QSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
 {
+    std::scoped_lock lock{mutex};
+
     settings.setValue(key, val);
 
     settings.sync(); // flush to confirm we can write
@@ -148,7 +152,7 @@ QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
     auto settings = persistent_settings(key);
-    return checked_get(settings, key, default_ret);
+    return checked_get(settings, key, default_ret, mutex);
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
@@ -189,5 +193,5 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
 
     auto settings = persistent_settings(key);
-    checked_set(settings, key, val);
+    checked_set(settings, key, val, mutex);
 }
