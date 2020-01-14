@@ -66,7 +66,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
             std::locale::global(std::locale("C"));
             auto loads = mp::utils::split(info.load(), " ");
             for (const auto& entry : loads)
-                instance_node["load"].push_back(std::stod(entry));
+                instance_node["load"].push_back(entry);
             std::locale::global(current_loc);
         }
 
