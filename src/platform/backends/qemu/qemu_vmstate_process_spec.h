@@ -15,27 +15,20 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_DUMP_VMSTATE_PROCESS_SPEC_H
-#define MULTIPASS_QEMU_DUMP_VMSTATE_PROCESS_SPEC_H
+#ifndef MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H
+#define MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H
 
-#include <multipass/process_spec.h>
+#include "qemu_base_process_spec.h"
 
 namespace multipass
 {
 
-class QemuDumpVmStateProcessSpec : public ProcessSpec
+class QemuVmStateProcessSpec : public QemuBaseProcessSpec
 {
 public:
-    explicit QemuDumpVmStateProcessSpec(const QString& file_name);
+    explicit QemuVmStateProcessSpec(const QString& file_name);
 
-    QString program() const override;
     QStringList arguments() const override;
-    QString working_directory() const override;
-
-    QString apparmor_profile() const override
-    {
-        return QString();
-    }
 
 private:
     QString file_name;
@@ -43,4 +36,4 @@ private:
 
 } // namespace multipass
 
-#endif // MULTIPASS_QEMU_DUMP_VMSTATE_PROCESS_SPEC_H
+#endif // MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H

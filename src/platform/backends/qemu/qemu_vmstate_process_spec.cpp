@@ -15,31 +15,15 @@
  *
  */
 
-#include "qemu_dump_vmstate_process_spec.h"
-
-#include <multipass/snap_utils.h>
-#include <shared/linux/backend_utils.h>
+#include "qemu_vmstate_process_spec.h"
 
 namespace mp = multipass;
-namespace mu = multipass::utils;
 
-mp::QemuDumpVmStateProcessSpec::QemuDumpVmStateProcessSpec(const QString& file_name) : file_name{file_name}
+mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name) : file_name{file_name}
 {
 }
 
-QString mp::QemuDumpVmStateProcessSpec::program() const
-{
-    return "qemu-system-" + mp::backend::cpu_arch();
-}
-
-QStringList mp::QemuDumpVmStateProcessSpec::arguments() const
+QStringList mp::QemuVmStateProcessSpec::arguments() const
 {
     return {"-nographic", "-dump-vmstate", file_name};
-}
-
-QString mp::QemuDumpVmStateProcessSpec::working_directory() const
-{
-    if (mu::is_snap())
-        return mu::snap_dir().append("/qemu");
-    return QString();
 }

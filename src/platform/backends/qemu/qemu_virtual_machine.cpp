@@ -18,8 +18,8 @@
 #include "qemu_virtual_machine.h"
 
 #include "dnsmasq_server.h"
-#include "qemu_dump_vmstate_process_spec.h"
 #include "qemu_vm_process_spec.h"
+#include "qemu_vmstate_process_spec.h"
 #include <shared/linux/backend_utils.h>
 #include <shared/linux/process_factory.h>
 
@@ -168,7 +168,7 @@ auto get_qemu_machine_type()
         return QString();
     }
 
-    auto process_spec = std::make_unique<mp::QemuDumpVmStateProcessSpec>(dump_file.fileName());
+    auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName());
     auto process = mp::ProcessFactory::instance().create_process(std::move(process_spec));
     auto process_state = process->execute();
 
