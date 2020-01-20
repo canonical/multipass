@@ -532,10 +532,10 @@ MATCHER_P(YAMLSequenceContainsStringMap, values, "")
             continue;
         for (auto it = values.cbegin();; ++it)
         {
-            if (node[it->first].template as<std::string>() != it->second)
-                break;
-            else if (it == values.cend())
+            if (it == values.cend())
                 return true;
+            else if (node[it->first].template as<std::string>() != it->second)
+                break;
         }
     }
     return false;
