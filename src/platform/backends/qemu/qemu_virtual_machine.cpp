@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 
 #include "dnsmasq_server.h"
 #include "qemu_vm_process_spec.h"
+#include "qemu_vmstate_process_spec.h"
 #include <shared/linux/backend_utils.h>
 #include <shared/linux/process_factory.h>
 
@@ -167,11 +168,16 @@ auto get_qemu_machine_type()
         return QString();
     }
 
-    QProcess process;
-    process.setProgram("qemu-system-" + mp::backend::cpu_arch());
-    process.setArguments({"-nographic", "-dump-vmstate", dump_file.fileName()});
-    process.start();
-    process.waitForFinished();
+    auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName());
+    auto process = mp::ProcessFactory::instance().create_process(std::move(process_spec));
+    auto process_state = process->execute();
+
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(
+            fmt::format("Internal error: qemu-system-x86_64 failed getting vmstate ({}) with output:\n{}",
+                        process_state.failure_message(), process->read_all_standard_error()));
+    }
 
     auto vmstate = QJsonDocument::fromJson(dump_file.readAll()).object();
 

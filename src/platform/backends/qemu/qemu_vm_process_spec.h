@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,14 +18,15 @@
 #ifndef MULTIPASS_QEMU_PROCESS_H
 #define MULTIPASS_QEMU_PROCESS_H
 
+#include "qemu_base_process_spec.h"
+
 #include <multipass/optional.h>
-#include <multipass/process_spec.h>
 #include <multipass/virtual_machine_description.h>
 
 namespace multipass
 {
 
-class QemuVMProcessSpec : public ProcessSpec
+class QemuVMProcessSpec : public QemuBaseProcessSpec
 {
 public:
     struct ResumeData
@@ -41,9 +42,7 @@ public:
     explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QString& tap_device_name,
                                const multipass::optional<ResumeData>& resume_data);
 
-    QString program() const override;
     QStringList arguments() const override;
-    QString working_directory() const override;
 
     QString apparmor_profile() const override;
     QString identifier() const override;

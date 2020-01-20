@@ -2,6 +2,7 @@ target_sources(multipass_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_backend.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_vm_process_spec.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_qemu_vmstate_process_spec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_dnsmasq_server.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_dnsmasq_process_spec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_iptables_config.cpp
