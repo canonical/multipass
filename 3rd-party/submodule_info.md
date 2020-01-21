@@ -13,7 +13,7 @@ info on where to find release information about the submodule.
 
 ### Patches
 
-our patches on top
+We have [3 commits](https://github.com/CanonicalLtd/grpc/compare/c1d1765..3efaade) on top of the upstream version we use.
 
 ## Repository URL
 
@@ -30,6 +30,8 @@ our patches on top
 0.9.3
 
 ### Patches
+
+We have [2 commits](https://github.com/CanonicalLtd/libssh/compare/64ce53f..2608224) on top of the upstream version we use.
 our patches on top
 
 ## Repository URL
@@ -102,7 +104,7 @@ None
 
 ### Patches
 
-plus patches on top
+There are [6 commits](https://github.com/CanonicalLtd/semver/compare/6215a7f..e7d4ab2) on top of the upstream version we use.
 
 ## Repository URL
 
