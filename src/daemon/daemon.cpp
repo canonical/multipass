@@ -1435,7 +1435,8 @@ try // clang-format on
     for (const auto& name : vms)
     {
         auto it = vm_instances.find(name);
-        if (it->second->current_state() != VirtualMachine::State::starting)
+        auto state = it->second->current_state();
+        if (state != VirtualMachine::State::starting && state != VirtualMachine::State::restarting)
             it->second->start();
     }
 
