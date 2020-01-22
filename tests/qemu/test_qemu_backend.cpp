@@ -34,6 +34,8 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <scope_guard.hpp>
+
 #include <QJsonArray>
 #include <thread>
 
@@ -198,15 +200,18 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
                                               ensure_vm_is_running */
     }};
 
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(0.1s);
+    { // inner scope to ensure thread joined before destroyed
+        const auto joining_guard = sg::make_scope_guard([&finishing_thread] { finishing_thread.join(); });
 
-    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
-                         AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
-                               Property(&mp::StartException::what,
-                                        AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(0.1s); // yield not enough in practice
 
-    finishing_thread.join();
+        MP_EXPECT_THROW_THAT(
+            machine->ensure_vm_is_running(), mp::StartException,
+            AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
+                  Property(&mp::StartException::what,
+                           AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+    }
 }
 
 TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
