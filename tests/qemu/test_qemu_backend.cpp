@@ -35,6 +35,7 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <QJsonArray>
+#include <thread>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -190,9 +191,22 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
     ON_CALL(*vmproc, running()).WillByDefault(Return(false)); /* simulate process not running anymore,
                                                                  to avoid blocking on destruction */
 
+    std::thread finishing_thread{[vmproc]() {
+        mp::ProcessState exit_state;
+        exit_state.exit_code = 1;
+        emit vmproc->finished(exit_state); /* note that this waits on a condition variable that is unblocked by
+                                              ensure_vm_is_running */
+    }};
+
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(0.1s);
+
     MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
                          AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
-                               Property(&mp::StartException::what, HasSubstr(error_msg))));
+                               Property(&mp::StartException::what,
+                                        AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+
+    finishing_thread.join();
 }
 
 TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
