@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,33 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_FORMAT_H
-#define MULTIPASS_FORMAT_H
+#include "qemu_vmstate_process_spec.h"
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <QString>
+namespace mp = multipass;
 
-namespace fmt
+mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name) : file_name{file_name}
 {
+}
 
-template <>
-struct formatter<QString>
+QStringList mp::QemuVmStateProcessSpec::arguments() const
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
-    template <typename FormatContext>
-    auto format(const QString& a, FormatContext& ctx)
-    {
-        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
-    }
-};
-
-} // namespace fmt
-
-
-#endif // MULTIPASS_FORMAT_H
+    return {"-nographic", "-dump-vmstate", file_name};
+}

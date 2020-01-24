@@ -517,7 +517,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "    release: Ubuntu 16.04.3 LTS\n"
      "    load:\n"
      "      - 0.03\n"
-     "      - 0.1\n"
+     "      - 0.10\n"
      "      - 0.15\n"
      "    disks:\n"
      "      - sda1:\n"

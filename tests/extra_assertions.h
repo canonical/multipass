@@ -22,7 +22,7 @@
 
 // Extra macros for testing exceptions.
 //
-//    * MP_{ASSERT|EXPECT}_THROW_THAT(statement, expected_exception):
+//    * MP_{ASSERT|EXPECT}_THROW_THAT(statement, expected_exception, matcher):
 //         Tests that the statement throws an exception of the expected type, matching the provided matcher
 #define MP_EXPECT_THROW_THAT(statement, expected_exception, matcher)                                                   \
     EXPECT_THROW(                                                                                                      \

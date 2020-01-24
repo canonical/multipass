@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,33 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_FORMAT_H
-#define MULTIPASS_FORMAT_H
+#include <src/platform/backends/qemu/qemu_vmstate_process_spec.h>
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <QString>
+#include "tests/mock_environment_helpers.h"
+#include <gmock/gmock.h>
 
-namespace fmt
+#include <QStringList>
+
+namespace mp = multipass;
+using namespace testing;
+
+struct TestQemuVmStateProcessSpec : public Test
 {
-
-template <>
-struct formatter<QString>
-{
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
-    template <typename FormatContext>
-    auto format(const QString& a, FormatContext& ctx)
-    {
-        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
-    }
+    QString file_name{"foo"};
 };
 
-} // namespace fmt
+TEST_F(TestQemuVmStateProcessSpec, default_arguments_correct)
+{
+    mp::QemuVmStateProcessSpec spec{file_name};
 
-
-#endif // MULTIPASS_FORMAT_H
+    EXPECT_EQ(spec.arguments(), QStringList({"-nographic", "-dump-vmstate", file_name}));
+}

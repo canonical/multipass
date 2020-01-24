@@ -59,6 +59,7 @@ void mpt::MockProcessFactory::register_callback(const mpt::MockProcessFactory::C
 
 std::unique_ptr<mp::test::MockProcessFactory::Scope> mp::test::MockProcessFactory::Inject()
 {
+    ProcessFactory::reset();
     ProcessFactory::mock<MockProcessFactory>();
     return std::make_unique<mp::test::MockProcessFactory::Scope>();
 }

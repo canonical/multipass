@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -27,7 +27,7 @@ function(add_ssh_target TARGET_NAME)
     Qt5::Core)
 endfunction()
 
-add_ssh_target(ssh)
+add_ssh_target(ssh_common)
 if(MULTIPASS_ENABLE_TESTS)
   add_ssh_target(ssh_test)
 endif()

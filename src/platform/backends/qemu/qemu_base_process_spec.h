@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,33 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_FORMAT_H
-#define MULTIPASS_FORMAT_H
+#ifndef MULTIPASS_QEMU_BASE_PROCESS_SPEC_H
+#define MULTIPASS_QEMU_BASE_PROCESS_SPEC_H
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <QString>
+#include <multipass/process_spec.h>
 
-namespace fmt
+namespace multipass
 {
 
-template <>
-struct formatter<QString>
+class QemuBaseProcessSpec : public ProcessSpec
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
+public:
+    QemuBaseProcessSpec() = default;
 
-    template <typename FormatContext>
-    auto format(const QString& a, FormatContext& ctx)
-    {
-        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
-    }
+    QString program() const override;
+    QString working_directory() const override;
+    QString apparmor_profile() const override;
 };
 
-} // namespace fmt
+} // namespace multipass
 
-
-#endif // MULTIPASS_FORMAT_H
+#endif // MULTIPASS_QEMU_BASE_PROCESS_SPEC_H

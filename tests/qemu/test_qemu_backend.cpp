@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
+#include "tests/extra_assertions.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_status_monitor.h"
@@ -27,12 +28,16 @@
 #include "tests/temp_file.h"
 #include "tests/test_with_mocked_bin_path.h"
 
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <scope_guard.hpp>
+
 #include <QJsonArray>
+#include <thread>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -145,6 +150,68 @@ TEST_F(QemuBackend, throws_when_starting_while_suspending)
     machine->state = mp::VirtualMachine::State::suspending;
 
     EXPECT_THROW(machine->start(), std::runtime_error);
+}
+
+TEST_F(QemuBackend, throws_when_shutdown_while_starting)
+{
+    auto factory = mpt::MockProcessFactory::Inject();
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    machine->state = mp::VirtualMachine::State::starting;
+    machine->shutdown();
+    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
+                         Property(&mp::StartException::name, Eq(machine->vm_name)));
+}
+
+TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
+{
+    constexpr auto error_msg = "failing spectacularly";
+    mpt::MockProcess* vmproc = nullptr;
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback([&vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith("qemu-system-") &&
+            !process->arguments().contains("-dump-vmstate")) // we only care about the actual vm process
+        {
+            vmproc = process; // save this to control later
+            EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return(error_msg));
+        }
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+
+    machine->start(); // we need this so that Process signals get connected to their handlers
+    EXPECT_EQ(machine->state, mp::VirtualMachine::State::starting);
+
+    ASSERT_TRUE(vmproc);
+    emit vmproc->ready_read_standard_error();                 // fake process standard error having something to read
+    ON_CALL(*vmproc, running()).WillByDefault(Return(false)); /* simulate process not running anymore,
+                                                                 to avoid blocking on destruction */
+
+    std::thread finishing_thread{[vmproc]() {
+        mp::ProcessState exit_state;
+        exit_state.exit_code = 1;
+        emit vmproc->finished(exit_state); /* note that this waits on a condition variable that is unblocked by
+                                              ensure_vm_is_running */
+    }};
+
+    { // inner scope to ensure thread joined before destroyed
+        const auto joining_guard = sg::make_scope_guard([&finishing_thread] { finishing_thread.join(); });
+
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(0.1s); // yield not enough in practice
+
+        MP_EXPECT_THROW_THAT(
+            machine->ensure_vm_is_running(), mp::StartException,
+            AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
+                  Property(&mp::StartException::what,
+                           AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+    }
 }
 
 TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)

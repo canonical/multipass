@@ -45,6 +45,7 @@ endif()
 # these we want to apply even to 3rd-party
 if(cmake_build_type_lower MATCHES "coverage")
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(--coverage)
     if(COMMAND add_link_options)
       add_link_options(--coverage)
     else()
@@ -181,6 +182,7 @@ if(cmake_build_type_lower MATCHES "coverage")
         --remove coverage.info
         '/usr/*'
         ${CMAKE_SOURCE_DIR}'/3rd-party/*'
+        ${CMAKE_SOURCE_DIR}'/tests/*'
         ${CMAKE_BINARY_DIR}
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info

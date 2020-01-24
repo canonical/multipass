@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,11 +84,6 @@ mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& de
 {
 }
 
-QString mp::QemuVMProcessSpec::program() const
-{
-    return "qemu-system-" + mp::backend::cpu_arch();
-}
-
 QStringList mp::QemuVMProcessSpec::arguments() const
 {
     QStringList args;
@@ -159,13 +154,6 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     }
 
     return args;
-}
-
-QString mp::QemuVMProcessSpec::working_directory() const
-{
-    if (mu::is_snap())
-        return mu::snap_dir().append("/qemu");
-    return QString();
 }
 
 QString mp::QemuVMProcessSpec::apparmor_profile() const
