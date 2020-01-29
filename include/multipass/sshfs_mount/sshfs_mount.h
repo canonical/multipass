@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,12 @@ class SftpServer;
 class SshfsMount
 {
 public:
+    enum class SshfsPkgType
+    {
+        debian,
+        snap
+    };
+
     SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
                const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map);
     SshfsMount(SshfsMount&& other);
