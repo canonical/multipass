@@ -472,7 +472,7 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
-        desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
+        desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : std::nullopt),
         tap_device_name);
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {

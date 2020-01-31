@@ -33,10 +33,10 @@ using namespace testing;
 
 namespace
 {
-const auto success = mp::ProcessState{0, mp::nullopt};
-const auto failure = mp::ProcessState{1, mp::nullopt};
-const auto crash = mp::ProcessState{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
-const auto null_string_matcher = static_cast<std::optional<decltype(_)>>(mp::nullopt);
+const auto success = mp::ProcessState{0, std::nullopt};
+const auto failure = mp::ProcessState{1, std::nullopt};
+const auto crash = mp::ProcessState{std::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
+const auto null_string_matcher = static_cast<std::optional<decltype(_)>>(std::nullopt);
 
 QByteArray fake_img_info(const mp::MemorySize& size)
 {

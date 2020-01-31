@@ -728,7 +728,7 @@ std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(co
         return it->second;
     }
 
-    return mp::nullopt;
+    return std::nullopt;
 }
 
 mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, const VMImage& prepared_image,

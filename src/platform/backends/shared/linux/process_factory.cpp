@@ -66,12 +66,12 @@ std::optional<mp::AppArmor> create_apparmor()
     if (qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
     {
         mpl::log(mpl::Level::warning, "apparmor", "AppArmor disabled by environment variable");
-        return mp::nullopt;
+        return std::nullopt;
     }
     else if (mp::utils::get_driver_str() == "libvirt")
     {
         mpl::log(mpl::Level::info, "apparmor", "libvirt backend disables Multipass' AppArmor support");
-        return mp::nullopt;
+        return std::nullopt;
     }
     else
     {
@@ -83,7 +83,7 @@ std::optional<mp::AppArmor> create_apparmor()
         catch (mp::AppArmorException& e)
         {
             mpl::log(mpl::Level::warning, "apparmor", fmt::format("Failed to enable AppArmor: {}", e.what()));
-            return mp::nullopt;
+            return std::nullopt;
         }
     }
 }

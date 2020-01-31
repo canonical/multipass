@@ -41,7 +41,7 @@ struct TestQemuVMProcessSpec : public Test
 
 TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, std::nullopt);
 
     EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
                                              "-device",
@@ -160,14 +160,14 @@ TEST_F(TestQemuVMProcessSpec, resume_with_missing_machine_type_guesses_correctly
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_has_correct_name)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, std::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.vm_name.qemu-system-"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_includes_disk_images)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, std::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/image rwk,"));
     EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/cloud_init.iso rk,"));
@@ -175,7 +175,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_includes_disk_images)
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_identifier)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, std::nullopt);
 
     EXPECT_EQ(spec.identifier(), "vm_name");
 }
@@ -185,7 +185,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
     QTemporaryDir snap_dir;
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, std::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
@@ -199,7 +199,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct
     QFile::link(snap_dir.path(), link_dir.path());
 
     mpt::SetEnvScope e("SNAP", link_dir.path().toUtf8());
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, std::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
@@ -208,7 +208,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
 {
     mpt::UnsetEnvScope e("SNAP");
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, tap_device_name, std::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));
     EXPECT_TRUE(spec.apparmor_profile().contains("/usr/share/seabios/* r,"));

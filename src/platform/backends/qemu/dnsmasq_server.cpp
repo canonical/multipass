@@ -101,7 +101,7 @@ std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw
         if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
             return std::optional<mp::IPAddress>{fields[ipv4_idx]};
     }
-    return mp::nullopt;
+    return std::nullopt;
 }
 
 void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
