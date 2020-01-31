@@ -58,7 +58,7 @@ public:
     void terminate() override
     {
         mp::ProcessState exit_state;
-        exit_state.exit_code = 0;
+        exit_state.exit_code = mp::make_optional(0);
         emit finished(exit_state);
     }
     void kill() override
@@ -108,7 +108,7 @@ public:
     mp::ProcessState execute(const int /*timeout*/ = 3000) override
     {
         mp::ProcessState process_state;
-        process_state.exit_code = 0;
+        process_state.exit_code = mp::make_optional(0);
         return process_state;
     }
 

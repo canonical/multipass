@@ -44,13 +44,13 @@ struct IPTablesConfig : public Test
             if (process->arguments().contains(goodbr0))
             {
                 mp::ProcessState exit_state;
-                exit_state.exit_code = 0;
+                exit_state.exit_code = mp::make_optional(0);
                 EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             }
             else if (process->arguments().contains(evilbr0))
             {
                 mp::ProcessState exit_state;
-                exit_state.exit_code = 1;
+                exit_state.exit_code = mp::make_optional(1);
                 EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
                 ON_CALL(*process, read_all_standard_error()).WillByDefault(Return("Evil bridge detected!\n"));
             }

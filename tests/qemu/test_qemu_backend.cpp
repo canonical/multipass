@@ -69,14 +69,14 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
+            exit_state.exit_code = mp::make_optional(0);
             ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
             ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(suspend_tag));
         }
         else if (process->program() == "iptables")
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
+            exit_state.exit_code = mp::make_optional(0);
             ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
         }
     };
@@ -195,7 +195,7 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
 
     std::thread finishing_thread{[vmproc]() {
         mp::ProcessState exit_state;
-        exit_state.exit_code = 1;
+        exit_state.exit_code = mp::make_optional(1);
         emit vmproc->finished(exit_state); /* note that this waits on a condition variable that is unblocked by
                                               ensure_vm_is_running */
     }};
@@ -378,7 +378,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
+            exit_state.exit_code = mp::make_optional(0);
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(suspend_tag));
         }
@@ -417,7 +417,7 @@ TEST_F(QemuBackend, returns_version_string)
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
+            exit_state.exit_code = mp::make_optional(0);
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(qemu_version_output));
         }
@@ -439,7 +439,7 @@ TEST_F(QemuBackend, returns_version_string_when_failed_parsing)
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
+            exit_state.exit_code = mp::make_optional(0);
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillRepeatedly(Return(qemu_version_output));
         }
@@ -459,7 +459,7 @@ TEST_F(QemuBackend, returns_version_string_when_errored)
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 1;
+            exit_state.exit_code = mp::make_optional(1);
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return("Standard output\n"));
             EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return("Standard error\n"));

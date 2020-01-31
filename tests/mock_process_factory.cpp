@@ -36,12 +36,12 @@ mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
                               std::vector<mpt::MockProcessFactory::ProcessInfo>& process_list)
     : spec{std::move(spec)}
 {
-    success_exit_state.exit_code = 0;
+    success_exit_state.exit_code = make_optional(0);
 
     ON_CALL(*this, start()).WillByDefault(Invoke([this] { emit started(); }));
     ON_CALL(*this, kill()).WillByDefault(Invoke([this] {
         mp::ProcessState exit_state;
-        exit_state.exit_code = 0;
+        exit_state.exit_code = mp::make_optional(0);
         emit finished(exit_state);
     }));
     ON_CALL(*this, running()).WillByDefault(Return(true));

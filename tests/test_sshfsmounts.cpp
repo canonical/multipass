@@ -97,7 +97,7 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exceptio
         if (process->program().contains("sshfs_server"))
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 9;
+            exit_state.exit_code = mp::make_optional(9);
 
             // Have "sshfs_server" die after short delay
             QTimer::singleShot(100, process, [process]() { emit process->finished({9, {}}); });
@@ -125,7 +125,7 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_causes_runtime_exception)
         if (process->program().contains("sshfs_server"))
         {
             mp::ProcessState exit_state;
-            exit_state.exit_code = 1;
+            exit_state.exit_code = mp::make_optional(1);
 
             // Have "sshfs_server" die after short delay
             ON_CALL(*process, read_all_standard_error()).WillByDefault(Return("Whoopsie"));

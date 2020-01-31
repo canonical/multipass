@@ -50,7 +50,7 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_
 
                 if (exit_status == QProcess::NormalExit)
                 {
-                    process_state.exit_code = exit_code;
+                    process_state.exit_code = mp::make_optional(exit_code);
                 }
                 else // crash
                 {
@@ -138,7 +138,7 @@ mp::ProcessState mp::BasicProcess::process_state() const
     }
     else if (process.state() != QProcess::Running && process.exitStatus() == QProcess::NormalExit)
     {
-        state.exit_code = process.exitCode();
+        state.exit_code = mp::make_optional(process.exitCode());
     }
 
     return state;
@@ -187,7 +187,7 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
         return exit_state;
     }
 
-    exit_state.exit_code = process.exitCode();
+    exit_state.exit_code = mp::make_optional(process.exitCode());
     return exit_state;
 }
 

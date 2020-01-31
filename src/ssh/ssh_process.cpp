@@ -58,7 +58,7 @@ private:
     static void channel_exit_status_cb(ssh_session, ssh_channel, int exit_status, void* userdata)
     {
         auto exit_code = reinterpret_cast<mp::optional<int>*>(userdata);
-        *exit_code = exit_status;
+        *exit_code = mp::make_optional(exit_status);
     }
     ssh_channel channel;
     ssh_channel_callbacks_struct cb{};
