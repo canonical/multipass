@@ -41,6 +41,14 @@ public:
     }
     using std::optional<T>::operator=;
     using std::optional<T>::optional;
+
+private:
+    constexpr const T* operator->() const;
+    constexpr T* operator->();
+    constexpr const T& operator*() const&;
+    constexpr T& operator*() &;
+    constexpr const T&& operator*() const&&;
+    constexpr T&& operator*() &&;
 };
 
 template <typename _Tp>
