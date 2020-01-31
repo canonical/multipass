@@ -156,7 +156,7 @@ TEST(BackendUtils, image_resizing_not_attempted_when_below_minimum)
     const auto qemuimg_info_result = success;
     const auto attempt_resize = false;
     const auto qemuimg_resize_result = success;
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr("below minimum"));
+    const auto throw_msg_matcher = std::make_optional(HasSubstr("below minimum"));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
@@ -171,7 +171,7 @@ TEST(BackendUtils, image_resize_detects_resizing_exit_failure_and_throws)
     const auto qemuimg_info_result = success;
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = failure;
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
+    const auto throw_msg_matcher = std::make_optional(HasSubstr("qemu-img failed"));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
@@ -187,7 +187,7 @@ TEST(BackendUtils, image_resize_detects_resizing_crash_failure_and_throws)
     const auto attempt_resize = true;
     const auto qemuimg_resize_result = crash;
     const auto throw_msg_matcher =
-        mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
+        std::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
@@ -202,8 +202,9 @@ TEST(BackendUtils, image_resizing_not_attempted_when_qemuimg_info_crashes)
     const auto qemuimg_info_result = crash;
     const auto attempt_resize = false;
     const auto qemuimg_resize_result = mp::ProcessState{};
-    const auto throw_msg_matcher = mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemuimg_info_output),
-                                                           HasSubstr(crash.failure_message().toStdString())));
+    const auto throw_msg_matcher =
+        std::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(qemuimg_info_output),
+                                 HasSubstr(crash.failure_message().toStdString())));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
@@ -218,7 +219,7 @@ TEST(BackendUtils, image_resizing_not_attempted_when_img_not_found)
     const auto qemuimg_info_result = failure;
     const auto attempt_resize = false;
     const auto qemuimg_resize_result = mp::ProcessState{};
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr(qemuimg_info_output));
+    const auto throw_msg_matcher = std::make_optional(HasSubstr(qemuimg_info_output));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
@@ -233,7 +234,7 @@ TEST(BackendUtils, image_resizing_not_attempted_when_minimum_size_not_understood
     const auto qemuimg_info_result = success;
     const auto attempt_resize = false;
     const auto qemuimg_resize_result = mp::ProcessState{};
-    const auto throw_msg_matcher = mp::make_optional(AllOf(HasSubstr("not"), HasSubstr("size")));
+    const auto throw_msg_matcher = std::make_optional(AllOf(HasSubstr("not"), HasSubstr("size")));
 
     test_image_resizing(img, min_size, request_size, qemuimg_info_output, qemuimg_info_result, attempt_resize,
                         qemuimg_resize_result, throw_msg_matcher);
