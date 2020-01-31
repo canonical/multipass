@@ -18,28 +18,13 @@
 #ifndef MULTIPASS_OPTIONAL_H
 #define MULTIPASS_OPTIONAL_H
 
-#if __has_include(<optional>) && __cplusplus > 201402L
-
 #include <optional>
+
 namespace multipass
 {
 using std::make_optional;
 using std::nullopt;
 using std::optional;
 } // namespace multipass
-
-#elif __has_include(<experimental/optional>)
-
-#include <experimental/optional>
-namespace multipass
-{
-using std::experimental::make_optional;
-using std::experimental::nullopt;
-using std::experimental::optional;
-} // namespace multipass
-
-#else
-#error "no optional implementation found!"
-#endif
 
 #endif // MULTIPASS_OPTIONAL_H
