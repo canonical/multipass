@@ -298,7 +298,7 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
 
-auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
+auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
 {
     try
     {
@@ -1995,7 +1995,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     {
         delayed_shutdown_instances.erase(name);
 
-        mp::optional<mp::SSHSession> session;
+        std::optional<mp::SSHSession> session;
         try
         {
             session = mp::SSHSession{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};

@@ -58,7 +58,7 @@ auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& 
 
 auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
-    mp::optional<mp::IPAddress> ip_address;
+    std::optional<mp::IPAddress> ip_address;
 
     mp::LibVirtVirtualMachine::ConnectionUPtr connection{nullptr, nullptr};
     try

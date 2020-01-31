@@ -85,7 +85,7 @@ mp::DNSMasqServer::~DNSMasqServer()
     }
 }
 
-mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
+std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
 {
     // DNSMasq leases entries consist of:
     // <lease expiration> <mac addr> <ipv4> <name> * * *
@@ -99,7 +99,7 @@ mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_
     {
         const auto fields = mp::utils::split(line, delimiter);
         if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
-            return mp::optional<mp::IPAddress>{fields[ipv4_idx]};
+            return std::optional<mp::IPAddress>{fields[ipv4_idx]};
     }
     return mp::nullopt;
 }

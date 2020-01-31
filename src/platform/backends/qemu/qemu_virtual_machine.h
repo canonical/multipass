@@ -68,7 +68,7 @@ private:
     const std::string tap_device_name;
     const VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
-    multipass::optional<IPAddress> ip;
+    std::optional<IPAddress> ip;
     const std::string mac_addr;
     const std::string username;
     DNSMasqServer* dnsmasq_server;

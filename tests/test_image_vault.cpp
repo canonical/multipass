@@ -51,9 +51,9 @@ const QDateTime default_last_modified{QDate(2019, 6, 25), QTime(13, 15, 0)};
 
 struct ImageHost : public mp::VMImageHost
 {
-    mp::optional<mp::VMImageInfo> info_for(const mp::Query& query) override
+    std::optional<mp::VMImageInfo> info_for(const mp::Query& query) override
     {
-        return mp::optional<mp::VMImageInfo>{mock_image_info};
+        return std::optional<mp::VMImageInfo>{mock_image_info};
     }
 
     std::vector<mp::VMImageInfo> all_info_for(const mp::Query& query) override

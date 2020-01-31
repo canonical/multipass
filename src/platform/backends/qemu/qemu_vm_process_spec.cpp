@@ -79,7 +79,7 @@ QString mp::QemuVMProcessSpec::default_machine_type()
 }
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
-                                         const multipass::optional<ResumeData>& resume_data)
+                                         const std::optional<ResumeData>& resume_data)
     : desc(desc), tap_device_name(tap_device_name), resume_data{resume_data}
 {
 }

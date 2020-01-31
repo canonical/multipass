@@ -36,7 +36,7 @@ namespace
 const auto success = mp::ProcessState{0, mp::nullopt};
 const auto failure = mp::ProcessState{1, mp::nullopt};
 const auto crash = mp::ProcessState{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
-const auto null_string_matcher = static_cast<mp::optional<decltype(_)>>(mp::nullopt);
+const auto null_string_matcher = static_cast<std::optional<decltype(_)>>(mp::nullopt);
 
 QByteArray fake_img_info(const mp::MemorySize& size)
 {
@@ -87,7 +87,7 @@ template <class Matcher>
 void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size, const mp::MemorySize& requested_size,
                          const char* qemuimg_info_output, const mp::ProcessState& qemuimg_info_result,
                          bool attempt_resize, const mp::ProcessState& qemuimg_resize_result,
-                         mp::optional<Matcher> throw_msg_matcher)
+                         std::optional<Matcher> throw_msg_matcher)
 {
     auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();

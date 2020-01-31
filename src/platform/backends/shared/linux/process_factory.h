@@ -38,7 +38,7 @@ public:
     std::unique_ptr<Process> create_process(const QString& command, const QStringList& = QStringList()) const;
 
 private:
-    const multipass::optional<AppArmor> apparmor;
+    const std::optional<AppArmor> apparmor;
 };
 
 } // namespace multipass

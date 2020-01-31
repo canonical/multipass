@@ -67,7 +67,7 @@ private:
     static MockProcessFactory& mock_instance();
     void register_callback(const Callback& callback);
     std::vector<ProcessInfo> process_list;
-    multipass::optional<Callback> callback;
+    std::optional<Callback> callback;
 };
 
 class MockProcess : public Process

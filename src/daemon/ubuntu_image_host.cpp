@@ -77,7 +77,7 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
 {
 }
 
-mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
+std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
 {
     auto key = key_from(query.release);
     mp::SimpleStreamsManifest* manifest;

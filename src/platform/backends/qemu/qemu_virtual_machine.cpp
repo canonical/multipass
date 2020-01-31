@@ -84,7 +84,7 @@ QStringList get_arguments(const QJsonObject& metadata)
     return args;
 }
 
-auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::optional<QJsonObject>& resume_metadata,
+auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
                        const std::string& tap_device_name)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
@@ -92,7 +92,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    mp::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
+    std::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
     if (resume_metadata)
     {
         const auto& data = resume_metadata.value();

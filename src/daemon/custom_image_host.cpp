@@ -181,7 +181,7 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono:
 {
 }
 
-mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
+std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
     auto custom_manifest = manifest_from(query.remote_name);
 

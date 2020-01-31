@@ -61,7 +61,7 @@ private:
     const mp::AppArmor& apparmor;
 };
 
-mp::optional<mp::AppArmor> create_apparmor()
+std::optional<mp::AppArmor> create_apparmor()
 {
     if (qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
     {

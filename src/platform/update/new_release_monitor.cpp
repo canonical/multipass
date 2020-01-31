@@ -114,7 +114,7 @@ mp::NewReleaseMonitor::NewReleaseMonitor(const QString& current_version,
 
 mp::NewReleaseMonitor::~NewReleaseMonitor() = default;
 
-mp::optional<mp::NewReleaseInfo> mp::NewReleaseMonitor::get_new_release() const
+std::optional<mp::NewReleaseInfo> mp::NewReleaseMonitor::get_new_release() const
 {
     return new_release;
 }

@@ -60,7 +60,7 @@ struct ProcessState
         return QString();
     }
 
-    multipass::optional<int> exit_code; // only set if process stops successfully. Can be set even if success() is false
+    std::optional<int> exit_code; // only set if process stops successfully. Can be set even if success() is false
 
     struct Error
     {
@@ -68,7 +68,7 @@ struct ProcessState
         QString message;              // human-readable error message
     };
 
-    multipass::optional<Error> error;
+    std::optional<Error> error;
 };
 
 class Process : public QObject
