@@ -20,8 +20,9 @@
 
 #include "qemu_base_process_spec.h"
 
-#include <multipass/optional.h>
 #include <multipass/virtual_machine_description.h>
+
+#include <optional>
 
 namespace multipass
 {

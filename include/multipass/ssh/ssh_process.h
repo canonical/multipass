@@ -18,12 +18,11 @@
 #ifndef MULTIPASS_SSH_PROCESS_H
 #define MULTIPASS_SSH_PROCESS_H
 
-#include <multipass/optional.h>
-
 #include <libssh/libssh.h>
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace multipass
@@ -52,7 +51,7 @@ private:
     ssh_session session;
     const std::string cmd;
     ChannelUPtr channel;
-    optional<int> exit_status;
+    std::optional<int> exit_status;
 
     friend class SftpServer;
 };

@@ -343,7 +343,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     else
     {
         std::string id;
-        optional<VMImage> source_image{nullopt};
+        std::optional<VMImage> source_image{std::nullopt};
         QFuture<VMImage> future;
 
         if (query.query_type == Query::Type::HttpDownload)
@@ -763,7 +763,7 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
 
         auto info = it->second->info_for(query);
 
-        if (info != nullopt)
+        if (info != std::nullopt)
             return *info;
     }
     else

@@ -21,9 +21,10 @@
 #include "libvirt_wrapper.h"
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
+
+#include <optional>
 
 namespace multipass
 {
@@ -62,7 +63,7 @@ private:
     std::string mac_addr;
     const std::string username;
     const VirtualMachineDescription desc;
-    optional<IPAddress> ip;
+    std::optional<IPAddress> ip;
     VMStatusMonitor* monitor;
     // Make this a reference since LibVirtVirtualMachineFactory can modify the name later
     const std::string& bridge_name;

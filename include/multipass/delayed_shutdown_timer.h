@@ -35,7 +35,7 @@ class DelayedShutdownTimer : public QObject
 
 public:
     using StopMounts = std::function<void(const std::string&)>;
-    DelayedShutdownTimer(VirtualMachine* virtual_machine, optional<SSHSession>&& session,
+    DelayedShutdownTimer(VirtualMachine* virtual_machine, std::optional<SSHSession>&& session,
                          const StopMounts& stop_mounts);
     ~DelayedShutdownTimer();
 
@@ -50,7 +50,7 @@ private:
 
     QTimer shutdown_timer;
     VirtualMachine* virtual_machine;
-    optional<SSHSession> ssh_session;
+    std::optional<SSHSession> ssh_session;
     const StopMounts stop_mounts;
     std::chrono::milliseconds delay;
     std::chrono::milliseconds time_remaining;

@@ -18,8 +18,8 @@
 #include "libvirt_virtual_machine.h"
 
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
@@ -28,7 +28,7 @@
 #include <QDir>
 #include <QXmlStreamReader>
 
-#include <multipass/format.h>
+#include <optional>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

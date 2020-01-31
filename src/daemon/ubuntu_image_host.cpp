@@ -114,7 +114,7 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& quer
         return with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info);
     }
 
-    return nullopt;
+    return std::nullopt;
 }
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& query)

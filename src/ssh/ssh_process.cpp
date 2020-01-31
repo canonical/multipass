@@ -84,7 +84,7 @@ mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd)
 
 int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
-    exit_status = nullopt;
+    exit_status = std::nullopt;
     ExitStatusCallback cb{channel.get(), exit_status};
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(), ssh_event_free};

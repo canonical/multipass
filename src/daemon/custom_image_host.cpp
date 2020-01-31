@@ -188,7 +188,7 @@ std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& quer
     auto it = custom_manifest->image_records.find(query.release);
 
     if (it == custom_manifest->image_records.end())
-        return nullopt;
+        return std::nullopt;
 
     return *it->second;
 }
@@ -198,7 +198,7 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& qu
     std::vector<mp::VMImageInfo> images;
 
     auto image = info_for(query);
-    if (image != nullopt)
+    if (image != std::nullopt)
         images.push_back(*image);
 
     return images;

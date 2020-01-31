@@ -19,10 +19,10 @@
 #define MULTIPASS_DNSMASQ_SERVER_H
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/path.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace multipass
@@ -36,7 +36,7 @@ public:
     DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 
-    optional<IPAddress> get_ip_for(const std::string& hw_addr);
+    std::optional<IPAddress> get_ip_for(const std::string& hw_addr);
     void release_mac(const std::string& hw_addr);
     void check_dnsmasq_running();
 

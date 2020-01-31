@@ -375,7 +375,7 @@ void mp::QemuVirtualMachine::on_shutdown()
         state = State::off;
     }
 
-    ip = nullopt;
+    ip = std::nullopt;
     update_state();
     vm_process.reset(nullptr);
     lock.unlock();
@@ -393,7 +393,7 @@ void mp::QemuVirtualMachine::on_restart()
     state = State::restarting;
     update_state();
 
-    ip = nullopt;
+    ip = std::nullopt;
 
     monitor->on_restart(vm_name);
 }

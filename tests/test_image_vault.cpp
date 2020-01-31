@@ -25,7 +25,6 @@
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
-#include <multipass/optional.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
@@ -36,6 +35,7 @@
 
 #include <gmock/gmock.h>
 
+#include <optional>
 #include <unordered_set>
 
 namespace mp = multipass;

@@ -21,9 +21,10 @@
 #include <memory>
 
 #include "apparmor.h"
-#include <multipass/optional.h>
 #include <multipass/process_spec.h>
 #include <multipass/singleton.h>
+
+#include <optional>
 
 namespace multipass
 {

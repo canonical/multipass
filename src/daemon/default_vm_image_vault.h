@@ -19,12 +19,12 @@
 #define MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H
 
 #include <multipass/days.h>
-#include <multipass/optional.h>
 #include <multipass/path.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
+#include <optional>
 
 #include <QDir>
 #include <QFuture>
@@ -61,7 +61,7 @@ public:
 
 private:
     VMImage image_instance_from(const std::string& name, const VMImage& prepared_image);
-    VMImage download_and_prepare_source_image(const VMImageInfo& info, optional<VMImage>& existing_source_image,
+    VMImage download_and_prepare_source_image(const VMImageInfo& info, std::optional<VMImage>& existing_source_image,
                                               const QDir& image_dir, const FetchType& fetch_type,
                                               const PrepareAction& prepare, const ProgressMonitor& monitor);
     VMImage extract_image_from(const std::string& instance_name, const VMImage& source_image,
@@ -69,7 +69,7 @@ private:
     VMImage extract_downloaded_image(const VMImage& source_image, const ProgressMonitor& monitor);
     VMImage fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image, const QDir& image_dir,
                                     const ProgressMonitor& monitor);
-    optional<QFuture<VMImage>> get_image_future(const std::string& id);
+    std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
     VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id);
     VMImageInfo info_for(const Query& query);
     VMImageInfo get_kernel_query_info(const std::string& name);
