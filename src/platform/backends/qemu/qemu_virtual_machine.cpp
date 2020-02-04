@@ -262,8 +262,10 @@ void mp::QemuVirtualMachine::start()
         auto process_state = vm_process->process_state();
         if (process_state.error)
         {
-            mpl::log(mpl::Level::error, vm_name, fmt::format("Qemu failed to start: {}", process_state.error->message));
-            throw std::runtime_error(fmt::format("failed to start qemu instance: {}", process_state.error->message));
+            mpl::log(mpl::Level::error, vm_name,
+                     fmt::format("Qemu failed to start: {}", process_state.error.value().message));
+            throw std::runtime_error(
+                fmt::format("failed to start qemu instance: {}", process_state.error.value().message));
         }
         else if (process_state.exit_code)
         {
@@ -547,7 +549,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         }
         if (process_state.error)
         {
-            if (process_state.error->state == QProcess::Crashed &&
+            if (process_state.error.value().state == QProcess::Crashed &&
                 (state == State::suspending || state == State::suspended))
             {
                 // when suspending, we ask Qemu to savevm. Once it confirms that's done, we kill it. Catch the "crash"
@@ -555,7 +557,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             }
             else
             {
-                mpl::log(mpl::Level::error, vm_name, fmt::format("error: {}", process_state.error->message));
+                mpl::log(mpl::Level::error, vm_name, fmt::format("error: {}", process_state.error.value().message));
             }
         }
 

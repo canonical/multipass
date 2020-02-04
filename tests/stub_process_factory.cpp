@@ -57,14 +57,13 @@ public:
     }
     void terminate() override
     {
-        mp::ProcessState exit_state;
-        exit_state.exit_code = mp::make_optional(0);
+        mp::ProcessState exit_state{0, mp::nullopt};
         emit finished(exit_state);
     }
     void kill() override
     {
-        mp::ProcessState exit_state;
-        exit_state.error->state = QProcess::Crashed;
+        mp::ProcessState exit_state{};
+        exit_state.error = mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")};
         emit finished(exit_state);
     }
 

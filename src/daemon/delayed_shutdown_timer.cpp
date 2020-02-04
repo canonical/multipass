@@ -32,14 +32,14 @@ void write_shutdown_message(mp::optional<mp::SSHSession>& ssh_session, const std
     {
         if (time_left > std::chrono::milliseconds::zero())
         {
-            ssh_session->exec(
+            ssh_session.value().exec(
                 fmt::format("wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
                             "--cancel {}' to cancel the shutdown.\"",
                             time_left.count(), time_left > std::chrono::minutes(1) ? "s" : "", name));
         }
         else
         {
-            ssh_session->exec(fmt::format("wall The system is going down for poweroff now"));
+            ssh_session.value().exec(fmt::format("wall The system is going down for poweroff now"));
         }
     }
 }
@@ -60,7 +60,7 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
             if (ssh_session)
             {
                 // exit_code() is here to make sure the command finishes before continuing in the dtor
-                ssh_session->exec("wall The system shutdown has been cancelled").exit_code();
+                ssh_session.value().exec("wall The system shutdown has been cancelled").exit_code();
             }
             mpl::log(mpl::Level::info, virtual_machine->vm_name, fmt::format("Cancelling delayed shutdown"));
             virtual_machine->state = VirtualMachine::State::running;

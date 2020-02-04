@@ -370,7 +370,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             if (running_future)
             {
                 monitor(LaunchProgress::WAITING, -1);
-                future = *running_future;
+                future = running_future.value();
             }
             else
             {
@@ -452,7 +452,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             if (running_future)
             {
                 monitor(LaunchProgress::WAITING, -1);
-                future = *running_future;
+                future = running_future.value();
             }
             else
             {
@@ -604,7 +604,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
     if (existing_source_image)
     {
-        source_image = *existing_source_image;
+        source_image = existing_source_image.value();
     }
     else
     {
@@ -764,7 +764,7 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
         auto info = it->second->info_for(query);
 
         if (info != nullopt)
-            return *info;
+            return info.value();
     }
     else
     {
@@ -774,7 +774,7 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
 
             if (info)
             {
-                return *info;
+                return info.value();
             }
         }
     }

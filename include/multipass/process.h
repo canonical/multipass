@@ -51,7 +51,7 @@ struct ProcessState
     {
         if (error)
         {
-            return error->message;
+            return error.value().message;
         }
         if (exit_code && exit_code.value() != 0)
         {

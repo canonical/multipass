@@ -130,7 +130,7 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
         {
             new_release = latest_release;
             mpl::log(mpl::Level::info, "update",
-                     fmt::format("A New Multipass release is available: {}", qPrintable(new_release->version)));
+                     fmt::format("A New Multipass release is available: {}", qPrintable(latest_release.version)));
         }
     }
     catch (const version::Parse_error& e)

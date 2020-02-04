@@ -109,7 +109,7 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
 
     if (throw_msg_matcher)
         MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(requested_size, img), std::runtime_error,
-                             Property(&std::runtime_error::what, *throw_msg_matcher));
+                             Property(&std::runtime_error::what, throw_msg_matcher.value()));
     else
         mp::backend::resize_instance_image(requested_size, img);
 

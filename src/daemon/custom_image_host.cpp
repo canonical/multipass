@@ -199,7 +199,7 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& qu
 
     auto image = info_for(query);
     if (image != nullopt)
-        images.push_back(*image);
+        images.push_back(image.value());
 
     return images;
 }

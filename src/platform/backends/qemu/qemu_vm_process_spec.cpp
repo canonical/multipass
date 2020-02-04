@@ -90,19 +90,19 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
     if (resume_data)
     {
-        if (resume_data->arguments.length() > 0)
+        if (resume_data.value().arguments.length() > 0)
         {
             // arguments used were saved externally, import them
-            args = resume_data->arguments;
+            args = resume_data.value().arguments;
         }
         else
         {
             // fall-back to reconstructing arguments
-            args = initial_qemu_arguments(desc, tap_device_name, resume_data->use_cdrom_flag);
+            args = initial_qemu_arguments(desc, tap_device_name, resume_data.value().use_cdrom_flag);
         }
 
         // need to append extra arguments for resume
-        QString machine_type = resume_data->machine_type;
+        QString machine_type = resume_data.value().machine_type;
         if (machine_type.isEmpty())
         {
             mpl::log(mpl::Level::info, desc.vm_name,
@@ -110,7 +110,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
             machine_type = default_machine_type();
         }
 
-        args << "-loadvm" << resume_data->suspend_tag;
+        args << "-loadvm" << resume_data.value().suspend_tag;
         args << "-machine" << machine_type;
     }
     else

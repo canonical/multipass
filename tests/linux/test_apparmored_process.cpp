@@ -99,8 +99,8 @@ TEST_F(ApparmoredProcessTest, execute_missing_command)
     EXPECT_FALSE(process_state.completed_successfully());
     EXPECT_FALSE(process_state.exit_code);
 
-    EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::ProcessError::FailedToStart, process_state.error->state);
+    ASSERT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::ProcessError::FailedToStart, process_state.error.value().state);
 }
 
 TEST_F(ApparmoredProcessTest, execute_crashing_command)
@@ -111,8 +111,8 @@ TEST_F(ApparmoredProcessTest, execute_crashing_command)
     EXPECT_FALSE(process_state.completed_successfully());
     EXPECT_FALSE(process_state.exit_code);
 
-    EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::ProcessError::Crashed, process_state.error->state);
+    ASSERT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::ProcessError::Crashed, process_state.error.value().state);
 }
 
 TEST_F(ApparmoredProcessTest, execute_good_command_with_positive_exit_code)
@@ -182,8 +182,8 @@ TEST_F(ApparmoredProcessTest, process_state_when_runs_but_fails_to_stop)
     process_state = process->process_state();
     EXPECT_FALSE(process_state.exit_code);
 
-    EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::Timedout, process_state.error->state);
+    ASSERT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::Timedout, process_state.error.value().state);
 }
 
 TEST_F(ApparmoredProcessTest, process_state_when_crashes_on_start)
@@ -196,8 +196,8 @@ TEST_F(ApparmoredProcessTest, process_state_when_crashes_on_start)
     auto process_state = process->process_state();
 
     EXPECT_FALSE(process_state.exit_code);
-    EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::Crashed, process_state.error->state);
+    ASSERT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::Crashed, process_state.error.value().state);
 }
 
 TEST_F(ApparmoredProcessTest, process_state_when_crashes_while_running)
@@ -212,8 +212,8 @@ TEST_F(ApparmoredProcessTest, process_state_when_crashes_while_running)
 
     auto process_state = process->process_state();
     EXPECT_FALSE(process_state.exit_code);
-    EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::Crashed, process_state.error->state);
+    ASSERT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::Crashed, process_state.error.value().state);
 }
 
 TEST_F(ApparmoredProcessTest, process_state_when_failed_to_start)
@@ -226,8 +226,8 @@ TEST_F(ApparmoredProcessTest, process_state_when_failed_to_start)
     auto process_state = process->process_state();
 
     EXPECT_FALSE(process_state.exit_code);
-    EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::FailedToStart, process_state.error->state);
+    ASSERT_TRUE(process_state.error);
+    EXPECT_EQ(QProcess::FailedToStart, process_state.error.value().state);
 }
 
 TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_immediately)

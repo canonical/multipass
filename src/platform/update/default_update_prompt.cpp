@@ -49,10 +49,10 @@ void mp::DefaultUpdatePrompt::populate(mp::UpdateInfo* update_info)
     auto new_release = monitor->get_new_release();
     if (new_release)
     {
-        update_info->set_version(new_release->version.toStdString());
-        update_info->set_url(new_release->url.toEncoded());
-        update_info->set_title(new_release->title.toStdString());
-        update_info->set_description(new_release->description.toStdString());
+        update_info->set_version(new_release.value().version.toStdString());
+        update_info->set_url(new_release.value().url.toEncoded());
+        update_info->set_title(new_release.value().title.toStdString());
+        update_info->set_description(new_release.value().description.toStdString());
         last_shown = std::chrono::system_clock::now();
     }
 }

@@ -40,7 +40,7 @@ TEST_F(BasicProcessTest, execute_missing_command)
     EXPECT_FALSE(process_state.exit_code);
 
     EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::ProcessError::FailedToStart, process_state.error->state);
+    EXPECT_EQ(QProcess::ProcessError::FailedToStart, process_state.error.value().state);
 }
 
 TEST_F(BasicProcessTest, execute_crashing_command)
@@ -52,7 +52,7 @@ TEST_F(BasicProcessTest, execute_crashing_command)
     EXPECT_FALSE(process_state.exit_code);
 
     EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::ProcessError::Crashed, process_state.error->state);
+    EXPECT_EQ(QProcess::ProcessError::Crashed, process_state.error.value().state);
 }
 
 TEST_F(BasicProcessTest, execute_good_command_with_positive_exit_code)
@@ -123,7 +123,7 @@ TEST_F(BasicProcessTest, process_state_when_runs_but_fails_to_stop)
     EXPECT_FALSE(process_state.exit_code);
 
     EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::Timedout, process_state.error->state);
+    EXPECT_EQ(QProcess::Timedout, process_state.error.value().state);
 }
 
 TEST_F(BasicProcessTest, process_state_when_crashes_on_start)
@@ -137,7 +137,7 @@ TEST_F(BasicProcessTest, process_state_when_crashes_on_start)
 
     EXPECT_FALSE(process_state.exit_code);
     EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::Crashed, process_state.error->state);
+    EXPECT_EQ(QProcess::Crashed, process_state.error.value().state);
 }
 
 TEST_F(BasicProcessTest, process_state_when_crashes_while_running)
@@ -153,7 +153,7 @@ TEST_F(BasicProcessTest, process_state_when_crashes_while_running)
     auto process_state = process.process_state();
     EXPECT_FALSE(process_state.exit_code);
     EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::Crashed, process_state.error->state);
+    EXPECT_EQ(QProcess::Crashed, process_state.error.value().state);
 }
 
 TEST_F(BasicProcessTest, process_state_when_failed_to_start)
@@ -167,7 +167,7 @@ TEST_F(BasicProcessTest, process_state_when_failed_to_start)
 
     EXPECT_FALSE(process_state.exit_code);
     EXPECT_TRUE(process_state.error);
-    EXPECT_EQ(QProcess::FailedToStart, process_state.error->state);
+    EXPECT_EQ(QProcess::FailedToStart, process_state.error.value().state);
 }
 
 TEST_F(BasicProcessTest, process_state_when_runs_and_stops_immediately)
