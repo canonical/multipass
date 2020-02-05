@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,11 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QNetworkProxy>
 
 #include <atomic>
 #include <chrono>
+#include <memory>
 
 class QUrl;
 class QString;
@@ -52,6 +54,7 @@ private:
 
     const Path cache_dir_path;
     std::chrono::milliseconds timeout;
+    std::unique_ptr<QNetworkProxy> network_proxy;
 };
 }
 #endif // MULTIPASS_URL_DOWNLOADER_H

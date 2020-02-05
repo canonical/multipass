@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -99,12 +99,48 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 
         const auto msg = reply->errorString().toStdString();
 
+        if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError)
+            reply->abort();
+
         if (abort_download)
             throw mp::AbortedDownloadException{msg};
         else
             throw mp::DownloadException{url.toString().toStdString(), download_timeout.isActive() ? msg : "Network timeout"};
     }
     return reply->readAll();
+}
+
+std::unique_ptr<QNetworkProxy> discover_http_proxy()
+{
+    std::unique_ptr<QNetworkProxy> proxy_ptr{nullptr};
+
+    QString http_proxy{qgetenv("http_proxy")};
+    if (http_proxy.isEmpty())
+    {
+        // Some OS's are case senstive
+        http_proxy = qgetenv("HTTP_PROXY");
+    }
+
+    if (!http_proxy.isEmpty())
+    {
+        if (!http_proxy.startsWith("http://"))
+        {
+            http_proxy.prepend("http://");
+        }
+
+        QUrl proxy_url{http_proxy};
+        const auto host = proxy_url.host();
+        const auto port = proxy_url.port();
+
+        auto network_proxy = QNetworkProxy(QNetworkProxy::HttpProxy, host, static_cast<quint16>(port),
+                                           proxy_url.userName(), proxy_url.password());
+
+        QNetworkProxy::setApplicationProxy(network_proxy);
+
+        proxy_ptr = std::make_unique<QNetworkProxy>(network_proxy);
+    }
+
+    return proxy_ptr;
 }
 } // namespace
 
@@ -113,7 +149,7 @@ mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : URLDownloa
 }
 
 mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::milliseconds timeout)
-    : cache_dir_path{QDir(cache_dir).filePath("network-cache")}, timeout{timeout}
+    : cache_dir_path{QDir(cache_dir).filePath("network-cache")}, timeout{timeout}, network_proxy{discover_http_proxy()}
 {
 }
 
