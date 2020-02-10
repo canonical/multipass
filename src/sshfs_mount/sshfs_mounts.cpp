@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -174,7 +174,7 @@ void mp::SSHFSMounts::stop_all_mounts_for_instance(const std::string& instance)
             sshfs_mount.second->terminate();
         }
     }
-    mount_processes.clear();
+    mount_processes[instance].clear();
 }
 
 bool mp::SSHFSMounts::has_instance_already_mounted(const std::string& instance, const std::string& path) const
