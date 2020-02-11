@@ -67,7 +67,7 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
 
     if (!http_proxy.isEmpty())
     {
-        if (!http_proxy.startsWith("http://"))
+        if (!http_proxy.contains("://"))
         {
             http_proxy.prepend("http://");
         }
