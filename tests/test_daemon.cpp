@@ -30,6 +30,7 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
+#include "mock_environment_helpers.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
@@ -367,6 +368,23 @@ TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
     EXPECT_TRUE(is_ready(status_promise.get_future()));
 }
 
+TEST_F(Daemon, proxy_contains_valid_info)
+{
+    QString username{"username"};
+    QString password{"password"};
+    QString hostname{"192.168.1.1"};
+    qint16 port{3128};
+    QString proxy = QString("%1:%2@%3:%4").arg(username).arg(password).arg(hostname).arg(port);
+
+    mpt::SetEnvScope env("http_proxy", proxy.toUtf8());
+
+    auto config = config_builder.build();
+
+    EXPECT_THAT(config->network_proxy->user(), username);
+    EXPECT_THAT(config->network_proxy->password(), password);
+    EXPECT_THAT(config->network_proxy->hostName(), hostname);
+    EXPECT_THAT(config->network_proxy->port(), port);
+}
 
 namespace
 {
