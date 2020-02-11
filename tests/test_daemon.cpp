@@ -47,7 +47,10 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <QNetworkProxyFactory>
 #include <QSysInfo>
+
+#include <scope_guard.hpp>
 
 #include <memory>
 #include <ostream>
@@ -370,6 +373,11 @@ TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
 
 TEST_F(Daemon, proxy_contains_valid_info)
 {
+    auto guard = sg::make_scope_guard([] {
+        // Resets proxy back to what the system is configured for
+        QNetworkProxyFactory::setUseSystemConfiguration(true);
+    });
+
     QString username{"username"};
     QString password{"password"};
     QString hostname{"192.168.1.1"};
