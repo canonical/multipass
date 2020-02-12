@@ -23,6 +23,19 @@
 
 namespace mp = multipass;
 
+mp::WindowsTerminal::WindowsTerminal()
+    : input_code_page{GetConsoleCP()}, output_code_page{GetConsoleOutputCP()}
+{
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+}
+
+mp::WindowsTerminal::~WindowsTerminal()
+{
+    SetConsoleCP(input_code_page);
+    SetConsoleOutputCP(output_code_page);
+}
+
 HANDLE mp::WindowsTerminal::cin_handle() const
 {
     return GetStdHandle(STD_INPUT_HANDLE);
