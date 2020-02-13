@@ -83,7 +83,7 @@ auto virtual_switch_subnet(const QString& bridge_name)
     if (subnet.isNull())
     {
         mpl::log(mpl::Level::info, "daemon",
-                 fmt::format("Unable to determine subnet for the {} subnet", qPrintable(bridge_name)));
+                 fmt::format("Unable to determine subnet for the {} subnet", qUtf8Printable(bridge_name)));
     }
     return subnet.toStdString();
 }
