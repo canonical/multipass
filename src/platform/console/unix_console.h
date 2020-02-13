@@ -30,8 +30,6 @@
 
 namespace multipass
 {
-class WindowChangedSignalHandler;
-
 class UnixConsole final : public Console
 {
 public:
@@ -50,8 +48,7 @@ private:
 
     UnixTerminal* term;
     struct termios saved_terminal;
-
-    std::unique_ptr<WindowChangedSignalHandler> handler;
+    struct sigaction winch_action;
 };
 } // namespace multipass
 #endif // MULTIPASS_UNIX_CONSOLE_H
