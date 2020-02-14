@@ -292,8 +292,6 @@ TEST_F(QemuBackend, verify_some_common_qemu_arguments)
 
 TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
 {
-    constexpr auto default_machine_type = "pc-i440fx-xenial";
-
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
@@ -313,8 +311,6 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-loadvm"));
     EXPECT_TRUE(qemu->arguments.contains(suspend_tag));
-    EXPECT_TRUE(qemu->arguments.contains("-machine"));
-    EXPECT_TRUE(qemu->arguments.contains(default_machine_type));
 }
 
 TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metadata)
