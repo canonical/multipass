@@ -125,9 +125,22 @@ function codesign_binaries {
         codesign -v --timestamp --options runtime --force --strict \
             --prefix com.canonical.multipass. \
             --sign "${SIGN_APP}" "{}" \;
+
+    # sign every bundle in the directory
+    find "${DIR}" -type d -name '*.app' -exec \
+        codesign -v --timestamp --options runtime --force --strict --deep \
+            --prefix com.canonical.multipass. \
+            --sign "${SIGN_APP}" "{}" \;
+
+    # sign hyperkit with the entitlement file
+    find "${DIR}" -type f -name hyperkit -exec \
+        codesign -v --timestamp --options runtime --force --strict \
+            --entitlements "${SCRIPTDIR}/hyperkit.entitlements.plist" \
+            --identifier com.canonical.multipass.hyperkit \
+            --sign "${SIGN_APP}" "{}" \;
 }
 
-
+SCRIPTDIR=$( dirname $( greadlink -f $0 ))
 
 WORKDIR=$(mktemp -d)
 function clean_workdir
