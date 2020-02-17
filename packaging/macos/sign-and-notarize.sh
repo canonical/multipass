@@ -30,6 +30,8 @@ function help_and_exit {
     echo "    --notarize-id <apple-id> --notarize-password <password>"
     echo "These are your Apple ID and the app-specific password for 'altool' - refer to this doc for details:"
     echo "https://developer.apple.com/documentation/security/notarizing_your_app_before_distribution/customizing_the_notarization_workflow "
+    echo ""
+    echo "You may also need to pass --notarize-provider <ProviderShortName>, see \`xcrun altool --list-providers\` if you have more than one."
     exit 1
 }
 
@@ -50,6 +52,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --notarize-password)
         NOTARIZE_PASSWORD="$2"
+        shift 2
+        ;;
+    --notarize-provider)
+        NOTARIZE_PROVIDER="$2"
         shift 2
         ;;
     -h|--help)
@@ -180,11 +186,17 @@ BUNDLE_ID="${TITLE}.${VERSION//+/-}.$(date +%s)"
 echo -n "Sending ${PKGFILENAME} for notarization..."
 _tmpout=$(mktemp)
 
+# optional notarization provider
+if [ -n "${NOTARIZE_PROVIDER}" ]; then
+    NOTARIZE_OPTS=( --asc-provider "${NOTARIZE_PROVIDER}" )
+fi
+
 set -x
 xcrun altool --notarize-app -f "${PKGFILENAME}" \
              --primary-bundle-id "${BUNDLE_ID}" \
              --username "${NOTARIZE_ID}" \
-             --password "${NOTARIZE_PASSWORD}" >${_tmpout} 2>&1
+             --password "${NOTARIZE_PASSWORD}" \
+             "${NOTARIZE_OPTS[@]}" >${_tmpout} 2>&1
 set +x
 
 # check the request uuid
