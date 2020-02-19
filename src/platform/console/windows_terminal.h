@@ -27,7 +27,8 @@ namespace multipass
 class WindowsTerminal : public Terminal
 {
 public:
-    virtual ~WindowsTerminal() = default;
+    explicit WindowsTerminal();
+    virtual ~WindowsTerminal();
 
     HANDLE cin_handle() const;
     HANDLE cout_handle() const;
@@ -37,6 +38,10 @@ public:
     bool cout_is_live() const override;
 
     std::string read_all_cin() override;
+
+private:
+    const UINT input_code_page;
+    const UINT output_code_page;
 };
 } // namespace multipass
 
