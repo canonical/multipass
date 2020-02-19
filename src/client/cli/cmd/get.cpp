@@ -36,7 +36,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     {
         try
         {
-            cout << qPrintable(Settings::instance().get(key)) << "\n";
+            cout << qUtf8Printable(Settings::instance().get(key)) << "\n";
         }
         catch (const SettingsException& e)
         {
