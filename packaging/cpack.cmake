@@ -72,6 +72,10 @@ if (MSVC)
   # and creats an install(PROGRAMS ...) rule using the destination and component IDs setup below.
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT multipassd)
+  if(cmake_build_type_lower STREQUAL "debug")
+    set(CMAKE_INSTALL_DEBUG_LIBRARIES TRUE)
+    set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
+  endif()
   include(InstallRequiredSystemLibraries)
 
   # The qemu-img path found may actually be a chocolatey generated shim.  Thankfully such shims have a command line
