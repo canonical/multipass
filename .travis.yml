@@ -133,8 +133,9 @@ jobs:
       - sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
       - ccache --zero-stats
 
-      # inject build identifier
+      # inject build identifier and upstream
       - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${MULTIPASS_BUILD_LABEL}" snap/snapcraft.yaml
+      - sed -i "/configflags:/a \    - -DMULTIPASS_UPSTREAM=${MULTIPASS_UPSTREAM}" snap/snapcraft.yaml
 
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'

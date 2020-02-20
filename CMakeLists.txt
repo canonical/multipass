@@ -63,8 +63,7 @@ find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
   # use upstream repo as the authoritative reference when checking for release status
-  # set MULTIPASS_UPSTREAM="*" to use the local repository
-  set(MULTIPASS_UPSTREAM $ENV{MULTIPASS_UPSTREAM})
+  # set -DMULTIPASS_UPSTREAM="" to use the local repository
   if(MULTIPASS_UPSTREAM)
     set(MULTIPASS_UPSTREAM "${MULTIPASS_UPSTREAM}/")
   endif()
@@ -83,7 +82,7 @@ function(determine_version OUTPUT_VARIABLE)
   # only use -rc tags on release/* branches
   string(REGEX MATCH "release/[0-9]+.[0-9]+" GIT_RELEASE_MATCH "${GIT_RELEASE_BRANCH}")
   if(GIT_RELEASE_MATCH)
-      if(NOT DEFINED ENV{MULTIPASS_UPSTREAM})
+      if(NOT DEFINED MULTIPASS_UPSTREAM)
         message(FATAL_ERROR "You need to set MULTIPASS_UPSTREAM for a release build.\
                              \nUse an empty string to make local the authoritative repository.")
       endif()
