@@ -52,8 +52,7 @@ struct SftpServer : public mp::test::SftpServerTest
     mp::SftpServer make_sftpserver(const std::string& path)
     {
         mp::SSHSession session{"a", 42};
-        return {std::move(session), path,       path,       default_map,
-                default_map,        default_id, default_id, mp::SshfsMount::SshfsPkgType::debian};
+        return {std::move(session), path, path, default_map, default_map, default_id, default_id, "sshfs"};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)

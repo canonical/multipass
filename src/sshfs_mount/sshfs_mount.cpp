@@ -27,6 +27,7 @@
 
 #include <QDir>
 #include <iostream>
+#include <sstream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -34,6 +35,10 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "sshfs mount";
+const std::string fuse_version_string{"FUSE library version "};
+const std::string ld_library_path_key{"LD_LIBRARY_PATH="};
+const std::string snap_path_key{"SNAP="};
+
 auto run_cmd(mp::SSHSession& session, std::string&& cmd)
 {
     auto ssh_process = session.exec(cmd);
@@ -43,31 +48,72 @@ auto run_cmd(mp::SSHSession& session, std::string&& cmd)
     return ssh_process.read_std_output();
 }
 
-mp::SshfsMount::SshfsPkgType get_sshfs_package_type(mp::SSHSession& session)
+auto match_line(std::istringstream& output, const std::string& matcher)
 {
+    output.seekg(0, output.beg);
+
+    std::string line;
+    while (std::getline(output, line, '\n'))
+    {
+        if (line.find(matcher) != std::string::npos)
+        {
+            return line;
+        }
+    }
+
+    return std::string{};
+}
+
+auto get_sshfs_exec_and_options(mp::SSHSession& session)
+{
+    std::string sshfs_exec;
+
     try
     {
-        // Prefer to use snap package version first
-        run_cmd(session, "snap list multipass-sshfs");
-        return mp::SshfsMount::SshfsPkgType::snap;
+        // Prefer to use Snap package version first
+        std::istringstream sshfs_env{run_cmd(session, "sudo multipass-sshfs.env")};
+
+        auto ld_library_path = match_line(sshfs_env, ld_library_path_key);
+        auto snap_path = match_line(sshfs_env, snap_path_key);
+        snap_path = snap_path.substr(snap_path_key.length());
+
+        sshfs_exec = fmt::format("{} {}/bin/sshfs", ld_library_path, snap_path);
     }
     catch (const std::exception& e)
     {
         mpl::log(mpl::Level::debug, category, fmt::format("'sshfs' snap package is not installed: {}", e.what()));
+
+        // Fallback to looking for distro version if snap is not found
+        try
+        {
+            sshfs_exec = run_cmd(session, "sudo which sshfs");
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("Unable to determine if 'sshfs' is installed: {}", e.what()));
+            throw mp::SSHFSMissingError();
+        }
     }
 
-    try
+    sshfs_exec = mp::utils::trim_end(sshfs_exec);
+
+    std::string fuse_version;
+    std::istringstream version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
+
+    auto fuse_version_line = match_line(version_info, fuse_version_string);
+    if (!fuse_version_line.empty())
     {
-        // Fallback to looking for Debian version if snap is not found
-        run_cmd(session, "which sshfs");
-        return mp::SshfsMount::SshfsPkgType::debian;
+        fuse_version = fuse_version_line.substr(fuse_version_string.length());
     }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("Unable to determine if 'sshfs' is installed: {}", e.what()));
-        throw mp::SSHFSMissingError();
-    }
+
+    sshfs_exec += " -o slave -o transform_symlinks -o allow_other";
+
+    // The option was removed in libfuse 3.0
+    if (fuse_version < "3")
+        sshfs_exec += " -o nonempty";
+
+    return sshfs_exec;
 }
 
 // Split a path into existing and to-be-created parts.
@@ -122,7 +168,7 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(source = {}, target = {}, …): ", __FILE__, __LINE__, __FUNCTION__, source, target));
 
-    auto sshfs_pkg_type = get_sshfs_package_type(session);
+    auto sshfs_exec_line = get_sshfs_exec_and_options(session);
 
     // Split the path in existing and missing parts.
     const auto& [leading, missing] = get_path_split(session, target);
@@ -142,7 +188,7 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     auto default_gid = std::stoi(output);
 
     return std::make_unique<mp::SftpServer>(std::move(session), source, target, gid_map, uid_map, default_uid,
-                                            default_gid, sshfs_pkg_type);
+                                            default_gid, sshfs_exec_line);
 }
 
 } // namespace

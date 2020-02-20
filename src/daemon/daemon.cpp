@@ -77,8 +77,9 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
-const std::string sshfs_error_template = "Error enabling mount support in '{}'"
-                                         "\n\nPlease install 'sshfs' manually inside the instance.";
+const std::string sshfs_error_template =
+    "Error enabling mount support in '{}'"
+    "\n\nPlease install the 'multipass-sshfs' snap package manually inside the instance.";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -2067,9 +2068,10 @@ void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed for \'{}\'", name));
         throw std::runtime_error(
-            fmt::format("Snap support needs to be installed for \'{}\' in order to support mounts. "
-                        "Please see https://docs.snapcraft.io/installing-snapd for information on "
-                        "how to install Snap support for your instance's distribution.",
+            fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts.\n\n"
+                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
+                        "\nhow to install Snap support for your instance's distribution."
+                        "\n\nAlternatively, install `sshfs` manually inside the instance.",
                         name));
     }
 
