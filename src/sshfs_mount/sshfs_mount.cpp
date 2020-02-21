@@ -27,7 +27,8 @@
 
 #include <QDir>
 #include <iostream>
-#include <sstream>
+
+#include <semver200.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -35,7 +36,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "sshfs mount";
-const std::string fuse_version_string{"FUSE library version "};
+const std::string fuse_version_string{"FUSE library version"};
 const std::string ld_library_path_key{"LD_LIBRARY_PATH="};
 const std::string snap_path_key{"SNAP="};
 
@@ -45,23 +46,7 @@ auto run_cmd(mp::SSHSession& session, std::string&& cmd)
     if (ssh_process.exit_code() != 0)
         throw std::runtime_error(ssh_process.read_std_error());
 
-    return ssh_process.read_std_output();
-}
-
-auto match_line(std::istringstream& output, const std::string& matcher)
-{
-    output.seekg(0, output.beg);
-
-    std::string line;
-    while (std::getline(output, line, '\n'))
-    {
-        if (line.find(matcher) != std::string::npos)
-        {
-            return line;
-        }
-    }
-
-    return std::string{};
+    return ssh_process.read_std_output() + ssh_process.read_std_error();
 }
 
 auto get_sshfs_exec_and_options(mp::SSHSession& session)
@@ -73,11 +58,11 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         // Prefer to use Snap package version first
         std::istringstream sshfs_env{run_cmd(session, "sudo multipass-sshfs.env")};
 
-        auto ld_library_path = match_line(sshfs_env, ld_library_path_key);
-        auto snap_path = match_line(sshfs_env, snap_path_key);
+        auto ld_library_path = mp::utils::match_line_for(sshfs_env, ld_library_path_key);
+        auto snap_path = mp::utils::match_line_for(sshfs_env, snap_path_key);
         snap_path = snap_path.substr(snap_path_key.length());
 
-        sshfs_exec = fmt::format("{} {}/bin/sshfs", ld_library_path, snap_path);
+        sshfs_exec = fmt::format("env {} {}/bin/sshfs", ld_library_path, snap_path);
     }
     catch (const std::exception& e)
     {
@@ -98,20 +83,21 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 
     sshfs_exec = mp::utils::trim_end(sshfs_exec);
 
-    std::string fuse_version;
     std::istringstream version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
-
-    auto fuse_version_line = match_line(version_info, fuse_version_string);
-    if (!fuse_version_line.empty())
-    {
-        fuse_version = fuse_version_line.substr(fuse_version_string.length());
-    }
 
     sshfs_exec += " -o slave -o transform_symlinks -o allow_other";
 
-    // The option was removed in libfuse 3.0
-    if (fuse_version < "3")
-        sshfs_exec += " -o nonempty";
+    auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
+    if (!fuse_version_line.empty())
+    {
+        // split on the fuse_version_string along with 0 or more colons
+        auto tokens = mp::utils::split(fuse_version_line, fmt::format("{}:* ", fuse_version_string));
+        auto fuse_version = tokens[1];
+
+        // The option was removed in libfuse 3.0
+        if (!fuse_version.empty() && (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0")))
+            sshfs_exec += " -o nonempty";
+    }
 
     return sshfs_exec;
 }

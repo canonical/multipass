@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include <chrono>
 #include <functional>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -72,6 +73,7 @@ std::string escape_char(const std::string& s, char c);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string generate_mac_address();
 std::string timestamp();
+std::string match_line_for(std::istringstream& output, const std::string& matcher);
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& ensure_vm_is_running = []() {});

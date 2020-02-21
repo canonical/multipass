@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -325,6 +325,22 @@ std::string mp::utils::timestamp()
 {
     auto time = QDateTime::currentDateTime();
     return time.toString(Qt::ISODateWithMs).toStdString();
+}
+
+std::string mp::utils::match_line_for(std::istringstream& output, const std::string& matcher)
+{
+    output.seekg(0, output.beg);
+
+    std::string line;
+    while (std::getline(output, line, '\n'))
+    {
+        if (line.find(matcher) != std::string::npos)
+        {
+            return line;
+        }
+    }
+
+    return std::string{};
 }
 
 bool mp::utils::is_running(const VirtualMachine::State& state)
