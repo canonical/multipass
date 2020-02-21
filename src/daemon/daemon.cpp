@@ -2060,17 +2060,17 @@ void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
 
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
 
-    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs Snap for \'{}\'", name));
+    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap for \'{}\'", name));
 
     // Check if Snap support is installed in the instance
     auto proc = session.exec("which snap");
     if (proc.exit_code() != 0)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed for \'{}\'", name));
+        mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed in \'{}\'", name));
         throw std::runtime_error(
             fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts.\n\n"
                         "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
-                        "\nhow to install Snap support for your instance's distribution."
+                        "\nhow to install snap support for your instance's distribution."
                         "\n\nAlternatively, install `sshfs` manually inside the instance.",
                         name));
     }
