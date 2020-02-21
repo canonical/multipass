@@ -163,7 +163,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 TEST_F(SshfsMount, throws_when_sshfs_does_not_exist)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for({"snap list multipass-sshfs", "which sshfs"}, invoked);
+    auto request_exec = make_exec_that_fails_for({"sudo multipass-sshfs.env", "which sshfs"}, invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), mp::SSHFSMissingError);

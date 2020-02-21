@@ -396,3 +396,23 @@ TEST(Utils, existing_config_file_is_untouched)
 
     EXPECT_THAT(new_last_modified, Eq(original_last_modified));
 }
+
+TEST(Utils, line_matcher_returns_expected_line)
+{
+    std::istringstream data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
+    std::string matcher{"SNAP="};
+
+    auto snap_data = mp::utils::match_line_for(data, matcher);
+
+    EXPECT_THAT(snap_data, Eq("SNAP=/foo/bin"));
+}
+
+TEST(Utils, line_matcher_no_match_returns_empty_string)
+{
+    std::istringstream data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
+    std::string matcher{"FOO="};
+
+    auto snap_data = mp::utils::match_line_for(data, matcher);
+
+    EXPECT_TRUE(snap_data.empty());
+}
