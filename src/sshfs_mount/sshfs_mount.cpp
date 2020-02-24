@@ -91,10 +91,10 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     if (!fuse_version_line.empty())
     {
         // split on the fuse_version_string along with 0 or more colons
-        auto tokens = mp::utils::split(fuse_version_line, fmt::format("{}:* ", fuse_version_string));
+        auto tokens = mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
         auto fuse_version = tokens[1];
 
-        // The option was removed in libfuse 3.0
+        // The option was made the default in libfuse 3.0
         if (!fuse_version.empty() && (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0")))
             sshfs_exec += " -o nonempty";
     }

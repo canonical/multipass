@@ -79,7 +79,7 @@ constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template =
     "Error enabling mount support in '{}'"
-    "\n\nPlease install the 'multipass-sshfs' snap package manually inside the instance.";
+    "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -2060,15 +2060,15 @@ void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
 
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
 
-    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap for \'{}\'", name));
+    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in \'{}\'", name));
 
-    // Check if Snap support is installed in the instance
+    // Check if snap support is installed in the instance
     auto proc = session.exec("which snap");
     if (proc.exit_code() != 0)
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed in \'{}\'", name));
         throw std::runtime_error(
-            fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts.\n\n"
+            fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts."
                         "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
                         "\nhow to install snap support for your instance's distribution."
                         "\n\nAlternatively, install `sshfs` manually inside the instance.",
