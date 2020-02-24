@@ -340,6 +340,35 @@ TEST_F(SshfsMount, throws_when_unable_to_change_dir)
     EXPECT_TRUE(invoked);
 }
 
+TEST_F(SshfsMount, invalid_fuse_version_throws)
+{
+    bool invoked{false};
+    std::string output;
+    auto remaining = output.size();
+    auto channel_read = make_channel_read_return(output, remaining, invoked);
+    REPLACE(ssh_channel_read_timeout, channel_read);
+
+    auto request_exec = [&invoked, &remaining, &output](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd.find("sudo multipass-sshfs.env") != std::string::npos)
+        {
+            output = "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n";
+            remaining = output.size();
+            invoked = true;
+        }
+        else if (cmd.find("sshfs -V") != std::string::npos)
+        {
+            output = "FUSE library version: fu.man.chu";
+            remaining = output.size();
+        }
+        return SSH_OK;
+    };
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
 TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
 {
     bool invoked{false};
@@ -380,3 +409,5 @@ TEST_F(SshfsMount, works_with_absolute_paths)
 
     test_command_execution(commands, std::string("/home/ubuntu/target"));
 }
+=======
+>>>>>>> tests: Add test_sshfsmount test for detecting invalid version
