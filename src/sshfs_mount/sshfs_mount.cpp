@@ -40,6 +40,8 @@ const std::string fuse_version_string{"FUSE library version"};
 const std::string ld_library_path_key{"LD_LIBRARY_PATH="};
 const std::string snap_path_key{"SNAP="};
 
+// TODO: Need to unify all the various SSHSession::exec type of functions into
+//       one place and account for reading both stdout and stderr
 auto run_cmd(mp::SSHSession& session, std::string&& cmd)
 {
     auto ssh_process = session.exec(cmd);
@@ -90,13 +92,23 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
     if (!fuse_version_line.empty())
     {
-        // split on the fuse_version_string along with 0 or more colons
+        // split on the fuse_version_string along with 0 or 1 colon(s)
         auto tokens = mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
         auto fuse_version = tokens[1];
 
+        if (fuse_version.empty())
+        {
+            mpl::log(mpl::Level::warning, category, fmt::format("Unable to parse the {}", fuse_version_string));
+        }
         // The option was made the default in libfuse 3.0
-        if (!fuse_version.empty() && (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0")))
+        else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))
+        {
             sshfs_exec += " -o nonempty";
+        }
+    }
+    else
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Unable to retrieve \'{}\'", fuse_version_string));
     }
 
     return sshfs_exec;
