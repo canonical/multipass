@@ -29,6 +29,8 @@ constexpr auto to_syslog_priority(const mpl::Level& level) noexcept
 {
     switch (level)
     {
+    case mpl::Level::trace:
+        return LOG_DEBUG;
     case mpl::Level::debug:
         return LOG_DEBUG;
     case mpl::Level::error:
