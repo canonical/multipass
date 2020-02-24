@@ -155,7 +155,7 @@ TEST_F(TestQemuVMProcessSpec, resume_with_missing_machine_type_guesses_correctly
 
     mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data_missing_machine_info);
 
-    EXPECT_EQ(spec.arguments(), QStringList({"-args", "-loadvm", "suspend_tag", "-machine", "pc-i440fx-xenial"}));
+    EXPECT_EQ(spec.arguments(), QStringList({"-args", "-loadvm", "suspend_tag"}));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_has_correct_name)

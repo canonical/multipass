@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,6 +98,9 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
         on_error();
 
         const auto msg = reply->errorString().toStdString();
+
+        if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError)
+            reply->abort();
 
         if (abort_download)
             throw mp::AbortedDownloadException{msg};

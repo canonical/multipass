@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@
 #include <multipass/utils.h>
 
 #include <QStandardPaths>
+#include <QString>
+#include <QUrl>
 
 #include <chrono>
 #include <memory>
@@ -50,6 +52,39 @@ std::string server_name_from(const std::string& server_address)
     if (server_name == "unix")
         return "localhost";
     return server_name;
+}
+
+std::unique_ptr<QNetworkProxy> discover_http_proxy()
+{
+    std::unique_ptr<QNetworkProxy> proxy_ptr{nullptr};
+
+    QString http_proxy{qgetenv("http_proxy")};
+    if (http_proxy.isEmpty())
+    {
+        // Some OS's are case senstive
+        http_proxy = qgetenv("HTTP_PROXY");
+    }
+
+    if (!http_proxy.isEmpty())
+    {
+        if (!http_proxy.contains("://"))
+        {
+            http_proxy.prepend("http://");
+        }
+
+        QUrl proxy_url{http_proxy};
+        const auto host = proxy_url.host();
+        const auto port = proxy_url.port();
+
+        auto network_proxy = QNetworkProxy(QNetworkProxy::HttpProxy, host, static_cast<quint16>(port),
+                                           proxy_url.userName(), proxy_url.password());
+
+        QNetworkProxy::setApplicationProxy(network_proxy);
+
+        proxy_ptr = std::make_unique<QNetworkProxy>(network_proxy);
+    }
+
+    return proxy_ptr;
 }
 } // namespace
 
@@ -116,9 +151,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (ssh_username.empty())
         ssh_username = "ubuntu";
 
-    return std::unique_ptr<const DaemonConfig>(
-        new DaemonConfig{std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
-                         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider),
-                         std::move(client_cert_store), std::move(update_prompt), multiplexing_logger, cache_directory,
-                         data_directory, server_address, ssh_username, connection_type, image_refresh_timer});
+    if (network_proxy == nullptr)
+        network_proxy = discover_http_proxy();
+
+    return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
+        std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
+        std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
+        std::move(update_prompt), multiplexing_logger, std::move(network_proxy), cache_directory, data_directory,
+        server_address, ssh_username, connection_type, image_refresh_timer});
 }

@@ -28,8 +28,9 @@ namespace mp = multipass;
 
 namespace
 {
-const std::vector<int> blocked_sigs{SIGWINCH, SIGUSR1};
 mp::Console::ConsoleGeometry last_geometry{0, 0};
+ssh_channel global_channel;
+int global_cout_fd;
 
 void change_ssh_pty_size(ssh_channel channel, int cout_fd)
 {
@@ -44,46 +45,24 @@ void change_ssh_pty_size(ssh_channel channel, int cout_fd)
         ssh_channel_change_pty_size(channel, win.ws_col, win.ws_row);
     }
 }
+
+static void sigwinch_handler(int sig)
+{
+    if (sig == SIGWINCH)
+        change_ssh_pty_size(global_channel, global_cout_fd);
 }
+} // namespace
 
-class mp::WindowChangedSignalHandler
+mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{term}
 {
-public:
-    explicit WindowChangedSignalHandler(ssh_channel channel, int cout_fd)
-        : signal_handling_thread{[this, channel, cout_fd] { monitor_signals(channel, cout_fd); }}
-    {
-    }
+    global_channel = channel;
+    global_cout_fd = term->cout_fd();
 
-    ~WindowChangedSignalHandler()
-    {
-        pthread_kill(signal_handling_thread.thread.native_handle(), SIGUSR1);
-    }
+    sigemptyset(&winch_action.sa_mask);
+    winch_action.sa_flags = 0;
+    winch_action.sa_handler = sigwinch_handler;
+    sigaction(SIGWINCH, &winch_action, nullptr);
 
-    void monitor_signals(ssh_channel channel, int cout_fd)
-    {
-        auto sigset{mp::platform::make_sigset(blocked_sigs)};
-
-        while (true)
-        {
-            int sig = -1;
-            sigwait(&sigset, &sig);
-
-            if (sig == SIGWINCH)
-            {
-                change_ssh_pty_size(channel, cout_fd);
-            }
-            else
-                break;
-        }
-    }
-
-private:
-    mp::AutoJoinThread signal_handling_thread;
-};
-
-mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term)
-    : term{term}, handler{std::make_unique<WindowChangedSignalHandler>(channel, term->cout_fd())}
-{
     setup_console();
 
     if (term->is_live())
@@ -100,7 +79,6 @@ mp::UnixConsole::~UnixConsole()
 
 void mp::UnixConsole::setup_environment()
 {
-    mp::platform::make_and_block_signals(blocked_sigs);
 }
 
 void mp::UnixConsole::setup_console()

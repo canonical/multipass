@@ -79,17 +79,19 @@ public:
             release.description = manifest[::json_description].toString();
 
             mpl::log(mpl::Level::debug, "update",
-                     fmt::format("Latest Multipass release available is version {}", qPrintable(release.version)));
+                     fmt::format("Latest Multipass release available is version {}", qUtf8Printable(release.version)));
 
             emit latest_release_found(release);
         }
         catch (const mp::DownloadException& e)
         {
-            mpl::log(mpl::Level::info, "update", fmt::format("Failed to fetch update info: {}", qPrintable(e.what())));
+            mpl::log(mpl::Level::info, "update",
+                     fmt::format("Failed to fetch update info: {}", qUtf8Printable(e.what())));
         }
         catch (const std::runtime_error& e)
         {
-            mpl::log(mpl::Level::info, "update", fmt::format("Failed to parse update info: {}", qPrintable(e.what())));
+            mpl::log(mpl::Level::info, "update",
+                     fmt::format("Failed to parse update info: {}", qUtf8Printable(e.what())));
         }
     }
 signals:
@@ -130,14 +132,14 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
         {
             new_release = latest_release;
             mpl::log(mpl::Level::info, "update",
-                     fmt::format("A New Multipass release is available: {}", qPrintable(new_release->version)));
+                     fmt::format("A New Multipass release is available: {}", qUtf8Printable(new_release->version)));
         }
     }
     catch (const version::Parse_error& e)
     {
         mpl::log(mpl::Level::warning, "update",
-                 fmt::format("Version strings {} and {} not comparable: {}", qPrintable(current_version),
-                             qPrintable(latest_release.version), e.what()));
+                 fmt::format("Version strings {} and {} not comparable: {}", qUtf8Printable(current_version),
+                             qUtf8Printable(latest_release.version), e.what()));
     }
 }
 

@@ -112,9 +112,9 @@ mp::ParseCode mp::ArgParser::parse()
     {
         if (!parser_result)
         {
-            cerr << qPrintable(parser.errorText()) << "\n\n";
+            cerr << qUtf8Printable(parser.errorText()) << "\n\n";
         }
-        cout << qPrintable(generalHelpText());
+        cout << qUtf8Printable(generalHelpText());
         return (help_requested) ? ParseCode::HelpRequested : ParseCode::CommandFail;
     }
 
@@ -130,12 +130,12 @@ mp::ParseCode mp::ArgParser::parse()
 
     if (help_requested)
     {
-        cout << qPrintable(generalHelpText());
+        cout << qUtf8Printable(generalHelpText());
         return ParseCode::HelpRequested;
     }
 
     // Fall through
-    cout << "Error: Unknown Command '" << qPrintable(requested_command) << "' (try \"multipass help\")\n";
+    cout << "Error: Unknown Command '" << qUtf8Printable(requested_command) << "' (try \"multipass help\")\n";
     return ParseCode::CommandLineError;
 }
 
@@ -145,13 +145,13 @@ mp::ParseCode mp::ArgParser::commandParse(cmd::Command* command)
     const bool parsedOk = parser.parse(arguments);
     if (!parsedOk)
     {
-        cerr << qPrintable(parser.errorText()) << '\n';
+        cerr << qUtf8Printable(parser.errorText()) << '\n';
         return ParseCode::CommandLineError;
     }
 
     if (help_requested)
     {
-        cout << qPrintable(helpText(command));
+        cout << qUtf8Printable(helpText(command));
         return ParseCode::HelpRequested;
     }
     return ParseCode::Ok;
@@ -182,7 +182,7 @@ void mp::ArgParser::forceCommandHelp()
 
 void mp::ArgParser::forceGeneralHelp()
 {
-    cout << qPrintable(generalHelpText());
+    cout << qUtf8Printable(generalHelpText());
 }
 
 // Prints generic help
