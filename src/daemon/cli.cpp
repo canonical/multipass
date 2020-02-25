@@ -41,6 +41,8 @@ multipass::logging::Level to_logging_level(const QString& value)
         return mpl::Level::info;
     if (value == "debug")
         return mpl::Level::debug;
+    if (value == "trace")
+        return mpl::Level::trace;
 
     throw std::runtime_error("invalid logging verbosity: " + value.toStdString());
 }
@@ -55,7 +57,7 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
 
     QCommandLineOption logger_option{"logger", "specifies which logger to use", "platform|stderr"};
     QCommandLineOption verbosity_option{
-        {"V", "verbosity"}, "specifies the logging verbosity level", "error|warning|info|debug"};
+        {"V", "verbosity"}, "specifies the logging verbosity level", "error|warning|info|debug|trace"};
     QCommandLineOption address_option{"address",
                                       "specifies which address to use for the multipassd service;"
                                       " a socket can be specified using unix:<socket_file>",
