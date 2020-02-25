@@ -28,8 +28,6 @@ namespace mu = multipass::utils;
 
 namespace
 {
-constexpr auto default_machine_type = "pc-i440fx-xenial";
-
 // This returns the initial two Qemu command line options we used in Multipass. Only of use to resume old suspended
 // images.
 //  === Do not change this! ===
@@ -73,11 +71,6 @@ QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, co
 }
 } // namespace
 
-QString mp::QemuVMProcessSpec::default_machine_type()
-{
-    return QString::fromLatin1(::default_machine_type);
-}
-
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
                                          const multipass::optional<ResumeData>& resume_data)
     : desc(desc), tap_device_name(tap_device_name), resume_data{resume_data}
@@ -102,16 +95,18 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         }
 
         // need to append extra arguments for resume
+        args << "-loadvm" << resume_data->suspend_tag;
+
         QString machine_type = resume_data->machine_type;
-        if (machine_type.isEmpty())
+        if (!machine_type.isEmpty())
+        {
+            args << "-machine" << machine_type;
+        }
+        else
         {
             mpl::log(mpl::Level::info, desc.vm_name,
-                     fmt::format("Cannot determine QEMU machine type. Defaulting to '{}'.", default_machine_type()));
-            machine_type = default_machine_type();
+                     fmt::format("Cannot determine QEMU machine type. Falling back to system default."));
         }
-
-        args << "-loadvm" << resume_data->suspend_tag;
-        args << "-machine" << machine_type;
     }
     else
     {
