@@ -31,12 +31,12 @@ constexpr auto as_eventlog_type(const mpl::Level& level) noexcept
 {
     switch (level)
     {
+    case mpl::Level::info:
     case mpl::Level::debug:
+    case mpl::Level::trace:
         return EVENTLOG_INFORMATION_TYPE;
     case mpl::Level::error:
         return EVENTLOG_ERROR_TYPE;
-    case mpl::Level::info:
-        return EVENTLOG_INFORMATION_TYPE;
     case mpl::Level::warning:
         return EVENTLOG_WARNING_TYPE;
     }
