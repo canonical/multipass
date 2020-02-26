@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.1)
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14") # needs to be set before "project"
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
 
 project(Multipass)
 
