@@ -129,7 +129,7 @@ TEST_P(GetIPSuite, returns_expected)
     if (ip_addr.empty())
         EXPECT_FALSE(ip);
     else
-        EXPECT_EQ(ip.value(), ip_addr);
+        EXPECT_EQ(*ip, ip_addr);
 }
 
 INSTANTIATE_TEST_SUITE_P(Hyperkit, GetIPSuite, ValuesIn(empty_hw_addr_inputs), print_param_name);

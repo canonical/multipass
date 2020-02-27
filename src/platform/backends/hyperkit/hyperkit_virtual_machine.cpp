@@ -68,7 +68,7 @@ mp::optional<mp::IPAddress> get_ip_for(const std::string& hw_addr, std::istream&
         if (line == "{")
         {
             name_matched = false;
-            ip_address.reset();
+            ip_address = mp::nullopt;
         }
         else if (regex_match(line, name_re))
             name_matched = true;
@@ -166,7 +166,7 @@ void mp::HyperkitVirtualMachine::on_shutdown()
         state = State::off;
     }
 
-    ip.reset();
+    ip = mp::nullopt;
     update_state();
     lock.unlock();
     monitor->on_shutdown();
@@ -211,7 +211,7 @@ std::string mp::HyperkitVirtualMachine::ssh_hostname()
             auto result = get_ip_for(vm_name, leases_file);
             if (result)
             {
-                ip.emplace(result.value());
+                ip.emplace(*result);
                 return mp::utils::TimeoutAction::done;
             }
             else
@@ -223,7 +223,7 @@ std::string mp::HyperkitVirtualMachine::ssh_hostname()
         mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
     }
 
-    return ip.value().as_string();
+    return ip->as_string();
 }
 
 std::string mp::HyperkitVirtualMachine::ssh_username()
@@ -238,12 +238,12 @@ std::string mp::HyperkitVirtualMachine::ipv4()
         std::ifstream leases_file(leases_path.toStdString());
         auto result = get_ip_for(vm_name, leases_file);
         if (result)
-            ip.emplace(result.value());
+            ip.emplace(*result);
         else
             return "UNKNOWN";
     }
 
-    return ip.value().as_string();
+    return ip->as_string();
 }
 
 std::string mp::HyperkitVirtualMachine::ipv6()
