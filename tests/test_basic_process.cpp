@@ -63,7 +63,7 @@ TEST_F(BasicProcessTest, execute_good_command_with_positive_exit_code)
 
     EXPECT_FALSE(process_state.completed_successfully());
     EXPECT_TRUE(process_state.exit_code);
-    EXPECT_EQ(exit_code, process_state.exit_code.value());
+    EXPECT_EQ(exit_code, *process_state.exit_code);
     EXPECT_EQ("Process returned exit code: 7", process_state.failure_message());
 
     EXPECT_FALSE(process_state.error);
@@ -77,7 +77,7 @@ TEST_F(BasicProcessTest, execute_good_command_with_zero_exit_code)
 
     EXPECT_TRUE(process_state.completed_successfully());
     EXPECT_TRUE(process_state.exit_code);
-    EXPECT_EQ(exit_code, process_state.exit_code.value());
+    EXPECT_EQ(exit_code, *process_state.exit_code);
     EXPECT_EQ(QString(), process_state.failure_message());
 
     EXPECT_FALSE(process_state.error);
@@ -100,7 +100,7 @@ TEST_F(BasicProcessTest, process_state_when_runs_and_stops_ok)
 
     process_state = process.process_state();
     EXPECT_TRUE(process_state.exit_code);
-    EXPECT_EQ(exit_code, process_state.exit_code.value());
+    EXPECT_EQ(exit_code, *process_state.exit_code);
 
     EXPECT_FALSE(process_state.error);
 }
@@ -186,7 +186,7 @@ TEST_F(BasicProcessTest, process_state_when_runs_and_stops_immediately)
 
     process_state = process.process_state();
     EXPECT_TRUE(process_state.exit_code);
-    EXPECT_EQ(exit_code, process_state.exit_code.value());
+    EXPECT_EQ(exit_code, *process_state.exit_code);
 
     EXPECT_FALSE(process_state.error);
 }

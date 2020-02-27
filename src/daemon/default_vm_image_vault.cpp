@@ -510,7 +510,7 @@ bool mp::DefaultVMImageVault::has_record_for(const std::string& name)
 void mp::DefaultVMImageVault::prune_expired_images()
 {
     std::vector<decltype(prepared_image_records)::key_type> expired_keys;
-    std::lock_guard lock{fetch_mutex};
+    std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
 
     for (const auto& record : prepared_image_records)
     {
@@ -582,7 +582,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
             fetch_image(fetch_type, record.query, prepare, monitor);
 
             // Remove old image
-            std::lock_guard lock{fetch_mutex};
+            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             delete_image_dir(record.image.image_path);
             prepared_image_records.erase(key);
             persist_image_records();
