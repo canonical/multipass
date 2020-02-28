@@ -233,17 +233,18 @@ std::string mp::HyperkitVirtualMachine::ssh_username()
 
 std::string mp::HyperkitVirtualMachine::ipv4()
 {
-    if (!ip)
-    {
-        std::ifstream leases_file(leases_path.toStdString());
-        auto result = get_ip_for(vm_name, leases_file);
-        if (result)
-            ip.emplace(*result);
-        else
-            return "UNKNOWN";
-    }
+    if (ip)
+        return ip->as_string();
 
-    return ip->as_string();
+    std::ifstream leases_file(leases_path.toStdString());
+    auto result = get_ip_for(vm_name, leases_file);
+    if (result)
+    {
+        ip.emplace(*result);
+        return ip->as_string();
+    }
+    else
+        return "UNKNOWN";
 }
 
 std::string mp::HyperkitVirtualMachine::ipv6()
