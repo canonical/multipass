@@ -99,7 +99,7 @@ void check_status(const QSettings& settings, const QString& attempted_operation)
 
 QString checked_get(QSettings& settings, const QString& key, const QString& fallback, std::mutex& mutex)
 {
-    std::scoped_lock lock{mutex};
+    std::lock_guard<std::mutex> lock{mutex};
 
     auto ret = settings.value(key, fallback).toString();
 
@@ -109,7 +109,7 @@ QString checked_get(QSettings& settings, const QString& key, const QString& fall
 
 void checked_set(QSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
 {
-    std::scoped_lock lock{mutex};
+    std::lock_guard<std::mutex> lock{mutex};
 
     settings.setValue(key, val);
 

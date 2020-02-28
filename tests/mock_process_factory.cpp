@@ -28,7 +28,7 @@ std::unique_ptr<mp::Process> mpt::MockProcessFactory::create_process(std::unique
     auto process = std::make_unique<NiceMock<mpt::MockProcess>>(std::move(spec),
                                                                 const_cast<std::vector<ProcessInfo>&>(process_list));
     if (callback)
-        callback.value()(process.get());
+        (*callback)(process.get());
     return process;
 }
 

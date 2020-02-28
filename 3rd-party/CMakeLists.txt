@@ -89,25 +89,27 @@ target_link_libraries(yaml INTERFACE
 
 if (APPLE)
   # Hyperkit - MacOS virtualization (via xhyve)
+  if(NOT DEFINED ENV{OCAML_TOPLEVEL_PATH})
+    message(FATAL_ERROR "The OCaml OPAM environment has not been set. Run 'eval `opam config env`' or check the README")
+  endif()
+
   # Warning! Hyperkit happily builds with QCow2 support disabled if it is not available, need to avoid this
   execute_process(
-    COMMAND opam list qcow
+    COMMAND ocamlfind query qcow
+    OUTPUT_VARIABLE QCOW_SUPPORT_OUT
     RESULT_VARIABLE QCOW_SUPPORT_FOUND
     OUTPUT_QUIET
     )
 
   if (NOT QCOW_SUPPORT_FOUND EQUAL 0)
-    message(FATAL_ERROR "The 'qcow' package of the OPAM OCaml system is required. Check the README\nThe command 'opam list qcow' returned: ${QCOW_SUPPORT_FOUND}")
+    message(FATAL_ERROR "The 'qcow' package of the OPAM OCaml system is required. Check the README\nThe command 'ocamlfind query qcow' returned: ${QCOW_SUPPORT_OUT}")
   endif ()
 
-  if(NOT DEFINED ENV{OCAML_TOPLEVEL_PATH})
-    message(FATAL_ERROR "The OCaml OPAM environment has not been set. Run 'eval `opam config env`' or check the README")
-  endif()
-
+  # Need to patch hyperkit Makefile, see moby/hyperkit#274
   include(ExternalProject)
   ExternalProject_Add(hyperkit
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit"
-    CONFIGURE_COMMAND ""
+    CONFIGURE_COMMAND sed -i .bup s/cstruct\\.lwt/cstruct-lwt/ <SOURCE_DIR>/Makefile
     BUILD_COMMAND make
     BUILD_IN_SOURCE 1
     INSTALL_COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit/build/hyperkit" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
