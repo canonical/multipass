@@ -45,7 +45,7 @@ struct ProcessState
 {
     bool completed_successfully() const // if process stopped successfully with exit code 0
     {
-        return !error && exit_code && exit_code.value() == 0;
+        return !error && exit_code && *exit_code == 0;
     }
     QString failure_message() const
     {
@@ -53,9 +53,9 @@ struct ProcessState
         {
             return error->message;
         }
-        if (exit_code && exit_code.value() != 0)
+        if (exit_code && *exit_code != 0)
         {
-            return QString("Process returned exit code: %1").arg(exit_code.value());
+            return QString("Process returned exit code: %1").arg(*exit_code);
         }
         return QString();
     }
