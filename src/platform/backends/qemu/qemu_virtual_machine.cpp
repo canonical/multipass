@@ -428,7 +428,7 @@ std::string mp::QemuVirtualMachine::ssh_hostname()
                 return mp::utils::TimeoutAction::retry;
             }
         };
-        auto on_timeout = [] { return std::runtime_error("failed to determine IP address"); };
+        auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
         mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
     }
 
