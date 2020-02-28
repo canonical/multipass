@@ -223,6 +223,8 @@ std::string mp::HyperkitVirtualMachine::ssh_hostname()
         mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
     }
 
+    assert(ip && "`ip` should never be empty here");
+
     return ip->as_string();
 }
 
