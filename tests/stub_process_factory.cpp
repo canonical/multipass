@@ -16,6 +16,7 @@
  */
 
 #include "stub_process_factory.h"
+#include <multipass/optional.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
