@@ -63,10 +63,10 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
     winch_action.sa_handler = sigwinch_handler;
     sigaction(SIGWINCH, &winch_action, nullptr);
 
-    setup_console();
-
     if (term->is_live())
     {
+        setup_console();
+
         ssh_channel_request_pty(channel);
         change_ssh_pty_size(channel, term->cout_fd());
     }
@@ -74,7 +74,10 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
 
 mp::UnixConsole::~UnixConsole()
 {
-    restore_console();
+    if (term->is_live())
+    {
+        restore_console();
+    }
 }
 
 void mp::UnixConsole::setup_environment()
@@ -83,21 +86,15 @@ void mp::UnixConsole::setup_environment()
 
 void mp::UnixConsole::setup_console()
 {
-    if (term->is_live())
-    {
-        struct termios terminal_local;
+    struct termios terminal_local;
 
-        tcgetattr(term->cin_fd(), &terminal_local);
-        saved_terminal = terminal_local;
-        cfmakeraw(&terminal_local);
-        tcsetattr(term->cin_fd(), TCSANOW, &terminal_local);
-    }
+    tcgetattr(term->cin_fd(), &terminal_local);
+    saved_terminal = terminal_local;
+    cfmakeraw(&terminal_local);
+    tcsetattr(term->cin_fd(), TCSANOW, &terminal_local);
 }
 
 void mp::UnixConsole::restore_console()
 {
-    if (term->is_live())
-    {
-        tcsetattr(term->cin_fd(), TCSANOW, &saved_terminal);
-    }
+    tcsetattr(term->cin_fd(), TCSANOW, &saved_terminal);
 }
