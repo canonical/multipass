@@ -84,6 +84,7 @@ mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal *term)
     : interactive{term->cout_is_live()},
       input_handle{term->cin_handle()},
       output_handle{term->cout_handle()},
+      error_handle{term->cerr_handle()},
       channel{channel},
       session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
       console_event_thread{[this] { monitor_console_resize(hook); }}
@@ -127,6 +128,7 @@ void mp::WindowsConsole::write_console()
     std::array<char, 4096> buffer;
     int num_bytes{0};
     fd_set read_set;
+    HANDLE current_handle{output_handle};
 
     FD_ZERO(&read_set);
     FD_SET(session_socket_fd, &read_set);
@@ -142,6 +144,7 @@ void mp::WindowsConsole::write_console()
         if (num_bytes == 0)
         {
             num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 1);
+            current_handle = error_handle;
         }
     }
 
@@ -155,13 +158,13 @@ void mp::WindowsConsole::write_console()
     }
 
     DWORD mode;
-    if (GetConsoleMode(output_handle, &mode))
+    if (GetConsoleMode(current_handle, &mode))
     {
-        WriteConsole(output_handle, buffer.data(), num_bytes, &write, nullptr);
+        WriteConsole(current_handle, buffer.data(), num_bytes, &write, nullptr);
     }
     else
     {
-        WriteFile(output_handle, buffer.data(), num_bytes, &write, nullptr);
+        WriteFile(current_handle, buffer.data(), num_bytes, &write, nullptr);
     }
 }
 
