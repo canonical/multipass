@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,7 @@ private:
     bool interactive{false};
     HANDLE input_handle;
     HANDLE output_handle;
+    HANDLE error_handle;
     DWORD console_input_mode;
     DWORD console_output_mode;
     ssh_channel channel;

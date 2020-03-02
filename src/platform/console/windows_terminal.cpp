@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,11 @@ bool mp::WindowsTerminal::cin_is_live() const
 HANDLE mp::WindowsTerminal::cout_handle() const
 {
     return GetStdHandle(STD_OUTPUT_HANDLE);
+}
+
+HANDLE mp::WindowsTerminal::cerr_handle() const
+{
+    return GetStdHandle(STD_ERROR_HANDLE);
 }
 
 bool mp::WindowsTerminal::cout_is_live() const
