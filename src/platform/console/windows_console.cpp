@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -137,6 +137,12 @@ void mp::WindowsConsole::write_console()
     {
         std::lock_guard<std::mutex> lock(ssh_mutex);
         num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 0);
+
+        // Try reading from stderr if nothing is returned from stdout
+        if (num_bytes == 0)
+        {
+            num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 1);
+        }
     }
 
     if (num_bytes < 1)
