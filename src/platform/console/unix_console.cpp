@@ -83,7 +83,7 @@ void mp::UnixConsole::setup_environment()
 
 void mp::UnixConsole::setup_console()
 {
-    if (term->cin_is_live())
+    if (term->is_live())
     {
         struct termios terminal_local;
 
@@ -96,7 +96,7 @@ void mp::UnixConsole::setup_console()
 
 void mp::UnixConsole::restore_console()
 {
-    if (term->cin_is_live())
+    if (term->is_live())
     {
         tcsetattr(term->cin_fd(), TCSANOW, &saved_terminal);
     }
