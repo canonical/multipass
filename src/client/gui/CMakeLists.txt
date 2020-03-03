@@ -64,7 +64,7 @@ if(APPLE)
 
   install(CODE "
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" LOADER_PATH \"${_qt5Gui_install_prefix}/plugins/platforms\")
     " COMPONENT multipass_gui)
 
 endif(APPLE)

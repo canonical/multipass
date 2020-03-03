@@ -22,6 +22,8 @@ include(GetPrerequisites)
 # Analyses the $BINARY and places a list of rpaths specified in $RPATHS_VAR_OUT
 #
 function(get_binary_rpaths binary rpaths_var)
+  cmake_parse_arguments(RPATHS "" "LOADER_PATH" "" ${ARGN})
+
   find_program(otool_cmd "otool")
   mark_as_advanced(otool_cmd)
 
@@ -31,6 +33,12 @@ function(get_binary_rpaths binary rpaths_var)
       OUTPUT_VARIABLE load_cmds_ov
       )
     string(REGEX REPLACE "[^\n]+cmd LC_RPATH\n[^\n]+\n[^\n]+path ([^\n]+) \\(offset[^\n]+\n" "rpath \\1\n" load_cmds_ov "${load_cmds_ov}")
+    if(RPATHS_LOADER_PATH)
+      string(REGEX REPLACE "rpath @loader_path" "rpath ${RPATHS_LOADER_PATH}" load_cmds_ov "${load_cmds_ov}")
+    else()
+      string(REGEX REPLACE "rpath @loader_path[^\n]+" "" load_cmds_ov "${load_cmds_ov}")
+    endif()
+    string(REGEX REPLACE "rpath @executable_path[^\n]+" "" load_cmds_ov "${load_cmds_ov}")
     string(REGEX MATCHALL "rpath [^\n]+" load_cmds_ov "${load_cmds_ov}")
     string(REGEX REPLACE "rpath " "" load_cmds_ov "${load_cmds_ov}")
     if(load_cmds_ov)
@@ -83,7 +91,7 @@ endfunction()
 #
 function(install_frameworks binary framework_destination)
   message(STATUS "Attempting to auto-copy all the $rpath linked frameworks of ${binary} into the install directory ${framework_destination}")
-  get_binary_rpaths("${binary}" BINARY_RPATHS)
+  get_binary_rpaths("${binary}" BINARY_RPATHS ${ARGN})
   get_binary_rpathed_libraries("${binary}" RPATHED_LIBS)
 
   foreach(rpath ${BINARY_RPATHS})
