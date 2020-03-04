@@ -12,8 +12,6 @@ env:
   # regexes for release branch and tag
   - MULTIPASS_RELEASE_BRANCH_PATTERN="^release/([0-9\.]+)$"
   - MULTIPASS_RELEASE_TAG_PATTERN="^v([0-9]+\.[0-9]+)\.[0-9]+$"
-  # upstream to use as reference for release version matching
-  - MULTIPASS_UPSTREAM="origin"
   # build label added to the version string
   - MULTIPASS_BUILD_LABEL=""
   # whether to publish the built packages
@@ -135,7 +133,6 @@ jobs:
 
       # inject build identifier and upstream
       - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${MULTIPASS_BUILD_LABEL}" snap/snapcraft.yaml
-      - sed -i "/configflags:/a \    - -DMULTIPASS_UPSTREAM=${MULTIPASS_UPSTREAM}" snap/snapcraft.yaml
 
       script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'

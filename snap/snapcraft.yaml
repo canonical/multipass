@@ -95,6 +95,7 @@ parts:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
+    - -DMULTIPASS_UPSTREAM=origin
     override-build: |
       snapcraftctl build
       set -e
