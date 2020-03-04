@@ -1,8 +1,8 @@
 diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index 74ae0d0b..66ba161c 100644
+index 99b6312c..a30f49c9 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -66,6 +66,7 @@ parts:
+@@ -77,6 +77,7 @@ parts:
      - pkg-config
      - qtbase5-dev
      - qtbase5-dev-tools
@@ -10,14 +10,14 @@ index 74ae0d0b..66ba161c 100644
      stage-packages:
      - on amd64: [libgl1]
      - on armhf: [libgles2-mesa]
-@@ -79,9 +80,8 @@ parts:
-     - dnsmasq
+@@ -93,9 +94,8 @@ parts:
+     - dnsmasq-utils
      source: .
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
 +    - -DCMAKE_BUILD_TYPE=Coverage
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
+     - -DMULTIPASS_UPSTREAM=origin
      override-build: |
        update-ccache-symlinks
-       snapcraftctl build
