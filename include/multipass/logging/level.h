@@ -29,7 +29,8 @@ enum class Level : int
     error = 0,
     warning = 1,
     info = 2,
-    debug = 3
+    debug = 3,
+    trace = 4
 };
 
 constexpr CString as_string(const Level& l) noexcept
@@ -44,6 +45,8 @@ constexpr CString as_string(const Level& l) noexcept
         return "info";
     case Level::warning:
         return "warning";
+    case Level::trace:
+        return "trace";
     }
     return "unknown";
 }

@@ -95,6 +95,7 @@ parts:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
+    - -DMULTIPASS_UPSTREAM=origin
     override-build: |
       snapcraftctl build
       set -e
@@ -103,7 +104,7 @@ parts:
       cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
       snapcraftctl set-version ${VERSION}
-      snapcraftctl set-grade $( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+$' && echo stable || echo devel )
+      snapcraftctl set-grade $( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
       sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${SNAPCRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
 
       cd ${SNAPCRAFT_PART_SRC}/3rd-party
