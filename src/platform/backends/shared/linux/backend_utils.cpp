@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -176,32 +176,32 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     // TODO: we could support converting from other the image formats that qemu-img can deal with
     const auto qcow2_path{image_path + ".qcow2"};
 
-    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path});
-    auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
+    auto qemuimg_info_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path});
+    auto qemuimg_info_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_info_spec));
 
-    auto process_state = qemuimg_process->execute();
+    auto process_state = qemuimg_info_process->execute();
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Cannot read image format: qemu-img failed ({}) with output:\n{}",
                                              process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
+                                             qemuimg_info_process->read_all_standard_error()));
     }
 
-    auto image_info = qemuimg_process->read_all_standard_output();
+    auto image_info = qemuimg_info_process->read_all_standard_output();
     auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
 
     if (image_record["format"].toString() == "raw")
     {
-        qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(
+        auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path});
-        qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
-        process_state = qemuimg_process->execute(-1);
+        auto qemuimg_convert_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_convert_spec));
+        process_state = qemuimg_convert_process->execute(-1);
 
         if (!process_state.completed_successfully())
         {
             throw std::runtime_error(
                 fmt::format("Failed to convert image format: qemu-img failed ({}) with output:\n{}",
-                            process_state.failure_message(), qemuimg_process->read_all_standard_error()));
+                            process_state.failure_message(), qemuimg_convert_process->read_all_standard_error()));
         }
         return qcow2_path;
     }
