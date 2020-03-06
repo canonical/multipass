@@ -20,12 +20,16 @@ env:
   # options to pass to the build reporter
   - MULTIPASS_REPORT_OPTIONS=()
 
-if: | # bors and release branches, release tags and all pull requests
-  branch IN (staging, trying, master)
-  OR branch ~= env(MULTIPASS_RELEASE_BRANCH_PATTERN)
-  OR branch ~= env(MULTIPASS_RELEASE_TAG_PATTERN)
-  OR type = pull_request
-
+stages:
+- name: build
+  if: | # bors and release branches, release tags and all pull requests
+    (type = push
+     AND (branch IN (staging, trying, master)
+          OR branch ~= env(MULTIPASS_RELEASE_BRANCH_PATTERN)
+          OR branch ~= env(MULTIPASS_RELEASE_TAG_PATTERN)))
+    OR type = pull_request
+- name: process snaps
+  if: type = cron
 
 jobs:
   include:
@@ -145,12 +149,14 @@ jobs:
       after_success:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
 
-    - if: |
+    - stage: build
+      name: macOS
+      env: BUILD_TYPE=macOS
+      if: |
         repo = canonical/multipass
                AND (type != pull_request
                     OR head_repo = repo)
-      name: macOS
-      env: BUILD_TYPE=macOS
+
       git:
         submodules: false
 
@@ -178,3 +184,22 @@ jobs:
         && [ -n "${MULTIPASS_PUBLISH}" ]
         && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
+
+    - stage: process snaps
+      name: Process snaps
+      env: ~
+      language: python
+      python: 3.8
+
+      addons:
+        snaps:
+        - review-tools
+
+      before_install:
+      - *decrypt-bot-data
+
+      install:
+      - *python-requirements
+
+      script:
+      - tools/process_snaps.py
