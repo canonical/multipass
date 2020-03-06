@@ -1,6 +1,5 @@
-dist: xenial
-sudo: required
-
+os: linux
+dist: bionic
 language: cpp
 
 git:
@@ -47,7 +46,7 @@ before_install:
   fi
 
 # install tooling requiements
-- pyenv local 3.7.1
+- pyenv local 3.8.1
 - python3 -m pip install --requirement tools/requirements.txt
 
 install:
@@ -142,7 +141,6 @@ jobs:
       env: BUILD_TYPE=macOS
       git:
         submodules: false
-      sudo: false
       addons: ~
       install: ~
       script:
