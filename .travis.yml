@@ -3,7 +3,7 @@ dist: bionic
 language: cpp
 
 git:
-  depth: false
+  submodules: false
 
 env:
   global:
@@ -26,53 +26,37 @@ if: | # bors and release branches, release tags and all pull requests
   OR branch ~= env(MULTIPASS_RELEASE_TAG_PATTERN)
   OR type = pull_request
 
-addons:
-  snaps:
-  - &lxd lxd
-  - &snapcraft
-    name: snapcraft
-    classic: true
-
-before_install:
-# determine build properties and targets
-- source tools/setup_build.sh
-
-# extract credentials
-- |
-  if [ "${TRAVIS_SECURE_ENV_VARS}" == "true" ]; then
-    openssl aes-256-cbc -K $encrypted_1b80fb3c7803_key -iv $encrypted_1b80fb3c7803_iv \
-      -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
-    tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
-  fi
-
-# install tooling requiements
-- pyenv local 3.8.1
-- python3 -m pip install --requirement tools/requirements.txt
-
-install:
-- sudo apt remove --purge --assume-yes lxd lxd-client
-- sudo /snap/bin/lxd waitready
-- sudo /snap/bin/lxd init --auto
-- sudo adduser $USER lxd
-- ccache --max-size=5G
-
-after_failure:
-- cat /tmp/*/trace.txt
-
-after_script:
-- ccache --show-stats
-
-cache: ccache
 
 jobs:
   include:
-    - addons:
+    - &snapcraft-build
+      stage: build
+      name: Debug
+      env: BUILD_TYPE=Debug
+
+      git:
+        depth: false
+        submodules: true
+
+      addons:
         snaps:
-        - *lxd
-        - *snapcraft
-        - review-tools
-      env: BUILD_TYPE=RelWithDebInfo
-      before_script: &before_snapcraft
+        - &lxd-snap lxd
+        - &snapcraft-snap
+          name: snapcraft
+          classic: true
+
+      before_install:
+      # determine build properties and targets
+      - &setup-build source tools/setup_build.sh
+
+      install:
+      - sudo apt remove --purge --assume-yes lxd lxd-client
+      - sudo /snap/bin/lxd waitready
+      - sudo /snap/bin/lxd init --auto
+      - sudo adduser $USER lxd
+      - ccache --max-size=5G
+
+      before_script:
       # patch build system for the build type being processed
       - "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
       - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
@@ -86,9 +70,51 @@ jobs:
       - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${MULTIPASS_BUILD_LABEL}" snap/snapcraft.yaml
 
       script:
+      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+      - sg lxd -c
+          '/snap/bin/lxc exec snapcraft-multipass --
+             env CTEST_OUTPUT_ON_FAILURE=1
+                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/
+                 /root/parts/multipass/build/bin/multipass_tests'
+
+      after_failure:
+      - cat /tmp/*/trace.txt
+
+      after_script:
+      - ccache --show-stats
+
+      cache: ccache
+
+    - <<: *snapcraft-build
+      name: Clang
+      env: BUILD_TYPE=Clang
+      script:
+      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+
+    - <<: *snapcraft-build
+      name: RelWithDebInfo
+      env: BUILD_TYPE=RelWithDebInfo
+
+      addons:
+        snaps:
+        - *lxd-snap
+        - *snapcraft-snap
+        - review-tools
+
+      before_install:
+      - *setup-build
+      - &decrypt-bot-data |
+        openssl aes-256-cbc -K $encrypted_1b80fb3c7803_key -iv $encrypted_1b80fb3c7803_iv \
+          -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
+        tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
+
+      script:
       - sg lxd -c '/snap/bin/snapcraft --use-lxd'
       - SNAP_ENFORCE_RESQUASHFS=0 /snap/bin/review-tools.snap-review --allow-classic *.snap
+
       after_success:
+      - &python-requirements pyenv local 3.8.1 && python3 -m pip install --requirement tools/requirements.txt
       - BUILDS=()
       - >-
         [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
@@ -103,24 +129,9 @@ jobs:
         [ -n "${MULTIPASS_PUBLISH}" ]
         && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" Snap "${BUILDS[@]}"
 
-    - env: BUILD_TYPE=Clang
-      before_script: *before_snapcraft
-      script:
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-
-    - env: BUILD_TYPE=Debug
-      before_script: *before_snapcraft
-      script:
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-      - sg lxd -c
-          '/snap/bin/lxc exec snapcraft-multipass --
-             env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/
-                 /root/parts/multipass/build/bin/multipass_tests'
-
-    - env: BUILD_TYPE=Coverage
-      before_script: *before_snapcraft
+    - <<: *snapcraft-build
+      name: Coverage
+      env: BUILD_TYPE=Coverage
       script:
       - mkdir "${HOME}/parts"
       - sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
@@ -138,11 +149,17 @@ jobs:
         repo = canonical/multipass
                AND (type != pull_request
                     OR head_repo = repo)
+      name: macOS
       env: BUILD_TYPE=macOS
       git:
         submodules: false
+
       addons: ~
-      install: ~
+
+      before_install:
+      - *setup-build
+      - *decrypt-bot-data
+
       script:
       - |
         if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
@@ -153,12 +170,11 @@ jobs:
         ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_LABEL}"
         scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
+
       after_success:
+      - *python-requirements
       - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
         || ( echo "Upload failed..."; false )
         && [ -n "${MULTIPASS_PUBLISH}" ]
         && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
         echo ${CURL_OUTPUT}
-      after_script: ~
-      after_failure: ~
-      cache: ~
