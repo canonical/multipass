@@ -3,6 +3,7 @@
 import argparse
 import copy
 from datetime import datetime, timedelta
+import logging
 import os
 import pathlib
 import pprint
@@ -13,6 +14,12 @@ import requests
 
 from github import Github
 
+logger = logging.getLogger("report_build")
+sh = logging.StreamHandler()
+sh.setFormatter(logging.Formatter("{levelname:8s} {message}", style="{"))
+logger.addHandler(sh)
+
+VERBOSITY = (logging.INFO, logging.DEBUG)
 
 GITHUB_ENDPOINT = "https://api.github.com/graphql"
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
@@ -117,6 +124,7 @@ class GetEvents(GitHubQLQuery):
                       databaseId
                       id
                       isMinimized
+                      url
                       viewerCanMinimize
                       viewerCanUpdate
                     }
@@ -154,12 +162,14 @@ class GetCommitComments(GitHubQLQuery):
                 node {
                   id
                   number
+                  url
                 }
               }
             }
           }
           object(expression: $commit) {
             id
+            url
             ... on Commit {
               parents(last: 1) {
                 edges {
@@ -327,6 +337,9 @@ class UpdateCommitComment(RepoCall, CommentURLMixin):
 class ArgParser(argparse.ArgumentParser):
     def __init__(self):
         super().__init__(description="Report build availability to GitHub")
+        self.add_argument(
+            "-v", dest="verbosity", action="count", help="include info messages (repeat for debug messages)"
+        )
         target = self.add_mutually_exclusive_group()
         target.add_argument(
             "-b",
@@ -373,6 +386,9 @@ class ArgParser(argparse.ArgumentParser):
             except ImportError:
                 self.error("You need the `boto3` module to upload files to S3")
 
+        if args.verbosity is not None and args.verbosity > len(VERBOSITY):
+            self.error("`-v` can only be passed at most {} times".format(len(VERBOSITY)))
+
         return args
 
 
@@ -380,7 +396,15 @@ def main():
     parser = ArgParser()
     args = parser.parse_args()
 
+    if args.verbosity is not None:
+        logger.setLevel(VERBOSITY[args.verbosity - 1])
+
+    logger.debug("Unparsed arguments: %s", sys.argv)
+    logger.debug("Parsed arguments: %s", args)
+
     comment_body = ["{} build available: {}".format(args.build_type, " or ".join(args.body))]
+
+    logger.debug("Got comment body: %s", comment_body[0])
 
     owner, name = os.environ["TRAVIS_REPO_SLUG"].split("/")
     travis_event = os.environ["TRAVIS_EVENT_TYPE"]
@@ -392,12 +416,14 @@ def main():
     }
 
     if travis_event == "pull_request":
+        logger.debug("Processing pull_request event...")
         events_o = GetEvents(common_d).run({"pull_request": int(os.environ["TRAVIS_PULL_REQUEST"]),})
         add_comment = AddComment(dict(common_d, **{"comment": {"subjectId": events_o.pull_request["id"]}}))
         update_comment = UpdateComment()
         events = events_o.events
 
     elif travis_event == "push":
+        logger.debug("Processing push event...")
         events_o = GetCommitComments(common_d).run(
             {"branch": args.branch and f"refs/heads/{args.branch}", "commit": os.environ["TRAVIS_COMMIT"],}
         )
@@ -407,11 +433,13 @@ def main():
         pull_request = args.branch and events_o.pull_request or args.parent and events_o.parent_pull_request
 
         if pull_request:
+            logger.debug("Found pull request: %s", pull_request["url"])
             add_comment = AddComment(dict(common_d, **{"comment": {"subjectId": pull_request["id"]}}))
             update_comment = UpdateComment()
             events = GetEvents(common_d).run({"pull_request": pull_request["number"]}).events
         # otherwise report on the commit
         else:
+            logger.debug("Reporting on commit: %s", os.environ["TRAVIS_COMMIT"])
             add_comment = AddCommitComment(dict(common_d, **{"sha": os.environ["TRAVIS_COMMIT"]}))
             update_comment = UpdateCommitComment(common_d)
             events = events_o.events
@@ -436,6 +464,8 @@ def main():
         if os.environ["TRAVIS_EVENT_TYPE"] == "pull_request":
             metadata["github-pull-request"] = GITHUB_PULL_REQUEST_URL.format(**os.environ)
 
+        logger.debug("Uploading to %s/%s...", args.s3_bucket, key)
+
         bucket.put_object(
             Body=args.file,
             Key=key,
@@ -452,9 +482,11 @@ def main():
 
     for event in reversed(events):
         if event["node"]["__typename"] not in COMMENT_TYPES:
+            logger.debug("Found code-changing event: %s", event["node"]["__typename"])
             break
 
         if event["node"]["author"]["login"] == viewer["login"] and event["node"]["viewerCanUpdate"]:
+            logger.debug("Found editable comment: %s", event["node"]["url"])
             # found a recent commit we can update
             for line in event["node"]["body"].splitlines():
                 # include all builds with a different build_type
@@ -482,6 +514,7 @@ def main():
             and not event["node"]["isMinimized"]
             and event["node"]["viewerCanMinimize"]
         ):
+            logger.debug("Minimizing comment %s...  ", event["node"]["url"])
             MinimizeComment().run({"input": {"subjectId": event["node"]["id"], "classifier": "OUTDATED",}})
 
     comment = add_comment.run({"comment": {"body": "\n".join(comment_body),}})
