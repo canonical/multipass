@@ -2,8 +2,12 @@
 
 import argparse
 import copy
+from datetime import datetime, timedelta
 import os
+import pathlib
 import pprint
+import sys
+import urllib.parse
 
 import requests
 
@@ -18,6 +22,18 @@ GITHUB_HEADERS = {
 }
 COMMENT_TYPES = ("IssueComment", "CommitComment")
 EVENT_COUNT = 50
+
+# refer to https://docs.aws.amazon.com/AmazonS3/latest/dev/storage-class-intro.html#sc-compare
+# for comparison of the different storage classes - it's cheaper to store in ONEZONE_IA for the
+# minimum 30 days than it would be in STANDARD for e.g. 14 days
+S3_OBJECT_URL = "https://{bucket}.s3.amazonaws.com/{key}"
+S3_STORAGE_CLASS = "ONEZONE_IA"
+# NB: this only controls caching, actual expiration of objects needs to be configured on the bucket,
+# refer to https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html for details
+S3_EXPIRATION = timedelta(days=30)
+
+GITHUB_COMMIT_URL = "https://github.com/{TRAVIS_REPO_SLUG}/commit/{TRAVIS_COMMIT}"
+GITHUB_PULL_REQUEST_URL = "https://github.com/{TRAVIS_REPO_SLUG}/pull/{TRAVIS_PULL_REQUEST}"
 
 
 def dict_merge(a, b):
@@ -329,10 +345,35 @@ class ArgParser(argparse.ArgumentParser):
             "build_type", help='a short string describing the build type (e.g. "Snap",' ' "macOS", "Windows")'
         )
         self.add_argument(
+            "-f",
+            "--file",
+            type=argparse.FileType("rb"),
+            help="upload the file to S3, you will need to ensure the AWS credentials are set up and you will also need"
+            " to pass the `--s3-bucket` and optionally the `--s3-prefix` arguments; when using `--file`, you can put"
+            " `{url}`, `{key}` and `{filename}` placeholders in the comment body",
+        )
+        self.add_argument("--s3-bucket", help="the S3 bucket to upload the file to")
+        self.add_argument(
+            "--s3-prefix", type=pathlib.Path, help="the file will be uploaded under the `<s3-prefix>/<filename>` key",
+        )
+        self.add_argument(
             "body",
             nargs="+",
             help="Markdown-formatted string(s) for each individual publishing (e.g. a command to install, a URL)",
         )
+
+    def parse_args(self, *args, **kwargs):
+        args = super().parse_args(*args, **kwargs)
+
+        if args.file is not None:
+            if args.s3_bucket is None:
+                self.error("You need to provide `--s3-bucket` if you're using `--file`")
+            try:
+                import boto3
+            except ImportError:
+                self.error("You need the `boto3` module to upload files to S3")
+
+        return args
 
 
 def main():
@@ -378,6 +419,36 @@ def main():
         raise Exception("This tool needs to run in a Travis PR or a branch build")
 
     viewer = events_o.data["viewer"]
+
+    if args.file is not None:
+        import boto3
+
+        bucket = boto3.resource("s3").Bucket(args.s3_bucket)
+        filename = pathlib.Path(args.file.name).name
+        key = str(args.s3_prefix / filename)
+        url = S3_OBJECT_URL.format(bucket=args.s3_bucket, key=urllib.parse.quote(key))
+
+        metadata = {
+            "travis-job": os.environ["TRAVIS_JOB_WEB_URL"],
+            "github-commit": GITHUB_COMMIT_URL.format(**os.environ),
+        }
+
+        if os.environ["TRAVIS_EVENT_TYPE"] == "pull_request":
+            metadata["github-pull-request"] = GITHUB_PULL_REQUEST_URL.format(**os.environ)
+
+        bucket.put_object(
+            Body=args.file,
+            Key=key,
+            Metadata=metadata,
+            ACL="public-read",
+            StorageClass=S3_STORAGE_CLASS,
+            CacheControl=f"max-age={S3_EXPIRATION.total_seconds()}",
+            Expires=datetime.utcnow() + S3_EXPIRATION,
+        )
+
+        print(f"Uploaded to {url}.")
+
+        comment_body[0] = comment_body[0].format(filename=filename, key=key, url=url)
 
     for event in reversed(events):
         if event["node"]["__typename"] not in COMMENT_TYPES:
