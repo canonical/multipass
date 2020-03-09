@@ -35,7 +35,7 @@ def dict_merge(a, b):
     return result
 
 
-class GraphQLQuery():
+class GraphQLQuery:
     api_endpoint = None
     data = None
     headers = {}
@@ -48,24 +48,22 @@ class GraphQLQuery():
 
     def run(self, variables={}):
         if None in (self.api_endpoint, self.query):
-            raise Exception(
-                "You need to subclass GraphQLQuery and provide the"
-                " 'query' and 'api_endpoint' attributes")
+            raise Exception("You need to subclass GraphQLQuery and provide the 'query' and 'api_endpoint' attributes")
 
         self.request = requests.post(
-            self.api_endpoint, headers=self.headers,
-            json={
-                'query': self.query,
-                'variables': dict_merge(variables, self.variables)})
+            self.api_endpoint,
+            headers=self.headers,
+            json={"query": self.query, "variables": dict_merge(variables, self.variables)},
+        )
 
         if self.request.status_code != 200:
-            raise Exception("Query failed with status code {}:\n{}".format(
-                self.request.status_code, self.request.content.decode("utf-8")
-            ))
+            raise Exception(
+                "Query failed with status code {}:\n{}".format(
+                    self.request.status_code, self.request.content.decode("utf-8")
+                )
+            )
         elif "errors" in self.request.json():
-            raise Exception("Query failed with errors:\n{}".format(
-                pprint.pformat(self.request.json())
-            ))
+            raise Exception("Query failed with errors:\n{}".format(pprint.pformat(self.request.json())))
         else:
             self.data = self.request.json()["data"]
             return self
@@ -200,8 +198,9 @@ class GetCommitComments(GitHubQLQuery):
     @property
     def parent_pull_request(self):
         try:
-            return (self.data["repository"]["object"]["parents"]["edges"][0]
-                    ["node"]["associatedPullRequests"]["edges"][0]["node"])
+            return self.data["repository"]["object"]["parents"]["edges"][0]["node"]["associatedPullRequests"]["edges"][
+                0
+            ]["node"]
         except IndexError:
             return None
 
@@ -265,7 +264,7 @@ class MinimizeComment(GitHubQLQuery):
         return self.data["minimizeComment"]["minimizedComment"]["url"]
 
 
-class GitHubV3Call():
+class GitHubV3Call:
     variables = {}
 
     def __init__(self, variables={}):
@@ -273,10 +272,7 @@ class GitHubV3Call():
         self.variables = variables
 
     def run(self, variables={}):
-        raise NotImplementedError(
-            "You need to subclass GitHubV3Call and"
-            " provide the run(self, variables={}) method"
-        )
+        raise NotImplementedError("You need to subclass GitHubV3Call and provide the run(self, variables={}) method")
 
     def _vars(self, variables):
         return dict_merge(self.variables, variables)
@@ -284,12 +280,11 @@ class GitHubV3Call():
 
 class RepoCall(GitHubV3Call):
     def run(self, variables={}):
-        self._repo = self.github.get_repo(
-            "{owner}/{name}".format(**self._vars(variables)))
+        self._repo = self.github.get_repo("{owner}/{name}".format(**self._vars(variables)))
         return self
 
 
-class CommentURLMixin():
+class CommentURLMixin:
     @property
     def url(self):
         return self.data.html_url
@@ -298,16 +293,16 @@ class CommentURLMixin():
 class AddCommitComment(RepoCall, CommentURLMixin):
     def run(self, variables={}):
         super().run(variables)
-        self.data = (self._repo.get_commit(self._vars(variables)["sha"])
-                     .create_comment(self._vars(variables)["comment"]["body"]))
+        self.data = self._repo.get_commit(self._vars(variables)["sha"]).create_comment(
+            self._vars(variables)["comment"]["body"]
+        )
         return self
 
 
 class UpdateCommitComment(RepoCall, CommentURLMixin):
     def run(self, variables={}):
         super().run(variables)
-        self.data = self._repo.get_comment(
-            self._vars(variables)["databaseId"])
+        self.data = self._repo.get_comment(self._vars(variables)["databaseId"])
         self.data.edit(self._vars(variables)["comment"]["body"])
         self.data.update()
         return self
@@ -318,31 +313,33 @@ class ArgParser(argparse.ArgumentParser):
         super().__init__(description="Report build availability to GitHub")
         target = self.add_mutually_exclusive_group()
         target.add_argument(
-            "-b", "--branch",
-            help="report on the last PR associated with the given branch,"
-                 " rather than on the commit being built."
-                 " Falls back to the commit if a PR is not found")
+            "-b",
+            "--branch",
+            help="report on the last PR associated with the given branch, rather than on the commit being built."
+            " Falls back to the commit if a PR is not found",
+        )
         target.add_argument(
-            "-p", "--parent", action="store_true",
-            help="similar to --branch, but look up the last pull request of"
-                 " the last parent (i.e. the branch that got merged into the"
-                 " current commit)")
+            "-p",
+            "--parent",
+            action="store_true",
+            help="similar to --branch, but look up the last pull request of the last parent (i.e. the branch that got"
+            " merged into the current commit)",
+        )
         self.add_argument(
-            "build_type",
-            help="a short string describing the build type (e.g. \"Snap\","
-                 " \"macOS\", \"Windows\")")
+            "build_type", help='a short string describing the build type (e.g. "Snap",' ' "macOS", "Windows")'
+        )
         self.add_argument(
-            "body", nargs="+",
-            help="Markdown-formatted string(s) for each individual publishing"
-                 " (e.g. a command to install, a URL)")
+            "body",
+            nargs="+",
+            help="Markdown-formatted string(s) for each individual publishing (e.g. a command to install, a URL)",
+        )
 
 
 def main():
     parser = ArgParser()
     args = parser.parse_args()
 
-    comment_body = ["{} build available: {}".format(
-        args.build_type, " or ".join(args.body))]
+    comment_body = ["{} build available: {}".format(args.build_type, " or ".join(args.body))]
 
     owner, name = os.environ["TRAVIS_REPO_SLUG"].split("/")
     travis_event = os.environ["TRAVIS_EVENT_TYPE"]
@@ -354,48 +351,31 @@ def main():
     }
 
     if travis_event == "pull_request":
-        events_o = GetEvents(common_d).run({
-            "pull_request": int(os.environ["TRAVIS_PULL_REQUEST"]),
-        })
-        add_comment = AddComment(dict(common_d, **{
-            "comment": {
-                "subjectId": events_o.pull_request["id"]
-            }
-        }))
+        events_o = GetEvents(common_d).run({"pull_request": int(os.environ["TRAVIS_PULL_REQUEST"]),})
+        add_comment = AddComment(dict(common_d, **{"comment": {"subjectId": events_o.pull_request["id"]}}))
         update_comment = UpdateComment()
         events = events_o.events
 
     elif travis_event == "push":
-        events_o = GetCommitComments(common_d).run({
-            "branch": args.branch and f"refs/heads/{args.branch}",
-            "commit": os.environ["TRAVIS_COMMIT"],
-        })
+        events_o = GetCommitComments(common_d).run(
+            {"branch": args.branch and f"refs/heads/{args.branch}", "commit": os.environ["TRAVIS_COMMIT"],}
+        )
 
         # if there's an open pull request associated
         # with the given branch or parent
-        pull_request = (args.branch and events_o.pull_request or
-                        args.parent and events_o.parent_pull_request)
+        pull_request = args.branch and events_o.pull_request or args.parent and events_o.parent_pull_request
 
         if pull_request:
-            add_comment = AddComment(dict(common_d, **{
-                "comment": {
-                    "subjectId": pull_request["id"]
-                }
-            }))
+            add_comment = AddComment(dict(common_d, **{"comment": {"subjectId": pull_request["id"]}}))
             update_comment = UpdateComment()
-            events = GetEvents(common_d).run({
-                "pull_request": pull_request["number"]
-            }).events
+            events = GetEvents(common_d).run({"pull_request": pull_request["number"]}).events
         # otherwise report on the commit
         else:
-            add_comment = AddCommitComment(dict(common_d, **{
-                "sha": os.environ["TRAVIS_COMMIT"]
-            }))
+            add_comment = AddCommitComment(dict(common_d, **{"sha": os.environ["TRAVIS_COMMIT"]}))
             update_comment = UpdateCommitComment(common_d)
             events = events_o.events
     else:
-        raise Exception(
-            "This tool needs to run in a Travis PR or a branch build")
+        raise Exception("This tool needs to run in a Travis PR or a branch build")
 
     viewer = events_o.data["viewer"]
 
@@ -403,8 +383,7 @@ def main():
         if event["node"]["__typename"] not in COMMENT_TYPES:
             break
 
-        if(event["node"]["author"]["login"] == viewer["login"]
-           and event["node"]["viewerCanUpdate"]):
+        if event["node"]["author"]["login"] == viewer["login"] and event["node"]["viewerCanUpdate"]:
             # found a recent commit we can update
             for line in event["node"]["body"].splitlines():
                 # include all builds with a different build_type
@@ -413,13 +392,12 @@ def main():
 
             comment_body.sort(key=lambda v: (v.upper(), v))
 
-            comment = update_comment.run({
-                "comment": {
-                    "id": event["node"]["id"],
-                    "body": "\n".join(comment_body),
-                },
-                "databaseId": event["node"]["databaseId"],
-            })
+            comment = update_comment.run(
+                {
+                    "comment": {"id": event["node"]["id"], "body": "\n".join(comment_body),},
+                    "databaseId": event["node"]["databaseId"],
+                }
+            )
             print(f"Updated comment: {comment.url}")
 
             return
@@ -428,21 +406,14 @@ def main():
         if event["node"]["__typename"] not in COMMENT_TYPES:
             continue
 
-        if(event["node"]["author"]["login"] == viewer["login"]
-           and not event["node"]["isMinimized"]
-           and event["node"]["viewerCanMinimize"]):
-            MinimizeComment().run({
-                "input": {
-                    "subjectId": event["node"]["id"],
-                    "classifier": "OUTDATED",
-                }
-            })
+        if (
+            event["node"]["author"]["login"] == viewer["login"]
+            and not event["node"]["isMinimized"]
+            and event["node"]["viewerCanMinimize"]
+        ):
+            MinimizeComment().run({"input": {"subjectId": event["node"]["id"], "classifier": "OUTDATED",}})
 
-    comment = add_comment.run({
-        "comment": {
-            "body": "\n".join(comment_body),
-        }
-    })
+    comment = add_comment.run({"comment": {"body": "\n".join(comment_body),}})
 
     print(f"Added comment: {comment.url}")
 
