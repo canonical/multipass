@@ -169,7 +169,6 @@ class GetCommitComments(GitHubQLQuery):
           }
           object(expression: $commit) {
             id
-            url
             ... on Commit {
               parents(last: 1) {
                 edges {
@@ -179,6 +178,7 @@ class GetCommitComments(GitHubQLQuery):
                         node {
                           id
                           number
+                          url
                         }
                       }
                     }
@@ -196,6 +196,7 @@ class GetCommitComments(GitHubQLQuery):
                     databaseId
                     id
                     isMinimized
+                    url
                     viewerCanMinimize
                     viewerCanUpdate
                   }
