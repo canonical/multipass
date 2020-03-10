@@ -19,10 +19,10 @@ else
           || "${TRAVIS_PULL_REQUEST_BRANCH}" =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
           || "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_TAG_PATTERN} ]]; then
 
-      # only publish pushes, on candidate/*
+      # only publish pushes, on candidate
       if [ "${TRAVIS_EVENT_TYPE}" == "push" ]; then
         MULTIPASS_PUBLISH="true"
-        MULTIPASS_SNAP_CHANNEL="candidate/${BASH_REMATCH[1]}"
+        MULTIPASS_SNAP_CHANNEL="candidate"
 
         # but report on the PR if it's a release branch
         if [[ "${TRAVIS_BRANCH}" == release/* ]]; then
