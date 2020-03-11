@@ -41,12 +41,14 @@ const auto daemon_root = QStringLiteral("local");
 const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
+const auto winterm_default = QStringLiteral("");
 
 std::map<QString, QString> make_defaults()
 { // clang-format off
     return {{mp::petenv_key, petenv_name},
             {mp::driver_key, mp::platform::default_driver()},
-            {mp::autostart_key, autostart_default}};
+            {mp::autostart_key, autostart_default},
+            {mp::winterm_key, winterm_default}};
 } // clang-format on
 
 /*
@@ -131,6 +133,11 @@ QString interpret_bool(QString val)
         return val;
 }
 
+bool is_winterm_integration_enabled()
+{
+    return false; // TODO@ricab
+}
+
 } // namespace
 
 mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
@@ -150,9 +157,12 @@ std::set<QString> multipass::Settings::keys() const
 // TODO try installing yaml backend
 QString mp::Settings::get(const QString& key) const
 {
-    const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
-    auto settings = persistent_settings(key);
-    return checked_get(settings, key, default_ret, mutex);
+    const auto& default_ = get_default(key); // do this first to make sure the key is valid
+
+    if (key == winterm_key)
+        return QVariant(is_winterm_integration_enabled()).toString();
+    else
+        return checked_get(persistent_settings(key), key, default_, mutex);
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
