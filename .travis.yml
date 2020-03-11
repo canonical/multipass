@@ -118,17 +118,21 @@ jobs:
       - SNAP_ENFORCE_RESQUASHFS=0 /snap/bin/review-tools.snap-review --allow-classic *.snap
 
       after_success:
-      - &python-requirements pyenv local 3.8.1 && python3 -m pip install --requirement tools/requirements.txt
+      - &python-requirements pyenv local 3.8.1 && python3 -m pip install --requirement tools/requirements.txt boto3
       - BUILDS=()
       - >-
         [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
         && snapcraft login --with ${HOME}/snap-login
         && snapcraft push multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
         && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
-      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.snap https://transfer.sh/ )
-        || ( echo "Upload failed..."; false )
-        && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
-        echo ${CURL_OUTPUT}
+      - >-
+        [ -z "${MULTIPASS_SNAP_CHANNEL}" ]
+        && MULTIPASS_REPORT_OPTIONS+=(
+          --file *.snap
+          --s3-bucket multipass-ci
+          --s3-prefix ${MULTIPASS_BUILD_LABEL}
+        )
+        && BUILDS+=('[{filename}]({url})')
       - >-
         [ -n "${MULTIPASS_PUBLISH}" ]
         && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" Snap "${BUILDS[@]}"
@@ -175,15 +179,14 @@ jobs:
         fi
         ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_LABEL}"
-        scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
-
       after_success:
       - *python-requirements
-      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
-        || ( echo "Upload failed..."; false )
-        && [ -n "${MULTIPASS_PUBLISH}" ]
-        && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
-        echo ${CURL_OUTPUT}
+      - scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
+      - python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}"
+          --file *.pkg
+          --s3-bucket multipass-ci
+          --s3-prefix "${MULTIPASS_BUILD_LABEL}"
+          macOS '[{filename}]({url})'
 
     - stage: process snaps
       name: Process snaps
