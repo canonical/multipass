@@ -904,13 +904,13 @@ try // clang-format on
     {
         const auto remote = request->remote_name();
 
-        if (!mp::platform::is_remote_supported(remote))
-            throw std::runtime_error(fmt::format(
-                "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
-
         auto it = remote_image_host_map.find(remote);
         if (it == remote_image_host_map.end())
             throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
+
+        if (!mp::platform::is_remote_supported(remote))
+            throw std::runtime_error(fmt::format(
+                "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
 
         auto vm_images_info = it->second->all_images_for(remote, request->allow_unsupported());
         for (const auto& info : vm_images_info)
@@ -926,6 +926,13 @@ try // clang-format on
                     auto alias_entry = entry->add_aliases_info();
                     alias_entry->set_remote_name(request->remote_name());
                     alias_entry->set_alias(alias.toStdString());
+                }
+
+                // If no aliases are found, then it's an invalid entry
+                if (entry->aliases_info().empty())
+                {
+                    response.mutable_images_info()->RemoveLast();
+                    continue;
                 }
 
                 entry->set_os(info.os.toStdString());
