@@ -199,7 +199,7 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
     else if (key == driver_key && !mp::platform::is_backend_supported(val))
         throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
-    else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
+    else if ((key == autostart_key || key == winterm_key) && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
 
     auto settings = persistent_settings(key);
