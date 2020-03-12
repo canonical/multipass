@@ -46,6 +46,11 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 } // namespace
 
+std::map<QString, QString> mp::platform::extra_settings_defaults()
+{
+    return {};
+}
+
 bool mp::platform::is_winterm_integration_enabled()
 {
     return false;
