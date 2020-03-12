@@ -350,7 +350,7 @@ TEST_F(SshfsMount, invalid_fuse_version_throws)
 
     auto request_exec = [&invoked, &remaining, &output](ssh_channel, const char* raw_cmd) {
         std::string cmd{raw_cmd};
-        if (cmd.find("sudo multipass-sshfs.env") != std::string::npos)
+        if (cmd.find("snap run multipass-sshfs.env") != std::string::npos)
         {
             output = "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n";
             remaining = output.size();

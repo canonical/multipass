@@ -58,7 +58,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     try
     {
         // Prefer to use Snap package version first
-        std::istringstream sshfs_env{run_cmd(session, "sudo multipass-sshfs.env")};
+        std::istringstream sshfs_env{run_cmd(session, "snap run multipass-sshfs.env")};
 
         auto ld_library_path = mp::utils::match_line_for(sshfs_env, ld_library_path_key);
         auto snap_path = mp::utils::match_line_for(sshfs_env, snap_path_key);
