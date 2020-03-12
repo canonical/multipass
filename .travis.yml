@@ -1,10 +1,9 @@
-dist: xenial
-sudo: required
-
+os: linux
+dist: bionic
 language: cpp
 
 git:
-  depth: false
+  submodules: false
 
 env:
   global:
@@ -12,8 +11,6 @@ env:
   # regexes for release branch and tag
   - MULTIPASS_RELEASE_BRANCH_PATTERN="^release/([0-9\.]+)$"
   - MULTIPASS_RELEASE_TAG_PATTERN="^v([0-9]+\.[0-9]+)\.[0-9]+$"
-  # upstream to use as reference for release version matching
-  - MULTIPASS_UPSTREAM="origin"
   # build label added to the version string
   - MULTIPASS_BUILD_LABEL=""
   # whether to publish the built packages
@@ -23,107 +20,47 @@ env:
   # options to pass to the build reporter
   - MULTIPASS_REPORT_OPTIONS=()
 
-if: | # bors and release branches, release tags and all pull requests
-  branch IN (staging, trying, master)
-  OR branch ~= env(MULTIPASS_RELEASE_BRANCH_PATTERN)
-  OR branch ~= env(MULTIPASS_RELEASE_TAG_PATTERN)
-  OR type = pull_request
-
-addons:
-  snaps:
-  - &lxd lxd
-  - &snapcraft
-    name: snapcraft
-    classic: true
-
-before_install:
-# determine build properties and targets
-- |
-  # tag all PR builds with their number
-  if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
-    MULTIPASS_BUILD_LABEL="pr${TRAVIS_PULL_REQUEST}"
-
-  # and all other non-branch builds with their Travis job number
-  elif [ "${TRAVIS_EVENT_TYPE}" != "push" ]; then
-    MULTIPASS_BUILD_LABEL="ci${TRAVIS_JOB_NUMBER}"
-  fi
-
-  # can't publish anything without credentials
-  if [ "${TRAVIS_SECURE_ENV_VARS}" == "true" ]; then
-
-    # when it's a release branch or tag
-    if [[ "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
-          || "${TRAVIS_PULL_REQUEST_BRANCH}" =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
-          || "${TRAVIS_BRANCH}" =~ ${MULTIPASS_RELEASE_TAG_PATTERN} ]]; then
-
-      # only publish pushes, on candidate/*
-      if [ "${TRAVIS_EVENT_TYPE}" == "push" ]; then
-        MULTIPASS_PUBLISH="true"
-        MULTIPASS_SNAP_CHANNEL="candidate/${BASH_REMATCH[1]}"
-
-        # but report on the PR if it's a release branch
-        if [[ "${TRAVIS_BRANCH}" == release/* ]]; then
-          MULTIPASS_REPORT_OPTIONS+=("--branch" "${TRAVIS_BRANCH}")
-        fi
-      fi
-
-    # other branches publish on the commits by default
-    # skip staging as the same commit will be published from master if all is good
-    elif [[ "${TRAVIS_EVENT_TYPE}" == "push" \
-            && "${TRAVIS_BRANCH}" != "staging" ]]; then
-      MULTIPASS_PUBLISH="true"
-
-      # except for `trying`, which publishes on the parent's PR
-      if [[ "${TRAVIS_BRANCH}" == "trying" \
-            && "${TRAVIS_COMMIT_MESSAGE}" =~ ^Try\ #([0-9]+): ]]; then
-        MULTIPASS_BUILD_LABEL="pr${BASH_REMATCH[1]}"
-        MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
-        MULTIPASS_REPORT_OPTIONS+=("--parent")
-      fi
-
-    # publish all other PRs on edge/pr*
-    elif [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
-      MULTIPASS_PUBLISH="true"
-      MULTIPASS_SNAP_CHANNEL="edge/${MULTIPASS_BUILD_LABEL}"
-    fi
-  fi
-
-# extract credentials
-- |
-  if [ "${TRAVIS_SECURE_ENV_VARS}" == "true" ]; then
-    openssl aes-256-cbc -K $encrypted_1b80fb3c7803_key -iv $encrypted_1b80fb3c7803_iv \
-      -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
-    tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
-  fi
-
-# install tooling requiements
-- pyenv local 3.7.1
-- python3 -m pip install --requirement tools/requirements.txt
-
-install:
-- sudo apt remove --purge --assume-yes lxd lxd-client
-- sudo /snap/bin/lxd waitready
-- sudo /snap/bin/lxd init --auto
-- sudo adduser $USER lxd
-- ccache --max-size=5G
-
-after_failure:
-- cat /tmp/*/trace.txt
-
-after_script:
-- ccache --show-stats
-
-cache: ccache
+stages:
+- name: build
+  if: | # bors and release branches, release tags and all pull requests
+    (type = push
+     AND (branch IN (staging, trying, master)
+          OR branch ~= env(MULTIPASS_RELEASE_BRANCH_PATTERN)
+          OR branch ~= env(MULTIPASS_RELEASE_TAG_PATTERN)))
+    OR type = pull_request
+- name: process snaps
+  if: type = cron
 
 jobs:
   include:
-    - addons:
+    - &snapcraft-build
+      stage: build
+      name: Debug
+      env: BUILD_TYPE=Debug
+
+      git:
+        depth: false
+        submodules: true
+
+      addons:
         snaps:
-        - *lxd
-        - *snapcraft
-        - review-tools
-      env: BUILD_TYPE=RelWithDebInfo
-      before_script: &before_snapcraft
+        - &lxd-snap lxd
+        - &snapcraft-snap
+          name: snapcraft
+          classic: true
+
+      before_install:
+      # determine build properties and targets
+      - &setup-build source tools/setup_build.sh
+
+      install:
+      - sudo apt remove --purge --assume-yes lxd lxd-client
+      - sudo /snap/bin/lxd waitready
+      - sudo /snap/bin/lxd init --auto
+      - sudo adduser $USER lxd
+      - ccache --max-size=5G
+
+      before_script:
       # patch build system for the build type being processed
       - "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
       - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
@@ -133,35 +70,9 @@ jobs:
       - sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
       - ccache --zero-stats
 
-      # inject build identifier and upstream
+      # inject build identifier
       - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${MULTIPASS_BUILD_LABEL}" snap/snapcraft.yaml
-      - sed -i "/configflags:/a \    - -DMULTIPASS_UPSTREAM=${MULTIPASS_UPSTREAM}" snap/snapcraft.yaml
 
-      script:
-      - sg lxd -c '/snap/bin/snapcraft --use-lxd'
-      - SNAP_ENFORCE_RESQUASHFS=0 /snap/bin/review-tools.snap-review --allow-classic *.snap
-      after_success:
-      - BUILDS=()
-      - >-
-        [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
-        && snapcraft login --with ${HOME}/snap-login
-        && snapcraft push multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
-        && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
-      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.snap https://transfer.sh/ )
-        || ( echo "Upload failed..."; false )
-        && BUILDS+=("[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})");
-        echo ${CURL_OUTPUT}
-      - >-
-        [ -n "${MULTIPASS_PUBLISH}" ]
-        && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" Snap "${BUILDS[@]}"
-
-    - env: BUILD_TYPE=Clang
-      before_script: *before_snapcraft
-      script:
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-
-    - env: BUILD_TYPE=Debug
-      before_script: *before_snapcraft
       script:
       - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
       - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
@@ -171,8 +82,64 @@ jobs:
                  LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/
                  /root/parts/multipass/build/bin/multipass_tests'
 
-    - env: BUILD_TYPE=Coverage
-      before_script: *before_snapcraft
+      after_failure:
+      - cat /tmp/*/trace.txt
+
+      after_script:
+      - ccache --show-stats
+
+      cache: ccache
+
+    - <<: *snapcraft-build
+      name: Clang
+      env: BUILD_TYPE=Clang
+      script:
+      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+
+    - <<: *snapcraft-build
+      name: RelWithDebInfo
+      env: BUILD_TYPE=RelWithDebInfo
+
+      addons:
+        snaps:
+        - *lxd-snap
+        - *snapcraft-snap
+        - review-tools
+
+      before_install:
+      - *setup-build
+      - &decrypt-bot-data |
+        openssl aes-256-cbc -K $encrypted_1b80fb3c7803_key -iv $encrypted_1b80fb3c7803_iv \
+          -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
+        tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
+
+      script:
+      - sg lxd -c '/snap/bin/snapcraft --use-lxd'
+      - SNAP_ENFORCE_RESQUASHFS=0 /snap/bin/review-tools.snap-review --allow-classic *.snap
+
+      after_success:
+      - &python-requirements pyenv local 3.8.1 && python3 -m pip install --requirement tools/requirements.txt boto3
+      - BUILDS=()
+      - >-
+        [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
+        && snapcraft login --with ${HOME}/snap-login
+        && snapcraft push multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
+        && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
+      - >-
+        [ -z "${MULTIPASS_SNAP_CHANNEL}" ]
+        && MULTIPASS_REPORT_OPTIONS+=(
+          --file *.snap
+          --s3-bucket multipass-ci
+          --s3-prefix ${MULTIPASS_BUILD_LABEL}
+        )
+        && BUILDS+=('[{filename}]({url})')
+      - >-
+        [ -n "${MULTIPASS_PUBLISH}" ]
+        && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" Snap "${BUILDS[@]}"
+
+    - <<: *snapcraft-build
+      name: Coverage
+      env: BUILD_TYPE=Coverage
       script:
       - mkdir "${HOME}/parts"
       - sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
@@ -186,16 +153,23 @@ jobs:
       after_success:
       - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
 
-    - if: |
+    - stage: build
+      name: macOS
+      env: BUILD_TYPE=macOS
+      if: |
         repo = canonical/multipass
                AND (type != pull_request
                     OR head_repo = repo)
-      env: BUILD_TYPE=macOS
+
       git:
         submodules: false
-      sudo: false
+
       addons: ~
-      install: ~
+
+      before_install:
+      - *setup-build
+      - *decrypt-bot-data
+
       script:
       - |
         if [ "${TRAVIS_EVENT_TYPE}" == "pull_request" ]; then
@@ -205,13 +179,30 @@ jobs:
         fi
         ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_LABEL}"
-        scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       after_success:
-      - CURL_OUTPUT=$( timeout 5m curl --fail --upload-file *.pkg https://transfer.sh/ )
-        || ( echo "Upload failed..."; false )
-        && [ -n "${MULTIPASS_PUBLISH}" ]
-        && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" macOS "[$( basename ${CURL_OUTPUT} )](${CURL_OUTPUT})";
-        echo ${CURL_OUTPUT}
-      after_script: ~
-      after_failure: ~
-      cache: ~
+      - *python-requirements
+      - scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
+      - python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}"
+          --file *.pkg
+          --s3-bucket multipass-ci
+          --s3-prefix "${MULTIPASS_BUILD_LABEL}"
+          macOS '[{filename}]({url})'
+
+    - stage: process snaps
+      name: Process snaps
+      env: ~
+      language: python
+      python: 3.8
+
+      addons:
+        snaps:
+        - review-tools
+
+      before_install:
+      - *decrypt-bot-data
+
+      install:
+      - *python-requirements
+
+      script:
+      - tools/process_snaps.py

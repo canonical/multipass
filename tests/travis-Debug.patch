@@ -1,13 +1,15 @@
+diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
+index 99b6312c..fa0ea223 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -209,9 +209,8 @@ parts:
-     - libpng16-16
+@@ -93,9 +93,8 @@ parts:
+     - dnsmasq-utils
      source: .
      configflags:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
 +    - -DCMAKE_BUILD_TYPE=Debug
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
+     - -DMULTIPASS_UPSTREAM=origin
      override-build: |
        update-ccache-symlinks
-       snapcraftctl build

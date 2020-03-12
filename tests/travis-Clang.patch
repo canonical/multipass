@@ -1,17 +1,19 @@
+diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
+index 99b6312c..bb68596d 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -60,6 +60,7 @@ parts:
+@@ -68,6 +68,7 @@ parts:
      - build-essential
      - ccache
      - cmake-extras
 +    - clang
      - git
      - golang
-     - libsystemd-dev
-@@ -84,6 +85,8 @@ parts:
-     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+     - libapparmor-dev
+@@ -97,6 +98,8 @@ parts:
      - -DCMAKE_INSTALL_PREFIX=/
      - -DMULTIPASS_ENABLE_TESTS=off
+     - -DMULTIPASS_UPSTREAM=origin
 +    - -DCMAKE_C_COMPILER=clang
 +    - -DCMAKE_CXX_COMPILER=clang++
      override-build: |
