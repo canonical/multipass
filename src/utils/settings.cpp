@@ -47,8 +47,9 @@ std::map<QString, QString> make_defaults()
     auto ret = std::map<QString, QString>{{mp::petenv_key, petenv_name},
                                           {mp::driver_key, mp::platform::default_driver()},
                                           {mp::autostart_key, autostart_default}};
+    auto extra = mp::platform::extra_settings_defaults();
 
-    ret.merge(mp::platform::extra_settings_defaults());
+    ret.insert(begin(extra), end(extra));
     return ret;
 } // clang-format on
 
