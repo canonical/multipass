@@ -226,10 +226,12 @@ void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& sessi
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed in \'{}\'", name));
         throw std::runtime_error(
-            fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts."
-                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
-                        "\nhow to install snap support for your instance's distribution."
-                        "\n\nAlternatively, install `sshfs` manually inside the instance.",
+            fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts.\n"
+                        "Please see https://docs.snapcraft.io/installing-snapd for information on\n"
+                        "how to install snap support for your instance's distribution.\n\n"
+                        "If your distribution's instructions specify enabling classic snap support,\n"
+                        "please do that as well.\n\n"
+                        "Alternatively, install `sshfs` manually inside the instance.",
                         name));
     }
 
@@ -239,9 +241,9 @@ void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& sessi
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Classic snap support symlink is needed in \'{}\'", name));
         throw std::runtime_error(
-            fmt::format("Classic snap support is needed in \'{}\' in order to support mounts."
-                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
-                        "\nhow to enable classic snap support for your instance's distribution.",
+            fmt::format("Classic snap support is not enabled for \'{}\'!\n\n"
+                        "Please see https://docs.snapcraft.io/installing-snapd for information on\n"
+                        "how to enable classic snap support for your instance's distribution.",
                         name));
     }
 
