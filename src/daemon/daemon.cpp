@@ -2063,8 +2063,8 @@ void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
     mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in \'{}\'", name));
 
     // Check if snap support is installed in the instance
-    auto proc = session.exec("which snap");
-    if (proc.exit_code() != 0)
+    auto which_proc = session.exec("which snap");
+    if (which_proc.exit_code() != 0)
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed in \'{}\'", name));
         throw std::runtime_error(
@@ -2072,6 +2072,18 @@ void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
                         "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
                         "\nhow to install snap support for your instance's distribution."
                         "\n\nAlternatively, install `sshfs` manually inside the instance.",
+                        name));
+    }
+
+    // Check if /snap exists for "classic" snap support
+    auto test_file_proc = session.exec("[ -e /snap ]");
+    if (test_file_proc.exit_code() != 0)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Classic snap support symlink is needed in \'{}\'", name));
+        throw std::runtime_error(
+            fmt::format("Classic snap support is needed in \'{}\' in order to support mounts."
+                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
+                        "\nhow to enable classic snap support for your instance's distribution.",
                         name));
     }
 
