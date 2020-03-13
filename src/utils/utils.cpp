@@ -17,6 +17,8 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/settings.h>
@@ -45,6 +47,8 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "utils";
+
 auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
 {
     if (quote_type == mp::utils::QuoteType::no_quotes)
@@ -210,6 +214,53 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     };
     auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
     mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
+void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& session)
+{
+    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in \'{}\'", name));
+
+    // Check if snap support is installed in the instance
+    auto which_proc = session.exec("which snap");
+    if (which_proc.exit_code() != 0)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed in \'{}\'", name));
+        throw std::runtime_error(
+            fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts."
+                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
+                        "\nhow to install snap support for your instance's distribution."
+                        "\n\nAlternatively, install `sshfs` manually inside the instance.",
+                        name));
+    }
+
+    // Check if /snap exists for "classic" snap support
+    auto test_file_proc = session.exec("[ -e /snap ]");
+    if (test_file_proc.exit_code() != 0)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Classic snap support symlink is needed in \'{}\'", name));
+        throw std::runtime_error(
+            fmt::format("Classic snap support is needed in \'{}\' in order to support mounts."
+                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
+                        "\nhow to enable classic snap support for your instance's distribution.",
+                        name));
+    }
+
+    try
+    {
+        auto proc = session.exec("sudo snap install multipass-sshfs");
+        if (proc.exit_code(std::chrono::minutes(5)) != 0)
+        {
+            auto error_msg = proc.read_std_error();
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("Failed to install \'multipass-sshfs\', error message: \'{}\'",
+                                 mp::utils::trim_end(error_msg)));
+            throw mp::SSHFSMissingError();
+        }
+    }
+    catch (const mp::ExitlessSSHProcessException&)
+    {
+        mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'sshfs' in '{}'", name));
+    }
 }
 
 void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autostart_subdir,

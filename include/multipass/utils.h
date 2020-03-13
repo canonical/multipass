@@ -19,6 +19,7 @@
 #define MULTIPASS_UTILS_H
 
 #include <multipass/path.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
 #include <chrono>
@@ -79,6 +80,7 @@ void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::millisecond
                        std::function<void()> const& ensure_vm_is_running = []() {});
 void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                          const SSHKeyProvider& key_provider);
+void install_sshfs_for(const std::string& name, SSHSession& session);
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
 void check_and_create_config_file(const QString& config_file_path);
 

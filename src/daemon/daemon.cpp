@@ -1248,6 +1248,7 @@ try // clang-format on
         }
 
         auto& vm = it->second;
+        auto& vm_specs = vm_instance_specs[name];
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
@@ -1266,7 +1267,10 @@ try // clang-format on
                     MountReply mount_reply;
                     mount_reply.set_mount_message("Enabling support for mounting");
                     server->Write(mount_reply);
-                    install_sshfs(vm.get(), name);
+
+                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                           *config->ssh_key_provider};
+                    mp::utils::install_sshfs_for(name, session);
                     instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
@@ -1281,7 +1285,6 @@ try // clang-format on
             }
         }
 
-        auto& vm_specs = vm_instance_specs[name];
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
             fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
@@ -2054,57 +2057,6 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     return grpc::Status::OK;
 }
 
-void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
-{
-    auto& key_provider = *config->ssh_key_provider;
-
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
-
-    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in \'{}\'", name));
-
-    // Check if snap support is installed in the instance
-    auto which_proc = session.exec("which snap");
-    if (which_proc.exit_code() != 0)
-    {
-        mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed in \'{}\'", name));
-        throw std::runtime_error(
-            fmt::format("Snap support needs to be installed in \'{}\' in order to support mounts."
-                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
-                        "\nhow to install snap support for your instance's distribution."
-                        "\n\nAlternatively, install `sshfs` manually inside the instance.",
-                        name));
-    }
-
-    // Check if /snap exists for "classic" snap support
-    auto test_file_proc = session.exec("[ -e /snap ]");
-    if (test_file_proc.exit_code() != 0)
-    {
-        mpl::log(mpl::Level::warning, category, fmt::format("Classic snap support symlink is needed in \'{}\'", name));
-        throw std::runtime_error(
-            fmt::format("Classic snap support is needed in \'{}\' in order to support mounts."
-                        "\n\nPlease see https://docs.snapcraft.io/installing-snapd for information on"
-                        "\nhow to enable classic snap support for your instance's distribution.",
-                        name));
-    }
-
-    try
-    {
-        auto proc = session.exec("sudo snap install multipass-sshfs");
-        if (proc.exit_code(std::chrono::minutes(5)) != 0)
-        {
-            auto error_msg = proc.read_std_error();
-            mpl::log(mpl::Level::warning, category,
-                     fmt::format("Failed to install \'multipass-sshfs\', error message: \'{}\'",
-                                 mp::utils::trim_end(error_msg)));
-            throw mp::SSHFSMissingError();
-        }
-    }
-    catch (const mp::ExitlessSSHProcessException&)
-    {
-        mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'sshfs' in '{}'", name));
-    }
-}
-
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
 mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
@@ -2145,6 +2097,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
         std::vector<std::string> invalid_mounts;
         auto& mounts = vm_instance_specs[name].mounts;
+        auto& vm_specs = vm_instance_specs[name];
         for (const auto& mount_entry : mounts)
         {
             auto& target_path = mount_entry.first;
@@ -2167,7 +2120,9 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                         server->Write(reply);
                     }
 
-                    install_sshfs(vm.get(), name);
+                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                           *config->ssh_key_provider};
+                    mp::utils::install_sshfs_for(name, session);
                     instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
