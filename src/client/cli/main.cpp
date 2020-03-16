@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,15 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/console.h>
 #include <multipass/constants.h>
+#include <multipass/top_catch_all.h>
 
 #include <QCoreApplication>
 
 namespace mp = multipass;
 
-int main(int argc, char* argv[])
+namespace
+{
+int main_impl(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName(mp::client_name);
@@ -38,4 +41,10 @@ int main(int argc, char* argv[])
     mp::Client client{config};
 
     return client.run(QCoreApplication::arguments());
+}
+} // namespace
+
+int main(int argc, char* argv[])
+{
+    return mp::top_catch_all("client", main_impl, argc, argv);
 }
