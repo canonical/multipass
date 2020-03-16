@@ -43,10 +43,22 @@ struct TopCatchAll : public Test
 
     void TearDown() override
     {
-        mock_logger = nullptr;
+        mock_logger.reset();
         mpl::set_logger(mock_logger);
     }
 
+    template <typename Matcher>
+    auto make_cstring_matcher(const Matcher& matcher)
+    {
+        return Property(&mpl::CString::c_str, matcher);
+    }
+
+    auto make_category_matcher()
+    {
+        return make_cstring_matcher(StrEq(category.c_str()));
+    }
+
+    const std::string category = "testing";
     std::shared_ptr<StrictMock<mpt::MockLogger>> mock_logger = nullptr;
 };
 } // namespace
@@ -67,11 +79,10 @@ TEST_F(TopCatchAll, calls_function_with_args)
 
 TEST_F(TopCatchAll, handles_unknown_error)
 {
-    const std::string category = "testing";
     int got = 0;
 
-    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), Property(&mpl::CString::c_str, StrEq(category.c_str())),
-                                  Property(&mpl::CString::c_str, HasSubstr("unknown"))));
+    EXPECT_CALL(*mock_logger,
+                log(Eq(mpl::Level::error), make_category_matcher(), make_cstring_matcher(HasSubstr("unknown"))));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
                         throw 123;
                         return 0;
