@@ -36,7 +36,7 @@ public:
     {
     }
 
-    const char* c_str()
+    const char* c_str() const
     {
         return data;
     }
