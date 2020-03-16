@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,14 +43,12 @@ auto run_cmd(mp::SSHSession& session, std::string&& cmd, Callable&& error_handle
     return ssh_process.read_std_output();
 }
 
-// Run a command on a given SSH session.
 auto run_cmd(mp::SSHSession& session, std::string&& cmd)
 {
     auto error_handler = [](mp::SSHProcess& proc) { throw std::runtime_error(proc.read_std_error()); };
     return run_cmd(session, std::forward<std::string>(cmd), error_handler);
 }
 
-// Check if sshfs exists on a given SSH session.
 void check_sshfs_exists(mp::SSHSession& session)
 {
     auto error_handler = [](mp::SSHProcess& proc) {
@@ -62,30 +60,18 @@ void check_sshfs_exists(mp::SSHSession& session)
     run_cmd(session, "which sshfs", error_handler);
 }
 
-// Split a path into existing and to-be-created parts.
+// Split a path into existing and to-be-created parts. The input is assumed to
+// be an absolute path, normalized with mp::utils::normalize_absolute_path().
 std::pair<std::string, std::string> get_path_split(mp::SSHSession& session, const std::string& target)
 {
-    QDir complete_path(QString::fromStdString(target));
-    QString absolute;
-
-    if (complete_path.isRelative())
-    {
-        QString home = QString::fromStdString(run_cmd(session, "pwd")).trimmed();
-        absolute = home + '/' + complete_path.path();
-    }
-    else
-    {
-        absolute = complete_path.path();
-    }
-
     QString existing =
         QString::fromStdString(
             run_cmd(session,
                     fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=${{P%/*}}; done; echo $P/'",
-                                absolute)))
+                                target)))
             .trimmed();
 
-    return {existing.toStdString(), QDir(existing).relativeFilePath(absolute).toStdString()};
+    return {existing.toStdString(), QDir(existing).relativeFilePath(QString::fromStdString(target)).toStdString()};
 }
 
 // Create a directory on a given root folder.
@@ -108,6 +94,7 @@ void set_owner_for(mp::SSHSession& session, const std::string& root, const std::
                                  relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
+// The target is assumed to be an absolute path, normalized via mp::utils::normalize_absolute_path().
 auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const std::string& target,
                       const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
 {

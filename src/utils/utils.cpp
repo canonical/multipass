@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -341,4 +341,11 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
         make_dir({}, QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
         config_file.open(QIODevice::WriteOnly);
     }
+}
+
+// Given an absolute path, removes trailing slash, multiple slashes and
+// redundant "." and "..".
+std::string mp::utils::normalize_absolute_path(const std::string& path)
+{
+    return QDir::cleanPath(QString::fromStdString(path)).toStdString();
 }

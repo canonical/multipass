@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1241,9 +1241,40 @@ try // clang-format on
         }
 
         auto& vm = it->second;
+        auto& vm_specs = vm_instance_specs[name];
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
+            // If the given path is relative, we need to resolve the fill
+            // absolute path. For this, we execute the command 'pwd'.
+            if (QDir(QString::fromStdString(target_path)).isRelative())
+            {
+                mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
+
+                std::string home;
+
+                auto proc = session.exec("pwd");
+                if (proc.exit_code() != 0)
+                {
+                    auto error_msg = proc.read_std_error();
+                    mpl::log(
+                        mpl::Level::warning, category,
+                        fmt::format("failed to run 'pwd', error message: '{}'", mp::utils::trim_end(error_msg)));
+                    home = std::string{};
+                }
+
+                home = proc.read_std_output();
+                mp::utils::trim_end(home);
+
+                target_path = mp::utils::normalize_absolute_path(home + '/' + target_path);
+                mpl::log(mpl::Level::info, category, fmt::format("home directory: {}, target_path: {}", home, target_path));
+            }
+            else
+            {
+                target_path = mp::utils::normalize_absolute_path(target_path);
+                mpl::log(mpl::Level::info, category, fmt::format("target_path: {}", target_path));
+            }
+
             try
             {
                 instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_map, uid_map);
@@ -1274,7 +1305,6 @@ try // clang-format on
             }
         }
 
-        auto& vm_specs = vm_instance_specs[name];
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
             fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
@@ -1632,6 +1662,7 @@ try // clang-format on
         auto target_path = path_entry.target_path();
         auto& mounts = vm_instance_specs[name].mounts;
         auto& vm = it->second;
+        auto& vm_specs = vm_instance_specs[name];
 
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
@@ -1643,6 +1674,36 @@ try // clang-format on
         {
             if (vm->current_state() == mp::VirtualMachine::State::running)
             {
+                // If the given path is relative, we need to resolve the fill
+                // absolute path. For this, we execute the command 'pwd'.
+                if (QDir(QString::fromStdString(target_path)).isRelative())
+                {
+                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
+
+                    std::string home;
+
+                    auto proc = session.exec("pwd");
+                    if (proc.exit_code() != 0)
+                    {
+                        auto error_msg = proc.read_std_error();
+                        mpl::log(
+                            mpl::Level::warning, category,
+                            fmt::format("failed to run 'pwd', error message: '{}'", mp::utils::trim_end(error_msg)));
+                        home = std::string{};
+                    }
+
+                    home = proc.read_std_output();
+                    mp::utils::trim_end(home);
+
+                    target_path = mp::utils::normalize_absolute_path(home + '/' + target_path);
+                    mpl::log(mpl::Level::info, category, fmt::format("home directory: {}, target_path: {}", home, target_path));
+                }
+                else
+                {
+                    target_path = mp::utils::normalize_absolute_path(target_path);
+                    mpl::log(mpl::Level::info, category, fmt::format("target_path: {}", target_path));
+                }
+
                 if (!instance_mounts.stop_mount(name, target_path))
                 {
                     fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
