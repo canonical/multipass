@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -131,6 +131,11 @@ try // clang-format on
 }
 catch (const std::exception& e)
 {
-    mpl::log(mpl::Level::error, "daemon", e.what());
+    mpl::log(mpl::Level::error, "daemon", fmt::format("Caught an unhandled exception: {}", e.what()));
+    return EXIT_FAILURE;
+}
+catch (...)
+{
+    mpl::log(mpl::Level::error, "daemon", "Caught an unknown exception");
     return EXIT_FAILURE;
 }
