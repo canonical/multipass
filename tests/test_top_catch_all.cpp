@@ -15,14 +15,21 @@
  *
  */
 
+#include "mock_logger.h"
+
+#include <multipass/logging/log.h>
 #include <multipass/top_catch_all.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <functional>
+#include <memory>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
+namespace mpt = multipass::test;
+using namespace testing;
 
 TEST(TopCatchAll, calls_function_with_no_args)
 {
@@ -36,4 +43,21 @@ TEST(TopCatchAll, calls_function_with_args)
     int a = 5, b = 7, got = 0;
     EXPECT_NO_THROW(got = mp::top_catch_all("", std::plus<int>{}, a, b););
     EXPECT_EQ(got, a + b);
+}
+
+TEST(TopCatchAll, handles_unknown_error)
+{
+    const std::string category = "testing";
+    int got = 0;
+
+    auto mock_logger = std::make_shared<mpt::MockLogger>();
+    mpl::set_logger(mock_logger);
+
+    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), Property(&mpl::CString::c_str, StrEq(category.c_str())),
+                                  Property(&mpl::CString::c_str, HasSubstr("unknown"))));
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
+                        throw 123;
+                        return 0;
+                    }););
+    EXPECT_EQ(got, EXIT_FAILURE);
 }
