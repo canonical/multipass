@@ -31,27 +31,44 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
-TEST(TopCatchAll, calls_function_with_no_args)
+namespace
+{
+struct TopCatchAll : public Test
+{
+    void SetUp() override
+    {
+        mock_logger = std::make_shared<StrictMock<mpt::MockLogger>>();
+        mpl::set_logger(mock_logger);
+    }
+
+    void TearDown() override
+    {
+        mock_logger = nullptr;
+        mpl::set_logger(mock_logger);
+    }
+
+    std::shared_ptr<StrictMock<mpt::MockLogger>> mock_logger = nullptr;
+};
+} // namespace
+
+TEST_F(TopCatchAll, calls_function_with_no_args)
 {
     int ret = 123, got = 0;
     EXPECT_NO_THROW(got = mp::top_catch_all("", [ret] { return ret; }););
     EXPECT_EQ(got, ret);
 }
 
-TEST(TopCatchAll, calls_function_with_args)
+TEST_F(TopCatchAll, calls_function_with_args)
 {
     int a = 5, b = 7, got = 0;
     EXPECT_NO_THROW(got = mp::top_catch_all("", std::plus<int>{}, a, b););
     EXPECT_EQ(got, a + b);
 }
 
-TEST(TopCatchAll, handles_unknown_error)
+TEST_F(TopCatchAll, handles_unknown_error)
 {
     const std::string category = "testing";
     int got = 0;
-
-    auto mock_logger = std::make_shared<mpt::MockLogger>();
-    mpl::set_logger(mock_logger);
 
     EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), Property(&mpl::CString::c_str, StrEq(category.c_str())),
                                   Property(&mpl::CString::c_str, HasSubstr("unknown"))));
