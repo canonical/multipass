@@ -25,6 +25,7 @@
 
 #include <functional>
 #include <memory>
+#include <stdexcept>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -85,6 +86,20 @@ TEST_F(TopCatchAll, handles_unknown_error)
                 log(Eq(mpl::Level::error), make_category_matcher(), make_cstring_matcher(HasSubstr("unknown"))));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
                         throw 123;
+                        return 0;
+                    }););
+    EXPECT_EQ(got, EXIT_FAILURE);
+}
+
+TEST_F(TopCatchAll, handles_standard_exception)
+{
+    int got = 0;
+    const std::string emsg = "some error";
+    const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(emsg.c_str()));
+
+    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), make_cstring_matcher(msg_matcher)));
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, [&emsg] {
+                        throw std::runtime_error{emsg};
                         return 0;
                     }););
     EXPECT_EQ(got, EXIT_FAILURE);
