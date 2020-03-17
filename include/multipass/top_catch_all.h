@@ -23,6 +23,16 @@
 
 namespace multipass
 {
+/**
+ * Call f within a try-catch, catching and logging anything that it throws.
+ *
+ * @tparam F The type of the callable f. It must be callable and return int.
+ * @tparam Args The types of f's arguments
+ * @param log_category The category to use when logging exceptions
+ * @param f The int-returning function to protect with a catch-all
+ * @param args The arguments to pass to the function f
+ * @return The result of f when no exception is thrown, EXIT_FAILURE (from cstdlib) otherwise
+ */
 template <typename F, typename... Args>                                      // F needs to return int
 int top_catch_all(const logging::CString log_category, F f, Args&&... args); // not noexcept because logging isn't
 }
