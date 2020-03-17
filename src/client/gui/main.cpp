@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +18,15 @@
 #include "client_gui.h"
 
 #include <multipass/cli/client_common.h>
+#include <multipass/top_catch_all.h>
 
 #include <QApplication>
 
 namespace mp = multipass;
 
-int main(int argc, char* argv[])
+namespace
+{
+int main_impl(int argc, char* argv[])
 {
     QApplication app(argc, argv);
     app.setApplicationName("multipass-gui");
@@ -33,4 +36,10 @@ int main(int argc, char* argv[])
     mp::ClientGui client{config};
 
     return client.run(app.arguments());
+}
+} // namespace
+
+int main(int argc, char* argv[])
+{
+    return mp::top_catch_all("client", main_impl, argc, argv);
 }
