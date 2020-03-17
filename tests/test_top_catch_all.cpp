@@ -62,6 +62,19 @@ struct TopCatchAll : public Test
     const std::string category = "testing";
     std::shared_ptr<StrictMock<mpt::MockLogger>> mock_logger = nullptr;
 };
+
+struct CustomExceptionForTesting : public std::exception
+{
+public:
+    CustomExceptionForTesting() = default;
+    const char* what() const noexcept override
+    {
+        return msg;
+    }
+
+    inline static constexpr const auto msg = "custom";
+};
+
 } // namespace
 
 TEST_F(TopCatchAll, calls_function_with_no_args)
@@ -102,5 +115,18 @@ TEST_F(TopCatchAll, handles_standard_exception)
                         throw std::runtime_error{emsg};
                         return 0;
                     }););
+    EXPECT_EQ(got, EXIT_FAILURE);
+}
+
+TEST_F(TopCatchAll, handles_custom_exception)
+{
+    int got = 0;
+    const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(CustomExceptionForTesting::msg));
+
+    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), make_cstring_matcher(msg_matcher)));
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
+                        throw CustomExceptionForTesting{};
+                        return 42;
+                    }));
     EXPECT_EQ(got, EXIT_FAILURE);
 }
