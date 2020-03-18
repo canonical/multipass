@@ -14,7 +14,10 @@
 
 if(MSVC)
   add_library(platform STATIC platform_win.cpp)
+  get_target_property(JSON_INC_PATH jsoncpp_lib INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(platform PRIVATE ${JSON_INC_PATH})
   target_link_libraries(platform
+    jsoncpp_lib
     shared_win
     hyperv_backend
     virtualbox_backend
