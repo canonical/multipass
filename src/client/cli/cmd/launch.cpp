@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,7 +60,9 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     auto ret = request_launch();
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
-        const auto mount_source = QDir::toNativeSeparators(QDir::homePath());
+        auto snap_real_home = qgetenv("SNAP_REAL_HOME");
+        const auto mount_source = !snap_real_home.isEmpty() ? QString::fromLocal8Bit(snap_real_home)
+                                                            : QDir::toNativeSeparators(QDir::homePath());
         const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
 
         ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
