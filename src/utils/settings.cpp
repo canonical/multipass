@@ -133,16 +133,6 @@ QString interpret_bool(QString val)
         return val;
 }
 
-bool is_winterm_integration_enabled()
-{
-    return false; // TODO@ricab
-}
-
-void set_winterm_integration(const QString&)
-{
-    ; // TODO@ricab
-}
-
 } // namespace
 
 mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
@@ -165,7 +155,7 @@ QString mp::Settings::get(const QString& key) const
     const auto& default_ = get_default(key); // do this first to make sure the key is valid
 
     if (key == winterm_key)
-        return QVariant(is_winterm_integration_enabled()).toString();
+        return QVariant(mp::platform::is_winterm_integration_enabled()).toString();
     else
         return checked_get(persistent_settings(key), key, default_, mutex);
 }
@@ -208,7 +198,7 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
 
     if (key == winterm_key)
-        set_winterm_integration(val);
+        mp::platform::set_winterm_integration(val);
     else
     {
         auto settings = persistent_settings(key);
