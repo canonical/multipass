@@ -71,6 +71,9 @@ apps:
     plugs:
       - home
       - network
+      - x11
+      - unity7
+      - wayland
 
 parts:
   multipass:
