@@ -36,7 +36,8 @@ void mcp::open_multipass_shell(const QString& instance_name)
 
     if (file.open())
     {
-        file.write(fmt::format("multipass shell {}", instance_name.toStdString()).c_str());
+        file.write("clear\n");
+        file.write(fmt::format("multipass shell {}\n", instance_name.toStdString()).c_str());
         file.close();
         file.setPermissions(QFile::ReadUser | QFile::ExeUser);
 
