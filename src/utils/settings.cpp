@@ -97,7 +97,7 @@ void check_status(const QSettings& settings, const QString& attempted_operation)
                                      : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
-QString checked_get(QSettings& settings, const QString& key, const QString& fallback, std::mutex& mutex)
+QString checked_get(const QSettings& settings, const QString& key, const QString& fallback, std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
