@@ -177,28 +177,6 @@ TEST_F(SshfsMount, throws_when_unable_to_make_target_dir)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SshfsMount, throws_when_unable_to_obtain_user_id_name)
-{
-    bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("id -nu", invoked);
-
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
-    EXPECT_TRUE(invoked);
-}
-
-TEST_F(SshfsMount, throws_when_unable_to_obtain_group_id_name)
-{
-    bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("id -ng", invoked);
-
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
-    EXPECT_TRUE(invoked);
-}
-
 TEST_F(SshfsMount, throws_when_unable_to_chown)
 {
     bool invoked{false};
@@ -272,6 +250,39 @@ TEST_F(SshfsMount, throws_when_unable_to_obtain_gid)
     EXPECT_TRUE(gid_invoked);
 }
 
+TEST_F(SshfsMount, throws_when_gid_is_not_an_integer)
+{
+    bool uid_invoked{false};
+    bool gid_invoked{false};
+    std::string output;
+    std::string::size_type remaining;
+    auto request_exec = [this, &uid_invoked, &gid_invoked, &output, &remaining](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd.find("id -u") != std::string::npos)
+        {
+            uid_invoked = true;
+            output = "1000";
+            remaining = output.size();
+        }
+        else if (cmd.find("id -g") != std::string::npos)
+        {
+            uid_invoked = false;
+            gid_invoked = true;
+            output = "ubuntu";
+            remaining = output.size();
+            exit_status_mock.return_exit_code(SSH_ERROR);
+        }
+        return SSH_OK;
+    };
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    auto channel_read = make_channel_read_return(output, remaining, uid_invoked);
+    REPLACE(ssh_channel_read_timeout, channel_read);
+
+    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
+    EXPECT_TRUE(gid_invoked);
+}
+
 TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
 {
     bool invoked{false};
@@ -285,6 +296,8 @@ TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
         if (cmd.find("id -u") != std::string::npos)
         {
             invoked = true;
+            // Reset for the next channel read
+            remaining = output.size();
         }
         else if (cmd.find("id -g") != std::string::npos)
         {
@@ -342,9 +355,9 @@ TEST_F(SshfsMount, executes_commands)
         {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
          "/home/ubuntu/"},
         {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && mkdir -p \"target\"'", ""},
-        {"id -nu", "ubuntu"},
-        {"id -ng", "ubuntu"},
-        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R ubuntu:ubuntu target'", ""},
+        {"id -u", "1000"},
+        {"id -g", "1000"},
+        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 target'", ""},
         {"id -u", "1000"},
         {"id -g", "1000"},
         {"sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :\"source\" \"target\"", "don't care"}};
@@ -357,6 +370,8 @@ TEST_F(SshfsMount, works_with_absolute_paths)
     CommandVector commands = {
         {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
          "/home/ubuntu/"},
+        {"id -u", "1000"},
+        {"id -g", "1000"},
         {"id -u", "1000"},
         {"id -g", "1000"}};
 
