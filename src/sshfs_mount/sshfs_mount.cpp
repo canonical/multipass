@@ -99,8 +99,8 @@ void make_target_dir(mp::SSHSession& session, const std::string& root, const std
 // Assume it is already created.
 void set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
 {
-    auto vm_user = run_cmd(session, "id -nu");
-    auto vm_group = run_cmd(session, "id -ng");
+    auto vm_user = run_cmd(session, "id -u");
+    auto vm_group = run_cmd(session, "id -g");
     mp::utils::trim_end(vm_user);
     mp::utils::trim_end(vm_group);
 
