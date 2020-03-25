@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -104,10 +105,7 @@ private:
     mp::AutoJoinThread signal_handling_thread;
 };
 
-} // namespace
-
-int main(int argc, char* argv[]) // clang-format off
-try // clang-format on
+int main_impl(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName(mp::daemon_name);
@@ -129,8 +127,9 @@ try // clang-format on
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
     return ret;
 }
-catch (const std::exception& e)
+} // namespace
+
+int main(int argc, char* argv[])
 {
-    mpl::log(mpl::Level::error, "daemon", e.what());
-    return EXIT_FAILURE;
+    return mp::top_catch_all("daemon", main_impl, argc, argv);
 }

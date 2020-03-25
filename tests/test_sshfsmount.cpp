@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,15 +19,23 @@
 #include "signal.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
+#include <multipass/utils.h>
 
+#include <algorithm>
 #include <gmock/gmock.h>
+#include <iterator>
+#include <unordered_set>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
 using namespace testing;
+
+typedef std::vector<std::pair<std::string, std::string>> CommandVector;
 
 namespace
 {
@@ -39,10 +47,10 @@ struct SshfsMount : public mp::test::SftpServerTest
         channel_is_closed.returnValue(0);
     }
 
-    mp::SshfsMount make_sshfsmount()
+    mp::SshfsMount make_sshfsmount(mp::optional<std::string> target = mp::nullopt)
     {
         mp::SSHSession session{"a", 42};
-        return {std::move(session), default_source, default_target, default_map, default_map};
+        return {std::move(session), default_source, target.value_or(default_target), default_map, default_map};
     }
 
     auto make_exec_that_fails_for(const std::string& expected_cmd, bool& invoked)
@@ -59,10 +67,56 @@ struct SshfsMount : public mp::test::SftpServerTest
         return request_exec;
     }
 
+    // The 'invoked' parameter binds the execution and read mocks. We need a better mechanism to make them
+    // cooperate better, i.e., make the reader read only when a command was issued.
+    auto make_exec_to_check_commands(const CommandVector& commands, std::string::size_type& remaining,
+                                     CommandVector::const_iterator& next_expected_cmd, std::string& output,
+                                     bool& invoked)
+    {
+        auto request_exec = [&commands, &remaining, &next_expected_cmd, &output, &invoked](ssh_channel,
+                                                                                           const char* raw_cmd) {
+            std::string cmd{raw_cmd};
+
+            if (next_expected_cmd != commands.end())
+            {
+                // Check if the first of the remaining commands is being executed.
+                if (cmd == next_expected_cmd->first)
+                {
+                    output = next_expected_cmd->second;
+                    remaining = output.size();
+                    ++next_expected_cmd;
+                    invoked = true;
+                }
+                else
+                {
+                    // If not, then we have to check the rest of the remaining
+                    // commands. If the executed command is there, it means that the
+                    // executed commands do not follow the order of our expected
+                    // command vector.
+                    for (auto it = std::next(next_expected_cmd); it != commands.end(); ++it)
+                    {
+                        if (cmd == it->first)
+                        {
+                            output = it->second;
+                            remaining = output.size();
+                            ADD_FAILURE() << "\"" << (it->first) << "\" executed out of order; expected \""
+                                          << next_expected_cmd->first << "\"";
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return SSH_OK;
+        };
+
+        return request_exec;
+    }
+
     auto make_channel_read_return(const std::string& output, std::string::size_type& remaining, bool& prereq_invoked)
     {
-        auto channel_read = [output, &remaining, &prereq_invoked](ssh_channel, void* dest, uint32_t count,
-                                                                  int is_stderr, int) {
+        auto channel_read = [&output, &remaining, &prereq_invoked](ssh_channel, void* dest, uint32_t count,
+                                                                   int is_stderr, int) {
             if (!prereq_invoked)
                 return 0u;
             const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
@@ -72,6 +126,24 @@ struct SshfsMount : public mp::test::SftpServerTest
             return num_to_copy;
         };
         return channel_read;
+    }
+
+    void test_command_execution(const CommandVector& commands, mp::optional<std::string> target = mp::nullopt)
+    {
+        bool invoked{false};
+        std::string output;
+        auto remaining = output.size();
+        CommandVector::const_iterator next_expected_cmd = commands.begin();
+
+        auto channel_read = make_channel_read_return(output, remaining, invoked);
+        REPLACE(ssh_channel_read_timeout, channel_read);
+
+        auto request_exec = make_exec_to_check_commands(commands, remaining, next_expected_cmd, output, invoked);
+        REPLACE(ssh_channel_request_exec, request_exec);
+
+        make_sshfsmount(target.value_or(default_target));
+
+        EXPECT_TRUE(next_expected_cmd == commands.end()) << "\"" << next_expected_cmd->first << "\" not executed";
     }
 
     mpt::ExitStatusMock exit_status_mock;
@@ -99,28 +171,6 @@ TEST_F(SshfsMount, throws_when_unable_to_make_target_dir)
 {
     bool invoked{false};
     auto request_exec = make_exec_that_fails_for("mkdir", invoked);
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
-    EXPECT_TRUE(invoked);
-}
-
-TEST_F(SshfsMount, throws_when_unable_to_obtain_user_id_name)
-{
-    bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("id -nu", invoked);
-
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
-    EXPECT_TRUE(invoked);
-}
-
-TEST_F(SshfsMount, throws_when_unable_to_obtain_group_id_name)
-{
-    bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("id -ng", invoked);
-
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), std::runtime_error);
@@ -200,6 +250,39 @@ TEST_F(SshfsMount, throws_when_unable_to_obtain_gid)
     EXPECT_TRUE(gid_invoked);
 }
 
+TEST_F(SshfsMount, throws_when_gid_is_not_an_integer)
+{
+    bool uid_invoked{false};
+    bool gid_invoked{false};
+    std::string output;
+    std::string::size_type remaining;
+    auto request_exec = [this, &uid_invoked, &gid_invoked, &output, &remaining](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd.find("id -u") != std::string::npos)
+        {
+            uid_invoked = true;
+            output = "1000";
+            remaining = output.size();
+        }
+        else if (cmd.find("id -g") != std::string::npos)
+        {
+            uid_invoked = false;
+            gid_invoked = true;
+            output = "ubuntu";
+            remaining = output.size();
+            exit_status_mock.return_exit_code(SSH_ERROR);
+        }
+        return SSH_OK;
+    };
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    auto channel_read = make_channel_read_return(output, remaining, uid_invoked);
+    REPLACE(ssh_channel_read_timeout, channel_read);
+
+    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
+    EXPECT_TRUE(gid_invoked);
+}
+
 TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
 {
     bool invoked{false};
@@ -213,6 +296,8 @@ TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
         if (cmd.find("id -u") != std::string::npos)
         {
             invoked = true;
+            // Reset for the next channel read
+            remaining = output.size();
         }
         else if (cmd.find("id -g") != std::string::npos)
         {
@@ -240,4 +325,55 @@ TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
 
     mount.join();
     EXPECT_TRUE(stopped_ok);
+}
+
+TEST_F(SshfsMount, throws_when_unable_to_change_dir)
+{
+    bool invoked{false};
+    auto request_exec = make_exec_that_fails_for("cd", invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
+{
+    bool invoked{false};
+    auto request_exec = make_exec_that_fails_for("pwd", invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SshfsMount, executes_commands)
+{
+    CommandVector commands = {
+        {"which sshfs", "/usr/bin/sshfs"},
+        {"pwd", "/home/ubuntu"},
+        {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
+         "/home/ubuntu/"},
+        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && mkdir -p \"target\"'", ""},
+        {"id -u", "1000"},
+        {"id -g", "1000"},
+        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 target'", ""},
+        {"id -u", "1000"},
+        {"id -g", "1000"},
+        {"sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :\"source\" \"target\"", "don't care"}};
+
+    test_command_execution(commands, std::string("target"));
+}
+
+TEST_F(SshfsMount, works_with_absolute_paths)
+{
+    CommandVector commands = {
+        {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
+         "/home/ubuntu/"},
+        {"id -u", "1000"},
+        {"id -g", "1000"},
+        {"id -u", "1000"},
+        {"id -g", "1000"}};
+
+    test_command_execution(commands, std::string("/home/ubuntu/target"));
 }

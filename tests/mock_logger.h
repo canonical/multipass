@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,36 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_CSTRING_H
-#define MULTIPASS_CSTRING_H
+#ifndef MULTIPASS_MOCK_LOGGER_H
+#define MULTIPASS_MOCK_LOGGER_H
 
-#include <string>
+#include <multipass/logging/logger.h>
+
+#include <gmock/gmock.h>
 
 namespace multipass
 {
-namespace logging
+namespace test
 {
-class CString
+class MockLogger : public multipass::logging::Logger
 {
 public:
-    constexpr CString(const char* data) : data{data}
-    {
-    }
-
-    // Use this carefully, it depends on the lifetime of s
-    CString(const std::string& s) : data{s.c_str()}
-    {
-    }
-
-    const char* c_str() const
-    {
-        return data;
-    }
-
-private:
-    const char* data;
+    MockLogger() = default;
+    MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
+                                 multipass::logging::CString message));
 };
-} // namespace logging
+} // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_CSTRING_H
+#endif // MULTIPASS_MOCK_LOGGER_H
