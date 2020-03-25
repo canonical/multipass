@@ -333,7 +333,7 @@ TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
 TEST_F(SshfsMount, throws_when_unable_to_change_dir)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("cd", invoked);
+    auto request_exec = make_exec_that_fails_for({"cd"}, invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), std::runtime_error);
@@ -372,7 +372,7 @@ TEST_F(SshfsMount, invalid_fuse_version_throws)
 TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("pwd", invoked);
+    auto request_exec = make_exec_that_fails_for({"pwd"}, invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), std::runtime_error);
@@ -452,4 +452,3 @@ TEST_F(SshfsMount, install_sshfs_no_failures_does_not_throw)
 
     EXPECT_NO_THROW(mp::utils::install_sshfs_for("foo", session));
 }
->>>>>>> sshfs_mount/tests: Refactor code to allow testing of install_sshfs
