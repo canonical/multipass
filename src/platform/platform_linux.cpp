@@ -46,6 +46,11 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 } // namespace
 
+std::map<QString, QString> mp::platform::extra_settings_defaults()
+{
+    return {};
+}
+
 void mp::platform::apply_winterm_integration(const QString&)
 {
     throw std::runtime_error("Windows Terminal is not available on Linux");
