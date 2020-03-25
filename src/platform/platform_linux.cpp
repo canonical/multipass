@@ -46,6 +46,11 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 } // namespace
 
+std::map<QString, QString> mp::platform::extra_settings_defaults()
+{
+    return {};
+}
+
 QString mp::platform::interpret_winterm_integration(const QString& val)
 {
     // this should not happen (settings would have found it to be an invalid key)
