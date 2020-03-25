@@ -41,12 +41,14 @@ const auto daemon_root = QStringLiteral("local");
 const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
+const auto winterm_default = QStringLiteral("none");
 
 std::map<QString, QString> make_defaults()
 { // clang-format off
     return {{mp::petenv_key, petenv_name},
             {mp::driver_key, mp::platform::default_driver()},
-            {mp::autostart_key, autostart_default}};
+            {mp::autostart_key, autostart_default},
+            {mp::winterm_key, winterm_default}};
 } // clang-format on
 
 /*
