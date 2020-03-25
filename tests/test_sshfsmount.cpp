@@ -76,11 +76,20 @@ struct SshfsMount : public mp::test::SftpServerTest
                                      CommandVector::const_iterator& next_expected_cmd, std::string& output,
                                      bool& invoked)
     {
-        auto request_exec = [&commands, &remaining, &next_expected_cmd, &output, &invoked](ssh_channel,
-                                                                                           const char* raw_cmd) {
+        auto request_exec = [this, &commands, &remaining, &next_expected_cmd, &output, &invoked](ssh_channel,
+                                                                                                 const char* raw_cmd) {
+            invoked = false;
+
             std::string cmd{raw_cmd};
 
-            if (next_expected_cmd != commands.end())
+            auto it = default_cmds.find(cmd);
+            if (it != default_cmds.end())
+            {
+                output = it->second;
+                remaining = output.size();
+                invoked = true;
+            }
+            else if (next_expected_cmd != commands.end())
             {
                 // Check if the first of the remaining commands is being executed.
                 if (cmd == next_expected_cmd->first)
@@ -157,6 +166,15 @@ struct SshfsMount : public mp::test::SftpServerTest
     std::string default_target{"target"};
     std::unordered_map<int, int> default_map;
     int default_id{1000};
+
+    const std::unordered_map<std::string, std::string> default_cmds{
+        {"snap run multipass-sshfs.env", "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n"},
+        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0"},
+        {"id -u", "1000"},
+        {"id -g", "1000"},
+        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o allow_other :\"source\" "
+         "\"target\"",
+         "don't care"}};
 };
 } // namespace
 
@@ -382,17 +400,11 @@ TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
 TEST_F(SshfsMount, executes_commands)
 {
     CommandVector commands = {
-        {"which sshfs", "/usr/bin/sshfs"},
         {"pwd", "/home/ubuntu"},
         {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
          "/home/ubuntu/"},
         {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && mkdir -p \"target\"'", ""},
-        {"id -u", "1000"},
-        {"id -g", "1000"},
-        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 target'", ""},
-        {"id -u", "1000"},
-        {"id -g", "1000"},
-        {"sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :\"source\" \"target\"", "don't care"}};
+        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 target'", ""}};
 
     test_command_execution(commands, std::string("target"));
 }
@@ -401,11 +413,7 @@ TEST_F(SshfsMount, works_with_absolute_paths)
 {
     CommandVector commands = {
         {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
-         "/home/ubuntu/"},
-        {"id -u", "1000"},
-        {"id -g", "1000"},
-        {"id -u", "1000"},
-        {"id -g", "1000"}};
+         "/home/ubuntu/"}};
 
     test_command_execution(commands, std::string("/home/ubuntu/target"));
 }
