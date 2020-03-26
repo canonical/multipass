@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -399,7 +399,7 @@ TEST(Utils, existing_config_file_is_untouched)
 
 TEST(Utils, line_matcher_returns_expected_line)
 {
-    std::istringstream data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
+    std::string data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
     std::string matcher{"SNAP="};
 
     auto snap_data = mp::utils::match_line_for(data, matcher);
@@ -409,7 +409,7 @@ TEST(Utils, line_matcher_returns_expected_line)
 
 TEST(Utils, line_matcher_no_match_returns_empty_string)
 {
-    std::istringstream data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
+    std::string data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
     std::string matcher{"FOO="};
 
     auto snap_data = mp::utils::match_line_for(data, matcher);

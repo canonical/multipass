@@ -58,7 +58,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     try
     {
         // Prefer to use Snap package version first
-        std::istringstream sshfs_env{run_cmd(session, "snap run multipass-sshfs.env")};
+        auto sshfs_env{run_cmd(session, "snap run multipass-sshfs.env")};
 
         auto ld_library_path = mp::utils::match_line_for(sshfs_env, ld_library_path_key);
         auto snap_path = mp::utils::match_line_for(sshfs_env, snap_path_key);
@@ -86,7 +86,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 
     sshfs_exec = mp::utils::trim_end(sshfs_exec);
 
-    std::istringstream version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
+    auto version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
 
     sshfs_exec += " -o slave -o transform_symlinks -o allow_other";
 

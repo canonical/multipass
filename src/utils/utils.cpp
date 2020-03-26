@@ -380,12 +380,12 @@ std::string mp::utils::timestamp()
     return time.toString(Qt::ISODateWithMs).toStdString();
 }
 
-std::string mp::utils::match_line_for(std::istringstream& output, const std::string& matcher)
+std::string mp::utils::match_line_for(const std::string& output, const std::string& matcher)
 {
-    output.seekg(0, output.beg);
-
+    std::istringstream ss{output};
     std::string line;
-    while (std::getline(output, line, '\n'))
+
+    while (std::getline(ss, line, '\n'))
     {
         if (line.find(matcher) != std::string::npos)
         {
