@@ -77,9 +77,8 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
-const std::string sshfs_error_template =
-    "Error enabling mount support in '{}'"
-    "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
+const std::string sshfs_error_template = "Error enabling mount support in '{}'"
+                                         "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {

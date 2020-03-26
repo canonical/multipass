@@ -68,7 +68,8 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::debug, category, fmt::format("'multipass-sshfs' snap package is not installed: {}", e.what()));
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("'multipass-sshfs' snap package is not installed: {}", e.what()));
 
         // Fallback to looking for distro version if snap is not found
         try
