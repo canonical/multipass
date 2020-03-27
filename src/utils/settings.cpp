@@ -193,6 +193,8 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
     else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
+    else
+        mp::platform::check_winterm_integration(key, val); // TODO we should have handler callbacks instead
 
     auto settings = persistent_settings(key);
     checked_set(settings, key, val, mutex);
