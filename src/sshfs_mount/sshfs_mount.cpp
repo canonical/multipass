@@ -93,13 +93,17 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
     if (!fuse_version_line.empty())
     {
+        std::string fuse_version;
+
         // split on the fuse_version_string along with 0 or 1 colon(s)
         auto tokens = mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
-        auto fuse_version = tokens[1];
+        if (tokens.size() == 2)
+            fuse_version = tokens[1];
 
         if (fuse_version.empty())
         {
             mpl::log(mpl::Level::warning, category, fmt::format("Unable to parse the {}", fuse_version_string));
+            mpl::log(mpl::Level::debug, category, fmt::format("Value is {}", fuse_version_line));
         }
         // The option was made the default in libfuse 3.0
         else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))

@@ -15,10 +15,12 @@
  *
  */
 
+#include "mock_logger.h"
 #include "sftp_server_test_fixture.h"
 #include "signal.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
@@ -31,6 +33,7 @@
 #include <vector>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -43,8 +46,14 @@ struct SshfsMount : public mp::test::SftpServerTest
 {
     SshfsMount()
     {
+        mpl::set_logger(logger);
         channel_read.returnValue(0);
         channel_is_closed.returnValue(0);
+    }
+
+    ~SshfsMount()
+    {
+        mpl::set_logger(nullptr);
     }
 
     mp::SshfsMount make_sshfsmount(mp::optional<std::string> target = mp::nullopt)
@@ -82,41 +91,49 @@ struct SshfsMount : public mp::test::SftpServerTest
 
             std::string cmd{raw_cmd};
 
+            // Need to detect if CommandVector contains the requested command.  Otherwise,
+            // use the default_cmd map.
+            for (auto& command : commands)
+            {
+                if (command.first == cmd && next_expected_cmd != commands.end())
+                {
+                    // Check if the first of the remaining commands is being executed.
+                    if (cmd == next_expected_cmd->first)
+                    {
+                        output = next_expected_cmd->second;
+                        remaining = output.size();
+                        ++next_expected_cmd;
+                        invoked = true;
+                    }
+                    else
+                    {
+                        // If not, then we have to check the rest of the remaining
+                        // commands. If the executed command is there, it means that the
+                        // executed commands do not follow the order of our expected
+                        // command vector.
+                        for (auto it = std::next(next_expected_cmd); it != commands.end(); ++it)
+                        {
+                            if (cmd == it->first)
+                            {
+                                output = it->second;
+                                remaining = output.size();
+                                ADD_FAILURE() << "\"" << (it->first) << "\" executed out of order; expected \""
+                                              << next_expected_cmd->first << "\"";
+                                break;
+                            }
+                        }
+                    }
+
+                    return SSH_OK;
+                }
+            }
+
             auto it = default_cmds.find(cmd);
             if (it != default_cmds.end())
             {
                 output = it->second;
                 remaining = output.size();
                 invoked = true;
-            }
-            else if (next_expected_cmd != commands.end())
-            {
-                // Check if the first of the remaining commands is being executed.
-                if (cmd == next_expected_cmd->first)
-                {
-                    output = next_expected_cmd->second;
-                    remaining = output.size();
-                    ++next_expected_cmd;
-                    invoked = true;
-                }
-                else
-                {
-                    // If not, then we have to check the rest of the remaining
-                    // commands. If the executed command is there, it means that the
-                    // executed commands do not follow the order of our expected
-                    // command vector.
-                    for (auto it = std::next(next_expected_cmd); it != commands.end(); ++it)
-                    {
-                        if (cmd == it->first)
-                        {
-                            output = it->second;
-                            remaining = output.size();
-                            ADD_FAILURE() << "\"" << (it->first) << "\" executed out of order; expected \""
-                                          << next_expected_cmd->first << "\"";
-                            break;
-                        }
-                    }
-                }
             }
 
             return SSH_OK;
@@ -158,6 +175,12 @@ struct SshfsMount : public mp::test::SftpServerTest
         EXPECT_TRUE(next_expected_cmd == commands.end()) << "\"" << next_expected_cmd->first << "\" not executed";
     }
 
+    template <typename Matcher>
+    auto make_cstring_matcher(const Matcher& matcher)
+    {
+        return Property(&mpl::CString::c_str, matcher);
+    }
+
     mpt::ExitStatusMock exit_status_mock;
     decltype(MOCK(ssh_channel_read_timeout)) channel_read{MOCK(ssh_channel_read_timeout)};
     decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
@@ -166,6 +189,7 @@ struct SshfsMount : public mp::test::SftpServerTest
     std::string default_target{"target"};
     std::unordered_map<int, int> default_map;
     int default_id{1000};
+    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
 
     const std::unordered_map<std::string, std::string> default_cmds{
         {"snap run multipass-sshfs.env", "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n"},
@@ -360,31 +384,36 @@ TEST_F(SshfsMount, throws_when_unable_to_change_dir)
 
 TEST_F(SshfsMount, invalid_fuse_version_throws)
 {
-    bool invoked{false};
-    std::string output;
-    auto remaining = output.size();
-    auto channel_read = make_channel_read_return(output, remaining, invoked);
-    REPLACE(ssh_channel_read_timeout, channel_read);
+    CommandVector commands = {
+        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: fu.man.chu"}};
 
-    auto request_exec = [&invoked, &remaining, &output](ssh_channel, const char* raw_cmd) {
-        std::string cmd{raw_cmd};
-        if (cmd.find("snap run multipass-sshfs.env") != std::string::npos)
-        {
-            output = "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n";
-            remaining = output.size();
-            invoked = true;
-        }
-        else if (cmd.find("sshfs -V") != std::string::npos)
-        {
-            output = "FUSE library version: fu.man.chu";
-            remaining = output.size();
-        }
-        return SSH_OK;
-    };
-    REPLACE(ssh_channel_request_exec, request_exec);
+    EXPECT_THROW(test_command_execution(commands), std::runtime_error);
+}
 
-    EXPECT_THROW(make_sshfsmount(), std::runtime_error);
-    EXPECT_TRUE(invoked);
+TEST_F(SshfsMount, blank_fuse_version_logs_error)
+{
+    CommandVector commands = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:"}};
+
+    EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
+                             Matcher<multipass::logging::CString>(_)))
+        .WillRepeatedly(Return());
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::warning), make_cstring_matcher(StrEq("sshfs mount")),
+                             make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::debug), make_cstring_matcher(StrEq("sshfs mount")),
+                             make_cstring_matcher(StrEq("Value is FUSE library version:"))));
+
+    test_command_execution(commands);
+}
+
+TEST_F(SshfsMount, fuse_version_less_than_3_nonempty)
+{
+    CommandVector commands = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 2.9.0"},
+                              {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
+                               "allow_other -o nonempty :\"source\" "
+                               "\"target\"",
+                               "don't care"}};
+
+    test_command_execution(commands);
 }
 
 TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
