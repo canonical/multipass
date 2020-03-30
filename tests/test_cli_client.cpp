@@ -1644,6 +1644,20 @@ INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver
 
 #endif // MULTIPASS_PLATFORM_LINUX
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS // Test Windows Terminal setting not recognized outside Windows
+
+TEST_F(Client, get_and_set_do_not_know_about_winterm_integration)
+{
+    const auto val = "asdf";
+    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key)));
+    EXPECT_THAT(send_command({"get", mp::winterm_key}), Eq(mp::ReturnCode::CommandLineError));
+
+    EXPECT_CALL(mock_settings, set(Eq(mp::winterm_key), Eq(val)));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::winterm_key, val)}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+#endif // #ifndef MULTIPASS_PLATFORM_WINDOWS
+
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)
 {
