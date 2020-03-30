@@ -26,6 +26,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
 
 #include <QDir>
@@ -34,6 +35,7 @@
 
 #include <scope_guard.hpp>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <stdexcept>
@@ -157,6 +159,17 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
+
+TEST_F(PlatformLinux, test_no_extra_settings)
+{
+    EXPECT_THAT(mp::platform::extra_settings_defaults(), IsEmpty());
+}
+
+TEST_F(PlatformLinux, test_winterm_setting_not_supported)
+{
+    for (const auto x : {"no", "matter", "what"})
+        EXPECT_THROW(mp::platform::interpret_winterm_integration(x), mp::InvalidSettingsException);
+}
 
 TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 {
