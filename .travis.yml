@@ -99,6 +99,10 @@ jobs:
     - <<: *snapcraft-build
       name: RelWithDebInfo
       env: BUILD_TYPE=RelWithDebInfo
+      if: &secure_condition |
+        repo = canonical/multipass
+               AND (type != pull_request
+                    OR head_repo = repo)
 
       addons:
         snaps:
@@ -156,10 +160,7 @@ jobs:
     - stage: build
       name: macOS
       env: BUILD_TYPE=macOS
-      if: |
-        repo = canonical/multipass
-               AND (type != pull_request
-                    OR head_repo = repo)
+      if: *secure_condition
 
       git:
         submodules: false
