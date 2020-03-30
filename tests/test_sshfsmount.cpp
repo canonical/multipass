@@ -91,40 +91,35 @@ struct SshfsMount : public mp::test::SftpServerTest
 
             std::string cmd{raw_cmd};
 
-            // Need to detect if CommandVector contains the requested command.  Otherwise,
-            // use the default_cmd map.
-            for (auto& command : commands)
+            if (next_expected_cmd != commands.end())
             {
-                if (command.first == cmd && next_expected_cmd != commands.end())
+                // Check if the first of the remaining commands is being executed.
+                if (cmd == next_expected_cmd->first)
                 {
-                    // Check if the first of the remaining commands is being executed.
-                    if (cmd == next_expected_cmd->first)
-                    {
-                        output = next_expected_cmd->second;
-                        remaining = output.size();
-                        ++next_expected_cmd;
-                        invoked = true;
-                    }
-                    else
-                    {
-                        // If not, then we have to check the rest of the remaining
-                        // commands. If the executed command is there, it means that the
-                        // executed commands do not follow the order of our expected
-                        // command vector.
-                        for (auto it = std::next(next_expected_cmd); it != commands.end(); ++it)
-                        {
-                            if (cmd == it->first)
-                            {
-                                output = it->second;
-                                remaining = output.size();
-                                ADD_FAILURE() << "\"" << (it->first) << "\" executed out of order; expected \""
-                                              << next_expected_cmd->first << "\"";
-                                break;
-                            }
-                        }
-                    }
+                    output = next_expected_cmd->second;
+                    remaining = output.size();
+                    ++next_expected_cmd;
+                    invoked = true;
 
                     return SSH_OK;
+                }
+                else
+                {
+                    // If not, then we have to check the rest of the remaining
+                    // commands. If the executed command is there, it means that the
+                    // executed commands do not follow the order of our expected
+                    // command vector.
+                    for (auto it = std::next(next_expected_cmd); it != commands.end(); ++it)
+                    {
+                        if (cmd == it->first)
+                        {
+                            output = it->second;
+                            remaining = output.size();
+                            ADD_FAILURE() << "\"" << (it->first) << "\" executed out of order; expected \""
+                                          << next_expected_cmd->first << "\"";
+                            return SSH_OK;
+                        }
+                    }
                 }
             }
 
