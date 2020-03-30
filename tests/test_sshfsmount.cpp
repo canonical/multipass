@@ -488,3 +488,47 @@ TEST_F(SshfsMount, install_sshfs_no_failures_does_not_throw)
 
     EXPECT_NO_THROW(mp::utils::install_sshfs_for("foo", session));
 }
+
+TEST_F(SshfsMount, install_sshfs_timeout_logs_info)
+{
+    ssh_channel_callbacks callbacks{nullptr};
+    bool sleep{false};
+
+    auto request_exec = [&sleep](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd == "sudo snap install multipass-sshfs")
+            sleep = true;
+
+        return SSH_OK;
+    };
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) mutable {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+
+    auto event_dopoll = [&callbacks, &sleep](ssh_event, int timeout) {
+        if (!callbacks)
+            return SSH_ERROR;
+
+        if (sleep)
+            std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
+        else
+            callbacks->channel_exit_status_function(nullptr, nullptr, 0, callbacks->userdata);
+
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
+    EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
+                             Matcher<multipass::logging::CString>(_)))
+        .WillRepeatedly(Return());
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), make_cstring_matcher(StrEq("utils")),
+                             make_cstring_matcher(StrEq("Timeout while installing 'sshfs' in 'foo'"))));
+
+    mp::SSHSession session{"a", 42};
+
+    mp::utils::install_sshfs_for("foo", session, std::chrono::milliseconds(1));
+}

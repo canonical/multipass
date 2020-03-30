@@ -216,7 +216,8 @@ void mp::utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
-void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& session)
+void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& session,
+                                  const std::chrono::milliseconds timeout)
 {
     mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in \'{}\'", name));
 
@@ -250,7 +251,7 @@ void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& sessi
     try
     {
         auto proc = session.exec("sudo snap install multipass-sshfs");
-        if (proc.exit_code(std::chrono::minutes(5)) != 0)
+        if (proc.exit_code(timeout) != 0)
         {
             auto error_msg = proc.read_std_error();
             mpl::log(mpl::Level::warning, category,
