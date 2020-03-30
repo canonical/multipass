@@ -188,12 +188,15 @@ QString mp::Settings::get_client_settings_file_path() // idem
 
 void multipass::Settings::set_aux(const QString& key, QString val) // work with a copy of val
 {
+    // TODO we should have handler callbacks instead
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
-        throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
+        throw InvalidSettingsException{key, val, "Invalid hostname"};
     else if (key == driver_key && !mp::platform::is_backend_supported(val))
-        throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
+        throw InvalidSettingsException(key, val, "Invalid driver");
     else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
+    else if (key == winterm_key)
+        val = mp::platform::interpret_winterm_integration(val);
 
     auto settings = persistent_settings(key);
     checked_set(settings, key, val, mutex);
