@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -44,6 +45,12 @@ namespace
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 } // namespace
+
+QString mp::platform::interpret_winterm_integration(const QString& val)
+{
+    // this should not happen (settings would have found it to be an invalid key)
+    throw InvalidSettingsException(winterm_key, val, "Windows Terminal is not available on Linux");
+}
 
 QString mp::platform::autostart_test_data()
 {

@@ -36,6 +36,7 @@ namespace multipass
 {
 namespace platform
 {
+QString interpret_winterm_integration(const QString& val);
 QString autostart_test_data(); // returns a platform-specific string, for testing purposes
 void setup_gui_autostart_prerequisites();
 std::string default_server_address();
