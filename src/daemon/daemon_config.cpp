@@ -120,8 +120,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get(), manifest_ttl));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, std::string>>{
-                {mp::release_remote, "http://cloud-images.ubuntu.com/releases/"},
-                {mp::daily_remote, "http://cloud-images.ubuntu.com/daily/"}},
+                {mp::release_remote, "https://cloud-images.ubuntu.com/releases/"},
+                {mp::daily_remote, "https://cloud-images.ubuntu.com/daily/"}},
             url_downloader.get(), manifest_ttl));
     }
     if (vault == nullptr)

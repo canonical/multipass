@@ -55,7 +55,7 @@ struct CustomImageInfo
 
 const QMap<QString, CustomImageInfo> multipass_image_info{
     {{"ubuntu-core-16-amd64.img.xz"},
-     {"http://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
+     {"https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
       {"core", "core16"},
       "Ubuntu",
       "core-16",
@@ -63,7 +63,7 @@ const QMap<QString, CustomImageInfo> multipass_image_info{
       "",
       ""}},
     {{"ubuntu-core-18-amd64.img.xz"},
-     {"http://cdimage.ubuntu.com/ubuntu-core/18/stable/current/",
+     {"https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/",
       {"core18"},
       "Ubuntu",
       "core-18",
@@ -73,24 +73,24 @@ const QMap<QString, CustomImageInfo> multipass_image_info{
 
 const QMap<QString, CustomImageInfo> snapcraft_image_info{
     {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
-     {"http://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
+     {"https://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
       {"core", "core16"},
       "",
       "snapcraft-core16",
       "Snapcraft builder for Core 16",
-      "http://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
+      "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
       "ubuntu-16.04-server-cloudimg-amd64-vmlinuz-generic",
-      "http://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
+      "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
       "ubuntu-16.04-server-cloudimg-amd64-initrd-generic"}},
     {{"ubuntu-18.04-minimal-cloudimg-amd64.img"},
-     {"http://cloud-images.ubuntu.com/minimal/releases/bionic/release/",
+     {"https://cloud-images.ubuntu.com/minimal/releases/bionic/release/",
       {"core18"},
       "",
       "snapcraft-core18",
       "Snapcraft builder for Core 18",
-      "http://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
+      "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
       "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
-      "http://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
+      "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
       "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
