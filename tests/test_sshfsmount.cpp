@@ -429,7 +429,6 @@ TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
 TEST_F(SshfsMount, executes_commands)
 {
     CommandVector commands = {
-        {"pwd", "/home/ubuntu"},
         {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
          "/home/ubuntu/"},
         {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && mkdir -p \"target\"'", ""},
