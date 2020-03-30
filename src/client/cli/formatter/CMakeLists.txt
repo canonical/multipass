@@ -1,4 +1,4 @@
-# Copyright © 2018 Canonical Ltd.
+# Copyright © 2018-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -22,5 +22,6 @@ add_library(formatter
 target_link_libraries(formatter
   fmt
   rpc
+  ssh_common
   yaml
   Qt5::Core)

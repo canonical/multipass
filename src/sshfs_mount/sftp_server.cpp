@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -242,10 +242,10 @@ void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
     }
 }
 
-auto create_sshfs_process(mp::SSHSession& session, const std::string& source, const std::string& target)
+auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec_line, const std::string& source,
+                          const std::string& target)
 {
-    auto sshfs_process = session.exec(fmt::format(
-        "sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :\"{}\" \"{}\"", source, target));
+    auto sshfs_process = session.exec(fmt::format("sudo {} :\"{}\" \"{}\"", sshfs_exec_line, source, target));
 
     check_sshfs_status(session, sshfs_process);
 
@@ -255,17 +255,18 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& source, co
 
 mp::SftpServer::SftpServer(SSHSession&& session, const std::string& source, const std::string& target,
                            const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-                           int default_uid, int default_gid)
+                           int default_uid, int default_gid, const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
-      sshfs_process{
-          create_sshfs_process(ssh_session, mp::utils::escape_char(source, '"'), mp::utils::escape_char(target, '"'))},
+      sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, mp::utils::escape_char(source, '"'),
+                                         mp::utils::escape_char(target, '"'))},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{source},
       target_path{target},
       gid_map{gid_map},
       uid_map{uid_map},
       default_uid{default_uid},
-      default_gid{default_gid}
+      default_gid{default_gid},
+      sshfs_exec_line{sshfs_exec_line}
 {
 }
 
@@ -434,8 +435,9 @@ void mp::SftpServer::run()
                     ssh_session.exec(fmt::format("sudo umount {}", mount_path));
                 }
 
-                sshfs_process = create_sshfs_process(ssh_session, mp::utils::escape_char(source_path, '"'),
-                                                     mp::utils::escape_char(target_path, '"'));
+                sshfs_process =
+                    create_sshfs_process(ssh_session, sshfs_exec_line, mp::utils::escape_char(source_path, '"'),
+                                         mp::utils::escape_char(target_path, '"'));
                 sftp_server_session = make_sftp_session(ssh_session, sshfs_process->release_channel());
 
                 continue;
