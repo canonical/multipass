@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
@@ -46,6 +47,17 @@ constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist
 constexpr auto autostart_link_subdir = "Library/LaunchAgents";
 
 } // namespace
+
+std::map<QString, QString> mp::platform::extra_settings_defaults()
+{
+    return {};
+}
+
+QString mp::platform::interpret_winterm_integration(const QString& val)
+{
+    // this should not happen (settings would have found it to be an invalid key)
+    throw InvalidSettingsException{winterm_key, val, "Windows Terminal is not available on macOS"};
+}
 
 QString mp::platform::autostart_test_data()
 {
