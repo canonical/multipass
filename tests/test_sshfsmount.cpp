@@ -191,6 +191,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0"},
         {"id -u", "1000"},
         {"id -g", "1000"},
+        {"pwd", "/home/ubuntu"},
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o allow_other :\"source\" "
          "\"target\"",
          "don't care"}};
@@ -394,8 +395,9 @@ TEST_F(SshfsMount, blank_fuse_version_logs_error)
         .WillRepeatedly(Return());
     EXPECT_CALL(*logger, log(Eq(mpl::Level::warning), make_cstring_matcher(StrEq("sshfs mount")),
                              make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::debug), make_cstring_matcher(StrEq("sshfs mount")),
-                             make_cstring_matcher(StrEq("Value is FUSE library version:"))));
+    EXPECT_CALL(*logger,
+                log(Eq(mpl::Level::debug), make_cstring_matcher(StrEq("sshfs mount")),
+                    make_cstring_matcher(StrEq("Unable to parse the FUSE library version: FUSE library version:"))));
 
     test_command_execution(commands);
 }
