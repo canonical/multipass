@@ -149,6 +149,7 @@ elseif(APPLE)
     BEFORE
       PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos
   )
+  add_subdirectory(osx)
   add_subdirectory(hyperkit)
 else()
   target_include_directories(multipass_tests
