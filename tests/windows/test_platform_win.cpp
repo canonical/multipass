@@ -15,6 +15,8 @@
  *
  */
 
+#include "tests/extra_assertions.h"
+
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
@@ -37,6 +39,24 @@ TEST(PlatformWin, valid_winterm_setting_values)
 {
     for (const auto x : {"none", "primary"})
         EXPECT_EQ(mp::platform::interpret_winterm_integration(x), x);
+}
+
+TEST(PlatformWin, winterm_setting_values_case_insensitive)
+{
+    for (const auto x : {"NoNe", "NONE", "nonE", "NonE"})
+        EXPECT_EQ(mp::platform::interpret_winterm_integration(x), "none");
+
+    for (const auto x : {"pRIMARY", "Primary", "pRimarY"})
+        EXPECT_EQ(mp::platform::interpret_winterm_integration(x), "primary");
+}
+
+TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
+{
+    for (const auto x : {"Unsupported", "values", "1", "000", "false", "True", "", "  "})
+        MP_EXPECT_THROW_THAT(
+            mp::platform::interpret_winterm_integration(x), mp::InvalidSettingsException,
+            Property(&mp::InvalidSettingsException::what,
+                     AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
 }
 
 } // namespace
