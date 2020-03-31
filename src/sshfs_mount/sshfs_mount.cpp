@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,38 +28,95 @@
 #include <QDir>
 #include <iostream>
 
+#include <semver200.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
 constexpr auto category = "sshfs mount";
-template <typename Callable>
-auto run_cmd(mp::SSHSession& session, std::string&& cmd, Callable&& error_handler)
+const std::string fuse_version_string{"FUSE library version"};
+const std::string ld_library_path_key{"LD_LIBRARY_PATH="};
+const std::string snap_path_key{"SNAP="};
+
+// TODO: Need to unify all the various SSHSession::exec type of functions into
+//       one place and account for reading both stdout and stderr
+auto run_cmd(mp::SSHSession& session, std::string&& cmd)
 {
     auto ssh_process = session.exec(cmd);
     if (ssh_process.exit_code() != 0)
-        error_handler(ssh_process);
-    return ssh_process.read_std_output();
+        throw std::runtime_error(ssh_process.read_std_error());
+
+    return ssh_process.read_std_output() + ssh_process.read_std_error();
 }
 
-// Run a command on a given SSH session.
-auto run_cmd(mp::SSHSession& session, std::string&& cmd)
+auto get_sshfs_exec_and_options(mp::SSHSession& session)
 {
-    auto error_handler = [](mp::SSHProcess& proc) { throw std::runtime_error(proc.read_std_error()); };
-    return run_cmd(session, std::forward<std::string>(cmd), error_handler);
-}
+    std::string sshfs_exec;
 
-// Check if sshfs exists on a given SSH session.
-void check_sshfs_exists(mp::SSHSession& session)
-{
-    auto error_handler = [](mp::SSHProcess& proc) {
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("Unable to determine if 'sshfs' is installed: {}", proc.read_std_error()));
-        throw mp::SSHFSMissingError();
-    };
+    try
+    {
+        // Prefer to use Snap package version first
+        auto sshfs_env{run_cmd(session, "snap run multipass-sshfs.env")};
 
-    run_cmd(session, "which sshfs", error_handler);
+        auto ld_library_path = mp::utils::match_line_for(sshfs_env, ld_library_path_key);
+        auto snap_path = mp::utils::match_line_for(sshfs_env, snap_path_key);
+        snap_path = snap_path.substr(snap_path_key.length());
+
+        sshfs_exec = fmt::format("env {} {}/bin/sshfs", ld_library_path, snap_path);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("'multipass-sshfs' snap package is not installed: {}", e.what()));
+
+        // Fallback to looking for distro version if snap is not found
+        try
+        {
+            sshfs_exec = run_cmd(session, "sudo which sshfs");
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("Unable to determine if 'sshfs' is installed: {}", e.what()));
+            throw mp::SSHFSMissingError();
+        }
+    }
+
+    sshfs_exec = mp::utils::trim_end(sshfs_exec);
+
+    auto version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
+
+    sshfs_exec += " -o slave -o transform_symlinks -o allow_other";
+
+    auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
+    if (!fuse_version_line.empty())
+    {
+        std::string fuse_version;
+
+        // split on the fuse_version_string along with 0 or 1 colon(s)
+        auto tokens = mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
+        if (tokens.size() == 2)
+            fuse_version = tokens[1];
+
+        if (fuse_version.empty())
+        {
+            mpl::log(mpl::Level::warning, category, fmt::format("Unable to parse the {}", fuse_version_string));
+            mpl::log(mpl::Level::debug, category, fmt::format("Unable to parse the {}: {}", fuse_version_string, fuse_version_line));
+        }
+        // The option was made the default in libfuse 3.0
+        else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))
+        {
+            sshfs_exec += " -o nonempty";
+        }
+    }
+    else
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Unable to retrieve \'{}\'", fuse_version_string));
+    }
+
+    return sshfs_exec;
 }
 
 // Split a path into existing and to-be-created parts.
@@ -114,7 +171,7 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(source = {}, target = {}, …): ", __FILE__, __LINE__, __FUNCTION__, source, target));
 
-    check_sshfs_exists(session);
+    auto sshfs_exec_line = get_sshfs_exec_and_options(session);
 
     // Split the path in existing and missing parts.
     const auto& [leading, missing] = get_path_split(session, target);
@@ -134,7 +191,7 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     auto default_gid = std::stoi(output);
 
     return std::make_unique<mp::SftpServer>(std::move(session), source, target, gid_map, uid_map, default_uid,
-                                            default_gid);
+                                            default_gid, sshfs_exec_line);
 }
 
 } // namespace
