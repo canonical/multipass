@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -395,4 +395,24 @@ TEST(Utils, existing_config_file_is_untouched)
     auto new_last_modified = config_file_info.lastModified();
 
     EXPECT_THAT(new_last_modified, Eq(original_last_modified));
+}
+
+TEST(Utils, line_matcher_returns_expected_line)
+{
+    std::string data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
+    std::string matcher{"SNAP="};
+
+    auto snap_data = mp::utils::match_line_for(data, matcher);
+
+    EXPECT_THAT(snap_data, Eq("SNAP=/foo/bin"));
+}
+
+TEST(Utils, line_matcher_no_match_returns_empty_string)
+{
+    std::string data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
+    std::string matcher{"FOO="};
+
+    auto snap_data = mp::utils::match_line_for(data, matcher);
+
+    EXPECT_TRUE(snap_data.empty());
 }

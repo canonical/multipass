@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,9 +77,8 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
 constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
-constexpr auto max_install_sshfs_retries = 3;
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
-                                         "\n\nPlease install 'sshfs' manually inside the instance.";
+                                         "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -1248,6 +1247,7 @@ try // clang-format on
         }
 
         auto& vm = it->second;
+        auto& vm_specs = vm_instance_specs[name];
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
@@ -1266,7 +1266,10 @@ try // clang-format on
                     MountReply mount_reply;
                     mount_reply.set_mount_message("Enabling support for mounting");
                     server->Write(mount_reply);
-                    install_sshfs(vm.get(), name);
+
+                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                           *config->ssh_key_provider};
+                    mp::utils::install_sshfs_for(name, session);
                     instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
@@ -1281,7 +1284,6 @@ try // clang-format on
             }
         }
 
-        auto& vm_specs = vm_instance_specs[name];
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
             fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
@@ -2054,41 +2056,6 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     return grpc::Status::OK;
 }
 
-void mp::Daemon::install_sshfs(VirtualMachine* vm, const std::string& name)
-{
-    auto& key_provider = *config->ssh_key_provider;
-
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), key_provider};
-
-    mpl::log(mpl::Level::info, category, fmt::format("Installing sshfs in \'{}\'", name));
-
-    int retries{0};
-    while (++retries <= max_install_sshfs_retries)
-    {
-        try
-        {
-            auto proc = session.exec("sudo apt update && sudo apt install -y sshfs");
-            if (proc.exit_code(std::chrono::minutes(5)) != 0)
-            {
-                auto error_msg = proc.read_std_error();
-                mpl::log(mpl::Level::warning, category,
-                         fmt::format("Failed to install 'sshfs', error message: '{}'", mp::utils::trim_end(error_msg)));
-            }
-            else
-            {
-                break;
-            }
-        }
-        catch (const mp::ExitlessSSHProcessException&)
-        {
-            mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'sshfs' in '{}'", name));
-        }
-    }
-
-    if (retries > max_install_sshfs_retries)
-        throw mp::SSHFSMissingError();
-}
-
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
 mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
@@ -2129,6 +2096,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
         std::vector<std::string> invalid_mounts;
         auto& mounts = vm_instance_specs[name].mounts;
+        auto& vm_specs = vm_instance_specs[name];
         for (const auto& mount_entry : mounts)
         {
             auto& target_path = mount_entry.first;
@@ -2151,7 +2119,9 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                         server->Write(reply);
                     }
 
-                    install_sshfs(vm.get(), name);
+                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                           *config->ssh_key_provider};
+                    mp::utils::install_sshfs_for(name, session);
                     instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)

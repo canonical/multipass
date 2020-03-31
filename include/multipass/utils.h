@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,12 @@
 
 #include <multipass/logging/level.h>
 #include <multipass/path.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
 #include <chrono>
 #include <functional>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -77,11 +79,14 @@ void process_throw_on_error(const QString& program, const QStringList& arguments
                             const QString& category = "utils");
 bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
                           const QString& category, multipass::logging::Level level = multipass::logging::Level::debug);
+std::string match_line_for(const std::string& output, const std::string& matcher);
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& ensure_vm_is_running = []() {});
 void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                          const SSHKeyProvider& key_provider);
+void install_sshfs_for(const std::string& name, SSHSession& session,
+                       const std::chrono::milliseconds timeout = std::chrono::minutes(5));
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
 void check_and_create_config_file(const QString& config_file_path);
 

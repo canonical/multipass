@@ -15,10 +15,12 @@
  *
  */
 
+#include "mock_logger.h"
 #include "sftp_server_test_fixture.h"
 #include "signal.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
@@ -31,6 +33,7 @@
 #include <vector>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -43,8 +46,14 @@ struct SshfsMount : public mp::test::SftpServerTest
 {
     SshfsMount()
     {
+        mpl::set_logger(logger);
         channel_read.returnValue(0);
         channel_is_closed.returnValue(0);
+    }
+
+    ~SshfsMount()
+    {
+        mpl::set_logger(nullptr);
     }
 
     mp::SshfsMount make_sshfsmount(mp::optional<std::string> target = mp::nullopt)
@@ -53,14 +62,17 @@ struct SshfsMount : public mp::test::SftpServerTest
         return {std::move(session), default_source, target.value_or(default_target), default_map, default_map};
     }
 
-    auto make_exec_that_fails_for(const std::string& expected_cmd, bool& invoked)
+    auto make_exec_that_fails_for(const std::vector<std::string>& expected_cmds, bool& invoked)
     {
-        auto request_exec = [this, expected_cmd, &invoked](ssh_channel, const char* raw_cmd) {
+        auto request_exec = [this, expected_cmds, &invoked](ssh_channel, const char* raw_cmd) {
             std::string cmd{raw_cmd};
-            if (cmd.find(expected_cmd) != std::string::npos)
+            for (const auto expected_cmd : expected_cmds)
             {
-                invoked = true;
-                exit_status_mock.return_exit_code(SSH_ERROR);
+                if (cmd.find(expected_cmd) != std::string::npos)
+                {
+                    invoked = true;
+                    exit_status_mock.return_exit_code(SSH_ERROR);
+                }
             }
             return SSH_OK;
         };
@@ -73,8 +85,10 @@ struct SshfsMount : public mp::test::SftpServerTest
                                      CommandVector::const_iterator& next_expected_cmd, std::string& output,
                                      bool& invoked)
     {
-        auto request_exec = [&commands, &remaining, &next_expected_cmd, &output, &invoked](ssh_channel,
-                                                                                           const char* raw_cmd) {
+        auto request_exec = [this, &commands, &remaining, &next_expected_cmd, &output, &invoked](ssh_channel,
+                                                                                                 const char* raw_cmd) {
+            invoked = false;
+
             std::string cmd{raw_cmd};
 
             if (next_expected_cmd != commands.end())
@@ -86,6 +100,8 @@ struct SshfsMount : public mp::test::SftpServerTest
                     remaining = output.size();
                     ++next_expected_cmd;
                     invoked = true;
+
+                    return SSH_OK;
                 }
                 else
                 {
@@ -101,10 +117,18 @@ struct SshfsMount : public mp::test::SftpServerTest
                             remaining = output.size();
                             ADD_FAILURE() << "\"" << (it->first) << "\" executed out of order; expected \""
                                           << next_expected_cmd->first << "\"";
-                            break;
+                            return SSH_OK;
                         }
                     }
                 }
+            }
+
+            auto it = default_cmds.find(cmd);
+            if (it != default_cmds.end())
+            {
+                output = it->second;
+                remaining = output.size();
+                invoked = true;
             }
 
             return SSH_OK;
@@ -146,6 +170,12 @@ struct SshfsMount : public mp::test::SftpServerTest
         EXPECT_TRUE(next_expected_cmd == commands.end()) << "\"" << next_expected_cmd->first << "\" not executed";
     }
 
+    template <typename Matcher>
+    auto make_cstring_matcher(const Matcher& matcher)
+    {
+        return Property(&mpl::CString::c_str, matcher);
+    }
+
     mpt::ExitStatusMock exit_status_mock;
     decltype(MOCK(ssh_channel_read_timeout)) channel_read{MOCK(ssh_channel_read_timeout)};
     decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
@@ -154,13 +184,24 @@ struct SshfsMount : public mp::test::SftpServerTest
     std::string default_target{"target"};
     std::unordered_map<int, int> default_map;
     int default_id{1000};
+    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+
+    const std::unordered_map<std::string, std::string> default_cmds{
+        {"snap run multipass-sshfs.env", "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n"},
+        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0"},
+        {"id -u", "1000"},
+        {"id -g", "1000"},
+        {"pwd", "/home/ubuntu"},
+        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o allow_other :\"source\" "
+         "\"target\"",
+         "don't care"}};
 };
 } // namespace
 
 TEST_F(SshfsMount, throws_when_sshfs_does_not_exist)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("which sshfs", invoked);
+    auto request_exec = make_exec_that_fails_for({"sudo multipass-sshfs.env", "which sshfs"}, invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), mp::SSHFSMissingError);
@@ -170,7 +211,7 @@ TEST_F(SshfsMount, throws_when_sshfs_does_not_exist)
 TEST_F(SshfsMount, throws_when_unable_to_make_target_dir)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("mkdir", invoked);
+    auto request_exec = make_exec_that_fails_for({"mkdir"}, invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), std::runtime_error);
@@ -180,7 +221,7 @@ TEST_F(SshfsMount, throws_when_unable_to_make_target_dir)
 TEST_F(SshfsMount, throws_when_unable_to_chown)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("chown", invoked);
+    auto request_exec = make_exec_that_fails_for({"chown"}, invoked);
 
     REPLACE(ssh_channel_request_exec, request_exec);
 
@@ -191,7 +232,7 @@ TEST_F(SshfsMount, throws_when_unable_to_chown)
 TEST_F(SshfsMount, throws_when_unable_to_obtain_uid)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("id -u", invoked);
+    auto request_exec = make_exec_that_fails_for({"id -u"}, invoked);
 
     REPLACE(ssh_channel_request_exec, request_exec);
 
@@ -330,17 +371,52 @@ TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
 TEST_F(SshfsMount, throws_when_unable_to_change_dir)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("cd", invoked);
+    auto request_exec = make_exec_that_fails_for({"cd"}, invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), std::runtime_error);
     EXPECT_TRUE(invoked);
 }
 
+TEST_F(SshfsMount, invalid_fuse_version_throws)
+{
+    CommandVector commands = {
+        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: fu.man.chu"}};
+
+    EXPECT_THROW(test_command_execution(commands), std::runtime_error);
+}
+
+TEST_F(SshfsMount, blank_fuse_version_logs_error)
+{
+    CommandVector commands = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:"}};
+
+    EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
+                             Matcher<multipass::logging::CString>(_)))
+        .WillRepeatedly(Return());
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::warning), make_cstring_matcher(StrEq("sshfs mount")),
+                             make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
+    EXPECT_CALL(*logger,
+                log(Eq(mpl::Level::debug), make_cstring_matcher(StrEq("sshfs mount")),
+                    make_cstring_matcher(StrEq("Unable to parse the FUSE library version: FUSE library version:"))));
+
+    test_command_execution(commands);
+}
+
+TEST_F(SshfsMount, fuse_version_less_than_3_nonempty)
+{
+    CommandVector commands = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 2.9.0"},
+                              {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
+                               "allow_other -o nonempty :\"source\" "
+                               "\"target\"",
+                               "don't care"}};
+
+    test_command_execution(commands);
+}
+
 TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for("pwd", invoked);
+    auto request_exec = make_exec_that_fails_for({"pwd"}, invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), std::runtime_error);
@@ -350,17 +426,10 @@ TEST_F(SshfsMount, throws_when_unable_to_get_current_dir)
 TEST_F(SshfsMount, executes_commands)
 {
     CommandVector commands = {
-        {"which sshfs", "/usr/bin/sshfs"},
-        {"pwd", "/home/ubuntu"},
         {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
          "/home/ubuntu/"},
         {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && mkdir -p \"target\"'", ""},
-        {"id -u", "1000"},
-        {"id -g", "1000"},
-        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 target'", ""},
-        {"id -u", "1000"},
-        {"id -g", "1000"},
-        {"sudo sshfs -o slave -o nonempty -o transform_symlinks -o allow_other :\"source\" \"target\"", "don't care"}};
+        {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 target'", ""}};
 
     test_command_execution(commands, std::string("target"));
 }
@@ -369,11 +438,94 @@ TEST_F(SshfsMount, works_with_absolute_paths)
 {
     CommandVector commands = {
         {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
-         "/home/ubuntu/"},
-        {"id -u", "1000"},
-        {"id -g", "1000"},
-        {"id -u", "1000"},
-        {"id -g", "1000"}};
+         "/home/ubuntu/"}};
 
     test_command_execution(commands, std::string("/home/ubuntu/target"));
+}
+
+TEST_F(SshfsMount, throws_install_sshfs_which_snap_fails)
+{
+    bool invoked{false};
+    auto request_exec = make_exec_that_fails_for({"which snap"}, invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    mp::SSHSession session{"a", 42};
+
+    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session), std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SshfsMount, throws_install_sshfs_no_snap_dir_fails)
+{
+    bool invoked{false};
+    auto request_exec = make_exec_that_fails_for({"[ -e /snap ]"}, invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    mp::SSHSession session{"a", 42};
+
+    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session), std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SshfsMount, throws_install_sshfs_snap_install_fails)
+{
+    bool invoked{false};
+    auto request_exec = make_exec_that_fails_for({"sudo snap install multipass-sshfs"}, invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    mp::SSHSession session{"a", 42};
+
+    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session), mp::SSHFSMissingError);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SshfsMount, install_sshfs_no_failures_does_not_throw)
+{
+    mp::SSHSession session{"a", 42};
+
+    EXPECT_NO_THROW(mp::utils::install_sshfs_for("foo", session));
+}
+
+TEST_F(SshfsMount, install_sshfs_timeout_logs_info)
+{
+    ssh_channel_callbacks callbacks{nullptr};
+    bool sleep{false};
+
+    auto request_exec = [&sleep](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd == "sudo snap install multipass-sshfs")
+            sleep = true;
+
+        return SSH_OK;
+    };
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) mutable {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+
+    auto event_dopoll = [&callbacks, &sleep](ssh_event, int timeout) {
+        if (!callbacks)
+            return SSH_ERROR;
+
+        if (sleep)
+            std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
+        else
+            callbacks->channel_exit_status_function(nullptr, nullptr, 0, callbacks->userdata);
+
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
+    EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
+                             Matcher<multipass::logging::CString>(_)))
+        .WillRepeatedly(Return());
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), make_cstring_matcher(StrEq("utils")),
+                             make_cstring_matcher(StrEq("Timeout while installing 'sshfs' in 'foo'"))));
+
+    mp::SSHSession session{"a", 42};
+
+    mp::utils::install_sshfs_for("foo", session, std::chrono::milliseconds(1));
 }

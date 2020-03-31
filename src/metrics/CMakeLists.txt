@@ -1,5 +1,5 @@
-# Copyright © 2018 Canonical Ltd.
-# 
+# Copyright © 2018-2020 Canonical Ltd.
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
 # published by the Free Software Foundation.
@@ -17,5 +17,6 @@ add_library(metrics STATIC
 
 target_link_libraries(metrics
   fmt
+  ssh_common
   Qt5::Core
   Qt5::Network)
