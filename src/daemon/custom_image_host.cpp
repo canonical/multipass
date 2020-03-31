@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ struct CustomImageInfo
 
 const QMap<QString, CustomImageInfo> multipass_image_info{
     {{"ubuntu-core-16-amd64.img.xz"},
-     {"https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
+     {"http://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
       {"core", "core16"},
       "Ubuntu",
       "core-16",
@@ -63,13 +63,7 @@ const QMap<QString, CustomImageInfo> multipass_image_info{
       "",
       ""}},
     {{"ubuntu-core-18-amd64.img.xz"},
-     {"https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/",
-      {"core18"},
-      "Ubuntu",
-      "core-18",
-      "Core 18",
-      "",
-      ""}}};
+     {"http://cdimage.ubuntu.com/ubuntu-core/18/stable/current/", {"core18"}, "Ubuntu", "core-18", "Core 18", "", ""}}};
 
 const QMap<QString, CustomImageInfo> snapcraft_image_info{
     {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
