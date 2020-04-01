@@ -57,6 +57,11 @@ QString mp::platform::interpret_winterm_integration(const QString& val)
     throw InvalidSettingsException(winterm_key, val, "Windows Terminal is not available on Linux");
 }
 
+void mp::platform::sync_winterm_profiles()
+{
+    // NOOP on Linux
+}
+
 QString mp::platform::autostart_test_data()
 {
     return autostart_filename;

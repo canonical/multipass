@@ -39,6 +39,7 @@ namespace platform
 std::map<QString, QString> extra_settings_defaults();
 
 QString interpret_winterm_integration(const QString& val);
+void sync_winterm_profiles();
 
 QString autostart_test_data(); // returns a platform-specific string, for testing purposes
 void setup_gui_autostart_prerequisites();

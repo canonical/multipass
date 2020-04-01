@@ -117,3 +117,8 @@ void mp::client::preliminary_setup()
         mpl::log(mpl::Level::debug, "client", e.get_detail());
     }
 }
+
+void mp::client::final_adjustments()
+{
+    platform::sync_winterm_profiles();
+}
