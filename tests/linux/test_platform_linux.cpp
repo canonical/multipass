@@ -171,6 +171,11 @@ TEST_F(PlatformLinux, test_winterm_setting_not_supported)
         EXPECT_THROW(mp::platform::interpret_winterm_integration(x), mp::InvalidSettingsException);
 }
 
+TEST_F(PlatformLinux, test_empty_sync_winterm_profiles)
+{
+    EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
+}
+
 TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 {
     try
