@@ -27,6 +27,7 @@ add_executable(multipass_tests
   mischievous_url_downloader.cpp
   mock_process_factory.cpp
   mock_settings.cpp
+  mock_standard_paths.cpp
   mock_sftp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp

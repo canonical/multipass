@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,18 @@
  *
  */
 
-#include "mock_settings.h"
 #include "mock_standard_paths.h"
 
-#include <gtest/gtest.h>
+namespace mpt = multipass::test;
 
-#include <QCoreApplication>
+using namespace testing;
 
-namespace mp = multipass;
-
-// Normally one would just use libgtest_main but our static library dependencies
-// also define main... DAMN THEM!
-int main(int argc, char* argv[])
+void mpt::MockStandardPaths::mockit()
 {
-    QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_tests");
+    // TODO@ricab
+}
 
-    ::testing::InitGoogleTest(&argc, argv);
-    mp::test::MockStandardPaths::mockit();
-    mp::test::MockSettings::mockit();
-
-    return RUN_ALL_TESTS();
+auto mpt::MockStandardPaths::mock_instance() -> MockStandardPaths&
+{
+    return dynamic_cast<MockStandardPaths&>(instance());
 }

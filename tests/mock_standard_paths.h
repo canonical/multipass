@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,24 @@
  *
  */
 
-#include "mock_settings.h"
-#include "mock_standard_paths.h"
+#ifndef MULTIPASS_MOCK_STANDARD_PATHS_H
+#define MULTIPASS_MOCK_STANDARD_PATHS_H
 
-#include <gtest/gtest.h>
+#include <multipass/standard_paths.h>
 
-#include <QCoreApplication>
+#include <gmock/gmock.h>
 
-namespace mp = multipass;
-
-// Normally one would just use libgtest_main but our static library dependencies
-// also define main... DAMN THEM!
-int main(int argc, char* argv[])
+namespace multipass::test
 {
-    QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_tests");
+// This will automatically verify expectations set upon it at the end of each test
+class MockStandardPaths : public StandardPaths
+{
+public:
+    using StandardPaths::StandardPaths;
 
-    ::testing::InitGoogleTest(&argc, argv);
-    mp::test::MockStandardPaths::mockit();
-    mp::test::MockSettings::mockit();
+    static void mockit();
+    static MockStandardPaths& mock_instance();
+};
+} // namespace multipass::test
 
-    return RUN_ALL_TESTS();
-}
+#endif // MULTIPASS_MOCK_STANDARD_PATHS_H
