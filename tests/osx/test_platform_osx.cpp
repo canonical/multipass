@@ -38,4 +38,9 @@ TEST(PlatformOSX, test_winterm_setting_not_supported)
         EXPECT_THROW(mp::platform::interpret_winterm_integration(x), mp::InvalidSettingsException);
 }
 
+TEST(PlatformOSX, test_empty_sync_winterm_profiles)
+{
+    EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
+}
+
 } // namespace
