@@ -99,10 +99,10 @@ int mp::Client::run(const QStringList& arguments)
     mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
     mp::client::preliminary_setup(); // ... something we want to do even if the command was wrong
 
-    if (parse_status != ParseCode::Ok)
-    {
-        return parser.returnCodeFrom(parse_status);
-    }
+    const auto ret =
+        parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser) : parser.returnCodeFrom(parse_status);
 
-    return parser.chosenCommand()->run(&parser);
+    mp::client::final_adjustments();
+
+    return ret;
 }
