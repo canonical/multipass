@@ -16,6 +16,7 @@ add_library(utils STATIC
   memory_size.cpp
   settings.cpp
   snap_utils.cpp
+  standard_paths.cpp
   utils.cpp)
 
 target_link_libraries(utils
