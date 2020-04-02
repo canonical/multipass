@@ -29,8 +29,9 @@ template <typename ConcreteSingleton, typename ConcreteMock>
 class MockSingletonHelper : public ::testing::Environment
 {
 public:
-    void SetUp() override;
+    static void mockit();
 
+    void SetUp() override;
     void TearDown() override;
 
 private:
@@ -46,6 +47,13 @@ private:
     Accountant* accountant = nullptr; // non-owning ptr
 };
 } // namespace multipass::test
+
+template <typename ConcreteSingleton, typename ConcreteMock>
+void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::mockit()
+{
+    testing::AddGlobalTestEnvironment(
+        new MockSingletonHelper<ConcreteSingleton, ConcreteMock>{}); // takes pointer ownership o_O
+}
 
 template <typename ConcreteSingleton, typename ConcreteMock>
 void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::SetUp()

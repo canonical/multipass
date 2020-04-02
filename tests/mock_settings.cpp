@@ -23,7 +23,7 @@ using namespace testing;
 
 void mpt::MockSettings::mockit()
 {
-    AddGlobalTestEnvironment(new mpt::MockSingletonHelper<Settings, MockSettings>{}); // takes pointer ownership o_O
+    mpt::MockSingletonHelper<Settings, MockSettings>::mockit();
 }
 
 auto mpt::MockSettings::mock_instance() -> MockSettings&

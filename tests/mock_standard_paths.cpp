@@ -23,8 +23,7 @@ using namespace testing;
 
 void mpt::MockStandardPaths::mockit()
 {
-    AddGlobalTestEnvironment(
-        new mpt::MockSingletonHelper<StandardPaths, MockStandardPaths>{}); // takes pointer ownership o_O
+    mpt::MockSingletonHelper<StandardPaths, MockStandardPaths>::mockit();
 }
 
 auto mpt::MockStandardPaths::mock_instance() -> MockStandardPaths&
