@@ -35,6 +35,10 @@ public:
     static void mockit();
     static MockStandardPaths& mock_instance();
 
+    MOCK_CONST_METHOD3(locate, QString(StandardLocation, const QString&, LocateOptions));
+    MOCK_CONST_METHOD1(standardLocations, QStringList(StandardLocation type));
+    MOCK_CONST_METHOD1(writableLocation, QString(StandardLocation type));
+
 private:
     void setup_mock_defaults();
 
