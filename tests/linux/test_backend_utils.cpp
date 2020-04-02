@@ -67,8 +67,8 @@ void simulate_qemuimg_info(const mpt::MockProcess* process, const QString& expec
         ON_CALL(*process, read_all_standard_error).WillByDefault(Return(produce_output));
 }
 
-void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& expect_img,
-                             const mp::MemorySize& expect_size, const mp::ProcessState& produce_result)
+void simulate_qemuimg_resize(mpt::MockProcess* process, const QString& expect_img, const mp::MemorySize& expect_size,
+                             const mp::ProcessState& produce_result)
 {
     ASSERT_EQ(process->program().toStdString(), "qemu-img");
 
@@ -80,7 +80,7 @@ void simulate_qemuimg_resize(const mpt::MockProcess* process, const QString& exp
     EXPECT_THAT(args.at(2),
                 ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; }, Eq(expect_size)));
 
-    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+    EXPECT_CALL(*process, execute(mp::backend::image_resize_timeout)).Times(1).WillOnce(Return(produce_result));
 }
 
 template <class Matcher>

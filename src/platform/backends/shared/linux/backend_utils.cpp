@@ -161,7 +161,7 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
     auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"resize", image_path, disk_size});
     auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
 
-    auto process_state = qemuimg_process->execute();
+    auto process_state = qemuimg_process->execute(mp::backend::image_resize_timeout);
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output:\n{}",
