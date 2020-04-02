@@ -31,7 +31,12 @@ using namespace testing;
 namespace
 {
 
-TEST(Settings, can_be_mocked)
+TEST(Settings, provides_get_default_as_get_by_default)
+{
+    // TODO@ricab
+}
+
+TEST(Settings, can_have_get_mocked)
 {
     const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
     const auto& mock = mpt::MockSettings::mock_instance();
