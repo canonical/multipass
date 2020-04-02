@@ -23,3 +23,18 @@ mp::StandardPaths::StandardPaths(const Singleton<StandardPaths>::PrivatePass& pa
     : Singleton<StandardPaths>::Singleton{pass}
 {
 }
+
+QString mp::StandardPaths::locate(StandardLocation type, const QString& fileName, LocateOptions options) const
+{
+    return QStandardPaths::locate(type, fileName, options);
+}
+
+QStringList mp::StandardPaths::standardLocations(StandardLocation type) const
+{
+    return QStandardPaths::standardLocations(type);
+}
+
+QString mp::StandardPaths::writableLocation(StandardLocation type) const
+{
+    return QStandardPaths::writableLocation(type);
+}

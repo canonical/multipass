@@ -20,12 +20,23 @@
 
 #include "singleton.h"
 
+#include <QStandardPaths>
+
 namespace multipass
 {
 class StandardPaths : public Singleton<StandardPaths>
 {
 public:
+    using LocateOption = QStandardPaths::LocateOption;
+    using LocateOptions = QStandardPaths::LocateOptions;
+    using StandardLocation = QStandardPaths::StandardLocation;
+
     StandardPaths(const Singleton<StandardPaths>::PrivatePass&);
+
+    virtual QString locate(StandardLocation type, const QString& fileName,
+                           LocateOptions options = LocateOption::LocateFile) const;
+    virtual QStringList standardLocations(StandardLocation type) const;
+    virtual QString writableLocation(StandardLocation type) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_STANDARD_PATHS_H
