@@ -17,20 +17,21 @@
 
 #include "mock_settings.h"
 
+namespace mpt = multipass::test;
+
 using namespace testing;
 
-void multipass::test::MockSettings::mockit()
+void mpt::MockSettings::mockit()
 {
-    AddGlobalTestEnvironment(
-        new multipass::test::MockSingletonHelper<Settings, MockSettings>{}); // takes pointer ownership o_O
+    AddGlobalTestEnvironment(new mpt::MockSingletonHelper<Settings, MockSettings>{}); // takes pointer ownership o_O
 }
 
-auto multipass::test::MockSettings::mock_instance() -> MockSettings&
+auto mpt::MockSettings::mock_instance() -> MockSettings&
 {
     return dynamic_cast<MockSettings&>(instance());
 }
 
-void multipass::test::MockSettings::setup_mock_defaults()
+void mpt::MockSettings::setup_mock_defaults()
 {
     ON_CALL(*this, get(_)).WillByDefault(Invoke(this, &MockSettings::get_default));
     ON_CALL(*this, set(_, _)).WillByDefault(Invoke([this](const auto& a, const auto& /*ignored*/) {
