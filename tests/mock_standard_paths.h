@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_MOCK_STANDARD_PATHS_H
 #define MULTIPASS_MOCK_STANDARD_PATHS_H
 
+#include "mock_singleton_helper.h"
+
 #include <multipass/standard_paths.h>
 
 #include <gmock/gmock.h>
@@ -32,6 +34,11 @@ public:
 
     static void mockit();
     static MockStandardPaths& mock_instance();
+
+private:
+    void setup_mock_defaults();
+
+    friend class MockSingletonHelper<StandardPaths, MockStandardPaths>;
 };
 } // namespace multipass::test
 

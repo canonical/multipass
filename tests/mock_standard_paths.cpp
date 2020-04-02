@@ -23,10 +23,16 @@ using namespace testing;
 
 void mpt::MockStandardPaths::mockit()
 {
-    // TODO@ricab
+    AddGlobalTestEnvironment(
+        new mpt::MockSingletonHelper<StandardPaths, MockStandardPaths>{}); // takes pointer ownership o_O
 }
 
 auto mpt::MockStandardPaths::mock_instance() -> MockStandardPaths&
 {
     return dynamic_cast<MockStandardPaths&>(instance());
+}
+
+void mpt::MockStandardPaths::setup_mock_defaults()
+{
+    // TODO@ricab
 }
