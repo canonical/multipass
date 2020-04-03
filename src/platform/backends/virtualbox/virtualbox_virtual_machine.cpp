@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -29,7 +30,6 @@
 
 #include <QProcess>
 #include <QRegularExpression>
-#include <QStandardPaths>
 #include <QtNetwork/QTcpServer>
 
 namespace mp = multipass;
@@ -105,39 +105,40 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
             "VBoxManage", {"createvm", "--name", name, "--groups", "/Multipass", "--ostype", "ubuntu_64", "--register"},
             "Could not create VM: {}", name);
 
-        mpu::process_throw_on_error(
-            "VBoxManage",
-            {"modifyvm",
-             name,
-             "--cpus",
-             QString::number(desc.num_cores),
-             "--memory",
-             QString::number(desc.mem_size.in_megabytes()),
-             "--boot1",
-             "disk",
-             "--boot2",
-             "none",
-             "--boot3",
-             "none",
-             "--boot4",
-             "none",
-             "--acpi",
-             "on",
-             "--nic1",
-             "nat",
-             "--firmware",
-             "bios",
-             "--rtcuseutc",
-             "on",
-             "--audio",
-             "none",
-             "--uart1",
-             "0x3f8",
-             "4",
-             "--uartmode1",
-             "file",
-             QString("%1/%2.log").arg(QStandardPaths::writableLocation(QStandardPaths::TempLocation)).arg(name)},
-            "Could not modify VM: {}", name);
+        mpu::process_throw_on_error("VBoxManage",
+                                    {"modifyvm",
+                                     name,
+                                     "--cpus",
+                                     QString::number(desc.num_cores),
+                                     "--memory",
+                                     QString::number(desc.mem_size.in_megabytes()),
+                                     "--boot1",
+                                     "disk",
+                                     "--boot2",
+                                     "none",
+                                     "--boot3",
+                                     "none",
+                                     "--boot4",
+                                     "none",
+                                     "--acpi",
+                                     "on",
+                                     "--nic1",
+                                     "nat",
+                                     "--firmware",
+                                     "bios",
+                                     "--rtcuseutc",
+                                     "on",
+                                     "--audio",
+                                     "none",
+                                     "--uart1",
+                                     "0x3f8",
+                                     "4",
+                                     "--uartmode1",
+                                     "file",
+                                     QString("%1/%2.log")
+                                         .arg(StandardPaths::instance().writableLocation(StandardPaths::TempLocation))
+                                         .arg(name)},
+                                    "Could not modify VM: {}", name);
 
         mpu::process_throw_on_error("VBoxManage",
                                     {"storagectl", name, "--add", "sata", "--name", "SATA_0", "--portcount", "2"},
