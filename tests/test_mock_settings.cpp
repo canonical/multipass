@@ -39,7 +39,7 @@ TEST(Settings, provides_get_default_as_get_by_default)
 TEST(Settings, can_have_get_mocked)
 {
     const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
-    const auto& mock = mpt::MockSettings::mock_instance();
+    auto& mock = mpt::MockSettings::mock_instance();
 
     EXPECT_CALL(mock, get(test)).WillOnce(Return(proof));
     ASSERT_EQ(mp::Settings::instance().get(test), proof);
