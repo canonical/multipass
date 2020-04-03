@@ -23,13 +23,13 @@
 #include <multipass/logging/log.h>
 #include <multipass/settings.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
-#include <QStandardPaths>
 #include <QUuid>
 #include <QtGlobal>
 
@@ -59,12 +59,13 @@ auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
 QString find_autostart_target(const QString& subdir, const QString& autostart_filename)
 {
     const auto target_subpath = QDir{subdir}.filePath(autostart_filename);
-    const auto target_path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, target_subpath);
+    const auto target_path =
+        mp::StandardPaths::instance().locate(mp::StandardPaths::GenericDataLocation, target_subpath);
 
     if (target_path.isEmpty())
     {
         QString detail{};
-        for (const auto& path : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation))
+        for (const auto& path : mp::StandardPaths::instance().standardLocations(mp::StandardPaths::GenericDataLocation))
             detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
 
         throw mp::AutostartSetupException{fmt::format("could not locate the autostart file '{}'", autostart_filename),

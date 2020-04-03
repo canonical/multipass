@@ -17,9 +17,8 @@
 
 #include <multipass/cli/client_common.h>
 #include <multipass/platform.h>
+#include <multipass/standard_paths.h>
 #include <multipass/utils.h>
-
-#include <QStandardPaths>
 
 #include <fmt/ostream.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
@@ -91,7 +90,7 @@ std::string mp::client::get_server_address()
 
 std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
 {
-    auto data_dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    auto data_dir = StandardPaths::instance().writableLocation(StandardPaths::AppDataLocation);
     auto client_cert_dir = mp::utils::make_dir(data_dir, "client-certificate");
     return std::make_unique<mp::SSLCertProvider>(client_cert_dir);
 }

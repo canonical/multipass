@@ -23,6 +23,7 @@
 #include <multipass/cli/format_utils.h>
 #include <multipass/format.h>
 #include <multipass/settings.h>
+#include <multipass/standard_paths.h>
 #include <multipass/version.h>
 
 #include <QHotkey>
@@ -116,7 +117,7 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     create_menu();
     tray_icon.show();
 
-    QFile first_run_file(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/first_run");
+    QFile first_run_file(StandardPaths::instance().writableLocation(StandardPaths::AppDataLocation) + "/first_run");
 
     if (!first_run_file.exists())
     {
