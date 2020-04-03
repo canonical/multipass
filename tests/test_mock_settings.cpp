@@ -41,7 +41,7 @@ TEST(Settings, can_have_get_mocked)
     const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
     const auto& mock = mpt::MockSettings::mock_instance();
 
-    EXPECT_CALL(mock, get(_)).WillOnce(Return(proof));
+    EXPECT_CALL(mock, get(test)).WillOnce(Return(proof));
     ASSERT_EQ(mp::Settings::instance().get(test), proof);
 }
 
