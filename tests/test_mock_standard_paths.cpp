@@ -29,12 +29,50 @@ using namespace testing;
 namespace
 {
 
-TEST(StandardPaths, can_be_mocked)
+TEST(StandardPaths, provides_regular_locate_by_default)
 {
-    [[maybe_unused]] // TODO@ricab remove
-    const auto& mock = mpt::MockStandardPaths::mock_instance();
-
-    // TODO@ricab actually test
+    // TODO@ricab
 }
 
+TEST(StandardPaths, can_have_locate_mocked)
+{
+    const auto& mock = mpt::MockStandardPaths::mock_instance();
+    const auto location_type = mp::StandardPaths::HomeLocation;
+    const auto locate_options = mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateFile};
+    const auto find = QStringLiteral("abc");
+    const auto proof = QStringLiteral("xyz");
+
+    EXPECT_CALL(mock, locate(location_type, find, locate_options)).WillOnce(Return(proof));
+    ASSERT_EQ(mp::StandardPaths::instance().locate(location_type, find, locate_options), proof);
+}
+
+TEST(StandardPaths, provides_regular_standard_locations_by_default)
+{
+    // TODO@ricab
+}
+
+TEST(StandardPaths, can_have_standard_locations_mocked)
+{
+    const auto& mock = mpt::MockStandardPaths::mock_instance();
+    const auto test = mp::StandardPaths::AppConfigLocation;
+    const auto proof = QStringList{QStringLiteral("abc"), QStringLiteral("xyz")};
+
+    EXPECT_CALL(mock, standardLocations(test)).WillOnce(Return(proof));
+    ASSERT_EQ(mp::StandardPaths::instance().standardLocations(test), proof);
+}
+
+TEST(StandardPaths, provides_regular_writable_location_by_default)
+{
+    // TODO@ricab
+}
+
+TEST(StandardPaths, can_have_writable_location_mocked)
+{
+    const auto& mock = mpt::MockStandardPaths::mock_instance();
+    const auto test = mp::StandardPaths::ConfigLocation;
+    const auto proof = QStringLiteral("xyz");
+
+    EXPECT_CALL(mock, writableLocation(test)).WillOnce(Return(proof));
+    ASSERT_EQ(mp::StandardPaths::instance().writableLocation(test), proof);
+}
 } // namespace
