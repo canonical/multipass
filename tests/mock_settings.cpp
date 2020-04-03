@@ -33,8 +33,6 @@ auto mpt::MockSettings::mock_instance() -> MockSettings&
 
 void mpt::MockSettings::setup_mock_defaults()
 {
-    ON_CALL(*this, get(_)).WillByDefault(Invoke(this, &MockSettings::get_default));
-    ON_CALL(*this, set(_, _)).WillByDefault(Invoke([this](const auto& a, const auto& /*ignored*/) {
-        get_default(a);
-    })); // using lambda instead of gmock actions because old VC++ chokes on `WithArg`
+    ON_CALL(*this, get(_)).WillByDefault([this](const auto& a) { return get_default(a); });
+    ON_CALL(*this, set(_, _)).WillByDefault([this](const auto& a, const auto& /*ignored*/) { get_default(a); });
 }
