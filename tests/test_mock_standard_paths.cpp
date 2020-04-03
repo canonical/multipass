@@ -20,6 +20,7 @@
 #include <multipass/standard_paths.h>
 
 #include <QStandardPaths>
+#include <QTemporaryDir>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -33,7 +34,13 @@ namespace
 
 TEST(StandardPaths, provides_regular_locate_by_default)
 {
-    // TODO@ricab
+    const auto location_type = mp::StandardPaths::HomeLocation;
+    const auto locate_options = mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateDirectory};
+    const auto find = QStringLiteral("Desktop");
+    const auto proof = QStandardPaths::locate(location_type, find, locate_options);
+
+    ASSERT_TRUE(proof.endsWith(find));
+    ASSERT_EQ(mp::StandardPaths::instance().locate(location_type, find, locate_options), proof);
 }
 
 TEST(StandardPaths, can_have_locate_mocked)
