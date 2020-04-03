@@ -42,7 +42,7 @@ public:
 private:
     void setup_mock_defaults();
 
-    friend class MockSingletonHelper<StandardPaths, MockStandardPaths>;
+    friend class MockSingletonHelper<StandardPaths, MockStandardPaths, ::testing::NiceMock>;
 };
 } // namespace multipass::test
 

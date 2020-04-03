@@ -23,7 +23,7 @@ using namespace testing;
 
 void mpt::MockSettings::mockit()
 {
-    mpt::MockSingletonHelper<Settings, MockSettings>::mockit();
+    mpt::MockSingletonHelper<Settings, MockSettings, NiceMock>::mockit();
 }
 
 auto mpt::MockSettings::mock_instance() -> MockSettings&

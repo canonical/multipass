@@ -25,7 +25,8 @@
 namespace multipass::test
 {
 
-template <typename ConcreteSingleton, typename ConcreteMock>
+template <typename ConcreteSingleton, typename ConcreteMock,
+          template <typename MockClass> typename MockCharacter = testing::NaggyMock>
 class MockSingletonHelper : public ::testing::Environment
 {
 public:
@@ -48,17 +49,17 @@ private:
 };
 } // namespace multipass::test
 
-template <typename ConcreteSingleton, typename ConcreteMock>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::mockit()
+template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::mockit()
 {
     testing::AddGlobalTestEnvironment(
-        new MockSingletonHelper<ConcreteSingleton, ConcreteMock>{}); // takes pointer ownership o_O
+        new MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>{}); // takes pointer ownership o_O
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::SetUp()
+template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::SetUp()
 {
-    ConcreteSingleton::template mock<testing::NiceMock<ConcreteMock>>(); // Register mock as the singleton instance
+    ConcreteSingleton::template mock<MockCharacter<ConcreteMock>>(); // Register mock as the singleton instance
 
     auto& mock = ConcreteMock::mock_instance();
     mock.setup_mock_defaults(); // setup any custom actions for calls on the mock
@@ -66,8 +67,8 @@ void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::SetU
     register_accountant(); // register a test observer to verify and clear mock expectations
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::TearDown()
+template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::TearDown()
 {
     release_accountant();       // release this mock's test observer
     ConcreteSingleton::reset(); /*
@@ -78,15 +79,15 @@ void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::Tear
     */
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::register_accountant()
+template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::register_accountant()
 {
     accountant = new Accountant{};
     testing::UnitTest::GetInstance()->listeners().Append(accountant); // takes ownership
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::release_accountant()
+template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::release_accountant()
 {
     [[maybe_unused]] auto* listener =
         testing::UnitTest::GetInstance()->listeners().Release(accountant); // releases ownership
@@ -96,8 +97,8 @@ void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::rele
     accountant = nullptr;
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock>::Accountant::OnTestEnd(
+template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::Accountant::OnTestEnd(
     const testing::TestInfo& /*unused*/)
 {
     testing::Mock::VerifyAndClearExpectations(&ConcreteMock::mock_instance());
