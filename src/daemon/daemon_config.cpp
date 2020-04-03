@@ -28,9 +28,9 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>
+#include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
-#include <QStandardPaths>
 #include <QString>
 #include <QUrl>
 
@@ -106,9 +106,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     mpl::set_logger(multiplexing_logger);
 
     if (cache_directory.isEmpty())
-        cache_directory = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+        cache_directory = StandardPaths::instance().writableLocation(StandardPaths::CacheLocation);
     if (data_directory.isEmpty())
-        data_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        data_directory = StandardPaths::instance().writableLocation(StandardPaths::AppDataLocation);
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (factory == nullptr)
