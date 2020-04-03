@@ -17,6 +17,7 @@
 
 #include "mock_settings.h"
 
+#include <multipass/constants.h>
 #include <multipass/settings.h>
 
 #include <QString>
@@ -33,7 +34,8 @@ namespace
 
 TEST(Settings, provides_get_default_as_get_by_default)
 {
-    // TODO@ricab
+    const auto& key = mp::driver_key;
+    ASSERT_EQ(mp::Settings::instance().get(key), mpt::MockSettings::mock_instance().get_default(key));
 }
 
 TEST(Settings, can_have_get_mocked)

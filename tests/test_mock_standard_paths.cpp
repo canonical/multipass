@@ -19,6 +19,8 @@
 
 #include <multipass/standard_paths.h>
 
+#include <QStandardPaths>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -48,7 +50,8 @@ TEST(StandardPaths, can_have_locate_mocked)
 
 TEST(StandardPaths, provides_regular_standard_locations_by_default)
 {
-    // TODO@ricab
+    const auto& test = mp::StandardPaths::MusicLocation;
+    ASSERT_EQ(mp::StandardPaths::instance().standardLocations(test), QStandardPaths::standardLocations(test));
 }
 
 TEST(StandardPaths, can_have_standard_locations_mocked)
@@ -63,7 +66,8 @@ TEST(StandardPaths, can_have_standard_locations_mocked)
 
 TEST(StandardPaths, provides_regular_writable_location_by_default)
 {
-    // TODO@ricab
+    const auto test = mp::StandardPaths::MoviesLocation;
+    ASSERT_EQ(mp::StandardPaths::instance().writableLocation(test), QStandardPaths::writableLocation(test));
 }
 
 TEST(StandardPaths, can_have_writable_location_mocked)
