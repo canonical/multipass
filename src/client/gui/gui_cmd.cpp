@@ -266,7 +266,7 @@ void cmd::GuiCmd::create_menu()
 
 #ifdef Q_OS_MACOS
     QIcon icon{":images/multipass-menubar-icon-mac.png"};
-    icon.setIsMask(true)
+    icon.setIsMask(true);
 #else
     QIcon icon{":images/multipass-icon.png"};
 #endif
