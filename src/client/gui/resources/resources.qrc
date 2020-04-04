@@ -2,4 +2,7 @@
     <qresource>
         <file>images/multipass-icon.png</file>
     </qresource>
+    <qresource>
+        <file>images/multipass-menubar-icon-mac.png</file>
+    </qresource>
 </RCC>

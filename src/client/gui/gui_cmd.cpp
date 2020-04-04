@@ -264,7 +264,13 @@ void cmd::GuiCmd::create_menu()
 {
     tray_icon.setContextMenu(&tray_icon_menu);
 
-    tray_icon.setIcon(QIcon{":images/multipass-icon.png"});
+#ifdef Q_OS_MACOS
+    QIcon icon{":images/multipass-menubar-icon-mac.png"};
+    icon.setIsMask(true)
+#else
+    QIcon icon{":images/multipass-icon.png"};
+#endif
+    tray_icon.setIcon(icon);
 
     QObject::connect(&list_watcher, &QFutureWatcher<ListReply>::finished, this, &GuiCmd::update_menu);
 
