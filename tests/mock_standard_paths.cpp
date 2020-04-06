@@ -23,7 +23,7 @@ using namespace testing;
 
 void mpt::MockStandardPaths::mockit()
 {
-    mpt::MockSingletonHelper<StandardPaths, MockStandardPaths, NiceMock>::mockit();
+    mpt::MockSingletonHelper<MockStandardPaths, NiceMock>::mockit();
 }
 
 auto mpt::MockStandardPaths::mock_instance() -> MockStandardPaths&

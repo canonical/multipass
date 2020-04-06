@@ -25,8 +25,7 @@
 namespace multipass::test
 {
 
-template <typename ConcreteSingleton, typename ConcreteMock,
-          template <typename MockClass> typename MockCharacter = ::testing::NaggyMock>
+template <typename ConcreteMock, template <typename MockClass> typename MockCharacter = ::testing::NaggyMock>
 class MockSingletonHelper : public ::testing::Environment
 {
 public:
@@ -49,15 +48,15 @@ private:
 };
 } // namespace multipass::test
 
-template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::mockit()
+template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::mockit()
 {
     ::testing::AddGlobalTestEnvironment(
-        new MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>{}); // takes pointer ownership o_O
+        new MockSingletonHelper<ConcreteMock, MockCharacter>{}); // takes pointer ownership o_O
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::SetUp()
+template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::SetUp()
 {
     ConcreteMock::template mock<MockCharacter<ConcreteMock>>(); // Register mock as the singleton instance
 
@@ -67,8 +66,8 @@ void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockC
     register_accountant(); // register a test observer to verify and clear mock expectations
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::TearDown()
+template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::TearDown()
 {
     release_accountant();       // release this mock's test observer
     ConcreteMock::reset();      /* Make sure this runs before gtest unwinds, so that:
@@ -77,15 +76,15 @@ void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockC
                                    - it doesn't refer to stuff that was already deleted */
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::register_accountant()
+template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::register_accountant()
 {
     accountant = new Accountant{};
     ::testing::UnitTest::GetInstance()->listeners().Append(accountant); // takes ownership
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::release_accountant()
+template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::release_accountant()
 {
     [[maybe_unused]] auto* listener =
         ::testing::UnitTest::GetInstance()->listeners().Release(accountant); // releases ownership
@@ -95,8 +94,8 @@ void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockC
     accountant = nullptr;
 }
 
-template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
-void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::Accountant::OnTestEnd(
+template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::Accountant::OnTestEnd(
     const ::testing::TestInfo& /*unused*/)
 {
     ::testing::Mock::VerifyAndClearExpectations(&ConcreteMock::mock_instance());

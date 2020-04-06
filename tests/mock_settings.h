@@ -43,7 +43,7 @@ public:
 private:
     void setup_mock_defaults();
 
-    friend class MockSingletonHelper<Settings, MockSettings, ::testing::NiceMock>;
+    friend class MockSingletonHelper<MockSettings, ::testing::NiceMock>;
 };
 } // namespace test
 } // namespace multipass
