@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
     explicit DNSMasqProcessSpec(const Path& data_dir, const QString& bridge_name, const QString& pid_file_path,
-                                const std::string& subnet);
+                                const std::string& subnet, const QString& conf_file_path);
 
     QString program() const override;
     QStringList arguments() const override;
@@ -45,6 +45,7 @@ private:
     const QString bridge_name;
     const QString pid_file_path;
     const std::string subnet;
+    const QString conf_file_path;
 };
 
 } // namespace multipass

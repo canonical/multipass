@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,9 +38,10 @@ namespace mpl = multipass::logging;
 namespace
 {
 auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const QString& pid_file_path,
-                          const std::string& subnet)
+                          const std::string& subnet, const QString& conf_file_path)
 {
-    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, pid_file_path, subnet);
+    auto process_spec =
+        std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, pid_file_path, subnet, conf_file_path);
     return mp::ProcessFactory::instance().create_process(std::move(process_spec));
 }
 
@@ -60,8 +61,12 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
     : data_dir{data_dir},
       bridge_name{bridge_name},
       pid_file_path{QDir(data_dir).filePath("dnsmasq.pid")},
-      subnet{subnet}
+      subnet{subnet},
+      conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
+    conf_file.open();
+    conf_file.close();
+
     try
     {
         check_dnsmasq_running();
@@ -158,7 +163,7 @@ void mp::DNSMasqServer::check_dnsmasq_running()
 
 void mp::DNSMasqServer::start_dnsmasq()
 {
-    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, pid_file_path, subnet);
+    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, pid_file_path, subnet, conf_file.fileName());
     const auto dnsmasq_daemon_fork_state = dnsmasq_cmd->execute();
 
     if (dnsmasq_daemon_fork_state.error)
