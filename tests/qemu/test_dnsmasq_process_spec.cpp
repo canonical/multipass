@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,12 +40,12 @@ TEST_F(TestDnsmasqProcessSpec, default_arguments_correct)
 {
     mpt::SetEnvScope e1("SNAP", "/something");
     mp::DNSMasqProcessSpec spec(data_dir, bridge_name, pid_file_path, subnet);
-    EXPECT_EQ(
-        spec.arguments(),
-        QStringList({"--strict-order", "--bind-interfaces", "--pid-file=/path/to/file.pid", "--domain=multipass",
-                     "--local=/multipass/", "--except-interface=lo", "--interface=bridgey", "--listen-address=1.2.3.1",
-                     "--dhcp-no-override", "--dhcp-authoritative", "--dhcp-leasefile=/data/dnsmasq.leases",
-                     "--dhcp-hostsfile=/data/dnsmasq.hosts", "--dhcp-range", "1.2.3.2,1.2.3.254,infinite"}));
+    EXPECT_EQ(spec.arguments(),
+              QStringList({"--strict-order", "--bind-interfaces", "--pid-file=/path/to/file.pid", "--domain=multipass",
+                           "--local=/multipass/", "--except-interface=lo", "--interface=bridgey",
+                           "--listen-address=1.2.3.1", "--dhcp-no-override", "--dhcp-authoritative",
+                           "--dhcp-leasefile=/data/dnsmasq.leases", "--dhcp-hostsfile=/data/dnsmasq.hosts",
+                           "--dhcp-range", "1.2.3.2,1.2.3.254,infinite", "--conf-file=/data/dnsmasq.conf"}));
 }
 
 TEST_F(TestDnsmasqProcessSpec, apparmor_profile_has_correct_name)

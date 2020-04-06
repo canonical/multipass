@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,9 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
                          << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir) << "--dhcp-range"
                          << QString("%1,%2,infinite")
                                 .arg(QString::fromStdString(start_ip.as_string()))
-                                .arg(QString::fromStdString(end_ip.as_string()));
+                                .arg(QString::fromStdString(end_ip.as_string()))
+                         // This is to prevent it trying to read /etc/dnsmasq.conf
+                         << QString("--conf-file=%1/dnsmasq.conf").arg(data_dir);
 }
 
 mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
@@ -93,6 +95,7 @@ profile %1 flags=(attach_disconnected) {
   # CLASSIC ONLY: need to specify required libs from core snap
   /{,var/lib/snapd/}snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
 
+  %5/dnsmasq.conf r,              # Config file
   %5/dnsmasq.leases rw,           # Leases file
   %5/dnsmasq.hosts r,             # Hosts file
 
