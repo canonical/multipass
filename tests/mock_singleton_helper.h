@@ -59,7 +59,7 @@ void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockC
 template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::SetUp()
 {
-    ConcreteSingleton::template mock<MockCharacter<ConcreteMock>>(); // Register mock as the singleton instance
+    ConcreteMock::template mock<MockCharacter<ConcreteMock>>(); // Register mock as the singleton instance
 
     auto& mock = ConcreteMock::mock_instance();
     mock.setup_mock_defaults(); // setup any custom actions for calls on the mock
@@ -71,12 +71,10 @@ template <typename ConcreteSingleton, typename ConcreteMock, template <typename 
 void multipass::test::MockSingletonHelper<ConcreteSingleton, ConcreteMock, MockCharacter>::TearDown()
 {
     release_accountant();       // release this mock's test observer
-    ConcreteSingleton::reset(); /*
-    We need to make sure this runs before gtest unwinds because this is a mock and otherwise
-      a) the mock would leak,
-      b) expectations would not be checked,
-      c) it would refer to stuff that was deleted by then.
-    */
+    ConcreteMock::reset();      /* Make sure this runs before gtest unwinds, so that:
+                                   - the mock doesn't leak
+                                   - expectations are checked
+                                   - it doesn't refer to stuff that was already deleted */
 }
 
 template <typename ConcreteSingleton, typename ConcreteMock, template <typename MockClass> typename MockCharacter>
