@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,60 +17,22 @@
 
 #include "mock_settings.h"
 
-#include <cassert>
+namespace mpt = multipass::test;
 
 using namespace testing;
 
-void multipass::test::MockSettings::mockit()
+void mpt::MockSettings::mockit()
 {
-    AddGlobalTestEnvironment(new TestEnv{}); // takes pointer ownership o_O
+    mpt::MockSingletonHelper<MockSettings, NiceMock>::mockit();
 }
 
-auto multipass::test::MockSettings::mock_instance() -> MockSettings&
+auto mpt::MockSettings::mock_instance() -> MockSettings&
 {
     return dynamic_cast<MockSettings&>(instance());
 }
 
-void multipass::test::MockSettings::TestEnv::SetUp()
+void mpt::MockSettings::setup_mock_defaults()
 {
-    Settings::mock<NiceMock<MockSettings>>();
-
-    auto& mock = MockSettings::mock_instance();
-    ON_CALL(mock, get(_)).WillByDefault(Invoke(&mock, &MockSettings::get_default));
-    ON_CALL(mock, set(_, _)).WillByDefault(Invoke([&mock](const auto& a, const auto& /*ignored*/) {
-        mock.get_default(a);
-    })); // using lambda instead of gmock actions because old VC++ chokes on `WithArg`
-
-    register_accountant();
-}
-
-void multipass::test::MockSettings::TestEnv::TearDown()
-{
-    release_accountant();
-    Settings::reset(); /* We need to make sure this runs before gtest unwinds because this is a mock and otherwise
-                            a) the mock would leak,
-                            b) expectations would not be checked,
-                            c) it would refer to stuff that was deleted by then.
-                        */
-}
-
-void multipass::test::MockSettings::TestEnv::register_accountant()
-{
-    accountant = new Accountant{};
-    UnitTest::GetInstance()->listeners().Append(accountant); // takes ownership
-}
-
-void multipass::test::MockSettings::TestEnv::release_accountant()
-{
-    auto* listener = UnitTest::GetInstance()->listeners().Release(accountant); // releases ownership
-    assert(listener == accountant);
-    static_cast<void>(listener); // to avoid unused var warning
-
-    delete accountant; // no prob if already null
-    accountant = nullptr;
-}
-
-void multipass::test::MockSettings::Accountant::OnTestEnd(const TestInfo& /*unused*/)
-{
-    Mock::VerifyAndClearExpectations(&MockSettings::mock_instance());
+    ON_CALL(*this, get(_)).WillByDefault([this](const auto& a) { return get_default(a); });
+    ON_CALL(*this, set(_, _)).WillByDefault([this](const auto& a, const auto& /*ignored*/) { get_default(a); });
 }

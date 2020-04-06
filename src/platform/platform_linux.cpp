@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/snap_utils.h>
+#include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -31,8 +32,6 @@
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
-
-#include <QStandardPaths>
 
 #include <signal.h>
 #include <sys/prctl.h>
@@ -54,7 +53,7 @@ QString mp::platform::autostart_test_data()
 
 void mp::platform::setup_gui_autostart_prerequisites()
 {
-    const auto config_dir = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
+    const auto config_dir = QDir{StandardPaths::instance().writableLocation(StandardPaths::GenericConfigLocation)};
     const auto link_dir = QDir{config_dir.absoluteFilePath("autostart")};
     mu::link_autostart_file(link_dir, mp::client_name, autostart_filename);
 }

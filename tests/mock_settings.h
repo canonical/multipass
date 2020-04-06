@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 
 #ifndef MULTIPASS_MOCK_SETTINGS_H
 #define MULTIPASS_MOCK_SETTINGS_H
+
+#include "mock_singleton_helper.h"
 
 #include <multipass/settings.h>
 
@@ -39,24 +41,9 @@ public:
     MOCK_METHOD2(set, void(const QString&, const QString&));
 
 private:
-    class Accountant : public ::testing::EmptyTestEventListener
-    {
-    public:
-        void OnTestEnd(const ::testing::TestInfo&) override;
-    };
+    void setup_mock_defaults();
 
-    class TestEnv : public ::testing::Environment
-    {
-    public:
-        void SetUp() override;
-        void TearDown() override;
-
-    private:
-        void register_accountant();
-        void release_accountant();
-
-        Accountant* accountant = nullptr; // non-owning ptr
-    };
+    friend class MockSingletonHelper<MockSettings, ::testing::NiceMock>;
 };
 } // namespace test
 } // namespace multipass
