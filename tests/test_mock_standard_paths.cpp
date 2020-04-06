@@ -34,11 +34,18 @@ namespace
 
 TEST(StandardPaths, provides_regular_locate_by_default)
 {
-    const auto location_type = mp::StandardPaths::HomeLocation;
+    const auto location_type = mp::StandardPaths::TempLocation;
+    const auto find = QStringLiteral("o_o");
     const auto locate_options = mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateDirectory};
-    const auto find = QStringLiteral("Desktop");
-    const auto proof = QStandardPaths::locate(location_type, find, locate_options);
 
+    // Create a subdir in the standard temp dir, for locate to find
+    QDir aux{QStandardPaths::writableLocation(location_type)};
+    ASSERT_TRUE(aux.exists());
+    aux.mkdir(find);
+    ASSERT_TRUE(aux.exists(find));
+
+    // Confirm the subdir is properly located
+    const auto proof = QStandardPaths::locate(location_type, find, locate_options);
     ASSERT_TRUE(proof.endsWith(find));
     ASSERT_EQ(mp::StandardPaths::instance().locate(location_type, find, locate_options), proof);
 }
