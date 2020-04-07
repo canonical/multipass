@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
+
+#include <QTemporaryFile>
 
 #include <memory>
 #include <string>
@@ -48,6 +50,7 @@ private:
     const QString pid_file_path;
     const std::string subnet;
     std::unique_ptr<Process> dnsmasq_cmd;
+    QTemporaryFile conf_file;
 };
 } // namespace multipass
 #endif // MULTIPASS_DNSMASQ_SERVER_H

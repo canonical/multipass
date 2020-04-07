@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +17,20 @@
 
 #include "dnsmasq_process_spec.h"
 
-#include <multipass/snap_utils.h>
 #include <multipass/format.h>
+#include <multipass/snap_utils.h>
 
 namespace mp = multipass;
 namespace mu = multipass::utils;
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir, const QString& bridge_name,
-                                           const QString& pid_file_path, const std::string& subnet)
-    : data_dir(data_dir), bridge_name(bridge_name), pid_file_path{pid_file_path}, subnet{subnet}
+                                           const QString& pid_file_path, const std::string& subnet,
+                                           const QString& conf_file_path)
+    : data_dir(data_dir),
+      bridge_name(bridge_name),
+      pid_file_path{pid_file_path},
+      subnet{subnet},
+      conf_file_path{conf_file_path}
 {
 }
 
@@ -50,7 +55,9 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
                          << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir) << "--dhcp-range"
                          << QString("%1,%2,infinite")
                                 .arg(QString::fromStdString(start_ip.as_string()))
-                                .arg(QString::fromStdString(end_ip.as_string()));
+                                .arg(QString::fromStdString(end_ip.as_string()))
+                         // This is to prevent it trying to read /etc/dnsmasq.conf
+                         << QString("--conf-file=%1").arg(conf_file_path);
 }
 
 mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
@@ -97,6 +104,7 @@ profile %1 flags=(attach_disconnected) {
   %5/dnsmasq.hosts r,             # Hosts file
 
   %6 w,     # pid file
+  %7 r,     # conf file
 }
     )END");
 
@@ -114,5 +122,6 @@ profile %1 flags=(attach_disconnected) {
         signal_peer = "unconfined";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, pid_file_path);
+    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, pid_file_path,
+                                conf_file_path);
 }
