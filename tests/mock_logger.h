@@ -32,6 +32,12 @@ public:
     MockLogger() = default;
     MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
                                  multipass::logging::CString message));
+
+    template <typename Matcher>
+    static auto make_cstring_matcher(const Matcher& matcher)
+    {
+        return Property(&multipass::logging::CString::c_str, matcher);
+    }
 };
 } // namespace test
 } // namespace multipass
