@@ -92,6 +92,12 @@ QString mp::platform::interpret_winterm_integration(const QString& val)
 
     return ret;
 }
+
+void mp::platform::sync_winterm_profiles()
+{
+    // TODO@ricab
+}
+
 QString mp::platform::autostart_test_data()
 {
     return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass
