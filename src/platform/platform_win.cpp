@@ -17,7 +17,10 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/settings.h>
+#include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -36,6 +39,7 @@
 #include <windows.h>
 
 namespace mp = multipass;
+namespace mpl = mp::logging;
 
 namespace
 {
@@ -74,6 +78,17 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 
     return attr;
 }
+
+QString locate_profiles_path()
+{
+    // The profiles file is expected in
+    // $env:LocalAppData\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\profiles.json
+    // where $env:LocalAppData is normally C:\Users\<USER>\AppData\Local
+    return mp::StandardPaths::instance().locate(
+        mp::StandardPaths::GenericConfigLocation,
+        "Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\profiles.json");
+}
+
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -95,7 +110,13 @@ QString mp::platform::interpret_winterm_integration(const QString& val)
 
 void mp::platform::sync_winterm_profiles()
 {
-    // TODO@ricab
+    const auto profiles_path = locate_profiles_path();
+    if (!profiles_path.isEmpty())
+    {
+        // TODO
+    }
+    else if (mp::Settings::instance().get(mp::winterm_key) != QStringLiteral("none"))
+        mpl::log(mpl::Level::warning, "winterm", "Could not find Windows Terminal");
 }
 
 QString mp::platform::autostart_test_data()
