@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
@@ -75,6 +76,22 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 }
 } // namespace
 
+std::map<QString, QString> mp::platform::extra_settings_defaults()
+{
+    return {{mp::winterm_key, {"primary"}}};
+}
+
+QString mp::platform::interpret_winterm_integration(const QString& val)
+{
+    static const auto acceptable = QStringList{"none", "primary"};
+
+    auto ret = val.toLower();
+    if (!acceptable.contains(ret))
+        throw InvalidSettingsException{
+            winterm_key, val, QStringLiteral("Unknown value. Try one of these: %1.").arg(acceptable.join(", "))};
+
+    return ret;
+}
 QString mp::platform::autostart_test_data()
 {
     return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass
