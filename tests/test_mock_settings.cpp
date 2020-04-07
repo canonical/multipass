@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 #include "mock_settings.h"
 
+#include <multipass/constants.h>
 #include <multipass/settings.h>
 
 #include <QString>
@@ -31,12 +32,18 @@ using namespace testing;
 namespace
 {
 
-TEST(Settings, can_be_mocked)
+TEST(Settings, provides_get_default_as_get_by_default)
+{
+    const auto& key = mp::driver_key;
+    ASSERT_EQ(mp::Settings::instance().get(key), mpt::MockSettings::mock_instance().get_default(key));
+}
+
+TEST(Settings, can_have_get_mocked)
 {
     const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
-    const auto& mock = mpt::MockSettings::mock_instance();
+    auto& mock = mpt::MockSettings::mock_instance();
 
-    EXPECT_CALL(mock, get(_)).WillOnce(Return(proof));
+    EXPECT_CALL(mock, get(test)).WillOnce(Return(proof));
     ASSERT_EQ(mp::Settings::instance().get(test), proof);
 }
 

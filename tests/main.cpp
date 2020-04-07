@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include "mock_settings.h"
+#include "mock_standard_paths.h"
 
 #include <gtest/gtest.h>
 
@@ -31,6 +32,8 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("multipass_tests");
 
     ::testing::InitGoogleTest(&argc, argv);
+    mp::test::MockStandardPaths::mockit();
     mp::test::MockSettings::mockit();
+
     return RUN_ALL_TESTS();
 }

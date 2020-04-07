@@ -18,11 +18,11 @@
 #include <multipass/constants.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
+#include <multipass/standard_paths.h>
 #include <multipass/utils.h> // TODO move out
 
 #include <QDir>
 #include <QSettings>
-#include <QStandardPaths>
 
 #include <algorithm>
 #include <array>
@@ -61,7 +61,8 @@ QString file_for(const QString& key) // the key should have passed checks at thi
 {
     // static consts ensure these stay fixed
     static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
-    static const auto user_config_path = QDir{QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)};
+    static const auto user_config_path =
+        QDir{mp::StandardPaths::instance().writableLocation(mp::StandardPaths::GenericConfigLocation)};
     static const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
     static const auto daemon_dir_path = QDir{mp::platform::daemon_config_home()}; // temporary, replace w/ AppConfigLoc
     static const auto client_file_path = cli_client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));

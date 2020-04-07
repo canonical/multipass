@@ -15,10 +15,10 @@
  *
  */
 
-#include <multipass/ssh/ssh_session.h>
-
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
+#include <multipass/standard_paths.h>
 
 #include <libssh/callbacks.h>
 #include <libssh/socket.h>
@@ -26,7 +26,6 @@
 #include <multipass/format.h>
 
 #include <QDir>
-#include <QStandardPaths>
 
 #include <sstream>
 #include <stdexcept>
@@ -43,8 +42,9 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
 
     const long timeout_secs = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
     const int nodelay{1};
-    auto ssh_dir =
-        QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)).filePath("ssh").toStdString();
+    auto ssh_dir = QDir(StandardPaths::instance().writableLocation(StandardPaths::AppConfigLocation))
+                       .filePath("ssh")
+                       .toStdString();
 
     set_option(SSH_OPTIONS_HOST, host.c_str());
     set_option(SSH_OPTIONS_PORT, &port);
