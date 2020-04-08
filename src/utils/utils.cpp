@@ -444,7 +444,7 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
 std::string mp::utils::emit_yaml(const YAML::Node& node)
 {
     YAML::Emitter emitter;
-    emitter.SetIndent(4);
+    emitter.SetIndent(2);
     emitter << node;
     if (!emitter.good())
         throw std::runtime_error{
