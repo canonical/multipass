@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -153,4 +153,11 @@ TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
     mp::DNSMasqServer dns{data_dir.path(), bridge_name, error_subnet};
 
     EXPECT_THROW(dns.check_dnsmasq_running(), std::runtime_error);
+}
+
+TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
+{
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+
+    EXPECT_FALSE(QDir(data_dir.path()).entryList({"dnsmasq-??????.conf"}, QDir::Files).isEmpty());
 }
