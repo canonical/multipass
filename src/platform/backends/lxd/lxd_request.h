@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,8 +36,6 @@
 #include <multipass/optional.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-
-#include <QDebug>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
