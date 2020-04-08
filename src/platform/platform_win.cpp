@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
@@ -36,7 +37,13 @@
 #include <QFile>
 #include <QtGlobal>
 
+#include <json/json.h>
+
 #include <windows.h>
+
+#include <cerrno>
+#include <cstring>
+#include <fstream>
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
@@ -110,13 +117,26 @@ QString mp::platform::interpret_winterm_integration(const QString& val)
 
 void mp::platform::sync_winterm_profiles()
 {
+    constexpr auto log_category = "winterm";
     const auto profiles_path = locate_profiles_path();
+    const auto winterm_setting = mp::Settings::instance().get(mp::winterm_key);
+    const auto none = QStringLiteral("none");
     if (!profiles_path.isEmpty())
     {
-        // TODO
+        if (std::ifstream json_file{profiles_path.toStdString(), std::ifstream::binary})
+        {
+            // TODO@ricab
+        }
+        else
+        {
+            const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
+            const auto error_fmt = "Could not read Windows Terminal's configuration (located at \"{}\"); "
+                                   "reason: {} (error code {})";
+            mpl::log(level, log_category, fmt::format(error_fmt, profiles_path, std::strerror(errno), errno));
+        }
     }
-    else if (mp::Settings::instance().get(mp::winterm_key) != QStringLiteral("none"))
-        mpl::log(mpl::Level::warning, "winterm", "Could not find Windows Terminal");
+    else if (winterm_setting != none)
+        mpl::log(mpl::Level::warning, log_category, "Could not find Windows Terminal");
 }
 
 QString mp::platform::autostart_test_data()
