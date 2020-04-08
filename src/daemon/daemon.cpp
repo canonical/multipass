@@ -173,7 +173,8 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_space, name, mac_addr, ssh_username, image, cloud_init_iso, meta_data_config, user_data_config, vendor_data_config};
+    return {num_cores,        mem_size,         disk_space,        name, mac_addr, ssh_username, image, cloud_init_iso,
+            meta_data_config, user_data_config, vendor_data_config};
 }
 
 template <typename T>
@@ -633,9 +634,17 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,     spec.disk_space, name,
-                                              mac_addr,       spec.ssh_username, vm_image,        cloud_init_iso,
-                                              {},             {},                {}};
+        mp::VirtualMachineDescription vm_desc{spec.num_cores,
+                                              spec.mem_size,
+                                              spec.disk_space,
+                                              name,
+                                              mac_addr,
+                                              spec.ssh_username,
+                                              vm_image,
+                                              cloud_init_iso,
+                                              {},
+                                              {},
+                                              {}};
 
         try
         {

@@ -447,8 +447,7 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
     emitter.SetIndent(2);
     emitter << node;
     if (!emitter.good())
-        throw std::runtime_error{
-            fmt::format("Failed to emit YAML: {}", emitter.GetLastError())};
+        throw std::runtime_error{fmt::format("Failed to emit YAML: {}", emitter.GetLastError())};
 
     emitter << YAML::Newline;
     return emitter.c_str();

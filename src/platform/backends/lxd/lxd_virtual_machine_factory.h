@@ -20,8 +20,8 @@
 
 #include <multipass/virtual_machine_factory.h>
 
-#include <QtNetwork/QNetworkAccessManager>
 #include <QUrl>
+#include <QtNetwork/QNetworkAccessManager>
 
 namespace multipass
 {
