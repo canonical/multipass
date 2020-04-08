@@ -16,15 +16,23 @@
  */
 
 #include "tests/extra_assertions.h"
+#include "tests/mock_logger.h"
+#include "tests/mock_settings.h"
+#include "tests/mock_standard_paths.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
+
+#include <scope_guard.hpp>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 namespace mp = multipass;
+namespace mpl = mp::logging;
+namespace mpt = mp::test;
 using namespace testing;
 
 namespace
@@ -57,6 +65,41 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
             mp::platform::interpret_winterm_integration(x), mp::InvalidSettingsException,
             Property(&mp::InvalidSettingsException::what,
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
+}
+
+TEST(PlatformWin, winterm_sync_warns_if_setting_is_primary_but_no_file)
+{
+    auto& mock_settings = mpt::MockSettings::mock_instance();
+    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("primary"));
+
+    auto& mock_stdpaths = mpt::MockStandardPaths::mock_instance();
+    EXPECT_CALL(mock_stdpaths, locate(_, Property(&QString::toStdString, EndsWith("profiles.json")), _))
+        .WillOnce(Return(""));
+
+    auto guard = sg::make_scope_guard([] { mpl::set_logger(nullptr); });
+    auto mock_logger = std::make_shared<StrictMock<mpt::MockLogger>>();
+    mpl::set_logger(mock_logger);
+
+    EXPECT_CALL(*mock_logger,
+                log(mpl::Level::warning, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not find"))));
+    mp::platform::sync_winterm_profiles();
+}
+
+TEST(PlatformWin, winterm_sync_ignores_if_setting_off_and_no_file)
+{
+    auto& mock_settings = mpt::MockSettings::mock_instance();
+    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("none"));
+
+    auto& mock_stdpaths = mpt::MockStandardPaths::mock_instance();
+    EXPECT_CALL(mock_stdpaths, locate(_, Property(&QString::toStdString, EndsWith("profiles.json")), _))
+        .WillOnce(Return(""));
+
+    auto guard = sg::make_scope_guard([] { mpl::set_logger(nullptr); });
+    auto mock_logger = std::make_shared<mpt::MockLogger>();
+    mpl::set_logger(mock_logger);
+
+    EXPECT_CALL(*mock_logger, log(_, _, _)).Times(0);
+    mp::platform::sync_winterm_profiles();
 }
 
 } // namespace
