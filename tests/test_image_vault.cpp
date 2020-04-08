@@ -505,6 +505,7 @@ TEST_F(ImageVault, http_download_returns_expected_image_info)
     // Hash is based on image url
     EXPECT_THAT(image.id, Eq("7404f51c9b4f40312fa048a0ad36e07b74b718a2d3a5a08e8cca906c69059ddf"));
     EXPECT_THAT(image.release_date, Eq(default_last_modified.toString().toStdString()));
+    EXPECT_TRUE(image.stream_location.empty());
 }
 
 TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)

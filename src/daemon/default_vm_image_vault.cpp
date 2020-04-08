@@ -383,10 +383,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                                        {},
                                        true,
                                        image_url.url(),
-                                       image_url.url(),
                                        kernel_info.kernel_location,
                                        kernel_info.initrd_location,
                                        QString::fromStdString(id),
+                                       {},
                                        last_modified.toString(),
                                        0,
                                        false};
