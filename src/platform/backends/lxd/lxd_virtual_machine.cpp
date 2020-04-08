@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,6 @@
 #include <multipass/vm_status_monitor.h>
 
 #include <fmt/format.h>
-
-#include <QDebug>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
