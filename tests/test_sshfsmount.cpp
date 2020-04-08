@@ -290,49 +290,9 @@ TEST_F(SshfsMount, throws_when_unable_to_obtain_user_id)
 
 TEST_F(SshfsMount, throws_when_uid_is_not_an_integer)
 {
-    bool cmd_invoked{false};
-    bool uid_invoked{false};
-    std::string output;
-    std::string::size_type remaining;
+    CommandVector commands = {{"id -u", "1000\n"}, {"id -u", "ubuntu\n"}};
 
-    auto request_exec = [&cmd_invoked, &uid_invoked, &remaining, &output](ssh_channel, const char* raw_cmd) {
-        std::string cmd{raw_cmd};
-
-        if (cmd.find("id -u") != std::string::npos)
-        {
-            output = "ubuntu\n";
-            remaining = output.size();
-            uid_invoked = true;
-        }
-        if (cmd.find("id -g") != std::string::npos)
-        {
-            output = "1000\n";
-            remaining = output.size();
-            cmd_invoked = true;
-        }
-        else if (cmd.find("pwd") != std::string::npos)
-        {
-            output = "/home/ubuntu\n";
-            remaining = output.size();
-            cmd_invoked = true;
-        }
-        else if (cmd.find("P=") != std::string::npos)
-        {
-            output = "/home/ubuntu/\n";
-            remaining = output.size();
-            cmd_invoked = true;
-        }
-
-        return SSH_OK;
-    };
-
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    auto channel_read = make_channel_read_return(output, remaining, cmd_invoked);
-    REPLACE(ssh_channel_read_timeout, channel_read);
-
-    EXPECT_THROW(make_sshfsmount(), std::invalid_argument);
-    EXPECT_TRUE(uid_invoked);
+    EXPECT_THROW(test_command_execution(commands), std::invalid_argument);
 }
 
 TEST_F(SshfsMount, throws_when_unable_to_obtain_group_id)
@@ -342,49 +302,9 @@ TEST_F(SshfsMount, throws_when_unable_to_obtain_group_id)
 
 TEST_F(SshfsMount, throws_when_gid_is_not_an_integer)
 {
-    bool cmd_invoked{false};
-    bool gid_invoked{false};
-    std::string output;
-    std::string::size_type remaining;
+    CommandVector commands = {{"id -g", "1000\n"}, {"id -g", "ubuntu\n"}};
 
-    auto request_exec = [&cmd_invoked, &gid_invoked, &remaining, &output](ssh_channel, const char* raw_cmd) {
-        std::string cmd{raw_cmd};
-
-        if (cmd.find("id -u") != std::string::npos)
-        {
-            output = "1000\n";
-            remaining = output.size();
-            cmd_invoked = true;
-        }
-        if (cmd.find("id -g") != std::string::npos)
-        {
-            output = "ubuntu\n";
-            remaining = output.size();
-            gid_invoked = true;
-        }
-        else if (cmd.find("pwd") != std::string::npos)
-        {
-            output = "/home/ubuntu\n";
-            remaining = output.size();
-            cmd_invoked = true;
-        }
-        else if (cmd.find("P=") != std::string::npos)
-        {
-            output = "/home/ubuntu/\n";
-            remaining = output.size();
-            cmd_invoked = true;
-        }
-
-        return SSH_OK;
-    };
-
-    REPLACE(ssh_channel_request_exec, request_exec);
-
-    auto channel_read = make_channel_read_return(output, remaining, cmd_invoked);
-    REPLACE(ssh_channel_read_timeout, channel_read);
-
-    EXPECT_THROW(make_sshfsmount(), std::invalid_argument);
-    EXPECT_TRUE(gid_invoked);
+    EXPECT_THROW(test_command_execution(commands), std::invalid_argument);
 }
 
 TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
