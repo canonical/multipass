@@ -111,4 +111,26 @@ TEST(PlatformWin, winterm_sync_ignores_if_setting_off_and_no_file)
     mp::platform::sync_winterm_profiles();
 }
 
+TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unreadable)
+{
+    mock_winterm_setting("none");
+    mock_stdpaths_locate("C:\\unreadable\\profiles.json");
+    auto [mock_logger, guard] = guarded_mock_logger();
+
+    EXPECT_CALL(*mock_logger,
+                log(mpl::Level::info, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not read"))));
+    mp::platform::sync_winterm_profiles();
+}
+
+TEST(PlatformWin, winterm_sync_logs_error_if_setting_is_primary_and_file_found_but_unreadable)
+{
+    mock_winterm_setting("primary");
+    mock_stdpaths_locate("C:\\unreadable\\profiles.json");
+
+    auto [mock_logger, guard] = guarded_mock_logger();
+    EXPECT_CALL(*mock_logger,
+                log(mpl::Level::error, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not read"))));
+    mp::platform::sync_winterm_profiles();
+}
+
 } // namespace
