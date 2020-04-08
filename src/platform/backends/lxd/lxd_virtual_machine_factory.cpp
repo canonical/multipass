@@ -21,9 +21,9 @@
 
 #include <multipass/logging/log.h>
 
+#include <QFile>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QSslKey>
-#include <QFile>
 
 #include <multipass/format.h>
 #include <yaml-cpp/yaml.h>
@@ -37,15 +37,12 @@ constexpr auto category = "lxd factory";
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir)
-    : data_dir{data_dir},
-      base_url{"https://10.225.118.1:8443/1.0"},
-      manager{std::make_unique<QNetworkAccessManager>()}
+    : data_dir{data_dir}, base_url{"https://10.225.118.1:8443/1.0"}, manager{std::make_unique<QNetworkAccessManager>()}
 {
 }
 
-mp::VirtualMachine::UPtr
-mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                            VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                              VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url);
 }
@@ -83,7 +80,8 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))
     {
         mpl::log(mpl::Level::debug, category, "Failed to authenticate to LXD:");
-        mpl::log(mpl::Level::debug, category, fmt::format("{}: {}", base_url.toString(), QJsonDocument(reply).toJson(QJsonDocument::Compact)));
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("{}: {}", base_url.toString(), QJsonDocument(reply).toJson(QJsonDocument::Compact)));
         throw std::runtime_error("Failed to authenticate to LXD.");
     }
 }

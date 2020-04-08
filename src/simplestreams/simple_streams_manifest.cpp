@@ -73,7 +73,8 @@ QString derive_unpacked_file_path_prefix_from(const QString& image_location)
 }
 }
 
-std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(const QByteArray& json, const QString& host_url)
+std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(const QByteArray& json,
+                                                                               const QString& host_url)
 {
     const auto manifest = parse_manifest(json);
     const auto updated = manifest["updated"].toString();

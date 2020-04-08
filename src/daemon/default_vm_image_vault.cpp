@@ -170,7 +170,8 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         }
 
         reconstructed_records[key] = {
-            {image_path, kernel_path, initrd_path, image_id, stream_location, original_release, current_release, release_date, aliases},
+            {image_path, kernel_path, initrd_path, image_id, stream_location, original_release, current_release,
+             release_date, aliases},
             {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
             last_accessed};
     }

@@ -22,8 +22,8 @@
 #include <QtNetwork/QNetworkAccessManager>
 
 #include <multipass/exceptions/start_exception.h>
-#include <multipass/logging/log.h>
 #include <multipass/ip_address.h>
+#include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -42,36 +42,40 @@ auto instance_state_for(const QString& name, QNetworkAccessManager* manager, con
 {
     auto json_reply = lxd_request(manager, "GET", url);
     auto metadata = json_reply["metadata"].toObject();
-    mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
+    mpl::log(mpl::Level::debug, name.toStdString(),
+             fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
 
-    switch(metadata["status_code"].toInt(-1))
+    switch (metadata["status_code"].toInt(-1))
     {
-        case 101: // Started
-        case 103: // Running
-        case 107: // Stopping
-        case 111: // Thawed
-            return mp::VirtualMachine::State::running;
-        case 102: // Stopped
-            return mp::VirtualMachine::State::stopped;
-        case 106: // Starting
-            return mp::VirtualMachine::State::starting;
-        case 109: // Freezing
-            return mp::VirtualMachine::State::suspending;
-        case 110: // Frozen
-            return mp::VirtualMachine::State::suspended;
-        case 104: // Cancelling
-        case 108: // Aborting
-            return mp::VirtualMachine::State::unknown;
-        default:
-            mpl::log(mpl::Level::error, name.toStdString(), fmt::format("Got unexpected LXD state: {} ({})", metadata["status_code"].toString(), metadata["status"].toInt()));
-            return mp::VirtualMachine::State::unknown;
+    case 101: // Started
+    case 103: // Running
+    case 107: // Stopping
+    case 111: // Thawed
+        return mp::VirtualMachine::State::running;
+    case 102: // Stopped
+        return mp::VirtualMachine::State::stopped;
+    case 106: // Starting
+        return mp::VirtualMachine::State::starting;
+    case 109: // Freezing
+        return mp::VirtualMachine::State::suspending;
+    case 110: // Frozen
+        return mp::VirtualMachine::State::suspended;
+    case 104: // Cancelling
+    case 108: // Aborting
+        return mp::VirtualMachine::State::unknown;
+    default:
+        mpl::log(mpl::Level::error, name.toStdString(),
+                 fmt::format("Got unexpected LXD state: {} ({})", metadata["status_code"].toString(),
+                             metadata["status"].toInt()));
+        return mp::VirtualMachine::State::unknown;
     }
 }
 
 const mp::optional<mp::IPAddress> get_ip_for(const QString& name, QNetworkAccessManager* manager, const QUrl& url)
 {
     const auto json_state = lxd_request(manager, "GET", url);
-    const auto addresses = json_state["metadata"].toObject()["network"].toObject()["eth0"].toObject()["addresses"].toArray();
+    const auto addresses =
+        json_state["metadata"].toObject()["network"].toObject()["eth0"].toObject()["addresses"].toArray();
 
     for (const auto address : addresses)
     {
@@ -85,7 +89,8 @@ const mp::optional<mp::IPAddress> get_ip_for(const QString& name, QNetworkAccess
 
 } // namespace
 
-mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, QNetworkAccessManager* manager, const QUrl& base_url)
+mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
+                                         QNetworkAccessManager* manager, const QUrl& base_url)
     : VirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
@@ -97,14 +102,13 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
     {
         instance_state_for(name, manager, url());
     }
-    catch(const LXDNotFoundException& e)
+    catch (const LXDNotFoundException& e)
     {
-        mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Creating container with stream: {}, id: {}", desc.image.stream_location, desc.image.id));
+        mpl::log(mpl::Level::debug, name.toStdString(),
+                 fmt::format("Creating container with stream: {}, id: {}", desc.image.stream_location, desc.image.id));
 
-        QJsonObject config{
-            {"limits.cpu", QString::number(desc.num_cores)},
-            {"limits.memory", QString::number(desc.mem_size.in_bytes())}
-        };
+        QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
+                           {"limits.memory", QString::number(desc.mem_size.in_bytes())}};
 
         if (!desc.meta_data_config.IsNull())
             config["user.meta-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.meta_data_config));
@@ -115,20 +119,18 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         if (!desc.user_data_config.IsNull())
             config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
 
-        QJsonObject container{
-            {"name", name},
-            {"config", config},
-            {"source", QJsonObject{
-                {"type", "image"},
-                {"mode", "pull"},
-                {"server", QString::fromStdString(desc.image.stream_location)},
-                {"protocol", "simplestreams"},
-                {"fingerprint", QString::fromStdString(desc.image.id)}
-            }}
-        };
+        QJsonObject container{{"name", name},
+                              {"config", config},
+                              {"source", QJsonObject{{"type", "image"},
+                                                     {"mode", "pull"},
+                                                     {"server", QString::fromStdString(desc.image.stream_location)},
+                                                     {"protocol", "simplestreams"},
+                                                     {"fingerprint", QString::fromStdString(desc.image.id)}}}};
 
-        auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/containers").arg(base_url.toString())), container);
-        mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Got LXD creation reply: {}", QJsonDocument(json_reply).toJson()));
+        auto json_reply =
+            lxd_request(manager, "POST", QUrl(QString("%1/containers").arg(base_url.toString())), container);
+        mpl::log(mpl::Level::debug, name.toStdString(),
+                 fmt::format("Got LXD creation reply: {}", QJsonDocument(json_reply).toJson()));
 
         state = instance_state_for(name, manager, url());
     }

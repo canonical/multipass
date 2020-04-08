@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_H
 #define MULTIPASS_LXD_VIRTUAL_MACHINE_H
 
-#include <QtNetwork/QNetworkAccessManager>
 #include <QJsonObject>
 #include <QString>
 #include <QUrl>
+#include <QtNetwork/QNetworkAccessManager>
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
@@ -37,7 +37,8 @@ class VMStatusMonitor;
 class LXDVirtualMachine final : public VirtualMachine
 {
 public:
-    LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, QNetworkAccessManager* manager, const QUrl& base_url);
+    LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, QNetworkAccessManager* manager,
+                      const QUrl& base_url);
     ~LXDVirtualMachine() override;
     void stop() override;
     void start() override;

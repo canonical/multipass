@@ -139,7 +139,8 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
     for (const auto& image_info : custom_image_info.toStdMap())
     {
         auto image_file = image_info.first;
-        auto prefix = path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString();
+        auto prefix =
+            path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString();
         QString image_url{prefix + image_info.first};
         QString hash_url{prefix + QStringLiteral("SHA256SUMS")};
 
@@ -148,13 +149,13 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
                                         image_info.second.os,
                                         image_info.second.release,
                                         image_info.second.release_string,
-                                        true,                               // supported
-                                        image_url,                          // image_location
+                                        true,      // supported
+                                        image_url, // image_location
                                         image_info.second.kernel_location,
                                         image_info.second.initrd_location,
-                                        base_image_info.hash,               // id
-                                        prefix,                             // stream_location
-                                        base_image_info.last_modified,      // version
+                                        base_image_info.hash,          // id
+                                        prefix,                        // stream_location
+                                        base_image_info.last_modified, // version
                                         0,
                                         true};
 
