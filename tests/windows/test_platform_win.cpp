@@ -30,6 +30,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <utility>
+
 namespace mp = multipass;
 namespace mpl = mp::logging;
 namespace mpt = mp::test;
@@ -37,6 +39,27 @@ using namespace testing;
 
 namespace
 {
+
+void mock_winterm_setting(const QString& ret)
+{
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::winterm_key))).WillOnce(Return(ret));
+}
+
+void mock_stdpaths_locate(const QString& ret)
+{
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                locate(_, Property(&QString::toStdString, EndsWith("profiles.json")), _))
+        .WillOnce(Return(ret));
+}
+
+auto guarded_mock_logger()
+{
+    auto guard = sg::make_scope_guard([] { mpl::set_logger(nullptr); });
+    auto mock_logger = std::make_shared<StrictMock<mpt::MockLogger>>();
+    mpl::set_logger(mock_logger);
+
+    return std::make_pair(mock_logger, std::move(guard));
+}
 
 TEST(PlatformWin, winterm_in_extra_settings)
 {
@@ -69,16 +92,9 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
 
 TEST(PlatformWin, winterm_sync_warns_if_setting_is_primary_but_no_file)
 {
-    auto& mock_settings = mpt::MockSettings::mock_instance();
-    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("primary"));
-
-    auto& mock_stdpaths = mpt::MockStandardPaths::mock_instance();
-    EXPECT_CALL(mock_stdpaths, locate(_, Property(&QString::toStdString, EndsWith("profiles.json")), _))
-        .WillOnce(Return(""));
-
-    auto guard = sg::make_scope_guard([] { mpl::set_logger(nullptr); });
-    auto mock_logger = std::make_shared<StrictMock<mpt::MockLogger>>();
-    mpl::set_logger(mock_logger);
+    mock_winterm_setting("primary");
+    mock_stdpaths_locate("");
+    auto [mock_logger, guard] = guarded_mock_logger();
 
     EXPECT_CALL(*mock_logger,
                 log(mpl::Level::warning, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not find"))));
@@ -87,16 +103,9 @@ TEST(PlatformWin, winterm_sync_warns_if_setting_is_primary_but_no_file)
 
 TEST(PlatformWin, winterm_sync_ignores_if_setting_off_and_no_file)
 {
-    auto& mock_settings = mpt::MockSettings::mock_instance();
-    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("none"));
-
-    auto& mock_stdpaths = mpt::MockStandardPaths::mock_instance();
-    EXPECT_CALL(mock_stdpaths, locate(_, Property(&QString::toStdString, EndsWith("profiles.json")), _))
-        .WillOnce(Return(""));
-
-    auto guard = sg::make_scope_guard([] { mpl::set_logger(nullptr); });
-    auto mock_logger = std::make_shared<mpt::MockLogger>();
-    mpl::set_logger(mock_logger);
+    mock_winterm_setting("none");
+    mock_stdpaths_locate("");
+    auto [mock_logger, guard] = guarded_mock_logger();
 
     EXPECT_CALL(*mock_logger, log(_, _, _)).Times(0);
     mp::platform::sync_winterm_profiles();
