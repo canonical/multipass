@@ -242,6 +242,18 @@ TEST_F(ImageVault, downloads_kernel_and_initrd)
     EXPECT_FALSE(vm_image.initrd_path.isEmpty());
 }
 
+TEST_F(ImageVault, skips_downloads)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto vm_image = vault.fetch_image(mp::FetchType::None, default_query, stub_prepare, stub_monitor);
+
+    EXPECT_TRUE(url_downloader.downloaded_files.isEmpty());
+
+    EXPECT_TRUE(vm_image.image_path.isEmpty());
+    EXPECT_TRUE(vm_image.kernel_path.isEmpty());
+    EXPECT_TRUE(vm_image.initrd_path.isEmpty());
+}
+
 TEST_F(ImageVault, calls_prepare)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};

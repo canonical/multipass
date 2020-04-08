@@ -43,7 +43,8 @@ TEST(SimpleStreamsManifest, can_parse_image_info)
 TEST(SimpleStreamsManifest, can_find_info_by_alias)
 {
     auto json = mpt::load_test_file("good_manifest.json");
-    auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
+    const auto host_url{"http://stream/url"};
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, host_url);
 
     const QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
     const QString expected_location{
@@ -53,6 +54,7 @@ TEST(SimpleStreamsManifest, can_find_info_by_alias)
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
+    EXPECT_THAT(info->stream_location, Eq(host_url));
 }
 
 TEST(SimpleStreamsManifest, throws_on_invalid_json)
