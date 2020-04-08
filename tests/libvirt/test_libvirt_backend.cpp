@@ -52,8 +52,11 @@ struct LibVirtBackend : public Test
                                                       "pied-piper-valley",
                                                       "",
                                                       "",
-                                                      {dummy_image.name(), "", "", "", "", "", "", {}},
-                                                      dummy_cloud_init_iso.name()};
+                                                      {dummy_image.name(), "", "", "", "", "", "", "", {}},
+                                                      dummy_cloud_init_iso.name(),
+                                                      {},
+                                                      {},
+                                                      {}};
     mpt::TempDir data_dir;
     // This indicates that LibvirtWrapper should open the test executable
     std::string fake_libvirt_path{""};

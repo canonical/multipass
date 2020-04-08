@@ -47,6 +47,7 @@ namespace
 {
 constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 constexpr auto default_version = "20160217.1";
+constexpr auto default_stream_location = "https://some/stream";
 const QDateTime default_last_modified{QDate(2019, 6, 25), QTime(13, 15, 0)};
 
 struct ImageHost : public mp::VMImageHost
@@ -63,7 +64,7 @@ struct ImageHost : public mp::VMImageHost
 
     mp::VMImageInfo info_for_full_hash(const std::string& full_hash) override
     {
-        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
+        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     }
 
     std::vector<mp::VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override
@@ -83,8 +84,19 @@ struct ImageHost : public mp::VMImageHost
     mpt::TempFile image;
     mpt::TempFile kernel;
     mpt::TempFile initrd;
-    mp::VMImageInfo mock_image_info{{"default"},  "Ubuntu",     "xenial",   "16.04 LTS",     true, image.url(),
-                                    kernel.url(), initrd.url(), default_id, default_version, 1,    true};
+    mp::VMImageInfo mock_image_info{{"default"},
+                                    "Ubuntu",
+                                    "xenial",
+                                    "16.04 LTS",
+                                    true,
+                                    image.url(),
+                                    kernel.url(),
+                                    initrd.url(),
+                                    default_id,
+                                    default_stream_location,
+                                    default_version,
+                                    1,
+                                    true};
 };
 
 struct TrackingURLDownloader : public mp::URLDownloader
@@ -332,7 +344,7 @@ TEST_F(ImageVault, uses_image_from_prepare)
     mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name, "", "", source_image.id, "", "", "", {}};
+        return {file_name, "", "", source_image.id, "", "", "", "", {}};
     };
 
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -352,7 +364,7 @@ TEST_F(ImageVault, image_purged_expired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, "", "", source_image.id, "", "", "", {}};
+        return {file_name, "", "", source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
@@ -372,7 +384,7 @@ TEST_F(ImageVault, image_exists_not_expired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, "", "", source_image.id, "", "", "", {}};
+        return {file_name, "", "", source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
