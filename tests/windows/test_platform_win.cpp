@@ -120,27 +120,26 @@ TEST(PlatformWin, winterm_sync_ignores_if_setting_off_and_no_file)
     mp::platform::sync_winterm_profiles();
 }
 
-TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unreadable)
+struct TestWinTermSyncLogging : public TestWithParam<std::pair<QString, mpl::Level>>
 {
-    mock_winterm_setting("none");
+};
+
+TEST_P(TestWinTermSyncLogging, logging_on_unreadable_settings)
+{
+    const auto& [setting, lvl] = GetParam();
+
+    mock_winterm_setting(setting);
     mock_stdpaths_locate("C:\\unreadable\\profiles.json");
-    auto mock_logger_guard = expect_log(mpl::Level::info, "Could not read");
+    auto mock_logger_guard = expect_log(lvl, "Could not read");
 
     mp::platform::sync_winterm_profiles();
 }
 
-TEST(PlatformWin, winterm_sync_logs_error_if_setting_primary_and_file_found_but_unreadable)
+TEST_P(TestWinTermSyncLogging, logging_on_unparseable_settings)
 {
-    mock_winterm_setting("primary");
-    mock_stdpaths_locate("C:\\unreadable\\profiles.json");
-    auto mock_logger_guard = expect_log(mpl::Level::error, "Could not read");
+    const auto& [setting, lvl] = GetParam();
 
-    mp::platform::sync_winterm_profiles();
-}
-
-TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unpareable)
-{
-    mock_winterm_setting("none");
+    mock_winterm_setting(setting);
 
     QTemporaryFile json_file{};
     ASSERT_TRUE(json_file.open());
@@ -150,26 +149,13 @@ TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unparea
     json_file.close();
     mock_stdpaths_locate(json_file.fileName());
 
-    auto mock_logger_guard = expect_log(mpl::Level::info, "Could not parse");
+    auto mock_logger_guard = expect_log(lvl, "Could not parse");
 
     mp::platform::sync_winterm_profiles();
 }
 
-TEST(PlatformWin, winterm_sync_logs_error_if_setting_primary_and_file_found_but_unpareable)
-{
-    mock_winterm_setting("primary");
-
-    QTemporaryFile json_file{};
-    ASSERT_TRUE(json_file.open());
-    ASSERT_TRUE(json_file.exists());
-
-    json_file.write("~!@#$% rubbish ^&*()_+");
-    json_file.close();
-    mock_stdpaths_locate(json_file.fileName());
-
-    auto mock_logger_guard = expect_log(mpl::Level::error, "Could not parse");
-
-    mp::platform::sync_winterm_profiles();
-}
+INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLogging,
+                         Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
+                                std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
 } // namespace
