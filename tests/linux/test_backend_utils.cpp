@@ -38,6 +38,9 @@ const auto failure = mp::ProcessState{1, mp::nullopt};
 const auto crash = mp::ProcessState{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
 const auto null_string_matcher = static_cast<mp::optional<decltype(_)>>(mp::nullopt);
 
+using ImageConversionParamType =
+    std::tuple<const char*, const char*, mp::ProcessState, bool, mp::ProcessState, mp::optional<Matcher<std::string>>>;
+
 QByteArray fake_img_info(const mp::MemorySize& size)
 {
     return QByteArray::fromStdString(
@@ -190,6 +193,18 @@ void test_image_conversion(const char* img_path, const char* expected_img_path, 
 
     EXPECT_EQ(process_count, expected_final_process_count);
 }
+
+struct ImageConversionTestSuite : public TestWithParam<ImageConversionParamType>
+{
+};
+
+const std::vector<ImageConversionParamType> image_conversion_inputs{
+    {"/fake/img/path", "{\n    \"format\": \"qcow2\"\n}", success, false, mp::ProcessState{}, null_string_matcher},
+    {"/fake/img/path.qcow2", "{\n    \"format\": \"raw\"\n}", success, true, success, null_string_matcher},
+    {"/fake/img/path.qcow2", "not found", failure, false, mp::ProcessState{},
+     mp::make_optional(HasSubstr("not found"))},
+    {"/fake/img/path.qcow2", "{\n    \"format\": \"raw\"\n}", success, true, failure,
+     mp::make_optional(HasSubstr("qemu-img failed"))}};
 } // namespace
 
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
@@ -314,58 +329,14 @@ TEST(BackendUtils, image_resizing_not_attempted_when_minimum_size_not_understood
                         qemuimg_resize_result, throw_msg_matcher);
 }
 
-TEST(BackendUtils, image_convert_returns_same_path_if_not_raw_image)
+TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
 {
     const auto img_path = "/fake/img/path";
-    const auto expected_img_path = img_path;
-    const auto qemuimg_info_output = "{\n    \"format\": \"qcow2\"\n}";
-    const auto qemuimg_info_result = success;
-    const auto attempt_convert = false;
-    const auto qemuimg_convert_result = mp::ProcessState{};
-    const auto throw_msg_matcher = null_string_matcher;
+    const auto& [expected_img_path, qemuimg_info_output, qemuimg_info_result, attempt_convert, qemuimg_convert_result,
+                 throw_msg_matcher] = GetParam();
 
     test_image_conversion(img_path, expected_img_path, qemuimg_info_output, qemuimg_info_result, attempt_convert,
                           qemuimg_convert_result, throw_msg_matcher);
 }
 
-TEST(BackendUtils, image_convert_converts_when_raw_image)
-{
-    const auto img_path = "/fake/img/path";
-    const auto expected_img_path = "/fake/img/path.qcow2";
-    const auto qemuimg_info_output = "{\n    \"format\": \"raw\"\n}";
-    const auto qemuimg_info_result = success;
-    const auto attempt_convert = true;
-    const auto qemuimg_convert_result = success;
-    const auto throw_msg_matcher = null_string_matcher;
-
-    test_image_conversion(img_path, expected_img_path, qemuimg_info_output, qemuimg_info_result, attempt_convert,
-                          qemuimg_convert_result, throw_msg_matcher);
-}
-
-TEST(BackendUtils, image_convert_img_not_found_info_fails_throws)
-{
-    const auto img_path = "/fake/img/path";
-    const auto expected_img_path = "/fake/img/path.qcow2";
-    const auto qemuimg_info_output = "not found";
-    const auto qemuimg_info_result = failure;
-    const auto attempt_convert = false;
-    const auto qemuimg_convert_result = mp::ProcessState{};
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr(qemuimg_info_output));
-
-    test_image_conversion(img_path, expected_img_path, qemuimg_info_output, qemuimg_info_result, attempt_convert,
-                          qemuimg_convert_result, throw_msg_matcher);
-}
-
-TEST(BackendUtils, image_convert_converts_fails_throws)
-{
-    const auto img_path = "/fake/img/path";
-    const auto expected_img_path = "/fake/img/path.qcow2";
-    const auto qemuimg_info_output = "{\n    \"format\": \"raw\"\n}";
-    const auto qemuimg_info_result = success;
-    const auto attempt_convert = true;
-    const auto qemuimg_convert_result = failure;
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
-
-    test_image_conversion(img_path, expected_img_path, qemuimg_info_output, qemuimg_info_result, attempt_convert,
-                          qemuimg_convert_result, throw_msg_matcher);
-}
+INSTANTIATE_TEST_SUITE_P(BackendUtils, ImageConversionTestSuite, ValuesIn(image_conversion_inputs));
