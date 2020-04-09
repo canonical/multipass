@@ -25,6 +25,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 
+#include <QTemporaryFile>
+
 #include <scope_guard.hpp>
 
 #include <gmock/gmock.h>
@@ -130,6 +132,24 @@ TEST(PlatformWin, winterm_sync_logs_error_if_setting_is_primary_and_file_found_b
     auto [mock_logger, guard] = guarded_mock_logger();
     EXPECT_CALL(*mock_logger,
                 log(mpl::Level::error, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not read"))));
+    mp::platform::sync_winterm_profiles();
+}
+
+TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unpareable)
+{
+    mock_winterm_setting("none");
+
+    QTemporaryFile json_file{};
+    ASSERT_TRUE(json_file.open());
+    ASSERT_TRUE(json_file.exists());
+
+    json_file.write("~!@#$% rubbish ^&*()_+");
+    json_file.close();
+    mock_stdpaths_locate(json_file.fileName());
+
+    auto [mock_logger, guard] = guarded_mock_logger();
+    EXPECT_CALL(*mock_logger,
+                log(mpl::Level::info, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not parse"))));
     mp::platform::sync_winterm_profiles();
 }
 
