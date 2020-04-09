@@ -145,7 +145,9 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
             simulate_qemuimg_info(process, img, qemuimg_info_result, msg);
         }
         else
+        {
             simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
+        }
     });
 
     if (throw_msg_matcher)
@@ -175,7 +177,9 @@ void test_image_conversion(const char* img_path, const char* expected_img_path, 
             simulate_qemuimg_info_with_json(process, img_path, qemuimg_info_result, msg);
         }
         else
+        {
             simulate_qemuimg_convert(process, img_path, expected_img_path, qemuimg_convert_result);
+        }
     });
 
     if (throw_msg_matcher)
