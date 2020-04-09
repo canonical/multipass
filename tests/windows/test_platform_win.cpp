@@ -101,7 +101,7 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
 }
 
-TEST(PlatformWin, winterm_sync_warns_if_setting_is_primary_but_no_file)
+TEST(PlatformWin, winterm_sync_warns_if_setting_primary_but_no_file)
 {
     mock_winterm_setting("primary");
     mock_stdpaths_locate("");
@@ -129,7 +129,7 @@ TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unreada
     mp::platform::sync_winterm_profiles();
 }
 
-TEST(PlatformWin, winterm_sync_logs_error_if_setting_is_primary_and_file_found_but_unreadable)
+TEST(PlatformWin, winterm_sync_logs_error_if_setting_primary_and_file_found_but_unreadable)
 {
     mock_winterm_setting("primary");
     mock_stdpaths_locate("C:\\unreadable\\profiles.json");
