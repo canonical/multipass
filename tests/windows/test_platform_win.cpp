@@ -60,7 +60,16 @@ auto guarded_mock_logger()
     auto mock_logger = std::make_shared<StrictMock<mpt::MockLogger>>();
     mpl::set_logger(mock_logger);
 
-    return std::make_pair(mock_logger, std::move(guard));
+    return std::make_pair(mock_logger, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
+}
+
+auto expect_log(mpl::Level lvl, const std::string& substr)
+{
+    auto [mock_logger, guard] = guarded_mock_logger();
+
+    EXPECT_CALL(*mock_logger, log(lvl, _, mpt::MockLogger::make_cstring_matcher(HasSubstr(substr))));
+
+    return std::move(guard); // needs to be moved because it's only part of an implicit local var (NRVO does not apply)
 }
 
 TEST(PlatformWin, winterm_in_extra_settings)
@@ -96,10 +105,8 @@ TEST(PlatformWin, winterm_sync_warns_if_setting_is_primary_but_no_file)
 {
     mock_winterm_setting("primary");
     mock_stdpaths_locate("");
-    auto [mock_logger, guard] = guarded_mock_logger();
+    auto mock_logger_guard = expect_log(mpl::Level::warning, "Could not find");
 
-    EXPECT_CALL(*mock_logger,
-                log(mpl::Level::warning, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not find"))));
     mp::platform::sync_winterm_profiles();
 }
 
@@ -117,10 +124,8 @@ TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unreada
 {
     mock_winterm_setting("none");
     mock_stdpaths_locate("C:\\unreadable\\profiles.json");
-    auto [mock_logger, guard] = guarded_mock_logger();
+    auto mock_logger_guard = expect_log(mpl::Level::info, "Could not read");
 
-    EXPECT_CALL(*mock_logger,
-                log(mpl::Level::info, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not read"))));
     mp::platform::sync_winterm_profiles();
 }
 
@@ -128,10 +133,8 @@ TEST(PlatformWin, winterm_sync_logs_error_if_setting_is_primary_and_file_found_b
 {
     mock_winterm_setting("primary");
     mock_stdpaths_locate("C:\\unreadable\\profiles.json");
+    auto mock_logger_guard = expect_log(mpl::Level::error, "Could not read");
 
-    auto [mock_logger, guard] = guarded_mock_logger();
-    EXPECT_CALL(*mock_logger,
-                log(mpl::Level::error, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not read"))));
     mp::platform::sync_winterm_profiles();
 }
 
@@ -147,9 +150,8 @@ TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unparea
     json_file.close();
     mock_stdpaths_locate(json_file.fileName());
 
-    auto [mock_logger, guard] = guarded_mock_logger();
-    EXPECT_CALL(*mock_logger,
-                log(mpl::Level::info, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("Could not parse"))));
+    auto mock_logger_guard = expect_log(mpl::Level::info, "Could not parse");
+
     mp::platform::sync_winterm_profiles();
 }
 
