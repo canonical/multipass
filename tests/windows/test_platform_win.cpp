@@ -155,4 +155,21 @@ TEST(PlatformWin, winterm_sync_informs_if_setting_off_and_file_found_but_unparea
     mp::platform::sync_winterm_profiles();
 }
 
+TEST(PlatformWin, winterm_sync_logs_error_if_setting_primary_and_file_found_but_unpareable)
+{
+    mock_winterm_setting("primary");
+
+    QTemporaryFile json_file{};
+    ASSERT_TRUE(json_file.open());
+    ASSERT_TRUE(json_file.exists());
+
+    json_file.write("~!@#$% rubbish ^&*()_+");
+    json_file.close();
+    mock_stdpaths_locate(json_file.fileName());
+
+    auto mock_logger_guard = expect_log(mpl::Level::error, "Could not parse");
+
+    mp::platform::sync_winterm_profiles();
+}
+
 } // namespace
