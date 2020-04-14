@@ -125,6 +125,17 @@ void mp::platform::sync_winterm_profiles()
     {
         if (std::ifstream json_file{profiles_path.toStdString(), std::ifstream::binary})
         {
+            Json::CharReaderBuilder rbuilder;
+            Json::Value json_root;
+            std::string errs;
+            if (!Json::parseFromStream(rbuilder, json_file, &json_root, &errs))
+            {
+                const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
+                const auto error_fmt = "Could not parse Windows Terminal's configuration (located at \"{}\"); "
+                                       "reason: {}";
+                mpl::log(level, log_category, fmt::format(error_fmt, profiles_path, errs));
+            }
+
             // TODO@ricab
         }
         else
