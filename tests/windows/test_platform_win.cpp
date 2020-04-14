@@ -76,6 +76,42 @@ auto expect_log(mpl::Level lvl, const std::string& substr)
     return std::move(guard); // needs to be moved because it's only part of an implicit local var (NRVO does not apply)
 }
 
+// ptr works around uncopyable QTemporaryFile
+std::unique_ptr<QTemporaryFile> fake_json(const char* contents)
+{
+    auto json_file = std::make_unique<QTemporaryFile>();
+    EXPECT_TRUE(json_file->open());   // can't use gtest's asserts in non-void function
+    EXPECT_TRUE(json_file->exists()); // idem
+
+    json_file->write(contents);
+    json_file->close();
+
+    mock_stdpaths_locate(json_file->fileName());
+
+    return json_file;
+}
+
+// ptr works around uncopyable QTemporaryFile
+std::unique_ptr<QTemporaryFile> fake_json(const Json::Value& json)
+{
+    std::ostringstream oss;
+    oss << json;
+    const auto data = oss.str();
+
+    return fake_json(data.c_str());
+}
+
+Json::Value read_json(const QString& filename)
+{
+    std::ifstream ifs{filename.toStdString(), std::ifstream::binary};
+    EXPECT_TRUE(ifs); // can't use gtest's asserts in non-void function
+
+    Json::Value json;
+    EXPECT_NO_THROW(ifs >> json); // idem
+
+    return json;
+}
+
 TEST(PlatformWin, winterm_in_extra_settings)
 {
     EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::winterm_key), _)));
@@ -137,42 +173,6 @@ TEST_P(TestWinTermSyncLogging, logging_on_unreadable_settings)
     auto mock_logger_guard = expect_log(lvl, "Could not read");
 
     mp::platform::sync_winterm_profiles();
-}
-
-// ptr works around uncopyable QTemporaryFile
-std::unique_ptr<QTemporaryFile> fake_json(const char* contents)
-{
-    auto json_file = std::make_unique<QTemporaryFile>();
-    EXPECT_TRUE(json_file->open());   // can't use gtest's asserts in non-void function
-    EXPECT_TRUE(json_file->exists()); // idem
-
-    json_file->write(contents);
-    json_file->close();
-
-    mock_stdpaths_locate(json_file->fileName());
-
-    return json_file;
-}
-
-// ptr works around uncopyable QTemporaryFile
-std::unique_ptr<QTemporaryFile> fake_json(const Json::Value& json)
-{
-    std::ostringstream oss;
-    oss << json;
-    const auto data = oss.str();
-
-    return fake_json(data.c_str());
-}
-
-Json::Value read_json(const QString& filename)
-{
-    std::ifstream ifs{filename.toStdString(), std::ifstream::binary};
-    EXPECT_TRUE(ifs); // can't use gtest's asserts in non-void function
-
-    Json::Value json;
-    EXPECT_NO_THROW(ifs >> json); // idem
-
-    return json;
 }
 
 TEST_P(TestWinTermSyncLogging, logging_on_unparseable_settings)
