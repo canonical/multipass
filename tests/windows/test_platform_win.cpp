@@ -172,11 +172,16 @@ TEST(PlatformWin, winterm_sync_keeps_visible_profile_if_setting_primary)
 {
     mock_winterm_setting("primary");
 
-    // Note that {{ and }} escape single braces for fmt
-    const auto json_format = R"({{ "profiles": {{ "list": [{{ "guid": "{}", "hidden": false }}]}}}})";
-    const auto json_data = fmt::format(json_format, mp::winterm_profile_guid);
-    const auto json_file = fake_json(json_data.c_str());
-    mock_stdpaths_locate(json_file->fileName());
+    Json::Value json_in;
+    json_in["profiles"]["list"][0]["guid"] = mp::winterm_profile_guid;
+    json_in["profiles"]["list"][0]["hidden"] = false;
+
+    std::ostringstream oss;
+    oss << json_in;
+    const auto data = oss.str();
+
+    const auto json_file = fake_json(data.c_str());
+    mock_stdpaths_locate(json_file->fileName()); // TODO@ricab move into above func ?
 
     const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
     mp::platform::sync_winterm_profiles();
@@ -184,10 +189,8 @@ TEST(PlatformWin, winterm_sync_keeps_visible_profile_if_setting_primary)
     std::ifstream ifs{json_file->fileName().toStdString(), std::ifstream::binary};
     ASSERT_TRUE(ifs);
 
-    Json::Value json_expected, json_got;
-    ASSERT_NO_THROW(std::istringstream{json_data} >> json_expected);
-    ASSERT_NO_THROW(ifs >> json_got);
-
-    EXPECT_EQ(json_got, json_expected);
+    Json::Value json_out;
+    ASSERT_NO_THROW(ifs >> json_out); // TODO@ricab extract
+    EXPECT_EQ(json_in, json_out);
 }
 } // namespace
