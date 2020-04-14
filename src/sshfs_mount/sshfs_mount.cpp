@@ -147,8 +147,7 @@ std::pair<std::string, std::string> get_path_split(mp::SSHSession& session, cons
 // Create a directory on a given root folder.
 void make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
 {
-    if (!relative_target.empty())
-        run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
+    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
 }
 
 // Set ownership of all directories on a path starting on a given root.
@@ -160,7 +159,7 @@ void set_owner_for(mp::SSHSession& session, const std::string& root, const std::
     mp::utils::trim_newline(vm_user);
     mp::utils::trim_newline(vm_group);
 
-    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} {}'", root, vm_user, vm_group,
+    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user, vm_group,
                                  relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
@@ -177,8 +176,11 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 
     // We need to create the part of the path which does not still exist,
     // and set then the correct ownership.
-    make_target_dir(session, leading, missing);
-    set_owner_for(session, leading, missing);
+    if (missing != ".")
+    {
+        make_target_dir(session, leading, missing);
+        set_owner_for(session, leading, missing);
+    }
 
     auto output = run_cmd(session, "id -u");
     mpl::log(mpl::Level::debug, category,
