@@ -27,11 +27,15 @@
 
 #include <QTemporaryFile>
 
+#include <json/json.h>
+
 #include <scope_guard.hpp>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <fstream>
+#include <sstream>
 #include <utility>
 
 namespace mp = multipass;
@@ -164,4 +168,26 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
+TEST(PlatformWin, winterm_sync_keeps_visible_profile_if_setting_primary)
+{
+    mock_winterm_setting("primary");
+
+    // Note that {{ and }} escape single braces for fmt
+    const auto json_format = R"({{ "profiles": {{ "list": [{{ "guid": "{}", "hidden": false }}]}}}})";
+    const auto json_data = fmt::format(json_format, mp::winterm_profile_guid);
+    const auto json_file = fake_json(json_data.c_str());
+    mock_stdpaths_locate(json_file->fileName());
+
+    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
+    mp::platform::sync_winterm_profiles();
+
+    std::ifstream ifs{json_file->fileName().toStdString(), std::ifstream::binary};
+    ASSERT_TRUE(ifs);
+
+    Json::Value json_expected, json_got;
+    ASSERT_NO_THROW(std::istringstream{json_data} >> json_expected);
+    ASSERT_NO_THROW(ifs >> json_got);
+
+    EXPECT_EQ(json_got, json_expected);
+}
 } // namespace
