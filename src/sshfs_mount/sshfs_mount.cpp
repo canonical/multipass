@@ -152,13 +152,9 @@ void make_target_dir(mp::SSHSession& session, const std::string& root, const std
 
 // Set ownership of all directories on a path starting on a given root.
 // Assume it is already created.
-void set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
+void set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target, int vm_user,
+                   int vm_group)
 {
-    auto vm_user = run_cmd(session, "id -u");
-    auto vm_group = run_cmd(session, "id -g");
-    mp::utils::trim_newline(vm_user);
-    mp::utils::trim_newline(vm_group);
-
     run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user, vm_group,
                                  relative_target.substr(0, relative_target.find_first_of('/'))));
 }
@@ -174,14 +170,6 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     // Split the path in existing and missing parts.
     const auto& [leading, missing] = get_path_split(session, target);
 
-    // We need to create the part of the path which does not still exist,
-    // and set then the correct ownership.
-    if (missing != ".")
-    {
-        make_target_dir(session, leading, missing);
-        set_owner_for(session, leading, missing);
-    }
-
     auto output = run_cmd(session, "id -u");
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
@@ -191,6 +179,14 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_gid = std::stoi(output);
+
+    // We need to create the part of the path which does not still exist,
+    // and set then the correct ownership.
+    if (missing != ".")
+    {
+        make_target_dir(session, leading, missing);
+        set_owner_for(session, leading, missing, default_uid, default_gid);
+    }
 
     return std::make_unique<mp::SftpServer>(std::move(session), source, target, gid_map, uid_map, default_uid,
                                             default_gid, sshfs_exec_line);
