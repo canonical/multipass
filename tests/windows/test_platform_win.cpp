@@ -149,7 +149,30 @@ std::unique_ptr<QTemporaryFile> fake_json(const char* contents)
     json_file->write(contents);
     json_file->close();
 
+    mock_stdpaths_locate(json_file->fileName());
+
     return json_file;
+}
+
+// ptr works around uncopyable QTemporaryFile
+std::unique_ptr<QTemporaryFile> fake_json(const Json::Value& json)
+{
+    std::ostringstream oss;
+    oss << json;
+    const auto data = oss.str();
+
+    return fake_json(data.c_str());
+}
+
+Json::Value read_json(const QString& filename)
+{
+    std::ifstream ifs{filename.toStdString(), std::ifstream::binary};
+    EXPECT_TRUE(ifs); // can't use gtest's asserts in non-void function
+
+    Json::Value json;
+    EXPECT_NO_THROW(ifs >> json); // idem
+
+    return json;
 }
 
 TEST_P(TestWinTermSyncLogging, logging_on_unparseable_settings)
@@ -158,9 +181,8 @@ TEST_P(TestWinTermSyncLogging, logging_on_unparseable_settings)
     mock_winterm_setting(setting);
 
     auto json_file = fake_json("~!@#$% rubbish ^&*()_+");
-    mock_stdpaths_locate(json_file->fileName());
-
     auto mock_logger_guard = expect_log(lvl, "Could not parse");
+
     mp::platform::sync_winterm_profiles();
 }
 
@@ -171,26 +193,14 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLogging,
 TEST(PlatformWin, winterm_sync_keeps_visible_profile_if_setting_primary)
 {
     mock_winterm_setting("primary");
-
-    Json::Value json_in;
-    json_in["profiles"]["list"][0]["guid"] = mp::winterm_profile_guid;
-    json_in["profiles"]["list"][0]["hidden"] = false;
-
-    std::ostringstream oss;
-    oss << json_in;
-    const auto data = oss.str();
-
-    const auto json_file = fake_json(data.c_str());
-    mock_stdpaths_locate(json_file->fileName()); // TODO@ricab move into above func ?
-
     const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
+
+    Json::Value json;
+    json["profiles"]["list"][0]["guid"] = mp::winterm_profile_guid;
+    json["profiles"]["list"][0]["hidden"] = false;
+    const auto json_file = fake_json(json);
+
     mp::platform::sync_winterm_profiles();
-
-    std::ifstream ifs{json_file->fileName().toStdString(), std::ifstream::binary};
-    ASSERT_TRUE(ifs);
-
-    Json::Value json_out;
-    ASSERT_NO_THROW(ifs >> json_out); // TODO@ricab extract
-    EXPECT_EQ(json_in, json_out);
+    EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 } // namespace
