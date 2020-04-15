@@ -142,6 +142,13 @@ std::string& mp::utils::trim_end(std::string& s)
     return s;
 }
 
+std::string& mp::utils::trim_newline(std::string& s)
+{
+    assert(!s.empty() && '\n' == s.back());
+    s.pop_back();
+    return s;
+}
+
 std::string mp::utils::escape_char(const std::string& in, char c)
 {
     return std::regex_replace(in, std::regex({c}), fmt::format("\\{}", c));

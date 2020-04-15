@@ -127,29 +127,27 @@ std::pair<std::string, std::string> get_path_split(mp::SSHSession& session, cons
 
     if (complete_path.isRelative())
     {
-        QString home = QString::fromStdString(run_cmd(session, "pwd")).trimmed();
-        absolute = home + '/' + complete_path.path();
+        std::string home = run_cmd(session, "pwd");
+        mp::utils::trim_newline(home);
+        absolute = QString::fromStdString(home) + '/' + complete_path.path();
     }
     else
     {
         absolute = complete_path.path();
     }
 
-    QString existing =
-        QString::fromStdString(
-            run_cmd(session,
-                    fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=${{P%/*}}; done; echo $P/'",
-                                absolute)))
-            .trimmed();
+    std::string existing = run_cmd(
+        session,
+        fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=${{P%/*}}; done; echo $P/'", absolute));
+    mp::utils::trim_newline(existing);
 
-    return {existing.toStdString(), QDir(existing).relativeFilePath(absolute).toStdString()};
+    return {existing, QDir(QString::fromStdString(existing)).relativeFilePath(absolute).toStdString()};
 }
 
 // Create a directory on a given root folder.
 void make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
 {
-    if (!relative_target.empty())
-        run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
+    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
 }
 
 // Set ownership of all directories on a path starting on a given root.
@@ -158,10 +156,10 @@ void set_owner_for(mp::SSHSession& session, const std::string& root, const std::
 {
     auto vm_user = run_cmd(session, "id -u");
     auto vm_group = run_cmd(session, "id -g");
-    mp::utils::trim_end(vm_user);
-    mp::utils::trim_end(vm_group);
+    mp::utils::trim_newline(vm_user);
+    mp::utils::trim_newline(vm_group);
 
-    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} {}'", root, vm_user, vm_group,
+    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user, vm_group,
                                  relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
@@ -178,13 +176,17 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 
     // We need to create the part of the path which does not still exist,
     // and set then the correct ownership.
-    make_target_dir(session, leading, missing);
-    set_owner_for(session, leading, missing);
+    if (missing != ".")
+    {
+        make_target_dir(session, leading, missing);
+        set_owner_for(session, leading, missing);
+    }
 
     auto output = run_cmd(session, "id -u");
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_uid = std::stoi(output);
+
     output = run_cmd(session, "id -g");
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));

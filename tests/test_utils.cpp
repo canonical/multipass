@@ -25,6 +25,7 @@
 #include <QRegExp>
 
 #include <gmock/gmock.h>
+#include <gtest/gtest-death-test.h>
 #include <gtest/gtest.h>
 
 #include <sstream>
@@ -194,6 +195,20 @@ TEST(Utils, trim_end_actually_trims_end)
     mp::utils::trim_end(s);
 
     EXPECT_THAT(s, ::testing::StrEq("I'm a great\n\t string"));
+}
+
+TEST(Utils, trim_newline_works)
+{
+    std::string s{"correct\n"};
+    mp::utils::trim_newline(s);
+
+    EXPECT_THAT(s, ::testing::StrEq("correct"));
+}
+
+TEST(Utils, trim_newline_assertion_works)
+{
+    std::string s{"wrong"};
+    ASSERT_DEBUG_DEATH(mp::utils::trim_newline(s), "[Aa]ssert");
 }
 
 TEST(Utils, escape_char_actually_escapes)
