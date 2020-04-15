@@ -357,8 +357,8 @@ INSTANTIATE_TEST_SUITE_P(SshfsMountSuccessAndAvoidCommands, SshfsMountExecuteAnd
                                          std::make_tuple("target", execute_no_mkdir_cmds, "chown")));
 
 // Check that some commands throw some exceptions.
-CommandVector non_int_uid_cmds = {{"id -u", "1000\n"}, {"id -u", "ubuntu\n"}};
-CommandVector non_int_gid_cmds = {{"id -g", "1000\n"}, {"id -g", "ubuntu\n"}};
+CommandVector non_int_uid_cmds = {{"id -u", "ubuntu\n"}};
+CommandVector non_int_gid_cmds = {{"id -g", "ubuntu\n"}};
 CommandVector invalid_fuse_ver_cmds = {
     {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: fu.man.chu\n"}};
 
