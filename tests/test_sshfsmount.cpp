@@ -86,21 +86,22 @@ struct SshfsMount : public mp::test::SftpServerTest
     // cooperate better, i.e., make the reader read only when a command was issued.
     auto make_exec_to_check_commands(const CommandVector& commands, std::string::size_type& remaining,
                                      CommandVector::const_iterator& next_expected_cmd, std::string& output,
-                                     bool& invoked, mp::optional<std::string>& fail_cmd, mp::optional<bool>& fail_bool)
+                                     bool& invoked, mp::optional<std::string>& fail_cmd,
+                                     mp::optional<bool>& fail_invoked)
     {
-        *fail_bool = false;
+        *fail_invoked = false;
 
         auto request_exec = [this, &commands, &remaining, &next_expected_cmd, &output, &invoked, &fail_cmd,
-                             &fail_bool](ssh_channel, const char* raw_cmd) {
+                             &fail_invoked](ssh_channel, const char* raw_cmd) {
             invoked = false;
 
             std::string cmd{raw_cmd};
 
             if (fail_cmd && cmd.find(*fail_cmd) != std::string::npos)
             {
-                if (fail_bool)
+                if (fail_invoked)
                 {
-                    *fail_bool = true;
+                    *fail_invoked = true;
                 }
                 exit_status_mock.return_exit_code(SSH_ERROR);
             }
@@ -165,7 +166,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 
     void test_command_execution(const CommandVector& commands, mp::optional<std::string> target = mp::nullopt,
                                 mp::optional<std::string> fail_cmd = mp::nullopt,
-                                mp::optional<bool> fail_bool = mp::nullopt)
+                                mp::optional<bool> fail_invoked = mp::nullopt)
     {
         bool invoked{false};
         std::string output;
@@ -175,8 +176,8 @@ struct SshfsMount : public mp::test::SftpServerTest
         auto channel_read = make_channel_read_return(output, remaining, invoked);
         REPLACE(ssh_channel_read_timeout, channel_read);
 
-        auto request_exec =
-            make_exec_to_check_commands(commands, remaining, next_expected_cmd, output, invoked, fail_cmd, fail_bool);
+        auto request_exec = make_exec_to_check_commands(commands, remaining, next_expected_cmd, output, invoked,
+                                                        fail_cmd, fail_invoked);
         REPLACE(ssh_channel_request_exec, request_exec);
 
         make_sshfsmount(target.value_or(default_target));
@@ -224,7 +225,7 @@ struct SshfsMountExecute : public SshfsMount, public testing::WithParamInterface
 {
 };
 
-struct SshfsMountExecuteAndFail
+struct SshfsMountExecuteAndNoFail
     : public SshfsMount,
       public testing::WithParamInterface<std::tuple<std::string, CommandVector, std::string>>
 {
@@ -274,7 +275,7 @@ TEST_P(SshfsMountExecute, test_succesful_invocation)
     test_command_execution(commands, target);
 }
 
-TEST_P(SshfsMountExecuteAndFail, test_succesful_invocation_and_fail)
+TEST_P(SshfsMountExecuteAndNoFail, test_succesful_invocation_and_fail)
 {
     std::string target = std::get<0>(GetParam());
     CommandVector commands = std::get<1>(GetParam());
@@ -351,7 +352,7 @@ CommandVector execute_no_mkdir_cmds = {
     {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
      "/home/ubuntu/target/\n"}};
 
-INSTANTIATE_TEST_SUITE_P(SshfsMountSuccessAndAvoidCommands, SshfsMountExecuteAndFail,
+INSTANTIATE_TEST_SUITE_P(SshfsMountSuccessAndAvoidCommands, SshfsMountExecuteAndNoFail,
                          testing::Values(std::make_tuple("target", execute_no_mkdir_cmds, "mkdir"),
                                          std::make_tuple("target", execute_no_mkdir_cmds, "chown")));
 
