@@ -190,17 +190,55 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
-TEST(PlatformWin, winterm_sync_keeps_visible_profile_if_setting_primary)
+struct TestWinTermSyncJson : public TestWithParam<unsigned char>
+{
+    struct DressUpFlags
+    {
+        enum Value : unsigned char
+        {
+            None = 0,
+            ProfilesDict = 1 << 0,
+            ProfileBefore = 1 << 1,
+            ProfileAfter = 1 << 2,
+            CommentBefore = 1 << 3,
+            CommentInside = 1 << 4,
+            CommentAfter = 1 << 5,
+            DefaultProfile = 1 << 6, // only meaningful if ProfilesDict also there
+            End = 1 << 7             // do not pass this - delimits the combination
+        };
+
+        static constexpr unsigned char begin = Value::None;
+        static constexpr unsigned char end = Value::End;
+    };
+
+    void dress_up(Json::Value& json, unsigned char flags)
+    {
+        if (flags & DressUpFlags::ProfilesDict)
+        {
+            Json::Value profiles;
+            profiles["list"] = json["profiles"];
+            json["profiles"].swap(profiles);
+        }
+        // TODO@ricab implement others
+    }
+};
+
+TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primary)
 {
     mock_winterm_setting("primary");
     const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
-    json["profiles"]["list"][0]["guid"] = mp::winterm_profile_guid;
-    json["profiles"]["list"][0]["hidden"] = false;
+    json["profiles"][0]["guid"] = mp::winterm_profile_guid;
+    json["profiles"][0]["hidden"] = false;
+    dress_up(json, GetParam());
+
     const auto json_file = fake_json(json);
 
     mp::platform::sync_winterm_profiles();
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
+
+INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
+                         Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
 } // namespace
