@@ -72,6 +72,7 @@ std::string run_cmd_for_output(const QString& cmd, const QStringList& args, cons
 std::string& trim_end(std::string& s);
 std::string& trim_newline(std::string& s);
 std::string escape_char(const std::string& s, char c);
+std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string generate_mac_address();
 std::string timestamp();
