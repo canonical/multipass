@@ -213,20 +213,26 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
 
     void dress_up(Json::Value& json, unsigned char flags)
     {
-
         auto& profiles = json["profiles"];
+        ASSERT_TRUE(profiles.isArray());
+        auto num_profiles = profiles.size();
+        ASSERT_LE(num_profiles, 1u);
 
         if (flags & DressUpFlags::ProfileBefore)
         {
-            ASSERT_TRUE(profiles.isArray());
-            auto num_profiles = profiles.size();
-
-            ASSERT_LE(num_profiles, 1u);
             if (num_profiles)
-                profiles[1].swap(profiles[0]);
+                profiles[num_profiles].swap(profiles[0]);
 
             profiles[0]["guid"] = "{abc42bca}";
             profiles[0]["name"] = "FAKKEEE";
+            ++num_profiles;
+        }
+
+        if (flags & DressUpFlags::ProfileAfter)
+        {
+            profiles[num_profiles]["guid"] = "toto";
+            profiles[num_profiles]["command"] = "ghghgh";
+            ++num_profiles;
         }
 
         if (flags & DressUpFlags::ProfilesDict)
@@ -235,6 +241,7 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
             profiles_dict["list"] = profiles;
             profiles.swap(profiles_dict);
         }
+
         // TODO@ricab implement others
     }
 };
