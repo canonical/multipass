@@ -201,7 +201,7 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
             ProfileBefore = 1 << 1,
             ProfileAfter = 1 << 2,
             CommentBefore = 1 << 3,
-            CommentInside = 1 << 4,
+            CommentInline = 1 << 4,
             CommentAfter = 1 << 5,
             DefaultProfile = 1 << 6, // only meaningful if ProfilesDict also there
             End = 1 << 7             // do not pass this - delimits the combination
@@ -217,6 +217,18 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         ASSERT_TRUE(profiles.isArray());
         auto num_profiles = profiles.size();
         ASSERT_LE(num_profiles, 1u);
+
+        if (flags & (DressUpFlags::CommentBefore | DressUpFlags::CommentInline | DressUpFlags::CommentAfter))
+        {
+            auto& elem = num_profiles ? profiles[0] : profiles;
+            const auto comment = std::string{"// a comment"};
+
+            for (const auto [flag, place] : {std::make_pair(DressUpFlags::CommentBefore, Json::commentBefore),
+                                             std::make_pair(DressUpFlags::CommentInline, Json::commentAfterOnSameLine),
+                                             std::make_pair(DressUpFlags::CommentAfter, Json::commentAfter)})
+                if (flags & flag)
+                    elem.setComment(comment, place);
+        }
 
         if (flags & DressUpFlags::ProfileBefore)
         {
