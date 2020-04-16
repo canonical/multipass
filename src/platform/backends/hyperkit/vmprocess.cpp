@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -122,7 +122,7 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
          <<
         // The VM image itself
         "-s"
-         << "1:0,ahci-hd,file://" + desc.image.image_path +
+         << "1:0,virtio-blk,file://" + desc.image.image_path +
                 "?sync=os&buffered=1,format=qcow,qcow-config=discard=true;compact_after_unmaps=262144;keep_"
                 "erased=262144;runtime_asserts=false"
          <<
@@ -132,7 +132,7 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
          << "-f"
          // Firmware argument
          << "kexec," + desc.image.kernel_path + "," + desc.image.initrd_path +
-                ",earlyprintk=serial console=ttyS0 root=/dev/sda1 rw panic=1 no_timer_check";
+                ",earlyprintk=serial console=ttyS0 root=/dev/vda1 rw panic=1 no_timer_check";
 
     /* Notes on some of the kernel parameters above
      *  - panic=1 causes the kernel to reboot the system 1 second after a panic. Necessary as otherwise
