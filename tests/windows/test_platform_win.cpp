@@ -203,9 +203,9 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
             CommentBefore = 1 << 3,
             CommentInline = 1 << 4,
             CommentAfter = 1 << 5,
-            End = 1 << 6 // do not pass this - delimits the combination
+            StuffOutside = 1 << 6,
+            End = 1 << 7 // do not pass this - delimits the combination
         };
-
         static constexpr unsigned char begin = Value::None;
         static constexpr unsigned char end = Value::End;
     };
@@ -257,8 +257,15 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         }
     }
 
+    void dress_with_stuff(Json::Value& json, unsigned char flags)
+    {
+        if (flags & DressUpFlags::StuffOutside)
+            json["stuff"]["a"]["b"]["c"] = "asdf";
+    }
+
     void dress_up(Json::Value& json, unsigned char flags)
     {
+        // std::cout << "DEBUG json before: " << json << std::endl;
         auto& profiles = json["profiles"];
         ASSERT_TRUE(profiles.isArray());
         ASSERT_LE(profiles.size(), 1u);
@@ -266,8 +273,8 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         dress_with_comments(profiles, flags);
         dress_with_extra_profiles(profiles, flags);
         dress_with_dict(profiles, flags);
-
-        // TODO@ricab implement others
+        dress_with_stuff(json, flags);
+        // std::cout << "DEBUG json after: " << json << std::endl;
     }
 };
 
