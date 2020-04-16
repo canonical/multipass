@@ -203,8 +203,7 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
             CommentBefore = 1 << 3,
             CommentInline = 1 << 4,
             CommentAfter = 1 << 5,
-            DefaultProfile = 1 << 6, // only meaningful if ProfilesDict also there
-            End = 1 << 7             // do not pass this - delimits the combination
+            End = 1 << 6 // do not pass this - delimits the combination
         };
 
         static constexpr unsigned char begin = Value::None;
@@ -252,6 +251,8 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         {
             Json::Value profiles_dict;
             profiles_dict["list"] = profiles;
+            profiles_dict["defaults"]["var"] = "val";
+            profiles_dict["defaults"]["foo"] = "bar";
             profiles.swap(profiles_dict);
         }
     }
