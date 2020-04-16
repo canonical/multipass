@@ -211,16 +211,11 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         static constexpr unsigned char end = Value::End;
     };
 
-    void dress_up(Json::Value& json, unsigned char flags)
+    void dress_with_comments(Json::Value& profiles, unsigned char flags)
     {
-        auto& profiles = json["profiles"];
-        ASSERT_TRUE(profiles.isArray());
-        auto num_profiles = profiles.size();
-        ASSERT_LE(num_profiles, 1u);
-
         if (flags & (DressUpFlags::CommentBefore | DressUpFlags::CommentInline | DressUpFlags::CommentAfter))
         {
-            auto& elem = num_profiles ? profiles[0] : profiles;
+            auto& elem = profiles.size() ? profiles[0] : profiles;
             const auto comment = std::string{"// a comment"};
 
             for (const auto [flag, place] : {std::make_pair(DressUpFlags::CommentBefore, Json::commentBefore),
@@ -229,9 +224,13 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
                 if (flags & flag)
                     elem.setComment(comment, place);
         }
+    }
 
+    void dress_with_extra_profiles(Json::Value& profiles, unsigned char flags)
+    {
         if (flags & (DressUpFlags::ProfileBefore | DressUpFlags::ProfileAfter))
         {
+            auto num_profiles = profiles.size();
             for (const auto [flag, distinctive] : {std::make_pair(DressUpFlags::ProfileBefore, "aaa"),
                                                    std::make_pair(DressUpFlags::ProfileAfter, "zzz")})
                 if (flags & flag)
@@ -245,13 +244,27 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
                     ++num_profiles;
                 }
         }
+    }
 
+    void dress_with_dict(Json::Value& profiles, unsigned char flags)
+    {
         if (flags & DressUpFlags::ProfilesDict)
         {
             Json::Value profiles_dict;
             profiles_dict["list"] = profiles;
             profiles.swap(profiles_dict);
         }
+    }
+
+    void dress_up(Json::Value& json, unsigned char flags)
+    {
+        auto& profiles = json["profiles"];
+        ASSERT_TRUE(profiles.isArray());
+        ASSERT_LE(profiles.size(), 1u);
+
+        dress_with_comments(profiles, flags);
+        dress_with_extra_profiles(profiles, flags);
+        dress_with_dict(profiles, flags);
 
         // TODO@ricab implement others
     }
