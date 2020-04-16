@@ -204,8 +204,8 @@ struct SshfsMount : public mp::test::SftpServerTest
     const std::unordered_map<std::string, std::string> default_cmds{
         {"snap run multipass-sshfs.env", "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n"},
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0\n"},
-        {"pwd", "/home/ubuntu\n"},
-        {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
+        {"echo $PWD/target", "/home/ubuntu/target\n"},
+        {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'",
          "/home/ubuntu/\n"},
         {"id -u", "1000\n"},
         {"id -g", "1000\n"},
@@ -299,57 +299,72 @@ TEST_P(SshfsMountExecuteThrowRuntErr, test_runtime_error_when_executing)
 //
 
 INSTANTIATE_TEST_SUITE_P(SshfsMountThrowWhenError, SshfsMountFail,
-                         testing::Values("mkdir", "chown", "id -u", "id -g", "cd", "pwd"));
+                         testing::Values("mkdir", "chown", "id -u", "id -g", "cd", "echo $PWD"));
 
 // Commands to check that a version of FUSE smaller that 3 gives a correct answer.
 CommandVector old_fuse_cmds = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 2.9.0\n"},
                                {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-                                "allow_other -o nonempty :\"source\" \"target\"",
+                                "allow_other -o nonempty :\"source\" \"/home/ubuntu/target\"",
                                 "don't care\n"}};
 
 // Commands to check that a version of FUSE at least 3.0.0 gives a correct answer.
 CommandVector new_fuse_cmds = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0\n"},
                                {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-                                "allow_other :\"source\" \"target\"",
+                                "allow_other :\"source\" \"/home/ubuntu/target\"",
                                 "don't care\n"}};
 
 // Commands to check that an unknown version of FUSE gives a correct answer.
 CommandVector unk_fuse_cmds = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "weird fuse version\n"},
                                {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-                                "allow_other :\"source\" \"target\"",
+                                "allow_other :\"source\" \"/home/ubuntu/target\"",
                                 "don't care\n"}};
 
 // Commands to check that the server correctly creates the mount target.
 CommandVector exec_cmds = {
-    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
+    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'",
      "/home/ubuntu/\n"},
     {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && mkdir -p \"target\"'", "\n"},
     {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 \"target\"'", "\n"}};
+
+// Commands to check that it works with a path containing a space.
+CommandVector space_cmds = {
+    {"echo $PWD/space\\ odyssey", "/home/ubuntu/space odyssey\n"},
+    {"sudo /bin/bash -c 'P=\"/home/ubuntu/space odyssey\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'",
+     "/home/ubuntu/\n"}};
+
+// Commands to check that the ~ expansion works.
+CommandVector tilde1_cmds = {
+    {"echo ~/target", "/home/ubuntu/target\n"},
+    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'",
+     "/home/ubuntu/\n"}};
+
+// Commands to check that the ~user expansion works (assuming that user exists).
+CommandVector tilde2_cmds = {
+    {"echo ~ubuntu/target", "/home/ubuntu/target\n"},
+    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'",
+     "/home/ubuntu/\n"}};
 
 // Commands to check that the server works if an absolute path is given.
 CommandVector absolute_cmds = {
-    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
-     "/home/ubuntu/\n"},
-    {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && mkdir -p \"target\"'", "\n"},
-    {"sudo /bin/bash -c 'cd \"/home/ubuntu/\" && chown -R 1000:1000 \"target\"'", "\n"}};
+    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'",
+     "/home/ubuntu/\n"}};
 
 // Commands to check that it works for a nonexisting path.
 CommandVector nonexisting_path_cmds = {
-    {"sudo /bin/bash -c 'P=\"/nonexisting/path\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'", "/\n"},
-    {"sudo /bin/bash -c 'cd \"/\" && mkdir -p \"nonexisting/path\"'", "\n"},
-    {"sudo /bin/bash -c 'cd \"/\" && chown -R 1000:1000 \"nonexisting\"'", "\n"}};
+    {"sudo /bin/bash -c 'P=\"/nonexisting/path\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'", "/\n"}};
 
 // Check the execution of the CommandVector's above.
-INSTANTIATE_TEST_SUITE_P(SshfsMountSuccess, SshfsMountExecute,
-                         testing::Values(std::make_pair("target", old_fuse_cmds), std::make_pair("target", exec_cmds),
-                                         std::make_pair("target", new_fuse_cmds), std::make_pair("target", exec_cmds),
-                                         std::make_pair("target", unk_fuse_cmds), std::make_pair("target", exec_cmds),
-                                         std::make_pair("/home/ubuntu/target", absolute_cmds),
-                                         std::make_pair("/nonexisting/path", nonexisting_path_cmds)));
+INSTANTIATE_TEST_SUITE_P(
+    SshfsMountSuccess, SshfsMountExecute,
+    testing::Values(std::make_pair("target", old_fuse_cmds), std::make_pair("target", new_fuse_cmds),
+                    std::make_pair("target", unk_fuse_cmds), std::make_pair("target", exec_cmds),
+                    std::make_pair("space odyssey", space_cmds), std::make_pair("~/target", tilde1_cmds),
+                    std::make_pair("~ubuntu/target", tilde2_cmds), std::make_pair("/home/ubuntu/target", absolute_cmds),
+                    std::make_pair("/nonexisting/path", nonexisting_path_cmds)));
 
 // Commands to test that when a mount path already exists, no mkdir nor chown is ran.
 CommandVector execute_no_mkdir_cmds = {
-    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=${P%/*}; done; echo $P/'",
+    {"sudo /bin/bash -c 'P=\"/home/ubuntu/target\"; while [ ! -d \"$P/\" ]; do P=\"${P%/*}\"; done; echo $P/'",
      "/home/ubuntu/target/\n"}};
 
 INSTANTIATE_TEST_SUITE_P(SshfsMountSuccessAndAvoidCommands, SshfsMountExecuteAndNoFail,
