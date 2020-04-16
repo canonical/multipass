@@ -230,21 +230,20 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
                     elem.setComment(comment, place);
         }
 
-        if (flags & DressUpFlags::ProfileBefore)
+        if (flags & (DressUpFlags::ProfileBefore | DressUpFlags::ProfileAfter))
         {
-            if (num_profiles)
-                profiles[num_profiles].swap(profiles[0]);
+            for (const auto [flag, distinctive] : {std::make_pair(DressUpFlags::ProfileBefore, "aaa"),
+                                                   std::make_pair(DressUpFlags::ProfileAfter, "zzz")})
+                if (flags & flag)
+                {
+                    profiles[num_profiles]["guid"] = fmt::format("fake_id_{}", distinctive);
+                    profiles[num_profiles]["command"] = fmt::format("FAKEEEE {}", distinctive);
 
-            profiles[0]["guid"] = "{abc42bca}";
-            profiles[0]["name"] = "FAKKEEE";
-            ++num_profiles;
-        }
+                    if (flag == DressUpFlags::ProfileBefore && num_profiles)
+                        profiles[0u].swap(profiles[num_profiles]);
 
-        if (flags & DressUpFlags::ProfileAfter)
-        {
-            profiles[num_profiles]["guid"] = "toto";
-            profiles[num_profiles]["command"] = "ghghgh";
-            ++num_profiles;
+                    ++num_profiles;
+                }
         }
 
         if (flags & DressUpFlags::ProfilesDict)
