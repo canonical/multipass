@@ -30,6 +30,7 @@
 
 #include <QDir>
 #include <QTimeZone>
+#include <QFileInfo>
 
 #include <regex>
 #include <unordered_map>
@@ -200,6 +201,13 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             }
             else
             {
+		QFileInfo check_file(cloudInitFile);
+
+                if (!check_file.exists() || !check_file.isFile()) {
+                    cerr << "error: No such file: " << cloudInitFile.toStdString() << "\n";
+		    return ParseCode::CommandLineError;
+		}
+
                 node = YAML::LoadFile(cloudInitFile.toStdString());
             }
             request.set_cloud_init_user_data(YAML::Dump(node));
