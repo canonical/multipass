@@ -277,10 +277,25 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         // std::cout << "DEBUG json after: " << json << std::endl;
     }
 
-    Json::Value& edit_profiles(Json::Value& json)
+    Json::Value& setup_primary_profile(Json::Value& json)
     {
-        auto& profiles = json["profiles"];
-        return profiles.isArray() ? profiles : profiles["list"];
+        auto& ret = json["profiles"][0u];
+        ret["guid"] = mp::winterm_profile_guid;
+        return ret;
+    }
+
+    Json::Value& edit_primary_profile(Json::Value& json)
+    {
+        auto& profiles_root = json["profiles"];
+        auto& profiles = profiles_root.isArray() ? profiles_root : profiles_root["list"];
+
+        auto it = std::find_if(profiles.begin(), profiles.end(),
+                               [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
+
+        if (it == profiles.end())
+            throw std::runtime_error{"Test error - could not find primary profile"};
+
+        return *it;
     }
 };
 
@@ -290,8 +305,9 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primar
     const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
-    json["profiles"][0u]["guid"] = mp::winterm_profile_guid;
-    json["profiles"][0u]["hidden"] = false;
+    auto& profile = setup_primary_profile(json);
+    profile["hidden"] = false;
+
     dress_up(json, GetParam());
     const auto json_file = fake_json(json);
 
@@ -306,14 +322,15 @@ TEST_P(TestWinTermSyncJson, winterm_sync_enables_hidden_profile_if_setting_prima
     const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
-    json["profiles"][0u]["guid"] = mp::winterm_profile_guid;
-    json["profiles"][0u]["hidden"] = true;
+    auto& profile = setup_primary_profile(json);
+    profile["hidden"] = true;
+
     dress_up(json, GetParam());
     const auto json_file = fake_json(json);
 
     mp::platform::sync_winterm_profiles();
 
-    edit_profiles(json)[0u]["hidden"] = false;
+    edit_primary_profile(json)["hidden"] = false;
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
