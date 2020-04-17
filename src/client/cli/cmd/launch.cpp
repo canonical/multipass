@@ -29,8 +29,8 @@
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
-#include <QTimeZone>
 #include <QFileInfo>
+#include <QTimeZone>
 
 #include <regex>
 #include <unordered_map>
@@ -201,12 +201,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             }
             else
             {
-		QFileInfo check_file(cloudInitFile);
+                QFileInfo check_file(cloudInitFile);
 
                 if (!check_file.exists() || !check_file.isFile()) {
                     cerr << "error: No such file: " << cloudInitFile.toStdString() << "\n";
-		    return ParseCode::CommandLineError;
-		}
+                    return ParseCode::CommandLineError;
+                }
 
                 node = YAML::LoadFile(cloudInitFile.toStdString());
             }
