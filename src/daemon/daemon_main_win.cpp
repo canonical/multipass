@@ -33,6 +33,8 @@
 #include <windows.h>
 
 #include <array>
+#include <sstream>
+#include <string>
 #include <vector>
 
 namespace mp = multipass;
@@ -262,6 +264,7 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
     mp::monitor_and_quit_on_settings_change(); // temporary
     mp::Daemon daemon(std::move(config));
 
+    mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
     auto ret = QCoreApplication::exec();
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
     return ret;
@@ -314,6 +317,12 @@ try // clang-format on
 {
     service_argv.assign(argv, argv + argc);
 
+    auto logger = mp::platform::make_logger(mpl::Level::info);
+    std::ostringstream arguments;
+    std::copy(service_argv.begin(), service_argv.end(), std::ostream_iterator<std::string>(arguments, " "));
+    logger->log(mpl::Level::info, "main", fmt::format("Starting Multipass {}", mp::version_string));
+    logger->log(mpl::Level::info, "main", fmt::format("Service arguments: {}", arguments.str()));
+
     if (argc > 1)
     {
         std::string cmd{argv[1]};
@@ -331,7 +340,6 @@ try // clang-format on
 
         if (cmd == "/svc")
         {
-            auto logger = mp::platform::make_logger(mpl::Level::info);
             logger->log(mpl::Level::info, "main", "calling service ctrl dispatcher");
             std::array<SERVICE_TABLE_ENTRY, 2> table{{{"", service_main}, {nullptr, nullptr}}};
             // remove "/svc" from the list of arguments
