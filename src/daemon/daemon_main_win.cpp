@@ -33,6 +33,7 @@
 #include <windows.h>
 
 #include <array>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -40,6 +41,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto service_name = "Multipass";
+std::vector<char*> service_argv;
 
 BOOL windows_console_ctrl_handler(DWORD dwCtrlType)
 {
@@ -269,6 +271,9 @@ void service_main(DWORD argc, char* argv[]) // clang-format off
 try // clang-format on
 {
     auto logger = mp::platform::make_logger(mpl::Level::info);
+    auto daemon_argv(service_argv);
+    daemon_argv.insert(daemon_argv.end(), argv + 1, argv + argc);
+
     logger->log(mpl::Level::info, "service_main", "registering control handler");
 
     service_handle = RegisterServiceCtrlHandler(service_name, control_handler);
@@ -285,7 +290,7 @@ try // clang-format on
 
     logger->log(mpl::Level::info, "service_main", "service is running");
 
-    auto exit_code = daemon_main(static_cast<int>(argc), argv, RegisterConsoleHandler::no);
+    auto exit_code = daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
 
     status.dwCurrentState = SERVICE_STOPPED;
     status.dwWin32ExitCode = exit_code;
@@ -307,6 +312,8 @@ catch (...)
 int main(int argc, char* argv[]) // clang-format off
 try // clang-format on
 {
+    service_argv.assign(argv, argv + argc);
+
     if (argc > 1)
     {
         std::string cmd{argv[1]};
@@ -327,6 +334,8 @@ try // clang-format on
             auto logger = mp::platform::make_logger(mpl::Level::info);
             logger->log(mpl::Level::info, "main", "calling service ctrl dispatcher");
             std::array<SERVICE_TABLE_ENTRY, 2> table{{{"", service_main}, {nullptr, nullptr}}};
+            // remove "/svc" from the list of arguments
+            service_argv.erase(service_argv.begin() + 1);
             return StartServiceCtrlDispatcher(table.data());
         }
     }
