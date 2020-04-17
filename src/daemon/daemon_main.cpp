@@ -122,6 +122,8 @@ int main_impl(int argc, char* argv[])
 
     set_server_permissions(server_address);
 
+    mpl::log(mpl::Level::info, "daemon", fmt::format("Starting Multipass {}", mp::version_string));
+    mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
     auto ret = QCoreApplication::exec();
 
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
