@@ -276,6 +276,12 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         dress_with_stuff(json, flags);
         // std::cout << "DEBUG json after: " << json << std::endl;
     }
+
+    Json::Value& edit_profiles(Json::Value& json)
+    {
+        auto& profiles = json["profiles"];
+        return profiles.isArray() ? profiles : profiles["list"];
+    }
 };
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primary)
@@ -284,13 +290,30 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primar
     const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
-    json["profiles"][0]["guid"] = mp::winterm_profile_guid;
-    json["profiles"][0]["hidden"] = false;
+    json["profiles"][0u]["guid"] = mp::winterm_profile_guid;
+    json["profiles"][0u]["hidden"] = false;
     dress_up(json, GetParam());
-
     const auto json_file = fake_json(json);
 
     mp::platform::sync_winterm_profiles();
+
+    EXPECT_EQ(json, read_json(json_file->fileName()));
+}
+
+TEST_P(TestWinTermSyncJson, winterm_sync_enables_hidden_profile_if_setting_primary)
+{
+    mock_winterm_setting("primary");
+    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
+
+    Json::Value json;
+    json["profiles"][0u]["guid"] = mp::winterm_profile_guid;
+    json["profiles"][0u]["hidden"] = true;
+    dress_up(json, GetParam());
+    const auto json_file = fake_json(json);
+
+    mp::platform::sync_winterm_profiles();
+
+    edit_profiles(json)[0u]["hidden"] = false;
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
