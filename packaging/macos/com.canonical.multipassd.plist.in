@@ -5,8 +5,12 @@
     <key>Label</key>
     <string>com.canonical.multipassd</string>
 
-    <key>Program</key>
-    <string>@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipassd</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipassd</string>
+      <string>--verbosity</string>
+      <string>debug</string>
+    </array>
 
     <key>KeepAlive</key>
     <true/>
