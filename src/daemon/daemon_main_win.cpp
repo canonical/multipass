@@ -130,7 +130,7 @@ std::string get_command_to_start_service()
     if (!ok)
         throw std::runtime_error(fmt::format("GetModuleFileName failed: '{}'", last_error_message()));
 
-    return fmt::format("\"{}\" /svc", path.data());
+    return fmt::format("\"{}\" /svc --verbosity debug", path.data());
 }
 
 void install_service()
