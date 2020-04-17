@@ -26,6 +26,8 @@
 #include <multipass/format.h>
 
 #include <QDir>
+#include <QString>
+#include <cassert>
 #include <iostream>
 
 #include <semver200.h>
@@ -122,26 +124,31 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 // Split a path into existing and to-be-created parts.
 std::pair<std::string, std::string> get_path_split(mp::SSHSession& session, const std::string& target)
 {
-    QDir complete_path(QString::fromStdString(target));
-    QString absolute;
+    std::string absolute;
 
-    if (complete_path.isRelative())
+    switch (target[0])
     {
-        std::string home = run_cmd(session, "pwd");
-        mp::utils::trim_newline(home);
-        absolute = QString::fromStdString(home) + '/' + complete_path.path();
-    }
-    else
-    {
-        absolute = complete_path.path();
+    case '~':
+        absolute =
+            run_cmd(session, fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
+        mp::utils::trim_newline(absolute);
+        break;
+    case '/':
+        absolute = target;
+        break;
+    default:
+        absolute = run_cmd(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
+        mp::utils::trim_newline(absolute);
+        break;
     }
 
     std::string existing = run_cmd(
-        session,
-        fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=${{P%/*}}; done; echo $P/'", absolute));
+        session, fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
+                             absolute));
     mp::utils::trim_newline(existing);
 
-    return {existing, QDir(QString::fromStdString(existing)).relativeFilePath(absolute).toStdString()};
+    return {existing,
+            QDir(QString::fromStdString(existing)).relativeFilePath(QString::fromStdString(absolute)).toStdString()};
 }
 
 // Create a directory on a given root folder.
@@ -188,8 +195,8 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
         set_owner_for(session, leading, missing, default_uid, default_gid);
     }
 
-    return std::make_unique<mp::SftpServer>(std::move(session), source, target, gid_map, uid_map, default_uid,
-                                            default_gid, sshfs_exec_line);
+    return std::make_unique<mp::SftpServer>(std::move(session), source, leading + missing, gid_map, uid_map,
+                                            default_uid, default_gid, sshfs_exec_line);
 }
 
 } // namespace

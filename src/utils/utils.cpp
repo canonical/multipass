@@ -154,6 +154,26 @@ std::string mp::utils::escape_char(const std::string& in, char c)
     return std::regex_replace(in, std::regex({c}), fmt::format("\\{}", c));
 }
 
+// Escape all characters which need to be escaped in the shell.
+std::string mp::utils::escape_for_shell(const std::string& in)
+{
+    std::string ret;
+    std::back_insert_iterator<std::string> ret_insert = std::back_inserter(ret);
+
+    for (char c : in)
+    {
+        // If the character is in one of these code ranges, then it must be escaped.
+        if (c < 0x25 || c > 0x7a || (c > 0x25 && c < 0x2b) || (c > 0x5a && c < 0x5f) || 0x2c == c || 0x3b == c ||
+            0x3c == c || 0x3e == c || 0x3f == c || 0x60 == c)
+        {
+            *ret_insert++ = '\\';
+        }
+        *ret_insert++ = c;
+    }
+
+    return ret;
+}
+
 std::vector<std::string> mp::utils::split(const std::string& string, const std::string& delimiter)
 {
     std::regex regex(delimiter);
