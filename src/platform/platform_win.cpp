@@ -41,6 +41,7 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <fstream>
@@ -96,6 +97,12 @@ QString locate_profiles_path()
         "Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\profiles.json");
 }
 
+Json::Value& get_profiles(Json::Value& json_root)
+{
+    auto& profiles = json_root["profiles"];
+    return profiles.isArray() ? profiles : profiles["list"];
+}
+
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -123,7 +130,8 @@ void mp::platform::sync_winterm_profiles()
     const auto none = QStringLiteral("none");
     if (!profiles_path.isEmpty())
     {
-        if (std::ifstream json_file{profiles_path.toStdString(), std::ifstream::binary})
+        const auto mode = std::ifstream::binary | std::ifstream::in | std::ifstream::out;
+        if (std::fstream json_file{profiles_path.toStdString(), mode})
         {
             Json::CharReaderBuilder rbuilder;
             Json::Value json_root;
@@ -136,7 +144,28 @@ void mp::platform::sync_winterm_profiles()
                 mpl::log(level, log_category, fmt::format(error_fmt, profiles_path, errs));
             }
 
-            // TODO@ricab
+            auto& profiles = get_profiles(json_root);
+            auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
+                return profile["guid"] == mp::winterm_profile_guid;
+            });
+
+            if (winterm_setting == none)
+            {
+                ; // TODO@ricab
+            }
+            else if (primary_profile_it != std::end(profiles))
+            {
+                if (primary_profile_it->isMember("hidden") && (*primary_profile_it)["hidden"].asBool())
+                    (*primary_profile_it)["hidden"] = false;
+            }
+            else
+                ; // TODO@ricab add primary profile
+
+            json_file.clear();
+            json_file.seekg(0);
+            json_file << json_root;
+            // TODO@ricab check stream
+            // TODO@ricab extract error logging? (probably through internal exceptions?)
         }
         else
         {
