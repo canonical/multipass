@@ -33,6 +33,9 @@
 #include <windows.h>
 
 #include <array>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -40,6 +43,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto service_name = "Multipass";
+std::vector<char*> service_argv;
 
 BOOL windows_console_ctrl_handler(DWORD dwCtrlType)
 {
@@ -126,7 +130,7 @@ std::string get_command_to_start_service()
     if (!ok)
         throw std::runtime_error(fmt::format("GetModuleFileName failed: '{}'", last_error_message()));
 
-    return fmt::format("\"{}\" /svc", path.data());
+    return fmt::format("\"{}\" /svc --verbosity debug", path.data());
 }
 
 void install_service()
@@ -260,6 +264,7 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
     mp::monitor_and_quit_on_settings_change(); // temporary
     mp::Daemon daemon(std::move(config));
 
+    mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
     auto ret = QCoreApplication::exec();
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
     return ret;
@@ -269,6 +274,9 @@ void service_main(DWORD argc, char* argv[]) // clang-format off
 try // clang-format on
 {
     auto logger = mp::platform::make_logger(mpl::Level::info);
+    auto daemon_argv(service_argv);
+    daemon_argv.insert(daemon_argv.end(), argv + 1, argv + argc);
+
     logger->log(mpl::Level::info, "service_main", "registering control handler");
 
     service_handle = RegisterServiceCtrlHandler(service_name, control_handler);
@@ -285,7 +293,7 @@ try // clang-format on
 
     logger->log(mpl::Level::info, "service_main", "service is running");
 
-    auto exit_code = daemon_main(static_cast<int>(argc), argv, RegisterConsoleHandler::no);
+    auto exit_code = daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
 
     status.dwCurrentState = SERVICE_STOPPED;
     status.dwWin32ExitCode = exit_code;
@@ -307,6 +315,14 @@ catch (...)
 int main(int argc, char* argv[]) // clang-format off
 try // clang-format on
 {
+    service_argv.assign(argv, argv + argc);
+
+    auto logger = mp::platform::make_logger(mpl::Level::info);
+    std::ostringstream arguments;
+    std::copy(service_argv.begin(), service_argv.end(), std::ostream_iterator<std::string>(arguments, " "));
+    logger->log(mpl::Level::info, "main", fmt::format("Starting Multipass {}", mp::version_string));
+    logger->log(mpl::Level::info, "main", fmt::format("Service arguments: {}", arguments.str()));
+
     if (argc > 1)
     {
         std::string cmd{argv[1]};
@@ -324,9 +340,10 @@ try // clang-format on
 
         if (cmd == "/svc")
         {
-            auto logger = mp::platform::make_logger(mpl::Level::info);
             logger->log(mpl::Level::info, "main", "calling service ctrl dispatcher");
             std::array<SERVICE_TABLE_ENTRY, 2> table{{{"", service_main}, {nullptr, nullptr}}};
+            // remove "/svc" from the list of arguments
+            service_argv.erase(service_argv.begin() + 1);
             return StartServiceCtrlDispatcher(table.data());
         }
     }
