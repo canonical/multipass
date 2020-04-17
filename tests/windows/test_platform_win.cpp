@@ -334,6 +334,22 @@ TEST_P(TestWinTermSyncJson, winterm_sync_enables_hidden_profile_if_setting_prima
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
+TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_setting_primary)
+{
+    mock_winterm_setting("primary");
+    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
+
+    Json::Value json;
+    setup_primary_profile(json);
+
+    dress_up(json, GetParam());
+    const auto json_file = fake_json(json);
+
+    mp::platform::sync_winterm_profiles();
+
+    EXPECT_EQ(json, read_json(json_file->fileName()));
+}
+
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
                          Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
 } // namespace
