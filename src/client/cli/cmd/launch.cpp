@@ -203,7 +203,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             {
                 QFileInfo check_file(cloudInitFile);
 
-                if (!check_file.exists() || !check_file.isFile()) {
+                if (!check_file.exists() || !check_file.isFile())
+                {
                     cerr << "error: No such file: " << cloudInitFile.toStdString() << "\n";
                     return ParseCode::CommandLineError;
                 }
