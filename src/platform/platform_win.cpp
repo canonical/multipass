@@ -103,6 +103,34 @@ Json::Value& get_profiles(Json::Value& json_root)
     return profiles.isArray() ? profiles : profiles["list"];
 }
 
+struct WintermSyncException : public std::runtime_error
+{
+    WintermSyncException(const std::string& msg, const QString& path, const std::string& reason)
+        : std::runtime_error{fmt::format("{}; location: \"{}\"; reason: {}.", msg, path, reason)}
+    {
+    }
+
+    WintermSyncException(const std::string& msg, const QString& path)
+        : WintermSyncException{msg, path, fmt::format("{} (error code: {})", std::strerror(errno), errno)}
+    {
+    }
+};
+
+struct LesserWintermSyncException : public WintermSyncException
+{
+    using WintermSyncException::WintermSyncException;
+};
+
+struct ModerateWintermSyncException : public WintermSyncException
+{
+    using WintermSyncException::WintermSyncException;
+};
+
+struct GreaterWintermSyncException : public WintermSyncException
+{
+    using WintermSyncException::WintermSyncException;
+};
+
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -128,61 +156,61 @@ void mp::platform::sync_winterm_profiles()
     const auto profiles_path = locate_profiles_path();
     const auto winterm_setting = mp::Settings::instance().get(mp::winterm_key);
     const auto none = QStringLiteral("none");
-    if (!profiles_path.isEmpty())
+
+    try
     {
+        if (profiles_path.isEmpty())
+            throw LesserWintermSyncException{"Could not find Windows Terminal's settings", profiles_path,
+                                             "File not found"};
+
         const auto mode = std::ifstream::binary | std::ifstream::in | std::ifstream::out;
-        if (std::fstream json_file{profiles_path.toStdString(), mode})
+        std::fstream json_file{profiles_path.toStdString(), mode};
+        if (!json_file)
+            throw ModerateWintermSyncException{"Could not read Windows Terminal's configuration", profiles_path};
+
+        Json::CharReaderBuilder rbuilder;
+        Json::Value json_root;
+        std::string errs;
+        if (!Json::parseFromStream(rbuilder, json_file, &json_root, &errs))
+            throw ModerateWintermSyncException{"Could not parse Windows Terminal's configuration", profiles_path, errs};
+
+        auto& profiles = get_profiles(json_root);
+        auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
+            return profile["guid"] == mp::winterm_profile_guid;
+        });
+
+        if (winterm_setting == none)
         {
-            Json::CharReaderBuilder rbuilder;
-            Json::Value json_root;
-            std::string errs;
-            if (!Json::parseFromStream(rbuilder, json_file, &json_root, &errs))
-            {
-                const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
-                const auto error_fmt = "Could not parse Windows Terminal's configuration (located at \"{}\"); "
-                                       "reason: {}";
-                mpl::log(level, log_category, fmt::format(error_fmt, profiles_path, errs));
-            }
-
-            auto& profiles = get_profiles(json_root);
-            auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
-                return profile["guid"] == mp::winterm_profile_guid;
-            });
-
-            if (winterm_setting == none)
-            {
-                ; // TODO@ricab
-            }
-            else if (primary_profile_it != std::end(profiles))
-            {
-                if (primary_profile_it->isMember("hidden") && (*primary_profile_it)["hidden"].asBool())
-                    (*primary_profile_it)["hidden"] = false;
-            }
-            else
-                ; // TODO@ricab add primary profile
-
-            json_file.clear();
-            json_file.seekg(0);
-            json_file << json_root;
-            if (!json_file)
-            {
-                const auto error_fmt = "Could not update Windows Terminal's configuration (located at \"{}\"); "
-                                       "reason: {} (error code {})";
-                mpl::log(mpl::Level::error, log_category,
-                         fmt::format(error_fmt, profiles_path, std::strerror(errno), errno));
-            }
-            // TODO@ricab extract error logging? (probably through internal exceptions?)
+            ; // TODO@ricab
+        }
+        else if (primary_profile_it != std::end(profiles))
+        {
+            if (primary_profile_it->isMember("hidden") && (*primary_profile_it)["hidden"].asBool())
+                (*primary_profile_it)["hidden"] = false;
         }
         else
-        {
-            const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
-            const auto error_fmt = "Could not read Windows Terminal's configuration (located at \"{}\"); "
-                                   "reason: {} (error code {})";
-            mpl::log(level, log_category, fmt::format(error_fmt, profiles_path, std::strerror(errno), errno));
-        }
+            ; // TODO@ricab add primary profile
+
+        json_file.clear();
+        json_file.seekg(0);
+        json_file << json_root;
+        if (!json_file)
+            throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration", profiles_path};
     }
-    else if (winterm_setting != none)
-        mpl::log(mpl::Level::warning, log_category, "Could not find Windows Terminal");
+    catch (LesserWintermSyncException& e)
+    {
+        const auto level = winterm_setting == none ? mpl::Level::debug : mpl::Level::warning;
+        mpl::log(level, log_category, e.what());
+    }
+    catch (ModerateWintermSyncException& e)
+    {
+        const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
+        mpl::log(level, log_category, e.what());
+    }
+    catch (GreaterWintermSyncException& e)
+    {
+        mpl::log(mpl::Level::error, log_category, e.what());
+    }
 }
 
 QString mp::platform::autostart_test_data()
