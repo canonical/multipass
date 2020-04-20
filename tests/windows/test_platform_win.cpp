@@ -141,29 +141,30 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
 }
 
-TEST(PlatformWin, winterm_sync_warns_if_setting_primary_but_no_file)
-{
-    mock_winterm_setting("primary");
-    mock_stdpaths_locate("");
-    auto mock_logger_guard = expect_log(mpl::Level::warning, "Could not find");
-
-    mp::platform::sync_winterm_profiles();
-}
-
-TEST(PlatformWin, winterm_sync_debugs_if_setting_off_and_no_file)
-{
-    mock_winterm_setting("none");
-    mock_stdpaths_locate("");
-    auto mock_logger_guard = expect_log(mpl::Level::debug, "Could not find");
-
-    mp::platform::sync_winterm_profiles();
-}
-
-struct TestWinTermSyncLogging : public TestWithParam<std::pair<QString, mpl::Level>>
+struct TestWinTermSyncLesserLogging : public TestWithParam<std::pair<QString, mpl::Level>>
 {
 };
 
-TEST_P(TestWinTermSyncLogging, logging_on_unreadable_settings)
+TEST_P(TestWinTermSyncLesserLogging, logging_on_no_file)
+{
+    const auto& [setting, lvl] = GetParam();
+
+    mock_winterm_setting(setting);
+    mock_stdpaths_locate("");
+    auto mock_logger_guard = expect_log(lvl, "Could not find");
+
+    mp::platform::sync_winterm_profiles();
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLesserLogging,
+                         Values(std::make_pair(QStringLiteral("none"), mpl::Level::debug),
+                                std::make_pair(QStringLiteral("primary"), mpl::Level::warning)));
+
+struct TestWinTermSyncModerateLogging : public TestWithParam<std::pair<QString, mpl::Level>>
+{
+};
+
+TEST_P(TestWinTermSyncModerateLogging, logging_on_unreadable_settings)
 {
     const auto& [setting, lvl] = GetParam();
 
@@ -174,7 +175,7 @@ TEST_P(TestWinTermSyncLogging, logging_on_unreadable_settings)
     mp::platform::sync_winterm_profiles();
 }
 
-TEST_P(TestWinTermSyncLogging, logging_on_unparseable_settings)
+TEST_P(TestWinTermSyncModerateLogging, logging_on_unparseable_settings)
 {
     const auto& [setting, lvl] = GetParam();
     mock_winterm_setting(setting);
@@ -185,7 +186,7 @@ TEST_P(TestWinTermSyncLogging, logging_on_unparseable_settings)
     mp::platform::sync_winterm_profiles();
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLogging,
+INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncModerateLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
