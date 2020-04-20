@@ -51,6 +51,8 @@ namespace mpl = mp::logging;
 
 namespace
 {
+static const auto none = QStringLiteral("none");
+
 time_t time_t_from(const FILETIME* ft)
 {
     long long win_time = (static_cast<long long>(ft->dwHighDateTime) << 32) + ft->dwLowDateTime;
@@ -131,6 +133,49 @@ struct GreaterWintermSyncException : public WintermSyncException
     using WintermSyncException::WintermSyncException;
 };
 
+Json::Value read_winterm_settings(const QString& path)
+{
+    std::ifstream json_file{path.toStdString(), std::ifstream::binary};
+    if (!json_file)
+        throw ModerateWintermSyncException{"Could not read Windows Terminal's configuration", path};
+
+    Json::CharReaderBuilder rbuilder;
+    Json::Value json_root;
+    std::string errs;
+    if (!Json::parseFromStream(rbuilder, json_file, &json_root, &errs))
+        throw ModerateWintermSyncException{"Could not parse Windows Terminal's configuration", path, errs};
+
+    return json_root;
+}
+
+void update_profiles(Json::Value& json_root, const QString& winterm_setting)
+{
+    auto& profiles = get_profiles(json_root);
+    auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
+        return profile["guid"] == mp::winterm_profile_guid;
+    });
+
+    if (winterm_setting == none)
+    {
+        ; // TODO@ricab
+    }
+    else if (primary_profile_it != std::end(profiles))
+    {
+        if (primary_profile_it->isMember("hidden") && (*primary_profile_it)["hidden"].asBool())
+            (*primary_profile_it)["hidden"] = false;
+    }
+    else
+        ; // TODO@ricab add primary profile
+}
+
+void save_profiles(const QString& path, const Json::Value& json_root)
+{
+    std::ofstream json_file{path.toStdString(), std::ofstream::binary};
+    json_file << json_root;
+    if (!json_file)
+        throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration", path};
+}
+
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -155,7 +200,6 @@ void mp::platform::sync_winterm_profiles()
     constexpr auto log_category = "winterm";
     const auto profiles_path = locate_profiles_path();
     const auto winterm_setting = mp::Settings::instance().get(mp::winterm_key);
-    const auto none = QStringLiteral("none");
 
     try
     {
@@ -163,39 +207,9 @@ void mp::platform::sync_winterm_profiles()
             throw LesserWintermSyncException{"Could not find Windows Terminal's settings", profiles_path,
                                              "File not found"};
 
-        const auto mode = std::ifstream::binary | std::ifstream::in | std::ifstream::out;
-        std::fstream json_file{profiles_path.toStdString(), mode};
-        if (!json_file)
-            throw ModerateWintermSyncException{"Could not read Windows Terminal's configuration", profiles_path};
-
-        Json::CharReaderBuilder rbuilder;
-        Json::Value json_root;
-        std::string errs;
-        if (!Json::parseFromStream(rbuilder, json_file, &json_root, &errs))
-            throw ModerateWintermSyncException{"Could not parse Windows Terminal's configuration", profiles_path, errs};
-
-        auto& profiles = get_profiles(json_root);
-        auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
-            return profile["guid"] == mp::winterm_profile_guid;
-        });
-
-        if (winterm_setting == none)
-        {
-            ; // TODO@ricab
-        }
-        else if (primary_profile_it != std::end(profiles))
-        {
-            if (primary_profile_it->isMember("hidden") && (*primary_profile_it)["hidden"].asBool())
-                (*primary_profile_it)["hidden"] = false;
-        }
-        else
-            ; // TODO@ricab add primary profile
-
-        json_file.clear();
-        json_file.seekg(0);
-        json_file << json_root;
-        if (!json_file)
-            throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration", profiles_path};
+        auto json_root = read_winterm_settings(profiles_path);
+        update_profiles(json_root, winterm_setting);
+        save_profiles(profiles_path, json_root);
     }
     catch (LesserWintermSyncException& e)
     {
