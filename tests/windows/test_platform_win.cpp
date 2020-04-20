@@ -150,13 +150,12 @@ TEST(PlatformWin, winterm_sync_warns_if_setting_primary_but_no_file)
     mp::platform::sync_winterm_profiles();
 }
 
-TEST(PlatformWin, winterm_sync_ignores_if_setting_off_and_no_file)
+TEST(PlatformWin, winterm_sync_debugs_if_setting_off_and_no_file)
 {
     mock_winterm_setting("none");
     mock_stdpaths_locate("");
-    auto [mock_logger, guard] = guarded_mock_logger();
+    auto mock_logger_guard = expect_log(mpl::Level::debug, "Could not find");
 
-    EXPECT_CALL(*mock_logger, log(_, _, _)).Times(0);
     mp::platform::sync_winterm_profiles();
 }
 
