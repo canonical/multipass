@@ -164,7 +164,13 @@ void mp::platform::sync_winterm_profiles()
             json_file.clear();
             json_file.seekg(0);
             json_file << json_root;
-            // TODO@ricab check stream
+            if (!json_file)
+            {
+                const auto error_fmt = "Could not update Windows Terminal's configuration (located at \"{}\"); "
+                                       "reason: {} (error code {})";
+                mpl::log(mpl::Level::error, log_category,
+                         fmt::format(error_fmt, profiles_path, std::strerror(errno), errno));
+            }
             // TODO@ricab extract error logging? (probably through internal exceptions?)
         }
         else
