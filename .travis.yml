@@ -21,6 +21,7 @@ env:
   - MULTIPASS_REPORT_OPTIONS=()
 
 stages:
+- name: static
 - name: build
   if: | # bors and release branches, release tags and all pull requests
     (type = push
@@ -33,6 +34,22 @@ stages:
 
 jobs:
   include:
+    - stage: static
+      name: Clang format
+      if: type = pull_request
+
+      addons:
+        apt:
+          packages: [clang-format]
+
+      script:
+      - git diff -U0 --no-color origin/${TRAVIS_BRANCH} | clang-format-diff -p1 | tee ${HOME}/clang-diff
+      - |
+        if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
+          echo "ERROR: please apply the above diff to correct formatting"
+          exit 1
+        fi
+
     - &snapcraft-build
       stage: build
       name: Debug
