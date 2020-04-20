@@ -92,6 +92,13 @@ struct MockDaemonRpc : public mp::DaemonRpc
 
 struct Client : public Test
 {
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, get(_)).Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests.
+                                                                  This allows general actions to consult settings
+                                                                  (e.g. Windows Terminal profile sync) */
+    }
+
     void TearDown() override
     {
         Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a strict mock
@@ -1443,7 +1450,6 @@ INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions, Values(mp::petenv_key, 
 
 TEST_F(Client, get_cmd_fails_with_no_arguments)
 {
-    EXPECT_CALL(mock_settings, get(_)).Times(0);
     EXPECT_THAT(send_command({"get"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
@@ -1455,7 +1461,6 @@ TEST_F(Client, set_cmd_fails_with_no_arguments)
 
 TEST_F(Client, get_cmd_fails_with_multiple_arguments)
 {
-    EXPECT_CALL(mock_settings, get(_)).Times(0);
     EXPECT_THAT(send_command({"get", mp::petenv_key, mp::driver_key}), Eq(mp::ReturnCode::CommandLineError));
 }
 
