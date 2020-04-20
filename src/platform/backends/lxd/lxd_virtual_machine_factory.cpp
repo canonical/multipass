@@ -37,7 +37,7 @@ constexpr auto category = "lxd factory";
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir)
-    : data_dir{data_dir}, base_url{"https://10.225.118.1:8443/1.0"}, manager{std::make_unique<QNetworkAccessManager>()}
+    : data_dir{data_dir}, base_url{"https://localhost:8443/1.0"}, manager{std::make_unique<QNetworkAccessManager>()}
 {
 }
 
