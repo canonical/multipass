@@ -352,4 +352,40 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_se
 
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
                          Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
+
+TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary)
+{
+    // TODO@ricab
+}
+
+TEST_P(TestWinTermSyncJson, winterm_sync_keeps_missing_profile_if_setting_none)
+{
+    // TODO@ricab
+}
+
+TEST_P(TestWinTermSyncJson, winterm_sync_keeps_hidden_profile_if_setting_none)
+{
+    // TODO@ricab
+}
+
+TEST_P(TestWinTermSyncJson, winterm_sync_disables_visible_profile_if_setting_none)
+{
+    // TODO@ricab
+}
+
+TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if_setting_none)
+{
+    // TODO@ricab
+}
+
+/*
+ * TODO@ricab other cases to test
+ *   - json empty
+ *   - json empty dict
+ *   - profiles list empty
+ *   - profiles list w/ stuff
+ *   - profiles array empty
+ *   - profiles array w/ stuff
+ */
+
 } // namespace
