@@ -405,7 +405,18 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_missing_profile_if_setting_none)
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_hidden_profile_if_setting_none)
 {
-    // TODO@ricab
+    mock_winterm_setting("none");
+    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
+
+    Json::Value json;
+    auto& profile = setup_primary_profile(json);
+    profile["hidden"] = true;
+
+    dress_up(json, GetParam());
+    const auto json_file = fake_json(json);
+
+    mp::platform::sync_winterm_profiles();
+    EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_disables_visible_profile_if_setting_none)
