@@ -150,6 +150,26 @@ Json::Value read_winterm_settings(const QString& path)
     return json_root;
 }
 
+Json::Value create_primary_profile()
+{
+    Json::Value primary_profile{};
+    primary_profile["guid"] = mp::winterm_profile_guid;
+    primary_profile["name"] = "Multipass";
+    primary_profile["background"] = "#350425";
+    primary_profile["cursorShape"] = "filledBox";
+    primary_profile["fontFace"] = "Ubuntu mono";
+    primary_profile["historySIze"] = 50000;
+    primary_profile["icon"] = "C:\\\\Program Files\\\\Multipass\\\\bin\\\\multipass.ico";
+    /*
+     * TODO@ricab:
+     *   - install font
+     *   - install icon
+     *   - get to icon using relative path to something known
+     */
+
+    return primary_profile;
+}
+
 void update_profiles(Json::Value& json_root, const QString& winterm_setting)
 {
     auto& profiles = edit_profiles(json_root);
@@ -167,7 +187,7 @@ void update_profiles(Json::Value& json_root, const QString& winterm_setting)
             (*primary_profile_it)["hidden"] = false;
     }
     else
-        ; // TODO@ricab add primary profile
+        profiles.append(create_primary_profile());
 }
 
 void save_profiles(const QString& path, const Json::Value& json_root)
