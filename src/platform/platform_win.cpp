@@ -177,17 +177,12 @@ void update_profiles(Json::Value& json_root, const QString& winterm_setting)
         return profile["guid"] == mp::winterm_profile_guid;
     });
 
-    if (winterm_setting == none)
+    if (primary_profile_it != std::end(profiles))
     {
-        if (primary_profile_it != std::end(profiles))
-            (*primary_profile_it)["hidden"] = true;
+        if (primary_profile_it->isMember("hidden") || winterm_setting == none)
+            (*primary_profile_it)["hidden"] = winterm_setting == none;
     }
-    else if (primary_profile_it != std::end(profiles))
-    {
-        if (primary_profile_it->isMember("hidden") && (*primary_profile_it)["hidden"].asBool())
-            (*primary_profile_it)["hidden"] = false;
-    }
-    else
+    else if (winterm_setting != none)
         profiles.append(create_primary_profile());
 }
 
