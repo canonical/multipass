@@ -25,6 +25,11 @@ layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
 
+plugs:
+  all-home:
+    interface: home
+    read: all
+
 apps:
   multipassd:
     command: bin/launch-multipassd
@@ -47,6 +52,7 @@ apps:
       - network-bind
       - network-control
       - firewall-control
+      - all-home
   multipass:
     environment:
       <<: &client-environment
