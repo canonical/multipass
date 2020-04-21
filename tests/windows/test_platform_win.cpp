@@ -267,7 +267,6 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
     {
         // std::cout << "DEBUG json before: " << json << std::endl;
         auto& profiles = json["profiles"];
-        ASSERT_TRUE(profiles.isArray());
         ASSERT_LE(profiles.size(), 1u);
 
         dress_with_comments(profiles, flags);
