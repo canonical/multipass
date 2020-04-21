@@ -283,10 +283,22 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         return ret;
     }
 
-    Json::Value& edit_primary_profile(Json::Value& json)
+    const Json::Value& get_profiles(const Json::Value& json)
     {
-        auto& profiles_root = json["profiles"];
-        auto& profiles = profiles_root.isArray() ? profiles_root : profiles_root["list"];
+        const auto& profiles = json["profiles"];
+        if (profiles.isNull() || profiles.isArray() || !profiles.isMember("list"))
+            return profiles;
+        return profiles["list"];
+    }
+
+    Json::Value& edit_profiles(Json::Value& json)
+    {
+        return const_cast<Json::Value&>(get_profiles(json));
+    }
+
+    const Json::Value& get_primary_profile(const Json::Value& json)
+    {
+        const auto& profiles = get_profiles(json);
 
         auto it = std::find_if(profiles.begin(), profiles.end(),
                                [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
@@ -295,6 +307,11 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
             throw std::runtime_error{"Test error - could not find primary profile"};
 
         return *it;
+    }
+
+    Json::Value& edit_primary_profile(Json::Value& json)
+    {
+        return const_cast<Json::Value&>(get_primary_profile(json));
     }
 };
 
@@ -349,12 +366,28 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_se
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
-                         Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
-
 TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary)
 {
-    // TODO@ricab
+    mock_winterm_setting("primary");
+    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
+
+    Json::Value json_in;
+    dress_up(json_in, GetParam());
+    const auto json_file = fake_json(json_in);
+
+    mp::platform::sync_winterm_profiles();
+    const auto json_out = read_json(json_file->fileName());
+
+    Json::Value primary_profile;
+    ASSERT_NO_THROW(primary_profile = get_primary_profile(json_out));
+    EXPECT_EQ(primary_profile["name"], "Multipass");
+    EXPECT_THAT(primary_profile["fontFace"].asString(), HasSubstr("Ubuntu"));
+    EXPECT_THAT(primary_profile["icon"].asString(), EndsWith(".ico"));
+    EXPECT_TRUE(primary_profile.isMember("background"));
+
+    auto json_proof = json_out; // copy json_out so we can keep it const (to ensure indexing doesn't change it above)
+    edit_profiles(json_proof) = get_profiles(json_in);
+    EXPECT_EQ(json_proof, json_in); // confirm the rest of the json is the same
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_missing_profile_if_setting_none)
@@ -376,6 +409,9 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if
 {
     // TODO@ricab
 }
+
+INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
+                         Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
 
 /*
  * TODO@ricab other cases to test
