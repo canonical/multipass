@@ -99,10 +99,12 @@ QString locate_profiles_path()
         "Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\profiles.json");
 }
 
-Json::Value& get_profiles(Json::Value& json_root)
+Json::Value& edit_profiles(Json::Value& json_root)
 {
     auto& profiles = json_root["profiles"];
-    return profiles.isArray() ? profiles : profiles["list"];
+    return profiles.isArray() || !profiles.isMember("list") ? profiles : profiles["list"]; /* Notes:
+                                                                    1) don't index into "list" unless it already exists
+                                                                    2) can't look for named member on array values */
 }
 
 struct WintermSyncException : public std::runtime_error
@@ -150,7 +152,7 @@ Json::Value read_winterm_settings(const QString& path)
 
 void update_profiles(Json::Value& json_root, const QString& winterm_setting)
 {
-    auto& profiles = get_profiles(json_root);
+    auto& profiles = edit_profiles(json_root);
     auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
         return profile["guid"] == mp::winterm_profile_guid;
     });
