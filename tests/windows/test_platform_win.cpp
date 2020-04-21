@@ -190,8 +190,9 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncModerateLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
-struct TestWinTermSyncJson : public TestWithParam<unsigned char>
+class TestWinTermSyncJson : public TestWithParam<unsigned char>
 {
+public:
     struct DressUpFlags
     {
         enum Value : unsigned char
@@ -210,6 +211,58 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
         static constexpr unsigned char end = Value::End;
     };
 
+    void dress_up(Json::Value& json, unsigned char flags)
+    {
+        // std::cout << "DEBUG json before: " << json << std::endl;
+        auto& profiles = json["profiles"];
+        ASSERT_LE(profiles.size(), 1u);
+
+        dress_with_comments(profiles, flags);
+        dress_with_extra_profiles(profiles, flags);
+        dress_with_dict(profiles, flags);
+        dress_with_stuff(json, flags);
+        // std::cout << "DEBUG json after: " << json << std::endl;
+    }
+
+    Json::Value& setup_primary_profile(Json::Value& json)
+    {
+        auto& ret = json["profiles"][0u];
+        ret["guid"] = mp::winterm_profile_guid;
+        return ret;
+    }
+
+    const Json::Value& get_profiles(const Json::Value& json)
+    {
+        const auto& profiles = json["profiles"];
+        if (profiles.isNull() || profiles.isArray() || !profiles.isMember("list"))
+            return profiles;
+        return profiles["list"];
+    }
+
+    Json::Value& edit_profiles(Json::Value& json)
+    {
+        return const_cast<Json::Value&>(get_profiles(json));
+    }
+
+    const Json::Value& get_primary_profile(const Json::Value& json)
+    {
+        const auto& profiles = get_profiles(json);
+
+        auto it = std::find_if(profiles.begin(), profiles.end(),
+                               [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
+
+        if (it == profiles.end())
+            throw std::runtime_error{"Test error - could not find primary profile"};
+
+        return *it;
+    }
+
+    Json::Value& edit_primary_profile(Json::Value& json)
+    {
+        return const_cast<Json::Value&>(get_primary_profile(json));
+    }
+
+private:
     void dress_with_comments(Json::Value& profiles, unsigned char flags)
     {
         if (flags & (DressUpFlags::CommentBefore | DressUpFlags::CommentInline | DressUpFlags::CommentAfter))
@@ -261,57 +314,6 @@ struct TestWinTermSyncJson : public TestWithParam<unsigned char>
     {
         if (flags & DressUpFlags::StuffOutside)
             json["stuff"]["a"]["b"]["c"] = "asdf";
-    }
-
-    void dress_up(Json::Value& json, unsigned char flags)
-    {
-        // std::cout << "DEBUG json before: " << json << std::endl;
-        auto& profiles = json["profiles"];
-        ASSERT_LE(profiles.size(), 1u);
-
-        dress_with_comments(profiles, flags);
-        dress_with_extra_profiles(profiles, flags);
-        dress_with_dict(profiles, flags);
-        dress_with_stuff(json, flags);
-        // std::cout << "DEBUG json after: " << json << std::endl;
-    }
-
-    Json::Value& setup_primary_profile(Json::Value& json)
-    {
-        auto& ret = json["profiles"][0u];
-        ret["guid"] = mp::winterm_profile_guid;
-        return ret;
-    }
-
-    const Json::Value& get_profiles(const Json::Value& json)
-    {
-        const auto& profiles = json["profiles"];
-        if (profiles.isNull() || profiles.isArray() || !profiles.isMember("list"))
-            return profiles;
-        return profiles["list"];
-    }
-
-    Json::Value& edit_profiles(Json::Value& json)
-    {
-        return const_cast<Json::Value&>(get_profiles(json));
-    }
-
-    const Json::Value& get_primary_profile(const Json::Value& json)
-    {
-        const auto& profiles = get_profiles(json);
-
-        auto it = std::find_if(profiles.begin(), profiles.end(),
-                               [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
-
-        if (it == profiles.end())
-            throw std::runtime_error{"Test error - could not find primary profile"};
-
-        return *it;
-    }
-
-    Json::Value& edit_primary_profile(Json::Value& json)
-    {
-        return const_cast<Json::Value&>(get_primary_profile(json));
     }
 };
 
