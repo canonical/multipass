@@ -179,7 +179,8 @@ void update_profiles(Json::Value& json_root, const QString& winterm_setting)
 
     if (winterm_setting == none)
     {
-        ; // TODO@ricab
+        if (primary_profile_it != std::end(profiles))
+            (*primary_profile_it)["hidden"] = true;
     }
     else if (primary_profile_it != std::end(profiles))
     {
