@@ -211,6 +211,18 @@ public:
         static constexpr unsigned char end = Value::End;
     };
 
+    void SetUp() override
+    {
+        // TODO@ricab make this more specific - allow everything but >= warnings
+        auto [mock_logger, guard] = guarded_mock_logger(); // strict mock expects no calls
+        mock_logger_guard.emplace(std::move(guard));
+    }
+
+    void TearDown() override
+    {
+        mock_logger_guard.reset();
+    }
+
     void dress_up(Json::Value& json, unsigned char flags)
     {
         // std::cout << "DEBUG json before: " << json << std::endl;
@@ -315,12 +327,13 @@ private:
         if (flags & DressUpFlags::StuffOutside)
             json["stuff"]["a"]["b"]["c"] = "asdf";
     }
+
+    mp::optional<decltype(guarded_mock_logger().second)> mock_logger_guard;
 };
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primary)
 {
     mock_winterm_setting("primary");
-    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
     auto& profile = setup_primary_profile(json);
@@ -337,7 +350,6 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primar
 TEST_P(TestWinTermSyncJson, winterm_sync_enables_hidden_profile_if_setting_primary)
 {
     mock_winterm_setting("primary");
-    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
     auto& profile = setup_primary_profile(json);
@@ -355,7 +367,6 @@ TEST_P(TestWinTermSyncJson, winterm_sync_enables_hidden_profile_if_setting_prima
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_setting_primary)
 {
     mock_winterm_setting("primary");
-    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
     setup_primary_profile(json);
@@ -371,7 +382,6 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_se
 TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary)
 {
     mock_winterm_setting("primary");
-    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json_in;
     dress_up(json_in, GetParam());
@@ -395,7 +405,6 @@ TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_missing_profile_if_setting_none)
 {
     mock_winterm_setting("none");
-    const auto guarded_logger = guarded_mock_logger();
 
     Json::Value json;
     dress_up(json, GetParam());
@@ -408,7 +417,6 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_missing_profile_if_setting_none)
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_hidden_profile_if_setting_none)
 {
     mock_winterm_setting("none");
-    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
     auto& profile = setup_primary_profile(json);
@@ -424,7 +432,6 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_hidden_profile_if_setting_none)
 TEST_P(TestWinTermSyncJson, winterm_sync_disables_visible_profile_if_setting_none)
 {
     mock_winterm_setting("none");
-    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
     auto& profile = setup_primary_profile(json);
@@ -442,7 +449,6 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_visible_profile_if_setting_non
 TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if_setting_none)
 {
     mock_winterm_setting("none");
-    const auto guarded_logger = guarded_mock_logger(); // strict mock expects no calls
 
     Json::Value json;
     setup_primary_profile(json);
