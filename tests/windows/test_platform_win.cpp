@@ -213,8 +213,9 @@ public:
 
     void SetUp() override
     {
-        // TODO@ricab make this more specific - allow everything but >= warnings
-        auto [mock_logger, guard] = guarded_mock_logger(); // strict mock expects no calls
+        auto [mock_logger, guard] = guarded_mock_logger();
+        EXPECT_CALL(*mock_logger, log(_, _, _)).Times(AnyNumber());
+        EXPECT_CALL(*mock_logger, log(AnyOf(mpl::Level::error, mpl::Level::warning), _, _)).Times(0);
         mock_logger_guard.emplace(std::move(guard));
     }
 
