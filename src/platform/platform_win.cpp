@@ -155,6 +155,7 @@ Json::Value create_primary_profile()
     Json::Value primary_profile{};
     primary_profile["guid"] = mp::winterm_profile_guid;
     primary_profile["name"] = "Multipass";
+    primary_profile["commandline"] = "multipass shell";
     primary_profile["background"] = "#350425";
     primary_profile["cursorShape"] = "filledBox";
     primary_profile["fontFace"] = "Ubuntu mono";

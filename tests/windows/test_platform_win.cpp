@@ -394,6 +394,7 @@ TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary
     Json::Value primary_profile;
     ASSERT_NO_THROW(primary_profile = get_primary_profile(json_out));
     EXPECT_EQ(primary_profile["name"], "Multipass");
+    EXPECT_THAT(primary_profile["commandline"].asString(), HasSubstr(mp::client_name));
     EXPECT_THAT(primary_profile["fontFace"].asString(), HasSubstr("Ubuntu"));
     EXPECT_THAT(primary_profile["icon"].asString(), EndsWith(".ico"));
     EXPECT_TRUE(primary_profile.isMember("background"));
