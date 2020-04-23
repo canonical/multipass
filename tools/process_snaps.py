@@ -76,7 +76,7 @@ def check_snap_notices(store_snaps):
         )
 
         try:
-            notices = subprocess.check_output([CHECK_NOTICES_PATH] + snaps, stderr=subprocess.STDOUT, encoding="UTF-8")
+            notices = subprocess.check_output([CHECK_NOTICES_PATH] + snaps, encoding="UTF-8")
             logger.debug("Got check_notices output:\n%s", notices)
         except subprocess.CalledProcessError as e:
             logger.error("Failed to check notices:\n%s", e.output)
@@ -138,6 +138,12 @@ if __name__ == "__main__":
             logger.debug("Got store versions: %s", {snap["architecture"][0]: snap["version"] for snap in store_snaps})
 
             snap_notices = check_snap_notices(store_snaps)[snap]
+
+            for store_snap in store_snaps:
+                if str(store_snap["revision"]) not in snap_notices:
+                    logger.error("Revision %s missing in result, see above for any review-tools errors.",
+                                 store_snap["revision"])
+                    errors.append(f"Revision {store_snap['revision']} missing in result:\n{store_snap}")
 
             if any(snap_notices.values()):
                 logger.info("Found USNs:\n%s", pprint.pformat(snap_notices))
