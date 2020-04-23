@@ -25,6 +25,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 
+#include <QDateTime>
+#include <QFileInfo>
 #include <QTemporaryFile>
 
 #include <json/json.h>
@@ -342,9 +344,11 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primar
 
     dress_up(json, GetParam());
     const auto json_file = fake_json(json);
+    auto timestamp = QFileInfo{*json_file}.lastModified();
 
     mp::platform::sync_winterm_profiles();
 
+    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
@@ -374,9 +378,11 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_se
 
     dress_up(json, GetParam());
     const auto json_file = fake_json(json);
+    auto timestamp = QFileInfo{*json_file}.lastModified();
 
     mp::platform::sync_winterm_profiles();
 
+    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
@@ -411,8 +417,11 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_missing_profile_if_setting_none)
     Json::Value json;
     dress_up(json, GetParam());
     const auto json_file = fake_json(json);
+    auto timestamp = QFileInfo{*json_file}.lastModified();
 
     mp::platform::sync_winterm_profiles();
+
+    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
@@ -426,8 +435,11 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_hidden_profile_if_setting_none)
 
     dress_up(json, GetParam());
     const auto json_file = fake_json(json);
+    auto timestamp = QFileInfo{*json_file}.lastModified();
 
     mp::platform::sync_winterm_profiles();
+
+    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
     EXPECT_EQ(json, read_json(json_file->fileName()));
 }
 
