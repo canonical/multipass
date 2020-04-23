@@ -171,9 +171,11 @@ Json::Value create_primary_profile()
     return primary_profile;
 }
 
-void update_profiles(Json::Value& json_root, const QString& winterm_setting)
+Json::Value update_profiles(const Json::Value& json_root, const QString& winterm_setting)
 {
-    auto& profiles = edit_profiles(json_root);
+    Json::Value ret = json_root;
+    auto& profiles = edit_profiles(ret);
+
     auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
         return profile["guid"] == mp::winterm_profile_guid;
     });
@@ -185,6 +187,8 @@ void update_profiles(Json::Value& json_root, const QString& winterm_setting)
     }
     else if (winterm_setting != none)
         profiles.append(create_primary_profile());
+
+    return ret;
 }
 
 void save_profiles(const QString& path, const Json::Value& json_root)
@@ -227,8 +231,9 @@ void mp::platform::sync_winterm_profiles()
                                              "File not found"};
 
         auto json_root = read_winterm_settings(profiles_path);
-        update_profiles(json_root, winterm_setting);
-        save_profiles(profiles_path, json_root);
+        auto updated_json = update_profiles(json_root, winterm_setting);
+        if (updated_json != json_root)
+            save_profiles(profiles_path, updated_json);
     }
     catch (LesserWintermSyncException& e)
     {
