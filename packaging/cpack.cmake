@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -104,6 +104,9 @@ if (MSVC)
     include(BundleUtilities)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
     " COMPONENT multipassd)
+
+  # copy the icon, to use in windows terminal profiles
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/windows/icon.ico" DESTINATION bin RENAME multipass.ico COMPONENT multipass)
 
   set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}\\\\packaging\\\\windows\\\\multipass.bmp")
   set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")

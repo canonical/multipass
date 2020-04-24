@@ -33,6 +33,7 @@
 #include "shared/win/process_factory.h"
 #include <default_update_prompt.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QtGlobal>
@@ -160,12 +161,10 @@ Json::Value create_primary_profile()
     primary_profile["cursorShape"] = "filledBox";
     primary_profile["fontFace"] = "Ubuntu mono";
     primary_profile["historySIze"] = 50000;
-    primary_profile["icon"] = "C:\\\\Program Files\\\\Multipass\\\\bin\\\\multipass.ico";
+    primary_profile["icon"] = QDir{QCoreApplication::applicationDirPath()}.filePath("multipass.ico").toStdString();
     /*
      * TODO:
      *   - install font
-     *   - install icon
-     *   - get to icon using relative path to something known
      */
 
     return primary_profile;
