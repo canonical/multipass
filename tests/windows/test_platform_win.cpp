@@ -479,14 +479,4 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
                          Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
 
-/*
- * TODO@ricab other cases to test
- *   - json empty
- *   - json empty dict
- *   - profiles list empty
- *   - profiles list w/ stuff
- *   - profiles array empty
- *   - profiles array w/ stuff
- */
-
 } // namespace

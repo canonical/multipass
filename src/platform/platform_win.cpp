@@ -162,7 +162,7 @@ Json::Value create_primary_profile()
     primary_profile["historySIze"] = 50000;
     primary_profile["icon"] = "C:\\\\Program Files\\\\Multipass\\\\bin\\\\multipass.ico";
     /*
-     * TODO@ricab:
+     * TODO:
      *   - install font
      *   - install icon
      *   - get to icon using relative path to something known
