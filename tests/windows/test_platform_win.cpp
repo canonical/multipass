@@ -56,7 +56,7 @@ void mock_winterm_setting(const QString& ret)
 void mock_stdpaths_locate(const QString& ret)
 {
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
-                locate(_, Property(&QString::toStdString, EndsWith("profiles.json")), _))
+                locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
         .WillOnce(Return(ret));
 }
 
@@ -171,7 +171,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unreadable_settings)
     const auto& [setting, lvl] = GetParam();
 
     mock_winterm_setting(setting);
-    mock_stdpaths_locate("C:\\unreadable\\profiles.json");
+    mock_stdpaths_locate("C:\\unreadable\\settings.json");
     auto mock_logger_guard = expect_log(lvl, "Could not read");
 
     mp::platform::sync_winterm_profiles();
