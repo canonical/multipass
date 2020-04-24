@@ -106,7 +106,7 @@ if (MSVC)
     " COMPONENT multipassd)
 
   # copy the icon, to use in windows terminal profiles
-  install(FILES "${CMAKE_SOURCE_DIR}/packaging/windows/icon.ico" DESTINATION bin RENAME multipass.ico COMPONENT multipass)
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/windows/icon_wt.ico" DESTINATION bin RENAME multipass_wt.ico COMPONENT multipass)
 
   set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}\\\\packaging\\\\windows\\\\multipass.bmp")
   set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
