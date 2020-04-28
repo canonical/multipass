@@ -159,7 +159,7 @@ Json::Value create_primary_profile()
     primary_profile["commandline"] = "multipass shell";
     primary_profile["background"] = "#350425";
     primary_profile["cursorShape"] = "filledBox";
-    primary_profile["fontFace"] = "Ubuntu mono";
+    primary_profile["fontFace"] = "Ubuntu Mono";
     primary_profile["historySIze"] = 50000;
     primary_profile["icon"] = QDir{QCoreApplication::applicationDirPath()}.filePath("multipass_wt.ico").toStdString();
     /*

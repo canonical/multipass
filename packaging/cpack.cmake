@@ -105,8 +105,9 @@ if (MSVC)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
     " COMPONENT multipassd)
 
-  # copy the icon, to use in windows terminal profiles
+  # copy the icon and font, to use in windows terminal profiles
   install(FILES "${CMAKE_SOURCE_DIR}/packaging/windows/icon_wt.ico" DESTINATION bin RENAME multipass_wt.ico COMPONENT multipass)
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/packaging/windows/fonts/" DESTINATION fonts COMPONENT multipass)
 
   set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}\\\\packaging\\\\windows\\\\multipass.bmp")
   set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
@@ -137,6 +138,8 @@ if (MSVC)
     nsExec::ExecToLog '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /install'
     Pop '$0'
     DetailPrint '\\\"Daemon install result: $0\\\"'
+    CopyFiles '$INSTDIR\\\\Fonts\\\\*' '$WINDIR\\\\Fonts'
+    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Fonts' 'Ubuntu Mono (TrueType)' 'UbuntuMono-R.ttf'
     CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass.gui.exe'
     "
   )
