@@ -10,7 +10,7 @@ description: |
 license: GPL-3.0
 
 adopt-info: multipass
-confinement: classic
+confinement: strict
 base: core18
 
 architectures:
@@ -24,6 +24,11 @@ architectures:
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+
+plugs:
+  all-home:
+    interface: home
+    read: all
 
 apps:
   multipassd:
@@ -40,6 +45,14 @@ apps:
       DAEMON_CONFIG_HOME: *daemon-config # temporary
       XTABLES_LIBDIR: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/xtables
     daemon: simple
+    plugs:
+      - all-home
+      - firewall-control
+      - kvm
+      - libvirt
+      - multipass-support
+      - network-bind
+      - network-control
   multipass:
     environment:
       <<: &client-environment
@@ -53,11 +66,20 @@ apps:
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
+    plugs:
+      - home
+      - network
   gui:
     environment: *client-environment
     command: bin/launch-multipass-gui
     desktop: usr/share/applications/multipass.gui.desktop
     autostart: multipass.gui.autostart.desktop
+    plugs:
+      - home
+      - network
+      - unity7
+      - wayland
+      - x11
 
 parts:
   multipass:
@@ -77,6 +99,7 @@ parts:
     - qtbase5-dev
     - qtbase5-dev-tools
     stage-packages:
+    - apparmor
     - on amd64: [libgl1]
     - on armhf: [libgles2-mesa]
     - on arm64: [libgles2-mesa]
