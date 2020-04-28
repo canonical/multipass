@@ -46,6 +46,7 @@ std::map<QString, QString> make_defaults()
 { // clang-format off
     return {{mp::petenv_key, petenv_name},
             {mp::driver_key, mp::platform::default_driver()},
+            {mp::update_check_key, mp::platform::default_update_check()},
             {mp::autostart_key, autostart_default}};
 } // clang-format on
 

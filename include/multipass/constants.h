@@ -30,9 +30,10 @@ constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
 constexpr auto home_automount_dir = "Home";
 constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
-constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
-constexpr auto driver_key = "local.driver";            // idem
-constexpr auto autostart_key = "client.gui.autostart"; // idem
+constexpr auto petenv_key = "client.primary-name";      // This will eventually be moved to some dynamic settings schema
+constexpr auto driver_key = "local.driver";             // idem
+constexpr auto autostart_key = "client.gui.autostart";  // idem
+constexpr auto update_check_key = "local.update-check"; // idem
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H
