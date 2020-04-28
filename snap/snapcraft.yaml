@@ -46,13 +46,13 @@ apps:
       XTABLES_LIBDIR: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/xtables
     daemon: simple
     plugs:
+      - all-home
+      - firewall-control
       - kvm
       - libvirt
       - multipass-support
       - network-bind
       - network-control
-      - firewall-control
-      - all-home
   multipass:
     environment:
       <<: &client-environment
@@ -77,9 +77,9 @@ apps:
     plugs:
       - home
       - network
-      - x11
       - unity7
       - wayland
+      - x11
 
 parts:
   multipass:
@@ -99,6 +99,7 @@ parts:
     - qtbase5-dev
     - qtbase5-dev-tools
     stage-packages:
+    - apparmor
     - on amd64: [libgl1]
     - on armhf: [libgles2-mesa]
     - on arm64: [libgles2-mesa]
@@ -112,7 +113,6 @@ parts:
     - libvirt0
     - dnsmasq-base
     - dnsmasq-utils
-    - apparmor
     source: .
     configflags:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
