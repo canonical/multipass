@@ -78,6 +78,11 @@ QString mp::platform::default_driver()
     return QStringLiteral("qemu");
 }
 
+QString mp::platform::default_update_check()
+{
+    return QStringLiteral("false");
+}
+
 QString mp::platform::daemon_config_home() // temporary
 {
     auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};
@@ -107,11 +112,6 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
 {
     return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
-}
-
-mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
-{
-    return std::make_unique<DisabledUpdatePrompt>();
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

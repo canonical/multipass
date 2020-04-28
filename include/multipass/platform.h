@@ -40,11 +40,11 @@ QString autostart_test_data(); // returns a platform-specific string, for testin
 void setup_gui_autostart_prerequisites();
 std::string default_server_address();
 QString default_driver();
+QString default_update_check();
 QString daemon_config_home();                      // temporary
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
-UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);

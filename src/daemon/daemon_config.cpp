@@ -16,16 +16,20 @@
  */
 
 #include "daemon_config.h"
+#include "../platform/update/default_update_prompt.h"
+#include "../platform/update/disabled_update_prompt.h"
 #include "default_vm_image_vault.h"
 
 #include "custom_image_host.h"
 #include "ubuntu_image_host.h"
 
 #include <multipass/client_cert_store.h>
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
+#include <multipass/settings.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
@@ -114,7 +118,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory);
     if (update_prompt == nullptr)
-        update_prompt = platform::make_update_prompt();
+    {
+        if (mp::Settings::instance().get_as<bool>(mp::update_check_key))
+            update_prompt = std::make_unique<DefaultUpdatePrompt>();
+        else
+            update_prompt = std::make_unique<DisabledUpdatePrompt>();
+    }
     if (image_hosts.empty())
     {
         image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get(), manifest_ttl));
