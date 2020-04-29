@@ -8,6 +8,7 @@ git:
 env:
   global:
   - SNAPCRAFT_ENABLE_ERROR_REPORTING=0
+  - SNAPCRAFT_BUILD_INFO=1
   # regexes for release branch and tag
   - MULTIPASS_RELEASE_BRANCH_PATTERN="^release/([0-9\.]+)$"
   - MULTIPASS_RELEASE_TAG_PATTERN="^v([0-9]+\.[0-9]+)\.[0-9]+$"
