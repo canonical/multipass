@@ -22,8 +22,6 @@
 #include <multipass/logging/log.h>
 
 #include <QFile>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QSslKey>
 
 #include <multipass/format.h>
 #include <yaml-cpp/yaml.h>
@@ -37,7 +35,9 @@ constexpr auto category = "lxd factory";
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir)
-    : data_dir{data_dir}, base_url{"https://localhost:8443/1.0"}, manager{std::make_unique<QNetworkAccessManager>()}
+    : data_dir{data_dir},
+      base_url{"unix:///var/snap/lxd/common/lxd/unix.socket@1.0"},
+      manager{std::make_unique<NetworkAccessManager>()}
 {
 }
 

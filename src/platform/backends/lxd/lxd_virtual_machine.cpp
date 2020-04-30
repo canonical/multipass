@@ -19,11 +19,11 @@
 #include "lxd_request.h"
 
 #include <QJsonArray>
-#include <QtNetwork/QNetworkAccessManager>
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_access_manager.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -38,7 +38,7 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-auto instance_state_for(const QString& name, QNetworkAccessManager* manager, const QUrl& url)
+auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, const QUrl& url)
 {
     auto json_reply = lxd_request(manager, "GET", url);
     auto metadata = json_reply["metadata"].toObject();
@@ -71,7 +71,7 @@ auto instance_state_for(const QString& name, QNetworkAccessManager* manager, con
     }
 }
 
-const mp::optional<mp::IPAddress> get_ip_for(const QString& name, QNetworkAccessManager* manager, const QUrl& url)
+const mp::optional<mp::IPAddress> get_ip_for(const QString& name, mp::NetworkAccessManager* manager, const QUrl& url)
 {
     const auto json_state = lxd_request(manager, "GET", url);
     const auto addresses =
@@ -90,7 +90,7 @@ const mp::optional<mp::IPAddress> get_ip_for(const QString& name, QNetworkAccess
 } // namespace
 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
-                                         QNetworkAccessManager* manager, const QUrl& base_url)
+                                         NetworkAccessManager* manager, const QUrl& base_url)
     : VirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
@@ -247,7 +247,7 @@ std::string mp::LXDVirtualMachine::ssh_hostname()
     {
         auto action = [this] {
             ensure_vm_is_running();
-            ip = get_ip_for(name, std::make_unique<QNetworkAccessManager>().get(), state_url());
+            ip = get_ip_for(name, manager, state_url());
             if (ip)
             {
                 return mp::utils::TimeoutAction::done;

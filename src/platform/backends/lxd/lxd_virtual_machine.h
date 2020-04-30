@@ -21,7 +21,6 @@
 #include <QJsonObject>
 #include <QString>
 #include <QUrl>
-#include <QtNetwork/QNetworkAccessManager>
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
@@ -29,13 +28,14 @@
 
 namespace multipass
 {
+class NetworkAccessManager;
 class VirtualMachineDescription;
 class VMStatusMonitor;
 
 class LXDVirtualMachine final : public VirtualMachine
 {
 public:
-    LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, QNetworkAccessManager* manager,
+    LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, NetworkAccessManager* manager,
                       const QUrl& base_url);
     ~LXDVirtualMachine() override;
     void stop() override;
@@ -60,7 +60,7 @@ private:
     bool update_suspend_status{true};
     multipass::optional<IPAddress> ip;
     const QUrl base_url;
-    QNetworkAccessManager* manager;
+    NetworkAccessManager* manager;
 
     const QUrl url();
     const QUrl state_url();

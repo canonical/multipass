@@ -18,23 +18,16 @@
 #ifndef MULTIPASS_LXD_REQUEST_H
 #define MULTIPASS_LXD_REQUEST_H
 
-#include <QBuffer>
 #include <QEventLoop>
-#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QNetworkReply>
 #include <QTimer>
 #include <QUrl>
-#include <QUrlQuery>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
-#include <QtNetwork/QSslCertificate>
-#include <QtNetwork/QSslConfiguration>
-#include <QtNetwork/QSslKey>
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_access_manager.h>
 #include <multipass/optional.h>
 
 namespace mp = multipass;
@@ -46,19 +39,7 @@ typedef std::exception LXDNotFoundException;
 
 constexpr auto request_category = "lxd request";
 
-auto make_ssl_config()
-{
-    QSslConfiguration ssl_config;
-    ssl_config.setLocalCertificate(QSslCertificate::fromPath("/home/ubuntu/.config/lxc/client.crt")[0]);
-    QFile keyfile{"/home/ubuntu/.config/lxc/client.key"};
-    keyfile.open(QIODevice::ReadOnly);
-    ssl_config.setPrivateKey(QSslKey(keyfile.readAll(), QSsl::Rsa));
-    ssl_config.setPeerVerifyMode(QSslSocket::VerifyNone);
-
-    return ssl_config;
-}
-
-const QJsonObject lxd_request(QNetworkAccessManager* manager, std::string method, QUrl url,
+const QJsonObject lxd_request(mp::NetworkAccessManager* manager, std::string method, QUrl url,
                               const mp::optional<QJsonObject>& json_data = mp::nullopt, int timeout = 5000,
                               bool wait = true)
 {
@@ -68,10 +49,7 @@ const QJsonObject lxd_request(QNetworkAccessManager* manager, std::string method
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    url.setQuery("project=multipass");
-
     QNetworkRequest request{url};
-    request.setSslConfiguration(make_ssl_config());
 
     auto verb = QByteArray::fromStdString(method);
     QByteArray data;
