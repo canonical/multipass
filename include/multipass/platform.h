@@ -55,6 +55,7 @@ VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
+std::unique_ptr<Process> make_process(const QString& command, const QStringList& = QStringList());
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);
 bool link(const char* target, const char* link);
