@@ -15,8 +15,13 @@
  *
  */
 
+#include "../cli/cmd/common_cli.h"
+
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
 #include <multipass/platform.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
@@ -25,11 +30,19 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 
+#include <grpc++/grpc++.h>
+
+#include <QString>
+
+#include <iostream>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
+std::stringstream null_stream;
+
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
     return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
@@ -118,7 +131,67 @@ void mp::client::preliminary_setup()
     }
 }
 
-void mp::client::final_adjustments()
+void mp::client::final_adjustments(Rpc::Stub& stub, const mp::ArgParser* parser, std::ostream& cout, std::ostream& cerr)
 {
     platform::sync_winterm_profiles();
+
+    if (mp::Settings::instance().get_as<bool>(mp::lxc_key))
+    {
+        ListReply reply;
+        ListRequest request;
+
+        grpc::ClientContext context;
+        std::unique_ptr<grpc::ClientReader<ListReply>> reader = stub.list(&context, request);
+
+        while (reader->Read(&reply))
+        {
+            if (!reply.log_line().empty())
+                std::cerr << reply.log_line() << "\n";
+        }
+
+        auto status = reader->Finish();
+
+        if (status.ok())
+        {
+            for (const auto& instance : reply.instances())
+            {
+                if (!instance.ipv4().empty() &&
+                    mp::cmd::run_cmd(
+                        {"multipass", "exec", QString::fromStdString(instance.name()), "--", "which", "lxd"}, parser,
+                        null_stream, null_stream) == mp::ReturnCode::Ok)
+                {
+                    mp::cmd::run_cmd({"multipass", "exec", QString::fromStdString(instance.name()), "--", "sudo",
+                                      "apt-get", "--quiet", "--quiet", "update"},
+                                     parser, cout, cerr);
+                    mp::cmd::run_cmd({"multipass", "exec", QString::fromStdString(instance.name()), "--", "sudo",
+                                      "apt-get", "--quiet", "--quiet", "--yes", "install", "zfsutils-linux"},
+                                     parser, cout, cerr);
+                    mp::cmd::run_cmd({"multipass", "exec", QString::fromStdString(instance.name()), "--", "sudo", "lxd",
+                                      "init", "--auto", "--storage-backend", "zfs", "--network-address", "0",
+                                      "--trust-password", "multipass"},
+                                     parser, cout, cerr);
+                    auto lxc =
+                        mp::platform::make_process("lxc", {"remote", "add", QString::fromStdString(instance.name()),
+                                                           QString::fromStdString(instance.ipv4()),
+                                                           "--accept-certificate", "--password=multipass"});
+                    auto lxc_state = lxc->execute();
+
+                    if (!lxc_state.completed_successfully())
+                    {
+                        throw std::runtime_error(fmt::format("Internal error: lxc failed ({}) with output:\n{}",
+                                                             lxc_state.failure_message(),
+                                                             lxc->read_all_standard_error()));
+                    }
+                }
+            }
+        }
+        else if (status.error_code() != grpc::StatusCode::UNAVAILABLE)
+        {
+            throw std::runtime_error("Failed to list instances for lxc integration...");
+        }
+        else
+        {
+            throw std::runtime_error("Failed to talk to the Multipass daemon...");
+        }
+    }
 }
