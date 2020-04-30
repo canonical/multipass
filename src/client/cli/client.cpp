@@ -102,7 +102,7 @@ int mp::Client::run(const QStringList& arguments)
     const auto ret =
         parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser) : parser.returnCodeFrom(parse_status);
 
-    mp::client::post_setup();
+    mp::client::post_setup(*stub, &parser, term->cout(), term->cerr());
 
     return ret;
 }
