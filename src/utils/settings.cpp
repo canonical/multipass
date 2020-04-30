@@ -41,12 +41,14 @@ const auto daemon_root = QStringLiteral("local");
 const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
+const auto lxc_default = QStringLiteral("true");
 
 std::map<QString, QString> make_defaults()
 { // clang-format off
     auto ret = std::map<QString, QString>{{mp::petenv_key, petenv_name},
                                           {mp::driver_key, mp::platform::default_driver()},
-                                          {mp::autostart_key, autostart_default}};
+                                          {mp::autostart_key, autostart_default},
+                                          {mp::lxc_key, lxc_default}};
 
     for(const auto& [k, v] : mp::platform::extra_settings_defaults())
         ret.insert_or_assign(k, v);
@@ -196,7 +198,7 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException{key, val, "Invalid hostname"};
     else if (key == driver_key && !mp::platform::is_backend_supported(val))
         throw InvalidSettingsException(key, val, "Invalid driver");
-    else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
+    else if ((key == autostart_key || key == lxc_key) && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
     else if (key == winterm_key)
         val = mp::platform::interpret_setting(winterm_key, val);
