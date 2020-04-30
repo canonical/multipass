@@ -1,4 +1,4 @@
-# Copyright © 2019 Canonical Ltd.
+# Copyright © 2019-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -21,6 +21,7 @@ target_link_libraries(lxd_backend
   Qt5::Core
   fmt
   ip_address
+  local_network_manager
   logger
   ssh
   utils

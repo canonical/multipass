@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
 
+#include <multipass/network_access_manager.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <QUrl>
-#include <QtNetwork/QNetworkAccessManager>
 
 namespace multipass
 {
@@ -50,7 +50,7 @@ public:
 private:
     const Path data_dir;
     const QUrl base_url;
-    std::unique_ptr<QNetworkAccessManager> manager;
+    std::unique_ptr<NetworkAccessManager> manager;
 };
 } // namespace multipass
 
