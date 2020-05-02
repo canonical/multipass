@@ -1,3 +1,7 @@
+#!/bin/sh
+
+export SNAP_REAL_HOME=$( getent passwd $USER | cut -d: -f6 )
+
 # so that snapd finds autostart desktop files where it expects them (see https://snapcraft.io/docs/snap-format)
 link_autostart()
 {

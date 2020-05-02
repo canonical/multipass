@@ -1,0 +1,10 @@
+{
+  "multipass-support":{
+    "allow-auto-connection": "true",
+    "allow-installation": "true"
+  },
+  "home":{
+    "allow-auto-connection": "true",
+    "allow-installation": "true"
+  }
+}

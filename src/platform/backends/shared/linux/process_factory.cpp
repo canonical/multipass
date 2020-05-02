@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process_spec.h>
+#include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -63,14 +64,9 @@ private:
 
 mp::optional<mp::AppArmor> create_apparmor()
 {
-    if (qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
+    if (!mp::utils::is_snap() && qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
     {
         mpl::log(mpl::Level::warning, "apparmor", "AppArmor disabled by environment variable");
-        return mp::nullopt;
-    }
-    else if (mp::utils::get_driver_str() == "libvirt")
-    {
-        mpl::log(mpl::Level::info, "apparmor", "libvirt backend disables Multipass' AppArmor support");
         return mp::nullopt;
     }
     else
