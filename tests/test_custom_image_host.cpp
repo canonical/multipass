@@ -129,6 +129,22 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core18)
     EXPECT_FALSE(info->version.isEmpty());
 }
 
+TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core20)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    auto info = host.info_for(make_query("core20", "snapcraft"));
+
+    ASSERT_TRUE(info);
+    EXPECT_EQ(QUrl::fromLocalFile(test_path + "ubuntu-20.04-minimal-cloudimg-amd64.img").toString(),
+              info->image_location);
+    EXPECT_EQ("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", info->id.toStdString());
+    EXPECT_EQ("snapcraft-core20", info->release.toStdString());
+    EXPECT_EQ("Snapcraft builder for Core 20", info->release_title.toStdString());
+    EXPECT_TRUE(info->supported);
+    EXPECT_FALSE(info->version.isEmpty());
+}
+
 TEST_F(CustomImageHost, iterates_over_all_entries)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
@@ -137,22 +153,23 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{4};
+    const size_t expected_entries{5};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7"), Eq(1u));
     EXPECT_THAT(ids.count("1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f"), Eq(1u));
     EXPECT_THAT(ids.count("a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48"), Eq(1u));
     EXPECT_THAT(ids.count("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c"), Eq(1u));
+    EXPECT_THAT(ids.count("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), Eq(1u));
 }
 
-TEST_F(CustomImageHost, all_images_for_snapcraft_returns_two_matches)
+TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     auto images = host.all_images_for("snapcraft", false);
 
-    const size_t expected_matches{2};
+    const size_t expected_matches{3};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
