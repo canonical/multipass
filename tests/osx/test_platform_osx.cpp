@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
 
@@ -32,10 +33,17 @@ TEST(PlatformOSX, test_no_extra_settings)
     EXPECT_THAT(mp::platform::extra_settings_defaults(), IsEmpty());
 }
 
-TEST(PlatformOSX, test_winterm_setting_not_supported)
+TEST(PlatformOSX, test_interpretation_of_winterm_setting_not_supported)
 {
     for (const auto x : {"no", "matter", "what"})
-        EXPECT_THROW(mp::platform::interpret_winterm_integration(x), mp::InvalidSettingsException);
+        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingsException);
+}
+
+TEST(PlatformOSX, test_interpretation_of_unknown_settings_not_supported)
+{
+    for (const auto k : {"unimaginable", "katxama", "katxatxa"})
+        for (const auto v : {"no", "matter", "what"})
+            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingsException);
 }
 
 TEST(PlatformOSX, test_empty_sync_winterm_profiles)
