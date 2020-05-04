@@ -90,6 +90,18 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
     return attr;
 }
 
+QString interpret_winterm_setting(const QString& val)
+{
+    static const auto acceptable = QStringList{"none", "primary"};
+
+    auto ret = val.toLower();
+    if (!acceptable.contains(ret))
+        throw mp::InvalidSettingsException{
+            mp::winterm_key, val, QStringLiteral("Unknown value. Try one of these: %1.").arg(acceptable.join(", "))};
+
+    return ret;
+}
+
 QString locate_profiles_path()
 {
     // The profiles file is expected in
@@ -201,16 +213,13 @@ std::map<QString, QString> mp::platform::extra_settings_defaults()
     return {{mp::winterm_key, {"primary"}}};
 }
 
-QString mp::platform::interpret_winterm_integration(const QString& val)
+QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
-    static const auto acceptable = QStringList{"none", "primary"};
+    if (key == mp::winterm_key)
+        return interpret_winterm_setting(val);
 
-    auto ret = val.toLower();
-    if (!acceptable.contains(ret))
-        throw InvalidSettingsException{
-            winterm_key, val, QStringLiteral("Unknown value. Try one of these: %1.").arg(acceptable.join(", "))};
-
-    return ret;
+    // this should not happen (settings should have found it to be an invalid key)
+    throw InvalidSettingsException(key, val, "Setting unavailable on Windows");
 }
 
 void mp::platform::sync_winterm_profiles()

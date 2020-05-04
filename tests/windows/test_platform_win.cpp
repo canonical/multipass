@@ -114,6 +114,13 @@ Json::Value read_json(const QString& filename)
     return json;
 }
 
+TEST(PlatformWin, test_interpretation_of_unknown_settings_not_supported)
+{
+    for (const auto k : {"unimaginable", "katxama", "katxatxa"})
+        for (const auto v : {"no", "matter", "what"})
+            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingsException);
+}
+
 TEST(PlatformWin, winterm_in_extra_settings)
 {
     EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::winterm_key), _)));
@@ -122,23 +129,23 @@ TEST(PlatformWin, winterm_in_extra_settings)
 TEST(PlatformWin, valid_winterm_setting_values)
 {
     for (const auto x : {"none", "primary"})
-        EXPECT_EQ(mp::platform::interpret_winterm_integration(x), x);
+        EXPECT_EQ(mp::platform::interpret_setting(mp::winterm_key, x), x);
 }
 
 TEST(PlatformWin, winterm_setting_values_case_insensitive)
 {
     for (const auto x : {"NoNe", "NONE", "nonE", "NonE"})
-        EXPECT_EQ(mp::platform::interpret_winterm_integration(x), "none");
+        EXPECT_EQ(mp::platform::interpret_setting(mp::winterm_key, x), "none");
 
     for (const auto x : {"pRIMARY", "Primary", "pRimarY"})
-        EXPECT_EQ(mp::platform::interpret_winterm_integration(x), "primary");
+        EXPECT_EQ(mp::platform::interpret_setting(mp::winterm_key, x), "primary");
 }
 
 TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
 {
     for (const auto x : {"Unsupported", "values", "1", "000", "false", "True", "", "  "})
         MP_EXPECT_THROW_THAT(
-            mp::platform::interpret_winterm_integration(x), mp::InvalidSettingsException,
+            mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingsException,
             Property(&mp::InvalidSettingsException::what,
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
 }
