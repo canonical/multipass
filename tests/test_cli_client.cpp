@@ -1661,6 +1661,19 @@ TEST_F(Client, get_and_set_do_not_know_about_winterm_integration)
     EXPECT_THAT(send_command({"set", keyval_arg(mp::winterm_key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+#else
+
+TEST_F(Client, get_and_set_can_read_and_write_winterm_integration)
+{
+    const auto orig = get_setting((mp::winterm_key));
+    const auto novel = "asdf";
+
+    EXPECT_THAT(get_setting(mp::winterm_key), Not(IsEmpty()));
+
+    EXPECT_CALL(mock_settings, set(Eq(mp::winterm_key), Eq(QString::fromStdString(novel))));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::winterm_key, novel)}), Eq(mp::ReturnCode::Ok));
+}
+
 #endif // #ifndef MULTIPASS_PLATFORM_WINDOWS
 
 // general help tests
