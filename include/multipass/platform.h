@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,13 +36,22 @@ namespace multipass
 {
 namespace platform
 {
+std::map<QString, QString> extra_settings_defaults();
+
+QString interpret_winterm_integration(const QString& val);
+void sync_winterm_profiles();
+
 QString autostart_test_data(); // returns a platform-specific string, for testing purposes
 void setup_gui_autostart_prerequisites();
+
 std::string default_server_address();
 QString default_driver();
+
 QString daemon_config_home();                      // temporary
+
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
+
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);

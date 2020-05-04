@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,6 +92,13 @@ struct MockDaemonRpc : public mp::DaemonRpc
 
 struct Client : public Test
 {
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, get(_)).Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests.
+                                                                  This allows general actions to consult settings
+                                                                  (e.g. Windows Terminal profile sync) */
+    }
+
     void TearDown() override
     {
         Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a strict mock
@@ -1451,7 +1458,6 @@ INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions, Values(mp::petenv_key, 
 
 TEST_F(Client, get_cmd_fails_with_no_arguments)
 {
-    EXPECT_CALL(mock_settings, get(_)).Times(0);
     EXPECT_THAT(send_command({"get"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
@@ -1463,7 +1469,6 @@ TEST_F(Client, set_cmd_fails_with_no_arguments)
 
 TEST_F(Client, get_cmd_fails_with_multiple_arguments)
 {
-    EXPECT_CALL(mock_settings, get(_)).Times(0);
     EXPECT_THAT(send_command({"get", mp::petenv_key, mp::driver_key}), Eq(mp::ReturnCode::CommandLineError));
 }
 
@@ -1651,6 +1656,33 @@ TEST_P(TestSetDriverWithInstances, inspects_instance_states)
 INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
 
 #endif // MULTIPASS_PLATFORM_LINUX
+
+#ifndef MULTIPASS_PLATFORM_WINDOWS // Test Windows Terminal setting not recognized outside Windows
+
+TEST_F(Client, get_and_set_do_not_know_about_winterm_integration)
+{
+    const auto val = "asdf";
+    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key)));
+    EXPECT_THAT(send_command({"get", mp::winterm_key}), Eq(mp::ReturnCode::CommandLineError));
+
+    EXPECT_CALL(mock_settings, set(Eq(mp::winterm_key), Eq(val)));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::winterm_key, val)}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+#else
+
+TEST_F(Client, get_and_set_can_read_and_write_winterm_integration)
+{
+    const auto orig = get_setting((mp::winterm_key));
+    const auto novel = "asdf";
+
+    EXPECT_THAT(get_setting(mp::winterm_key), Not(IsEmpty()));
+
+    EXPECT_CALL(mock_settings, set(Eq(mp::winterm_key), Eq(QString::fromStdString(novel))));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::winterm_key, novel)}), Eq(mp::ReturnCode::Ok));
+}
+
+#endif // #ifndef MULTIPASS_PLATFORM_WINDOWS
 
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)

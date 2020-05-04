@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,6 +53,7 @@ std::unique_ptr<SSLCertProvider> get_cert_provider();
 void set_logger();
 void set_logger(multipass::logging::Level verbosity); // full param qualification makes sure msvc is happy
 void preliminary_setup();
+void final_adjustments();
 }
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_COMMON_H
