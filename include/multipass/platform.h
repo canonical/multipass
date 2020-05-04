@@ -38,7 +38,7 @@ namespace platform
 {
 std::map<QString, QString> extra_settings_defaults();
 
-QString interpret_winterm_integration(const QString& val);
+QString interpret_setting(const QString& key, const QString& val);
 void sync_winterm_profiles();
 
 QString autostart_test_data(); // returns a platform-specific string, for testing purposes
