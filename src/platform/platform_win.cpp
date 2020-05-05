@@ -114,7 +114,7 @@ QString locate_profiles_path()
 
 Json::Value& edit_profiles(Json::Value& json_root)
 {
-    auto& profiles = json_root["profiles"];
+    auto& profiles = json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
     return profiles.isArray() || !profiles.isMember("list") ? profiles : profiles["list"]; /* Notes:
                                                                     1) don't index into "list" unless it already exists
                                                                     2) can't look for named member on array values */
