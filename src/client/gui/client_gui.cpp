@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ mp::ClientGui::ClientGui(ClientConfig& config)
 int mp::ClientGui::run(const QStringList& arguments)
 {
     mp::client::set_logger();        // we need logging for...
-    mp::client::preliminary_setup(); // ... something we want to do even if the command was wrong
+    mp::client::pre_setup();         // ... something we want to do even if the command was wrong
 
     ArgParser parser;
 
