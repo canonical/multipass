@@ -112,14 +112,6 @@ QString locate_profiles_path()
         "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
 }
 
-Json::Value& edit_profiles(Json::Value& json_root)
-{
-    auto& profiles = json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
-    return profiles.isArray() || !profiles.isMember("list") ? profiles : profiles["list"]; /* Notes:
-                                                                    1) don't index into "list" unless it already exists
-                                                                    2) can't look for named member on array values */
-}
-
 struct WintermSyncException : public std::runtime_error
 {
     WintermSyncException(const std::string& msg, const QString& path, const std::string& reason)
@@ -147,6 +139,18 @@ struct GreaterWintermSyncException : public WintermSyncException
 {
     using WintermSyncException::WintermSyncException;
 };
+
+Json::Value& edit_profiles(const QString& path, Json::Value& json_root)
+{
+    if (!json_root.isMember("profiles"))
+        throw ModerateWintermSyncException{"Could not find profiles in Windows Terminal's settings", path,
+                                           "No \"profiles\" node under JSON root"};
+
+    auto& profiles = json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
+    return profiles.isArray() || !profiles.isMember("list") ? profiles : profiles["list"]; /* Notes:
+                                                                    1) don't index into "list" unless it already exists
+                                                                    2) can't look for named member on array values */
+}
 
 Json::Value read_winterm_settings(const QString& path)
 {
@@ -178,10 +182,10 @@ Json::Value create_primary_profile()
     return primary_profile;
 }
 
-Json::Value update_profiles(const Json::Value& json_root, const QString& winterm_setting)
+Json::Value update_profiles(const QString& path, const Json::Value& json_root, const QString& winterm_setting)
 {
     Json::Value ret = json_root;
-    auto& profiles = edit_profiles(ret);
+    auto& profiles = edit_profiles(path, ret);
 
     auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
         return profile["guid"] == mp::winterm_profile_guid;
@@ -235,7 +239,7 @@ void mp::platform::sync_winterm_profiles()
                                              "File not found"};
 
         auto json_root = read_winterm_settings(profiles_path);
-        auto updated_json = update_profiles(json_root, winterm_setting);
+        auto updated_json = update_profiles(profiles_path, json_root, winterm_setting);
         if (updated_json != json_root)
             save_profiles(profiles_path, updated_json);
     }
