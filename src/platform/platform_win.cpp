@@ -109,7 +109,7 @@ QString locate_profiles_path()
     // where $env:LocalAppData is normally C:\Users\<USER>\AppData\Local
     return mp::StandardPaths::instance().locate(
         mp::StandardPaths::GenericConfigLocation,
-        "Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json");
+        "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
 }
 
 Json::Value& edit_profiles(Json::Value& json_root)
