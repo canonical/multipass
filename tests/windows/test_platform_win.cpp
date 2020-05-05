@@ -195,6 +195,17 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unparseable_settings)
     mp::platform::sync_winterm_profiles();
 }
 
+TEST_P(TestWinTermSyncModerateLogging, logging_on_unavailable_profiles)
+{
+    const auto& [setting, lvl] = GetParam();
+    mock_winterm_setting(setting);
+
+    auto json_file = fake_json("{ \"someNode\": \"someValue\" }");
+    auto mock_logger_guard = expect_log(lvl, "Could not find");
+
+    mp::platform::sync_winterm_profiles();
+}
+
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncModerateLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
