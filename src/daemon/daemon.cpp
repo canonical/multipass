@@ -1782,8 +1782,7 @@ void mp::Daemon::persist_instances()
         auto key = QString::fromStdString(record.first);
         instance_records_json.insert(key, vm_spec_to_json(record.second));
     }
-    QDir data_dir{
-        mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name())};
+    QDir data_dir{mp::utils::make_dir(config->data_directory, config->factory->get_backend_directory_name())};
     mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 

@@ -19,10 +19,11 @@ add_library(lxd_backend STATIC
 
 target_link_libraries(lxd_backend
   Qt5::Core
+  Qt5::Network
   fmt
   ip_address
-  local_network_manager
   logger
+  network
   ssh
   utils
   yaml)

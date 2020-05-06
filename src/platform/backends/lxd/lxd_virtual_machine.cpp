@@ -21,6 +21,7 @@
 #include <QJsonArray>
 
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_access_manager.h>
@@ -30,11 +31,14 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
-#include <fmt/format.h>
+#include <chrono>
+#include <thread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
+
+using namespace std::literals::chrono_literals;
 
 namespace
 {
@@ -131,6 +135,43 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
             lxd_request(manager, "POST", QUrl(QString("%1/containers").arg(base_url.toString())), container);
         mpl::log(mpl::Level::debug, name.toStdString(),
                  fmt::format("Got LXD creation reply: {}", QJsonDocument(json_reply).toJson()));
+
+        if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
+            json_reply["status_code"].toInt(-1) == 100)
+        {
+            QUrl task_url(QString("%1/operations/%2")
+                              .arg(base_url.toString())
+                              .arg(json_reply["metadata"].toObject()["id"].toString()));
+
+            // Instead of polling, need to use websockets to get events
+            while (true)
+            {
+                try
+                {
+                    auto task_reply = lxd_request(manager, "GET", task_url);
+
+                    if (task_reply["error_code"].toInt(-1) != 0)
+                    {
+                        break;
+                    }
+
+                    auto status_code = task_reply["metadata"].toObject()["status_code"].toInt(-1);
+                    if (status_code == 200)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        std::this_thread::sleep_for(5s);
+                    }
+                }
+                // Implies the task is finished
+                catch (const LXDNotFoundException& e)
+                {
+                    break;
+                }
+            }
+        }
 
         state = instance_state_for(name, manager, url());
     }
@@ -305,5 +346,5 @@ const QJsonObject mp::LXDVirtualMachine::request_state(const QString& new_state)
 {
     const QJsonObject state_json{{"action", new_state}};
 
-    return lxd_request(manager, "PUT", state_url(), state_json, 5000, false);
+    return lxd_request(manager, "PUT", state_url(), state_json, 5000);
 }
