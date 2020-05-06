@@ -40,8 +40,7 @@ typedef std::exception LXDNotFoundException;
 constexpr auto request_category = "lxd request";
 
 const QJsonObject lxd_request(mp::NetworkAccessManager* manager, std::string method, QUrl url,
-                              const mp::optional<QJsonObject>& json_data = mp::nullopt, int timeout = 5000,
-                              bool wait = true)
+                              const mp::optional<QJsonObject>& json_data = mp::nullopt, int timeout = 30000)
 {
     mpl::log(mpl::Level::debug, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
 
@@ -88,19 +87,6 @@ const QJsonObject lxd_request(mp::NetworkAccessManager* manager, std::string met
         throw std::runtime_error(fmt::format("Invalid LXD response for url {}: {}", url.toString(), bytearray_reply));
 
     mpl::log(mpl::Level::debug, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
-
-    if (wait && json_reply.object()["metadata"].toObject()["class"] == QStringLiteral("task") &&
-        json_reply.object()["status_code"].toInt(-1) == 100)
-    {
-        const auto task = json_reply.object()["metadata"].toObject();
-        QUrl task_url(url);
-        task_url.setPath(QString("%1/wait").arg(json_reply.object()["operation"].toString()));
-
-        mpl::log(mpl::Level::debug, request_category,
-                 fmt::format("Got LXD task \"{}\": \"{}\", waiting...", task["id"].toString(),
-                             task["description"].toString()));
-        return lxd_request(manager, "GET", task_url, mp::nullopt, 60000);
-    }
 
     return json_reply.object();
 }

@@ -19,12 +19,9 @@
 #include "lxd_request.h"
 #include "lxd_virtual_machine.h"
 
-#include <multipass/logging/log.h>
-
-#include <QFile>
-
 #include <multipass/format.h>
-#include <yaml-cpp/yaml.h>
+#include <multipass/logging/log.h>
+#include <multipass/utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -35,7 +32,7 @@ constexpr auto category = "lxd factory";
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir)
-    : data_dir{data_dir},
+    : data_dir{mp::utils::make_dir(data_dir, get_backend_directory_name())},
       base_url{"unix:///var/snap/lxd/common/lxd/unix.socket@1.0"},
       manager{std::make_unique<NetworkAccessManager>()}
 {
