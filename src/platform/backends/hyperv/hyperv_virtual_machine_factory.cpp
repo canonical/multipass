@@ -205,7 +205,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
     convert.setProgram("qemu-img.exe");
     convert.setArguments(convert_args);
     convert.start();
-    convert.waitForFinished();
+    convert.waitForFinished(300000);
 
     if (convert.exitCode() != QProcess::NormalExit)
     {
