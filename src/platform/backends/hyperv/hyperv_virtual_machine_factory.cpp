@@ -99,7 +99,8 @@ void check_hyperv_feature_enabled(mp::PowerShell& power_shell)
         if (ps_output.isEmpty())
         {
             throw std::runtime_error(
-                "Hyper-V is not available on this edition of Windows 10. Please upgrade to Pro or Enterprise edition.");
+                "Hyper-V is not available on this edition of Windows 10. Please upgrade to one of Pro, Enterprise"
+                "or Education editions.");
         }
         else if (ps_output == "Enabled")
         {
