@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,8 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
 
 void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    lxd_request(manager.get(), "DELETE", QUrl(QString("%1/containers/%2").arg(base_url.toString()).arg(name.c_str())));
+    lxd_request(manager.get(), "DELETE",
+                QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
 }
 
 mp::FetchType mp::LXDVirtualMachineFactory::fetch_type()

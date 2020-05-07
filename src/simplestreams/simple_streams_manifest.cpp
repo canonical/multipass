@@ -125,7 +125,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             if (driver == "lxd")
             {
                 image = items["lxd.tar.xz"].toObject();
-                sha256 = image["combined_squashfs_sha256"].toString();
+                sha256 = image["combined_disk1-img_sha256"].toString();
             }
             else
             {

@@ -122,16 +122,20 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         if (!desc.user_data_config.IsNull())
             config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
 
-        QJsonObject container{{"name", name},
-                              {"config", config},
-                              {"source", QJsonObject{{"type", "image"},
-                                                     {"mode", "pull"},
-                                                     {"server", QString::fromStdString(desc.image.stream_location)},
-                                                     {"protocol", "simplestreams"},
-                                                     {"fingerprint", QString::fromStdString(desc.image.id)}}}};
+        QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}}};
 
-        auto json_reply =
-            lxd_request(manager, "POST", QUrl(QString("%1/containers").arg(base_url.toString())), container);
+        QJsonObject virtual_machine{
+            {"name", name},
+            {"config", config},
+            {"devices", devices},
+            {"source", QJsonObject{{"type", "image"},
+                                   {"mode", "pull"},
+                                   {"server", QString::fromStdString(desc.image.stream_location)},
+                                   {"protocol", "simplestreams"},
+                                   {"fingerprint", QString::fromStdString(desc.image.id)}}}};
+
+        auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
+                                      virtual_machine);
         mpl::log(mpl::Level::debug, name.toStdString(),
                  fmt::format("Got LXD creation reply: {}", QJsonDocument(json_reply).toJson()));
 
@@ -334,7 +338,7 @@ void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 
 const QUrl mp::LXDVirtualMachine::url()
 {
-    return QString("%1/containers/%2").arg(base_url.toString()).arg(name);
+    return QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name);
 }
 
 const QUrl mp::LXDVirtualMachine::state_url()
