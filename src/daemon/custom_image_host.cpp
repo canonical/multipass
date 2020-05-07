@@ -85,7 +85,17 @@ const QMap<QString, CustomImageInfo> snapcraft_image_info{
       "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
       "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
       "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-      "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}}};
+      "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}},
+    {{"ubuntu-20.04-minimal-cloudimg-amd64.img"},
+     {"https://cloud-images.ubuntu.com/minimal/releases/focal/release/",
+      {"core20"},
+      "",
+      "snapcraft-core20",
+      "Snapcraft builder for Core 20",
+      "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
+      "ubuntu-20.04-server-cloudimg-amd64-vmlinuz-generic",
+      "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
+      "ubuntu-20.04-server-cloudimg-amd64-initrd-generic"}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
