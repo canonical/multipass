@@ -205,9 +205,14 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
     convert.setProgram("qemu-img.exe");
     convert.setArguments(convert_args);
     convert.start();
-    convert.waitForFinished(300000);
 
-    if (convert.exitCode() != QProcess::NormalExit)
+    if (!convert.waitForFinished(300000))
+    {
+        throw std::runtime_error(
+            qPrintable("Conversion of image to vhdx timed out..."));
+    }
+
+    if (convert.exitStatus() != QProcess::NormalExit || convert.exitCode() != 0)
     {
         throw std::runtime_error(
             qPrintable("Conversion of image to vhdx failed with error: " + convert.readAllStandardError()));
