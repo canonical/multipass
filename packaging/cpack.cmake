@@ -148,8 +148,8 @@ if (MSVC)
     "
     Var /GLOBAL REMOVE_SETTINGS_AND_CACHE
     StrCpy $REMOVE_SETTINGS_AND_CACHE 0
-    MessageBox MB_YESNO|MB_ICONQUESTION \\\"Do you want to remove all multipass VM instances, settings and cached data?\\\" \\
-    /SD IDYES IDNO basic_uninst
+    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 \\\"Do you want to remove all multipass VM instances, settings and cached data?\\\" \\
+    /SD IDNO IDNO basic_uninst
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipass.exe\\\" delete -p --all'
     StrCpy $REMOVE_SETTINGS_AND_CACHE 1
 
