@@ -121,6 +121,13 @@ Json::Value read_json(const QString& filename)
     return json;
 }
 
+Json::Value& setup_primary_profile(Json::Value& json)
+{
+    auto& ret = json["profiles"][0u];
+    ret["guid"] = mp::winterm_profile_guid;
+    return ret;
+}
+
 TEST(PlatformWin, test_interpretation_of_unknown_settings_not_supported)
 {
     for (const auto k : {"unimaginable", "katxama", "katxatxa"})
@@ -217,6 +224,31 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncModerateLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
+struct TestWinTermSyncGreaterLogging : public TestWithParam<std::pair<QString, mpl::Level>>
+{
+};
+
+TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
+{
+    const auto& [setting, lvl] = GetParam();
+    mock_winterm_setting(setting);
+
+    Json::Value json;
+    auto& profile = setup_primary_profile(json);
+    profile["hidden"] = (setting != "none"); // make this the opposite of what the setting says, to require an update
+
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
+
+    std::ifstream handle{json_file_name.toStdString()}; // open the file, to provoke a failure in overwriting
+    const auto mock_logger_guard = expect_log(lvl, "Could not update");
+
+    mp::platform::sync_winterm_profiles();
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncGreaterLogging,
+                         Values(std::make_pair(QStringLiteral("none"), mpl::Level::error),
+                                std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
+
 class TestWinTermSyncJson : public TestWithParam<unsigned char>
 {
 public:
@@ -262,13 +294,6 @@ public:
         dress_with_dict(profiles, flags);
         dress_with_stuff(json, flags);
         // std::cout << "DEBUG json after: " << json << std::endl;
-    }
-
-    Json::Value& setup_primary_profile(Json::Value& json)
-    {
-        auto& ret = json["profiles"][0u];
-        ret["guid"] = mp::winterm_profile_guid;
-        return ret;
     }
 
     const Json::Value& get_profiles(const Json::Value& json)
