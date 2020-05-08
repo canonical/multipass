@@ -215,29 +215,26 @@ void write_profiles(const std::string& path, const Json::Value& json_root)
                                           QString::fromStdString(path)};
 }
 
+std::string create_shadow_config_file(const QString& path)
+{
+    const auto tmp_file_template = path + ".XXXXXX";
+    auto tmp_file = QTemporaryFile{tmp_file_template};
+
+    if (!tmp_file.open() || !tmp_file.exists())
+        throw GreaterWintermSyncException{"Could not create temporary configuration file for Windows Terminal",
+                                          tmp_file_template};
+
+    tmp_file.setAutoRemove(false);
+    return tmp_file.fileName().toStdString();
+}
+
 void save_profiles(const QString& path, const Json::Value& json_root)
 {
-    std::string tmp_file_name;
-
+    std::string tmp_file_name = create_shadow_config_file(path);
     auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name] {
-        if (!tmp_file_name.empty())
-        {
-            std::error_code ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
-            std::filesystem::remove(tmp_file_name, ec);
-        }
+        std::error_code ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
+        std::filesystem::remove(tmp_file_name, ec);
     });
-
-    {
-        const auto tmp_file_template = path + ".XXXXXX";
-        auto tmp_file = QTemporaryFile{tmp_file_template};
-
-        if (!tmp_file.open() || !tmp_file.exists())
-            throw GreaterWintermSyncException{"Could not create temporary configuration file for Windows Terminal",
-                                              tmp_file_template};
-
-        tmp_file_name = tmp_file.fileName().toStdString();
-        tmp_file.setAutoRemove(false);
-    } // release the handle on the tmp file
 
     write_profiles(tmp_file_name, json_root);
 
