@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -20,6 +20,7 @@ if(MSVC)
     jsoncpp_lib
     shared_win
     hyperv_backend
+    scope_guard
     virtualbox_backend
     wineventlogger)
 elseif(APPLE)

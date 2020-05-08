@@ -36,7 +36,10 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QTemporaryFile>
 #include <QtGlobal>
+
+#include <scope_guard.hpp>
 
 #include <json/json.h>
 
@@ -45,6 +48,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 
 namespace mp = multipass;
@@ -202,12 +206,51 @@ Json::Value update_profiles(const QString& path, const Json::Value& json_root, c
     return ret;
 }
 
-void save_profiles(const QString& path, const Json::Value& json_root)
+void write_profiles(const std::string& path, const Json::Value& json_root)
 {
-    std::ofstream json_file{path.toStdString(), std::ofstream::binary};
+    std::ofstream json_file{path, std::ofstream::binary};
     json_file << json_root;
     if (!json_file)
-        throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration", path};
+        throw GreaterWintermSyncException{"Could not write Windows Terminal's configuration",
+                                          QString::fromStdString(path)};
+}
+
+void save_profiles(const QString& path, const Json::Value& json_root)
+{
+    std::string tmp_file_name;
+
+    auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name] {
+        if (!tmp_file_name.empty())
+        {
+            std::error_code ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
+            std::filesystem::remove(tmp_file_name, ec);
+        }
+    });
+
+    {
+        const auto tmp_file_template = path + ".XXXXXX";
+        auto tmp_file = QTemporaryFile{tmp_file_template};
+
+        if (!tmp_file.open() || !tmp_file.exists())
+            throw GreaterWintermSyncException{"Could not create temporary configuration file for Windows Terminal",
+                                              tmp_file_template};
+
+        tmp_file_name = tmp_file.fileName().toStdString();
+        tmp_file.setAutoRemove(false);
+    } // release the handle on the tmp file
+
+    write_profiles(tmp_file_name, json_root);
+
+    try
+    {
+        std::filesystem::rename(tmp_file_name, path.toStdString());
+    }
+    catch (std::filesystem::filesystem_error& e)
+    {
+        throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration", path, e.what()};
+    }
+
+    tmp_file_removing_guard.dismiss(); // we succeeded, tmp file no longer there
 }
 
 } // namespace
