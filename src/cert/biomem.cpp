@@ -17,6 +17,7 @@
 
 #include "biomem.h"
 
+#include <stdexcept>
 #include <vector>
 
 namespace mp = multipass;

@@ -17,6 +17,8 @@
 
 #include "ssh_client_key_provider.h"
 
+#include <stdexcept>
+
 namespace mp = multipass;
 
 namespace
