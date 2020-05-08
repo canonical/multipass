@@ -22,7 +22,6 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 
 #include <QDateTime>
@@ -59,24 +58,6 @@ void mock_stdpaths_locate(const QString& ret)
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
                 locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
         .WillOnce(Return(ret));
-}
-
-auto guarded_mock_logger()
-{
-    auto guard = sg::make_scope_guard([] { mpl::set_logger(nullptr); });
-    auto mock_logger = std::make_shared<StrictMock<mpt::MockLogger>>();
-    mpl::set_logger(mock_logger);
-
-    return std::make_pair(mock_logger, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
-}
-
-auto expect_log(mpl::Level lvl, const std::string& substr)
-{
-    auto [mock_logger, guard] = guarded_mock_logger();
-
-    EXPECT_CALL(*mock_logger, log(lvl, _, mpt::MockLogger::make_cstring_matcher(HasSubstr(substr))));
-
-    return std::move(guard); // needs to be moved because it's only part of an implicit local var (NRVO does not apply)
 }
 
 auto guarded_fake_json(const char* contents)
@@ -174,7 +155,7 @@ TEST_P(TestWinTermSyncLesserLogging, logging_on_no_file)
 
     mock_winterm_setting(setting);
     mock_stdpaths_locate("");
-    auto mock_logger_guard = expect_log(lvl, "Could not find");
+    auto mock_logger_guard = mpt::expect_log(lvl, "Could not find");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -193,7 +174,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unreadable_settings)
 
     mock_winterm_setting(setting);
     mock_stdpaths_locate("C:\\unreadable\\settings.json");
-    const auto mock_logger_guard = expect_log(lvl, "Could not read");
+    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not read");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -204,7 +185,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unparseable_settings)
     mock_winterm_setting(setting);
 
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json("~!@#$% rubbish ^&*()_+");
-    const auto mock_logger_guard = expect_log(lvl, "Could not parse");
+    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not parse");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -215,7 +196,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unavailable_profiles)
     mock_winterm_setting(setting);
 
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json("{ \"someNode\": \"someValue\" }");
-    const auto mock_logger_guard = expect_log(lvl, "Could not find");
+    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not find");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -240,7 +221,7 @@ TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
 
     std::ifstream handle{json_file_name.toStdString()}; // open the file, to provoke a failure in overwriting
-    const auto mock_logger_guard = expect_log(lvl, "Could not update");
+    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not update");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -272,7 +253,7 @@ public:
 
     void SetUp() override
     {
-        auto [mock_logger, guard] = guarded_mock_logger();
+        auto [mock_logger, guard] = mpt::guarded_mock_logger();
         EXPECT_CALL(*mock_logger, log(_, _, _)).Times(AnyNumber());
         EXPECT_CALL(*mock_logger, log(AnyOf(mpl::Level::error, mpl::Level::warning), _, _)).Times(0);
         mock_logger_guard.emplace(std::move(guard));
@@ -381,7 +362,7 @@ private:
             json["stuff"]["a"]["b"]["c"] = "asdf";
     }
 
-    mp::optional<decltype(guarded_mock_logger().second)> mock_logger_guard;
+    mp::optional<decltype(mpt::guarded_mock_logger().second)> mock_logger_guard;
 };
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primary)
