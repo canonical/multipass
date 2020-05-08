@@ -36,6 +36,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <utility>
@@ -78,29 +79,35 @@ auto expect_log(mpl::Level lvl, const std::string& substr)
     return std::move(guard); // needs to be moved because it's only part of an implicit local var (NRVO does not apply)
 }
 
-// ptr works around uncopyable QTemporaryFile
-std::unique_ptr<QTemporaryFile> fake_json(const char* contents)
+auto guarded_fake_json(const char* contents)
 {
-    auto json_file = std::make_unique<QTemporaryFile>();
-    EXPECT_TRUE(json_file->open());   // can't use gtest's asserts in non-void function
-    EXPECT_TRUE(json_file->exists()); // idem
+    QTemporaryFile json_file;
+    EXPECT_TRUE(json_file.open());   // can't use gtest's asserts in non-void function
+    EXPECT_TRUE(json_file.exists()); // idem
 
-    json_file->write(contents);
-    json_file->close();
+    json_file.write(contents);
+    json_file.close();
 
-    mock_stdpaths_locate(json_file->fileName());
+    auto filename = json_file.fileName();
+    mock_stdpaths_locate(filename);
 
-    return json_file;
+    json_file.setAutoRemove(false); // we need to release the file but keep it around, so that it can be overwritten
+    auto guard = sg::make_scope_guard([filename = filename.toStdString()] { // we have to remove it ourselves later on
+        std::error_code ec;
+        std::filesystem::remove(filename, ec);
+    });
+
+    return std::make_pair(filename, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
 }
 
 // ptr works around uncopyable QTemporaryFile
-std::unique_ptr<QTemporaryFile> fake_json(const Json::Value& json)
+auto guarded_fake_json(const Json::Value& json)
 {
     std::ostringstream oss;
     oss << json;
     const auto data = oss.str();
 
-    return fake_json(data.c_str());
+    return guarded_fake_json(data.c_str());
 }
 
 Json::Value read_json(const QString& filename)
@@ -179,7 +186,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unreadable_settings)
 
     mock_winterm_setting(setting);
     mock_stdpaths_locate("C:\\unreadable\\settings.json");
-    auto mock_logger_guard = expect_log(lvl, "Could not read");
+    const auto mock_logger_guard = expect_log(lvl, "Could not read");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -189,8 +196,8 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unparseable_settings)
     const auto& [setting, lvl] = GetParam();
     mock_winterm_setting(setting);
 
-    auto json_file = fake_json("~!@#$% rubbish ^&*()_+");
-    auto mock_logger_guard = expect_log(lvl, "Could not parse");
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json("~!@#$% rubbish ^&*()_+");
+    const auto mock_logger_guard = expect_log(lvl, "Could not parse");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -200,8 +207,8 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unavailable_profiles)
     const auto& [setting, lvl] = GetParam();
     mock_winterm_setting(setting);
 
-    auto json_file = fake_json("{ \"someNode\": \"someValue\" }");
-    auto mock_logger_guard = expect_log(lvl, "Could not find");
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json("{ \"someNode\": \"someValue\" }");
+    const auto mock_logger_guard = expect_log(lvl, "Could not find");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -361,13 +368,13 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primar
     profile["hidden"] = false;
 
     dress_up(json, GetParam());
-    const auto json_file = fake_json(json);
-    auto timestamp = QFileInfo{*json_file}.lastModified();
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
+    const auto timestamp = QFileInfo{json_file_name}.lastModified();
 
     mp::platform::sync_winterm_profiles();
 
-    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
-    EXPECT_EQ(json, read_json(json_file->fileName()));
+    EXPECT_EQ(QFileInfo{json_file_name}.lastModified(), timestamp);
+    EXPECT_EQ(json, read_json(json_file_name));
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_enables_hidden_profile_if_setting_primary)
@@ -379,12 +386,12 @@ TEST_P(TestWinTermSyncJson, winterm_sync_enables_hidden_profile_if_setting_prima
     profile["hidden"] = true;
 
     dress_up(json, GetParam());
-    const auto json_file = fake_json(json);
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
 
     mp::platform::sync_winterm_profiles();
 
     edit_primary_profile(json)["hidden"] = false;
-    EXPECT_EQ(json, read_json(json_file->fileName()));
+    EXPECT_EQ(json, read_json(json_file_name));
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_setting_primary)
@@ -395,13 +402,13 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_profile_without_hidden_flag_if_se
     setup_primary_profile(json);
 
     dress_up(json, GetParam());
-    const auto json_file = fake_json(json);
-    auto timestamp = QFileInfo{*json_file}.lastModified();
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
+    const auto timestamp = QFileInfo{json_file_name}.lastModified();
 
     mp::platform::sync_winterm_profiles();
 
-    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
-    EXPECT_EQ(json, read_json(json_file->fileName()));
+    EXPECT_EQ(QFileInfo{json_file_name}.lastModified(), timestamp);
+    EXPECT_EQ(json, read_json(json_file_name));
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary)
@@ -410,10 +417,10 @@ TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary
 
     Json::Value json_in;
     dress_up(json_in, GetParam());
-    const auto json_file = fake_json(json_in);
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json_in);
 
     mp::platform::sync_winterm_profiles();
-    const auto json_out = read_json(json_file->fileName());
+    const auto json_out = read_json(json_file_name);
 
     Json::Value primary_profile;
     ASSERT_NO_THROW(primary_profile = get_primary_profile(json_out));
@@ -434,13 +441,13 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_missing_profile_if_setting_none)
 
     Json::Value json;
     dress_up(json, GetParam());
-    const auto json_file = fake_json(json);
-    auto timestamp = QFileInfo{*json_file}.lastModified();
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
+    const auto timestamp = QFileInfo{json_file_name}.lastModified();
 
     mp::platform::sync_winterm_profiles();
 
-    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
-    EXPECT_EQ(json, read_json(json_file->fileName()));
+    EXPECT_EQ(QFileInfo{json_file_name}.lastModified(), timestamp);
+    EXPECT_EQ(json, read_json(json_file_name));
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_hidden_profile_if_setting_none)
@@ -452,13 +459,13 @@ TEST_P(TestWinTermSyncJson, winterm_sync_keeps_hidden_profile_if_setting_none)
     profile["hidden"] = true;
 
     dress_up(json, GetParam());
-    const auto json_file = fake_json(json);
-    auto timestamp = QFileInfo{*json_file}.lastModified();
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
+    const auto timestamp = QFileInfo{json_file_name}.lastModified();
 
     mp::platform::sync_winterm_profiles();
 
-    EXPECT_EQ(QFileInfo{*json_file}.lastModified(), timestamp);
-    EXPECT_EQ(json, read_json(json_file->fileName()));
+    EXPECT_EQ(QFileInfo{json_file_name}.lastModified(), timestamp);
+    EXPECT_EQ(json, read_json(json_file_name));
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_disables_visible_profile_if_setting_none)
@@ -470,12 +477,12 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_visible_profile_if_setting_non
     profile["hidden"] = false;
 
     dress_up(json, GetParam());
-    const auto json_file = fake_json(json);
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
 
     mp::platform::sync_winterm_profiles();
 
     edit_primary_profile(json)["hidden"] = true;
-    EXPECT_EQ(json, read_json(json_file->fileName()));
+    EXPECT_EQ(json, read_json(json_file_name));
 }
 
 TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if_setting_none)
@@ -486,12 +493,12 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if
     setup_primary_profile(json);
 
     dress_up(json, GetParam());
-    const auto json_file = fake_json(json);
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
 
     mp::platform::sync_winterm_profiles();
 
     edit_primary_profile(json)["hidden"] = true;
-    EXPECT_EQ(json, read_json(json_file->fileName()));
+    EXPECT_EQ(json, read_json(json_file_name));
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
