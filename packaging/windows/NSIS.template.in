@@ -635,6 +635,9 @@ FunctionEnd
   ;Keep these lines before any File command
   ;Only for solid compression (by default, solid compression is enabled for BZIP2 and LZMA)
 
+  ReserveFile "NSIS.HypervisorOptions.ini"
+  !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
+
   ReserveFile "NSIS.InstallOptions.ini"
   !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
 
