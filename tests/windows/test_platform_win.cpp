@@ -205,13 +205,13 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncModerateLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
-struct TestWinTermSyncGreaterLogging : public TestWithParam<std::pair<QString, mpl::Level>>
+struct TestWinTermSyncGreaterLogging : public TestWithParam<QString>
 {
 };
 
 TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
 {
-    const auto& [setting, lvl] = GetParam();
+    const auto& setting = GetParam();
     mock_winterm_setting(setting);
 
     Json::Value json;
@@ -221,14 +221,13 @@ TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
 
     std::ifstream handle{json_file_name.toStdString()}; // open the file, to provoke a failure in overwriting
-    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not update");
+    const auto mock_logger_guard = mpt::expect_log(mpl::Level::error, "Could not update");
 
     mp::platform::sync_winterm_profiles();
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncGreaterLogging,
-                         Values(std::make_pair(QStringLiteral("none"), mpl::Level::error),
-                                std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
+                         Values(QStringLiteral("none"), QStringLiteral("primary")));
 
 class TestWinTermSyncJson : public TestWithParam<unsigned char>
 {
