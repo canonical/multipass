@@ -17,6 +17,7 @@
 
 #include "mock_environment_helpers.h"
 #include "mock_settings.h"
+#include "mock_standard_paths.h"
 #include "mock_stdcin.h"
 #include "path.h"
 #include "stub_cert_store.h"
@@ -97,6 +98,13 @@ struct Client : public Test
         EXPECT_CALL(mock_settings, get(_)).Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests.
                                                                   This allows general actions to consult settings
                                                                   (e.g. Windows Terminal profile sync) */
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
+            .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                    locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
+            .Times(AnyNumber())
+            .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
+                                            it gets reset at the end of each test (by VerifyAndClearExpectations) */
     }
 
     void TearDown() override
