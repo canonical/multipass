@@ -561,13 +561,11 @@ FunctionEnd
 ;--------------------------------
 ;Pages
   !insertmacro MUI_PAGE_WELCOME
-
   !insertmacro MUI_PAGE_LICENSE "@CPACK_RESOURCE_FILE_LICENSE@"
+  Page custom HypervisorOptionsPage
   Page custom InstallOptionsPage
   !insertmacro MUI_PAGE_DIRECTORY
-
   @CPACK_NSIS_PAGE_COMPONENTS@
-
   !insertmacro MUI_PAGE_INSTFILES
   !insertmacro MUI_PAGE_FINISH
 
@@ -737,6 +735,12 @@ SectionEnd
 
 ;--------------------------------
 ; Create custom pages
+Function HypervisorOptionsPage
+  !insertmacro MUI_HEADER_TEXT "Hypervisor Options" "Select a Hypervisor to use with @CPACK_NSIS_PACKAGE_NAME@"
+  !insertmacro MUI_INSTALLOPTIONS_DISPLAY "NSIS.HypervisorOptions.ini"
+
+FunctionEnd
+
 Function InstallOptionsPage
   !insertmacro MUI_HEADER_TEXT "Install Options" "Choose options for installing @CPACK_NSIS_PACKAGE_NAME@"
   !insertmacro MUI_INSTALLOPTIONS_DISPLAY "NSIS.InstallOptions.ini"
