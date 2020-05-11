@@ -25,6 +25,7 @@
 #include <multipass/platform.h>
 
 #include <QDateTime>
+#include <QDir>
 #include <QFileInfo>
 #include <QTemporaryFile>
 
@@ -228,6 +229,42 @@ TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
 
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncGreaterLogging,
                          Values(QStringLiteral("none"), QStringLiteral("primary")));
+
+struct TestWinTermSyncNoLeftovers : public TestWithParam<bool>
+{
+};
+
+TEST_P(TestWinTermSyncNoLeftovers, no_leftover_files_on_overwriting)
+{
+    bool fail = GetParam();
+    mock_winterm_setting("primary");
+
+    Json::Value json;
+    json["profiles"];
+    const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
+
+    const auto json_file_info = QFileInfo{json_file_name};
+    const auto file_list = json_file_info.dir().entryList();
+
+    std::ifstream handle;
+    auto [mock_logger, mock_logger_guard] = mpt::guarded_mock_logger();
+    if (fail)
+    {
+        handle.open(json_file_name.toStdString()); // block overwriting
+        EXPECT_CALL(*mock_logger, log(mpl::Level::error, _, _));
+    }
+
+    mp::platform::sync_winterm_profiles();
+
+    if (fail)
+        ASSERT_EQ(read_json(json_file_name), json);
+    else
+        ASSERT_NE(read_json(json_file_name), json);
+
+    EXPECT_EQ(json_file_info.dir().entryList(), file_list);
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncNoLeftovers, Values(true, false));
 
 class TestWinTermSyncJson : public TestWithParam<unsigned char>
 {
