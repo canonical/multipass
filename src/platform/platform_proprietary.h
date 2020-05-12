@@ -29,7 +29,7 @@ namespace platform
 constexpr auto unlock_code{"prophetic-giraffe"};
 const std::unordered_set<std::string> supported_release_aliases{
     "default", "ubuntu", "lts", "16.04", "x", "xenial", "b", "bionic", "18.04", "f", "focal", "20.04"};
-const std::unordered_set<std::string> supported_snapcraft_aliases{"core", "core16", "core18"};
+const std::unordered_set<std::string> supported_snapcraft_aliases{"core", "core16", "core18", "core20"};
 const std::unordered_map<std::string, std::unordered_set<std::string>> supported_remotes_aliases_map{
     {"release", supported_release_aliases}, {"snapcraft", supported_snapcraft_aliases}};
 
