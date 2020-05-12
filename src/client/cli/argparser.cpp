@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ auto verbosity_level_in(const QStringList& arguments)
             return 1;
         if (arg == QStringLiteral("-vv"))
             return 2;
-        if (arg == QStringLiteral("-vvv"))
+        if (QRegExp{"-vvv+"}.exactMatch(arg))
             return 3;
     }
     return 0;
