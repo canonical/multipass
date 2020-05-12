@@ -1,4 +1,6 @@
 ; CPack install script designed for a nmake build
+Unicode True
+BrandingText "Canonical Ltd."
 
 ;-----------------------------
 ;Include string functions
@@ -22,6 +24,12 @@ ${StrLoc}
   Var ADD_TO_PATH_CURRENT_USER
   Var INSTALL_DESKTOP
   Var IS_DEFAULT_INSTALLDIR
+
+  Var DIALOG_USE_HYPERV
+  Var DIALOG_USE_VBOX
+  Var DIALOG_DO_NOT_ADD_TO_PATH
+  Var DIALOG_ADD_TO_PATH_ALL_USERS
+  Var DIALOG_ADD_TO_PATH_CURRENT_USER
 ;--------------------------------
 ;Include Modern UI
 
@@ -29,6 +37,10 @@ ${StrLoc}
 
   ;Default installation folder
   InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
+
+;--------------------------------
+;Include NsDialogs
+!include "nsDialogs.nsh"
 
 ;--------------------------------
 ;General
@@ -563,7 +575,7 @@ FunctionEnd
   !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "@CPACK_RESOURCE_FILE_LICENSE@"
   Page custom HypervisorOptionsPage
-  Page custom InstallOptionsPage
+  Page custom PathOptionsPage
   !insertmacro MUI_PAGE_DIRECTORY
   @CPACK_NSIS_PAGE_COMPONENTS@
   !insertmacro MUI_PAGE_INSTFILES
@@ -627,20 +639,6 @@ FunctionEnd
   !insertmacro MUI_LANGUAGE "Ukrainian"
   !insertmacro MUI_LANGUAGE "Welsh"
 
-
-;--------------------------------
-;Reserve Files
-
-  ;These files should be inserted before other files in the data block
-  ;Keep these lines before any File command
-  ;Only for solid compression (by default, solid compression is enabled for BZIP2 and LZMA)
-
-  ReserveFile "NSIS.HypervisorOptions.ini"
-  !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
-
-  ReserveFile "NSIS.InstallOptions.ini"
-  !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
-
 ;--------------------------------
 ;Installer Sections
 
@@ -702,10 +700,10 @@ Section "-Core installation"
 @CPACK_NSIS_CREATE_ICONS@
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
-  ;Read a value from an InstallOptions INI file
-  !insertmacro MUI_INSTALLOPTIONS_READ $DO_NOT_ADD_TO_PATH "NSIS.InstallOptions.ini" "Field 2" "State"
-  !insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_ALL_USERS "NSIS.InstallOptions.ini" "Field 3" "State"
-  !insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_CURRENT_USER "NSIS.InstallOptions.ini" "Field 4" "State"
+  ;Read a value from a Path options
+  ${NSD_GetState} $DIALOG_DO_NOT_ADD_TO_PATH $DO_NOT_ADD_TO_PATH
+  ${NSD_GetState} $DIALOG_ADD_TO_PATH_ALL_USERS $ADD_TO_PATH_ALL_USERS
+  ${NSD_GetState} $DIALOG_ADD_TO_PATH_CURRENT_USER $ADD_TO_PATH_CURRENT_USER
 
   ; Write special uninstall registry entries
   Push "DoNotAddToPath"
@@ -739,14 +737,30 @@ SectionEnd
 ;--------------------------------
 ; Create custom pages
 Function HypervisorOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Hypervisor Options" "Select a Hypervisor to use with @CPACK_NSIS_PACKAGE_NAME@"
-  !insertmacro MUI_INSTALLOPTIONS_DISPLAY "NSIS.HypervisorOptions.ini"
+  nsDialogs::Create 1018
+  ${NSD_CreateLabel} 0 0 100% 30u "Select a Hypervisor to use with @CPACK_PACKAGE_NAME@"
+
+  ${NSD_CreateRadioButton} 0 60 100% 10u "Microsoft Hyper-V"
+  Pop $DIALOG_USE_HYPERV
+  ${NSD_CreateRadioButton} 0 80 100% 10u "Oracle Virtualbox"
+  Pop $DIALOG_USE_VBOX
+  ${NSD_Check} $DIALOG_USE_HYPERV
+  nsDialogs::Show
 
 FunctionEnd
 
-Function InstallOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Install Options" "Choose options for installing @CPACK_NSIS_PACKAGE_NAME@"
-  !insertmacro MUI_INSTALLOPTIONS_DISPLAY "NSIS.InstallOptions.ini"
+Function PathOptionsPage
+  nsDialogs::Create 1018
+  ${NSD_CreateLabel} 0 0 100% 30u "To run Multipass in Powershell or cmd.exe without having to type the full installation directory, the PATH variable needs to include @CPACK_PACKAGE_NAME@"
+
+  ${NSD_CreateRadioButton} 0 60 100% 10u "Do not add @CPACK_PACKAGE_NAME@ to the PATH"
+  Pop $DIALOG_DO_NOT_ADD_TO_PATH
+  ${NSD_CreateRadioButton} 0 80 100% 10u "Add @CPACK_PACKAGE_NAME@ to the system PATH for all users"
+  Pop $DIALOG_ADD_TO_PATH_ALL_USERS
+  ${NSD_CreateRadioButton} 0 100 100% 10u "Add @CPACK_PACKAGE_NAME@ to the current user's PATH (Recommended)"
+  Pop $DIALOG_ADD_TO_PATH_CURRENT_USER
+  ${NSD_Check} $DIALOG_ADD_TO_PATH_CURRENT_USER
+  nsDialogs::Show
 
 FunctionEnd
 
