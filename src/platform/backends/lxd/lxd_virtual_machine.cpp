@@ -122,7 +122,11 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         if (!desc.user_data_config.IsNull())
             config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
 
-        QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}}};
+        QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
+                            {"root", QJsonObject{{"path", "/"},
+                                                 {"pool", "default"},
+                                                 {"size", QString::number(desc.disk_space.in_bytes())},
+                                                 {"type", "disk"}}}};
 
         QJsonObject virtual_machine{
             {"name", name},
@@ -208,13 +212,23 @@ void mp::LXDVirtualMachine::stop()
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
     {
-        request_state("stop");
+        auto state_task = request_state("stop");
+        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
+            state_task["status_code"].toInt(-1) == 100)
+        {
+            QUrl task_url(QString("%1/operations/%2/wait")
+                              .arg(base_url.toString())
+                              .arg(state_task["metadata"].toObject()["id"].toString()));
+            lxd_request(manager, "GET", task_url);
+        }
+
         state = State::stopped;
         port = mp::nullopt;
     }
     else if (present_state == State::starting)
     {
         state = State::off;
+        request_state("stop");
         state_wait.wait(lock, [this] { return state == State::stopped; });
         port = mp::nullopt;
     }
@@ -271,7 +285,7 @@ int mp::LXDVirtualMachine::ssh_port()
 void mp::LXDVirtualMachine::ensure_vm_is_running()
 {
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (state == State::off)
+    if (current_state() == State::off)
     {
         // Have to set 'stopped' here so there is an actual state change to compare to for
         // the cond var's predicate
