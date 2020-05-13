@@ -24,12 +24,9 @@ ${StrLoc}
   Var ADD_TO_PATH_CURRENT_USER
   Var INSTALL_DESKTOP
   Var IS_DEFAULT_INSTALLDIR
+  Var USE_HYPERV
+  Var USE_VBOX
 
-  Var DIALOG_USE_HYPERV
-  Var DIALOG_USE_VBOX
-  Var DIALOG_DO_NOT_ADD_TO_PATH
-  Var DIALOG_ADD_TO_PATH_ALL_USERS
-  Var DIALOG_ADD_TO_PATH_CURRENT_USER
 ;--------------------------------
 ;Include Modern UI
 
@@ -574,8 +571,8 @@ FunctionEnd
 ;Pages
   !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "@CPACK_RESOURCE_FILE_LICENSE@"
-  Page Custom HypervisorOptionsPage
-  Page Custom PathOptionsPage
+  Page Custom HypervisorOptionsPage HypervisorOptionsPageLeave
+  Page Custom PathOptionsPage PathOptionsPageLeave
   !insertmacro MUI_PAGE_DIRECTORY
   @CPACK_NSIS_PAGE_COMPONENTS@
   !insertmacro MUI_PAGE_INSTFILES
@@ -586,7 +583,6 @@ FunctionEnd
 
 ;--------------------------------
 ;Languages
-
   !insertmacro MUI_LANGUAGE "English" ;first language is the default language
   !insertmacro MUI_LANGUAGE "Albanian"
   !insertmacro MUI_LANGUAGE "Arabic"
@@ -640,8 +636,52 @@ FunctionEnd
   !insertmacro MUI_LANGUAGE "Welsh"
 
 ;--------------------------------
-;Installer Sections
+; Create custom pages
+Function HypervisorOptionsPage
+  !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a Hypervisor to use with @CPACK_PACKAGE_NAME@."
+  nsDialogs::Create 1018
+    Pop $0
+  ${NSD_CreateRadioButton} 0 0 100% 10u "Microsoft Hyper-V"
+    Pop $1
+  ${NSD_CreateRadioButton} 0 20 100% 10u "Oracle Virtualbox"
+    Pop $2
 
+  ${NSD_Check} $1
+  nsDialogs::Show
+
+FunctionEnd
+
+Function HypervisorOptionsPageLeave
+  ${NSD_GetState} $1 $USE_HYPERV
+  ${NSD_GetState} $2 $USE_VBOX
+
+FunctionEnd
+
+Function PathOptionsPage
+  !insertmacro MUI_HEADER_TEXT "Add @CPACK_PACKAGE_NAME@ to PATH?" "To run Multipass, without having to type the full installation directory, the PATH variable needs to include @CPACK_PACKAGE_NAME@."
+  nsDialogs::Create 1018
+    Pop $0
+  ${NSD_CreateRadioButton} 0 0 100% 10u "Do not add @CPACK_PACKAGE_NAME@ to the PATH"
+    Pop $1
+  ${NSD_CreateRadioButton} 0 20 100% 10u "Add @CPACK_PACKAGE_NAME@ to the system PATH for all users"
+    Pop $2
+  ${NSD_CreateRadioButton} 0 40 100% 10u "Add @CPACK_PACKAGE_NAME@ to the current user's PATH (Recommended)"
+    Pop $3
+
+  ${NSD_Check} $3
+  nsDialogs::Show
+
+FunctionEnd
+
+Function PathOptionsPageLeave
+  ${NSD_GetState} $1 $DO_NOT_ADD_TO_PATH
+  ${NSD_GetState} $2 $ADD_TO_PATH_ALL_USERS
+  ${NSD_GetState} $3 $ADD_TO_PATH_CURRENT_USER
+
+FunctionEnd
+
+;--------------------------------
+;Installer Sections
 Section "-Core installation"
   ;Use the entire tree produced by the INSTALL target.  Keep the
   ;list of directories here in sync with the RMDir commands below.
@@ -700,11 +740,6 @@ Section "-Core installation"
 @CPACK_NSIS_CREATE_ICONS@
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
-  ;Read a value from a Path options
-  ${NSD_GetState} $DIALOG_DO_NOT_ADD_TO_PATH $DO_NOT_ADD_TO_PATH
-  ${NSD_GetState} $DIALOG_ADD_TO_PATH_ALL_USERS $ADD_TO_PATH_ALL_USERS
-  ${NSD_GetState} $DIALOG_ADD_TO_PATH_CURRENT_USER $ADD_TO_PATH_CURRENT_USER
-
   ; Write special uninstall registry entries
   Push "DoNotAddToPath"
   Push "$DO_NOT_ADD_TO_PATH"
@@ -734,33 +769,15 @@ Section "-Add to path"
   continue_inst:
 SectionEnd
 
-;--------------------------------
-; Create custom pages
-Function HypervisorOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a Hypervisor to use with @CPACK_PACKAGE_NAME@."
-  nsDialogs::Create 1018
-  ${NSD_CreateRadioButton} 0 0 100% 10u "Microsoft Hyper-V"
-  Pop $DIALOG_USE_HYPERV
-  ${NSD_CreateRadioButton} 0 20 100% 10u "Oracle Virtualbox"
-  Pop $DIALOG_USE_VBOX
-  ${NSD_Check} $DIALOG_USE_HYPERV
-  nsDialogs::Show
+Section "-Enable Hypervisor"
+  ${If} $USE_HYPERV == ${BST_CHECKED}
+    Exec "$INSTDIR/multipass.exe set local.driver=hyperv"
+  ${EndIf}
 
-FunctionEnd
-
-Function PathOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Add @CPACK_PACKAGE_NAME@ to PATH?" "To run Multipass, without having to type the full installation directory, the PATH variable needs to include @CPACK_PACKAGE_NAME@."
-  nsDialogs::Create 1018
-  ${NSD_CreateRadioButton} 0 0 100% 10u "Do not add @CPACK_PACKAGE_NAME@ to the PATH"
-  Pop $DIALOG_DO_NOT_ADD_TO_PATH
-  ${NSD_CreateRadioButton} 0 20 100% 10u "Add @CPACK_PACKAGE_NAME@ to the system PATH for all users"
-  Pop $DIALOG_ADD_TO_PATH_ALL_USERS
-  ${NSD_CreateRadioButton} 0 40 100% 10u "Add @CPACK_PACKAGE_NAME@ to the current user's PATH (Recommended)"
-  Pop $DIALOG_ADD_TO_PATH_CURRENT_USER
-  ${NSD_Check} $DIALOG_ADD_TO_PATH_CURRENT_USER
-  nsDialogs::Show
-
-FunctionEnd
+  ${If} $USE_VBOX == ${BST_CHECKED}
+    Exec "$INSTDIR/multipass.exe set local.driver=virtualbox"
+  ${EndIf}
+SectionEnd
 
 ;--------------------------------
 ; determine admin versus local install
