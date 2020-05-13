@@ -46,8 +46,6 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
 
 void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
-    lxd_request(manager.get(), "DELETE",
-                QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
 }
 
 mp::FetchType mp::LXDVirtualMachineFactory::fetch_type()
