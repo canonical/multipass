@@ -35,9 +35,15 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-typedef std::exception LXDNotFoundException;
-
 constexpr auto request_category = "lxd request";
+
+class LXDNotFoundException : public std::runtime_error
+{
+public:
+    LXDNotFoundException() : runtime_error{"LXD object not found"}
+    {
+    }
+};
 
 const QJsonObject lxd_request(mp::NetworkAccessManager* manager, std::string method, QUrl url,
                               const mp::optional<QJsonObject>& json_data = mp::nullopt, int timeout = 30000)
