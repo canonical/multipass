@@ -771,11 +771,11 @@ SectionEnd
 
 Section "-Enable Hypervisor"
   ${If} $USE_HYPERV == ${BST_CHECKED}
-    Exec "$INSTDIR/multipass.exe set local.driver=hyperv"
+    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=hyperv'
   ${EndIf}
 
   ${If} $USE_VBOX == ${BST_CHECKED}
-    Exec "$INSTDIR/multipass.exe set local.driver=virtualbox"
+    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=virtualbox'
   ${EndIf}
 SectionEnd
 
