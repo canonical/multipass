@@ -641,7 +641,7 @@ Function HypervisorOptionsPage
   !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a Hypervisor to use with @CPACK_PACKAGE_NAME@."
   nsDialogs::Create 1018
     Pop $0
-  ${NSD_CreateRadioButton} 0 0 100% 10u "Microsoft Hyper-V"
+  ${NSD_CreateRadioButton} 0 0 100% 10u "Microsoft Hyper-V (Recommended)"
     Pop $1
   ${NSD_CreateRadioButton} 0 20 100% 10u "Oracle Virtualbox"
     Pop $2
@@ -775,7 +775,7 @@ Section "-Enable Hypervisor"
     nsExec::Exec "DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V"
     Pop $0
     ${If} $0 == "error"
-      MessageBox MessageBox MB_YESNO "Cannot enable Hyper-V, would you like to use VirtualBox instead?" /SD IDYES IDNO noHyperv
+      MessageBox MB_YESNO "Cannot enable Hyper-V, would you like to use VirtualBox instead?" /SD IDYES IDNO noHyperv
         ; set USE_VBOX to 1
       noHyperv:
         Abort
