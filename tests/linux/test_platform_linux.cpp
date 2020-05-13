@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
 
 #include <QDir>
@@ -34,6 +35,7 @@
 
 #include <scope_guard.hpp>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <stdexcept>
@@ -157,6 +159,29 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
+
+TEST_F(PlatformLinux, test_no_extra_settings)
+{
+    EXPECT_THAT(mp::platform::extra_settings_defaults(), IsEmpty());
+}
+
+TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
+{
+    for (const auto x : {"no", "matter", "what"})
+        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingsException);
+}
+
+TEST_F(PlatformLinux, test_interpretation_of_unknown_settings_not_supported)
+{
+    for (const auto k : {"unimaginable", "katxama", "katxatxa"})
+        for (const auto v : {"no", "matter", "what"})
+            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingsException);
+}
+
+TEST_F(PlatformLinux, test_empty_sync_winterm_profiles)
+{
+    EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
+}
 
 TEST_F(PlatformLinux, test_autostart_desktop_file_properly_placed)
 {

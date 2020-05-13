@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <multipass/vm_image_vault.h>
 
 #include "mock_environment_helpers.h"
+#include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
@@ -233,6 +234,17 @@ struct Daemon : public Test
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
         config_builder.update_prompt = std::make_unique<mp::DisabledUpdatePrompt>();
+    }
+
+    void SetUp() override
+    {
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
+            .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                    locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
+            .Times(AnyNumber())
+            .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
+                                            it gets reset at the end of each test (by VerifyAndClearExpectations) */
     }
 
     mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()

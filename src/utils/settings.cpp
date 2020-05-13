@@ -44,9 +44,14 @@ const auto autostart_default = QStringLiteral("true");
 
 std::map<QString, QString> make_defaults()
 { // clang-format off
-    return {{mp::petenv_key, petenv_name},
-            {mp::driver_key, mp::platform::default_driver()},
-            {mp::autostart_key, autostart_default}};
+    auto ret = std::map<QString, QString>{{mp::petenv_key, petenv_name},
+                                          {mp::driver_key, mp::platform::default_driver()},
+                                          {mp::autostart_key, autostart_default}};
+
+    for(const auto& [k, v] : mp::platform::extra_settings_defaults())
+        ret.insert_or_assign(k, v);
+
+    return ret;
 } // clang-format on
 
 /*
@@ -186,12 +191,15 @@ QString mp::Settings::get_client_settings_file_path() // idem
 
 void multipass::Settings::set_aux(const QString& key, QString val) // work with a copy of val
 {
+    // TODO we should have handler callbacks instead
     if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
-        throw InvalidSettingsException{key, val, "Invalid hostname"}; // TODO move checking logic out
+        throw InvalidSettingsException{key, val, "Invalid hostname"};
     else if (key == driver_key && !mp::platform::is_backend_supported(val))
-        throw InvalidSettingsException(key, val, "Invalid driver"); // TODO idem
+        throw InvalidSettingsException(key, val, "Invalid driver");
     else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
+    else if (key == winterm_key)
+        val = mp::platform::interpret_setting(winterm_key, val);
 
     auto settings = persistent_settings(key);
     checked_set(settings, key, val, mutex);

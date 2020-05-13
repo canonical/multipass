@@ -185,12 +185,6 @@ struct SshfsMount : public mp::test::SftpServerTest
         EXPECT_TRUE(next_expected_cmd == commands.end()) << "\"" << next_expected_cmd->first << "\" not executed";
     }
 
-    template <typename Matcher>
-    auto make_cstring_matcher(const Matcher& matcher)
-    {
-        return Property(&mpl::CString::c_str, matcher);
-    }
-
     mpt::ExitStatusMock exit_status_mock;
     decltype(MOCK(ssh_channel_read_timeout)) channel_read{MOCK(ssh_channel_read_timeout)};
     decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
@@ -424,11 +418,11 @@ TEST_F(SshfsMount, blank_fuse_version_logs_error)
     EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
                              Matcher<multipass::logging::CString>(_)))
         .WillRepeatedly(Return());
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::warning), make_cstring_matcher(StrEq("sshfs mount")),
-                             make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
-    EXPECT_CALL(*logger,
-                log(Eq(mpl::Level::debug), make_cstring_matcher(StrEq("sshfs mount")),
-                    make_cstring_matcher(StrEq("Unable to parse the FUSE library version: FUSE library version:"))));
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
+                             mpt::MockLogger::make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
+                             mpt::MockLogger::make_cstring_matcher(
+                                 StrEq("Unable to parse the FUSE library version: FUSE library version:"))));
 
     test_command_execution(commands);
 }
@@ -512,8 +506,9 @@ TEST_F(SshfsMount, install_sshfs_timeout_logs_info)
     EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
                              Matcher<multipass::logging::CString>(_)))
         .WillRepeatedly(Return());
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), make_cstring_matcher(StrEq("utils")),
-                             make_cstring_matcher(StrEq("Timeout while installing 'sshfs' in 'foo'"))));
+    EXPECT_CALL(*logger,
+                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("utils")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Timeout while installing 'sshfs' in 'foo'"))));
 
     mp::SSHSession session{"a", 42};
 

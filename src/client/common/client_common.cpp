@@ -105,7 +105,7 @@ void mp::client::set_logger(mpl::Level verbosity)
     mpl::set_logger(std::make_shared<mpl::StandardLogger>(verbosity));
 }
 
-void mp::client::preliminary_setup()
+void mp::client::pre_setup()
 {
     try
     {
@@ -116,4 +116,9 @@ void mp::client::preliminary_setup()
         mpl::log(mpl::Level::error, "client", fmt::format("Failed to set up autostart prerequisites: {}", e.what()));
         mpl::log(mpl::Level::debug, "client", e.get_detail());
     }
+}
+
+void mp::client::post_setup()
+{
+    platform::sync_winterm_profiles();
 }
