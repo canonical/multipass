@@ -18,11 +18,14 @@
 #ifndef MULTIPASS_PLATFORM_H
 #define MULTIPASS_PLATFORM_H
 
+#include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/process.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
+#include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
+#include <multipass/vm_image_vault.h>
 
 #include <libssh/sftp.h>
 
@@ -52,7 +55,8 @@ QString daemon_config_home();                      // temporary
 
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
-
+std::unique_ptr<VMImageVault> make_image_vault(std::vector<VMImageHost*> image_host, URLDownloader* downloader,
+                                               Path cache_dir_path, Path data_dir_path, days days_to_expire);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
