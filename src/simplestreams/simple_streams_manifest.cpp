@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -126,6 +126,11 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             {
                 image = items["lxd.tar.xz"].toObject();
                 sha256 = image["combined_disk1-img_sha256"].toString();
+
+                if (sha256.isEmpty())
+                {
+                    continue;
+                }
             }
             else
             {
