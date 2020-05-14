@@ -9,36 +9,41 @@ ${StrLoc}
 
 ;--------------------------------
 ; You must define these values
-
-  !define VERSION "@CPACK_PACKAGE_VERSION@"
-  !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
-  !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
+!define VERSION "@CPACK_PACKAGE_VERSION@"
+!define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
+!define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
 
 ;--------------------------------
 ;Variables
-
-  Var MUI_TEMP
-  Var SV_ALLUSERS
-  Var DO_NOT_ADD_TO_PATH
-  Var ADD_TO_PATH_ALL_USERS
-  Var ADD_TO_PATH_CURRENT_USER
-  Var INSTALL_DESKTOP
-  Var IS_DEFAULT_INSTALLDIR
-  Var USE_HYPERV
-  Var USE_VBOX
+Var MUI_TEMP
+Var SV_ALLUSERS
+Var DO_NOT_ADD_TO_PATH
+Var ADD_TO_PATH_ALL_USERS
+Var ADD_TO_PATH_CURRENT_USER
+Var INSTALL_DESKTOP
+Var IS_DEFAULT_INSTALLDIR
+Var USE_HYPERV
+Var USE_VBOX
 
 ;--------------------------------
 ;Include Modern UI
+!include "MUI.nsh"
 
-  !include "MUI.nsh"
-
-  ;Default installation folder
-  InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
+;--------------------------------
+;Default installation folder
+InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
 
 ;--------------------------------
 ;Include NsDialogs
 !include "nsDialogs.nsh"
 
+;--------------------------------
+;Include WinVer
+!include "WinVer.nsh"
+
+;--------------------------------
+;Include x64
+!include x64.nsh
 
 ; StrContains
 ; This function does a case sensitive searches for an occurrence of a substring in a string.
@@ -688,7 +693,15 @@ FunctionEnd
 ;--------------------------------
 ; Create custom pages
 Function HypervisorOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a Hypervisor to use with @CPACK_PACKAGE_NAME@."
+  !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a Hypervisor to use with @CPACK_PACKAGE_NAME@.  If your system does not support Hyper-V, the option will be disabled."
+  ${WinVerGetMajor} $R0
+  ${WinVerGetBuild} $R1
+  ClearErrors
+  ${If} ${RunningX64}
+    SetRegView 64
+  ${EndIf}
+  ReadRegStr $R2 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "EditionID"
+  SetRegView default
   nsDialogs::Create 1018
     Pop $0
   ${NSD_CreateRadioButton} 0 0 100% 10u "Microsoft Hyper-V (Recommended)"
@@ -696,7 +709,21 @@ Function HypervisorOptionsPage
   ${NSD_CreateRadioButton} 0 20 100% 10u "Oracle Virtualbox"
     Pop $2
 
-  ${NSD_Check} $1
+  ${If} $R0 >= 10
+  ${AndIf} $R1 >= 1803
+  ${AndIf} $R2 != "Home"
+    ${NSD_Check} $1
+  ${Else}
+    ${NSD_Check} $2
+    EnableWindow $1 0
+    ${If} $R0 < 10
+      ${NSD_SetText} $1 "Microsoft Hyper-V (Requires Windows 10)"
+    ${ElseIf} $R1 < 1803
+      ${NSD_SetText} $1 "Microsoft Hyper-V (Requires Windows 10 at atleast build 1803)"
+    ${ElseIf} $R2 == "Home"
+      ${NSD_SetText} $1 "Microsoft Hyper-V (Not compatible with Home edition)"
+    ${EndIf}
+  ${EndIf}
   nsDialogs::Show
 
 FunctionEnd
