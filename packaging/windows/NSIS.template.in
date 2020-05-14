@@ -821,12 +821,14 @@ SectionEnd
 
 Section "-Enable Hypervisor"
   ${If} $USE_HYPERV == ${BST_CHECKED}
+    DetailPrint "Checking if Hyper-V is enabled"
     nsExec::ExecToStack 'powershell "(Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online).State"'
     Pop $0
     Pop $1
 
     ${StrContains} $0 "Disabled" $1
     ${If} $0 == "Disabled"
+      DetailPrint "Enabling Hyper-V"
       nsExec::Exec "DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V"
       Pop $0
       ${If} $0 == "error"
@@ -844,6 +846,7 @@ Section "-Enable Hypervisor"
   ${EndIf}
 
   ${If} $USE_VBOX == ${BST_CHECKED}
+    DetailPrint "Checking for VirtualBox"
     IfFileExists "$PROFILE\.VirtualBox" okVbox noVbox
     noVbox:
       MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VirtualBox before using @CPACK_PACKAGE_NAME@."
