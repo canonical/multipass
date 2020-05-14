@@ -16,10 +16,10 @@
  */
 
 #include "lxd_vm_image_vault.h"
-#include "lxd_request.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
 #include <multipass/vm_image.h>
@@ -54,10 +54,8 @@ auto parse_percent_as_int(const QString& progress_string)
 }
 } // namespace
 
-mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts)
-    : image_hosts{image_hosts},
-      base_url{"unix:///var/snap/lxd/common/lxd/unix.socket@1.0"},
-      manager{std::make_unique<mp::NetworkAccessManager>()}
+mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, const QUrl& base_url)
+    : image_hosts{image_hosts}, base_url{base_url}, manager{std::make_unique<mp::NetworkAccessManager>()}
 {
     for (const auto& image_host : image_hosts)
     {

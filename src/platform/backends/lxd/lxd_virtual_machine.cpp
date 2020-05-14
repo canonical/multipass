@@ -19,6 +19,7 @@
 #include "lxd_request.h"
 
 #include <QJsonArray>
+#include <QJsonDocument>
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>

@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_LXD_VM_IMAGE_VAULT_H
 #define MULTIPASS_LXD_VM_IMAGE_VAULT_H
 
+#include "lxd_request.h"
+
 #include <multipass/network_access_manager.h>
 #include <multipass/query.h>
 #include <multipass/vm_image_host.h>
@@ -32,7 +34,7 @@ namespace multipass
 class LXDVMImageVault final : public VMImageVault
 {
 public:
-    LXDVMImageVault(std::vector<VMImageHost*> image_host);
+    LXDVMImageVault(std::vector<VMImageHost*> image_host, const QUrl& base_url = lxd_socket_url);
 
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;

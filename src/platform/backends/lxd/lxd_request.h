@@ -18,24 +18,18 @@
 #ifndef MULTIPASS_LXD_REQUEST_H
 #define MULTIPASS_LXD_REQUEST_H
 
-#include <QEventLoop>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QNetworkReply>
-#include <QTimer>
-#include <QUrl>
-
-#include <multipass/format.h>
-#include <multipass/logging/log.h>
-#include <multipass/network_access_manager.h>
 #include <multipass/optional.h>
 
-namespace mp = multipass;
-namespace mpl = multipass::logging;
+#include <QJsonObject>
+#include <QUrl>
 
-namespace
+#include <string>
+
+namespace multipass
 {
-constexpr auto request_category = "lxd request";
+const QUrl lxd_socket_url{"unix:///var/snap/lxd/common/lxd/unix.socket@1.0"};
+
+class NetworkAccessManager;
 
 class LXDNotFoundException : public std::runtime_error
 {
@@ -45,57 +39,8 @@ public:
     }
 };
 
-const QJsonObject lxd_request(mp::NetworkAccessManager* manager, std::string method, QUrl url,
-                              const mp::optional<QJsonObject>& json_data = mp::nullopt, int timeout = 30000)
-{
-    mpl::log(mpl::Level::debug, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
-
-    QEventLoop event_loop;
-    QTimer download_timeout;
-    download_timeout.setInterval(timeout);
-
-    QNetworkRequest request{url};
-
-    auto verb = QByteArray::fromStdString(method);
-    QByteArray data;
-    if (json_data)
-    {
-        data = QJsonDocument(*json_data).toJson();
-        mpl::log(mpl::Level::debug, request_category, fmt::format("Sending data: {}", data));
-    }
-
-    auto reply = manager->sendCustomRequest(request, verb, data);
-
-    QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
-    QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
-        mpl::log(mpl::Level::debug, request_category, fmt::format("Request timed out: {} {}", method, url.toString()));
-        download_timeout.stop();
-        reply->abort();
-    });
-
-    download_timeout.start();
-    event_loop.exec();
-
-    if (reply->error() == QNetworkReply::ContentNotFoundError)
-        throw LXDNotFoundException();
-
-    if (reply->error() != QNetworkReply::NoError)
-        throw std::runtime_error(fmt::format("{}: {}", url.toString(), reply->errorString()));
-
-    auto bytearray_reply = reply->readAll();
-    QJsonParseError json_error;
-    auto json_reply = QJsonDocument::fromJson(bytearray_reply, &json_error);
-
-    if (json_error.error != QJsonParseError::NoError)
-        throw std::runtime_error(fmt::format("{}: {}", url.toString(), json_error.errorString()));
-
-    if (json_reply.isNull() || !json_reply.isObject())
-        throw std::runtime_error(fmt::format("Invalid LXD response for url {}: {}", url.toString(), bytearray_reply));
-
-    mpl::log(mpl::Level::debug, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
-
-    return json_reply.object();
-}
-} // namespace
+const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, const QUrl& url,
+                              const optional<QJsonObject>& json_data = nullopt, int timeout = 30000);
+} // namespace multipass
 
 #endif // MULTIPASS_LXD_REQUEST_H

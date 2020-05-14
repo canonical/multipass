@@ -23,6 +23,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
+#include <QJsonDocument>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -33,7 +35,7 @@ constexpr auto category = "lxd factory";
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir)
     : data_dir{mp::utils::make_dir(data_dir, get_backend_directory_name())},
-      base_url{"unix:///var/snap/lxd/common/lxd/unix.socket@1.0"},
+      base_url{lxd_socket_url},
       manager{std::make_unique<NetworkAccessManager>()}
 {
 }
