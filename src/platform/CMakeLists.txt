@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -14,9 +14,13 @@
 
 if(MSVC)
   add_library(platform STATIC platform_win.cpp)
+  get_target_property(JSON_INC_PATH jsoncpp_lib INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(platform PRIVATE ${JSON_INC_PATH})
   target_link_libraries(platform
+    jsoncpp_lib
     shared_win
     hyperv_backend
+    scope_guard
     virtualbox_backend
     wineventlogger)
 elseif(APPLE)

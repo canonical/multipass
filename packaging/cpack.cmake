@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -105,6 +105,10 @@ if (MSVC)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
     " COMPONENT multipassd)
 
+  # copy the icon and font, to use in windows terminal profiles
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/windows/icon_wt.ico" DESTINATION bin RENAME multipass_wt.ico COMPONENT multipass)
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/packaging/windows/fonts/" DESTINATION fonts COMPONENT multipass)
+
   set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}\\\\packaging\\\\windows\\\\multipass.bmp")
   set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.rtf")
@@ -132,6 +136,10 @@ if (MSVC)
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' 'Path' '$INSTDIR\\\\bin'
     WriteRegStr HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui' '$INSTDIR\\\\bin\\\\multipass.gui.exe --autostarting'
     nsExec::ExecToLog '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /install'
+    Pop '$0'
+    DetailPrint '\\\"Daemon install result: $0\\\"'
+    CopyFiles '$INSTDIR\\\\Fonts\\\\*' '$WINDIR\\\\Fonts'
+    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Fonts' 'Ubuntu Mono (TrueType)' 'UbuntuMono-R.ttf'
     CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass.gui.exe'
     "
   )

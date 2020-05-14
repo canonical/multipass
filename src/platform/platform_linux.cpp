@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -45,6 +46,22 @@ namespace
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 } // namespace
+
+std::map<QString, QString> mp::platform::extra_settings_defaults()
+{
+    return {};
+}
+
+QString mp::platform::interpret_setting(const QString& key, const QString& val)
+{
+    // this should not happen (settings should have found it to be an invalid key)
+    throw InvalidSettingsException(key, val, "Setting unavailable on Linux");
+}
+
+void mp::platform::sync_winterm_profiles()
+{
+    // NOOP on Linux
+}
 
 QString mp::platform::autostart_test_data()
 {

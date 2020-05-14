@@ -48,15 +48,9 @@ struct TopCatchAll : public Test
         mpl::set_logger(mock_logger);
     }
 
-    template <typename Matcher>
-    auto make_cstring_matcher(const Matcher& matcher)
-    {
-        return Property(&mpl::CString::c_str, matcher);
-    }
-
     auto make_category_matcher()
     {
-        return make_cstring_matcher(StrEq(category.c_str()));
+        return mpt::MockLogger::make_cstring_matcher(StrEq(category.c_str()));
     }
 
     const std::string category = "testing";
@@ -95,8 +89,8 @@ TEST_F(TopCatchAll, handles_unknown_error)
 {
     int got = 0;
 
-    EXPECT_CALL(*mock_logger,
-                log(Eq(mpl::Level::error), make_category_matcher(), make_cstring_matcher(HasSubstr("unknown"))));
+    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                  mpt::MockLogger::make_cstring_matcher(HasSubstr("unknown"))));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
                         throw 123;
                         return 0;
@@ -110,7 +104,8 @@ TEST_F(TopCatchAll, handles_standard_exception)
     const std::string emsg = "some error";
     const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(emsg.c_str()));
 
-    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), make_cstring_matcher(msg_matcher)));
+    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                  mpt::MockLogger::make_cstring_matcher(msg_matcher)));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [&emsg] {
                         throw std::runtime_error{emsg};
                         return 0;
@@ -123,7 +118,8 @@ TEST_F(TopCatchAll, handles_custom_exception)
     int got = 0;
     const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(CustomExceptionForTesting::msg));
 
-    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), make_cstring_matcher(msg_matcher)));
+    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                  mpt::MockLogger::make_cstring_matcher(msg_matcher)));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
                         throw CustomExceptionForTesting{};
                         return 42;

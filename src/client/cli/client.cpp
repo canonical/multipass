@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -97,12 +97,12 @@ int mp::Client::run(const QStringList& arguments)
     ParseCode parse_status = parser.parse();
 
     mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
-    mp::client::preliminary_setup(); // ... something we want to do even if the command was wrong
+    mp::client::pre_setup(); // ... something we want to do even if the command was wrong
 
-    if (parse_status != ParseCode::Ok)
-    {
-        return parser.returnCodeFrom(parse_status);
-    }
+    const auto ret =
+        parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser) : parser.returnCodeFrom(parse_status);
 
-    return parser.chosenCommand()->run(&parser);
+    mp::client::post_setup();
+
+    return ret;
 }

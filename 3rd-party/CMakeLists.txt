@@ -136,7 +136,12 @@ if (APPLE)
     USE_SOURCE_PERMISSIONS
     COMPONENT multipassd
     )
-endif (APPLE)
+elseif(MSVC)
+  set(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF CACHE BOOL "Disable pkgconfig in jsoncpp" FORCE)
+  set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "Disable unit tests in jsoncpp" FORCE)
+  set(JSONCPP_WITH_TESTS OFF CACHE BOOL "Disable test executables in jsoncpp lib" FORCE)
+  add_subdirectory(jsoncpp)
+endif()
 
 # libssh config
 add_subdirectory(libssh)
