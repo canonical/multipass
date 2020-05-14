@@ -15,14 +15,13 @@
  *
  */
 
+#include "local_socket_server_test_fixture.h"
 #include "temp_dir.h"
 
 #include <multipass/network_access_manager.h>
 #include <multipass/version.h>
 
 #include <QEventLoop>
-#include <QLocalServer>
-#include <QLocalSocket>
 #include <QNetworkReply>
 #include <QTimer>
 
@@ -40,28 +39,11 @@ using HTTPErrorParamType = std::pair<QByteArray, QNetworkReply::NetworkError>;
 struct LocalNetworkAccessManager : public Test
 {
     LocalNetworkAccessManager()
+        : socket_path{QString("%1/test_socket").arg(temp_dir.path())},
+          test_server{mpt::MockLocalSocketServer(socket_path)},
+          base_url{QString("unix://%1@1.0").arg(socket_path)}
     {
-        socket_path = QString("%1/test_socket").arg(temp_dir.path());
-        test_server.listen(socket_path);
-        base_url = QString("unix://%1@1.0").arg(socket_path);
         download_timeout.setInterval(2000);
-    }
-
-    void local_socket_server_handler(const QByteArray& http_response, const QByteArray& expected_data = QByteArray())
-    {
-        QObject::connect(&test_server, &QLocalServer::newConnection, [&] {
-            auto client_connection = test_server.nextPendingConnection();
-
-            client_connection->waitForReadyRead();
-            auto data = client_connection->readAll();
-
-            if (!expected_data.isEmpty())
-            {
-                EXPECT_EQ(data, expected_data);
-            }
-
-            client_connection->write(http_response);
-        });
     }
 
     auto handle_request(const QUrl& url, const QByteArray& verb, const QByteArray& data = QByteArray())
@@ -83,9 +65,9 @@ struct LocalNetworkAccessManager : public Test
     }
 
     mp::NetworkAccessManager manager;
-    QLocalServer test_server;
     mpt::TempDir temp_dir;
     QString socket_path;
+    mpt::MockLocalSocketServer test_server;
     QUrl base_url;
     QEventLoop event_loop;
     QTimer download_timeout;
@@ -112,7 +94,7 @@ TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
     http_response += "HTTP/1.1 200 OK\r\n";
     http_response += "\r\n";
 
-    local_socket_server_handler(http_response);
+    test_server.local_socket_server_handler(http_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -130,7 +112,7 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
     http_response += reply_data;
     http_response += "\r\n";
 
-    local_socket_server_handler(http_response);
+    test_server.local_socket_server_handler(http_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -154,7 +136,7 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
     http_response += reply_data;
     http_response += "\r\n";
 
-    local_socket_server_handler(http_response);
+    test_server.local_socket_server_handler(http_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -182,7 +164,7 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
     http_response += "\r\n";
 
     // The actual test is in the QObject::connect's lambda slot
-    local_socket_server_handler(http_response, expected_data);
+    test_server.local_socket_server_handler(http_response, expected_data);
 
     handle_request(base_url, "POST", "Hello World");
 }
@@ -191,7 +173,7 @@ TEST_F(LocalNetworkAccessManager, bad_http_server_response_has_error)
 {
     QByteArray malformed_http_response{"FOO/1.4 42 Yo\r\n"};
 
-    local_socket_server_handler(malformed_http_response);
+    test_server.local_socket_server_handler(malformed_http_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -239,7 +221,7 @@ TEST_P(HTTPErrorsTestSuite, returns_expected_error)
     const auto http_response = GetParam().first;
     const auto expected_error = GetParam().second;
 
-    local_socket_server_handler(http_response);
+    test_server.local_socket_server_handler(http_response);
 
     auto reply = handle_request(base_url, "GET");
 
