@@ -39,6 +39,50 @@ ${StrLoc}
 ;Include NsDialogs
 !include "nsDialogs.nsh"
 
+
+; StrContains
+; This function does a case sensitive searches for an occurrence of a substring in a string.
+; It returns the substring if it is found.
+; Otherwise it returns null("").
+Var STR_HAYSTACK
+Var STR_NEEDLE
+Var STR_CONTAINS_VAR_1
+Var STR_CONTAINS_VAR_2
+Var STR_CONTAINS_VAR_3
+Var STR_CONTAINS_VAR_4
+Var STR_RETURN_VAR
+
+Function StrContains
+  Exch $STR_NEEDLE
+  Exch 1
+  Exch $STR_HAYSTACK
+    StrCpy $STR_RETURN_VAR ""
+    StrCpy $STR_CONTAINS_VAR_1 -1
+    StrLen $STR_CONTAINS_VAR_2 $STR_NEEDLE
+    StrLen $STR_CONTAINS_VAR_4 $STR_HAYSTACK
+    loop:
+      IntOp $STR_CONTAINS_VAR_1 $STR_CONTAINS_VAR_1 + 1
+      StrCpy $STR_CONTAINS_VAR_3 $STR_HAYSTACK $STR_CONTAINS_VAR_2 $STR_CONTAINS_VAR_1
+      StrCmp $STR_CONTAINS_VAR_3 $STR_NEEDLE found
+      StrCmp $STR_CONTAINS_VAR_1 $STR_CONTAINS_VAR_4 done
+      Goto loop
+    found:
+      StrCpy $STR_RETURN_VAR $STR_NEEDLE
+      Goto done
+    done:
+   Pop $STR_NEEDLE ;Prevent "invalid opcode" errors and keep the
+   Exch $STR_RETURN_VAR
+FunctionEnd
+
+!macro _StrContainsConstructor OUT NEEDLE HAYSTACK
+  Push `${HAYSTACK}`
+  Push `${NEEDLE}`
+  Call StrContains
+  Pop `${OUT}`
+!macroend
+
+!define StrContains '!insertmacro "_StrContainsConstructor"'
+
 ;--------------------------------
 ;General
 
@@ -523,6 +567,12 @@ Function ConditionalAddToRegisty
   ConditionalAddToRegisty_EmptyString:
 FunctionEnd
 
+Function ManualUninstall
+  StrLen $2 "\Uninstall.exe"
+  StrCpy $3 $0 -$2 # remove "\Uninstall.exe" from UninstallString to get path
+  ExecWait '"$0" _?=$3' ;Do not copy the uninstaller to a temp file
+FunctionEnd
+
 ;--------------------------------
 
 !ifdef CPACK_USES_DOWNLOAD
@@ -771,27 +821,40 @@ SectionEnd
 
 Section "-Enable Hypervisor"
   ${If} $USE_HYPERV == ${BST_CHECKED}
-    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=hyperv'
-    nsExec::Exec "DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V"
+    nsExec::ExecToStack 'powershell "(Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online).State"'
     Pop $0
-    ${If} $0 == "error"
-      MessageBox MB_YESNO "Cannot enable Hyper-V, would you like to use VirtualBox instead?" /SD IDYES IDNO noHyperv
-        ; set USE_VBOX to 1
-      noHyperv:
-        Abort
-        ; call uninstall
-    ${EndIf}
+    Pop $1
 
+    ${StrContains} $0 "Disabled" $1
+    ${If} $0 == "Disabled"
+      nsExec::Exec "DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V"
+      Pop $0
+      ${If} $0 == "error"
+        MessageBox MB_YESNO "Cannot enable Hyper-V, would you like to use VirtualBox instead?" /SD IDYES IDNO noHyperv
+          StrCpy $USE_HYPERV ${BST_UNCHECKED}
+          StrCpy $USE_VBOX ${BST_CHECKED}
+          Goto okHyperv
+        noHyperv:
+          MessageBox MB_ICONEXCLAMATION "Cannot automatically enable Hyper-V, please complete manually."
+        okHyperv:
+      ${Else}
+        SetRebootFlag true
+      ${EndIf}
+    ${EndIf}
   ${EndIf}
 
   ${If} $USE_VBOX == ${BST_CHECKED}
-    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=virtualbox'
-
-    IfFileExists "$PROFILE\.VirtualBox" proceed noVbox
+    IfFileExists "$PROFILE\.VirtualBox" okVbox noVbox
     noVbox:
       MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VirtualBox before using @CPACK_PACKAGE_NAME@."
+    okVbox:
   ${EndIf}
-  proceed:
+
+  ${If} $USE_HYPERV == ${BST_CHECKED}
+    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=hyperv'
+  ${ElseIf} $USE_VBOX == ${BST_CHECKED}
+    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=virtualbox'
+  ${EndIf}
 SectionEnd
 
 ;--------------------------------
@@ -933,10 +996,7 @@ quit_inst:
 ;Run the uninstaller
 uninst:
   ClearErrors
-  StrLen $2 "\Uninstall.exe"
-  StrCpy $3 $0 -$2 # remove "\Uninstall.exe" from UninstallString to get path
-  ExecWait '"$0" _?=$3' ;Do not copy the uninstaller to a temp file
-
+  Call ManualUninstall
   IfErrors uninst_failed inst
 uninst_failed:
   MessageBox MB_OK|MB_ICONSTOP "Uninstall failed."
