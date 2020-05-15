@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,11 +40,18 @@ namespace
 {
 auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
 {
-    auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b) {
-        return a->name().length() < b->name().length();
-    };
-    const auto& max_elem = *std::max_element(commands.begin(), commands.end(), string_len_compare);
-    return max_elem->name().length();
+    auto ret = 0ul;
+
+    if (!commands.empty())
+    {
+        auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b) {
+            return a->name().length() < b->name().length();
+        };
+        const auto& max_elem = *std::max_element(commands.begin(), commands.end(), string_len_compare);
+        ret = max_elem->name().length();
+    }
+
+    return ret;
 }
 
 auto format_into_column(const std::string& name, std::string::size_type column_size)
@@ -74,6 +81,8 @@ auto verbosity_level_in(const QStringList& arguments)
             return 2;
         if (arg == QStringLiteral("-vvv"))
             return 3;
+        if (QRegExp{"-vvvv+"}.exactMatch(arg))
+            return 4;
     }
     return 0;
 }
@@ -89,7 +98,8 @@ mp::ParseCode mp::ArgParser::parse()
 {
     QCommandLineOption help_option = parser.addHelpOption();
     QCommandLineOption verbose_option({"v", "verbose"},
-                                      "Increase logging verbosity, repeat up to three times for more detail");
+                                      "Increase logging verbosity. Repeat the 'v' in the short option for more detail. "
+                                      "Maximum verbosity is obtained with 4 (or more) v's, i.e. -vvvv.");
     QCommandLineOption version_option({"V", "version"}, "Show version details");
     version_option.setFlags(QCommandLineOption::HiddenFromHelp);
     parser.addOption(verbose_option);
