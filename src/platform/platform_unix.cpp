@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,9 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include <multipass/platform.h>
@@ -100,7 +97,7 @@ sigset_t mp::platform::make_sigset(const std::vector<int>& sigs)
 sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
 {
     auto sigset{make_sigset(sigs)};
-    sigprocmask(SIG_BLOCK, &sigset, nullptr);
+    pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
     return sigset;
 }
 
