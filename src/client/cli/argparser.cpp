@@ -72,8 +72,10 @@ auto verbosity_level_in(const QStringList& arguments)
             return 1;
         if (arg == QStringLiteral("-vv"))
             return 2;
-        if (QRegExp{"-vvv+"}.exactMatch(arg))
+        if (arg == QStringLiteral("-vvv"))
             return 3;
+        if (QRegExp{"-vvvv+"}.exactMatch(arg))
+            return 4;
     }
     return 0;
 }
@@ -89,7 +91,8 @@ mp::ParseCode mp::ArgParser::parse()
 {
     QCommandLineOption help_option = parser.addHelpOption();
     QCommandLineOption verbose_option({"v", "verbose"},
-                                      "Increase logging verbosity, repeat up to three times for more detail");
+                                      "Increase logging verbosity. Repeat the 'v' in the short option for more detail. "
+                                      "Maximum verbosity is obtained with 4 (or more) v's, i.e. -vvvv.");
     QCommandLineOption version_option({"V", "version"}, "Show version details");
     version_option.setFlags(QCommandLineOption::HiddenFromHelp);
     parser.addOption(verbose_option);
