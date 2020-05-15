@@ -37,6 +37,7 @@ add_executable(multipass_tests
   stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
+  test_argparser.cpp
   test_basic_process.cpp
   test_cli_client.cpp
   test_client_cert_store.cpp
