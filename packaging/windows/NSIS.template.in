@@ -874,10 +874,15 @@ Section "-Enable Hypervisor"
 
   ${If} $USE_VBOX == ${BST_CHECKED}
     DetailPrint "Checking for VirtualBox"
-    IfFileExists "$PROFILE\.VirtualBox" okVbox noVbox
-    noVbox:
+    ${If} ${RunningX64}
+      SetRegView 64
+    ${EndIf}
+    ClearErrors
+    ReadRegStr $0 HKLM "SOFTWARE\Oracle\VirtualBox" "Version"
+    SetRegView default
+    ${If} ${Errors}
       MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VirtualBox before using @CPACK_PACKAGE_NAME@."
-    okVbox:
+    ${EndIf}
   ${EndIf}
 
   ${If} $USE_HYPERV == ${BST_CHECKED}
