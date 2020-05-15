@@ -28,6 +28,7 @@
 
 #include <QString>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -64,7 +65,7 @@ bool is_alias_supported(const std::string& alias, const std::string& remote);
 bool is_remote_supported(const std::string& remote);
 bool is_image_url_supported();
 
-int wait_for_quit_signals();
+std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread
 } // namespace platform
 } // namespace multipass
 #endif // MULTIPASS_PLATFORM_H
