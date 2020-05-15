@@ -693,7 +693,7 @@ FunctionEnd
 ;--------------------------------
 ; Create custom pages
 Function HypervisorOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a Hypervisor to use with @CPACK_PACKAGE_NAME@.  If your system does not support Hyper-V, the option will be disabled."
+  !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a hypervisor to use with @CPACK_PACKAGE_NAME@."
   ${WinVerGetMajor} $R0
   ${WinVerGetBuild} $R1
   ClearErrors
