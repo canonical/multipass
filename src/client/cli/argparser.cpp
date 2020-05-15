@@ -40,11 +40,18 @@ namespace
 {
 auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
 {
-    auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b) {
-        return a->name().length() < b->name().length();
-    };
-    const auto& max_elem = *std::max_element(commands.begin(), commands.end(), string_len_compare);
-    return max_elem->name().length();
+    auto ret = 0ul;
+
+    if (!commands.empty())
+    {
+        auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b) {
+            return a->name().length() < b->name().length();
+        };
+        const auto& max_elem = *std::max_element(commands.begin(), commands.end(), string_len_compare);
+        ret = max_elem->name().length();
+    }
+
+    return ret;
 }
 
 auto format_into_column(const std::string& name, std::string::size_type column_size)
