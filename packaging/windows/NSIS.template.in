@@ -721,7 +721,7 @@ Function HypervisorOptionsPage
     ${ElseIf} $R1 < 1803
       ${NSD_SetText} $1 "Microsoft Hyper-V (Requires Windows 10 at atleast build 1803)"
     ${ElseIf} $R2 == "Home"
-      ${NSD_SetText} $1 "Microsoft Hyper-V (Not compatible with Home edition)"
+      ${NSD_SetText} $1 "Microsoft Hyper-V (Unavailable on Home edition)"
     ${EndIf}
   ${EndIf}
   nsDialogs::Show
