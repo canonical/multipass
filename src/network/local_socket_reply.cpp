@@ -20,6 +20,9 @@
 #include <multipass/format.h>
 #include <multipass/version.h>
 
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
+
 namespace mp = multipass;
 
 namespace
@@ -210,16 +213,12 @@ void mp::LocalSocketReply::parse_reply()
     }
 }
 
-// Some of this logic is taken from Qt src/network/access/qhttpnetworkreply.cpp
 void mp::LocalSocketReply::parse_status(const QByteArray& status)
 {
-    const int minLength = 11;
-    const int dotPos = 6;
-    const int spacePos = 8;
-    const char httpMagic[] = "HTTP/";
+    QRegularExpression http_status_regex{"^HTTP/\\d\\.\\d (?P<status>\\d{3})\\ (?P<message>.*)$"};
+    QRegularExpressionMatch http_status_match = http_status_regex.match(QString::fromLatin1(status));
 
-    if (status.length() < minLength || !status.startsWith(httpMagic) || status.at(dotPos) != '.' ||
-        status.at(spacePos) != ' ')
+    if (!http_status_match.hasMatch())
     {
         setError(QNetworkReply::ProtocolFailure, "Malformed HTTP response from server");
 
@@ -228,18 +227,14 @@ void mp::LocalSocketReply::parse_status(const QByteArray& status)
         return;
     }
 
-    int i = spacePos;
-    int j = status.indexOf(' ', i + 1); // j == -1 || at(j) == ' ' so j+1 == 0 && j+1 <= length()
-    const QByteArray code = status.mid(i + 1, j - i - 1);
-
     bool ok;
-    auto statusCode = code.toInt(&ok);
+    auto statusCode = http_status_match.captured("status").toInt(&ok);
 
     if (statusCode >= 400)
     {
         auto error_code = statusCodeFromHttp(statusCode);
 
-        setError(error_code, QString::fromLatin1(status.constData() + j + 1));
+        setError(error_code, http_status_match.captured("message"));
 
         emit error(error_code);
     }
