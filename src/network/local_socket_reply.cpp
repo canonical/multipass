@@ -18,6 +18,7 @@
 #include "local_socket_reply.h"
 
 #include <multipass/format.h>
+#include <multipass/version.h>
 
 namespace mp = multipass;
 
@@ -25,12 +26,14 @@ namespace
 {
 constexpr int len = 65536;
 
-// The following is mostly "borrowed" from Qt src/network/access/qhttpthreaddelegate.cpp
+// Status code mapping based on
+// https://github.com/qt/qtbase/blob/dev/src/network/access/qhttpthreaddelegate.cpp
 QNetworkReply::NetworkError statusCodeFromHttp(int httpStatusCode)
 {
     QNetworkReply::NetworkError code;
 
-    // Only switch on the HTTP errors LXD will respond with for now
+    // Only switch on the LXD HTTP errors:
+    // https://lxd.readthedocs.io/en/latest/rest-api/#error
     switch (httpStatusCode)
     {
     case 400: // Bad Request
@@ -78,7 +81,7 @@ mp::LocalSocketReply::LocalSocketReply(const QString& socket_path, const QNetwor
                                        QIODevice* outgoingData)
     : QNetworkReply(), local_socket{std::make_unique<QLocalSocket>(this)}, reply_data{QByteArray(len, '\0')}
 {
-    QIODevice::open(QIODevice::ReadOnly);
+    open(QIODevice::ReadOnly);
 
     local_socket->connectToServer(socket_path);
 
@@ -99,6 +102,12 @@ mp::LocalSocketReply::~LocalSocketReply()
 
 void mp::LocalSocketReply::abort()
 {
+    close();
+
+    setError(OperationCanceledError, "Operation canceled");
+    emit error(OperationCanceledError);
+
+    emit finished();
 }
 
 qint64 mp::LocalSocketReply::readData(char* data, qint64 maxSize)
@@ -133,12 +142,9 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     http_data += "Host: multipass\r\n";
 
     // Build the HTTP User-Agent header
-    // We'll just use what Qt uses
-    http_data += "User-Agent: Mozilla/5.0\r\n";
-
-    // Build the HTTP Accept header
-    // Default to accept everything
-    http_data += "Accept: */*\r\n";
+    http_data += "User-Agent: Multipass/";
+    http_data += mp::version_string;
+    http_data += "\r\n";
 
     if (op == "POST" || op == "PUT")
     {
@@ -163,7 +169,15 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
 
 void mp::LocalSocketReply::read_reply()
 {
-    local_socket->read(reply_data.data(), len);
+    auto data_ptr = reply_data.data();
+    int bytes_read{0};
+
+    do
+    {
+        bytes_read = local_socket->read(reply_data.data(), len);
+
+        data_ptr += bytes_read;
+    } while (bytes_read > 0);
 
     parse_reply();
 

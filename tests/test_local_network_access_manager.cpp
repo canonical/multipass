@@ -18,6 +18,7 @@
 #include "temp_dir.h"
 
 #include <multipass/network_access_manager.h>
+#include <multipass/version.h>
 
 #include <QEventLoop>
 #include <QLocalServer>
@@ -43,6 +44,7 @@ struct LocalNetworkAccessManager : public Test
         socket_path = QString("%1/test_socket").arg(temp_dir.path());
         test_server.listen(socket_path);
         base_url = QString("unix://%1@1.0").arg(socket_path);
+        download_timeout.setInterval(2000);
     }
 
     void local_socket_server_handler(const QByteArray& http_response, const QByteArray& expected_data = QByteArray())
@@ -55,7 +57,7 @@ struct LocalNetworkAccessManager : public Test
 
             if (!expected_data.isEmpty())
             {
-                EXPECT_THAT(data, Eq(expected_data));
+                EXPECT_EQ(data, expected_data);
             }
 
             client_connection->write(http_response);
@@ -108,14 +110,13 @@ TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
 {
     QByteArray http_response;
     http_response += "HTTP/1.1 200 OK\r\n";
-    http_response += "Content-Type: text/plain\r\n";
     http_response += "\r\n";
 
     local_socket_server_handler(http_response);
 
     auto reply = handle_request(base_url, "GET");
 
-    EXPECT_THAT(reply->error(), Eq(QNetworkReply::NoError));
+    EXPECT_EQ(reply->error(), QNetworkReply::NoError);
 }
 
 TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
@@ -124,7 +125,6 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
 
     QByteArray http_response;
     http_response += "HTTP/1.1 200 OK\r\n";
-    http_response += "Content-Type: text/plain\r\n";
     http_response += "Content-Length: 5\r\n";
     http_response += "\r\n";
     http_response += reply_data;
@@ -134,11 +134,11 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
 
     auto reply = handle_request(base_url, "GET");
 
-    ASSERT_THAT(reply->error(), Eq(QNetworkReply::NoError));
+    ASSERT_EQ(reply->error(), QNetworkReply::NoError);
 
     auto data = reply->readAll();
 
-    EXPECT_THAT(data, Eq(reply_data));
+    EXPECT_EQ(data, reply_data);
 }
 
 TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
@@ -147,11 +147,10 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
 
     QByteArray http_response;
     http_response += "HTTP/1.1 200 OK\r\n";
-    http_response += "Content-Type: text/plain\r\n";
-    http_response += "Content-Length: 5\r\n";
+    http_response += "Content-Length: 10\r\n";
     http_response += "Transfer-Encoding: chunked\r\n";
     http_response += "\r\n";
-    http_response += "5\r\n";
+    http_response += "a\r\n";
     http_response += reply_data;
     http_response += "\r\n";
 
@@ -159,26 +158,27 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
 
     auto reply = handle_request(base_url, "GET");
 
-    ASSERT_THAT(reply->error(), Eq(QNetworkReply::NoError));
+    ASSERT_EQ(reply->error(), QNetworkReply::NoError);
 
     auto data = reply->readAll();
 
-    EXPECT_THAT(data, Eq(reply_data));
+    EXPECT_EQ(data, reply_data);
 }
 
 TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
 {
-    QByteArray expected_data{"POST /1.0 HTTP/1.1\r\n"
-                             "Host: multipass\r\n"
-                             "User-Agent: Mozilla/5.0\r\n"
-                             "Accept: */*\r\n"
-                             "Content-Type: application/x-www-form-urlencoded\r\n"
-                             "Content-Length: 11\r\n\r\n"
-                             "Hello World\r\n"};
+    QByteArray expected_data;
+    expected_data += "POST /1.0 HTTP/1.1\r\n"
+                     "Host: multipass\r\n"
+                     "User-Agent: Multipass/";
+    expected_data += mp::version_string;
+    expected_data += "\r\n"
+                     "Content-Type: application/x-www-form-urlencoded\r\n"
+                     "Content-Length: 11\r\n\r\n"
+                     "Hello World\r\n";
 
     QByteArray http_response;
     http_response += "HTTP/1.1 200 OK\r\n";
-    http_response += "Content-Type: text/plain\r\n";
     http_response += "\r\n";
 
     // The actual test is in the QObject::connect's lambda slot
@@ -195,7 +195,7 @@ TEST_F(LocalNetworkAccessManager, bad_http_server_response_has_error)
 
     auto reply = handle_request(base_url, "GET");
 
-    EXPECT_THAT(reply->error(), Eq(QNetworkReply::ProtocolFailure));
+    EXPECT_EQ(reply->error(), QNetworkReply::ProtocolFailure);
 }
 
 TEST_F(LocalNetworkAccessManager, malformed_unix_schema_throws)
@@ -216,6 +216,24 @@ TEST_F(LocalNetworkAccessManager, unable_to_connect_throws)
     EXPECT_THROW(manager.sendCustomRequest(request, "GET"), std::runtime_error);
 }
 
+TEST_F(LocalNetworkAccessManager, reply_abort_sets_expected_error)
+{
+    download_timeout.setInterval(2);
+
+    auto reply = handle_request(base_url, "GET");
+
+    EXPECT_EQ(reply->error(), QNetworkReply::OperationCanceledError);
+}
+
+TEST_F(LocalNetworkAccessManager, other_request_uses_qnam)
+{
+    QUrl url{QString("file://%1/missing_doc.txt").arg(temp_dir.path())};
+
+    auto reply = handle_request(url, "GET");
+
+    EXPECT_EQ(reply->error(), QNetworkReply::ProtocolUnknownError);
+}
+
 TEST_P(HTTPErrorsTestSuite, returns_expected_error)
 {
     const auto http_response = GetParam().first;
@@ -225,7 +243,7 @@ TEST_P(HTTPErrorsTestSuite, returns_expected_error)
 
     auto reply = handle_request(base_url, "GET");
 
-    EXPECT_THAT(reply->error(), Eq(expected_error));
+    EXPECT_EQ(reply->error(), expected_error);
 }
 
 INSTANTIATE_TEST_SUITE_P(LocalNetworkAccessManager, HTTPErrorsTestSuite, ValuesIn(http_error_suite_inputs));

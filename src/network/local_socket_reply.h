@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_LOCAL_SOCKET_REPLY_H
 #define MULTIPASS_LOCAL_SOCKET_REPLY_H
 
+#include <QByteArray>
 #include <QLocalSocket>
 #include <QNetworkReply>
 #include <QNetworkRequest>
