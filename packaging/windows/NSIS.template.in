@@ -707,7 +707,7 @@ Function HypervisorOptionsPage
     Pop $0
   ${NSD_CreateRadioButton} 0 0 100% 10u "Microsoft Hyper-V (Recommended)"
     Pop $1
-  ${NSD_CreateRadioButton} 0 20 100% 10u "Oracle Virtualbox"
+  ${NSD_CreateRadioButton} 0 20 100% 10u "Oracle VM VirtualBox"
     Pop $2
 
   ${If} $R0 >= 10
