@@ -882,7 +882,7 @@ Section "-Enable Hypervisor"
     ReadRegStr $0 HKLM "SOFTWARE\Oracle\VirtualBox" "Version"
     SetRegView default
     ${If} ${Errors}
-      MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VirtualBox before using @CPACK_PACKAGE_NAME@."
+      MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VM VirtualBox before using @CPACK_PACKAGE_NAME@."
     ${EndIf}
   ${EndIf}
 
