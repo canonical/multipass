@@ -45,6 +45,10 @@ InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
 ;Include x64
 !include x64.nsh
 
+;--------------------------------
+;Include FileFunc
+!include FileFunc.nsh
+
 ; StrContains
 ; This function does a case sensitive searches for an occurrence of a substring in a string.
 ; It returns the substring if it is found.
@@ -336,7 +340,7 @@ Function AddToPath
       FileSeek $1 -1 END # write over EOF
     FileWrite $1 "$\r$\nSET PATH=%PATH%;$3$\r$\n"
     FileClose $1
-    SetRebootFlag true
+    Call MakeReboot
     Goto AddToPath_done
 
   AddToPath_NT:
@@ -358,7 +362,6 @@ Function AddToPath
     Pop $1
     Pop $0
 FunctionEnd
-
 
 ; RemoveFromPath - Remove a given dir from the path
 ;     Input: head of the stack
@@ -544,21 +547,21 @@ FunctionEnd
 !insertmacro StrStr "un."
 
 Function Trim ; Added by Pelaca
-	Exch $R1
-	Push $R2
+  Exch $R1
+  Push $R2
 Loop:
-	StrCpy $R2 "$R1" 1 -1
-	StrCmp "$R2" " " RTrim
-	StrCmp "$R2" "$\n" RTrim
-	StrCmp "$R2" "$\r" RTrim
-	StrCmp "$R2" ";" RTrim
-	GoTo Done
+  StrCpy $R2 "$R1" 1 -1
+  StrCmp "$R2" " " RTrim
+  StrCmp "$R2" "$\n" RTrim
+  StrCmp "$R2" "$\r" RTrim
+  StrCmp "$R2" ";" RTrim
+  GoTo Done
 RTrim:
-	StrCpy $R1 "$R1" -1
-	Goto Loop
+  StrCpy $R1 "$R1" -1
+  Goto Loop
 Done:
-	Pop $R2
-	Exch $R1
+  Pop $R2
+  Exch $R1
 FunctionEnd
 
 Function ConditionalAddToRegisty
@@ -576,6 +579,16 @@ Function ManualUninstall
   StrLen $2 "\Uninstall.exe"
   StrCpy $3 $0 -$2 # remove "\Uninstall.exe" from UninstallString to get path
   ExecWait '"$0" _?=$3' ;Do not copy the uninstaller to a temp file
+FunctionEnd
+
+Function MakeReboot
+  ClearErrors
+  ${GetOptions} "$CMDLINE" "/no-reboot" $0
+  ${If} ${Errors}
+    SetRebootFlag true
+  ${Else}
+    WriteRegStr SHCTX "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_NAME@" "InstallerRebootRequired" true
+  ${EndIf}
 FunctionEnd
 
 ;--------------------------------
@@ -832,7 +845,6 @@ Section "-Core installation"
   Push "$INSTALL_DESKTOP"
   Call ConditionalAddToRegisty
 
-
 @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 
 SectionEnd
@@ -872,7 +884,7 @@ Section "-Enable Hypervisor"
           MessageBox MB_ICONEXCLAMATION "Cannot automatically enable Hyper-V, please complete manually."
         okHyperv:
       ${Else}
-        SetRebootFlag true
+        Call MakeReboot
       ${EndIf}
     ${EndIf}
   ${EndIf}
@@ -887,6 +899,7 @@ Section "-Enable Hypervisor"
     SetRegView default
     ${If} ${Errors}
       MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VM VirtualBox before using @CPACK_PACKAGE_NAME@."
+      WriteRegStr SHCTX "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_NAME@" "InstallerRebootRequired" false
     ${EndIf}
   ${EndIf}
 
@@ -1041,7 +1054,6 @@ uninst:
 uninst_failed:
   MessageBox MB_OK|MB_ICONSTOP "Uninstall failed."
   Abort
-
 
 inst:
   ; Reads components status for registry
