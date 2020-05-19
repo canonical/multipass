@@ -711,7 +711,7 @@ Function HypervisorOptionsPage
     Pop $2
 
   ${If} $R0 >= 10
-  ${AndIf} $R1 >= 1803
+  ${AndIf} $R1 >= 17134
   ${AndIf} $R2 != "Home"
     ${NSD_Check} $1
   ${Else}
