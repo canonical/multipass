@@ -700,7 +700,8 @@ Function HypervisorOptionsPage
   ${If} ${RunningX64}
     SetRegView 64
   ${EndIf}
-  ReadRegStr $R2 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "EditionID"
+  ReadRegStr $0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "ProductName"
+  ${StrContains} $R2 "Home" $0
   SetRegView default
   nsDialogs::Create 1018
     Pop $0
