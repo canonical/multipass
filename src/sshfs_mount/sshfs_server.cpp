@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -91,13 +91,15 @@ int main(int argc, char* argv[])
 
     try
     {
-        mp::SSHSession session{host, port, username, mp::SSHClientKeyProvider{priv_key_blob}};
+        auto watchdog = mpp::make_quit_watchdog(); // called while there is only one thread
 
+        mp::SSHSession session{host, port, username, mp::SSHClientKeyProvider{priv_key_blob}};
         mp::SshfsMount sshfs_mount(move(session), source_path, target_path, gid_map, uid_map);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
-        int sig = mpp::wait_for_quit_signals();
-        cout << "Received signal " << sig << ". Stopping" << endl;
+        if (int sig = watchdog())
+            cout << "Received signal " << sig << ". Stopping" << endl;
+
         sshfs_mount.stop();
         exit(0);
     }
