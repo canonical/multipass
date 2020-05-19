@@ -854,13 +854,16 @@ Section "-Enable Hypervisor"
     Pop $0
     Pop $1
 
-    ${StrContains} $0 "Disabled" $1
-    ${If} $0 == "Disabled"
-    ${OrIf} $0 == "error"
+    ${StrContains} $2 "Disabled" $1
+    ${If} $2 == "Disabled"
+    ${OrIf} $1 == "error"
+    ${OrIf} $0 != 0
       DetailPrint "Enabling Hyper-V"
-      nsExec::Exec "DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V"
+      nsExec::ExecToStack "DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V"
       Pop $0
-      ${If} $0 == "error"
+      Pop $1
+      ${If} $0 != 3010
+      ${OrIf} $1 == "error"
         MessageBox MB_YESNO "Cannot enable Hyper-V, would you like to use VirtualBox instead?" /SD IDNO IDNO noHyperv
           StrCpy $USE_HYPERV ${BST_UNCHECKED}
           StrCpy $USE_VBOX ${BST_CHECKED}
