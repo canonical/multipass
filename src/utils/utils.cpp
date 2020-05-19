@@ -444,14 +444,14 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
 }
 
 void mp::utils::process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                                       const QString& category)
+                                       const QString& category, const int timeout)
 {
     QProcess process;
     mpl::log(mpl::Level::debug, category.toStdString(),
              fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
-    auto success = process.waitForFinished();
+    auto success = process.waitForFinished(timeout);
 
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
@@ -466,14 +466,14 @@ void mp::utils::process_throw_on_error(const QString& program, const QStringList
 }
 
 bool mp::utils::process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                                     const QString& category, mpl::Level level)
+                                     const QString& category, mpl::Level level, const int timeout)
 {
     QProcess process;
     mpl::log(mpl::Level::debug, category.toStdString(),
              fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
-    auto success = process.waitForFinished();
+    auto success = process.waitForFinished(timeout);
 
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
