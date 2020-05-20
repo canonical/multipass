@@ -583,7 +583,7 @@ FunctionEnd
 
 Function MakeReboot
   ClearErrors
-  ${GetOptions} "$CMDLINE" "/no-reboot" $0
+  ${GetOptions} "$CMDLINE" "/NoRestart" $0
   ${If} ${Errors}
     SetRebootFlag true
   ${Else}
