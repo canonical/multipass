@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
 
+#include "lxd_request.h"
+
 #include <multipass/network_access_manager.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -28,7 +30,7 @@ namespace multipass
 class LXDVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
-    explicit LXDVirtualMachineFactory(const Path& data_dir);
+    explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;

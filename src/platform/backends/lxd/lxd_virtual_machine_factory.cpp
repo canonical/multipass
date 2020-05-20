@@ -16,7 +16,6 @@
  */
 
 #include "lxd_virtual_machine_factory.h"
-#include "lxd_request.h"
 #include "lxd_virtual_machine.h"
 
 #include <multipass/format.h>
@@ -33,9 +32,9 @@ namespace
 constexpr auto category = "lxd factory";
 } // namespace
 
-mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir)
+mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir, const QUrl& base_url)
     : data_dir{mp::utils::make_dir(data_dir, get_backend_directory_name())},
-      base_url{lxd_socket_url},
+      base_url{base_url},
       manager{std::make_unique<NetworkAccessManager>()}
 {
 }
