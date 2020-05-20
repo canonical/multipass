@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,11 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "file_operations.h"
+#include "mock_settings.h"
+
+#include <multipass/constants.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <gmock/gmock.h>
@@ -32,8 +33,8 @@ TEST(SimpleStreamsManifest, can_parse_image_info)
     auto json = mpt::load_test_file("good_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
 
-    EXPECT_THAT(manifest->updated_at, Eq("Thu, 18 May 2017 09:18:01 +0000"));
-    EXPECT_THAT(manifest->products.size(), Eq(1u));
+    EXPECT_THAT(manifest->updated_at, Eq("Wed, 20 May 2020 16:47:50 +0000"));
+    EXPECT_THAT(manifest->products.size(), Eq(2u));
 
     const auto info = manifest->image_records["default"];
     ASSERT_THAT(info, NotNull());
@@ -126,4 +127,21 @@ TEST(SimpleStreamsManifest, info_has_kernel_and_initrd_paths)
 
     EXPECT_FALSE(info->kernel_location.isEmpty());
     EXPECT_FALSE(info->initrd_location.isEmpty());
+}
+
+TEST(SimpleStreamsManifest, lxd_driver_returns_expected_data)
+{
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
+
+    auto json = mpt::load_test_file("good_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
+
+    EXPECT_EQ(manifest->products.size(), 1u);
+
+    const auto info = manifest->products.front();
+
+    const QString expected_id{"09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
+    EXPECT_EQ(info.id, expected_id);
 }
