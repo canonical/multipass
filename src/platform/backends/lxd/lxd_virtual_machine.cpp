@@ -104,7 +104,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
 {
     try
     {
-        instance_state_for(name, manager, url());
+        instance_state_for(name, manager, state_url());
     }
     catch (const LXDNotFoundException& e)
     {
@@ -181,7 +181,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
             }
         }
 
-        state = instance_state_for(name, manager, url());
+        state = instance_state_for(name, manager, state_url());
     }
 }
 
@@ -249,7 +249,7 @@ void mp::LXDVirtualMachine::shutdown()
 
 void mp::LXDVirtualMachine::suspend()
 {
-    auto present_state = instance_state_for(name, manager, base_url);
+    auto present_state = instance_state_for(name, manager, state_url());
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
     {
@@ -269,7 +269,7 @@ void mp::LXDVirtualMachine::suspend()
 
 mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()
 {
-    auto present_state = instance_state_for(name, manager, url());
+    auto present_state = instance_state_for(name, manager, state_url());
 
     if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
         return state;
