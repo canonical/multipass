@@ -587,6 +587,7 @@ Function MakeReboot
   ${If} ${Errors}
     SetRebootFlag true
   ${Else}
+    ;This should be replaced with exit codes interpreted by the "outer" installer
     WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_NAME@" "InstallerRebootRequired" true
   ${EndIf}
 FunctionEnd
