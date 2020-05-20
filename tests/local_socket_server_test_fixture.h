@@ -23,6 +23,8 @@
 #include <QLocalSocket>
 #include <QString>
 
+#include <functional>
+
 #include <gmock/gmock.h>
 
 using namespace testing;
@@ -39,7 +41,8 @@ public:
         test_server.listen(socket_path);
     }
 
-    void local_socket_server_handler(const QByteArray& http_response, const QByteArray& expected_data = QByteArray())
+    template <typename Handler>
+    void local_socket_server_handler(Handler&& response_handler)
     {
         QObject::connect(&test_server, &QLocalServer::newConnection, [&] {
             auto client_connection = test_server.nextPendingConnection();
@@ -47,12 +50,9 @@ public:
             client_connection->waitForReadyRead();
             auto data = client_connection->readAll();
 
-            if (!expected_data.isEmpty())
-            {
-                EXPECT_EQ(data, expected_data);
-            }
+            auto response = response_handler(data);
 
-            client_connection->write(http_response);
+            client_connection->write(response);
         });
     }
 

@@ -94,7 +94,8 @@ TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
     http_response += "HTTP/1.1 200 OK\r\n";
     http_response += "\r\n";
 
-    test_server.local_socket_server_handler(http_response);
+    auto server_response = [&http_response](auto...) { return http_response; };
+    test_server.local_socket_server_handler(server_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -112,7 +113,8 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
     http_response += reply_data;
     http_response += "\r\n";
 
-    test_server.local_socket_server_handler(http_response);
+    auto server_response = [&http_response](auto...) { return http_response; };
+    test_server.local_socket_server_handler(server_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -136,7 +138,8 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
     http_response += reply_data;
     http_response += "\r\n";
 
-    test_server.local_socket_server_handler(http_response);
+    auto server_response = [&http_response](auto...) { return http_response; };
+    test_server.local_socket_server_handler(server_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -163,8 +166,12 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
     http_response += "HTTP/1.1 200 OK\r\n";
     http_response += "\r\n";
 
-    // The actual test is in the QObject::connect's lambda slot
-    test_server.local_socket_server_handler(http_response, expected_data);
+    auto server_response = [&http_response, &expected_data](auto data) {
+        EXPECT_EQ(data, expected_data);
+        return http_response;
+    };
+
+    test_server.local_socket_server_handler(server_response);
 
     handle_request(base_url, "POST", "Hello World");
 }
@@ -173,7 +180,8 @@ TEST_F(LocalNetworkAccessManager, bad_http_server_response_has_error)
 {
     QByteArray malformed_http_response{"FOO/1.4 42 Yo\r\n"};
 
-    test_server.local_socket_server_handler(malformed_http_response);
+    auto server_response = [&malformed_http_response](auto...) { return malformed_http_response; };
+    test_server.local_socket_server_handler(server_response);
 
     auto reply = handle_request(base_url, "GET");
 
@@ -221,7 +229,8 @@ TEST_P(HTTPErrorsTestSuite, returns_expected_error)
     const auto http_response = GetParam().first;
     const auto expected_error = GetParam().second;
 
-    test_server.local_socket_server_handler(http_response);
+    auto server_response = [&http_response](auto...) { return http_response; };
+    test_server.local_socket_server_handler(server_response);
 
     auto reply = handle_request(base_url, "GET");
 
