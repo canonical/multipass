@@ -40,7 +40,7 @@ void change_ssh_pty_size(const HANDLE output_handle)
 {
     CONSOLE_SCREEN_BUFFER_INFO sb_info;
     GetConsoleScreenBufferInfo(output_handle, &sb_info);
-    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left;
+    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
     auto rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
 
     if (last_geometry.columns != columns || last_geometry.rows != rows)
