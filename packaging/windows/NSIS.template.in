@@ -1,4 +1,6 @@
 ; CPack install script designed for a nmake build
+Unicode True
+BrandingText "Canonical Ltd."
 
 ;-----------------------------
 ;Include string functions
@@ -7,28 +9,84 @@ ${StrLoc}
 
 ;--------------------------------
 ; You must define these values
-
-  !define VERSION "@CPACK_PACKAGE_VERSION@"
-  !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
-  !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
+!define VERSION "@CPACK_PACKAGE_VERSION@"
+!define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
+!define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
 
 ;--------------------------------
 ;Variables
+Var MUI_TEMP
+Var SV_ALLUSERS
+Var DO_NOT_ADD_TO_PATH
+Var ADD_TO_PATH_ALL_USERS
+Var ADD_TO_PATH_CURRENT_USER
+Var INSTALL_DESKTOP
+Var IS_DEFAULT_INSTALLDIR
+Var USE_HYPERV
+Var USE_VBOX
 
-  Var MUI_TEMP
-  Var SV_ALLUSERS
-  Var DO_NOT_ADD_TO_PATH
-  Var ADD_TO_PATH_ALL_USERS
-  Var ADD_TO_PATH_CURRENT_USER
-  Var INSTALL_DESKTOP
-  Var IS_DEFAULT_INSTALLDIR
 ;--------------------------------
 ;Include Modern UI
+!include "MUI.nsh"
 
-  !include "MUI.nsh"
+;--------------------------------
+;Default installation folder
+InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
 
-  ;Default installation folder
-  InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
+;--------------------------------
+;Include NsDialogs
+!include "nsDialogs.nsh"
+
+;--------------------------------
+;Include WinVer
+!include "WinVer.nsh"
+
+;--------------------------------
+;Include x64
+!include x64.nsh
+
+; StrContains
+; This function does a case sensitive searches for an occurrence of a substring in a string.
+; It returns the substring if it is found.
+; Otherwise it returns null("").
+Var STR_HAYSTACK
+Var STR_NEEDLE
+Var STR_CONTAINS_VAR_1
+Var STR_CONTAINS_VAR_2
+Var STR_CONTAINS_VAR_3
+Var STR_CONTAINS_VAR_4
+Var STR_RETURN_VAR
+
+Function StrContains
+  Exch $STR_NEEDLE
+  Exch 1
+  Exch $STR_HAYSTACK
+    StrCpy $STR_RETURN_VAR ""
+    StrCpy $STR_CONTAINS_VAR_1 -1
+    StrLen $STR_CONTAINS_VAR_2 $STR_NEEDLE
+    StrLen $STR_CONTAINS_VAR_4 $STR_HAYSTACK
+    loop:
+      IntOp $STR_CONTAINS_VAR_1 $STR_CONTAINS_VAR_1 + 1
+      StrCpy $STR_CONTAINS_VAR_3 $STR_HAYSTACK $STR_CONTAINS_VAR_2 $STR_CONTAINS_VAR_1
+      StrCmp $STR_CONTAINS_VAR_3 $STR_NEEDLE found
+      StrCmp $STR_CONTAINS_VAR_1 $STR_CONTAINS_VAR_4 done
+      Goto loop
+    found:
+      StrCpy $STR_RETURN_VAR $STR_NEEDLE
+      Goto done
+    done:
+   Pop $STR_NEEDLE ;Prevent "invalid opcode" errors and keep the
+   Exch $STR_RETURN_VAR
+FunctionEnd
+
+!macro _StrContainsConstructor OUT NEEDLE HAYSTACK
+  Push `${HAYSTACK}`
+  Push `${NEEDLE}`
+  Call StrContains
+  Pop `${OUT}`
+!macroend
+
+!define StrContains '!insertmacro "_StrContainsConstructor"'
 
 ;--------------------------------
 ;General
@@ -514,6 +572,12 @@ Function ConditionalAddToRegisty
   ConditionalAddToRegisty_EmptyString:
 FunctionEnd
 
+Function ManualUninstall
+  StrLen $2 "\Uninstall.exe"
+  StrCpy $3 $0 -$2 # remove "\Uninstall.exe" from UninstallString to get path
+  ExecWait '"$0" _?=$3' ;Do not copy the uninstaller to a temp file
+FunctionEnd
+
 ;--------------------------------
 
 !ifdef CPACK_USES_DOWNLOAD
@@ -561,13 +625,11 @@ FunctionEnd
 ;--------------------------------
 ;Pages
   !insertmacro MUI_PAGE_WELCOME
-
   !insertmacro MUI_PAGE_LICENSE "@CPACK_RESOURCE_FILE_LICENSE@"
-  Page custom InstallOptionsPage
+  Page Custom HypervisorOptionsPage HypervisorOptionsPageLeave
+  Page Custom PathOptionsPage PathOptionsPageLeave
   !insertmacro MUI_PAGE_DIRECTORY
-
   @CPACK_NSIS_PAGE_COMPONENTS@
-
   !insertmacro MUI_PAGE_INSTFILES
   !insertmacro MUI_PAGE_FINISH
 
@@ -576,7 +638,6 @@ FunctionEnd
 
 ;--------------------------------
 ;Languages
-
   !insertmacro MUI_LANGUAGE "English" ;first language is the default language
   !insertmacro MUI_LANGUAGE "Albanian"
   !insertmacro MUI_LANGUAGE "Arabic"
@@ -629,20 +690,76 @@ FunctionEnd
   !insertmacro MUI_LANGUAGE "Ukrainian"
   !insertmacro MUI_LANGUAGE "Welsh"
 
-
 ;--------------------------------
-;Reserve Files
+; Create custom pages
+Function HypervisorOptionsPage
+  !insertmacro MUI_HEADER_TEXT "Hypervisor" "Select a hypervisor to use with @CPACK_PACKAGE_NAME@."
+  ${WinVerGetMajor} $R0
+  ${WinVerGetBuild} $R1
+  ClearErrors
+  ${If} ${RunningX64}
+    SetRegView 64
+  ${EndIf}
+  ReadRegStr $0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "ProductName"
+  ${StrContains} $R2 "Home" $0
+  SetRegView default
+  nsDialogs::Create 1018
+    Pop $0
+  ${NSD_CreateRadioButton} 0 0 100% 10u "Microsoft Hyper-V (Recommended)"
+    Pop $1
+  ${NSD_CreateRadioButton} 0 20 100% 10u "Oracle VM VirtualBox"
+    Pop $2
 
-  ;These files should be inserted before other files in the data block
-  ;Keep these lines before any File command
-  ;Only for solid compression (by default, solid compression is enabled for BZIP2 and LZMA)
+  ${If} $R0 >= 10
+  ${AndIf} $R1 >= 17134
+  ${AndIf} $R2 != "Home"
+    ${NSD_Check} $1
+  ${Else}
+    ${NSD_Check} $2
+    EnableWindow $1 0
+    ${If} $R0 < 10
+      ${NSD_SetText} $1 "Microsoft Hyper-V (Requires Windows 10)"
+    ${ElseIf} $R1 < 1803
+      ${NSD_SetText} $1 "Microsoft Hyper-V (Requires Windows 10 update 1803 or newer)"
+    ${ElseIf} $R2 == "Home"
+      ${NSD_SetText} $1 "Microsoft Hyper-V (Unavailable on Home edition)"
+    ${EndIf}
+  ${EndIf}
+  nsDialogs::Show
 
-  ReserveFile "NSIS.InstallOptions.ini"
-  !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
+FunctionEnd
+
+Function HypervisorOptionsPageLeave
+  ${NSD_GetState} $1 $USE_HYPERV
+  ${NSD_GetState} $2 $USE_VBOX
+
+FunctionEnd
+
+Function PathOptionsPage
+  !insertmacro MUI_HEADER_TEXT "Add @CPACK_PACKAGE_NAME@ to PATH?" "To run Multipass, without having to type the full installation directory, the PATH variable needs to include @CPACK_PACKAGE_NAME@."
+  nsDialogs::Create 1018
+    Pop $0
+  ${NSD_CreateRadioButton} 0 0 100% 10u "Do not add @CPACK_PACKAGE_NAME@ to the PATH"
+    Pop $1
+  ${NSD_CreateRadioButton} 0 20 100% 10u "Add @CPACK_PACKAGE_NAME@ to the system PATH for all users"
+    Pop $2
+  ${NSD_CreateRadioButton} 0 40 100% 10u "Add @CPACK_PACKAGE_NAME@ to the current user's PATH (Recommended)"
+    Pop $3
+
+  ${NSD_Check} $3
+  nsDialogs::Show
+
+FunctionEnd
+
+Function PathOptionsPageLeave
+  ${NSD_GetState} $1 $DO_NOT_ADD_TO_PATH
+  ${NSD_GetState} $2 $ADD_TO_PATH_ALL_USERS
+  ${NSD_GetState} $3 $ADD_TO_PATH_CURRENT_USER
+
+FunctionEnd
 
 ;--------------------------------
 ;Installer Sections
-
 Section "-Core installation"
   ;Use the entire tree produced by the INSTALL target.  Keep the
   ;list of directories here in sync with the RMDir commands below.
@@ -701,11 +818,6 @@ Section "-Core installation"
 @CPACK_NSIS_CREATE_ICONS@
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
-  ;Read a value from an InstallOptions INI file
-  !insertmacro MUI_INSTALLOPTIONS_READ $DO_NOT_ADD_TO_PATH "NSIS.InstallOptions.ini" "Field 2" "State"
-  !insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_ALL_USERS "NSIS.InstallOptions.ini" "Field 3" "State"
-  !insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_CURRENT_USER "NSIS.InstallOptions.ini" "Field 4" "State"
-
   ; Write special uninstall registry entries
   Push "DoNotAddToPath"
   Push "$DO_NOT_ADD_TO_PATH"
@@ -735,13 +847,55 @@ Section "-Add to path"
   continue_inst:
 SectionEnd
 
-;--------------------------------
-; Create custom pages
-Function InstallOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Install Options" "Choose options for installing @CPACK_NSIS_PACKAGE_NAME@"
-  !insertmacro MUI_INSTALLOPTIONS_DISPLAY "NSIS.InstallOptions.ini"
+Section "-Enable Hypervisor"
+  ${If} $USE_HYPERV == ${BST_CHECKED}
+    DetailPrint "Checking if Hyper-V is enabled"
+    nsExec::ExecToStack 'powershell "(Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online).State"'
+    Pop $0
+    Pop $1
 
-FunctionEnd
+    ${StrContains} $2 "Disabled" $1
+    ${If} $2 == "Disabled"
+    ${OrIf} $1 == "error"
+    ${OrIf} $0 != 0
+      DetailPrint "Enabling Hyper-V"
+      nsExec::ExecToStack "DISM /Online /Enable-Feature /All /NoRestart /FeatureName:Microsoft-Hyper-V"
+      Pop $0
+      Pop $1
+      ${If} $0 != 3010
+      ${OrIf} $1 == "error"
+        MessageBox MB_YESNO "Cannot enable Hyper-V, would you like to use VirtualBox instead?" /SD IDNO IDNO noHyperv
+          StrCpy $USE_HYPERV ${BST_UNCHECKED}
+          StrCpy $USE_VBOX ${BST_CHECKED}
+          Goto okHyperv
+        noHyperv:
+          MessageBox MB_ICONEXCLAMATION "Cannot automatically enable Hyper-V, please complete manually."
+        okHyperv:
+      ${Else}
+        SetRebootFlag true
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+
+  ${If} $USE_VBOX == ${BST_CHECKED}
+    DetailPrint "Checking for VirtualBox"
+    ${If} ${RunningX64}
+      SetRegView 64
+    ${EndIf}
+    ClearErrors
+    ReadRegStr $0 HKLM "SOFTWARE\Oracle\VirtualBox" "Version"
+    SetRegView default
+    ${If} ${Errors}
+      MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VM VirtualBox before using @CPACK_PACKAGE_NAME@."
+    ${EndIf}
+  ${EndIf}
+
+  ${If} $USE_HYPERV == ${BST_CHECKED}
+    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=hyperv'
+  ${ElseIf} $USE_VBOX == ${BST_CHECKED}
+    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=virtualbox'
+  ${EndIf}
+SectionEnd
 
 ;--------------------------------
 ; determine admin versus local install
@@ -815,10 +969,8 @@ Section "Uninstall"
     "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "AddToPathAllUsers"
   ReadRegStr $ADD_TO_PATH_CURRENT_USER SHCTX \
     "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "AddToPathCurrentUser"
-  ;MessageBox MB_OK "Add to path: $DO_NOT_ADD_TO_PATH all users: $ADD_TO_PATH_ALL_USERS"
   ReadRegStr $INSTALL_DESKTOP SHCTX \
     "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "InstallToDesktop"
-  ;MessageBox MB_OK "Install to desktop: $INSTALL_DESKTOP "
 
 @CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS@
 
@@ -884,10 +1036,7 @@ quit_inst:
 ;Run the uninstaller
 uninst:
   ClearErrors
-  StrLen $2 "\Uninstall.exe"
-  StrCpy $3 $0 -$2 # remove "\Uninstall.exe" from UninstallString to get path
-  ExecWait '"$0" _?=$3' ;Do not copy the uninstaller to a temp file
-
+  Call ManualUninstall
   IfErrors uninst_failed inst
 uninst_failed:
   MessageBox MB_OK|MB_ICONSTOP "Uninstall failed."
@@ -937,9 +1086,6 @@ inst:
   StrCmp $SV_ALLUSERS "AllUsers" 0 +3
     StrCmp "$IS_DEFAULT_INSTALLDIR" "1" 0 +2
       StrCpy $INSTDIR "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
-
-  StrCmp "@CPACK_NSIS_MODIFY_PATH@" "ON" 0 noOptionsPage
-    !insertmacro MUI_INSTALLOPTIONS_EXTRACT "NSIS.InstallOptions.ini"
 
   noOptionsPage:
 FunctionEnd
