@@ -61,7 +61,7 @@ cp "$DOWNLOAD_DIR/qemu/4.1.0/bin/qemu-img" "$BINDIR/"
 
 
 
-# qemu-img requires these support libs: glib, gettext, nettle, gnutls
+# qemu-img requires these support libs: glib, gettext, nettle, gnutls, libssh
 # Learn this from "otool -L qemu-img"
 
 # glib - requres pcre
@@ -128,6 +128,9 @@ install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gnutls/lib/libgnutls.30.dylib
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.6.dylib"    "@rpath/libnettle.6.dylib"        "$BINDIR/qemu-img"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$BINDIR/qemu-img"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libglib-2.0.0.dylib"    "@rpath/libglib-2.0.0.dylib"      "$BINDIR/qemu-img"
+
+# We build our own libssh
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libssh/lib/libssh.4.dylib"       "@rpath/libssh.4.dylib"           "$BINDIR/qemu-img"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
