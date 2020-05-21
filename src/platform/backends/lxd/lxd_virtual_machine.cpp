@@ -75,7 +75,7 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
     }
 }
 
-const mp::optional<mp::IPAddress> get_ip_for(const QString& name, mp::NetworkAccessManager* manager, const QUrl& url)
+mp::optional<mp::IPAddress> get_ip_for(const QString& name, mp::NetworkAccessManager* manager, const QUrl& url)
 {
     const auto json_state = lxd_request(manager, "GET", url);
     const auto addresses =
@@ -84,7 +84,9 @@ const mp::optional<mp::IPAddress> get_ip_for(const QString& name, mp::NetworkAcc
     for (const auto address : addresses)
     {
         if (address.toObject()["family"].toString() == "inet")
+        {
             return mp::optional<mp::IPAddress>{address.toObject()["address"].toString().toStdString()};
+        }
     }
 
     mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("IP for {} not found...", name));
@@ -104,7 +106,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
 {
     try
     {
-        instance_state_for(name, manager, state_url());
+        current_state();
     }
     catch (const LXDNotFoundException& e)
     {
@@ -181,7 +183,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
             }
         }
 
-        state = instance_state_for(name, manager, state_url());
+        current_state();
     }
 }
 
