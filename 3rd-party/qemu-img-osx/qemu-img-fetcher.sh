@@ -86,7 +86,7 @@ get_brew_and_extract nettle-3.4.1
 cp "$DOWNLOAD_DIR/nettle/3.4.1/lib/libnettle.6.dylib"  "$LIBDIR/"
 cp "$DOWNLOAD_DIR/nettle/3.4.1/lib/libhogweed.4.dylib" "$LIBDIR/"  # needed by gnutls
 
-# gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp
+# gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp, libintl (above), libidn2
 get_brew_and_extract gnutls-3.6.9
 
 cp "$DOWNLOAD_DIR/gnutls/3.6.9/lib/libgnutls.30.dylib" "$LIBDIR/"
@@ -115,6 +115,11 @@ cp "$DOWNLOAD_DIR/libtasn1/4.14/lib/libtasn1.6.dylib" "$LIBDIR/"
 get_brew_and_extract gmp-6.1.2_2
 
 cp "$DOWNLOAD_DIR/gmp/6.1.2_2/lib/libgmp.10.dylib" "$LIBDIR/"
+
+# libidn2 - requires libintl (above), libunistring (above)
+get_brew_and_extract libidn2-2.2.0_1
+
+cp "$DOWNLOAD_DIR/libidn2/2.2.0_1/lib/libidn2.0.dylib" "$LIBDIR/"
 
 # add writable permission to allow library path rewriting
 chmod +w "$LIBDIR"/*.dylib
@@ -149,6 +154,8 @@ install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libtasn1/lib/libtasn1.6.dylib
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.6.dylib"    "@rpath/libnettle.6.dylib"          "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libhogweed.4.dylib"   "@rpath/libhogweed.4.dylib"         "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gmp/lib/libgmp.10.dylib"         "@rpath/libgmp.10.dylib"            "$LIBDIR/libgnutls.30.dylib"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"            "$LIBDIR/libgnutls.30.dylib"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libidn2/lib/libidn2.0.dylib"     "@rpath/libidn2.0.dylib"            "$LIBDIR/libgnutls.30.dylib"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libhogweed.4.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gmp/lib/libgmp.10.dylib"         "@rpath/libgmp.10.dylib"          "$LIBDIR/libhogweed.4.dylib"
@@ -156,6 +163,10 @@ install_name_tool -change "@@HOMEBREW_CELLAR@@/nettle/3.4.1/lib/libnettle.6.dyli
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libp11-kit.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libffi/lib/libffi.6.dylib"       "@rpath/libffi.6.dylib"           "$LIBDIR/libp11-kit.0.dylib"
+
+install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libidn2.0.dylib"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libunistring/lib/libunistring.2.dylib" "@rpath/libunistring.2.dylib" "$LIBDIR/libidn2.0.dylib"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"            "$LIBDIR/libidn2.0.dylib"
 
 # Update shared library name to be relative too
 pushd "$LIBDIR"
