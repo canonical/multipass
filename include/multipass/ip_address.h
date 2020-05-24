@@ -21,6 +21,7 @@
 #define MULTIPASS_IP_ADDRESS_H
 
 #include <array>
+#include <string>
 
 namespace multipass
 {
