@@ -137,7 +137,7 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     // Build the HTTP method part
     http_data += op;
     http_data += ' ';
-    http_data += request.url().path();
+    http_data += request.url().toString();
     http_data += " HTTP/1.1\r\n";
 
     // Build the HTTP Host header

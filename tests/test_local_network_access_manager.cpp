@@ -224,6 +224,26 @@ TEST_F(LocalNetworkAccessManager, other_request_uses_qnam)
     EXPECT_EQ(reply->error(), QNetworkReply::ProtocolUnknownError);
 }
 
+TEST_F(LocalNetworkAccessManager, query_in_url_is_preserved)
+{
+    const QString query_string{"query=foo"};
+
+    QByteArray http_response;
+    http_response += "HTTP/1.1 200 OK\r\n";
+    http_response += "\r\n";
+
+    base_url.setQuery(query_string);
+
+    auto server_response = [&http_response, &query_string](auto data) {
+        EXPECT_TRUE(data.contains(query_string.toLatin1()));
+        return http_response;
+    };
+
+    test_server.local_socket_server_handler(server_response);
+
+    handle_request(base_url, "GET");
+}
+
 TEST_P(HTTPErrorsTestSuite, returns_expected_error)
 {
     const auto http_response = GetParam().first;
