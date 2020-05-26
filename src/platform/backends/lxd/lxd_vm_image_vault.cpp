@@ -37,7 +37,7 @@ using namespace std::literals::chrono_literals;
 
 namespace
 {
-constexpr auto category = "image vault";
+constexpr auto category = "lxd image vault";
 
 auto parse_percent_as_int(const QString& progress_string)
 {
@@ -134,7 +134,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
                             throw mp::AbortedDownloadException{"Download aborted"};
                         }
 
-                        std::this_thread::sleep_for(5s);
+                        std::this_thread::sleep_for(1s);
                     }
                 }
                 // Implies the task is finished

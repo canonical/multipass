@@ -122,6 +122,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             QString sha256, image_location, kernel_location, initrd_location;
             int size = -1;
 
+            // TODO: make this a VM factory call with a preference list
             if (driver == "lxd")
             {
                 image = items["lxd.tar.xz"].toObject();

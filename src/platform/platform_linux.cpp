@@ -126,15 +126,15 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
-std::unique_ptr<mp::VMImageVault> mp::platform::make_image_vault(std::vector<mp::VMImageHost*> image_host,
+std::unique_ptr<mp::VMImageVault> mp::platform::make_image_vault(std::vector<mp::VMImageHost*> image_hosts,
                                                                  mp::URLDownloader* downloader, mp::Path cache_dir_path,
                                                                  mp::Path data_dir_path, mp::days days_to_expire)
 {
     const auto& driver = utils::get_driver_str();
     if (driver == QStringLiteral("lxd"))
-        return std::make_unique<LXDVMImageVault>(image_host);
+        return std::make_unique<LXDVMImageVault>(image_hosts);
     else
-        return std::make_unique<DefaultVMImageVault>(image_host, downloader, cache_dir_path, data_dir_path,
+        return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
                                                      days_to_expire);
 }
 
