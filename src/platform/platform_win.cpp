@@ -475,13 +475,13 @@ bool mp::platform::is_image_url_supported()
     return check_unlock_code();
 }
 
-int mp::platform::wait_for_quit_signals()
+std::function<int()> mp::platform::make_quit_watchdog()
 {
-    HANDLE hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr);
+    return [hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr)]() {
+        if (hSemaphore == (HANDLE) nullptr)
+            printf("Unable to create semaphore\n");
 
-    if (hSemaphore == (HANDLE) nullptr)
-        printf("Unable to create semaphore\n");
-
-    WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
-    return 0;
+        WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
+        return 0;
+    };
 }
