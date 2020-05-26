@@ -626,12 +626,6 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
     DeleteOnException image_file{source_image.image_path};
 
-    if (fetch_type == FetchType::None)
-    {
-        source_image.image_path = "";
-        return source_image;
-    }
-
     try
     {
         url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
@@ -704,22 +698,17 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
                                                          const VMImage& prepared_image)
 {
     auto name = QString::fromStdString(instance_name);
-    if (prepared_image.image_path.isEmpty())
-        return prepared_image;
-    else
-    {
-        auto output_dir = mp::utils::make_dir(instances_dir, name);
+    auto output_dir = mp::utils::make_dir(instances_dir, name);
 
-        return {copy(prepared_image.image_path, output_dir),
-                copy(prepared_image.kernel_path, output_dir),
-                copy(prepared_image.initrd_path, output_dir),
-                prepared_image.id,
-                prepared_image.stream_location,
-                prepared_image.original_release,
-                prepared_image.current_release,
-                prepared_image.release_date,
-                {}};
-    }
+    return {copy(prepared_image.image_path, output_dir),
+            copy(prepared_image.kernel_path, output_dir),
+            copy(prepared_image.initrd_path, output_dir),
+            prepared_image.id,
+            prepared_image.stream_location,
+            prepared_image.original_release,
+            prepared_image.current_release,
+            prepared_image.release_date,
+            {}};
 }
 
 mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image,

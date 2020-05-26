@@ -294,22 +294,24 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 }
 
-TEST_F(LXDBackend, unimplemented_prepare_source_image_throws)
+TEST_F(LXDBackend, prepare_source_image_does_not_modify)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
-    mp::VMImage no_image;
+    const mp::VMImage original_image{
+        "/path/to/image", "", "", "deadbeef", "http://foo.bar", "bin", "baz", "the past", {"fee", "fi", "fo", "fum"}};
 
-    EXPECT_THROW(backend.prepare_source_image(no_image), std::runtime_error);
-}
+    auto source_image = backend.prepare_source_image(original_image);
 
-TEST_F(LXDBackend, unimplemented_prepare_instance_image_throws)
-{
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
-    mp::VMImage no_image;
-
-    EXPECT_THROW(backend.prepare_instance_image(no_image, default_description), std::runtime_error);
+    EXPECT_EQ(source_image.image_path, original_image.image_path);
+    EXPECT_EQ(source_image.kernel_path, original_image.kernel_path);
+    EXPECT_EQ(source_image.initrd_path, original_image.initrd_path);
+    EXPECT_EQ(source_image.id, original_image.id);
+    EXPECT_EQ(source_image.stream_location, original_image.stream_location);
+    EXPECT_EQ(source_image.original_release, original_image.original_release);
+    EXPECT_EQ(source_image.current_release, original_image.current_release);
+    EXPECT_EQ(source_image.release_date, original_image.release_date);
+    EXPECT_EQ(source_image.aliases, original_image.aliases);
 }
 
 TEST_F(LXDBackend, returns_expected_ipv4_address)

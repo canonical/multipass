@@ -37,7 +37,7 @@ constexpr auto request_category = "lxd request";
 const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::string& method, const QUrl& url,
                                   const mp::optional<QJsonObject>& json_data, int timeout)
 {
-    mpl::log(mpl::Level::debug, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
+    mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
 
     QEventLoop event_loop;
     QTimer download_timeout;
@@ -50,14 +50,15 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
     if (json_data)
     {
         data = QJsonDocument(*json_data).toJson();
-        mpl::log(mpl::Level::debug, request_category, fmt::format("Sending data: {}", data));
+        mpl::log(mpl::Level::trace, request_category, fmt::format("Sending data: {}", data));
     }
 
     auto reply = manager->sendCustomRequest(request, verb, data);
 
     QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
     QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
-        mpl::log(mpl::Level::debug, request_category, fmt::format("Request timed out: {} {}", method, url.toString()));
+        mpl::log(mpl::Level::warning, request_category,
+                 fmt::format("Request timed out: {} {}", method, url.toString()));
         download_timeout.stop();
         reply->abort();
     });
@@ -81,7 +82,7 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
     if (json_reply.isNull() || !json_reply.isObject())
         throw std::runtime_error(fmt::format("Invalid LXD response for url {}: {}", url.toString(), bytearray_reply));
 
-    mpl::log(mpl::Level::debug, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
+    mpl::log(mpl::Level::trace, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
 
     return json_reply.object();
 }

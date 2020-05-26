@@ -46,7 +46,7 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
 {
     auto json_reply = lxd_request(manager, "GET", url);
     auto metadata = json_reply["metadata"].toObject();
-    mpl::log(mpl::Level::debug, name.toStdString(),
+    mpl::log(mpl::Level::trace, name.toStdString(),
              fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
 
     switch (metadata["status_code"].toInt(-1))
@@ -89,7 +89,7 @@ mp::optional<mp::IPAddress> get_ip_for(const QString& name, mp::NetworkAccessMan
         }
     }
 
-    mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("IP for {} not found...", name));
+    mpl::log(mpl::Level::trace, name.toStdString(), fmt::format("IP for {} not found...", name));
     return mp::nullopt;
 }
 
@@ -158,7 +158,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
 
         auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
                                       virtual_machine);
-        mpl::log(mpl::Level::debug, name.toStdString(),
+        mpl::log(mpl::Level::trace, name.toStdString(),
                  fmt::format("Got LXD creation reply: {}", QJsonDocument(json_reply).toJson()));
 
         if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
@@ -187,7 +187,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
                     }
                     else
                     {
-                        std::this_thread::sleep_for(5s);
+                        std::this_thread::sleep_for(1s);
                     }
                 }
                 // Implies the task is finished
@@ -334,7 +334,7 @@ std::string mp::LXDVirtualMachine::ssh_hostname()
                 return mpu::TimeoutAction::retry;
             }
         };
-        auto on_timeout = [] { return std::runtime_error("failed to determine IP address"); };
+        auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
         mpu::try_action_for(on_timeout, std::chrono::minutes(2), action);
     }
 
