@@ -23,6 +23,7 @@
 #include <multipass/utils.h>
 
 #include <QJsonDocument>
+#include <QJsonObject>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -30,6 +31,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "lxd factory";
+const QString multipass_bridge_name = "mpbr0";
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir, const QUrl& base_url)
@@ -37,6 +39,39 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
       base_url{base_url},
       manager{std::make_unique<NetworkAccessManager>()}
 {
+
+    try
+    {
+        lxd_request(manager.get(), "GET",
+                    QUrl(QString("%1/projects/%2").arg(base_url.toString()).arg(lxd_project_name)));
+    }
+    catch (const LXDNotFoundException&)
+    {
+        QJsonObject project{{"name", lxd_project_name}, {"description", "Project for Multipass instances"}};
+
+        lxd_request(manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
+
+        // TODO: Detect if default storage pool is available and if not, create a directory based pool for
+        //       Multipass
+
+        QJsonObject devices{
+            {"eth0", QJsonObject{{"name", "eth0"}, {"nictype", "bridged"}, {"parent", "mpbr0"}, {"type", "nic"}}}};
+        QJsonObject profile{{"description", "Default profile for Multipass project"}, {"devices", devices}};
+
+        lxd_request(manager.get(), "PUT", QUrl(QString("%1/profiles/default").arg(base_url.toString())), profile);
+    }
+
+    try
+    {
+        lxd_request(manager.get(), "GET",
+                    QUrl(QString("%1/networks/%2").arg(base_url.toString()).arg(multipass_bridge_name)));
+    }
+    catch (const LXDNotFoundException&)
+    {
+        QJsonObject network{{"name", multipass_bridge_name}, {"description", "Network bridge for Multipass"}};
+
+        lxd_request(manager.get(), "POST", QUrl(QString("%1/networks").arg(base_url.toString())), network);
+    }
 }
 
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,

@@ -88,15 +88,65 @@ const std::vector<LXDInstanceStatusParamType> lxd_instance_status_suite_inputs{
     {mpt::vm_state_fully_running_response, mp::VirtualMachine::State::running}};
 } // namespace
 
+TEST_F(LXDBackend, creates_project_and_network_on_first_run)
+{
+    bool project_created{false};
+    bool profile_updated{false};
+    bool network_created{false};
+
+    auto server_handler = [&project_created, &profile_updated, &network_created](auto data) -> QByteArray {
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::not_found_response;
+        }
+        else if (data.contains("POST") && data.contains("1.0/projects"))
+        {
+            project_created = true;
+            return mpt::post_no_error_response;
+        }
+        else if (data.contains("PUT") && data.contains("1.0/profiles/default?project=multipass"))
+        {
+            profile_updated = true;
+            return mpt::post_no_error_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::not_found_response;
+        }
+        else if (data.contains("POST") && data.contains("1.0/networks"))
+        {
+            network_created = true;
+            return mpt::post_no_error_response;
+        }
+
+        return mpt::not_found_response;
+    };
+
+    test_server.local_socket_server_handler(server_handler);
+
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
+
+    EXPECT_TRUE(project_created);
+    EXPECT_TRUE(profile_updated);
+    EXPECT_TRUE(network_created);
+}
+
 TEST_F(LXDBackend, creates_in_stopped_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     bool vm_created{false};
 
     auto server_handler = [&vm_created](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
         {
             if (!vm_created)
             {
@@ -122,6 +172,7 @@ TEST_F(LXDBackend, creates_in_stopped_state)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_TRUE(vm_created);
@@ -131,10 +182,17 @@ TEST_F(LXDBackend, creates_in_stopped_state)
 TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
         {
             if (data.contains("state"))
             {
@@ -156,6 +214,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
@@ -167,12 +226,19 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
 TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     bool vm_shutdown{false};
 
     auto server_handler = [&vm_shutdown](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
         {
             if (data.contains("state") && !vm_shutdown)
             {
@@ -203,6 +269,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
@@ -215,14 +282,13 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
 TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     default_description.meta_data_config = YAML::Load("Luke: Jedi");
     default_description.user_data_config = YAML::Load("Vader: Sith");
     default_description.vendor_data_config = YAML::Load("Solo: Scoundrel");
 
     QByteArray expected_data;
-    expected_data += "POST /1.0/virtual-machines HTTP/1.1\r\n"
+    expected_data += "POST /1.0/virtual-machines?project=multipass HTTP/1.1\r\n"
                      "Host: multipass\r\n"
                      "User-Agent: Multipass/";
     expected_data += mp::version_string;
@@ -262,7 +328,15 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
     bool vm_created{false};
 
     auto server_handler = [&vm_created, &expected_data](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
         {
             if (!vm_created)
             {
@@ -291,12 +365,29 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 }
 
 TEST_F(LXDBackend, prepare_source_image_does_not_modify)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    auto server_handler = [](auto data) -> QByteArray {
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+
+        return mpt::not_found_response;
+    };
+
+    test_server.local_socket_server_handler(server_handler);
+
     mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     const mp::VMImage original_image{
         "/path/to/image", "", "", "deadbeef", "http://foo.bar", "bin", "baz", "the past", {"fee", "fi", "fo", "fum"}};
@@ -317,10 +408,17 @@ TEST_F(LXDBackend, prepare_source_image_does_not_modify)
 TEST_F(LXDBackend, returns_expected_ipv4_address)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_fully_running_response;
         }
@@ -330,6 +428,7 @@ TEST_F(LXDBackend, returns_expected_ipv4_address)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_EQ(machine->ipv4(), "10.217.27.168");
@@ -338,10 +437,17 @@ TEST_F(LXDBackend, returns_expected_ipv4_address)
 TEST_F(LXDBackend, no_ip_address_returns_unknown)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_partial_running_response;
         }
@@ -351,6 +457,7 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_EQ(machine->ipv4(), "UNKNOWN");
@@ -359,10 +466,17 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
 TEST_F(LXDBackend, returns_empty_ipv6_address)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_fully_running_response;
         }
@@ -372,6 +486,7 @@ TEST_F(LXDBackend, returns_empty_ipv6_address)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_TRUE(machine->ipv6().empty());
@@ -380,10 +495,17 @@ TEST_F(LXDBackend, returns_empty_ipv6_address)
 TEST_F(LXDBackend, returns_expected_ssh_username)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_fully_running_response;
         }
@@ -393,6 +515,7 @@ TEST_F(LXDBackend, returns_expected_ssh_username)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_EQ(machine->ssh_username(), default_description.ssh_username);
@@ -401,12 +524,19 @@ TEST_F(LXDBackend, returns_expected_ssh_username)
 TEST_F(LXDBackend, returns_ip_address_for_ssh_hostname)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     int tries{0};
 
     auto server_handler = [&tries](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             if (tries < 3)
             {
@@ -422,6 +552,7 @@ TEST_F(LXDBackend, returns_ip_address_for_ssh_hostname)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     // This will take ~1 second to run since we want to cover the retry attempt
@@ -432,10 +563,17 @@ TEST_F(LXDBackend, returns_ip_address_for_ssh_hostname)
 TEST_F(LXDBackend, returns_expected_ssh_port)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_fully_running_response;
         }
@@ -445,6 +583,7 @@ TEST_F(LXDBackend, returns_expected_ssh_port)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_EQ(machine->ssh_port(), 22);
@@ -460,7 +599,6 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
 TEST_F(LXDBackend, lxd_request_invalid_json_throws)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
         QByteArray invalid_json_response{"HTTP/1.1 200 OK\r\n"
@@ -472,13 +610,12 @@ TEST_F(LXDBackend, lxd_request_invalid_json_throws)
 
     test_server.local_socket_server_handler(server_handler);
 
-    EXPECT_THROW(backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error);
+    EXPECT_THROW(mp::LXDVirtualMachineFactory backend(data_dir.path(), base_url), std::runtime_error);
 }
 
 TEST_F(LXDBackend, lxd_request_wrong_json_throws)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
         QByteArray invalid_json_response{"HTTP/1.1 200 OK\r\n"
@@ -490,16 +627,23 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws)
 
     test_server.local_socket_server_handler(server_handler);
 
-    EXPECT_THROW(backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error);
+    EXPECT_THROW(mp::LXDVirtualMachineFactory backend(data_dir.path(), base_url), std::runtime_error);
 }
 
 TEST_F(LXDBackend, suspend_while_stopped_keeps_same_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_stopped_response;
         }
@@ -509,6 +653,7 @@ TEST_F(LXDBackend, suspend_while_stopped_keeps_same_state)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
@@ -521,10 +666,17 @@ TEST_F(LXDBackend, suspend_while_stopped_keeps_same_state)
 TEST_F(LXDBackend, stop_while_suspended_keeps_same_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     auto server_handler = [](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_frozen_response;
         }
@@ -534,6 +686,7 @@ TEST_F(LXDBackend, stop_while_suspended_keeps_same_state)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
@@ -546,12 +699,19 @@ TEST_F(LXDBackend, stop_while_suspended_keeps_same_state)
 TEST_F(LXDBackend, start_while_running_does_nothing)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     bool put_called{false};
 
     auto server_handler = [&put_called](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return mpt::vm_state_fully_running_response;
         }
@@ -567,6 +727,7 @@ TEST_F(LXDBackend, start_while_running_does_nothing)
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::running);
@@ -580,13 +741,20 @@ TEST_F(LXDBackend, start_while_running_does_nothing)
 TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
 
     const auto status_response = GetParam().first;
     const auto expected_state = GetParam().second;
 
     auto server_handler = [&status_response](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
             return status_response;
         }
@@ -596,6 +764,7 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
 
     test_server.local_socket_server_handler(server_handler);
 
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     EXPECT_EQ(machine->current_state(), expected_state);

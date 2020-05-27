@@ -28,6 +28,7 @@
 namespace multipass
 {
 const QUrl lxd_socket_url{"unix:///var/snap/lxd/common/lxd/unix.socket@1.0"};
+const QString lxd_project_name{"multipass"};
 
 class NetworkAccessManager;
 
@@ -39,7 +40,7 @@ public:
     }
 };
 
-const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, const QUrl& url,
+const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
                               const optional<QJsonObject>& json_data = nullopt, int timeout = 30000);
 } // namespace multipass
 

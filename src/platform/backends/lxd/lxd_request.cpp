@@ -34,7 +34,7 @@ namespace
 constexpr auto request_category = "lxd request";
 } // namespace
 
-const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::string& method, const QUrl& url,
+const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::string& method, QUrl url,
                                   const mp::optional<QJsonObject>& json_data, int timeout)
 {
     mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
@@ -42,6 +42,8 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
     QEventLoop event_loop;
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
+
+    url.setQuery("project=multipass");
 
     QNetworkRequest request{url};
 
