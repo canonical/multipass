@@ -20,6 +20,7 @@
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
 #include <multipass/vm_image.h>
@@ -69,6 +70,10 @@ mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, cons
 mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                              const PrepareAction& prepare, const ProgressMonitor& monitor)
 {
+    // TODO: Remove one we do support these types of images
+    if (query.query_type != Query::Type::Alias && !mp::platform::is_image_url_supported())
+        throw std::runtime_error(fmt::format("http and file based images are not supported"));
+
     const auto info = info_for(query);
     const auto id = info.id;
     VMImage source_image;
