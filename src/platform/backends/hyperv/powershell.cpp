@@ -84,7 +84,7 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
     QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(unique_echo_string);
     bool cmdlet_code{false};
 
-    mpl::log(mpl::Level::debug, name,
+    mpl::log(mpl::Level::trace, name,
              fmt::format("cmdlet: '{}'", args.join(" ").toStdString()));
     powershell_proc.write(args.join(" ").toUtf8() + "\n");
 
@@ -123,12 +123,12 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
             if (cmdlet_exit_found)
             {
                 output = parsed_output.at(0).trimmed();
-                mpl::log(mpl::Level::debug, name, output.toStdString());
+                mpl::log(mpl::Level::trace, name, output.toStdString());
             }
         }
     }
 
-    mpl::log(mpl::Level::debug, name, fmt::format("cmdlet exit status is '{}'", cmdlet_code));
+    mpl::log(mpl::Level::trace, name, fmt::format("cmdlet exit status is '{}'", cmdlet_code));
     return cmdlet_code;
 }
 
@@ -139,7 +139,7 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
 
     QObject::connect(&power_shell, &QProcess::readyReadStandardOutput, [&name, &output, &power_shell]() {
         output += power_shell.readAllStandardOutput().trimmed();
-        mpl::log(mpl::Level::debug, name, output.toStdString());
+        mpl::log(mpl::Level::trace, name, output.toStdString());
     });
 
     power_shell.start();
