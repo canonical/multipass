@@ -154,7 +154,8 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
     if (driver == "virtualbox" && remote == "snapcraft")
         return false;
 
-    if (remote.empty() && alias == "core")
+    // Core images don't work on hyperkit yet
+    if (driver == "hyperkit" && remote.empty() && (supported_core_aliases.find(alias) != supported_core_aliases.end()))
         return false;
 
     if (check_unlock_code())
