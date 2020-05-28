@@ -23,14 +23,15 @@
 #include <winsock2.h>
 
 #include <array>
-#include <mutex>
+#include <mutex> // TODO probably not needed
+#include <string>
 
 namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
 
 namespace
 {
-// Needed so the WinEventProc callback can use it
+// TODO these are not needed any longer and assume a single console
 ssh_channel global_channel;
 HANDLE global_output_handle;
 mp::Console::ConsoleGeometry last_geometry{0, 0};
@@ -51,43 +52,15 @@ void change_ssh_pty_size(const HANDLE output_handle)
         ssh_channel_change_pty_size(global_channel, columns, rows);
     }
 }
-
-void CALLBACK handle_console_resize(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idObject, LONG idChild,
-                                    DWORD dwEventThread, DWORD dwmsEventTime)
-{
-    if (hwnd == GetConsoleWindow())
-    {
-        change_ssh_pty_size(global_output_handle);
-    }
-}
-
-void monitor_console_resize(HWINEVENTHOOK& hook)
-{
-    MSG msg;
-    BOOL ret;
-
-    hook = SetWinEventHook(EVENT_CONSOLE_LAYOUT, EVENT_CONSOLE_LAYOUT, nullptr, &handle_console_resize, 0, 0,
-                           WINEVENT_OUTOFCONTEXT);
-
-    while ((ret = GetMessage(&msg, nullptr, 0, 0)) != 0)
-    {
-        if (ret == -1)
-            break;
-
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-}
 } // namespace
 
-mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal *term)
+mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
     : interactive{term->cout_is_live()},
       input_handle{term->cin_handle()},
       output_handle{term->cout_handle()},
       error_handle{term->cerr_handle()},
       channel{channel},
-      session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
-      console_event_thread{[this] { monitor_console_resize(hook); }}
+      session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))}
 {
     global_channel = channel;
     global_output_handle = output_handle;
@@ -112,14 +85,35 @@ void mp::WindowsConsole::setup_console()
 
 void mp::WindowsConsole::read_console()
 {
-    std::array<char, 4096> buffer;
-    int bytes_read{0};
+    constexpr auto chunk = 4096;
+    std::array<INPUT_RECORD, chunk> input_records;
+    DWORD num_records_read = 0;
+    std::basic_string<CHAR> text_buffer;
+    text_buffer.reserve(chunk);
 
-    FlushConsoleInputBuffer(input_handle);
-    ReadConsole(input_handle, buffer.data(), buffer.size(), &(DWORD)bytes_read, NULL);
+    auto suc = ReadConsoleInput(input_handle, input_records.data(), input_records.size(), &num_records_read);
+
+    for (auto i = 0u; i < num_records_read; ++i)
+    {
+        switch (input_records[i].EventType)
+        {
+        case KEY_EVENT:
+        {
+            const auto& key_event = input_records[i].Event.KeyEvent;
+            if (auto chr = key_event.uChar.AsciiChar; key_event.bKeyDown && chr) // some keys yield null char (e.g. alt)
+                text_buffer.append(key_event.wRepeatCount, chr);
+        }
+        break;
+        case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see microsoft/terminal#281)
+            change_ssh_pty_size(output_handle); // We read them ourselves here
+            break;
+        default:
+            break; // ignore
+        }
+    }
 
     std::lock_guard<std::mutex> lock(ssh_mutex);
-    ssh_channel_write(channel, buffer.data(), bytes_read);
+    ssh_channel_write(channel, text_buffer.data(), text_buffer.size() * sizeof(decltype(text_buffer)::value_type));
 }
 
 void mp::WindowsConsole::write_console()
@@ -170,12 +164,6 @@ void mp::WindowsConsole::write_console()
 
 void mp::WindowsConsole::exit_console()
 {
-    PostThreadMessage(GetThreadId(console_event_thread.native_handle()), WM_QUIT, 0, 0);
-    UnhookWinEvent(hook);
-
-    if (console_event_thread.joinable())
-        console_event_thread.join();
-
     restore_console();
     FreeConsole();
 }
