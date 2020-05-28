@@ -28,6 +28,7 @@
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
+#include <multipass/platform_unix.h>
 
 #include <QDir>
 #include <QFile>
@@ -314,6 +315,13 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
+}
+
+TEST_F(PlatformLinux, test_expected_groups_are_returned)
+{
+    const std::vector<std::string> groups{"sudo", "wheel", "adm", "admin"};
+
+    EXPECT_EQ(mp::platform::supported_socket_groups(), groups);
 }
 
 struct TestUnsupportedDrivers : public TestWithParam<QString>

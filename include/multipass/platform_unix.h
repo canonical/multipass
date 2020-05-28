@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_PLATFORM_UNIX_H
 #define MULTIPASS_PLATFORM_UNIX_H
 
+#include <string>
 #include <vector>
 
 #include <signal.h>
@@ -28,6 +29,7 @@ namespace platform
 {
 sigset_t make_sigset(const std::vector<int>& sigs);
 sigset_t make_and_block_signals(const std::vector<int>& sigs);
+std::vector<std::string> supported_socket_groups();
 } // namespace platform
 }
 #endif // MULTIPASS_PLATFORM_UNIX_H

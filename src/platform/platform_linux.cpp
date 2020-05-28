@@ -21,6 +21,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/platform_unix.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -154,4 +155,9 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 bool mp::platform::is_image_url_supported()
 {
     return true;
+}
+
+std::vector<std::string> mp::platform::supported_socket_groups()
+{
+    return {"sudo", "wheel", "adm", "admin"};
 }

@@ -23,26 +23,21 @@
 
 #include <multipass/auto_join_thread.h>
 #include <multipass/constants.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
-#include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_host.h>
-#include <multipass/vm_image_vault.h>
-
-#include <multipass/format.h>
 
 #include <QCoreApplication>
 
 #include <csignal>
-#include <cstring>
+#include <vector>
+
 #include <grp.h>
 #include <sys/stat.h>
-#include <vector>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -50,8 +45,6 @@ namespace mpp = multipass::platform;
 
 namespace
 {
-const std::vector<std::string> supported_socket_groups{"sudo", "wheel", "adm", "admin"};
-
 void set_server_permissions(const std::string& server_address)
 {
     auto tokens = mp::utils::split(server_address, ":");
@@ -63,7 +56,7 @@ void set_server_permissions(const std::string& server_address)
         return;
 
     struct group* group{nullptr};
-    for (const auto socket_group : supported_socket_groups)
+    for (const auto socket_group : mpp::supported_socket_groups())
     {
         group = getgrnam(socket_group.c_str());
         if (group)
