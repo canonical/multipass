@@ -50,6 +50,7 @@ add_executable(multipass_tests
   test_output_formatter.cpp
   test_image_vault.cpp
   test_ip_address.cpp
+  test_local_network_access_manager.cpp
   test_memory_size.cpp
   test_metrics_provider.cpp
   test_new_release_monitor.cpp
@@ -106,6 +107,7 @@ target_link_libraries(multipass_tests
   ip_address
   iso
   metrics
+  network
   petname
   simplestreams
   sftp_test
