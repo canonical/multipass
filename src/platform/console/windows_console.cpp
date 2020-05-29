@@ -23,36 +23,10 @@
 #include <winsock2.h>
 
 #include <array>
-#include <mutex> // TODO probably not needed
 #include <string>
 
 namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
-
-namespace
-{
-// TODO these are not needed any longer and assume a single console
-ssh_channel global_channel;
-HANDLE global_output_handle;
-mp::Console::ConsoleGeometry last_geometry{0, 0};
-std::mutex ssh_mutex;
-
-void change_ssh_pty_size(const HANDLE output_handle)
-{
-    CONSOLE_SCREEN_BUFFER_INFO sb_info;
-    GetConsoleScreenBufferInfo(output_handle, &sb_info);
-    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
-    auto rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
-
-    if (last_geometry.columns != columns || last_geometry.rows != rows)
-    {
-        last_geometry.columns = columns;
-        last_geometry.rows = rows;
-        std::lock_guard<std::mutex> lock(ssh_mutex);
-        ssh_channel_change_pty_size(global_channel, columns, rows);
-    }
-}
-} // namespace
 
 mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
     : interactive{term->cout_is_live()},
@@ -60,10 +34,9 @@ mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
       output_handle{term->cout_handle()},
       error_handle{term->cerr_handle()},
       channel{channel},
-      session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))}
+      session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
+      last_geometry{0, 0}
 {
-    global_channel = channel;
-    global_output_handle = output_handle;
     setup_console();
 }
 
@@ -79,7 +52,7 @@ void mp::WindowsConsole::setup_console()
         SetConsoleMode(output_handle, console_output_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
         ssh_channel_request_pty(channel);
-        change_ssh_pty_size(output_handle);
+        change_ssh_pty_size();
     }
 }
 
@@ -105,7 +78,7 @@ void mp::WindowsConsole::read_console()
         }
         break;
         case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see microsoft/terminal#281)
-            change_ssh_pty_size(output_handle); // We read them ourselves here
+            change_ssh_pty_size();     // We obtain it ourselves to update here
             break;
         default:
             break; // ignore
@@ -174,5 +147,21 @@ void mp::WindowsConsole::restore_console()
     {
         SetConsoleMode(input_handle, console_input_mode);
         SetConsoleMode(output_handle, console_output_mode);
+    }
+}
+
+void mp::WindowsConsole::change_ssh_pty_size()
+{
+    CONSOLE_SCREEN_BUFFER_INFO sb_info;
+    GetConsoleScreenBufferInfo(output_handle, &sb_info);
+    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
+    auto rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
+
+    if (last_geometry.columns != columns || last_geometry.rows != rows)
+    {
+        last_geometry.columns = columns;
+        last_geometry.rows = rows;
+        std::lock_guard<std::mutex> lock(ssh_mutex);
+        ssh_channel_change_pty_size(channel, columns, rows);
     }
 }
