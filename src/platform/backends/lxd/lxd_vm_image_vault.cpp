@@ -70,7 +70,7 @@ mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, cons
 mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                              const PrepareAction& prepare, const ProgressMonitor& monitor)
 {
-    // TODO: Remove one we do support these types of images
+    // TODO: Remove once we do support these types of images
     if (query.query_type != Query::Type::Alias && !mp::platform::is_image_url_supported())
         throw std::runtime_error(fmt::format("http and file based images are not supported"));
 
