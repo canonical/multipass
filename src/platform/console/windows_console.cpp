@@ -52,7 +52,7 @@ void mp::WindowsConsole::setup_console()
         SetConsoleMode(output_handle, console_output_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
         ssh_channel_request_pty(channel);
-        change_ssh_pty_size();
+        update_ssh_pty_size();
     }
 }
 
@@ -78,7 +78,7 @@ void mp::WindowsConsole::read_console()
         }
         break;
         case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see microsoft/terminal#281)
-            change_ssh_pty_size();     // We obtain it ourselves to update here
+            update_ssh_pty_size();     // We obtain it ourselves to update here
             break;
         default:
             break; // ignore
@@ -150,7 +150,7 @@ void mp::WindowsConsole::restore_console()
     }
 }
 
-void mp::WindowsConsole::change_ssh_pty_size()
+void mp::WindowsConsole::update_ssh_pty_size()
 {
     CONSOLE_SCREEN_BUFFER_INFO sb_info;
     GetConsoleScreenBufferInfo(output_handle, &sb_info);

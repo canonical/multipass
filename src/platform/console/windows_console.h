@@ -43,7 +43,7 @@ public:
 private:
     void setup_console();
     void restore_console();
-    void change_ssh_pty_size();
+    void update_ssh_pty_size();
 
     bool interactive{false};
     HANDLE input_handle;
