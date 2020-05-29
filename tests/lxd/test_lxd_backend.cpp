@@ -375,6 +375,97 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 }
 
+TEST_F(LXDBackend, posts_expected_data_including_disk_size_when_creating_instance)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    default_description.meta_data_config = YAML::Load("Luke: Jedi");
+    default_description.user_data_config = YAML::Load("Vader: Sith");
+    default_description.vendor_data_config = YAML::Load("Solo: Scoundrel");
+    default_description.disk_space = mp::MemorySize("16000000000");
+
+    QByteArray expected_data;
+    expected_data += "POST /1.0/virtual-machines?project=multipass HTTP/1.1\r\n"
+                     "Host: multipass\r\n"
+                     "User-Agent: Multipass/";
+    expected_data += mp::version_string;
+    expected_data += "\r\n"
+                     "Content-Type: application/x-www-form-urlencoded\r\n"
+                     "Content-Length: 734\r\n\r\n"
+                     "{\n"
+                     "    \"config\": {\n"
+                     "        \"limits.cpu\": \"2\",\n"
+                     "        \"limits.memory\": \"3145728\",\n"
+                     "        \"user.meta-data\": \"#cloud-config\\nLuke: Jedi\\n\\n\",\n"
+                     "        \"user.user-data\": \"#cloud-config\\nVader: Sith\\n\\n\",\n"
+                     "        \"user.vendor-data\": \"#cloud-config\\nSolo: Scoundrel\\n\\n\"\n"
+                     "    },\n"
+                     "    \"devices\": {\n"
+                     "        \"config\": {\n"
+                     "            \"source\": \"cloud-init:config\",\n"
+                     "            \"type\": \"disk\"\n"
+                     "        },\n"
+                     "        \"root\": {\n"
+                     "            \"path\": \"/\",\n"
+                     "            \"pool\": \"default\",\n"
+                     "            \"size\": \"16000000000\",\n"
+                     "            \"type\": \"disk\"\n"
+                     "        }\n"
+                     "    },\n"
+                     "    \"name\": \"pied-piper-valley\",\n"
+                     "    \"source\": {\n"
+                     "        \"fingerprint\": \"\",\n"
+                     "        \"mode\": \"pull\",\n"
+                     "        \"protocol\": \"simplestreams\",\n"
+                     "        \"server\": \"\",\n"
+                     "        \"type\": \"image\"\n"
+                     "    }\n"
+                     "}\n\r\n";
+
+    bool vm_created{false};
+
+    auto server_handler = [&vm_created, &expected_data](auto data) -> QByteArray {
+        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+        {
+            return mpt::project_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
+        {
+            return mpt::network_info_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/virtual-machines/pied-piper-valley"))
+        {
+            if (!vm_created)
+            {
+                return mpt::not_found_response;
+            }
+            else
+            {
+                return mpt::vm_created_response;
+            }
+        }
+        else if (data.contains("POST") && data.contains("1.0/virtual-machines"))
+        {
+            // This is the test to ensure the expected data
+            EXPECT_EQ(data, expected_data);
+
+            return mpt::create_vm_response;
+        }
+        else if (data.contains("GET") && data.contains("1.0/operations/0020444c-2e4c-49d5-83ed-3275e3f6d005"))
+        {
+            vm_created = true;
+            return mpt::not_found_response;
+        }
+
+        return mpt::not_found_response;
+    };
+
+    test_server.local_socket_server_handler(server_handler);
+
+    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+}
+
 TEST_F(LXDBackend, prepare_source_image_does_not_modify)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
