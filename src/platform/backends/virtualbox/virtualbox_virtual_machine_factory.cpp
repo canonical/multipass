@@ -87,7 +87,7 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
     QStringList convert_args({"convert", "-O", "vdi", source_image.image_path, vdi_file});
 
     mpu::process_throw_on_error(QCoreApplication::applicationDirPath() + "/qemu-img", convert_args,
-                                "Conversion of image to VDI failed with error: {}", category);
+                                "Conversion of image to VDI failed with error: {}", category, 300000);
 
     if (!QFile::exists(vdi_file))
     {

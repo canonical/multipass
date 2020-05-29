@@ -78,9 +78,10 @@ std::vector<std::string> split(const std::string& string, const std::string& del
 std::string generate_mac_address();
 std::string timestamp();
 void process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                            const QString& category = "utils");
+                            const QString& category = "utils", const int timeout = 30000);
 bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                          const QString& category, multipass::logging::Level level = multipass::logging::Level::debug);
+                          const QString& category, multipass::logging::Level level = multipass::logging::Level::debug,
+                          const int timeout = 30000);
 std::string match_line_for(const std::string& output, const std::string& matcher);
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
