@@ -58,13 +58,13 @@ void mp::WindowsConsole::setup_console()
 
 void mp::WindowsConsole::read_console()
 {
-    constexpr auto chunk = 4096;
+    static constexpr auto chunk = 4096u;
     std::array<INPUT_RECORD, chunk> input_records;
     DWORD num_records_read = 0;
     std::basic_string<CHAR> text_buffer;
     text_buffer.reserve(chunk);
 
-    auto suc = ReadConsoleInput(input_handle, input_records.data(), input_records.size(), &num_records_read);
+    auto suc = ReadConsoleInput(input_handle, input_records.data(), chunk, &num_records_read);
 
     for (auto i = 0u; i < num_records_read; ++i)
     {
@@ -86,13 +86,15 @@ void mp::WindowsConsole::read_console()
     }
 
     std::lock_guard<std::mutex> lock(ssh_mutex);
-    ssh_channel_write(channel, text_buffer.data(), text_buffer.size() * sizeof(decltype(text_buffer)::value_type));
+    ssh_channel_write(channel, text_buffer.data(),
+                      static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
 }
 
 void mp::WindowsConsole::write_console()
 {
+    static constexpr auto chunk = 4096u;
     DWORD write;
-    std::array<char, 4096> buffer;
+    std::array<char, chunk> buffer;
     int num_bytes{0};
     fd_set read_set;
     HANDLE current_handle{output_handle};
@@ -105,12 +107,12 @@ void mp::WindowsConsole::write_console()
 
     {
         std::lock_guard<std::mutex> lock(ssh_mutex);
-        num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 0);
+        num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 0);
 
         // Try reading from stderr if nothing is returned from stdout
         if (num_bytes == 0)
         {
-            num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 1);
+            num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 1);
             current_handle = error_handle;
         }
     }
