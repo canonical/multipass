@@ -281,8 +281,7 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
     auto stub_progress = [](int download_type, int progress) { return true; };
 
-    mp::Query query;
-    query.name = name;
+    mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
