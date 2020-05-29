@@ -62,7 +62,10 @@ mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, cons
     {
         for (const auto& remote : image_host->supported_remotes())
         {
-            remote_image_host_map[remote] = image_host;
+            if (mp::platform::is_remote_supported(remote))
+            {
+                remote_image_host_map[remote] = image_host;
+            }
         }
     }
 }
