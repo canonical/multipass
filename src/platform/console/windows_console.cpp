@@ -19,6 +19,8 @@
 #include "windows_terminal.h"
 
 #include <multipass/cli/client_platform.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 
 #include <winsock2.h>
 
@@ -26,7 +28,13 @@
 #include <string>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mcp = multipass::cli::platform;
+
+namespace
+{
+constexpr auto category = "windows console";
+}
 
 mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
     : interactive{term->cout_is_live()},
@@ -64,30 +72,38 @@ void mp::WindowsConsole::read_console()
     std::basic_string<CHAR> text_buffer;
     text_buffer.reserve(chunk);
 
-    auto suc = ReadConsoleInput(input_handle, input_records.data(), chunk, &num_records_read);
-
-    for (auto i = 0u; i < num_records_read; ++i)
+    if (!ReadConsoleInput(input_handle, input_records.data(), chunk, &num_records_read))
     {
-        switch (input_records[i].EventType)
-        {
-        case KEY_EVENT:
-        {
-            const auto& key_event = input_records[i].Event.KeyEvent;
-            if (auto chr = key_event.uChar.AsciiChar; key_event.bKeyDown && chr) // some keys yield null char (e.g. alt)
-                text_buffer.append(key_event.wRepeatCount, chr);
-        }
-        break;
-        case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see microsoft/terminal#281)
-            update_ssh_pty_size();     // We obtain it ourselves to update here
-            break;
-        default:
-            break; // ignore
-        }
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Could not read console input; error code: {}", GetLastError()));
     }
+    else
+    {
 
-    std::lock_guard<std::mutex> lock(ssh_mutex);
-    ssh_channel_write(channel, text_buffer.data(),
-                      static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
+        for (auto i = 0u; i < num_records_read; ++i)
+        {
+            switch (input_records[i].EventType)
+            {
+            case KEY_EVENT:
+            {
+                const auto& key_event = input_records[i].Event.KeyEvent;
+                if (auto chr = key_event.uChar.AsciiChar;
+                    key_event.bKeyDown && chr) // some keys yield null char (e.g. alt)
+                    text_buffer.append(key_event.wRepeatCount, chr);
+            }
+            break;
+            case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see microsoft/terminal#281)
+                update_ssh_pty_size();     // We obtain it ourselves to update here
+                break;
+            default:
+                break; // ignore
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(ssh_mutex);
+        ssh_channel_write(channel, text_buffer.data(),
+                          static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
+    }
 }
 
 void mp::WindowsConsole::write_console()
