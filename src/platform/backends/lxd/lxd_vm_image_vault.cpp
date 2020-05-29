@@ -73,6 +73,44 @@ mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, cons
 mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                              const PrepareAction& prepare, const ProgressMonitor& monitor)
 {
+    // Look for an already existing instance and get its image info
+    try
+    {
+        auto instance_info = lxd_request(
+            manager.get(), "GET",
+            QUrl(QString("%1/virtual_machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
+
+        auto id = instance_info["metadata"].toObject()["config"].toObject()["volatile.base_image"].toString();
+
+        for (const auto& image_host : image_hosts)
+        {
+            try
+            {
+                auto info = image_host->info_for_full_hash(id.toStdString());
+
+                VMImage source_image;
+
+                source_image.id = id.toStdString();
+                source_image.stream_location = info.stream_location.toStdString();
+                source_image.original_release = info.release_title.toStdString();
+                source_image.release_date = info.version.toStdString();
+
+                for (const auto& alias : info.aliases)
+                {
+                    source_image.aliases.push_back(alias.toStdString());
+                }
+            }
+            catch (const std::exception&)
+            {
+                // Nothing to do, just move on
+            }
+        }
+    }
+    catch (const std::exception&)
+    {
+        // Instance doesn't exist so move on
+    }
+
     // TODO: Remove once we do support these types of images
     if (query.query_type != Query::Type::Alias && !mp::platform::is_image_url_supported())
         throw std::runtime_error(fmt::format("http and file based images are not supported"));
