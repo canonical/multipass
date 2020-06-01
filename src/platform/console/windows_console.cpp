@@ -19,78 +19,33 @@
 #include "windows_terminal.h"
 
 #include <multipass/cli/client_platform.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 
 #include <winsock2.h>
 
 #include <array>
-#include <mutex>
+#include <string>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mcp = multipass::cli::platform;
 
 namespace
 {
-// Needed so the WinEventProc callback can use it
-ssh_channel global_channel;
-HANDLE global_output_handle;
-mp::Console::ConsoleGeometry last_geometry{0, 0};
-std::mutex ssh_mutex;
-
-void change_ssh_pty_size(const HANDLE output_handle)
-{
-    CONSOLE_SCREEN_BUFFER_INFO sb_info;
-    GetConsoleScreenBufferInfo(output_handle, &sb_info);
-    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
-    auto rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
-
-    if (last_geometry.columns != columns || last_geometry.rows != rows)
-    {
-        last_geometry.columns = columns;
-        last_geometry.rows = rows;
-        std::lock_guard<std::mutex> lock(ssh_mutex);
-        ssh_channel_change_pty_size(global_channel, columns, rows);
-    }
+constexpr auto category = "windows console";
+constexpr auto chunk = 4096u;
 }
 
-void CALLBACK handle_console_resize(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idObject, LONG idChild,
-                                    DWORD dwEventThread, DWORD dwmsEventTime)
-{
-    if (hwnd == GetConsoleWindow())
-    {
-        change_ssh_pty_size(global_output_handle);
-    }
-}
-
-void monitor_console_resize(HWINEVENTHOOK& hook)
-{
-    MSG msg;
-    BOOL ret;
-
-    hook = SetWinEventHook(EVENT_CONSOLE_LAYOUT, EVENT_CONSOLE_LAYOUT, nullptr, &handle_console_resize, 0, 0,
-                           WINEVENT_OUTOFCONTEXT);
-
-    while ((ret = GetMessage(&msg, nullptr, 0, 0)) != 0)
-    {
-        if (ret == -1)
-            break;
-
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-}
-} // namespace
-
-mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal *term)
+mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
     : interactive{term->cout_is_live()},
       input_handle{term->cin_handle()},
       output_handle{term->cout_handle()},
       error_handle{term->cerr_handle()},
       channel{channel},
       session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
-      console_event_thread{[this] { monitor_console_resize(hook); }}
+      last_geometry{0, 0}
 {
-    global_channel = channel;
-    global_output_handle = output_handle;
     setup_console();
 }
 
@@ -106,26 +61,55 @@ void mp::WindowsConsole::setup_console()
         SetConsoleMode(output_handle, console_output_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
         ssh_channel_request_pty(channel);
-        change_ssh_pty_size(output_handle);
+        update_ssh_pty_size();
     }
 }
 
 void mp::WindowsConsole::read_console()
 {
-    std::array<char, 4096> buffer;
-    int bytes_read{0};
+    std::array<INPUT_RECORD, chunk> input_records;
+    DWORD num_records_read = 0;
+    std::basic_string<CHAR> text_buffer;
+    text_buffer.reserve(chunk);
 
-    FlushConsoleInputBuffer(input_handle);
-    ReadConsole(input_handle, buffer.data(), buffer.size(), &(DWORD)bytes_read, NULL);
+    if (!ReadConsoleInput(input_handle, input_records.data(), chunk, &num_records_read))
+    {
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Could not read console input; error code: {}", GetLastError()));
+    }
+    else
+    {
 
-    std::lock_guard<std::mutex> lock(ssh_mutex);
-    ssh_channel_write(channel, buffer.data(), bytes_read);
+        for (auto i = 0u; i < num_records_read; ++i)
+        {
+            switch (input_records[i].EventType)
+            {
+            case KEY_EVENT:
+            {
+                const auto& key_event = input_records[i].Event.KeyEvent;
+                if (auto chr = key_event.uChar.AsciiChar;
+                    key_event.bKeyDown && chr) // some keys yield null char (e.g. alt)
+                    text_buffer.append(key_event.wRepeatCount, chr);
+            }
+            break;
+            case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see microsoft/terminal#281)
+                update_ssh_pty_size();     // We obtain it ourselves to update here
+                break;
+            default:
+                break; // ignore
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(ssh_mutex);
+        ssh_channel_write(channel, text_buffer.data(),
+                          static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
+    }
 }
 
 void mp::WindowsConsole::write_console()
 {
     DWORD write;
-    std::array<char, 4096> buffer;
+    std::array<char, chunk> buffer;
     int num_bytes{0};
     fd_set read_set;
     HANDLE current_handle{output_handle};
@@ -138,12 +122,12 @@ void mp::WindowsConsole::write_console()
 
     {
         std::lock_guard<std::mutex> lock(ssh_mutex);
-        num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 0);
+        num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 0);
 
         // Try reading from stderr if nothing is returned from stdout
         if (num_bytes == 0)
         {
-            num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), buffer.size(), 1);
+            num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 1);
             current_handle = error_handle;
         }
     }
@@ -170,12 +154,6 @@ void mp::WindowsConsole::write_console()
 
 void mp::WindowsConsole::exit_console()
 {
-    PostThreadMessage(GetThreadId(console_event_thread.native_handle()), WM_QUIT, 0, 0);
-    UnhookWinEvent(hook);
-
-    if (console_event_thread.joinable())
-        console_event_thread.join();
-
     restore_console();
     FreeConsole();
 }
@@ -186,5 +164,21 @@ void mp::WindowsConsole::restore_console()
     {
         SetConsoleMode(input_handle, console_input_mode);
         SetConsoleMode(output_handle, console_output_mode);
+    }
+}
+
+void mp::WindowsConsole::update_ssh_pty_size()
+{
+    CONSOLE_SCREEN_BUFFER_INFO sb_info;
+    GetConsoleScreenBufferInfo(output_handle, &sb_info);
+    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
+    auto rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
+
+    if (last_geometry.columns != columns || last_geometry.rows != rows)
+    {
+        last_geometry.columns = columns;
+        last_geometry.rows = rows;
+        std::lock_guard<std::mutex> lock(ssh_mutex);
+        ssh_channel_change_pty_size(channel, columns, rows);
     }
 }
