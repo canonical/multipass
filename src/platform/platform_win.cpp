@@ -31,6 +31,7 @@
 #include "platform_proprietary.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/win/process_factory.h"
+#include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
 
 #include <QCoreApplication>
@@ -357,6 +358,13 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
+}
+
+std::unique_ptr<mp::VMImageVault> mp::platform::make_image_vault(std::vector<mp::VMImageHost*> image_host,
+                                                                 mp::URLDownloader* downloader, mp::Path cache_dir_path,
+                                                                 mp::Path data_dir_path, mp::days days_to_expire)
+{
+    return std::make_unique<DefaultVMImageVault>(image_host, downloader, cache_dir_path, data_dir_path, days_to_expire);
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)

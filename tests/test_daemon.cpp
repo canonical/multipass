@@ -252,6 +252,8 @@ struct Daemon : public Test
         auto mock_factory = std::make_unique<NiceMock<mpt::MockVirtualMachineFactory>>();
         auto mock_factory_ptr = mock_factory.get();
 
+        ON_CALL(*mock_factory_ptr, fetch_type()).WillByDefault(Return(mp::FetchType::ImageOnly));
+
         ON_CALL(*mock_factory_ptr, create_virtual_machine(_, _))
             .WillByDefault(Return(ByMove(std::make_unique<mpt::StubVirtualMachine>())));
 

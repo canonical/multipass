@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,11 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "file_operations.h"
+#include "mock_settings.h"
+
+#include <multipass/constants.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <gmock/gmock.h>
@@ -30,10 +31,10 @@ using namespace testing;
 TEST(SimpleStreamsManifest, can_parse_image_info)
 {
     auto json = mpt::load_test_file("good_manifest.json");
-    auto manifest = mp::SimpleStreamsManifest::fromJson(json);
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
 
-    EXPECT_THAT(manifest->updated_at, Eq("Thu, 18 May 2017 09:18:01 +0000"));
-    EXPECT_THAT(manifest->products.size(), Eq(1u));
+    EXPECT_THAT(manifest->updated_at, Eq("Wed, 20 May 2020 16:47:50 +0000"));
+    EXPECT_THAT(manifest->products.size(), Eq(2u));
 
     const auto info = manifest->image_records["default"];
     ASSERT_THAT(info, NotNull());
@@ -43,7 +44,8 @@ TEST(SimpleStreamsManifest, can_parse_image_info)
 TEST(SimpleStreamsManifest, can_find_info_by_alias)
 {
     auto json = mpt::load_test_file("good_manifest.json");
-    auto manifest = mp::SimpleStreamsManifest::fromJson(json);
+    const auto host_url{"http://stream/url"};
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, host_url);
 
     const QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
     const QString expected_location{
@@ -53,39 +55,40 @@ TEST(SimpleStreamsManifest, can_find_info_by_alias)
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
+    EXPECT_THAT(info->stream_location, Eq(host_url));
 }
 
 TEST(SimpleStreamsManifest, throws_on_invalid_json)
 {
     QByteArray json;
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
 }
 
 TEST(SimpleStreamsManifest, throws_on_invalid_top_level_type)
 {
     auto json = mpt::load_test_file("invalid_top_level.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
 }
 
 TEST(SimpleStreamsManifest, throws_when_missing_products)
 {
     auto json = mpt::load_test_file("missing_products_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
 }
 
 TEST(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
 {
     auto json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
 
     json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
 }
 
 TEST(SimpleStreamsManifest, chooses_newest_version)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
-    auto manifest = mp::SimpleStreamsManifest::fromJson(json);
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
 
     const QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
     const QString expected_location{"newest_image.img"};
@@ -99,7 +102,7 @@ TEST(SimpleStreamsManifest, chooses_newest_version)
 TEST(SimpleStreamsManifest, can_query_all_versions)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
-    auto manifest = mp::SimpleStreamsManifest::fromJson(json);
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
 
     QStringList all_known_hashes;
     all_known_hashes << "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"
@@ -117,11 +120,28 @@ TEST(SimpleStreamsManifest, can_query_all_versions)
 TEST(SimpleStreamsManifest, info_has_kernel_and_initrd_paths)
 {
     auto json = mpt::load_test_file("good_manifest.json");
-    auto manifest = mp::SimpleStreamsManifest::fromJson(json);
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
 
     const auto info = manifest->image_records["default"];
     ASSERT_THAT(info, NotNull());
 
     EXPECT_FALSE(info->kernel_location.isEmpty());
     EXPECT_FALSE(info->initrd_location.isEmpty());
+}
+
+TEST(SimpleStreamsManifest, lxd_driver_returns_expected_data)
+{
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
+
+    auto json = mpt::load_test_file("good_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
+
+    EXPECT_EQ(manifest->products.size(), 1u);
+
+    const auto info = manifest->products.front();
+
+    const QString expected_id{"09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
+    EXPECT_EQ(info.id, expected_id);
 }
