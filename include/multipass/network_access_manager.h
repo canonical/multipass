@@ -23,7 +23,7 @@
 
 namespace multipass
 {
-class NetworkAccessManager final : public QNetworkAccessManager
+class NetworkAccessManager : public QNetworkAccessManager
 {
     Q_OBJECT
 public:

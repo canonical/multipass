@@ -17,6 +17,7 @@
 
 #include "local_socket_reply.h"
 
+#include <multipass/format.h>
 #include <multipass/network_access_manager.h>
 
 namespace mp = multipass;
@@ -44,6 +45,14 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
         }
 
         const auto socket_path = QUrl(url_parts[0]).path();
+        LocalSocketUPtr local_socket = std::make_unique<QLocalSocket>();
+
+        local_socket->connectToServer(socket_path);
+        if (!local_socket->waitForConnected(5000))
+        {
+            throw std::runtime_error(fmt::format("Cannot connect to {}: {}", socket_path, local_socket->error()));
+        }
+
         const auto server_path = url_parts[1];
         QNetworkRequest request{orig_request};
 
@@ -51,7 +60,7 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
         request.setUrl(url);
 
         // The caller needs to be responsible for freeing the allocated memory
-        return new LocalSocketReply(socket_path, request, device);
+        return new LocalSocketReply(std::move(local_socket), request, device);
     }
     else
     {

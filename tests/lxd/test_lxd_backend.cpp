@@ -15,9 +15,12 @@
  *
  */
 
+#include <src/platform/backends/lxd/lxd_virtual_machine.h>
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 
 #include "mock_lxd_server_responses.h"
+#include "mock_local_socket_reply.h"
+#include "mock_network_access_manager.h"
 #include "tests/linux/local_socket_server_test_fixture.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_status_monitor.h"
@@ -35,6 +38,7 @@
 
 #include <gmock/gmock.h>
 
+#include <multipass/format.h>
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -50,6 +54,7 @@ struct LXDBackend : public Test
     LXDBackend()
         : socket_path{QString("%1/test_socket").arg(data_dir.path())},
           test_server{mpt::MockLocalSocketServer(socket_path)},
+          mock_network_access_manager{std::make_unique<NiceMock<mpt::MockNetworkAccessManager>>()},
           base_url{QString("unix://%1@1.0").arg(socket_path)}
     {
         mpl::set_logger(logger);
@@ -71,6 +76,7 @@ struct LXDBackend : public Test
     mpt::TempDir data_dir;
     QString socket_path;
     mpt::MockLocalSocketServer test_server;
+    std::unique_ptr<NiceMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url;
 };
 
@@ -94,37 +100,37 @@ TEST_F(LXDBackend, creates_project_and_network_on_first_run)
     bool profile_updated{false};
     bool network_created{false};
 
-    auto server_handler = [&project_created, &profile_updated, &network_created](auto data) -> QByteArray {
-        if (data.contains("GET") && data.contains("1.0/projects/multipass"))
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([&project_created, &profile_updated, &network_created](auto,
+                                                       auto request, auto){
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && (url.contains("1.0/projects/multipass") || url.contains("1.0/networks/mpbr0")))
         {
-            return mpt::not_found_response;
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         }
-        else if (data.contains("POST") && data.contains("1.0/projects"))
+        else if (op == "POST" || op == "PUT")
         {
-            project_created = true;
-            return mpt::post_no_error_response;
-        }
-        else if (data.contains("PUT") && data.contains("1.0/profiles/default?project=multipass"))
-        {
-            profile_updated = true;
-            return mpt::post_no_error_response;
-        }
-        else if (data.contains("GET") && data.contains("1.0/networks/mpbr0"))
-        {
-            return mpt::not_found_response;
-        }
-        else if (data.contains("POST") && data.contains("1.0/networks"))
-        {
-            network_created = true;
-            return mpt::post_no_error_response;
+            if (url.contains("1.0/projects"))
+            {
+                project_created = true;
+            }
+            else if (url.contains("1.0/profiles/default?project=multipass"))
+            {
+                profile_updated = true;
+            }
+            else if (url.contains("1.0/networks"))
+            {
+                network_created = true;
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
         }
 
-        return mpt::not_found_response;
-    };
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
 
-    test_server.local_socket_server_handler(server_handler);
-
-    mp::LXDVirtualMachineFactory backend{data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
     EXPECT_TRUE(project_created);
     EXPECT_TRUE(profile_updated);
