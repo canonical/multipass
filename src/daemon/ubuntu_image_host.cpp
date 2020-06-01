@@ -43,7 +43,7 @@ auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloade
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
     auto json_manifest = url_downloader->download({host_url + index.manifest_path});
-    return mp::SimpleStreamsManifest::fromJson(json_manifest);
+    return mp::SimpleStreamsManifest::fromJson(json_manifest, host_url);
 }
 
 mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
@@ -57,6 +57,7 @@ mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::
             host_url + info.kernel_location,
             host_url + info.initrd_location,
             info.id,
+            info.stream_location,
             info.version,
             info.size,
             info.verify};

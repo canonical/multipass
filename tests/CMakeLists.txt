@@ -162,5 +162,6 @@ else()
   )
   add_subdirectory(linux)
   add_subdirectory(qemu)
+  add_subdirectory(lxd)
   include(libvirt/CMakeLists.txt) # with add_subdirectory it's not possible to target_link_libraries
 endif()

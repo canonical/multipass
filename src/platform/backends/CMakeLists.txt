@@ -18,6 +18,7 @@ elseif(APPLE)
   add_subdirectory(hyperkit)
 else()
   add_subdirectory(libvirt)
+  add_subdirectory(lxd)
   add_subdirectory(qemu)
 endif()
 

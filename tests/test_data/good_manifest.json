@@ -5,7 +5,7 @@
   "license": "http://www.canonical.com/intellectual-property-policy",
   "products": {
     "com.ubuntu.cloud:server:16.04:amd64": {
-      "aliases": "16.04,default,lts,x,xenial",
+      "aliases": "16.04,x,xenial",
       "arch": "amd64",
       "os": "ubuntu",
       "release": "xenial",
@@ -39,7 +39,42 @@
           "pubname": "ubuntu-xenial-16.04-amd64-server-20170516"
         }
       }
+    },
+    "com.ubuntu.cloud:server:18.04:amd64": {
+      "aliases": "18.04,b,bionic,default,lts,ubuntu",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "bionic",
+      "release_codename": "Bionic Beaver",
+      "release_title": "18.04 LTS",
+      "support_eol": "2023-04-26",
+      "supported": true,
+      "version": "18.04",
+      "versions": {
+        "20200518.1": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "cc764afedfa309bcd15ebf0f86749b31",
+              "path": "server/releases/bionic/release-20200518.1/ubuntu-18.04-server-cloudimg-amd64.img",
+              "sha256": "19f9b706755717ee7b38a4a79d8e7599e3fd96d57fb824b8e68ac92255a8323d",
+              "size": 345505792
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674",
+              "combined_rootxz_sha256": "09d7c9a6153e46276fc496faff0e93311b6701922a4f27d330e519beab2da031",
+              "combined_sha256": "09d7c9a6153e46276fc496faff0e93311b6701922a4f27d330e519beab2da031",
+              "combined_squashfs_sha256": "5539cdd71a7b2f56a75d9bb8f45c70b6c1618217ae4df5977215c5636bf8adce",
+              "ftype": "lxd.tar.xz",
+              "md5": "d98d442674e0fa820a6473f2399bfc5b",
+              "path": "server/releases/bionic/release-20200518.1/ubuntu-18.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "6b789f782681f19d823c41394b1a91a97782c90ce50d593544c7a055a713d7e2",
+              "size": 784
+            }
+          }
+        }
+      }
     }
   },
-  "updated": "Thu, 18 May 2017 09:18:01 +0000"
+  "updated": "Wed, 20 May 2020 16:47:50 +0000"
 }

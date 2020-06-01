@@ -60,8 +60,11 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       "pied-piper-valley",
                                                       "",
                                                       "",
-                                                      {dummy_image.name(), "", "", "", "", "", "", {}},
-                                                      dummy_cloud_init_iso.name()};
+                                                      {dummy_image.name(), "", "", "", "", "", "", {}, {}},
+                                                      dummy_cloud_init_iso.name(),
+                                                      {},
+                                                      {},
+                                                      {}};
     mpt::TempDir data_dir;
 
     mpt::MockProcessFactory::Callback handle_external_process_calls = [](mpt::MockProcess* process) {
