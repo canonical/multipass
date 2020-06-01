@@ -22,6 +22,7 @@
 
 #include <libssh/libssh.h>
 
+#include <mutex>
 #include <thread>
 
 #include <windows.h>
@@ -42,6 +43,7 @@ public:
 private:
     void setup_console();
     void restore_console();
+    void update_ssh_pty_size();
 
     bool interactive{false};
     HANDLE input_handle;
@@ -51,8 +53,8 @@ private:
     DWORD console_output_mode;
     ssh_channel channel;
     socket_t session_socket_fd;
-    HWINEVENTHOOK hook;
-    std::thread console_event_thread;
+    ConsoleGeometry last_geometry;
+    mutable std::mutex ssh_mutex;
 };
 } // namespace multipass
 #endif // MULTIPASS_WINDOWS_CONSOLE_H
