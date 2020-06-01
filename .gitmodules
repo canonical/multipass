@@ -30,4 +30,4 @@
 	url = https://github.com/Skycoder42/QHotkey.git
 [submodule "3rd-party/jsoncpp"]
 	path = 3rd-party/jsoncpp
-	url = git@github.com:open-source-parsers/jsoncpp.git
+	url = https://github.com/open-source-parsers/jsoncpp.git
