@@ -34,6 +34,7 @@ namespace mcp = multipass::cli::platform;
 namespace
 {
 constexpr auto category = "windows console";
+constexpr auto chunk = 4096u;
 }
 
 mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
@@ -66,7 +67,6 @@ void mp::WindowsConsole::setup_console()
 
 void mp::WindowsConsole::read_console()
 {
-    static constexpr auto chunk = 4096u;
     std::array<INPUT_RECORD, chunk> input_records;
     DWORD num_records_read = 0;
     std::basic_string<CHAR> text_buffer;
@@ -108,7 +108,6 @@ void mp::WindowsConsole::read_console()
 
 void mp::WindowsConsole::write_console()
 {
-    static constexpr auto chunk = 4096u;
     DWORD write;
     std::array<char, chunk> buffer;
     int num_bytes{0};
