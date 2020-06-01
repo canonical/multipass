@@ -37,13 +37,13 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
     // unix:////var/snap/lxd/common/lxd/unix.socket@1.0
     if (scheme == "unix" || scheme == "local")
     {
-        const auto url_parts = orig_request.url().path().split('@');
+        const auto url_parts = orig_request.url().toString().split('@');
         if (url_parts.count() != 2)
         {
             throw std::runtime_error("The local socket scheme is malformed.");
         }
 
-        const auto socket_path = url_parts[0];
+        const auto socket_path = QUrl(url_parts[0]).path();
         const auto server_path = url_parts[1];
         QNetworkRequest request{orig_request};
 

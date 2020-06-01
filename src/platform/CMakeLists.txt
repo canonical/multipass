@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -19,12 +19,15 @@ add_library(platform STATIC
 target_link_libraries(platform
   qemu_backend
   libvirt_backend
+  lxd_backend
   journaldlogger)
 
 include_directories(platform
-  backends)
+  backends
+  ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(platform
+  daemon
   shared
   update
   utils)

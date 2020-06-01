@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 Canonical Ltd.
+# Copyright © 2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,13 +11,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-add_library(metrics STATIC
-  metrics_provider.cpp)
-
-target_link_libraries(metrics
-  fmt
-  ssh_common
-  utils
-  Qt5::Core
-  Qt5::Network)
+target_sources(multipass_tests
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/test_lxd_backend.cpp)

@@ -14,4 +14,5 @@
 
 add_subdirectory(shared)
 add_subdirectory(libvirt)
+add_subdirectory(lxd)
 add_subdirectory(qemu)
