@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSysInfo>
+
+#include <multipass/utils.h>
 
 namespace mp = multipass;
 
@@ -71,7 +73,8 @@ QString derive_unpacked_file_path_prefix_from(const QString& image_location)
 }
 }
 
-std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(const QByteArray& json)
+std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(const QByteArray& json,
+                                                                               const QString& host_url)
 {
     const auto manifest = parse_manifest(json);
     const auto updated = manifest["updated"].toString();
@@ -113,21 +116,41 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             if (items.isEmpty())
                 continue;
 
-            const auto image = items["disk1.img"].toObject();
-            const auto image_location = image["path"].toString();
-            const auto sha256 = image["sha256"].toString();
-            const auto size = image["size"].toInt(-1);
+            const auto& driver = utils::get_driver_str();
 
-            // NOTE: These are not defined in the manifest itself
-            // so they are not guaranteed to be correct or exist in the server
-            const auto prefix = derive_unpacked_file_path_prefix_from(image_location);
-            const auto kernel_location = prefix + "-vmlinuz-generic";
-            const auto initrd_location = prefix + "-initrd-generic";
+            QJsonObject image;
+            QString sha256, image_location, kernel_location, initrd_location;
+            int size = -1;
+
+            // TODO: make this a VM factory call with a preference list
+            if (driver == "lxd")
+            {
+                image = items["lxd.tar.xz"].toObject();
+                sha256 = image["combined_disk1-img_sha256"].toString();
+
+                if (sha256.isEmpty())
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                image = items["disk1.img"].toObject();
+                image_location = image["path"].toString();
+                sha256 = image["sha256"].toString();
+                size = image["size"].toInt(-1);
+
+                // NOTE: These are not defined in the manifest itself
+                // so they are not guaranteed to be correct or exist in the server
+                const auto prefix = derive_unpacked_file_path_prefix_from(image_location);
+                kernel_location = prefix + "-vmlinuz-generic";
+                initrd_location = prefix + "-initrd-generic";
+            }
 
             // Aliases always alias to the latest version
             const QStringList& aliases = version_string == latest_version ? product_aliases : QStringList();
             products.push_back({aliases, "Ubuntu", release, release_title, supported, image_location, kernel_location,
-                                initrd_location, sha256, version_string, size, true});
+                                initrd_location, sha256, host_url, version_string, size, true});
         }
     }
 

@@ -27,10 +27,13 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
+#include "backends/lxd/lxd_virtual_machine_factory.h"
+#include "backends/lxd/lxd_vm_image_vault.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
+#include <daemon/default_vm_image_vault.h>
 #include <disabled_update_prompt.h>
 
 #include <signal.h>
@@ -107,7 +110,7 @@ QString mp::platform::daemon_config_home() // temporary
 
 bool mp::platform::is_backend_supported(const QString& backend)
 {
-    return backend == "qemu" || backend == "libvirt";
+    return backend == "qemu" || backend == "libvirt" || backend == "lxd";
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
@@ -117,8 +120,22 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
     else if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
+    else if (driver == QStringLiteral("lxd"))
+        return std::make_unique<LXDVirtualMachineFactory>(data_dir);
     else
         throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+}
+
+std::unique_ptr<mp::VMImageVault> mp::platform::make_image_vault(std::vector<mp::VMImageHost*> image_hosts,
+                                                                 mp::URLDownloader* downloader, mp::Path cache_dir_path,
+                                                                 mp::Path data_dir_path, mp::days days_to_expire)
+{
+    const auto& driver = utils::get_driver_str();
+    if (driver == QStringLiteral("lxd"))
+        return std::make_unique<LXDVMImageVault>(image_hosts);
+    else
+        return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
+                                                     days_to_expire);
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
@@ -148,10 +165,18 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
 
 bool mp::platform::is_remote_supported(const std::string& remote)
 {
+    const auto& driver = utils::get_driver_str();
+    // TODO: Remove this constraint once we support other image remotes for the LXD backend
+    if (driver == QStringLiteral("lxd") && (remote != "release" && remote != "daily"))
+        return false;
+
     return true;
 }
 
 bool mp::platform::is_image_url_supported()
 {
+    const auto& driver = utils::get_driver_str();
+    if (driver == "lxd")
+        return false;
     return true;
 }

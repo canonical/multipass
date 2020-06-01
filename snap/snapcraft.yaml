@@ -53,6 +53,7 @@ apps:
       - multipass-support
       - network-bind
       - network-control
+      - lxd
   multipass:
     environment:
       <<: &client-environment

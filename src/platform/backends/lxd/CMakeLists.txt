@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 Canonical Ltd.
+# Copyright © 2019-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,13 +11,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-add_library(metrics STATIC
-  metrics_provider.cpp)
+add_library(lxd_backend STATIC
+  lxd_request.cpp
+  lxd_virtual_machine.cpp
+  lxd_virtual_machine_factory.cpp
+  lxd_vm_image_vault.cpp)
 
-target_link_libraries(metrics
-  fmt
-  ssh_common
-  utils
+target_link_libraries(lxd_backend
   Qt5::Core
-  Qt5::Network)
+  Qt5::Network
+  fmt
+  ip_address
+  logger
+  network
+  rpc
+  ssh
+  utils
+  yaml)
