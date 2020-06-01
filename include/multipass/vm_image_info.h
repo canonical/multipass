@@ -35,6 +35,7 @@ public:
     QString kernel_location;
     QString initrd_location;
     QString id;
+    QString stream_location;
     QString version;
     int64_t size;
     bool verify;

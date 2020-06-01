@@ -43,7 +43,7 @@ struct IPAddress
     bool operator>=(const IPAddress& other) const;
     IPAddress operator+(int value) const;
 
-    const std::array<uint8_t, 4> octets;
+    std::array<uint8_t, 4> octets;
 };
 }
 

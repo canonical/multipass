@@ -26,21 +26,8 @@
 #include <locale>
 
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 
-namespace
-{
-std::string emit_node(YAML::Node& node)
-{
-    YAML::Emitter emitter;
-    emitter.SetIndent(2);
-    emitter << node;
-    if (!emitter.good())
-        throw std::runtime_error{"Failed to emit list info"};
-
-    emitter << YAML::Newline;
-    return emitter.c_str();
-}
-}
 std::string mp::YamlFormatter::format(const InfoReply& reply) const
 {
     YAML::Node info_node;
@@ -121,7 +108,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
         info_node[info.name()].push_back(instance_node);
     }
-    return emit_node(info_node);
+    return mpu::emit_yaml(info_node);
 }
 
 std::string mp::YamlFormatter::format(const ListReply& reply) const
@@ -139,7 +126,7 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
         list[instance.name()].push_back(instance_node);
     }
 
-    return emit_node(list);
+    return mpu::emit_yaml(list);
 }
 
 std::string mp::YamlFormatter::format(const FindReply& reply) const
@@ -170,5 +157,5 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
         find["images"][mp::format::image_string_for(aliases[0])] = image_node;
     }
 
-    return emit_node(find);
+    return mpu::emit_yaml(find);
 }

@@ -61,6 +61,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -133,18 +134,6 @@ auto make_cloud_init_meta_config(const std::string& name)
     return meta_data;
 }
 
-auto emit_yaml(YAML::Node& node, const std::string& node_name)
-{
-    YAML::Emitter emitter;
-    emitter.SetIndent(4);
-    emitter << node;
-    if (!emitter.good())
-        throw std::runtime_error{
-            fmt::format("Failed to emit {} cloud-init config: {}", node_name, emitter.GetLastError())};
-
-    return fmt::format("#cloud-config\n{}\n", emitter.c_str());
-}
-
 auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
                            YAML::Node& user_data_config, YAML::Node& vendor_data_config)
 {
@@ -153,9 +142,9 @@ auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YA
         return cloud_init_iso;
 
     mp::CloudInitIso iso;
-    iso.add_file("meta-data", emit_yaml(meta_data_config, "meta data"));
-    iso.add_file("vendor-data", emit_yaml(vendor_data_config, "vendor data"));
-    iso.add_file("user-data", emit_yaml(user_data_config, "user data"));
+    iso.add_file("meta-data", mpu::emit_cloud_config(meta_data_config));
+    iso.add_file("vendor-data", mpu::emit_cloud_config(vendor_data_config));
+    iso.add_file("user-data", mpu::emit_cloud_config(user_data_config));
     iso.write_to(cloud_init_iso);
 
     return cloud_init_iso;
@@ -184,7 +173,8 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores, mem_size, disk_space, name, mac_addr, ssh_username, image, cloud_init_iso};
+    return {num_cores,        mem_size,         disk_space,        name, mac_addr, ssh_username, image, cloud_init_iso,
+            meta_data_config, user_data_config, vendor_data_config};
 }
 
 template <typename T>
@@ -291,8 +281,7 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
     auto stub_progress = [](int download_type, int progress) { return true; };
 
-    mp::Query query;
-    query.name = name;
+    mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
@@ -644,8 +633,17 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-        mp::VirtualMachineDescription vm_desc{spec.num_cores, spec.mem_size,     spec.disk_space, name,
-                                              mac_addr,       spec.ssh_username, vm_image,        cloud_init_iso};
+        mp::VirtualMachineDescription vm_desc{spec.num_cores,
+                                              spec.mem_size,
+                                              spec.disk_space,
+                                              name,
+                                              mac_addr,
+                                              spec.ssh_username,
+                                              vm_image,
+                                              cloud_init_iso,
+                                              {},
+                                              {},
+                                              {}};
 
         try
         {

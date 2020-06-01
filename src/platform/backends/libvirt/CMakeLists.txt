@@ -30,6 +30,7 @@ function(add_libvirt_target TARGET_NAME)
     shared_linux
     ssh
     utils
+    yaml
     ${CMAKE_DL_LIBS})
 endfunction()
 

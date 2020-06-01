@@ -39,14 +39,17 @@ else()
   target_link_libraries(platform
     qemu_backend
     libvirt_backend
+    lxd_backend
     virtualbox_backend
     journaldlogger)
 endif()
 
 include_directories(platform
-  backends)
+  backends
+  ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(platform
+  daemon
   shared
   update
   utils)
