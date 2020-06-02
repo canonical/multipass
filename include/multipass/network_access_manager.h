@@ -21,12 +21,17 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 
+#include <memory>
+
 namespace multipass
 {
+
 class NetworkAccessManager : public QNetworkAccessManager
 {
     Q_OBJECT
 public:
+    using UPtr = std::unique_ptr<NetworkAccessManager>;
+
     NetworkAccessManager(QObject* parent = nullptr);
 
 protected:
