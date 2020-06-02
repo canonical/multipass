@@ -50,7 +50,7 @@ namespace mpp = multipass::platform;
 
 namespace
 {
-const std::vector<std::string> supported_socket_groups{"sudo", "adm", "admin", "wheel"};
+const std::vector<std::string> supported_socket_groups{"sudo", "wheel", "adm", "admin"};
 
 void set_server_permissions(const std::string& server_address)
 {
