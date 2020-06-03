@@ -36,6 +36,9 @@
 #include <daemon/default_vm_image_vault.h>
 #include <disabled_update_prompt.h>
 
+#include <QString>
+#include <QStringList>
+
 #include <signal.h>
 #include <sys/prctl.h>
 
@@ -141,6 +144,11 @@ std::unique_ptr<mp::VMImageVault> mp::platform::make_image_vault(std::vector<mp:
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
 {
     return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
+}
+
+std::unique_ptr<mp::Process> mp::platform::make_process(const QString& command, const QStringList& arguments)
+{
+    return mp::ProcessFactory::instance().create_process(command, arguments);
 }
 
 mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()

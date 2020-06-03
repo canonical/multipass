@@ -21,12 +21,15 @@
 #include <grpcpp/grpcpp.h>
 
 #include <multipass/cert_provider.h>
+#include <multipass/cli/argparser.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 #include <multipass/ssl_cert_provider.h>
 
+#include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 
 namespace multipass
@@ -53,7 +56,7 @@ std::unique_ptr<SSLCertProvider> get_cert_provider();
 void set_logger();
 void set_logger(multipass::logging::Level verbosity); // full param qualification makes sure msvc is happy
 void pre_setup();
-void post_setup();
+void post_setup(Rpc::Stub& stub, const multipass::ArgParser* parser, std::ostream& cout, std::ostream& cerr);
 }
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_COMMON_H
