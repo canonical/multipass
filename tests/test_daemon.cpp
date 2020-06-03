@@ -792,6 +792,12 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     }
 }
 
+// TODO: add test analogous to:
+// BackendUtils/image_resizing_not_attempted_when_qemuimg_info_crashes
+// BackendUtils/image_resizing_not_attempted_when_img_not_found
+// BackendUtils/image_resizing_not_attempted_when_minimum_size_not_understood
+// (these were removed in test_backend_utils.cpp because they are not anymore relevant there).
+
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
                          Combine(Values("test_create", "launch"), Values("--mem", "--disk"),
