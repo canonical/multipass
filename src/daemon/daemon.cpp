@@ -1874,7 +1874,7 @@ mp::MemorySize mp::Daemon::compute_final_image_size(const VMImage& image, mp::op
     }
     else if (*command_line_value < image_size)
     {
-        throw std::runtime_error(fmt::format("requested image size ({} bytes) is smaller than image size ({} bytes)",
+        throw std::runtime_error(fmt::format("Requested disk ({} bytes) below minimum for this image ({} bytes)",
                                              command_line_value->in_bytes(), image_size.in_bytes()));
     }
     else

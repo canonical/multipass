@@ -785,7 +785,7 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
         std::stringstream stream;
         EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
         send_command(all_parameters, trash_stream, stream);
-        EXPECT_THAT(stream.str(), AllOf(HasSubstr("requested image size"), HasSubstr("smaller than image size")));
+        EXPECT_THAT(stream.str(), AllOf(HasSubstr("Requested disk"), HasSubstr("below minimum for this image")));
     }
     else
     {
