@@ -30,7 +30,8 @@ target_link_libraries(platform
   daemon
   shared
   update
-  utils)
+  utils
+  Qt5::Gui)
 
 add_subdirectory(backends)
 add_subdirectory(client)
