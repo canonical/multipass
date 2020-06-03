@@ -44,6 +44,8 @@
 #include <multipass/format.h>
 #include <yaml-cpp/yaml.h>
 
+#include "../platform/backends/shared/qemuimg_process_spec.h"
+
 #include <QDir>
 #include <QEventLoop>
 #include <QFutureSynchronizer>
@@ -310,18 +312,28 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     auto option_errors = mp::LaunchError{};
 
     const auto opt_mem_size = try_mem_size(mem_size_str.empty() ? mp::default_memory_size : mem_size_str);
-    const auto opt_disk_space = try_mem_size(disk_space_str.empty() ? mp::default_disk_size : disk_space_str);
 
-    mp::MemorySize mem_size{}, disk_space{};
+    mp::MemorySize mem_size{};
     if (opt_mem_size && *opt_mem_size >= min_mem)
         mem_size = *opt_mem_size;
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
 
-    if (opt_disk_space && *opt_disk_space >= min_disk)
-        disk_space = *opt_disk_space;
-    else
-        option_errors.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
+    // If the user did not specify a disk size, then mp::nullopt be passed down. Otherwise, the specified size will be
+    // checked.
+    mp::optional<mp::MemorySize> disk_space{}; // mp::nullopt by default.
+    if (!disk_space_str.empty())
+    {
+        auto opt_disk_space = try_mem_size(disk_space_str);
+        if (opt_disk_space && *opt_disk_space >= min_disk)
+        {
+            disk_space = opt_disk_space;
+        }
+        else
+        {
+            option_errors.add_error_codes(mp::LaunchError::INVALID_DISK_SIZE);
+        }
+    }
 
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
@@ -329,7 +341,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     struct CheckedArguments
     {
         mp::MemorySize mem_size;
-        mp::MemorySize disk_space;
+        mp::optional<mp::MemorySize> disk_space;
         std::string instance_name;
         mp::LaunchError option_errors;
     } ret{mem_size, disk_space, instance_name, option_errors};
@@ -1815,6 +1827,64 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
     return {};
 }
 
+mp::MemorySize mp::Daemon::get_image_size(const mp::VMImage& image)
+{
+    QStringList qemuimg_parameters{{"info", image.image_path}};
+    auto qemuimg_process = mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters));
+    auto process_state = qemuimg_process->execute();
+
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(),
+                                             qemuimg_process->read_all_standard_error()));
+    }
+
+    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
+    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)$");
+    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+
+    mp::MemorySize image_size{};
+
+    const auto match = re.match(img_info);
+
+    if (match.hasMatch())
+    {
+        image_size = mp::MemorySize(match.captured("size").toStdString());
+    }
+    else
+    {
+        throw std::runtime_error{"Could not obtain image's virtual size"};
+    }
+
+    return image_size;
+}
+
+// Computes the final size of an image, but also checks if the value given by the user is bigger than or equal than
+// the size of the image.
+mp::MemorySize mp::Daemon::compute_final_image_size(const VMImage& image, mp::optional<MemorySize> command_line_value)
+{
+    mp::MemorySize image_size = get_image_size(image);
+    mp::MemorySize disk_space{};
+
+    if (!command_line_value)
+    {
+        auto default_disk_size_as_struct = mp::MemorySize(mp::default_disk_size);
+        disk_space = image_size < default_disk_size_as_struct ? default_disk_size_as_struct : image_size;
+    }
+    else if (*command_line_value < image_size)
+    {
+        throw std::runtime_error(fmt::format("requested image size ({} bytes) is smaller than image size ({} bytes)",
+                                             command_line_value->in_bytes(), image_size.in_bytes()));
+    }
+    else
+    {
+        disk_space = *command_line_value;
+    }
+
+    return disk_space;
+}
+
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
@@ -1940,6 +2010,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 server->Write(reply);
                 auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
+                mp::MemorySize disk_space = compute_final_image_size(vm_image, checked_args.disk_space);
+
                 reply.set_create_message("Configuring " + name);
                 server->Write(reply);
                 auto vendor_data_cloud_init_config =
@@ -1962,7 +2034,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                         break;
                     }
                 }
-                auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, checked_args.disk_space, mac_addr,
+
+                auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, mac_addr,
                                                config->ssh_username, vm_image, meta_data_cloud_init_config,
                                                user_data_cloud_init_config, vendor_data_cloud_init_config);
 
