@@ -781,9 +781,10 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
 
     if (other_command_line_parameters.size() > 0 && mp::MemorySize(other_command_line_parameters[1]) < img_size)
     {
-        // TODO: why this does not throw???
-        // MP_EXPECT_THROW_THAT(send_command(all_parameters), std::runtime_error,
-        //                      Property(&std::runtime_error::what, HasSubstr("smaller")));
+        std::stringstream stream;
+        EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+        send_command(all_parameters, trash_stream, stream);
+        EXPECT_THAT(stream.str(), AllOf(HasSubstr("requested image size"), HasSubstr("smaller than image size")));
     }
     else
     {
@@ -792,11 +793,72 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     }
 }
 
-// TODO: add test analogous to:
-// BackendUtils/image_resizing_not_attempted_when_qemuimg_info_crashes
-// BackendUtils/image_resizing_not_attempted_when_img_not_found
-// BackendUtils/image_resizing_not_attempted_when_minimum_size_not_understood
-// (these were removed in test_backend_utils.cpp because they are not anymore relevant there).
+TEST_F(Daemon, stop_when_qemuimg_info_crashes)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        const mp::ProcessState qemuimg_exit_status{mp::nullopt,
+                                                   mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
+        const QByteArray qemuimg_output("about to crash");
+        simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output);
+    });
+
+    std::vector<std::string> parameters{{"launch"}};
+    std::stringstream stream;
+    send_command(parameters, trash_stream, stream);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+    send_command(parameters, trash_stream, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("qemu-img failed"), HasSubstr("with output")));
+}
+
+TEST_F(Daemon, stop_when_qemuimg_info_cant_find_the_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        const mp::ProcessState qemuimg_exit_status{1, mp::nullopt};
+        const QByteArray qemuimg_output("Could not find");
+        simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output);
+    });
+
+    std::vector<std::string> parameters{{"launch"}};
+    std::stringstream stream;
+    send_command(parameters, trash_stream, stream);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+    send_command(parameters, trash_stream, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("qemu-img failed"), HasSubstr("Could not find")));
+}
+
+TEST_F(Daemon, stop_when_qemuimg_info_doesnt_understand_the_image_size)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+        const QByteArray qemuimg_output("virtual size: an unintelligible string");
+        simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output);
+    });
+
+    std::vector<std::string> parameters{{"launch"}};
+    std::stringstream stream;
+    send_command(parameters, trash_stream, stream);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+    send_command(parameters, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("Could not obtain image's virtual size"));
+}
 
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
