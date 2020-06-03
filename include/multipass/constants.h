@@ -42,6 +42,7 @@ constexpr auto petenv_key = "client.primary-name";     // This will eventually b
 constexpr auto driver_key = "local.driver";            // idem
 constexpr auto autostart_key = "client.gui.autostart"; // idem
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
+constexpr auto hotkey_key = "client.gui.hotkey";                      // idem
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

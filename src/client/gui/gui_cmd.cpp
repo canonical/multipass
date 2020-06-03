@@ -105,7 +105,7 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
         return ReturnCode::CommandFail;
     }
 
-    auto hotkey = new QHotkey(QKeySequence("ctrl+alt+U"), true, qApp);
+    auto hotkey = new QHotkey(Settings::instance().get_as<QKeySequence>(hotkey_key), true, qApp);
     if (!hotkey->isRegistered())
     {
         cerr << "Failed to register hotkey.\n";

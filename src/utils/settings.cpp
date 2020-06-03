@@ -197,8 +197,8 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException(key, val, "Invalid driver");
     else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
-    else if (key == winterm_key)
-        val = mp::platform::interpret_setting(winterm_key, val);
+    else if (key == winterm_key || key == hotkey_key)
+        val = mp::platform::interpret_setting(key, val);
 
     auto settings = persistent_settings(key);
     checked_set(settings, key, val, mutex);

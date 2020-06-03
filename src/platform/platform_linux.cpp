@@ -46,11 +46,14 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
-    return {};
+    return {{hotkey_key, "ctrl+alt+u"}};
 }
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
+    if (key == hotkey_key)
+        return val;
+
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingsException(key, val, "Setting unavailable on Linux");
 }
