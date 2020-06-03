@@ -100,15 +100,13 @@ void simulate_qemuimg_convert(const mpt::MockProcess* process, const QString& im
 
 template <class Matcher>
 void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size, const mp::MemorySize& requested_size,
-                         bool attempt_resize, const mp::ProcessState& qemuimg_resize_result,
-                         mp::optional<Matcher> throw_msg_matcher)
+                         const mp::ProcessState& qemuimg_resize_result, mp::optional<Matcher> throw_msg_matcher)
 {
     auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
-    const auto expected_final_process_count = attempt_resize ? 1 : 0;
 
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, expected_final_process_count);
+        ASSERT_LE(++process_count, 1);
         if (process_count == 1)
         {
             simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
@@ -121,7 +119,7 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
     else
         mp::backend::resize_instance_image(requested_size, img);
 
-    EXPECT_EQ(process_count, expected_final_process_count);
+    EXPECT_EQ(process_count, 1);
 }
 
 template <class Matcher>
@@ -174,11 +172,10 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
     const auto img = "/fake/img/path";
     const auto min_size = mp::MemorySize{"1G"};
     const auto request_size = mp::MemorySize{"3G"};
-    const auto attempt_resize = true;
     const auto qemuimg_resize_result = success;
     const auto throw_msg_matcher = null_string_matcher;
 
-    test_image_resizing(img, min_size, request_size, attempt_resize, qemuimg_resize_result, throw_msg_matcher);
+    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
@@ -186,11 +183,10 @@ TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
     const auto img = "/fake/img/path";
     const auto min_size = mp::MemorySize{"1234554321"};
     const auto request_size = min_size;
-    const auto attempt_resize = true;
     const auto qemuimg_resize_result = success;
     const auto throw_msg_matcher = null_string_matcher;
 
-    test_image_resizing(img, min_size, request_size, attempt_resize, qemuimg_resize_result, throw_msg_matcher);
+    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resize_detects_resizing_exit_failure_and_throws)
@@ -198,11 +194,10 @@ TEST(BackendUtils, image_resize_detects_resizing_exit_failure_and_throws)
     const auto img = "imagine";
     const auto min_size = mp::MemorySize{"100M"};
     const auto request_size = mp::MemorySize{"400M"};
-    const auto attempt_resize = true;
     const auto qemuimg_resize_result = failure;
     const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
 
-    test_image_resizing(img, min_size, request_size, attempt_resize, qemuimg_resize_result, throw_msg_matcher);
+    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
 TEST(BackendUtils, image_resize_detects_resizing_crash_failure_and_throws)
@@ -210,12 +205,11 @@ TEST(BackendUtils, image_resize_detects_resizing_crash_failure_and_throws)
     const auto img = "ubuntu";
     const auto min_size = mp::MemorySize{"100M"};
     const auto request_size = mp::MemorySize{"400M"};
-    const auto attempt_resize = true;
     const auto qemuimg_resize_result = crash;
     const auto throw_msg_matcher =
         mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
 
-    test_image_resizing(img, min_size, request_size, attempt_resize, qemuimg_resize_result, throw_msg_matcher);
+    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
 TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
