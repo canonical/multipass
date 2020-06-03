@@ -55,15 +55,15 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
     if (key == hotkey_key)
     {
-        if (QKeySequence sequence{val}; sequence.isEmpty())
+        auto sequence = QKeySequence{val};
+        auto ret = sequence.toString();
+
+        if (sequence.isEmpty() || ret.isEmpty())
             throw InvalidSettingsException(key, val, "Invalid key sequence"); // TODO@ricardo test
-        else if (sequence.count() > 1)
+        if (sequence.count() > 1)
             throw InvalidSettingsException(key, val, "Multiple key sequences are not supported"); // TODO@ricardo test
-        else if (auto ret = sequence.toString();
-                 ret.isEmpty()) // get and check normalized representation // TODO@ricardo test
-            throw InvalidSettingsException(key, val, "Invalid key sequence"); // TODO@ricardo test
-        else
-            return ret; // TODO@ricardo protect against unmodified letters
+
+        return ret; // TODO@ricardo protect against unmodified letters
     }
 
     // this should not happen (settings should have found it to be an invalid key)
