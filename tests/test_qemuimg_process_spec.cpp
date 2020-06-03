@@ -15,7 +15,7 @@
  *
  */
 
-#include <src/platform/backends/shared/linux/qemuimg_process_spec.h>
+#include <src/platform/backends/shared/qemuimg_process_spec.h>
 
 #include "tests/mock_environment_helpers.h"
 #include <gmock/gmock.h>
