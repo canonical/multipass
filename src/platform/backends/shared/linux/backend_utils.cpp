@@ -20,8 +20,11 @@
 #include "qemuimg_process_spec.h"
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
+#include <multipass/platform.h>
 #include <multipass/process.h>
 #include <multipass/utils.h>
+
+#include "../qemuimg_process_spec.h"
 
 #include <multipass/format.h>
 
@@ -88,32 +91,6 @@ auto virtual_switch_subnet(const QString& bridge_name)
     return subnet.toStdString();
 }
 
-void check_min_img_size(const mp::MemorySize& requested_size, const mp::Path& image_path)
-{
-    auto qemuimg_process = mp::ProcessFactory::instance().create_process(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", image_path}));
-    auto process_state = qemuimg_process->execute();
-
-    if (!process_state.completed_successfully())
-        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
-
-    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
-    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)$");
-    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
-
-    if (const auto match = re.match(img_info); match.hasMatch())
-    {
-        const auto min_size = match.captured("size").toStdString();
-        if (requested_size < mp::MemorySize{min_size})
-            throw std::runtime_error(fmt::format("Requested disk ({} bytes) below minimum for this image ({} bytes)",
-                                                 requested_size.in_bytes(), min_size)); // TODO use human-readable sizes
-    }
-    else
-        throw std::runtime_error{fmt::format("Could not obtain image's virtual size")};
-}
-
 } // namespace
 
 std::string mp::backend::generate_random_subnet()
@@ -155,11 +132,9 @@ std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& 
 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
-    check_min_img_size(disk_space, image_path);
-
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
-    auto qemuimg_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"resize", image_path, disk_size});
-    auto qemuimg_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_spec));
+    QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
+    auto qemuimg_process = mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters));
 
     auto process_state = qemuimg_process->execute(mp::backend::image_resize_timeout);
     if (!process_state.completed_successfully())

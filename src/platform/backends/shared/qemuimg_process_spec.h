@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,9 @@
 #define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
 
 #include <multipass/process_spec.h>
+
+#include <QString>
+#include <QStringList>
 
 namespace multipass
 {

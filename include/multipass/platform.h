@@ -20,6 +20,7 @@
 
 #include <multipass/logging/logger.h>
 #include <multipass/process.h>
+#include <multipass/process_spec.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
 #include <multipass/virtual_machine_factory.h>
@@ -56,6 +57,7 @@ VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
+std::unique_ptr<Process> make_process(std::unique_ptr<ProcessSpec>&& process_spec);
 int chown(const char* path, unsigned int uid, unsigned int gid);
 bool symlink(const char* target, const char* link, bool is_dir);
 bool link(const char* target, const char* link);
