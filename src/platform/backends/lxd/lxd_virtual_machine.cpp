@@ -164,38 +164,11 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
             json_reply["status_code"].toInt(-1) == 100)
         {
-            QUrl task_url(QString("%1/operations/%2")
+            QUrl task_url(QString("%1/operations/%2/wait")
                               .arg(base_url.toString())
                               .arg(json_reply["metadata"].toObject()["id"].toString()));
 
-            // Instead of polling, need to use websockets to get events
-            while (true)
-            {
-                try
-                {
-                    auto task_reply = lxd_request(manager, "GET", task_url);
-
-                    if (task_reply["error_code"].toInt(-1) != 0)
-                    {
-                        break;
-                    }
-
-                    auto status_code = task_reply["metadata"].toObject()["status_code"].toInt(-1);
-                    if (status_code == 200)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        std::this_thread::sleep_for(1s);
-                    }
-                }
-                // Implies the task is finished
-                catch (const LXDNotFoundException& e)
-                {
-                    break;
-                }
-            }
+            auto task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, 300000);
         }
 
         current_state();
