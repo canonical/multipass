@@ -166,6 +166,10 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
     if (driver == "hyperkit" && remote.empty() && (supported_core_aliases.find(alias) != supported_core_aliases.end()))
         return false;
 
+    // Core-based appliance images don't work on hyperkit yet
+    if (driver == "hyperkit" && remote == "appliance")
+        return false;
+
     if (check_unlock_code())
         return true;
 
@@ -180,7 +184,7 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
 
         if (it != supported_remotes_aliases_map.end())
         {
-            if (it->second.find(alias) != it->second.end())
+            if (it->second.empty() || (it->second.find(alias) != it->second.end()))
                 return true;
         }
     }

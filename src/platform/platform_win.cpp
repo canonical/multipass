@@ -453,7 +453,7 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
 
         if (it != supported_remotes_aliases_map.end())
         {
-            if (it->second.find(alias) != it->second.end())
+            if (it->second.empty() || (it->second.find(alias) != it->second.end()))
                 return true;
         }
     }
