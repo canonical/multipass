@@ -37,7 +37,7 @@ const std::unordered_set<std::string> supported_release_aliases{"core",   "core1
 const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18"};
 const std::unordered_set<std::string> supported_snapcraft_aliases{"core", "core16", "core18", "core20"};
 const std::unordered_map<std::string, std::unordered_set<std::string>> supported_remotes_aliases_map{
-    {"release", supported_release_aliases}, {"snapcraft", supported_snapcraft_aliases}};
+    {"release", supported_release_aliases}, {"snapcraft", supported_snapcraft_aliases}, {"appliance", {}}};
 
 inline bool check_unlock_code()
 {

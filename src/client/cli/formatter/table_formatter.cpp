@@ -160,7 +160,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
     if (reply.images_info().empty())
         return "No images found.\n";
 
-    fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
+    fmt::format_to(buf, "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
 
     for (const auto& image : reply.images_info())
     {
@@ -168,9 +168,9 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 
         mp::format::filter_aliases(aliases);
 
-        fmt::format_to(buf, "{:<24}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
+        fmt::format_to(buf, "{:<28}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
                        fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
-                       fmt::format("{}{}", image.os().empty() ? ""  : image.os() + " ", image.release()));
+                       fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
     }
 
     return fmt::to_string(buf);
