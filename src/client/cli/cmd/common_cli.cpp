@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,6 +128,7 @@ mp::ReturnCode cmd::run_cmd(const QStringList& args, const mp::ArgParser* parser
                             std::ostream& cerr)
 {
     ArgParser aux_parser{args, parser->getCommands(), cout, cerr};
+    aux_parser.setVerbosityLevel(parser->verbosityLevel());
 
     [[maybe_unused]] auto code = aux_parser.parse();
     assert(code == mp::ParseCode::Ok);
