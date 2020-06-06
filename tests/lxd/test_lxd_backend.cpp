@@ -18,7 +18,7 @@
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 
 #include "mock_lxd_server_responses.h"
-#include "tests/local_socket_server_test_fixture.h"
+#include "tests/linux/local_socket_server_test_fixture.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_status_monitor.h"

@@ -16,7 +16,7 @@
  */
 
 #include "local_socket_server_test_fixture.h"
-#include "temp_dir.h"
+#include "tests/temp_dir.h"
 
 #include <multipass/network_access_manager.h>
 #include <multipass/version.h>
