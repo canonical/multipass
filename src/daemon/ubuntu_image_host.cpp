@@ -22,6 +22,7 @@
 #include <multipass/url_downloader.h>
 
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 
 #include <multipass/format.h>
@@ -228,6 +229,14 @@ void mp::UbuntuVMImageHost::fetch_manifests()
         {
             manifests.emplace_back(
                 std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+        }
+        catch (mp::EmptyManifestException& /* e */)
+        {
+            on_manifest_empty(fmt::format("Did not find any supported products in \"{}\"", remote.first));
+        }
+        catch (mp::GenericManifestException& e)
+        {
+            on_manifest_update_failure(e.what());
         }
         catch (mp::DownloadException& e)
         {
