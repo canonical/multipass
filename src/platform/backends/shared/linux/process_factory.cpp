@@ -16,11 +16,11 @@
  */
 
 #include "process_factory.h"
-#include "basic_process.h"
-#include "simple_process_spec.h"
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/process_spec.h>
+#include <multipass/process/basic_process.h>
+#include <multipass/process/process_spec.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 

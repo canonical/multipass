@@ -20,7 +20,7 @@
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
-#include <multipass/process.h>
+#include <multipass/process/process.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 

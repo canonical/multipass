@@ -26,5 +26,6 @@ include_directories(shared_linux
 target_link_libraries(shared_linux
   apparmor
   fmt
+  process
   utils
   Qt5::Core)

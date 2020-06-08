@@ -27,6 +27,7 @@ add_executable(multipass
   main.cpp)
 
 target_link_libraries(multipass
+  process
   client)
 
 install(TARGETS multipass

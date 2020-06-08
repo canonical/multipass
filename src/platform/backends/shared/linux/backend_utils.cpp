@@ -17,14 +17,12 @@
 
 #include "backend_utils.h"
 #include "process_factory.h"
-#include "qemuimg_process_spec.h"
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
-#include <multipass/process.h>
+#include <multipass/process/process.h>
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/utils.h>
-
-#include "../qemuimg_process_spec.h"
 
 #include <multipass/format.h>
 

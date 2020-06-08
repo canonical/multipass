@@ -30,6 +30,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -43,8 +44,6 @@
 
 #include <multipass/format.h>
 #include <yaml-cpp/yaml.h>
-
-#include "../platform/backends/shared/qemuimg_process_spec.h"
 
 #include <QDir>
 #include <QEventLoop>

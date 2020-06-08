@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
 #define MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
 
-#include <multipass/process_spec.h>
+#include <multipass/process/process_spec.h>
 #include <multipass/sshfs_server_config.h>
 
 namespace multipass

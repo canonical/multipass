@@ -26,6 +26,7 @@ include_directories(platform
 
 target_link_libraries(platform
   shared
+  process
   update
   utils)
 

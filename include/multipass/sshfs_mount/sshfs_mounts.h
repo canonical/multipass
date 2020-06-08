@@ -22,7 +22,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <multipass/process.h>
+#include <multipass/process/process.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
 

@@ -1,4 +1,4 @@
-# Copyright © 2019 Canonical Ltd.
+# Copyright © 2019-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -15,14 +15,11 @@
 set (CMAKE_AUTOMOC ON)
 
 add_library(shared STATIC
-  basic_process.cpp
-  process_spec.cpp
-  qemuimg_process_spec.cpp
-  simple_process_spec.cpp
   sshfs_server_process_spec.cpp
-  ${CMAKE_SOURCE_DIR}/include/multipass/process.h)
+  ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
 
 target_link_libraries(shared
+  process
   Qt5::Core)
 
 add_subdirectory(linux)
