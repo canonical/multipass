@@ -22,7 +22,7 @@
 #include <multipass/url_downloader.h>
 
 #include <multipass/exceptions/download_exception.h>
-#include <multipass/exceptions/empty_manifest_exception.h>
+#include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 
 #include <multipass/format.h>
@@ -234,7 +234,11 @@ void mp::UbuntuVMImageHost::fetch_manifests()
         {
             on_manifest_empty(fmt::format("Did not find any supported products in \"{}\"", remote.first));
         }
-        catch (std::runtime_error& e)
+        catch (mp::GenericManifestException& e)
+        {
+            on_manifest_update_failure(e.what());
+        }
+        catch (mp::DownloadException& e)
         {
             on_manifest_update_failure(e.what());
         }

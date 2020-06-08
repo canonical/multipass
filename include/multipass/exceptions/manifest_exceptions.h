@@ -15,19 +15,27 @@
  *
  */
 
-#ifndef MULTIPASS_EMPTY_MANIFEST_EXCEPTION_H
-#define MULTIPASS_EMPTY_MANIFEST_EXCEPTION_H
+#ifndef MULTIPASS_MANIFEST_EXCEPTIONS_H
+#define MULTIPASS_MANIFEST_EXCEPTIONS_H
 
 #include <stdexcept>
 
 namespace multipass
 {
-class EmptyManifestException : public std::runtime_error
+class GenericManifestException : public std::runtime_error
 {
 public:
-    EmptyManifestException(const std::string& details) : runtime_error(details)
+    GenericManifestException(const std::string& details) : runtime_error(details)
+    {
+    }
+};
+
+class EmptyManifestException : public GenericManifestException
+{
+public:
+    EmptyManifestException(const std::string& details) : GenericManifestException(details)
     {
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_EMPTY_MANIFEST_EXCEPTION_H
+#endif // MULTIPASS_MANIFEST_EXCEPTIONS_H

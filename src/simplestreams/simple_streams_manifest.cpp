@@ -23,7 +23,7 @@
 #include <QJsonObject>
 #include <QSysInfo>
 
-#include <multipass/exceptions/empty_manifest_exception.h>
+#include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -39,10 +39,10 @@ QJsonObject parse_manifest(const QByteArray& json)
     QJsonParseError parse_error;
     const auto doc = QJsonDocument::fromJson(json, &parse_error);
     if (doc.isNull())
-        throw std::runtime_error(parse_error.errorString().toStdString());
+        throw mp::GenericManifestException(parse_error.errorString().toStdString());
 
     if (!doc.isObject())
-        throw std::runtime_error("invalid manifest object");
+        throw mp::GenericManifestException("invalid manifest object");
     return doc.object();
 }
 
@@ -82,12 +82,12 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
 
     const auto manifest_products = manifest["products"].toObject();
     if (manifest_products.isEmpty())
-        throw std::runtime_error("No products found");
+        throw mp::GenericManifestException("No products found");
 
     auto arch = arch_to_manifest.value(QSysInfo::currentCpuArchitecture());
 
     if (arch.isEmpty())
-        throw std::runtime_error("Unsupported cloud image architecture");
+        throw mp::GenericManifestException("Unsupported cloud image architecture");
 
     std::vector<VMImageInfo> products;
     for (const auto& value : manifest_products)
