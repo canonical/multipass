@@ -19,6 +19,7 @@
 #include "mock_settings.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <gmock/gmock.h>
@@ -61,28 +62,28 @@ TEST(SimpleStreamsManifest, can_find_info_by_alias)
 TEST(SimpleStreamsManifest, throws_on_invalid_json)
 {
     QByteArray json;
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
 TEST(SimpleStreamsManifest, throws_on_invalid_top_level_type)
 {
     auto json = mpt::load_test_file("invalid_top_level.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
 TEST(SimpleStreamsManifest, throws_when_missing_products)
 {
     auto json = mpt::load_test_file("missing_products_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
 TEST(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
 {
     auto json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
 
     json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
 }
 
 TEST(SimpleStreamsManifest, chooses_newest_version)
