@@ -19,6 +19,7 @@
 #include "mock_settings.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/empty_manifest_exception.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <gmock/gmock.h>
@@ -79,10 +80,10 @@ TEST(SimpleStreamsManifest, throws_when_missing_products)
 TEST(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
 {
     auto json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
 
     json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
 }
 
 TEST(SimpleStreamsManifest, chooses_newest_version)

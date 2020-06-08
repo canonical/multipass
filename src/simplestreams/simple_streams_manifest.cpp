@@ -23,6 +23,7 @@
 #include <QJsonObject>
 #include <QSysInfo>
 
+#include <multipass/exceptions/empty_manifest_exception.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -155,7 +156,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
     }
 
     if (products.empty())
-        throw std::runtime_error("failed to parse any products");
+        throw mp::EmptyManifestException("No supported products found.");
 
     QMap<QString, const VMImageInfo*> map;
 
