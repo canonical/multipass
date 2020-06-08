@@ -26,7 +26,7 @@ namespace multipass
 {
 namespace platform
 {
-constexpr auto unlock_code{"prophetic-giraffe"};
+constexpr auto unlock_code{"convenient-ichthyosaur"};
 // clang-format off
 const std::unordered_set<std::string> supported_release_aliases{"core",   "core16", "core18",
                                                                 "default", "ubuntu", "lts",
