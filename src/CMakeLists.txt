@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -27,6 +27,7 @@ add_subdirectory(metrics)
 add_subdirectory(network)
 add_subdirectory(petname)
 add_subdirectory(platform)
+add_subdirectory(process)
 add_subdirectory(rpc)
 add_subdirectory(simplestreams)
 add_subdirectory(ssh)

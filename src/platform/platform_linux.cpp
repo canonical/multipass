@@ -21,6 +21,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -31,7 +32,6 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
 #include "shared/linux/process_factory.h"
-#include "shared/qemuimg_process_spec.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 

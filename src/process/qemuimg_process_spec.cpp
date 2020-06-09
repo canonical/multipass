@@ -15,8 +15,7 @@
  *
  */
 
-#include "qemuimg_process_spec.h"
-
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/snap_utils.h>
 
 namespace mp = multipass;

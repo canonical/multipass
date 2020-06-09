@@ -20,8 +20,8 @@
 
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
-#include <multipass/process.h>
-#include <multipass/process_spec.h>
+#include <multipass/process/process.h>
+#include <multipass/process/process_spec.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
 #include <multipass/url_downloader.h>

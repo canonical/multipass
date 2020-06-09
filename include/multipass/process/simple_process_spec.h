@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,14 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_BASE_PROCESS_SPEC_H
-#define MULTIPASS_QEMU_BASE_PROCESS_SPEC_H
+#ifndef SIMPLE_PROCESS_SPEC_H
+#define SIMPLE_PROCESS_SPEC_H
 
+#include <memory>
 #include <multipass/process/process_spec.h>
 
 namespace multipass
 {
-
-class QemuBaseProcessSpec : public ProcessSpec
-{
-public:
-    QemuBaseProcessSpec() = default;
-
-    QString program() const override;
-    QString working_directory() const override;
-    QString apparmor_profile() const override;
-};
-
-} // namespace multipass
-
-#endif // MULTIPASS_QEMU_BASE_PROCESS_SPEC_H
+std::unique_ptr<ProcessSpec> simple_process_spec(const QString& cmd, const QStringList& args = QStringList());
+}
+#endif // SIMPLE_PROCESS_SPEC_H

@@ -15,31 +15,40 @@
  *
  */
 
-#ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-#define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#include <multipass/process/simple_process_spec.h>
 
-#include <multipass/process_spec.h>
+namespace mp = multipass;
 
-#include <QString>
-#include <QStringList>
-
-namespace multipass
+namespace
 {
-
-class QemuImgProcessSpec : public ProcessSpec
+class SimpleProcessSpec : public mp::ProcessSpec
 {
 public:
-    explicit QemuImgProcessSpec(const QStringList& args);
+    SimpleProcessSpec(const QString& cmd, const QStringList& args) : cmd{cmd}, args{args}
+    {
+    }
 
-    QString program() const override;
-    QStringList arguments() const override;
+    QString program() const override
+    {
+        return cmd;
+    }
+    QStringList arguments() const override
+    {
+        return args;
+    }
 
-    QString apparmor_profile() const override;
+    QString apparmor_profile() const override
+    {
+        return QString();
+    }
 
 private:
+    const QString cmd;
     const QStringList args;
 };
+} // namespace
 
-} // namespace multipass
-
-#endif // MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+std::unique_ptr<mp::ProcessSpec> mp::simple_process_spec(const QString& cmd, const QStringList& args)
+{
+    return std::make_unique<::SimpleProcessSpec>(cmd, args);
+}

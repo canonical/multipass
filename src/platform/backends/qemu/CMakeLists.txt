@@ -22,7 +22,9 @@ add_library(qemu_backend STATIC
   qemu_vm_process_spec.cpp
   qemu_vmstate_process_spec.cpp
   qemu_virtual_machine_factory.cpp
-  qemu_virtual_machine.cpp)
+  qemu_virtual_machine.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h
+  ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
 
 target_link_libraries(qemu_backend
   daemon
@@ -31,6 +33,7 @@ target_link_libraries(qemu_backend
   Qt5::Core
   Qt5::Network
   ip_address
+  process
   shared_linux
   ssh
   utils
