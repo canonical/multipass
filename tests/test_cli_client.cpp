@@ -1508,7 +1508,17 @@ TEST_P(TestBasicGetSetOptions, set_can_write_settings)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions, Values(mp::petenv_key, mp::driver_key, mp::autostart_key));
+TEST_P(TestBasicGetSetOptions, set_cmd_allows_empty_val)
+{
+    const auto& key = GetParam();
+    const auto val = "";
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions,
+                         Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key));
 
 TEST_F(Client, get_cmd_fails_with_no_arguments)
 {
@@ -1539,7 +1549,6 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
     EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"set", "abc="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
