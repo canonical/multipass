@@ -34,22 +34,23 @@ constexpr auto category = "lxd factory";
 const QString multipass_bridge_name = "mpbr0";
 } // namespace
 
-mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir, const QUrl& base_url)
-    : data_dir{mp::utils::make_dir(data_dir, get_backend_directory_name())},
-      base_url{base_url},
-      manager{std::make_unique<NetworkAccessManager>()}
+mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
+                                                       const QUrl& base_url)
+    : manager{std::move(manager)},
+      data_dir{mp::utils::make_dir(data_dir, get_backend_directory_name())},
+      base_url{base_url}
 {
 
     try
     {
-        lxd_request(manager.get(), "GET",
+        lxd_request(this->manager.get(), "GET",
                     QUrl(QString("%1/projects/%2").arg(base_url.toString()).arg(lxd_project_name)));
     }
     catch (const LXDNotFoundException&)
     {
         QJsonObject project{{"name", lxd_project_name}, {"description", "Project for Multipass instances"}};
 
-        lxd_request(manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
+        lxd_request(this->manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
 
         // TODO: Detect if default storage pool is available and if not, create a directory based pool for
         //       Multipass
@@ -58,20 +59,25 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
             {"eth0", QJsonObject{{"name", "eth0"}, {"nictype", "bridged"}, {"parent", "mpbr0"}, {"type", "nic"}}}};
         QJsonObject profile{{"description", "Default profile for Multipass project"}, {"devices", devices}};
 
-        lxd_request(manager.get(), "PUT", QUrl(QString("%1/profiles/default").arg(base_url.toString())), profile);
+        lxd_request(this->manager.get(), "PUT", QUrl(QString("%1/profiles/default").arg(base_url.toString())), profile);
     }
 
     try
     {
-        lxd_request(manager.get(), "GET",
+        lxd_request(this->manager.get(), "GET",
                     QUrl(QString("%1/networks/%2").arg(base_url.toString()).arg(multipass_bridge_name)));
     }
     catch (const LXDNotFoundException&)
     {
         QJsonObject network{{"name", multipass_bridge_name}, {"description", "Network bridge for Multipass"}};
 
-        lxd_request(manager.get(), "POST", QUrl(QString("%1/networks").arg(base_url.toString())), network);
+        lxd_request(this->manager.get(), "POST", QUrl(QString("%1/networks").arg(base_url.toString())), network);
     }
+}
+
+mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir, const QUrl& base_url)
+    : LXDVirtualMachineFactory(std::make_unique<NetworkAccessManager>(), data_dir, base_url)
+{
 }
 
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,

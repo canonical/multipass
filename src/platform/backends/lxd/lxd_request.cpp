@@ -65,8 +65,11 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
         reply->abort();
     });
 
-    download_timeout.start();
-    event_loop.exec();
+    if (!reply->isFinished())
+    {
+        download_timeout.start();
+        event_loop.exec();
+    }
 
     if (reply->error() == QNetworkReply::ContentNotFoundError)
         throw LXDNotFoundException();
@@ -75,6 +78,8 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
         throw std::runtime_error(fmt::format("{}: {}", url.toString(), reply->errorString()));
 
     auto bytearray_reply = reply->readAll();
+    reply->deleteLater();
+
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(bytearray_reply, &json_error);
 

@@ -28,11 +28,14 @@
 
 namespace multipass
 {
-class LocalSocketReply final : public QNetworkReply
+using LocalSocketUPtr = std::unique_ptr<QLocalSocket>;
+
+class LocalSocketReply : public QNetworkReply
 {
     Q_OBJECT
 public:
-    LocalSocketReply(const QString& socket_path, const QNetworkRequest& request, QIODevice* outgoingData);
+    LocalSocketReply(LocalSocketUPtr local_socket, const QNetworkRequest& request, QIODevice* outgoingData);
+    LocalSocketReply();
     virtual ~LocalSocketReply();
 
 public Q_SLOTS:
@@ -40,6 +43,7 @@ public Q_SLOTS:
 
 protected:
     qint64 readData(char* data, qint64 maxSize) override;
+    QByteArray content_data;
 
 private slots:
     void read_reply();
@@ -49,9 +53,8 @@ private:
     void parse_reply();
     void parse_status(const QByteArray& status);
 
-    std::unique_ptr<QLocalSocket> local_socket;
+    LocalSocketUPtr local_socket;
     QByteArray reply_data;
-    QByteArray content_data;
     qint64 offset{0};
     bool chunked_transfer_encoding{false};
 };
