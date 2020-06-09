@@ -15,29 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORK_ACCESS_MANAGER_H
-#define MULTIPASS_NETWORK_ACCESS_MANAGER_H
+#ifndef MULTIPASS_MOCK_NETWORK_ACCESS_MANAGER_H
+#define MULTIPASS_MOCK_NETWORK_ACCESS_MANAGER_H
 
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
+#include <multipass/network_access_manager.h>
 
-#include <memory>
+#include <gmock/gmock.h>
+
+using namespace testing;
 
 namespace multipass
 {
-
-class NetworkAccessManager : public QNetworkAccessManager
+namespace test
 {
-    Q_OBJECT
-public:
-    using UPtr = std::unique_ptr<NetworkAccessManager>;
-
-    NetworkAccessManager(QObject* parent = nullptr);
-
-protected:
-    QNetworkReply* createRequest(Operation op, const QNetworkRequest& orig_request,
-                                 QIODevice* outgoingData = nullptr) override;
+struct MockNetworkAccessManager : public NetworkAccessManager
+{
+    MOCK_METHOD3(createRequest, QNetworkReply*(Operation, const QNetworkRequest&, QIODevice*));
 };
+} // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_NETWORK_ACCESS_MANAGER_H
+#endif // MULTIPASS_MOCK_NETWORK_ACCESS_MANAGER_H

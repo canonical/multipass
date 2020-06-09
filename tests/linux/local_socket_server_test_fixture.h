@@ -23,12 +23,6 @@
 #include <QLocalSocket>
 #include <QString>
 
-#include <functional>
-
-#include <gmock/gmock.h>
-
-using namespace testing;
-
 namespace multipass
 {
 namespace test

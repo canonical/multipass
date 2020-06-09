@@ -17,7 +17,6 @@
 
 #include "local_socket_reply.h"
 
-#include <multipass/format.h>
 #include <multipass/version.h>
 
 #include <QRegularExpression>
@@ -80,27 +79,32 @@ QNetworkReply::NetworkError statusCodeFromHttp(int httpStatusCode)
 }
 } // namespace
 
-mp::LocalSocketReply::LocalSocketReply(const QString& socket_path, const QNetworkRequest& request,
+mp::LocalSocketReply::LocalSocketReply(LocalSocketUPtr local_socket, const QNetworkRequest& request,
                                        QIODevice* outgoingData)
-    : QNetworkReply(), local_socket{std::make_unique<QLocalSocket>(this)}, reply_data{QByteArray(len, '\0')}
+    : QNetworkReply(), local_socket{std::move(local_socket)}, reply_data{QByteArray(len, '\0')}
 {
     open(QIODevice::ReadOnly);
 
-    local_socket->connectToServer(socket_path);
-
-    if (!local_socket->waitForConnected(5000))
-    {
-        throw std::runtime_error(fmt::format("Cannot connect to {}: {}", socket_path, local_socket->error()));
-    }
-
-    QObject::connect(local_socket.get(), &QLocalSocket::readyRead, this, &LocalSocketReply::read_reply);
+    QObject::connect(this->local_socket.get(), &QLocalSocket::readyRead, this, &LocalSocketReply::read_reply);
 
     send_request(request, outgoingData);
 }
 
+// Mainly for testing
+mp::LocalSocketReply::LocalSocketReply()
+{
+    open(QIODevice::ReadOnly);
+
+    setFinished(true);
+    emit finished();
+}
+
 mp::LocalSocketReply::~LocalSocketReply()
 {
-    local_socket->disconnectFromServer();
+    if (local_socket)
+    {
+        local_socket->disconnectFromServer();
+    }
 }
 
 void mp::LocalSocketReply::abort()
@@ -110,6 +114,7 @@ void mp::LocalSocketReply::abort()
     setError(OperationCanceledError, "Operation canceled");
     emit error(OperationCanceledError);
 
+    setFinished(true);
     emit finished();
 }
 
@@ -184,6 +189,7 @@ void mp::LocalSocketReply::read_reply()
 
     parse_reply();
 
+    setFinished(true);
     emit finished();
 }
 
