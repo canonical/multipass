@@ -31,6 +31,8 @@ class LXDVirtualMachineFactory final : public VirtualMachineFactory
 {
 public:
     explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);
+    explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const Path& data_dir,
+                                      const QUrl& base_url = lxd_socket_url);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
@@ -50,9 +52,9 @@ public:
     };
 
 private:
+    NetworkAccessManager::UPtr manager;
     const Path data_dir;
     const QUrl base_url;
-    std::unique_ptr<NetworkAccessManager> manager;
 };
 } // namespace multipass
 
