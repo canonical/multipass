@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,9 @@
 #include <string>
 #include <unordered_map>
 
-#include <multipass/process.h>
-#include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/process/process.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
+#include <multipass/ssh/ssh_key_provider.h>
 
 namespace multipass
 {
