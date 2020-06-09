@@ -646,6 +646,14 @@ TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+        const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{("1048577")}));
+        simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output);
+    });
+
     EXPECT_CALL(*mock_factory, configure(_, _, _))
         .WillOnce(Invoke([](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
             EXPECT_THAT(user_config, YAMLNodeContainsMap("growpart"));
@@ -685,6 +693,14 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
     config_builder.ssh_key_provider = std::make_unique<DummyKeyProvider>(expected_key);
     mp::Daemon daemon{config_builder.build()};
 
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+        const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048578"}));
+        simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output);
+    });
+
     EXPECT_CALL(*mock_factory, configure(_, _, _))
         .WillOnce(Invoke([&expected_key](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
             ASSERT_THAT(user_config, YAMLNodeContainsSequence("ssh_authorized_keys"));
@@ -706,6 +722,14 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
                                 multipass::version_string, QSysInfo::productType(), QSysInfo::productVersion())},
     };
     mp::Daemon daemon{config_builder.build()};
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+        const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048579"}));
+        simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output);
+    });
 
     EXPECT_CALL(*mock_factory, configure(_, _, _))
         .WillOnce(Invoke(
