@@ -77,6 +77,11 @@ void mp::CommonVMImageHost::update_manifests()
     }
 }
 
+void mp::CommonVMImageHost::on_manifest_empty(const std::string& details)
+{
+    mpl::log(mpl::Level::info, category, details);
+}
+
 void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& details)
 {
     need_extra_update = true;

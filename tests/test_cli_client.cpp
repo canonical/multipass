@@ -33,12 +33,13 @@
 #include <QEventLoop>
 #include <QStringList>
 #include <QTemporaryFile>
+#include <QtCore/QTemporaryDir>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <QtCore/QTemporaryDir>
 #include <sstream>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -194,6 +195,12 @@ struct Client : public Test
     {
         static_assert(size > 0, "size must be positive");
         return make_instances_matcher<RequestType>(AllOf(Contains(StrEq(instance_name)), SizeIs(size)));
+    }
+
+    template <typename RequestType>
+    auto make_request_verbosity_matcher(decltype(std::declval<RequestType>().verbosity_level()) verbosity)
+    {
+        return Property(&RequestType::verbosity_level, Eq(verbosity));
     }
 
     void aux_set_cmd_rejects_bad_val(const char* key, const char* val)
@@ -402,6 +409,23 @@ TEST_F(Client, shell_cmd_automounts_when_launching_petenv)
     EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, shell_cmd_forwards_verbosity_to_subcommands)
+{
+    const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+    const auto verbosity = 3;
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, make_request_verbosity_matcher<mp::SSHInfoRequest>(verbosity), _))
+        .WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, make_request_verbosity_matcher<mp::LaunchRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, make_request_verbosity_matcher<mp::MountRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, make_request_verbosity_matcher<mp::SSHInfoRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"shell", "-vvv"}), Eq(mp::ReturnCode::Ok));
+}
+
 TEST_F(Client, shell_cmd_fails_when_automounting_in_petenv_fails)
 {
     const auto ok = grpc::Status{};
@@ -607,6 +631,19 @@ TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(mount_failure));
     EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, launch_cmd_forwards_verbosity_to_subcommands)
+{
+    const auto ok = grpc::Status{};
+    const auto verbosity = 4;
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, launch(_, make_request_verbosity_matcher<mp::LaunchRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, make_request_verbosity_matcher<mp::MountRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name(), "-vvvv"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
@@ -968,6 +1005,23 @@ TEST_F(Client, start_cmd_automounts_when_launching_petenv)
     EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)
+{
+    const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
+    const auto verbosity = 2;
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, make_request_verbosity_matcher<mp::StartRequest>(verbosity), _))
+        .WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, make_request_verbosity_matcher<mp::LaunchRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, make_request_verbosity_matcher<mp::MountRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, start(_, make_request_verbosity_matcher<mp::StartRequest>(verbosity), _))
+        .WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"start", "-vv"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_fails_when_automounting_in_petenv_fails)
