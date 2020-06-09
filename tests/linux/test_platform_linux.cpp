@@ -161,9 +161,9 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
-TEST_F(PlatformLinux, test_no_extra_settings)
+TEST_F(PlatformLinux, hotkey_in_extra_settings) // TODO@ricab replicate in macos and windows
 {
-    EXPECT_THAT(mp::platform::extra_settings_defaults(), IsEmpty());
+    EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::hotkey_key), _)));
 }
 
 TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
