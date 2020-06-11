@@ -40,6 +40,8 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD0(hypervisor_health_check, void());
     MOCK_METHOD0(get_backend_directory_name, QString());
     MOCK_METHOD0(get_backend_version_string, QString());
+    MOCK_METHOD5(create_image_vault,
+                 VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
 };
 }
 }

@@ -132,7 +132,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             hosts.push_back(image.get());
         }
 
-        vault = platform::make_image_vault(
+        vault = factory->create_image_vault(
             hosts, url_downloader.get(),
             mp::utils::backend_directory_path(cache_directory, factory->get_backend_directory_name()),
             mp::utils::backend_directory_path(data_directory, factory->get_backend_directory_name()), days_to_expire);

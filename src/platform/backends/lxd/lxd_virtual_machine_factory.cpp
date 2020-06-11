@@ -17,6 +17,7 @@
 
 #include "lxd_virtual_machine_factory.h"
 #include "lxd_virtual_machine.h"
+#include "lxd_vm_image_vault.h"
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -108,4 +109,13 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
                  fmt::format("{}: {}", base_url.toString(), QJsonDocument(reply).toJson(QJsonDocument::Compact)));
         throw std::runtime_error("Failed to authenticate to LXD.");
     }
+}
+
+mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vector<mp::VMImageHost*> image_hosts,
+                                                                        mp::URLDownloader* downloader,
+                                                                        const mp::Path& cache_dir_path,
+                                                                        const mp::Path& data_dir_path,
+                                                                        const mp::days& days_to_expire)
+{
+    return std::make_unique<mp::LXDVMImageVault>(image_hosts, manager.get(), base_url);
 }

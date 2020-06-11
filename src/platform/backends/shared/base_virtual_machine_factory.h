@@ -22,6 +22,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include <daemon/default_vm_image_vault.h>
+
 namespace multipass
 {
 constexpr auto log_category = "base factory";
@@ -44,6 +46,14 @@ public:
     QString get_backend_directory_name() override
     {
         return {};
+    };
+
+    VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
+                                          const Path& cache_dir_path, const Path& data_dir_path,
+                                          const days& days_to_expire) override
+    {
+        return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
+                                                     days_to_expire);
     };
 };
 } // namespace multipass
