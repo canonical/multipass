@@ -204,10 +204,6 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
 
 mp::LXDVirtualMachine::~LXDVirtualMachine()
 {
-    update_suspend_status = false;
-
-    if (current_state() == State::running)
-        suspend();
 }
 
 void mp::LXDVirtualMachine::start()
@@ -217,7 +213,18 @@ void mp::LXDVirtualMachine::start()
     if (present_state == State::running)
         return;
 
-    request_state("start");
+    if (present_state == State::suspending)
+        throw std::runtime_error("cannot start the instance while suspending");
+
+    if (state == State::suspended)
+    {
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
+        request_state("unfreeze");
+    }
+    else
+    {
+        request_state("start");
+    }
 
     state = State::starting;
     update_state();
@@ -266,22 +273,7 @@ void mp::LXDVirtualMachine::shutdown()
 
 void mp::LXDVirtualMachine::suspend()
 {
-    auto present_state = instance_state_for(name, manager, state_url());
-
-    if (present_state == State::running || present_state == State::delayed_shutdown)
-    {
-        if (update_suspend_status)
-        {
-            state = State::suspended;
-            update_state();
-        }
-    }
-    else if (present_state == State::stopped)
-    {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
-    }
-
-    monitor->on_suspend();
+    throw std::runtime_error("suspend is currently not supported");
 }
 
 mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()
