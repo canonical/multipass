@@ -58,7 +58,7 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
         auto sequence = QKeySequence{val};
         auto ret = sequence.toString();
 
-        if (sequence.isEmpty() || ret.isEmpty())
+        if (ret.isEmpty() && !sequence.isEmpty())
             throw InvalidSettingsException(key, val, "Invalid key sequence"); // TODO@ricardo test
         if (sequence.count() > 1)
             throw InvalidSettingsException(key, val, "Multiple key sequences are not supported"); // TODO@ricardo test
