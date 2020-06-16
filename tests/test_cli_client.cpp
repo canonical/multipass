@@ -1581,6 +1581,13 @@ TEST_F(Client, get_handles_persistent_settings_errors)
     EXPECT_THAT(send_command({"get", key}), Eq(mp::ReturnCode::CommandFail));
 }
 
+TEST_F(Client, get_returns_special_representation_of_empty_value_by_default)
+{
+    const auto key = mp::hotkey_key;
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(QStringLiteral("")));
+    EXPECT_THAT(get_setting(key), Eq("<empty>"));
+}
+
 TEST_F(Client, set_handles_persistent_settings_errors)
 {
     const auto key = mp::petenv_key;
