@@ -17,9 +17,10 @@
 
 #include "common_image_host.h"
 
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 
-#include <multipass/format.h>
+#include <QtConcurrent/QtConcurrent>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -32,21 +33,7 @@ constexpr auto category = "VMImageHost";
 mp::CommonVMImageHost::CommonVMImageHost(std::chrono::seconds manifest_time_to_live)
   : manifest_time_to_live{manifest_time_to_live}, last_update{}
 {
-    // careful: the functor below relies on polymorphic behavior, which is not available in constructors
-    // fine here as the call is deferred to after the constructor is done (independently of connection type)
-    QObject::connect(&manifest_single_shot, &QTimer::timeout, [this]() {
-        try
-        {
-            update_manifests();
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, e.what());
-        }
-    });
-
-    manifest_single_shot.setSingleShot(true);
-    manifest_single_shot.start(0);
+    update_manifests();
 }
 
 void mp::CommonVMImageHost::for_each_entry_do(const Action& action)
@@ -68,12 +55,31 @@ void mp::CommonVMImageHost::update_manifests()
     const auto now = std::chrono::steady_clock::now();
     if ((now - last_update) > manifest_time_to_live || need_extra_update)
     {
-        need_extra_update = false;
+        if (manifest_update_future.isRunning())
+        {
+            mpl::log(mpl::Level::trace, category, "Manifest update already running. Waiting to finish…");
+            manifest_update_future.waitForFinished();
+        }
+        else
+        {
+            manifest_update_future = QtConcurrent::run([this, now] {
+                try
+                {
+                    mpl::log(mpl::Level::trace, category, "Updating manifests…");
+                    need_extra_update = false;
 
-        clear();
-        fetch_manifests();
+                    clear();
+                    fetch_manifests();
 
-        last_update = now;
+                    last_update = now;
+                    mpl::log(mpl::Level::trace, category, "Finished manifest updates.");
+                }
+                catch (const std::exception& e)
+                {
+                    mpl::log(mpl::Level::error, category, e.what());
+                }
+            });
+        }
     }
 }
 
