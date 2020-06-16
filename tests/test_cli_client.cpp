@@ -38,6 +38,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <initializer_list>
 #include <sstream>
 #include <utility>
 
@@ -139,10 +140,13 @@ struct Client : public Test
         return fmt::format("{}={}", std::forward<Str1>(key), std::forward<Str2>(val));
     }
 
-    std::string get_setting(const std::string& key)
+    std::string get_setting(const std::initializer_list<std::string>& args)
     {
         auto out = std::ostringstream{};
-        EXPECT_THAT(send_command({"get", key}, out), Eq(mp::ReturnCode::Ok));
+        std::vector<std::string> cmd{"get"};
+        cmd.insert(end(cmd), cbegin(args), cend(args));
+
+        EXPECT_THAT(send_command(cmd, out), Eq(mp::ReturnCode::Ok));
 
         auto ret = out.str();
         if (!ret.empty())
@@ -152,6 +156,11 @@ struct Client : public Test
         }
 
         return ret;
+    }
+
+    std::string get_setting(const std::string& key)
+    {
+        return get_setting({key});
     }
 
     auto make_automount_matcher(const QTemporaryDir& fake_home) const
@@ -1586,6 +1595,25 @@ TEST_F(Client, get_returns_special_representation_of_empty_value_by_default)
     const auto key = mp::hotkey_key;
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(QStringLiteral("")));
     EXPECT_THAT(get_setting(key), Eq("<empty>"));
+}
+
+TEST_F(Client, get_returns_empty_string_on_empty_value_with_raw_option)
+{
+    const auto key = mp::hotkey_key;
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(QStringLiteral("")));
+    EXPECT_THAT(get_setting({key, "--raw"}), IsEmpty());
+}
+
+TEST_F(Client, get_keeps_other_values_untouched_with_raw_option)
+{
+    std::vector<std::pair<const char*, QString>> keyvals{{mp::autostart_key, QStringLiteral("False")},
+                                                         {mp::petenv_key, QStringLiteral("a-pet-nAmE")},
+                                                         {mp::hotkey_key, QStringLiteral("Ctrl+Alt+U")}};
+    for (const auto& [key, val] : keyvals)
+    {
+        EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
+        EXPECT_THAT(get_setting({key, "--raw"}), Eq(val.toStdString()));
+    }
 }
 
 TEST_F(Client, set_handles_persistent_settings_errors)
