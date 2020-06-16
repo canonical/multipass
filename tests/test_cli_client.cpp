@@ -1647,6 +1647,7 @@ TEST_F(Client, set_cmd_rejects_bad_primary_name)
     const auto default_petenv_matcher = make_ssh_info_instance_matcher(get_setting(key));
 
     aux_set_cmd_rejects_bad_val(key, "123.badname_");
+    aux_set_cmd_rejects_bad_val(key, "");
 
     EXPECT_CALL(mock_daemon, ssh_info(_, default_petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
@@ -1655,6 +1656,7 @@ TEST_F(Client, set_cmd_rejects_bad_primary_name)
 TEST_F(Client, set_cmd_rejects_bad_driver)
 {
     aux_set_cmd_rejects_bad_val(mp::driver_key, "bad driver");
+    aux_set_cmd_rejects_bad_val(mp::driver_key, "");
 }
 
 TEST_F(Client, set_cmd_falls_through_instances_when_no_driver_change)
