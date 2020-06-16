@@ -26,8 +26,6 @@
 #include <multipass/standard_paths.h>
 #include <multipass/version.h>
 
-#include <QHotkey>
-
 #include <QApplication>
 #include <QDesktopServices>
 #include <QStyle>
@@ -105,13 +103,8 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
         return ReturnCode::CommandFail;
     }
 
-    auto hotkey = new QHotkey(Settings::instance().get_as<QKeySequence>(hotkey_key), true, qApp);
-    if (!hotkey->isRegistered())
-    {
-        cerr << "Failed to register hotkey.\n";
-    }
-
-    QObject::connect(hotkey, &QHotkey::activated, qApp, [&]() { mp::cli::platform::open_multipass_shell(QString()); });
+    update_hotkey();
+    QObject::connect(&hotkey, &QHotkey::activated, qApp, [&]() { mp::cli::platform::open_multipass_shell(QString()); });
 
     create_actions();
     create_menu();
@@ -132,6 +125,14 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     return static_cast<ReturnCode>(QCoreApplication::exec());
 }
 
+void cmd::GuiCmd::update_hotkey()
+{
+    if (!hotkey.setShortcut(Settings::instance().get_as<QKeySequence>(hotkey_key), true) || !hotkey.isRegistered())
+    {
+        cerr << "Failed to register hotkey.\n";
+    }
+}
+
 void cmd::GuiCmd::create_actions()
 {
     auto client_config_path = Settings::get_client_settings_file_path();
@@ -139,7 +140,9 @@ void cmd::GuiCmd::create_actions()
     mp::utils::check_and_create_config_file(client_config_path);
     config_watcher.addPath(client_config_path);
     QObject::connect(&config_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString& path) {
+        update_hotkey();
         autostart_option.setChecked(Settings::instance().get_as<bool>(autostart_key));
+
         // Needed since the original watched file may be removed and opened as a new file
         if (!config_watcher.files().contains(path) && QFile::exists(path))
         {
