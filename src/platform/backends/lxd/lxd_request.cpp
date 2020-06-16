@@ -43,7 +43,7 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    url.setQuery("project=multipass");
+    url.setQuery("project=multipass&recursion=1");
 
     QNetworkRequest request{url};
 

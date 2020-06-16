@@ -28,6 +28,7 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 
+#include <QJsonArray>
 #include <QRegularExpression>
 
 #include <chrono>
@@ -58,8 +59,8 @@ auto parse_percent_as_int(const QString& progress_string)
 } // namespace
 
 mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, NetworkAccessManager* manager,
-                                     const QUrl& base_url)
-    : image_hosts{image_hosts}, manager{manager}, base_url{base_url}
+                                     const QUrl& base_url, const days& days_to_expire)
+    : image_hosts{image_hosts}, manager{manager}, base_url{base_url}, days_to_expire{days_to_expire}
 {
     for (const auto& image_host : image_hosts)
     {
@@ -137,60 +138,29 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     }
     catch (const LXDNotFoundException&)
     {
-        QJsonObject image_object{{"source", QJsonObject{{"type", "image"},
-                                                        {"mode", "pull"},
-                                                        {"server", info.stream_location},
-                                                        {"protocol", "simplestreams"},
-                                                        {"fingerprint", id}}}};
+        QJsonObject source_object;
+
+        source_object.insert("type", "image");
+        source_object.insert("mode", "pull");
+        source_object.insert("server", info.stream_location);
+        source_object.insert("protocol", "simplestreams");
+        source_object.insert("image_type", "virtual-machine");
+
+        if (id.startsWith(QString::fromStdString(query.release)))
+        {
+            source_object.insert("fingerprint", id);
+        }
+        else
+        {
+            source_object.insert("alias", QString::fromStdString(query.release));
+        }
+
+        QJsonObject image_object{{"source", source_object}};
 
         auto json_reply =
             lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
 
-        if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
-            json_reply["status_code"].toInt(-1) == 100)
-        {
-            QUrl task_url(QString("%1/operations/%2")
-                              .arg(base_url.toString())
-                              .arg(json_reply["metadata"].toObject()["id"].toString()));
-
-            // Instead of polling, need to use websockets to get events
-            while (true)
-            {
-                try
-                {
-                    auto task_reply = lxd_request(manager, "GET", task_url);
-
-                    if (task_reply["error_code"].toInt(-1) != 0)
-                    {
-                        break;
-                    }
-
-                    auto status_code = task_reply["metadata"].toObject()["status_code"].toInt(-1);
-                    if (status_code == 200)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        auto download_progress = parse_percent_as_int(
-                            task_reply["metadata"].toObject()["metadata"].toObject()["download_progress"].toString());
-
-                        if (!monitor(LaunchProgress::IMAGE, download_progress))
-                        {
-                            lxd_request(manager, "DELETE", task_url);
-                            throw mp::AbortedDownloadException{"Download aborted"};
-                        }
-
-                        std::this_thread::sleep_for(1s);
-                    }
-                }
-                // Implies the task is finished
-                catch (const LXDNotFoundException&)
-                {
-                    break;
-                }
-            }
-        }
+        poll_download_operation(json_reply, monitor);
     }
 
     return source_image;
@@ -225,13 +195,64 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
-    mpl::log(mpl::Level::trace, category, "Pruning expired images not implemented");
+    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images").arg(base_url.toString())));
+
+    auto images = json_reply["metadata"].toArray();
+
+    for (const auto image : images)
+    {
+        auto image_info = image.toObject();
+        auto last_used_count =
+            QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs).toMSecsSinceEpoch();
+        auto last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(last_used_count));
+
+        if (image_info.contains("update_source") && last_used + days_to_expire <= std::chrono::system_clock::now())
+        {
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Source image \'{}\' is expired. Removing it…",
+                                 image_info["properties"].toObject()["release"].toString()));
+
+            lxd_request(
+                manager, "DELETE",
+                QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(image_info["fingerprint"].toString())));
+        }
+    }
 }
 
 void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
-    mpl::log(mpl::Level::trace, category, "Updating images not implemented");
+    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images").arg(base_url.toString())));
+
+    auto images = json_reply["metadata"].toArray();
+
+    for (const auto image : images)
+    {
+        auto image_info = image.toObject();
+        if (image_info.contains("update_source"))
+        {
+            auto release = image_info["properties"].toObject()["release"].toString();
+            mpl::log(mpl::Level::info, category, fmt::format("Checking if \'{}\' needs updating…", release));
+
+            auto id = image_info["fingerprint"].toString();
+
+            auto json_reply =
+                lxd_request(manager, "POST", QUrl(QString("%1/images/%2/refresh").arg(base_url.toString()).arg(id)));
+
+            auto task_complete = [&release](auto metadata) {
+                if (metadata["metadata"].toObject()["refreshed"].toBool())
+                {
+                    mpl::log(mpl::Level::info, category, fmt::format("Image update for \'{}\' complete.", release));
+                }
+                else
+                {
+                    mpl::log(mpl::Level::info, category, fmt::format("No image update for \'{}\'.", release));
+                }
+            };
+
+            poll_download_operation(json_reply, monitor, task_complete);
+        }
+    }
 }
 
 mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
@@ -261,4 +282,55 @@ mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
     }
 
     throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
+}
+
+void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply, const ProgressMonitor& monitor,
+                                                  const TaskCompleteAction& task_complete)
+{
+    if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
+        json_reply["status_code"].toInt(-1) == 100)
+    {
+        QUrl task_url(QString("%1/operations/%2")
+                          .arg(base_url.toString())
+                          .arg(json_reply["metadata"].toObject()["id"].toString()));
+
+        // Instead of polling, need to use websockets to get events
+        while (true)
+        {
+            try
+            {
+                auto task_reply = mp::lxd_request(manager, "GET", task_url);
+
+                if (task_reply["error_code"].toInt(-1) != 0)
+                {
+                    break;
+                }
+
+                auto status_code = task_reply["metadata"].toObject()["status_code"].toInt(-1);
+                if (status_code == 200)
+                {
+                    task_complete(task_reply["metadata"].toObject());
+                    break;
+                }
+                else
+                {
+                    auto download_progress = parse_percent_as_int(
+                        task_reply["metadata"].toObject()["metadata"].toObject()["download_progress"].toString());
+
+                    if (!monitor(LaunchProgress::IMAGE, download_progress))
+                    {
+                        mp::lxd_request(manager, "DELETE", task_url);
+                        throw mp::AbortedDownloadException{"Download aborted"};
+                    }
+
+                    std::this_thread::sleep_for(1s);
+                }
+            }
+            // Implies the task is finished
+            catch (const LXDNotFoundException&)
+            {
+                break;
+            }
+        }
+    }
 }
