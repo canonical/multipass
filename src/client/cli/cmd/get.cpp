@@ -35,7 +35,12 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     {
         try
         {
-            cout << qUtf8Printable(Settings::instance().get(key)) << "\n";
+            if (auto val = Settings::instance().get(key); val.isEmpty())
+                cout << "<empty>";
+            else
+                cout << qUtf8Printable(val);
+
+            cout << "\n";
         }
         catch (const SettingsException& e)
         {
