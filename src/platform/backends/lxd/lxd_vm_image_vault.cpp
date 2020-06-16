@@ -84,33 +84,19 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
 
         auto id = instance_info["metadata"].toObject()["config"].toObject()["volatile.base_image"].toString();
+        auto image_info = lxd_request(manager, "GET", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
+        auto properties = image_info["properties"].toObject();
 
-        for (const auto& image_host : image_hosts)
-        {
-            auto info = image_host->info_for_full_hash(id.toStdString());
+        VMImage source_image;
 
-            VMImage source_image;
+        source_image.id = id.toStdString();
+        source_image.original_release = properties["version"].toString().toStdString();
 
-            source_image.id = id.toStdString();
-            source_image.stream_location = info.stream_location.toStdString();
-            source_image.original_release = info.release_title.toStdString();
-            source_image.release_date = info.version.toStdString();
-
-            for (const auto& alias : info.aliases)
-            {
-                source_image.aliases.push_back(alias.toStdString());
-            }
-
-            return source_image;
-        }
+        return source_image;
     }
     catch (const LXDNotFoundException&)
     {
-        // Instance doesn't exist, so move on
-    }
-    catch (const std::exception&)
-    {
-        // Image doesn't exist, so move on
+        // Instance or image doesn't exist, so move on
     }
 
     // TODO: Remove once we do support http & file based images
