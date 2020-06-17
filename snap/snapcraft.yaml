@@ -68,7 +68,7 @@ apps:
     command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
     plugs:
-      - home
+      - all-home
       - network
   gui:
     environment: *client-environment
