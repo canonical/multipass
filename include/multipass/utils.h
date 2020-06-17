@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_UTILS_H
 #define MULTIPASS_UTILS_H
 
+#include <multipass/logging/level.h>
 #include <multipass/path.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
@@ -38,12 +39,15 @@
 
 namespace multipass
 {
+
+// Fwd decl
 class SSHKeyProvider;
 class VirtualMachine;
 
 namespace utils
 {
 
+// enum types
 enum class QuoteType
 {
     no_quotes,
@@ -56,29 +60,45 @@ enum class TimeoutAction
     done
 };
 
+// filesystem and path helpers
 QDir base_dir(const QString& path);
 multipass::Path make_dir(const QDir& a_dir, const QString& name);
 bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
-QString get_driver_str();
 std::string filename_for(const std::string& path);
-QString make_uuid();
 std::string contents_of(const multipass::Path& file_path);
-bool has_only_digits(const std::string& value);
+bool invalid_target_path(const QString& target_path);
+
+// special-file helpers
+void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
+void check_and_create_config_file(const QString& config_file_path);
+
+// command and process helpers
+std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
+bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout = 30000);
+std::string run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout = 30000);
+void process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                            const QString& category = "utils", const int timeout = 30000);
+bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                          const QString& category, multipass::logging::Level level = multipass::logging::Level::debug,
+                          const int timeout = 30000);
+
+// networking helpers
 void validate_server_address(const std::string& value);
 bool valid_hostname(const std::string& name_string);
-bool invalid_target_path(const QString& target_path);
-std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
-bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout=30000);
-std::string run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout=30000);
+std::string generate_mac_address();
+
+// string helpers
+bool has_only_digits(const std::string& value);
 std::string& trim_end(std::string& s);
 std::string& trim_newline(std::string& s);
 std::string escape_char(const std::string& s, char c);
 std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
-std::string generate_mac_address();
-std::string timestamp();
 std::string match_line_for(const std::string& output, const std::string& matcher);
+std::string timestamp();
+
+// virtual machine helpers
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& ensure_vm_is_running = []() {});
@@ -86,18 +106,23 @@ void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseco
                          const SSHKeyProvider& key_provider);
 void install_sshfs_for(const std::string& name, SSHSession& session,
                        const std::chrono::milliseconds timeout = std::chrono::minutes(5));
-void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
-void check_and_create_config_file(const QString& config_file_path);
 
-template <typename OnTimeoutCallable, typename TryAction, typename... Args>
-void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
-                    Args&&... args);
+// yaml helpers
+std::string emit_yaml(const YAML::Node& node);
+std::string emit_cloud_config(const YAML::Node& node);
+
+// enum helpers
 template <typename RegisteredQtEnum>
 QString qenum_to_qstring(RegisteredQtEnum val);
 template <typename RegisteredQtEnum>
 std::string qenum_to_string(RegisteredQtEnum val);
-std::string emit_yaml(const YAML::Node& node);
-std::string emit_cloud_config(const YAML::Node& node);
+
+// other helpers
+QString get_driver_str();
+QString make_uuid();
+template <typename OnTimeoutCallable, typename TryAction, typename... Args>
+void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
+                    Args&&... args);
 
 } // namespace utils
 } // namespace multipass
