@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_UTILS_H
 #define MULTIPASS_UTILS_H
 
+#include <multipass/logging/level.h>
 #include <multipass/path.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
@@ -72,10 +73,15 @@ bool invalid_target_path(const QString& target_path);
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
 void check_and_create_config_file(const QString& config_file_path);
 
-// command helpers
+// command and process helpers
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
 bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout = 30000);
 std::string run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout = 30000);
+void process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                            const QString& category = "utils", const int timeout = 30000);
+bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                          const QString& category, multipass::logging::Level level = multipass::logging::Level::debug,
+                          const int timeout = 30000);
 
 // networking helpers
 void validate_server_address(const std::string& value);
