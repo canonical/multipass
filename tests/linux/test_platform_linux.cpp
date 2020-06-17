@@ -32,6 +32,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QKeySequence>
 #include <QString>
 
 #include <scope_guard.hpp>
@@ -161,9 +162,20 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
-TEST_F(PlatformLinux, hotkey_in_extra_settings) // TODO@ricab replicate in macos and windows
+TEST_F(PlatformLinux, hotkey_in_extra_settings) // TODO@ricardo replicate in macos and windows
 {
     EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::hotkey_key), _)));
+}
+
+TEST_F(PlatformLinux, default_hotkey_presentation_is_normalized) // TODO@ricardo replicate in macos and windows
+{
+    for (const auto& [k, v] : mp::platform::extra_settings_defaults())
+    {
+        if (k == mp::hotkey_key)
+        {
+            EXPECT_EQ(v, QKeySequence{v}.toString());
+        }
+    }
 }
 
 TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
