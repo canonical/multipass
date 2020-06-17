@@ -90,7 +90,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 
     auto version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
 
-    sshfs_exec += " -o slave -o transform_symlinks -o allow_other";
+    sshfs_exec += " -o slave -o transform_symlinks -o allow_other -o auto_cache -o Compression=no";
 
     auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
     if (!fuse_version_line.empty())
