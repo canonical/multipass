@@ -47,7 +47,7 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
-    return {{hotkey_key, "Ctrl+Alt+U"}};
+    return {{hotkey_key, default_hotkey()}};
 }
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)

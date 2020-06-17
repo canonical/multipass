@@ -25,6 +25,11 @@
 namespace mp = multipass;
 namespace mpp = multipass::platform;
 
+QString multipass::platform::default_hotkey()
+{
+    return QStringLiteral("Ctrl+Alt+U");
+}
+
 QString mpp::interpret_general_hotkey(const QString& val)
 {
     auto sequence = QKeySequence{val};
