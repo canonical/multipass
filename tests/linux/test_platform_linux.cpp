@@ -162,6 +162,7 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
+// TODO@ricardo consider moving these to test_platform_shared
 TEST_F(PlatformLinux, hotkey_in_extra_settings) // TODO@ricardo replicate in macos and windows
 {
     EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::hotkey_key), _)));

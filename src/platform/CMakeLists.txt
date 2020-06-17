@@ -14,6 +14,7 @@
 
 add_library(platform STATIC
   platform_linux.cpp
+  platform_shared.cpp
   platform_unix.cpp)
 
 target_link_libraries(platform

@@ -30,11 +30,10 @@
 #include "backends/lxd/lxd_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
+#include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
-
-#include <QKeySequence>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -54,17 +53,7 @@ std::map<QString, QString> mp::platform::extra_settings_defaults()
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
     if (key == hotkey_key)
-    {
-        auto sequence = QKeySequence{val};
-        auto ret = sequence.toString();
-
-        if (ret.isEmpty() && !sequence.isEmpty())
-            throw InvalidSettingsException(key, val, "Invalid key sequence"); // TODO@ricardo test
-        if (sequence.count() > 1)
-            throw InvalidSettingsException(key, val, "Multiple key sequences are not supported"); // TODO@ricardo test
-
-        return ret; // TODO@ricardo protect against unmodified letters
-    }
+        return mp::platform::interpret_general_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingsException(key, val, "Setting unavailable on Linux");
