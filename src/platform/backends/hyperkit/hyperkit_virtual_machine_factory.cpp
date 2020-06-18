@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 const int conversion_timeout = 300000; // Timeout in milliseconds
-constexpr auto category = "hyperkit-factory";
+constexpr auto category = "hyperkit factory";
 }
 
 mp::VirtualMachine::UPtr
@@ -116,13 +116,4 @@ void mp::HyperkitVirtualMachineFactory::prepare_instance_image(const mp::VMImage
 
     resize_image.start(QCoreApplication::applicationDirPath() + "/qemu-img", resize_image_args);
     resize_image.waitForFinished();
-}
-
-void mp::HyperkitVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config,
-                                                  YAML::Node& user_config)
-{
-}
-
-void mp::HyperkitVirtualMachineFactory::hypervisor_health_check()
-{
 }

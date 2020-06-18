@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,11 @@
 #ifndef MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_FACTORY_H
 
-#include <multipass/virtual_machine_factory.h>
+#include <shared/base_virtual_machine_factory.h>
 
 namespace multipass
 {
-class HyperkitVirtualMachineFactory final : public VirtualMachineFactory
+class HyperkitVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
     HyperkitVirtualMachineFactory();
@@ -33,12 +33,7 @@ public:
     FetchType fetch_type() override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
-    void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
-    void hypervisor_health_check() override;
-    QString get_backend_directory_name() override
-    {
-        return {};
-    };
+    void hypervisor_health_check() override{};
     QString get_backend_version_string() override
     {
         return "hyperkit";
