@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,11 +74,6 @@ void mp::VirtualBoxVirtualMachineFactory::remove_resources_for(const std::string
     }
 }
 
-mp::FetchType mp::VirtualBoxVirtualMachineFactory::fetch_type()
-{
-    return mp::FetchType::ImageOnly;
-}
-
 mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     QFileInfo source_file{source_image.image_path};
@@ -110,11 +105,6 @@ void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMIma
         "VBoxManage",
         {"modifyhd", instance_image.image_path, "--resize", QString::number(desc.disk_space.in_megabytes())},
         "Could not resize image: {}", QString::fromStdString(desc.vm_name), mpl::Level::warning);
-}
-
-void mp::VirtualBoxVirtualMachineFactory::configure(const std::string& /* name */, YAML::Node& /* meta_config */,
-                                                    YAML::Node& /* user_config */)
-{
 }
 
 void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
