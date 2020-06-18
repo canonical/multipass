@@ -30,6 +30,18 @@ QString multipass::platform::default_hotkey()
     return QStringLiteral("Ctrl+Alt+U");
 }
 
+// A few notes on this:
+// 1) Some shortcuts may feel counter-intuitive. For example in a keyboard where pressing "shift+-" produces an
+// underscore, "_" is still interpreted the same as "-". IOW, "shift+-" == "shift+_" != "_" (just like "u" is the same
+// as "U").
+// 2) QHotKey fails to register some of the shortcuts we accept here (e.g. "Media Play").
+// 3) QKeySequence seems to have problems with AtlGr. QKeySequence("AltGr").toString() prints rubbish (that it does not
+// interpret back to mean the same thing). Unfortunately it is not enough to specify "ú" when that's what the layout
+// produces for AltGr+U. The Sequence "ú" is accepted and QHotKey registers it, but is gets triggered on "U" and not
+// "AltGr+U".
+// 4) There does not seem to be a way to specify numpad keys in QKeySequence (with or without numlock).
+// 5) meta only seems to work with other modifiers (e.g. ctrl+meta+x works, but meta+x doesn't even though it is
+// accepted with no warning)
 QString mpp::interpret_general_hotkey(const QString& val)
 {
     auto sequence = QKeySequence{val};
