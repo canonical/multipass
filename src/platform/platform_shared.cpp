@@ -36,10 +36,9 @@ QString mpp::interpret_general_hotkey(const QString& val)
     auto ret = sequence.toString();
 
     if (ret.isEmpty() && !sequence.isEmpty())
-        throw InvalidSettingsException(mp::hotkey_key, val, "Invalid key sequence"); // TODO@ricardo test
+        throw InvalidSettingsException(mp::hotkey_key, val, "Invalid key sequence");
     if (sequence.count() > 1)
-        throw InvalidSettingsException(mp::hotkey_key, val,
-                                       "Multiple key sequences are not supported"); // TODO@ricardo test
+        throw InvalidSettingsException(mp::hotkey_key, val, "Multiple key sequences are not supported");
 
-    return ret; // TODO@ricardo protect against unmodified letters
+    return ret;
 }

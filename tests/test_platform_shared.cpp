@@ -15,6 +15,8 @@
  *
  */
 
+#include "extra_assertions.h"
+
 #include <multipass/constants.h>
 #include <multipass/platform.h>
 
@@ -24,6 +26,7 @@
 #include <gtest/gtest.h>
 
 #include <QKeySequence>
+#include <multipass/exceptions/settings_exceptions.h>
 
 namespace mp = multipass;
 using namespace testing;
@@ -46,4 +49,32 @@ TEST(PlatformShared, default_hotkey_presentation_is_normalized) // TODO@ricardo 
         }
     }
 }
+
+TEST(PlatformShared, general_hotkey_interpretation_throws_on_invalid_hotkey)
+{
+    const auto bad_sequences =
+        std::vector<QString>{"abcd",  "uU", "f42", "f0", "d3", "Fn+x", "Ctrl+a,Shift+b", "Alt+u,Ctrl+y,Alt+t",
+                             "alt+,x"}; // multiple not allowed either
+    for (const auto& bad_sequence : bad_sequences)
+    {
+        MP_EXPECT_THROW_THAT(mp::platform::interpret_general_hotkey(bad_sequence), mp::InvalidSettingsException,
+                             Property(&mp::InvalidSettingsException::what,
+                                      AllOf(HasSubstr(mp::hotkey_key), HasSubstr(bad_sequence.toStdString()))));
+    }
+}
+
+TEST(PlatformShared, general_hotkey_interpretation_of_acceptable_hotkey)
+{
+    const auto good_sequences = std::vector<QString>{
+        "u",          "U",     "shift+U", "Space",     "alt+space", "backspace",    "alt+meta+l",
+        "alt+,",      "RIGHT", "-",       "shift+-",   "shift+_",   "ctrl+shift+-", "ctrl+_",
+        "Media Play", "Home",  "Pause",   "shift+end", "tab",       "alt+shift+3",
+    };
+
+    for (const auto& good_sequence : good_sequences)
+    {
+        EXPECT_EQ(QKeySequence{mp::platform::interpret_general_hotkey(good_sequence)}, QKeySequence{good_sequence});
+    }
+}
+
 } // namespace
