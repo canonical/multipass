@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto multipass_bridge_name = "mpvirtbr0";
-constexpr auto logging_category = "libvirt-factory";
+constexpr auto logging_category = "libvirt factory";
 
 auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
 {
@@ -107,7 +107,8 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
                                                                const std::string& libvirt_object_path)
-    : libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
+    : BaseVirtualMachineFactory(logging_category),
+      libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
       data_dir{data_dir},
       bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)},
       libvirt_object_path{libvirt_object_path}
@@ -147,11 +148,6 @@ void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& n
     libvirt_wrapper->virDomainUndefine(libvirt_wrapper->virDomainLookupByName(connection.get(), name.c_str()));
 }
 
-mp::FetchType mp::LibVirtVirtualMachineFactory::fetch_type()
-{
-    return mp::FetchType::ImageOnly;
-}
-
 mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
     VMImage image{source_image};
@@ -163,11 +159,6 @@ void mp::LibVirtVirtualMachineFactory::prepare_instance_image(const VMImage& ins
                                                               const VirtualMachineDescription& desc)
 {
     mp::backend::resize_instance_image(desc.disk_space, instance_image.image_path);
-}
-
-void mp::LibVirtVirtualMachineFactory::configure(const std::string& /*name*/, YAML::Node& /*meta_config*/,
-                                                 YAML::Node& /*user_config*/)
-{
 }
 
 void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()

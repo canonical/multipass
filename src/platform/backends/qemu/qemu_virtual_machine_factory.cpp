@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "qemu factory";
 constexpr auto multipass_bridge_name = "mpqemubr0";
 
 // An interface name can only be 15 characters, so this generates a hash of the
@@ -96,14 +97,14 @@ void set_ip_forward()
     QFile ip_forward("/proc/sys/net/ipv4/ip_forward");
     if (!ip_forward.open(QFile::ReadWrite))
     {
-        mpl::log(mpl::Level::warning, "daemon",
+        mpl::log(mpl::Level::warning, category,
                  fmt::format("Unable to open {}", qUtf8Printable(ip_forward.fileName())));
         return;
     }
 
     if (ip_forward.write("1") < 0)
     {
-        mpl::log(mpl::Level::warning, "daemon",
+        mpl::log(mpl::Level::warning, category,
                  fmt::format("Failed to write to {}", qUtf8Printable(ip_forward.fileName())));
     }
 }
@@ -119,7 +120,8 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& network_dir, const QStri
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : bridge_name{QString::fromStdString(multipass_bridge_name)},
+    : BaseVirtualMachineFactory(category),
+      bridge_name{QString::fromStdString(multipass_bridge_name)},
       network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
       subnet{mp::backend::get_subnet(network_dir, bridge_name)},
       dnsmasq_server{create_dnsmasq_server(network_dir, bridge_name, subnet)},
@@ -153,11 +155,6 @@ void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name
     }
 }
 
-mp::FetchType mp::QemuVirtualMachineFactory::fetch_type()
-{
-    return mp::FetchType::ImageOnly;
-}
-
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     VMImage image{source_image};
@@ -169,11 +166,6 @@ void mp::QemuVirtualMachineFactory::prepare_instance_image(const mp::VMImage& in
                                                            const VirtualMachineDescription& desc)
 {
     mp::backend::resize_instance_image(desc.disk_space, instance_image.image_path);
-}
-
-void mp::QemuVirtualMachineFactory::configure(const std::string& /*name*/, YAML::Node& /*meta_config*/,
-                                              YAML::Node& /*user_config*/)
-{
 }
 
 void mp::QemuVirtualMachineFactory::hypervisor_health_check()
@@ -201,7 +193,7 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
             return QString("qemu-%1").arg(match.captured(1));
         else
         {
-            mpl::log(mpl::Level::error, "daemon",
+            mpl::log(mpl::Level::error, category,
                      fmt::format("Failed to parse QEMU version out: '{}'", process->read_all_standard_output()));
             return QString("qemu-unknown");
         }
@@ -210,12 +202,12 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     {
         if (exit_state.error)
         {
-            mpl::log(mpl::Level::error, "daemon",
+            mpl::log(mpl::Level::error, category,
                      fmt::format("Qemu failed to start: {}", exit_state.failure_message()));
         }
         else if (exit_state.exit_code)
         {
-            mpl::log(mpl::Level::error, "daemon",
+            mpl::log(mpl::Level::error, category,
                      fmt::format("Qemu fail: '{}' with outputs:\n{}\n{}", exit_state.failure_message(),
                                  process->read_all_standard_output(), process->read_all_standard_error()));
         }

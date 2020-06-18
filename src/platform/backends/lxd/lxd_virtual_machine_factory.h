@@ -21,13 +21,13 @@
 #include "lxd_request.h"
 
 #include <multipass/network_access_manager.h>
-#include <multipass/virtual_machine_factory.h>
+#include <shared/base_virtual_machine_factory.h>
 
 #include <QUrl>
 
 namespace multipass
 {
-class LXDVirtualMachineFactory final : public VirtualMachineFactory
+class LXDVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
     explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);
@@ -37,10 +37,11 @@ public:
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
-    FetchType fetch_type() override;
-    VMImage prepare_source_image(const VMImage& source_image) override;
+    VMImage prepare_source_image(const VMImage& source_image) override
+    {
+        return source_image;
+    };
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
-    void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
     void hypervisor_health_check() override;
     QString get_backend_directory_name() override
     {
