@@ -20,6 +20,8 @@
 #include <shared/base_virtual_machine_factory.h>
 
 #include "mock_logger.h"
+#include "stub_url_downloader.h"
+#include "temp_dir.h"
 
 #include <gmock/gmock.h>
 
@@ -81,4 +83,17 @@ TEST_F(BaseFactory, dir_name_returns_empty_string)
     const auto dir_name = factory.get_backend_directory_name();
 
     EXPECT_TRUE(dir_name.isEmpty());
+}
+
+TEST_F(BaseFactory, create_image_vault_returns_default_vault)
+{
+    mpt::StubURLDownloader stub_downloader;
+    mpt::TempDir cache_dir;
+    mpt::TempDir data_dir;
+    std::vector<mp::VMImageHost*> hosts;
+    MockBaseFactory factory;
+
+    auto vault = factory.create_image_vault(hosts, &stub_downloader, cache_dir.path(), data_dir.path(), mp::days{0});
+
+    EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
 }
