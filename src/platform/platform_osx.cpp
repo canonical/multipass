@@ -120,13 +120,6 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
-std::unique_ptr<mp::VMImageVault> mp::platform::make_image_vault(std::vector<mp::VMImageHost*> image_host,
-                                                                 mp::URLDownloader* downloader, mp::Path cache_dir_path,
-                                                                 mp::Path data_dir_path, mp::days days_to_expire)
-{
-    return std::make_unique<DefaultVMImageVault>(image_host, downloader, cache_dir_path, data_dir_path, days_to_expire);
-}
-
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
 {
     return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
