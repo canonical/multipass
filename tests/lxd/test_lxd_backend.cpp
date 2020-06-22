@@ -52,6 +52,10 @@ struct LXDBackend : public Test
     LXDBackend() : mock_network_access_manager{std::make_unique<NiceMock<mpt::MockNetworkAccessManager>>()}
     {
         mpl::set_logger(logger);
+
+        EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
+                                 Matcher<multipass::logging::CString>(_)))
+            .WillRepeatedly(Return());
     }
 
     mp::VirtualMachineDescription default_description{2,
@@ -550,6 +554,63 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
 
     EXPECT_THROW(machine.suspend(), std::runtime_error);
+}
+
+TEST_F(LXDBackend, start_while_suspending_throws)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        {
+            return new mpt::MockLocalSocketReply(mpt::vm_state_freezing_data);
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
+
+    EXPECT_THROW(machine.start(), std::runtime_error);
+}
+
+TEST_F(LXDBackend, start_while_frozen_unfreezes)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    bool unfreeze_called{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&unfreeze_called](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::vm_state_frozen_data);
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("unfreeze"))
+            {
+                unfreeze_called = true;
+                return new mpt::MockLocalSocketReply(mpt::start_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
+
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
+                             mpt::MockLogger::make_cstring_matcher(StrEq("Resuming from a suspended state"))));
+
+    machine.start();
+
+    EXPECT_TRUE(unfreeze_called);
 }
 
 TEST_F(LXDBackend, start_while_running_does_nothing)
