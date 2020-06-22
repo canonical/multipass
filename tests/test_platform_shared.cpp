@@ -34,18 +34,18 @@ using namespace testing;
 namespace
 {
 
-TEST(PlatformShared, hotkey_in_extra_settings) // TODO@ricardo replicate in macos, run in windows
+TEST(PlatformShared, hotkey_in_extra_settings)
 {
     EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::hotkey_key), _)));
 }
 
-TEST(PlatformShared, default_hotkey_presentation_is_normalized) // TODO@ricardo replicate in macos, run in windows
+TEST(PlatformShared, default_hotkey_presentation_is_normalized)
 {
     for (const auto& [k, v] : mp::platform::extra_settings_defaults())
     {
         if (k == mp::hotkey_key)
         {
-            EXPECT_EQ(v, QKeySequence{v}.toString());
+            EXPECT_EQ(v, (QKeySequence{v, QKeySequence::NativeText}.toString()));
         }
     }
 }
