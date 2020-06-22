@@ -24,11 +24,11 @@
 
 namespace multipass
 {
+constexpr auto category = "base factory";
+
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    BaseVirtualMachineFactory(const logging::CString& category) : log_category{category} {};
-
     FetchType fetch_type() override
     {
         return FetchType::ImageOnly;
@@ -36,16 +36,13 @@ public:
 
     void configure(const std::string& name, YAML::Node& /*meta_config*/, YAML::Node& /*user_config*/) override
     {
-        log(logging::Level::trace, log_category, fmt::format("No driver configuration for \"{}\"", name));
+        log(logging::Level::trace, category, fmt::format("No driver configuration for \"{}\"", name));
     };
 
     QString get_backend_directory_name() override
     {
         return {};
     };
-
-protected:
-    const logging::CString log_category;
 };
 } // namespace multipass
 

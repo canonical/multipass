@@ -31,12 +31,8 @@ using namespace testing;
 
 namespace
 {
-constexpr auto category = "testing";
-
 struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
-    MockBaseFactory() : mp::BaseVirtualMachineFactory(category){};
-
     MOCK_METHOD2(create_virtual_machine,
                  mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&, mp::VMStatusMonitor&));
     MOCK_METHOD1(remove_resources_for, void(const std::string&));
@@ -69,7 +65,7 @@ TEST_F(BaseFactory, configure_logs_trace_message)
     const std::string name{"foo"};
     MockBaseFactory factory;
 
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq(category)),
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("base factory")),
                              mpt::MockLogger::make_cstring_matcher(
                                  StrEq(fmt::format("No driver configuration for \"{}\"", name)))));
 
