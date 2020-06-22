@@ -120,8 +120,7 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& network_dir, const QStri
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : BaseVirtualMachineFactory(category),
-      bridge_name{QString::fromStdString(multipass_bridge_name)},
+    : bridge_name{QString::fromStdString(multipass_bridge_name)},
       network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
       subnet{mp::backend::get_subnet(network_dir, bridge_name)},
       dnsmasq_server{create_dnsmasq_server(network_dir, bridge_name, subnet)},

@@ -107,8 +107,7 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
                                                                const std::string& libvirt_object_path)
-    : BaseVirtualMachineFactory(logging_category),
-      libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
+    : libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
       data_dir{data_dir},
       bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)},
       libvirt_object_path{libvirt_object_path}

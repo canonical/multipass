@@ -24,10 +24,12 @@
 
 namespace multipass
 {
+constexpr auto log_category = "base factory";
+
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    BaseVirtualMachineFactory(const logging::CString& category) : log_category{category} {};
+    BaseVirtualMachineFactory() = default;
 
     FetchType fetch_type() override
     {
@@ -43,9 +45,6 @@ public:
     {
         return {};
     };
-
-protected:
-    const logging::CString log_category;
 };
 } // namespace multipass
 

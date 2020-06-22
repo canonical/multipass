@@ -36,8 +36,7 @@ const QString multipass_bridge_name = "mpbr0";
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
                                                        const QUrl& base_url)
-    : BaseVirtualMachineFactory(category),
-      manager{std::move(manager)},
+    : manager{std::move(manager)},
       data_dir{mp::utils::make_dir(data_dir, get_backend_directory_name())},
       base_url{base_url}
 {
