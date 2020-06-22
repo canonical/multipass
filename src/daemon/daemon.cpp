@@ -1840,7 +1840,7 @@ mp::MemorySize mp::Daemon::get_image_size(const mp::VMImage& image)
     }
 
     const auto img_info = QString{qemuimg_process->read_all_standard_output()};
-    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)$");
+    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)\r?$");
     const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
 
     mp::MemorySize image_size{};
