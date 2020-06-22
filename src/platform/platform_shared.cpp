@@ -27,7 +27,7 @@ namespace mpp = multipass::platform;
 
 QString multipass::platform::default_hotkey()
 {
-    return QStringLiteral("Ctrl+Alt+U");
+    return QKeySequence{QStringLiteral("Ctrl+Alt+U")}.toString(QKeySequence::NativeText); // Cmd+Opt+U on mac
 }
 
 // A few notes on this:
@@ -45,7 +45,7 @@ QString multipass::platform::default_hotkey()
 QString mpp::interpret_general_hotkey(const QString& val)
 {
     auto sequence = QKeySequence{val};
-    auto ret = sequence.toString();
+    auto ret = sequence.toString(QKeySequence::NativeText);
 
     if (ret.isEmpty() && !sequence.isEmpty())
         throw InvalidSettingsException(mp::hotkey_key, val, "Invalid key sequence");
