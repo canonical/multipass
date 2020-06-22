@@ -531,7 +531,7 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws)
         std::runtime_error);
 }
 
-TEST_F(LXDBackend, suspend_while_stopped_keeps_same_state)
+TEST_F(LXDBackend, unsupported_suspend_throws)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -541,7 +541,7 @@ TEST_F(LXDBackend, suspend_while_stopped_keeps_same_state)
 
         if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
         {
-            return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+            return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
         }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
@@ -549,36 +549,7 @@ TEST_F(LXDBackend, suspend_while_stopped_keeps_same_state)
 
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
 
-    ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
-
-    machine.suspend();
-
-    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
-}
-
-TEST_F(LXDBackend, stop_while_suspended_keeps_same_state)
-{
-    mpt::StubVMStatusMonitor stub_monitor;
-
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
-        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-        auto url = request.url().toString();
-
-        if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
-        {
-            return new mpt::MockLocalSocketReply(mpt::vm_state_frozen_data);
-        }
-
-        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-    });
-
-    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
-
-    ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
-
-    machine.stop();
-
-    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
+    EXPECT_THROW(machine.suspend(), std::runtime_error);
 }
 
 TEST_F(LXDBackend, start_while_running_does_nothing)
