@@ -68,7 +68,7 @@ void setup_powershell(QProcess* power_shell, const QStringList& args, const std:
 
 mp::PowerShell::PowerShell(const std::string& name) : name(name)
 {
-    setup_powershell(&powershell_proc, {"-NoExit", "-Command", "-"}, this->name);
+    setup_powershell(&powershell_proc, {"-NoProfile", "-NoExit", "-Command", "-"}, this->name);
 
     powershell_proc.start();
 }
