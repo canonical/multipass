@@ -29,6 +29,7 @@
 #include <cerrno>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -76,9 +77,12 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
-QSettings persistent_settings(const QString& key)
+std::unique_ptr<QSettings> persistent_settings(const QString& key)
 {
-    return {file_for(key), QSettings::IniFormat};
+    auto ret = std::make_unique<QSettings>(file_for(key), QSettings::IniFormat);
+    ret->setIniCodec("UTF-8");
+
+    return ret;
 }
 
 bool exists_but_unreadable(const QString& filename)
@@ -157,7 +161,7 @@ QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
     auto settings = persistent_settings(key);
-    return checked_get(settings, key, default_ret, mutex);
+    return checked_get(*settings, key, default_ret, mutex);
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
@@ -201,5 +205,5 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         val = mp::platform::interpret_setting(key, val);
 
     auto settings = persistent_settings(key);
-    checked_set(settings, key, val, mutex);
+    checked_set(*settings, key, val, mutex);
 }
