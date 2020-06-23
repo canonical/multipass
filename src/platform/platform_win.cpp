@@ -441,8 +441,8 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
 
 bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
-    // Minimal images that the snapcraft remote uses do not work on Windows
-    if (remote == "snapcraft")
+    // snapcraft:core image doesn't work yet
+    if (remote == "snapcraft" && alias == "core")
         return false;
 
     if (check_unlock_code())
@@ -469,10 +469,6 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
 
 bool mp::platform::is_remote_supported(const std::string& remote)
 {
-    // Minimal images that the snapcraft remote uses do not work on Windows
-    if (remote == "snapcraft")
-        return false;
-
     if (remote.empty() || check_unlock_code())
         return true;
 
