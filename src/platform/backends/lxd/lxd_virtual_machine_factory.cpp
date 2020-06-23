@@ -91,26 +91,10 @@ void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
     mpl::log(mpl::Level::trace, category, fmt::format("No resources to remove for \"{}\"", name));
 }
 
-mp::FetchType mp::LXDVirtualMachineFactory::fetch_type()
-{
-    return mp::FetchType::ImageOnly;
-}
-
-mp::VMImage mp::LXDVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
-{
-    return source_image;
-}
-
 void mp::LXDVirtualMachineFactory::prepare_instance_image(const mp::VMImage& /* instance_image */,
                                                           const VirtualMachineDescription& /* desc */)
 {
     mpl::log(mpl::Level::trace, category, "No driver preparation for instance image");
-}
-
-void mp::LXDVirtualMachineFactory::configure(const std::string& name, YAML::Node& /* meta_config */,
-                                             YAML::Node& /* user_config */)
-{
-    mpl::log(mpl::Level::trace, category, fmt::format("No driver configuration for \"{}\"", name));
 }
 
 void mp::LXDVirtualMachineFactory::hypervisor_health_check()
