@@ -82,6 +82,7 @@ add_executable(multipass_tests
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
+  PRIVATE ${CMAKE_SOURCE_DIR}/src
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
   PRIVATE ${MULTIPASS_GTEST_DIR}
   PRIVATE ${MULTIPASS_GTEST_DIR}/include
