@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -16,13 +16,16 @@
 add_library(hyperv_backend STATIC
   hyperv_virtual_machine.cpp
   hyperv_virtual_machine_factory.cpp
-  powershell.cpp )
+  powershell.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h
+  ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
 
 target_link_libraries(hyperv_backend
   Qt5::Core
   fmt
   ip_address
   logger
+  process
   ssh
   utils
   yaml)

@@ -1,4 +1,4 @@
-# Copyright © 2019 Canonical Ltd.
+# Copyright © 2019-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -15,13 +15,16 @@
 
 add_library(virtualbox_backend STATIC
   virtualbox_virtual_machine.cpp
-  virtualbox_virtual_machine_factory.cpp)
+  virtualbox_virtual_machine_factory.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h
+  ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
 
 target_link_libraries(virtualbox_backend
   Qt5::Core
   fmt
   ip_address
   logger
+  process
   ssh
   utils
   yaml)

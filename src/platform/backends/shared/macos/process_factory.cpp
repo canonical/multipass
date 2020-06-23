@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,10 @@
  */
 
 #include "process_factory.h"
-#include "basic_process.h"
-#include "simple_process_spec.h"
 #include <multipass/logging/log.h>
-#include <multipass/process_spec.h>
+#include <multipass/process/basic_process.h>
+#include <multipass/process/process_spec.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
 
 #include <unistd.h>
