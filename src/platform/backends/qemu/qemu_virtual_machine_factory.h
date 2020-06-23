@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "iptables_config.h"
 
 #include <multipass/path.h>
-#include <multipass/virtual_machine_factory.h>
+#include <shared/base_virtual_machine_factory.h>
 
 #include <QString>
 
@@ -30,7 +30,7 @@
 
 namespace multipass
 {
-class QemuVirtualMachineFactory final : public VirtualMachineFactory
+class QemuVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
     explicit QemuVirtualMachineFactory(const Path& data_dir);
@@ -39,15 +39,9 @@ public:
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
-    FetchType fetch_type() override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
-    void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
     void hypervisor_health_check() override;
-    QString get_backend_directory_name() override
-    {
-        return {};
-    };
     QString get_backend_version_string() override;
 
 private:

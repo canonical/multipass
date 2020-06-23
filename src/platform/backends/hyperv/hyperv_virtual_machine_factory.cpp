@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -189,11 +189,6 @@ void mp::HyperVVirtualMachineFactory::remove_resources_for(const std::string& na
     PowerShell::exec({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
 }
 
-mp::FetchType mp::HyperVVirtualMachineFactory::fetch_type()
-{
-    return mp::FetchType::ImageOnly;
-}
-
 mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     QFileInfo source_file{source_image.image_path};
@@ -233,11 +228,6 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 {
     auto disk_size = QString::number(desc.disk_space.in_bytes()); // format documented in `Help(Resize-VHD)`
     PowerShell::exec({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size}, desc.vm_name);
-}
-
-void mp::HyperVVirtualMachineFactory::configure(const std::string& name, YAML::Node& meta_config,
-                                                YAML::Node& user_config)
-{
 }
 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()

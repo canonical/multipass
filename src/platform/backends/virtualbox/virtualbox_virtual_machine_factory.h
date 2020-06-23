@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,20 +18,18 @@
 #ifndef MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H
 
-#include <multipass/virtual_machine_factory.h>
+#include <shared/base_virtual_machine_factory.h>
 
 namespace multipass
 {
-class VirtualBoxVirtualMachineFactory final : public VirtualMachineFactory
+class VirtualBoxVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
-    FetchType fetch_type() override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
-    void configure(const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) override;
     void hypervisor_health_check() override;
     QString get_backend_directory_name() override
     {
