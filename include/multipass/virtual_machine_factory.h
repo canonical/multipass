@@ -18,9 +18,12 @@
 #ifndef MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
 
+#include <multipass/days.h>
 #include <multipass/fetch_type.h>
+#include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_image.h>
+#include <multipass/vm_image_vault.h>
 
 namespace YAML
 {
@@ -29,9 +32,11 @@ class Node;
 
 namespace multipass
 {
+class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
+
 class VirtualMachineFactory
 {
 public:
@@ -53,6 +58,9 @@ public:
     virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() = 0;
     virtual QString get_backend_version_string() = 0;
+    virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
+                                                  const Path& cache_dir_path, const Path& data_dir_path,
+                                                  const days& days_to_expire) = 0;
 
 protected:
     VirtualMachineFactory() = default;
