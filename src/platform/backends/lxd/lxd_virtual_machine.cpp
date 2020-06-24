@@ -204,6 +204,10 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
 
 mp::LXDVirtualMachine::~LXDVirtualMachine()
 {
+    update_shutdown_status = false;
+
+    if (state == State::running)
+        stop();
 }
 
 void mp::LXDVirtualMachine::start()
@@ -238,13 +242,21 @@ void mp::LXDVirtualMachine::stop()
     if (present_state == State::running || present_state == State::delayed_shutdown)
     {
         auto state_task = request_state("stop");
-        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
-            state_task["status_code"].toInt(-1) == 100)
+
+        try
         {
-            QUrl task_url(QString("%1/operations/%2/wait")
-                              .arg(base_url.toString())
-                              .arg(state_task["metadata"].toObject()["id"].toString()));
-            lxd_request(manager, "GET", task_url);
+            if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
+                state_task["status_code"].toInt(-1) == 100)
+            {
+                QUrl task_url(QString("%1/operations/%2/wait")
+                                  .arg(base_url.toString())
+                                  .arg(state_task["metadata"].toObject()["id"].toString()));
+                lxd_request(manager, "GET", task_url);
+            }
+        }
+        catch (const LXDNotFoundException&)
+        {
+            // Implies the task doesn't exist, move on...
         }
 
         state = State::stopped;
@@ -262,7 +274,9 @@ void mp::LXDVirtualMachine::stop()
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
 
-    update_state();
+    if (update_shutdown_status)
+        update_state();
+
     lock.unlock();
 }
 
