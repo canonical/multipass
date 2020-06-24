@@ -44,7 +44,7 @@ constexpr auto category = "lxd image vault";
 
 auto parse_percent_as_int(const QString& progress_string)
 {
-    QRegularExpression re{"\\s(\\d{1,3})%"};
+    QRegularExpression re{"rootfs:\\s(\\d{1,3})%"};
 
     QRegularExpressionMatch match = re.match(progress_string);
 
