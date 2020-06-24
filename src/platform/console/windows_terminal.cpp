@@ -43,7 +43,9 @@ HANDLE mp::WindowsTerminal::cin_handle() const
 
 bool mp::WindowsTerminal::cin_is_live() const
 {
-    return !(_isatty(_fileno(stdin)) == 0);
+    // GetConsoleMode will fail if cin is not a console. If it does not fail, we check if cin can receive input.
+    DWORD mode;
+    return GetConsoleMode(cin_handle(), &mode) && (mode & ENABLE_LINE_INPUT);
 }
 
 HANDLE mp::WindowsTerminal::cout_handle() const
@@ -58,7 +60,10 @@ HANDLE mp::WindowsTerminal::cerr_handle() const
 
 bool mp::WindowsTerminal::cout_is_live() const
 {
-    return !(_isatty(_fileno(stdout)) == 0);
+    // GetConsoleScreenBufferInfo will fail if cout is not a console. Since there is nothing to check in the
+    // CONSOLE_SCREEN_BUFFER_INFO structure, we return the result of GetConsoleScreenBufferInfo.
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    return GetConsoleScreenBufferInfo(cout_handle(), &csbi);
 }
 
 std::string mp::WindowsTerminal::read_all_cin()
