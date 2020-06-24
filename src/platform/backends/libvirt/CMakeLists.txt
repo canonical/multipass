@@ -1,4 +1,4 @@
-#Copyright © 2018-2019 Canonical Ltd.
+#Copyright © 2018-2020 Canonical Ltd.
 #
 #This program is free software : you can redistribute it and / or modify
 #it under the terms of the GNU General Public License version 3 as
@@ -24,6 +24,7 @@ function(add_libvirt_target TARGET_NAME)
 
   target_include_directories(${TARGET_NAME} PRIVATE ${LIBVIRT_INCLUDE_DIRS})
   target_link_libraries(${TARGET_NAME}
+    daemon
     fmt
     ip_address
     Qt5::Core

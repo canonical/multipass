@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <multipass/progress_monitor.h>
 
 #include <functional>
+#include <memory>
 
 namespace multipass
 {
@@ -31,8 +32,10 @@ class VMImage;
 class VMImageVault
 {
 public:
-    virtual ~VMImageVault() = default;
+    using UPtr = std::unique_ptr<VMImageVault>;
     using PrepareAction = std::function<VMImage(const VMImage&)>;
+
+    virtual ~VMImageVault() = default;
     virtual VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                                 const ProgressMonitor& monitor) = 0;
     virtual void remove(const std::string& name) = 0;

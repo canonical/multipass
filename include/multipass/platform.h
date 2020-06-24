@@ -55,8 +55,6 @@ QString daemon_config_home();                      // temporary
 
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
-std::unique_ptr<VMImageVault> make_image_vault(std::vector<VMImageHost*> image_host, URLDownloader* downloader,
-                                               Path cache_dir_path, Path data_dir_path, days days_to_expire);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);

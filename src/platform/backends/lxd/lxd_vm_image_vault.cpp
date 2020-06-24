@@ -16,10 +16,12 @@
  */
 
 #include "lxd_vm_image_vault.h"
+#include "lxd_request.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_access_manager.h>
 #include <multipass/platform.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
@@ -55,8 +57,9 @@ auto parse_percent_as_int(const QString& progress_string)
 }
 } // namespace
 
-mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, const QUrl& base_url)
-    : image_hosts{image_hosts}, base_url{base_url}, manager{std::make_unique<mp::NetworkAccessManager>()}
+mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, NetworkAccessManager* manager,
+                                     const QUrl& base_url)
+    : image_hosts{image_hosts}, manager{manager}, base_url{base_url}
 {
     for (const auto& image_host : image_hosts)
     {
@@ -77,7 +80,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     try
     {
         auto instance_info = lxd_request(
-            manager.get(), "GET",
+            manager, "GET",
             QUrl(QString("%1/virtual_machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
 
         auto id = instance_info["metadata"].toObject()["config"].toObject()["volatile.base_image"].toString();
@@ -131,8 +134,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
     try
     {
-        auto json_reply =
-            lxd_request(manager.get(), "GET", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
+        auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
     }
     catch (const LXDNotFoundException&)
     {
@@ -143,7 +145,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
                                                         {"fingerprint", id}}}};
 
         auto json_reply =
-            lxd_request(manager.get(), "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
+            lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
 
         if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
             json_reply["status_code"].toInt(-1) == 100)
@@ -157,7 +159,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             {
                 try
                 {
-                    auto task_reply = lxd_request(manager.get(), "GET", task_url);
+                    auto task_reply = lxd_request(manager, "GET", task_url);
 
                     if (task_reply["error_code"].toInt(-1) != 0)
                     {
@@ -176,7 +178,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
                         if (!monitor(LaunchProgress::IMAGE, download_progress))
                         {
-                            lxd_request(manager.get(), "DELETE", task_url);
+                            lxd_request(manager, "DELETE", task_url);
                             throw mp::AbortedDownloadException{"Download aborted"};
                         }
 
@@ -199,7 +201,7 @@ void mp::LXDVMImageVault::remove(const std::string& name)
 {
     try
     {
-        lxd_request(manager.get(), "DELETE",
+        lxd_request(manager, "DELETE",
                     QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
     }
     catch (const LXDNotFoundException&)
@@ -212,8 +214,7 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 {
     try
     {
-        lxd_request(manager.get(), "GET",
-                    QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
+        lxd_request(manager, "GET", QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
 
         return true;
     }
