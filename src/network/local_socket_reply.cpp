@@ -112,7 +112,7 @@ void mp::LocalSocketReply::abort()
     close();
 
     setError(OperationCanceledError, "Operation canceled");
-    emit error(OperationCanceledError);
+    emit errorOccurred(OperationCanceledError);
 
     setFinished(true);
     emit finished();
@@ -228,7 +228,7 @@ void mp::LocalSocketReply::parse_status(const QByteArray& status)
     {
         setError(QNetworkReply::ProtocolFailure, "Malformed HTTP response from server");
 
-        emit error(QNetworkReply::ProtocolFailure);
+        emit errorOccurred(QNetworkReply::ProtocolFailure);
 
         return;
     }
@@ -242,6 +242,6 @@ void mp::LocalSocketReply::parse_status(const QByteArray& status)
 
         setError(error_code, http_status_match.captured("message"));
 
-        emit error(error_code);
+        emit errorOccurred(error_code);
     }
 }

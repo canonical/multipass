@@ -223,8 +223,9 @@ QString mp::backend::cpu_arch()
 void mp::backend::check_for_kvm_support()
 {
     QProcess check_kvm;
+
     check_kvm.setProcessChannelMode(QProcess::MergedChannels);
-    check_kvm.start(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
+    check_kvm.start(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"), QStringList{});
     check_kvm.waitForFinished();
 
     if (check_kvm.error() == QProcess::FailedToStart)
