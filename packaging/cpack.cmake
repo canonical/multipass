@@ -82,7 +82,7 @@ if (MSVC)
   # option that returns the actual executable target of the shim.
   execute_process(COMMAND ${QEMU_IMG} --shimgen-noop
     OUTPUT_VARIABLE QEMU_IMG_OUTPUT)
-  string(REGEX MATCH "path to executable: (.*)[\n\r\t ]+working" QEMU_IMG_OUTPUT_REGEX_MATCH ${QEMU_IMG_OUTPUT})
+  string(REGEX MATCH "path to executable: (.*)[\n\r\t ]+working" QEMU_IMG_OUTPUT_REGEX_MATCH "${QEMU_IMG_OUTPUT}")
   if (CMAKE_MATCH_1)
     set(REAL_QEMU_IMG ${CMAKE_MATCH_1})
     string(REPLACE "\\" "/" REAL_QEMU_IMG ${REAL_QEMU_IMG})
