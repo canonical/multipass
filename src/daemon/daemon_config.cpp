@@ -16,7 +16,6 @@
  */
 
 #include "daemon_config.h"
-#include "default_vm_image_vault.h"
 
 #include "custom_image_host.h"
 #include "ubuntu_image_host.h"
@@ -121,7 +120,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, std::string>>{
                 {mp::release_remote, "https://cloud-images.ubuntu.com/releases/"},
-                {mp::daily_remote, "https://cloud-images.ubuntu.com/daily/"}},
+                {mp::daily_remote, "https://cloud-images.ubuntu.com/daily/"},
+                {mp::appliance_remote, "http://cdimage.ubuntu.com/ubuntu-core/appliances/"}},
             url_downloader.get(), manifest_ttl));
     }
     if (vault == nullptr)
@@ -131,7 +131,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         {
             hosts.push_back(image.get());
         }
-        vault = std::make_unique<DefaultVMImageVault>(
+
+        vault = factory->create_image_vault(
             hosts, url_downloader.get(),
             mp::utils::backend_directory_path(cache_directory, factory->get_backend_directory_name()),
             mp::utils::backend_directory_path(data_directory, factory->get_backend_directory_name()), days_to_expire);

@@ -41,10 +41,10 @@ jobs:
 
       addons:
         apt:
-          packages: [clang-format]
+          packages: [clang-format-9]
 
       script:
-      - git diff -U0 --no-color origin/${TRAVIS_BRANCH} | clang-format-diff -p1 | tee ${HOME}/clang-diff
+      - git diff -U0 --no-color origin/${TRAVIS_BRANCH} | clang-format-diff-9 -p1 | tee ${HOME}/clang-diff
       - |
         if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
           echo "ERROR: please apply the above diff to correct formatting"

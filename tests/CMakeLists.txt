@@ -38,6 +38,7 @@ add_executable(multipass_tests
   temp_dir.cpp
   temp_file.cpp
   test_argparser.cpp
+  test_base_virtual_machine_factory.cpp
   test_basic_process.cpp
   test_cli_client.cpp
   test_client_cert_store.cpp
@@ -50,7 +51,6 @@ add_executable(multipass_tests
   test_output_formatter.cpp
   test_image_vault.cpp
   test_ip_address.cpp
-  test_local_network_access_manager.cpp
   test_memory_size.cpp
   test_metrics_provider.cpp
   test_new_release_monitor.cpp
@@ -82,6 +82,7 @@ add_executable(multipass_tests
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
+  PRIVATE ${CMAKE_SOURCE_DIR}/src
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
   PRIVATE ${MULTIPASS_GTEST_DIR}
   PRIVATE ${MULTIPASS_GTEST_DIR}/include
@@ -145,4 +146,5 @@ target_include_directories(multipass_tests
 )
 add_subdirectory(linux)
 add_subdirectory(qemu)
+add_subdirectory(lxd)
 include(libvirt/CMakeLists.txt) # with add_subdirectory it's not possible to target_link_libraries

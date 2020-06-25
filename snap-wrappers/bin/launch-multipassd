@@ -14,4 +14,4 @@ fi
 
 export MULTIPASS_VM_DRIVER
 
-exec "$SNAP/bin/multipassd" --verbosity debug --logger platform
+exec "$SNAP/bin/multipassd" --verbosity debug --logger platform "${@}"

@@ -6,5 +6,9 @@
   "home":{
     "allow-auto-connection": "true",
     "allow-installation": "true"
+  },
+  "lxd":{
+    "allow-auto-connection": "true",
+    "allow-installation": "true"
   }
 }

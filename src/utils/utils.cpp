@@ -193,6 +193,8 @@ std::string mp::utils::generate_mac_address()
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                   std::function<void()> const& ensure_vm_is_running)
 {
+    mpl::log(mpl::Level::debug, virtual_machine->vm_name,
+             fmt::format("Trying SSH on {}:{}", virtual_machine->ssh_hostname(), virtual_machine->ssh_port()));
     auto action = [virtual_machine, &ensure_vm_is_running] {
         ensure_vm_is_running();
         try
@@ -439,4 +441,69 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
         make_dir({}, QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
         config_file.open(QIODevice::WriteOnly);
     }
+}
+
+void mp::utils::process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                                       const QString& category, const int timeout)
+{
+    QProcess process;
+    mpl::log(mpl::Level::debug, category.toStdString(),
+             fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(program, arguments);
+    auto success = process.waitForFinished(timeout);
+
+    if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    {
+        mpl::log(mpl::Level::debug, category.toStdString(),
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
+                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+
+        auto output = process.readAllStandardOutput();
+        throw std::runtime_error(fmt::format(
+            message.toStdString(), output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
+    }
+}
+
+bool mp::utils::process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
+                                     const QString& category, mpl::Level level, const int timeout)
+{
+    QProcess process;
+    mpl::log(mpl::Level::debug, category.toStdString(),
+             fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(program, arguments);
+    auto success = process.waitForFinished(timeout);
+
+    if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    {
+        mpl::log(mpl::Level::debug, category.toStdString(),
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
+                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+
+        auto output = process.readAllStandardOutput();
+        mpl::log(level, category.toStdString(),
+                 fmt::format(message.toStdString(),
+                             output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
+        return false;
+    }
+
+    return true;
+}
+
+std::string mp::utils::emit_yaml(const YAML::Node& node)
+{
+    YAML::Emitter emitter;
+    emitter.SetIndent(2);
+    emitter << node;
+    if (!emitter.good())
+        throw std::runtime_error{fmt::format("Failed to emit YAML: {}", emitter.GetLastError())};
+
+    emitter << YAML::Newline;
+    return emitter.c_str();
+}
+
+std::string mp::utils::emit_cloud_config(const YAML::Node& node)
+{
+    return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
 }

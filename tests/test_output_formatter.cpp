@@ -723,22 +723,22 @@ const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_d
 const std::vector<FormatterParamType> find_formatter_outputs{
     {&table_formatter, &empty_find_reply, "No images found.\n", "table_find_empty"},
     {&table_formatter, &find_one_reply,
-     "Image                   Aliases           Version          Description\n"
-     "ubuntu                                    20190516         Ubuntu 18.04 LTS\n",
+     "Image                       Aliases           Version          Description\n"
+     "ubuntu                                        20190516         Ubuntu 18.04 LTS\n",
      "table_find_one"},
     {&table_formatter, &find_multiple_reply,
-     "Image                   Aliases           Version          Description\n"
-     "lts                                       20190516         Ubuntu 18.04 LTS\n"
-     "daily:19.10             eoan,devel        20190516         Ubuntu 19.10\n",
+     "Image                       Aliases           Version          Description\n"
+     "lts                                           20190516         Ubuntu 18.04 LTS\n"
+     "daily:19.10                 eoan,devel        20190516         Ubuntu 19.10\n",
      "table_find_multiple"},
     {&table_formatter, &find_one_reply_no_os,
-     "Image                   Aliases           Version          Description\n"
-     "snapcraft:core18                          20190520         Snapcraft builder for core18\n",
+     "Image                       Aliases           Version          Description\n"
+     "snapcraft:core18                              20190520         Snapcraft builder for core18\n",
      "table_find_no_os"},
     {&table_formatter, &find_multiple_reply_duplicate_image,
-     "Image                   Aliases           Version          Description\n"
-     "core18                                    20190520         Ubuntu Core 18\n"
-     "snapcraft:core18                          20190520         Snapcraft builder for core18\n",
+     "Image                       Aliases           Version          Description\n"
+     "core18                                        20190520         Ubuntu Core 18\n"
+     "snapcraft:core18                              20190520         Snapcraft builder for core18\n",
      "table_find_multiple_duplicate_image"},
     {&json_formatter, &empty_find_reply,
      "{\n"

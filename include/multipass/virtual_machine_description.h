@@ -20,6 +20,9 @@
 
 #include <multipass/memory_size.h>
 #include <multipass/vm_image.h>
+
+#include <yaml-cpp/yaml.h>
+
 #include <string>
 
 #include <QMetaType>
@@ -40,6 +43,9 @@ public:
     std::string ssh_username;
     VMImage image;
     Path cloud_init_iso;
+    YAML::Node meta_data_config;
+    YAML::Node user_data_config;
+    YAML::Node vendor_data_config;
 };
 } // namespace multipass
 

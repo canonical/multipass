@@ -17,6 +17,7 @@
 
 #include "local_socket_reply.h"
 
+#include <multipass/format.h>
 #include <multipass/network_access_manager.h>
 
 namespace mp = multipass;
@@ -37,13 +38,21 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
     // unix:////var/snap/lxd/common/lxd/unix.socket@1.0
     if (scheme == "unix" || scheme == "local")
     {
-        const auto url_parts = orig_request.url().path().split('@');
+        const auto url_parts = orig_request.url().toString().split('@');
         if (url_parts.count() != 2)
         {
             throw std::runtime_error("The local socket scheme is malformed.");
         }
 
-        const auto socket_path = url_parts[0];
+        const auto socket_path = QUrl(url_parts[0]).path();
+        LocalSocketUPtr local_socket = std::make_unique<QLocalSocket>();
+
+        local_socket->connectToServer(socket_path);
+        if (!local_socket->waitForConnected(5000))
+        {
+            throw std::runtime_error(fmt::format("Cannot connect to {}: {}", socket_path, local_socket->error()));
+        }
+
         const auto server_path = url_parts[1];
         QNetworkRequest request{orig_request};
 
@@ -51,7 +60,7 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
         request.setUrl(url);
 
         // The caller needs to be responsible for freeing the allocated memory
-        return new LocalSocketReply(socket_path, request, device);
+        return new LocalSocketReply(std::move(local_socket), request, device);
     }
     else
     {

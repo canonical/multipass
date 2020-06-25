@@ -22,6 +22,7 @@
 #include <multipass/url_downloader.h>
 
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 
 #include <multipass/format.h>
@@ -43,7 +44,7 @@ auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloade
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
     auto json_manifest = url_downloader->download({host_url + index.manifest_path});
-    return mp::SimpleStreamsManifest::fromJson(json_manifest);
+    return mp::SimpleStreamsManifest::fromJson(json_manifest, host_url);
 }
 
 mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
@@ -57,6 +58,7 @@ mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::
             host_url + info.kernel_location,
             host_url + info.initrd_location,
             info.id,
+            info.stream_location,
             info.version,
             info.size,
             info.verify};
@@ -227,6 +229,14 @@ void mp::UbuntuVMImageHost::fetch_manifests()
         {
             manifests.emplace_back(
                 std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+        }
+        catch (mp::EmptyManifestException& /* e */)
+        {
+            on_manifest_empty(fmt::format("Did not find any supported products in \"{}\"", remote.first));
+        }
+        catch (mp::GenericManifestException& e)
+        {
+            on_manifest_update_failure(e.what());
         }
         catch (mp::DownloadException& e)
         {

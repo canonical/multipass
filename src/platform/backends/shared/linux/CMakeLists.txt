@@ -1,4 +1,4 @@
-# Copyright © 2018-2019 Canonical Ltd.
+# Copyright © 2018-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -27,5 +27,6 @@ include_directories(shared_linux
 target_link_libraries(shared_linux
   apparmor
   fmt
+  shared
   utils
   Qt5::Core)
