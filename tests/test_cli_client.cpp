@@ -31,6 +31,7 @@
 #include <src/daemon/daemon_rpc.h>
 
 #include <QEventLoop>
+#include <QKeySequence>
 #include <QStringList>
 #include <QTemporaryFile>
 #include <QtCore/QTemporaryDir>
@@ -1627,6 +1628,12 @@ TEST_F(Client, set_handles_persistent_settings_errors)
 TEST_F(Client, get_returns_acceptable_autostart_value_by_default)
 {
     EXPECT_THAT(get_setting(mp::autostart_key), AnyOf("true", "false"));
+}
+
+TEST_F(Client, get_returns_normalized_hotkey_by_default)
+{
+    auto hotkey = QString::fromStdString(get_setting(mp::hotkey_key));
+    EXPECT_EQ(hotkey, (QKeySequence{hotkey, QKeySequence::NativeText}.toString(QKeySequence::NativeText)));
 }
 
 TEST_F(Client, set_cmd_rejects_bad_autostart_values)

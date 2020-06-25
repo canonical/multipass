@@ -22,6 +22,7 @@
 #include <multipass/utils.h> // TODO move out
 
 #include <QDir>
+#include <QKeySequence>
 #include <QSettings>
 
 #include <algorithm>
@@ -42,11 +43,17 @@ const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
+QString default_hotkey()
+{
+    return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
+}
+
 std::map<QString, QString> make_defaults()
 { // clang-format off
     auto ret = std::map<QString, QString>{{mp::petenv_key, petenv_name},
                                           {mp::driver_key, mp::platform::default_driver()},
-                                          {mp::autostart_key, autostart_default}};
+                                          {mp::autostart_key, autostart_default},
+                                          {mp::hotkey_key, default_hotkey()}};
 
     for(const auto& [k, v] : mp::platform::extra_settings_defaults())
         ret.insert_or_assign(k, v);

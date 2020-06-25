@@ -25,11 +25,6 @@
 namespace mp = multipass;
 namespace mpp = multipass::platform;
 
-QString multipass::platform::default_hotkey()
-{
-    return QKeySequence{QStringLiteral("Ctrl+Alt+U")}.toString(QKeySequence::NativeText); // Cmd+Opt+U on mac
-}
-
 // A few notes on this:
 // 1) Some shortcuts may feel counter-intuitive. For example in a keyboard where pressing "shift+-" produces an
 // underscore, "_" is still interpreted the same as "-". IOW, "shift+-" == "shift+_" != "_" (just like "u" is the same

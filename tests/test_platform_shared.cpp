@@ -34,22 +34,6 @@ using namespace testing;
 namespace
 {
 
-TEST(PlatformShared, hotkey_in_extra_settings)
-{
-    EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::hotkey_key), _)));
-}
-
-TEST(PlatformShared, default_hotkey_presentation_is_normalized)
-{
-    for (const auto& [k, v] : mp::platform::extra_settings_defaults())
-    {
-        if (k == mp::hotkey_key)
-        {
-            EXPECT_EQ(v, (QKeySequence{v, QKeySequence::NativeText}.toString()));
-        }
-    }
-}
-
 TEST(PlatformShared, general_hotkey_interpretation_throws_on_invalid_hotkey)
 {
     const auto bad_sequences =
