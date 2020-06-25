@@ -26,6 +26,7 @@
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "platform_proprietary.h"
+#include "platform_shared.h"
 #include "shared/macos/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <daemon/default_vm_image_vault.h>
@@ -33,8 +34,12 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QKeySequence>
 #include <QString>
 #include <QtGlobal>
+
+#include <utility>
+#include <vector>
 
 #include <unistd.h>
 
@@ -47,6 +52,21 @@ constexpr auto application_id = "com.canonical.multipass";
 constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
 constexpr auto autostart_link_subdir = "Library/LaunchAgents";
 
+QString interpret_macos_hotkey(QString val)
+{
+    static const auto key_mapping = std::vector<std::pair<std::vector<QString>, QString>>{
+        {{"meta", "option", "opt"}, "alt"}, // qt does not understand "opt"
+        {{"ctrl", "control"}, "meta"},      // qt takes "meta" to mean ctrl
+        {{"cmd", "command"}, "ctrl"},       // qt takes "ctrl" to mean cmd
+    };                                      // Notice the order matters!
+
+    for (const auto& [before_keys, after_key] : key_mapping)
+        for (const auto& before_key : before_keys)
+            val.replace(before_key, after_key, Qt::CaseInsensitive); // TODO@ricab test
+
+    return mp::platform::interpret_general_hotkey(val);
+}
+
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -56,6 +76,9 @@ std::map<QString, QString> mp::platform::extra_settings_defaults()
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
+    if (key == hotkey_key)
+        return interpret_macos_hotkey(val);
+
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingsException(key, val, "Setting unavailable on macOS");
 }
