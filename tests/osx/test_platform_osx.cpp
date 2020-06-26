@@ -103,4 +103,17 @@ TEST(PlatformOSX, test_native_hotkey_interpretation)
     check_interpreted_hotkey(cmd + shift + tab, AnyOf(Eq("ctrl+shift+tab"), Eq("shit+ctrl+tab")));
     check_interpreted_hotkey(shift + opt + tab, AnyOf(Eq("shift+alt+tab"), Eq("alt+shift+tab")));
 }
+
+TEST(PlatformOSX, test_mixed_hotkey_interpretation)
+{
+    const QString cmd = u8"⌘", opt = u8"⌥", shift = u8"⇧", ctrl = u8"⌃", tab = u8"⇥";
+    check_interpreted_hotkey(cmd + "shift+" + tab, AnyOf(Eq("ctrl+shift+tab"), Eq("shift+ctrl+tab")));
+    check_interpreted_hotkey(QString{"Cmd+"} + shift + tab, AnyOf(Eq("ctrl+shift+tab"), Eq("shift+ctrl+tab")));
+    check_interpreted_hotkey(ctrl + "opt+" + tab, AnyOf(Eq("meta+alt+tab"), Eq("alt+meta+tab")));
+    check_interpreted_hotkey(QString{"ctrl+"} + opt + tab, AnyOf(Eq("meta+alt+tab"), Eq("alt+meta+tab")));
+
+    EXPECT_THAT(mp::platform::interpret_setting(mp::hotkey_key, QString{"Control+"} + shift + "opt+" + tab),
+                UnorderedElementsAreArray(ctrl + shift + opt + tab));
+}
+
 } // namespace

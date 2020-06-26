@@ -62,7 +62,7 @@ QString interpret_macos_hotkey(QString val)
 
     for (const auto& [before_keys, after_key] : key_mapping)
         for (const auto& before_key : before_keys)
-            val.replace(before_key, after_key, Qt::CaseInsensitive); // TODO@ricab test
+            val.replace(before_key, after_key, Qt::CaseInsensitive);
 
     return mp::platform::interpret_general_hotkey(val);
 }
