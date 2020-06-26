@@ -63,20 +63,23 @@ void check_interpreted_hotkey(const QString& hotkey, Matcher&& matcher)
 
 TEST(PlatformOSX, test_hotkey_interpretation_replaces_meta_and_opt)
 {
+    const auto matcher = AllOf(Not(HasSubstr("opt")), Not(HasSubstr("meta")), HasSubstr("alt"));
     for (QString sequence : {"shift+opt+u", "Option+3", "meta+Opt+.", "Meta+Shift+Space"})
-        check_interpreted_hotkey(sequence, AllOf(Not(HasSubstr("opt")), Not(HasSubstr("meta")), HasSubstr("alt")));
+        check_interpreted_hotkey(sequence, matcher);
 }
 
 TEST(PlatformOSX, test_hotkey_interpretation_replaces_ctrl)
 {
+    const auto matcher = AllOf(Not(HasSubstr("ctrl")), Not(HasSubstr("control")), HasSubstr("meta"));
     for (QString sequence : {"ctrl+m", "Alt+Ctrl+/", "Control+opt+-"})
-        check_interpreted_hotkey(sequence, AllOf(Not(HasSubstr("ctrl")), Not(HasSubstr("control")), HasSubstr("meta")));
+        check_interpreted_hotkey(sequence, matcher);
 }
 
 TEST(PlatformOSX, test_hotkey_interpretation_replaces_cmd)
 {
+    const auto matcher = AllOf(Not(HasSubstr("cmd")), Not(HasSubstr("command")), HasSubstr("ctrl"));
     for (QString sequence : {"cmd+t", "ctrl+cmd+u", "Alt+Command+i", "Command+=", "Command+shift+]"})
-        check_interpreted_hotkey(sequence, AllOf(Not(HasSubstr("cmd")), Not(HasSubstr("command")), HasSubstr("ctrl")));
+        check_interpreted_hotkey(sequence, matcher);
 }
 
 TEST(PlatformOSX, test_hotkey_interpretation_replaces_mix)
