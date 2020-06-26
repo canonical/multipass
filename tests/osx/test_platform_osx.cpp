@@ -93,4 +93,14 @@ TEST(PlatformOSX, test_hotkey_interpretation_replaces_mix)
     for (QString sequence : {"cmd+meta+ctrl+.", "Control+Command+Option+."})
         check_interpreted_hotkey(sequence, check_all);
 }
+
+TEST(PlatformOSX, test_native_hotkey_interpretation)
+{
+    const QString cmd = u8"⌘", opt = u8"⌥", shift = u8"⇧", ctrl = u8"⌃", tab = u8"⇥";
+    check_interpreted_hotkey(cmd + opt + tab, AnyOf(Eq("ctrl+alt+tab"), Eq("alt+ctrl+tab")));
+    check_interpreted_hotkey(ctrl + shift + tab, AnyOf(Eq("meta+shift+tab"), Eq("shift+meta+tab")));
+    check_interpreted_hotkey(ctrl + opt + tab, AnyOf(Eq("meta+alt+tab"), Eq("alt+meta+tab")));
+    check_interpreted_hotkey(cmd + shift + tab, AnyOf(Eq("ctrl+shift+tab"), Eq("shit+ctrl+tab")));
+    check_interpreted_hotkey(shift + opt + tab, AnyOf(Eq("shift+alt+tab"), Eq("alt+shift+tab")));
+}
 } // namespace
