@@ -199,8 +199,7 @@ TEST_F(LXDImageVault, does_not_download_if_image_exists)
         }
         else if (op == "POST" && url.contains("1.0/images"))
         {
-            // It should not try to request an image download
-            ADD_FAILURE();
+            ADD_FAILURE() << "Image download shouldn't be requested";
         }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
