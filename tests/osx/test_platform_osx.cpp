@@ -78,4 +78,16 @@ TEST(PlatformOSX, test_hotkey_interpretation_replaces_cmd)
     for (QString sequence : {"cmd+t", "ctrl+cmd+u", "Alt+Command+i", "Command+=", "Command+shift+]"})
         check_interpreted_hotkey(sequence, AllOf(Not(HasSubstr("cmd")), Not(HasSubstr("command")), HasSubstr("ctrl")));
 }
+
+TEST(PlatformOSX, test_hotkey_interpretation_replaces_mix)
+{
+    const auto check_cmd = AllOf(Not(HasSubstr("cmd")), Not(HasSubstr("command")), HasSubstr("ctrl"));
+    const auto check_opt = AllOf(Not(HasSubstr("opt")), HasSubstr("alt"), Not(HasSubstr("ion"))); // option - opt = ion
+    const auto check_ctrl = HasSubstr("meta");
+    const auto check_dot = HasSubstr(".");
+    const auto check_all = AllOf(check_cmd, check_opt, check_ctrl, check_dot);
+
+    for (QString sequence : {"cmd+meta+ctrl+.", "Control+Command+Option+."})
+        check_interpreted_hotkey(sequence, check_all);
+}
 } // namespace
