@@ -53,16 +53,29 @@ TEST(PlatformOSX, test_empty_sync_winterm_profiles)
     EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
 }
 
+template <typename Matcher>
+void check_interpreted_hotkey(const QString& hotkey, Matcher&& matcher)
+{
+    auto interpreted_hotkey = mp::platform::interpret_setting(mp::hotkey_key, hotkey);
+    EXPECT_THAT(QKeySequence{interpreted_hotkey}.toString(QKeySequence::PortableText).toLower(),
+                Property(&QString::toStdString, std::forward<Matcher>(matcher)));
+}
 
 TEST(PlatformOSX, test_hotkey_interpretation_replaces_meta_and_opt)
 {
-    const auto sequences = std::vector<QString>{"shift+opt+u", "Option+3", "meta+Opt+.", "Meta+Shift+Space"};
-    for (const auto& sequence : sequences)
-    {
-        auto hotkey = mp::platform::interpret_setting(mp::hotkey_key, sequence);
-        EXPECT_THAT(
-            QKeySequence{hotkey}.toString(QKeySequence::PortableText).toLower(),
-            Property(&QString::toStdString, AllOf(Not(HasSubstr("opt")), Not(HasSubstr("meta")), HasSubstr("alt"))));
-    }
+    for (QString sequence : {"shift+opt+u", "Option+3", "meta+Opt+.", "Meta+Shift+Space"})
+        check_interpreted_hotkey(sequence, AllOf(Not(HasSubstr("opt")), Not(HasSubstr("meta")), HasSubstr("alt")));
+}
+
+TEST(PlatformOSX, test_hotkey_interpretation_replaces_ctrl)
+{
+    for (QString sequence : {"ctrl+m", "Alt+Ctrl+/", "Control+opt+-"})
+        check_interpreted_hotkey(sequence, AllOf(Not(HasSubstr("ctrl")), Not(HasSubstr("control")), HasSubstr("meta")));
+}
+
+TEST(PlatformOSX, test_hotkey_interpretation_replaces_cmd)
+{
+    for (QString sequence : {"cmd+t", "ctrl+cmd+u", "Alt+Command+i", "Command+=", "Command+shift+]"})
+        check_interpreted_hotkey(sequence, AllOf(Not(HasSubstr("cmd")), Not(HasSubstr("command")), HasSubstr("ctrl")));
 }
 } // namespace
