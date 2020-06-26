@@ -22,6 +22,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <QKeySequence>
+
 namespace mp = multipass;
 using namespace testing;
 
@@ -51,4 +53,16 @@ TEST(PlatformOSX, test_empty_sync_winterm_profiles)
     EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
 }
 
+
+TEST(PlatformOSX, test_hotkey_interpretation_replaces_meta_and_opt)
+{
+    const auto sequences = std::vector<QString>{"shift+opt+u", "Option+3", "meta+Opt+.", "Meta+Shift+Space"};
+    for (const auto& sequence : sequences)
+    {
+        auto hotkey = mp::platform::interpret_setting(mp::hotkey_key, sequence);
+        EXPECT_THAT(
+            QKeySequence{hotkey}.toString(QKeySequence::PortableText).toLower(),
+            Property(&QString::toStdString, AllOf(Not(HasSubstr("opt")), Not(HasSubstr("meta")), HasSubstr("alt"))));
+    }
+}
 } // namespace
