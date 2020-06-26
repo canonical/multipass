@@ -21,6 +21,7 @@
 #include "mock_local_socket_reply.h"
 #include "mock_lxd_server_responses.h"
 #include "mock_network_access_manager.h"
+#include "tests/extra_assertions.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_status_monitor.h"
@@ -264,10 +265,10 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
-    bool vm_shutdown{false};
+    bool vm_shutdown{false}, stop_requested{false};
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&vm_shutdown](auto, auto request, auto outgoingData) {
+        .WillByDefault([&vm_shutdown, &stop_requested](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -295,6 +296,7 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
             else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
+                stop_requested = true;
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
             }
 
@@ -309,6 +311,7 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
     }
 
     EXPECT_TRUE(vm_shutdown);
+    EXPECT_TRUE(stop_requested);
 }
 
 TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
@@ -628,7 +631,8 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
 
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
 
-    EXPECT_THROW(machine.suspend(), std::runtime_error);
+    MP_EXPECT_THROW_THAT(machine.suspend(), std::runtime_error,
+                         Property(&std::runtime_error::what, StrEq("suspend is currently not supported")));
 }
 
 TEST_F(LXDBackend, start_while_suspending_throws)
