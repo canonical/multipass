@@ -129,6 +129,22 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
     return mpu::emit_yaml(list);
 }
 
+std::string mp::YamlFormatter::format(const ListNetworksReply& reply) const
+{
+    YAML::Node list;
+
+    for (const auto& interface : format::sorted(reply.interfaces()))
+    {
+        YAML::Node interface_node;
+        interface_node["type"] = interface.type();
+        interface_node["description"] = interface.description();
+
+        list[interface.name()].push_back(interface_node);
+    }
+
+    return mpu::emit_yaml(list);
+}
+
 std::string mp::YamlFormatter::format(const FindReply& reply) const
 {
     YAML::Node find;
