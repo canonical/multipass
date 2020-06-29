@@ -144,6 +144,13 @@ grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context, const ListRequest
         std::bind(&DaemonRpc::on_list, this, request, response, std::placeholders::_1));
 }
 
+grpc::Status mp::DaemonRpc::list_networks(grpc::ServerContext* context, const ListNetworksRequest* request,
+                                          grpc::ServerWriter<ListNetworksReply>* response)
+{
+    return emit_signal_and_wait_for_result(
+        std::bind(&DaemonRpc::on_list_networks, this, request, response, std::placeholders::_1));
+}
+
 grpc::Status mp::DaemonRpc::mount(grpc::ServerContext* context, const MountRequest* request,
                                   grpc::ServerWriter<MountReply>* response)
 {
