@@ -1,4 +1,4 @@
-// Copyright © 2017-2019 Canonical Ltd.
+// Copyright © 2017-2020 Canonical Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,7 @@ service Rpc {
     rpc find (FindRequest) returns (stream FindReply);
     rpc info (InfoRequest) returns (stream InfoReply);
     rpc list (ListRequest) returns (stream ListReply);
+    rpc list_networks (ListNetworksRequest) returns (stream ListNetworksReply);
     rpc mount (MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
     rpc recover (RecoverRequest) returns (stream RecoverReply);
@@ -47,6 +48,16 @@ message OptInStatus {
     Status opt_in_status = 1;
 }
 
+message NetworkKeyValuePair {
+    enum NetworkOptionKey {
+        MODE = 0;
+        ID = 1;
+        MAC = 2;
+    }
+    NetworkOptionKey key = 1;
+    string value = 2;
+}
+
 message LaunchRequest {
     string instance_name = 1;
     string image = 2;
@@ -59,6 +70,7 @@ message LaunchRequest {
     string remote_name = 9;
     OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
+    repeated NetworkKeyValuePair network_options = 12;
 }
 
 message LaunchError {
@@ -223,6 +235,23 @@ message ListReply {
     repeated ListVMInstance instances = 1;
     string log_line = 2;
     UpdateInfo update_info = 3;
+}
+
+
+message ListNetworksRequest {
+    int32 verbosity_level = 1;
+}
+
+message NetworkInterface {
+    string name = 1;
+    string type = 2;
+    string description = 3;
+}
+
+message ListNetworksReply {
+    repeated NetworkInterface interfaces = 1;
+    UpdateInfo update_info = 2;
+    string log_line = 3;
 }
 
 message TargetPathInfo {
