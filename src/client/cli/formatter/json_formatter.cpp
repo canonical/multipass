@@ -94,7 +94,6 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
                         .arg(QString::number(gid_map.first))
                         .arg((gid_map.second == mp::default_id) ? "default" : QString::number(gid_map.second)));
             }
-
             entry.insert("uid_mappings", mount_uids);
             entry.insert("gid_mappings", mount_gids);
             entry.insert("source_path", QString::fromStdString(mount.source_path()));
@@ -132,6 +131,26 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
     }
 
     list_json.insert("list", instances);
+
+    return QString(QJsonDocument(list_json).toJson()).toStdString();
+}
+
+std::string mp::JsonFormatter::format(const ListNetworksReply& reply) const
+{
+    QJsonObject list_json;
+    QJsonArray interfaces;
+
+    for (const auto& interface : reply.interfaces())
+    {
+        QJsonObject interface_obj;
+        interface_obj.insert("name", QString::fromStdString(interface.name()));
+        interface_obj.insert("type", QString::fromStdString(interface.type()));
+        interface_obj.insert("description", QString::fromStdString(interface.type()));
+
+        interfaces.append(interface_obj);
+    }
+
+    list_json.insert("list", interfaces);
 
     return QString(QJsonDocument(list_json).toJson()).toStdString();
 }
