@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -24,6 +24,7 @@ add_library(commands STATIC
   info.cpp
   launch.cpp
   list.cpp
+  list-networks.cpp
   mount.cpp
   purge.cpp
   recover.cpp

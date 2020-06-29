@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,6 +59,21 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
         fmt::format_to(buf, "{},{},{},{},{}\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()), instance.ipv4(), instance.ipv6(),
                        instance.current_release());
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::CSVFormatter::format(const ListNetworksReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(buf, "Name,Type,Description\n");
+
+    for (const auto& interface : format::sorted(reply.interfaces()))
+    {
+        // Quote the description because it can contain commas.
+        fmt::format_to(buf, "{},{},\"{}\"\n", interface.name(), interface.type(), interface.description());
     }
 
     return fmt::to_string(buf);
