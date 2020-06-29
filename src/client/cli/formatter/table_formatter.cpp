@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -148,6 +148,43 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
                        instance.ipv4().empty() ? "--" : instance.ipv4(), ip_column_width,
                        instance.current_release().empty() ? "Not Available"
                                                           : fmt::format("Ubuntu {}", instance.current_release()));
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::TableFormatter::format(const ListNetworksReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    auto interfaces = reply.interfaces();
+
+    if (interfaces.empty())
+        return "No network interfaces found.\n";
+
+    const std::string::size_type minimal_name_column_width = 5;
+    const auto get_name_length = [](const auto& interface) { return interface.name().length(); };
+    auto largest_name_it =
+        std::max_element(interfaces.begin(), interfaces.end(), [&get_name_length](auto& lhs, auto& rhs) {
+            return get_name_length(lhs) < get_name_length(rhs);
+        });
+    const auto name_column_width = std::max(get_name_length(*largest_name_it) + 1, minimal_name_column_width);
+
+    const std::string::size_type minimal_type_column_width = 5;
+    const auto get_type_length = [](const auto& interface) { return interface.type().length(); };
+    auto largest_type_it =
+        std::max_element(interfaces.begin(), interfaces.end(), [&get_type_length](auto& lhs, auto& rhs) {
+            return get_type_length(lhs) < get_type_length(rhs);
+        });
+    const auto type_column_width = std::max(get_type_length(*largest_type_it) + 1, minimal_type_column_width);
+
+    const auto row_format = "{:<{}}{:<{}}{:<}\n";
+    fmt::format_to(buf, row_format, "Name", name_column_width, "Type", type_column_width, "Description");
+
+    for (const auto& interface : format::sorted(reply.interfaces()))
+    {
+        fmt::format_to(buf, row_format, interface.name(), name_column_width, interface.type(), type_column_width,
+                       interface.description());
     }
 
     return fmt::to_string(buf);
