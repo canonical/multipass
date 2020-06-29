@@ -57,7 +57,7 @@ private:
     const std::string username;
     multipass::optional<int> port;
     VMStatusMonitor* monitor;
-    bool update_suspend_status{true};
+    bool update_shutdown_status{true};
     multipass::optional<IPAddress> ip;
     const QUrl base_url;
     NetworkAccessManager* manager;

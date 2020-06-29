@@ -1518,8 +1518,8 @@ try // clang-format on
         }
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
             vm.suspend();
+            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
             return grpc::Status::OK;
         });
     }
