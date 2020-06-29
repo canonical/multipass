@@ -23,6 +23,7 @@
 #include "cmd/help.h"
 #include "cmd/info.h"
 #include "cmd/launch.h"
+#include "cmd/list-networks.h"
 #include "cmd/list.h"
 #include "cmd/mount.h"
 #include "cmd/purge.h"
@@ -61,6 +62,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Help>();
     add_command<cmd::Info>();
     add_command<cmd::List>();
+    add_command<cmd::ListNetworks>();
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
     add_command<cmd::Set>();

@@ -435,6 +435,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_list_networks, &daemon, &mp::Daemon::list_networks);
     QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover);
     QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info);
@@ -1211,6 +1212,32 @@ try // clang-format on
         entry->set_name(name);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     }
+
+    server->Write(response);
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::list_networks(const ListNetworksRequest* request, grpc::ServerWriter<ListNetworksReply>* server,
+                               std::promise<grpc::Status>* status_promise) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger<ListNetworksReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    ListNetworksReply response;
+    config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
+
+    auto entry = response.add_interfaces();
+    entry->set_name("enx00133b4909cd");
+    entry->set_type("ethernet");
+    entry->set_description("ASIX Electronics Corp. AX88179 Gigabit Ethernet");
+
+    entry = response.add_interfaces();
+    entry->set_name("wlp60");
+    entry->set_type("wifi");
+    entry->set_description("Intel Corporation Wireless 7260 (rev 6b)");
 
     server->Write(response);
     status_promise->set_value(grpc::Status::OK);
