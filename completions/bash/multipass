@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -46,8 +46,8 @@ _multipass_complete()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
-    multipass_cmds="transfer delete exec find help info launch list mount purge \
-                    recover shell start stop suspend restart umount version get set"
+    multipass_cmds="transfer delete exec find help info launch list list-networks mount \
+                    purge recover shell start stop suspend restart umount version get set"
 
     opts="--help --verbose"
     case "${cmd}" in
@@ -57,11 +57,14 @@ _multipass_complete()
         "list"|"ls")
             opts="${opts} --format"
         ;;
+        "list-networks"|"ln")
+            opts="${opts} --format"
+        ;;
         "delete")
             opts="${opts} --all --purge"
         ;;
         "launch")
-            opts="${opts} --cpus --disk --mem --name --cloud-init"
+            opts="${opts} --cpus --disk --mem --name --cloud-init --network"
         ;;
         "mount")
             opts="${opts} --gid-map --uid-map"
@@ -87,6 +90,7 @@ _multipass_complete()
                 _filedir
                 return
             ;;
+            # TODO: add "--network" here
         esac
     fi
 
