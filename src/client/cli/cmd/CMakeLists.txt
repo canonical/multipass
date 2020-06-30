@@ -24,7 +24,7 @@ add_library(commands STATIC
   info.cpp
   launch.cpp
   list.cpp
-  list-networks.cpp
+  list_networks.cpp
   mount.cpp
   purge.cpp
   recover.cpp
