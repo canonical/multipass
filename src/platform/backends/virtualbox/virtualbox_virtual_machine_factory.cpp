@@ -18,12 +18,10 @@
 #include "virtualbox_virtual_machine_factory.h"
 #include "virtualbox_virtual_machine.h"
 
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <fmt/format.h>
-#include <yaml-cpp/yaml.h>
 
 #include <QCoreApplication>
 #include <QFileInfo>
