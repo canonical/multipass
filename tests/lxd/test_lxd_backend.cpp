@@ -100,7 +100,9 @@ TEST_F(LXDBackend, creates_project_and_network_on_healthcheck)
     bool network_created{false};
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&project_created, &profile_updated, &network_created](auto, auto request, auto) {
+        .WillByDefault([&project_created, &profile_updated, &network_created](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
@@ -119,14 +121,31 @@ TEST_F(LXDBackend, creates_project_and_network_on_healthcheck)
             {
                 if (url.contains("1.0/projects"))
                 {
+                    const QByteArray expected_data{"{"
+                                                   "\"description\":\"Project for Multipass instances\","
+                                                   "\"name\":\"multipass\""
+                                                   "}"};
+
+                    EXPECT_EQ(data, expected_data);
                     project_created = true;
                 }
                 else if (url.contains("1.0/profiles/default?project=multipass"))
                 {
+                    const QByteArray expected_data{"{"
+                                                   "\"description\":\"Default profile for Multipass project\","
+                                                   "\"devices\":{\"eth0\":{\"name\":\"eth0\",\"nictype\":\"bridged\","
+                                                   "\"parent\":\"mpbr0\",\"type\":\"nic\"}}}"};
+
+                    EXPECT_EQ(data, expected_data);
                     profile_updated = true;
                 }
                 else if (url.contains("1.0/networks"))
                 {
+                    const QByteArray expected_data{"{"
+                                                   "\"description\":\"Network bridge for Multipass\","
+                                                   "\"name\":\"mpbr0\"}"};
+
+                    EXPECT_EQ(data, expected_data);
                     network_created = true;
                 }
 
@@ -380,35 +399,35 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
     default_description.user_data_config = YAML::Load("Vader: Sith");
     default_description.vendor_data_config = YAML::Load("Solo: Scoundrel");
 
-    QByteArray expected_data{"{\n"
-                             "    \"config\": {\n"
-                             "        \"limits.cpu\": \"2\",\n"
-                             "        \"limits.memory\": \"3145728\",\n"
-                             "        \"user.meta-data\": \"#cloud-config\\nLuke: Jedi\\n\\n\",\n"
-                             "        \"user.user-data\": \"#cloud-config\\nVader: Sith\\n\\n\",\n"
-                             "        \"user.vendor-data\": \"#cloud-config\\nSolo: Scoundrel\\n\\n\"\n"
-                             "    },\n"
-                             "    \"devices\": {\n"
-                             "        \"config\": {\n"
-                             "            \"source\": \"cloud-init:config\",\n"
-                             "            \"type\": \"disk\"\n"
-                             "        },\n"
-                             "        \"root\": {\n"
-                             "            \"path\": \"/\",\n"
-                             "            \"pool\": \"default\",\n"
-                             "            \"size\": \"10737418240\",\n"
-                             "            \"type\": \"disk\"\n"
-                             "        }\n"
-                             "    },\n"
-                             "    \"name\": \"pied-piper-valley\",\n"
-                             "    \"source\": {\n"
-                             "        \"fingerprint\": \"\",\n"
-                             "        \"mode\": \"pull\",\n"
-                             "        \"protocol\": \"simplestreams\",\n"
-                             "        \"server\": \"\",\n"
-                             "        \"type\": \"image\"\n"
-                             "    }\n"
-                             "}\n"};
+    QByteArray expected_data{"{"
+                             "\"config\":{"
+                             "\"limits.cpu\":\"2\","
+                             "\"limits.memory\":\"3145728\","
+                             "\"user.meta-data\":\"#cloud-config\\nLuke: Jedi\\n\\n\","
+                             "\"user.user-data\":\"#cloud-config\\nVader: Sith\\n\\n\","
+                             "\"user.vendor-data\":\"#cloud-config\\nSolo: Scoundrel\\n\\n\""
+                             "},"
+                             "\"devices\":{"
+                             "\"config\":{"
+                             "\"source\":\"cloud-init:config\","
+                             "\"type\":\"disk\""
+                             "},"
+                             "\"root\":{"
+                             "\"path\":\"/\","
+                             "\"pool\":\"default\","
+                             "\"size\":\"10737418240\","
+                             "\"type\":\"disk\""
+                             "}"
+                             "},"
+                             "\"name\":\"pied-piper-valley\","
+                             "\"source\":{"
+                             "\"fingerprint\":\"\","
+                             "\"mode\":\"pull\","
+                             "\"protocol\":\"simplestreams\","
+                             "\"server\":\"\","
+                             "\"type\":\"image\""
+                             "}"
+                             "}"};
 
     bool vm_created{false};
 
@@ -455,35 +474,35 @@ TEST_F(LXDBackend, posts_expected_data_including_disk_size_when_creating_instanc
     default_description.vendor_data_config = YAML::Load("Solo: Scoundrel");
     default_description.disk_space = mp::MemorySize("16000000000");
 
-    QByteArray expected_data{"{\n"
-                             "    \"config\": {\n"
-                             "        \"limits.cpu\": \"2\",\n"
-                             "        \"limits.memory\": \"3145728\",\n"
-                             "        \"user.meta-data\": \"#cloud-config\\nLuke: Jedi\\n\\n\",\n"
-                             "        \"user.user-data\": \"#cloud-config\\nVader: Sith\\n\\n\",\n"
-                             "        \"user.vendor-data\": \"#cloud-config\\nSolo: Scoundrel\\n\\n\"\n"
-                             "    },\n"
-                             "    \"devices\": {\n"
-                             "        \"config\": {\n"
-                             "            \"source\": \"cloud-init:config\",\n"
-                             "            \"type\": \"disk\"\n"
-                             "        },\n"
-                             "        \"root\": {\n"
-                             "            \"path\": \"/\",\n"
-                             "            \"pool\": \"default\",\n"
-                             "            \"size\": \"16000000000\",\n"
-                             "            \"type\": \"disk\"\n"
-                             "        }\n"
-                             "    },\n"
-                             "    \"name\": \"pied-piper-valley\",\n"
-                             "    \"source\": {\n"
-                             "        \"fingerprint\": \"\",\n"
-                             "        \"mode\": \"pull\",\n"
-                             "        \"protocol\": \"simplestreams\",\n"
-                             "        \"server\": \"\",\n"
-                             "        \"type\": \"image\"\n"
-                             "    }\n"
-                             "}\n"};
+    QByteArray expected_data{"{"
+                             "\"config\":{"
+                             "\"limits.cpu\":\"2\","
+                             "\"limits.memory\":\"3145728\","
+                             "\"user.meta-data\":\"#cloud-config\\nLuke: Jedi\\n\\n\","
+                             "\"user.user-data\":\"#cloud-config\\nVader: Sith\\n\\n\","
+                             "\"user.vendor-data\":\"#cloud-config\\nSolo: Scoundrel\\n\\n\""
+                             "},"
+                             "\"devices\":{"
+                             "\"config\":{"
+                             "\"source\":\"cloud-init:config\","
+                             "\"type\":\"disk\""
+                             "},"
+                             "\"root\":{"
+                             "\"path\":\"/\","
+                             "\"pool\":\"default\","
+                             "\"size\":\"16000000000\","
+                             "\"type\":\"disk\""
+                             "}"
+                             "},"
+                             "\"name\":\"pied-piper-valley\","
+                             "\"source\":{"
+                             "\"fingerprint\":\"\","
+                             "\"mode\":\"pull\","
+                             "\"protocol\":\"simplestreams\","
+                             "\"server\":\"\","
+                             "\"type\":\"image\""
+                             "}"
+                             "}"};
 
     bool vm_created{false};
 
