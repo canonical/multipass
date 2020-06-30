@@ -116,6 +116,14 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     return output;
 }
 
+// Computes the column width needed to display all the elements of a range [begin, end). get_width is a function
+// which takes as input the element in the range and returns its width in columns.
+auto column_width = [](const auto begin, const auto end, const auto get_width, int minimum_width = 0) {
+    auto max_width =
+        std::max_element(begin, end, [&get_width](auto& lhs, auto& rhs) { return get_width(lhs) < get_width(rhs); });
+    return std::max(get_width(*max_width) + 1, minimum_width);
+};
+
 std::string mp::TableFormatter::format(const ListReply& reply) const
 {
     fmt::memory_buffer buf;
@@ -125,17 +133,10 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     if (instances.empty())
         return "No instances found.\n";
 
-    const std::string::size_type minimal_name_column_width = 24;
+    const auto name_column_width = column_width(
+        instances.begin(), instances.end(), [](const auto& interface) -> int { return interface.name().length(); }, 24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
-    const auto get_name_length = [](const auto& instance) { return instance.name().length(); };
-
-    auto largest_name_it =
-        std::max_element(instances.begin(), instances.end(), [&get_name_length](auto& lhs, auto& rhs) {
-            return get_name_length(lhs) < get_name_length(rhs);
-        });
-
-    const auto name_column_width = std::max(get_name_length(*largest_name_it) + 1, minimal_name_column_width);
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(buf, row_format, "Name", name_column_width, "State", state_column_width, "IPv4", ip_column_width,
@@ -162,21 +163,13 @@ std::string mp::TableFormatter::format(const ListNetworksReply& reply) const
     if (interfaces.empty())
         return "No network interfaces found.\n";
 
-    const std::string::size_type minimal_name_column_width = 5;
-    const auto get_name_length = [](const auto& interface) { return interface.name().length(); };
-    auto largest_name_it =
-        std::max_element(interfaces.begin(), interfaces.end(), [&get_name_length](auto& lhs, auto& rhs) {
-            return get_name_length(lhs) < get_name_length(rhs);
-        });
-    const auto name_column_width = std::max(get_name_length(*largest_name_it) + 1, minimal_name_column_width);
+    const auto name_column_width = column_width(
+        interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.name().length(); },
+        5);
 
-    const std::string::size_type minimal_type_column_width = 5;
-    const auto get_type_length = [](const auto& interface) { return interface.type().length(); };
-    auto largest_type_it =
-        std::max_element(interfaces.begin(), interfaces.end(), [&get_type_length](auto& lhs, auto& rhs) {
-            return get_type_length(lhs) < get_type_length(rhs);
-        });
-    const auto type_column_width = std::max(get_type_length(*largest_type_it) + 1, minimal_type_column_width);
+    const auto type_column_width = column_width(
+        interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.type().length(); },
+        5);
 
     const auto row_format = "{:<{}}{:<{}}{:<}\n";
     fmt::format_to(buf, row_format, "Name", name_column_width, "Type", type_column_width, "Description");
