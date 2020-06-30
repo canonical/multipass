@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,25 +18,22 @@
 #include "src/daemon/default_vm_image_vault.h"
 
 #include "file_operations.h"
+#include "mock_image_host.h"
 #include "path.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
-#include "temp_file.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
-#include <multipass/optional.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
-#include <multipass/vm_image_host.h>
 
+#include <QDateTime>
 #include <QThread>
 #include <QUrl>
 
 #include <gmock/gmock.h>
-
-#include <unordered_set>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -45,59 +42,7 @@ using namespace testing;
 
 namespace
 {
-constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-constexpr auto default_version = "20160217.1";
-constexpr auto default_stream_location = "https://some/stream";
 const QDateTime default_last_modified{QDate(2019, 6, 25), QTime(13, 15, 0)};
-
-struct ImageHost : public mp::VMImageHost
-{
-    mp::optional<mp::VMImageInfo> info_for(const mp::Query& query) override
-    {
-        return mp::optional<mp::VMImageInfo>{mock_image_info};
-    }
-
-    std::vector<mp::VMImageInfo> all_info_for(const mp::Query& query) override
-    {
-        return {};
-    }
-
-    mp::VMImageInfo info_for_full_hash(const std::string& full_hash) override
-    {
-        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
-    }
-
-    std::vector<mp::VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override
-    {
-        return {};
-    }
-
-    void for_each_entry_do(const Action& action) override
-    {
-    }
-
-    std::vector<std::string> supported_remotes() override
-    {
-        return {"release"};
-    }
-
-    mpt::TempFile image;
-    mpt::TempFile kernel;
-    mpt::TempFile initrd;
-    mp::VMImageInfo mock_image_info{{"default"},
-                                    "Ubuntu",
-                                    "xenial",
-                                    "16.04 LTS",
-                                    true,
-                                    image.url(),
-                                    kernel.url(),
-                                    initrd.url(),
-                                    default_id,
-                                    default_stream_location,
-                                    default_version,
-                                    1,
-                                    true};
-};
 
 struct TrackingURLDownloader : public mp::URLDownloader
 {
@@ -200,7 +145,7 @@ struct ImageVault : public testing::Test
     QString host_url{QUrl::fromLocalFile(mpt::test_data_path()).toString()};
     TrackingURLDownloader url_downloader;
     std::vector<mp::VMImageHost*> hosts;
-    ImageHost host;
+    NiceMock<mpt::MockImageHost> host;
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
     mp::VMImageVault::PrepareAction stub_prepare{
         [](const mp::VMImage& source_image) -> mp::VMImage { return source_image; }};
@@ -352,7 +297,7 @@ TEST_F(ImageVault, uses_image_from_prepare)
 
     const auto image_data = mp::utils::contents_of(vm_image.image_path);
     EXPECT_THAT(image_data, StrEq(expected_data));
-    EXPECT_THAT(vm_image.id, Eq(default_id));
+    EXPECT_THAT(vm_image.id, Eq(mpt::default_id));
 }
 
 TEST_F(ImageVault, image_purged_expired)
@@ -487,7 +432,7 @@ TEST_F(ImageVault, valid_remote_and_alias_returns_valid_image_info)
     mp::VMImage image;
     EXPECT_NO_THROW(image = vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor));
 
-    EXPECT_THAT(image.original_release, Eq("16.04 LTS"));
+    EXPECT_THAT(image.original_release, Eq("18.04 LTS"));
     EXPECT_THAT(image.id, Eq("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
 }
 
@@ -516,7 +461,7 @@ TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)
     auto original_file{url_downloader.downloaded_files[0]};
     auto original_absolute_path{QFileInfo(original_file).absolutePath()};
     EXPECT_TRUE(QFileInfo::exists(original_file));
-    EXPECT_TRUE(original_absolute_path.contains(default_version));
+    EXPECT_TRUE(original_absolute_path.contains(mpt::default_version));
 
     // Mock an update to the image and don't verify because of hash mismatch
     const QString new_date_string{"20180825"};

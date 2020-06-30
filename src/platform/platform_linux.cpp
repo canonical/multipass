@@ -161,8 +161,5 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 
 bool mp::platform::is_image_url_supported()
 {
-    const auto& driver = utils::get_driver_str();
-    if (driver == "lxd")
-        return false;
     return true;
 }

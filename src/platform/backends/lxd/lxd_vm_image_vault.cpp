@@ -81,42 +81,41 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     {
         auto instance_info = lxd_request(
             manager, "GET",
-            QUrl(QString("%1/virtual_machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
+            QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
 
         auto id = instance_info["metadata"].toObject()["config"].toObject()["volatile.base_image"].toString();
 
         for (const auto& image_host : image_hosts)
         {
-            try
+            auto info = image_host->info_for_full_hash(id.toStdString());
+
+            VMImage source_image;
+
+            source_image.id = id.toStdString();
+            source_image.stream_location = info.stream_location.toStdString();
+            source_image.original_release = info.release_title.toStdString();
+            source_image.release_date = info.version.toStdString();
+
+            for (const auto& alias : info.aliases)
             {
-                auto info = image_host->info_for_full_hash(id.toStdString());
-
-                VMImage source_image;
-
-                source_image.id = id.toStdString();
-                source_image.stream_location = info.stream_location.toStdString();
-                source_image.original_release = info.release_title.toStdString();
-                source_image.release_date = info.version.toStdString();
-
-                for (const auto& alias : info.aliases)
-                {
-                    source_image.aliases.push_back(alias.toStdString());
-                }
+                source_image.aliases.push_back(alias.toStdString());
             }
-            catch (const std::exception&)
-            {
-                // Nothing to do, just move on
-            }
+
+            return source_image;
         }
+    }
+    catch (const LXDNotFoundException&)
+    {
+        // Instance doesn't exist, so move on
     }
     catch (const std::exception&)
     {
-        // Instance doesn't exist so move on
+        // Image doesn't exist, so move on
     }
 
-    // TODO: Remove once we do support these types of images
-    if (query.query_type != Query::Type::Alias && !mp::platform::is_image_url_supported())
-        throw std::runtime_error(fmt::format("http and file based images are not supported"));
+    // TODO: Remove once we do support http & file based images
+    if (query.query_type != Query::Type::Alias)
+        throw std::runtime_error("http and file based images are not supported");
 
     const auto info = info_for(query);
     const auto id = info.id;
@@ -226,11 +225,13 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
+    mpl::log(mpl::Level::trace, category, "Pruning expired images not implemented");
 }
 
 void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
+    mpl::log(mpl::Level::trace, category, "Updating images not implemented");
 }
 
 mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)

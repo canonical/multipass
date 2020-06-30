@@ -22,6 +22,7 @@
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
+#include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
 #include <multipass/constants.h>
@@ -303,6 +304,11 @@ TEST_F(PlatformLinux, test_libvirt_driver_produces_correct_factory)
     with_minimally_mocked_libvirt(test);
 }
 
+TEST_F(PlatformLinux, test_lxd_driver_produces_correct_factory)
+{
+    aux_test_driver_factory<mp::LXDVirtualMachineFactory>("lxd");
+}
+
 TEST_F(PlatformLinux, test_qemu_in_env_var_is_ignored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "QEMU");
@@ -314,6 +320,17 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
+}
+
+TEST_F(PlatformLinux, test_is_remote_supported_lxd_driver)
+{
+    setup_driver_settings("lxd");
+
+    EXPECT_TRUE(mp::platform::is_remote_supported("release"));
+    EXPECT_TRUE(mp::platform::is_remote_supported("daily"));
+    EXPECT_FALSE(mp::platform::is_remote_supported(""));
+    EXPECT_FALSE(mp::platform::is_remote_supported("snapcraft"));
+    EXPECT_FALSE(mp::platform::is_remote_supported("appliance"));
 }
 
 struct TestUnsupportedDrivers : public TestWithParam<QString>
