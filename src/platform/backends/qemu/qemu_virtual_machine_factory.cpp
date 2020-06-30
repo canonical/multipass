@@ -18,6 +18,7 @@
 #include "qemu_virtual_machine_factory.h"
 #include "qemu_virtual_machine.h"
 
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
@@ -25,9 +26,6 @@
 
 #include <shared/linux/backend_utils.h>
 #include <shared/linux/process_factory.h>
-
-#include <multipass/format.h>
-#include <yaml-cpp/yaml.h>
 
 #include <QRegularExpression>
 #include <QTcpSocket>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/utils.h>
 
@@ -24,14 +25,11 @@
 #include <openssl/rand.h>
 #include <openssl/x509.h>
 
-#include <multipass/format.h>
-
 #include <QFile>
 
 #include <array>
 #include <cerrno>
 #include <cstring>
-#include <fstream>
 #include <memory>
 #include <vector>
 

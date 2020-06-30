@@ -34,9 +34,6 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
-#include <signal.h>
-#include <sys/prctl.h>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;

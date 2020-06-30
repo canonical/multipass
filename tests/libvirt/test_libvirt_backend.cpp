@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 #include "tests/fake_handle.h"
 #include "tests/mock_ssh.h"
 #include "tests/mock_status_monitor.h"
-#include "tests/stub_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_dir.h"
@@ -34,8 +33,6 @@
 #include <cstdlib>
 
 #include <gmock/gmock.h>
-
-#include <multipass/format.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

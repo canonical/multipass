@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,9 @@
 
 #include "unix_console.h"
 
-#include <multipass/auto_join_thread.h>
 #include <multipass/platform_unix.h>
-#include <multipass/terminal.h>
 
 #include <sys/ioctl.h>
-#include <unistd.h>
 
 namespace mp = multipass;
 

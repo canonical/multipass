@@ -15,22 +15,19 @@
  *
  */
 
-#include <multipass/sshfs_mount/sshfs_mount.h>
-
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
+#include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
 
-#include <multipass/format.h>
+#include <semver200.h>
 
 #include <QDir>
 #include <QString>
-#include <cassert>
 #include <iostream>
-
-#include <semver200.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

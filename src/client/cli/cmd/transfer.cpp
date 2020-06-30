@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/ssh/sftp_client.h>
 
-#include <QDir>
 #include <QFileInfo>
 
 namespace mp = multipass;

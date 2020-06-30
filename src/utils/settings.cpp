@@ -25,7 +25,6 @@
 #include <QSettings>
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cerrno>
 #include <fstream>
