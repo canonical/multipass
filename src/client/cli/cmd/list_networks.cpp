@@ -15,7 +15,7 @@
  *
  */
 
-#include "list-networks.h"
+#include "list_networks.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
