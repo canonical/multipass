@@ -605,6 +605,65 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
         return mp::InstanceStatus::UNKNOWN;
     }
 }
+
+mp::MemorySize get_image_size(const mp::VMImage& image)
+{
+    QStringList qemuimg_parameters{{"info", image.image_path}};
+    auto qemuimg_process = mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters));
+    auto process_state = qemuimg_process->execute();
+
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(),
+                                             qemuimg_process->read_all_standard_error()));
+    }
+
+    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
+    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)\r?$");
+    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+
+    mp::MemorySize image_size{};
+
+    const auto match = re.match(img_info);
+
+    if (match.hasMatch())
+    {
+        image_size = mp::MemorySize(match.captured("size").toStdString());
+    }
+    else
+    {
+        throw std::runtime_error{"Could not obtain image's virtual size"};
+    }
+
+    return image_size;
+}
+
+// Computes the final size of an image, but also checks if the value given by the user is bigger than or equal than
+// the size of the image.
+mp::MemorySize compute_final_image_size(const mp::VMImage& image, mp::optional<mp::MemorySize> command_line_value)
+{
+    mp::MemorySize image_size = get_image_size(image);
+    mp::MemorySize disk_space{};
+
+    if (!command_line_value)
+    {
+        auto default_disk_size_as_struct = mp::MemorySize(mp::default_disk_size);
+        disk_space = image_size < default_disk_size_as_struct ? default_disk_size_as_struct : image_size;
+    }
+    else if (*command_line_value < image_size)
+    {
+        throw std::runtime_error(fmt::format("Requested disk ({} bytes) below minimum for this image ({} bytes)",
+                                             command_line_value->in_bytes(), image_size.in_bytes()));
+    }
+    else
+    {
+        disk_space = *command_line_value;
+    }
+
+    return disk_space;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1824,64 +1883,6 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
         return fmt::format("instance \"{}\" does not exist\n", instance_name);
 
     return {};
-}
-
-mp::MemorySize mp::Daemon::get_image_size(const mp::VMImage& image)
-{
-    QStringList qemuimg_parameters{{"info", image.image_path}};
-    auto qemuimg_process = mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters));
-    auto process_state = qemuimg_process->execute();
-
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
-    }
-
-    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
-    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)\r?$");
-    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
-
-    mp::MemorySize image_size{};
-
-    const auto match = re.match(img_info);
-
-    if (match.hasMatch())
-    {
-        image_size = mp::MemorySize(match.captured("size").toStdString());
-    }
-    else
-    {
-        throw std::runtime_error{"Could not obtain image's virtual size"};
-    }
-
-    return image_size;
-}
-
-// Computes the final size of an image, but also checks if the value given by the user is bigger than or equal than
-// the size of the image.
-mp::MemorySize mp::Daemon::compute_final_image_size(const VMImage& image, mp::optional<MemorySize> command_line_value)
-{
-    mp::MemorySize image_size = get_image_size(image);
-    mp::MemorySize disk_space{};
-
-    if (!command_line_value)
-    {
-        auto default_disk_size_as_struct = mp::MemorySize(mp::default_disk_size);
-        disk_space = image_size < default_disk_size_as_struct ? default_disk_size_as_struct : image_size;
-    }
-    else if (*command_line_value < image_size)
-    {
-        throw std::runtime_error(fmt::format("Requested disk ({} bytes) below minimum for this image ({} bytes)",
-                                             command_line_value->in_bytes(), image_size.in_bytes()));
-    }
-    else
-    {
-        disk_space = *command_line_value;
-    }
-
-    return disk_space;
 }
 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,

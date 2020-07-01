@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -138,8 +138,6 @@ private:
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
-    MemorySize get_image_size(const VMImage& image);
-    MemorySize compute_final_image_size(const VMImage& image, multipass::optional<MemorySize> memory_argument);
     void create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                    std::promise<grpc::Status>* status_promise, bool start);
     grpc::Status reboot_vm(VirtualMachine& vm);
