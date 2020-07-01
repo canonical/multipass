@@ -107,10 +107,7 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
 
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
         ASSERT_LE(++process_count, 1);
-        if (process_count == 1)
-        {
-            simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
-        }
+        simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
     });
 
     if (throw_msg_matcher)
