@@ -70,10 +70,12 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
 
     try
     {
+        mpl::log(mpl::Level::debug, "dnsmasq", "Looking for dnsmasq");
         check_dnsmasq_running();
     }
     catch (const std::exception&)
     {
+        mpl::log(logging::Level::warning, "dnsmasq", "Could not confirm dnsmasq is running");
         // Ignore
     }
 }
