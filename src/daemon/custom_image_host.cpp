@@ -104,11 +104,11 @@ auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image
     const auto sha256_sums = url_downloader->download({hash_url}).split('\n');
     QString hash;
 
-    for (const QString& line : sha256_sums)
+    for (const QString line : sha256_sums) // intentional copy
     {
-        if (QString(line.trimmed()).endsWith(image_file))
+        if (line.trimmed().endsWith(image_file))
         {
-            hash = QString(line.split(' ').first());
+            hash = line.split(' ').first();
             break;
         }
     }
