@@ -164,38 +164,11 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
             json_reply["status_code"].toInt(-1) == 100)
         {
-            QUrl task_url(QString("%1/operations/%2")
+            QUrl task_url(QString("%1/operations/%2/wait")
                               .arg(base_url.toString())
                               .arg(json_reply["metadata"].toObject()["id"].toString()));
 
-            // Instead of polling, need to use websockets to get events
-            while (true)
-            {
-                try
-                {
-                    auto task_reply = lxd_request(manager, "GET", task_url);
-
-                    if (task_reply["error_code"].toInt(-1) != 0)
-                    {
-                        break;
-                    }
-
-                    auto status_code = task_reply["metadata"].toObject()["status_code"].toInt(-1);
-                    if (status_code == 200)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        std::this_thread::sleep_for(1s);
-                    }
-                }
-                // Implies the task is finished
-                catch (const LXDNotFoundException& e)
-                {
-                    break;
-                }
-            }
+            auto task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, 300000);
         }
 
         current_state();
@@ -239,45 +212,41 @@ void mp::LXDVirtualMachine::stop()
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
 
-    if (present_state == State::running || present_state == State::delayed_shutdown)
-    {
-        auto state_task = request_state("stop");
-
-        try
-        {
-            if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
-                state_task["status_code"].toInt(-1) == 100)
-            {
-                QUrl task_url(QString("%1/operations/%2/wait")
-                                  .arg(base_url.toString())
-                                  .arg(state_task["metadata"].toObject()["id"].toString()));
-                lxd_request(manager, "GET", task_url);
-            }
-        }
-        catch (const LXDNotFoundException&)
-        {
-            // Implies the task doesn't exist, move on...
-        }
-
-        state = State::stopped;
-        port = mp::nullopt;
-    }
-    else if (present_state == State::starting)
-    {
-        state = State::off;
-        request_state("stop");
-        state_wait.wait(lock, [this] { return state == State::stopped; });
-        port = mp::nullopt;
-    }
-    else if (present_state == State::suspended)
+    if (present_state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+        return;
     }
+
+    auto state_task = request_state("stop");
+
+    try
+    {
+        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
+            state_task["status_code"].toInt(-1) == 100)
+        {
+            QUrl task_url(QString("%1/operations/%2/wait")
+                              .arg(base_url.toString())
+                              .arg(state_task["metadata"].toObject()["id"].toString()));
+            lxd_request(manager, "GET", task_url);
+        }
+    }
+    catch (const LXDNotFoundException&)
+    {
+        // Implies the task doesn't exist, move on...
+    }
+
+    state = State::stopped;
+
+    if (present_state == State::starting)
+    {
+        state_wait.wait(lock, [this] { return state == State::off; });
+    }
+
+    port = mp::nullopt;
 
     if (update_shutdown_status)
         update_state();
-
-    lock.unlock();
 }
 
 void mp::LXDVirtualMachine::shutdown()
@@ -309,11 +278,11 @@ int mp::LXDVirtualMachine::ssh_port()
 void mp::LXDVirtualMachine::ensure_vm_is_running()
 {
     std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (current_state() == State::off)
+    if (current_state() == State::stopped)
     {
-        // Have to set 'stopped' here so there is an actual state change to compare to for
+        // Have to set 'off' here so there is an actual state change to compare to for
         // the cond var's predicate
-        state = State::stopped;
+        state = State::off;
         state_wait.notify_all();
         throw mp::StartException(vm_name, "Instance shutdown during start");
     }

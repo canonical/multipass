@@ -51,6 +51,7 @@ auto get_dnsmasq_pid(const mp::Path& pid_file_path)
     std::string pid;
 
     getline(pid_file, pid);
+    mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("Read pid \"{}\" from file \"{}\"", pid, pid_file_path));
 
     // std::stoi will throw if pid doesn't exist or is invalid
     return static_cast<unsigned int>(std::stoi(pid));
@@ -69,10 +70,12 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
 
     try
     {
+        mpl::log(mpl::Level::debug, "dnsmasq", "Looking for dnsmasq");
         check_dnsmasq_running();
     }
     catch (const std::exception&)
     {
+        mpl::log(logging::Level::warning, "dnsmasq", "Could not confirm dnsmasq is running");
         // Ignore
     }
 }
@@ -149,15 +152,17 @@ void mp::DNSMasqServer::check_dnsmasq_running()
         auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
         if (kill(dnsmasq_pid, 0) == 0)
         {
+            mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("existing dnsmasq found with pid {}", dnsmasq_pid));
             return;
         }
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
+        mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("Exception caught while looking for dnsmasq: {}", e.what()));
         // Ignore and fall-through
     }
 
-    // Try starting dnsmasq since it's not running
+    mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
     start_dnsmasq();
 }
 

@@ -51,7 +51,7 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
     QByteArray data;
     if (json_data)
     {
-        data = QJsonDocument(*json_data).toJson();
+        data = QJsonDocument(*json_data).toJson(QJsonDocument::Compact);
         mpl::log(mpl::Level::trace, request_category, fmt::format("Sending data: {}", data));
     }
 

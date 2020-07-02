@@ -41,39 +41,6 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPt
       data_dir{mp::utils::make_dir(data_dir, get_backend_directory_name())},
       base_url{base_url}
 {
-
-    try
-    {
-        lxd_request(this->manager.get(), "GET",
-                    QUrl(QString("%1/projects/%2").arg(base_url.toString()).arg(lxd_project_name)));
-    }
-    catch (const LXDNotFoundException&)
-    {
-        QJsonObject project{{"name", lxd_project_name}, {"description", "Project for Multipass instances"}};
-
-        lxd_request(this->manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
-
-        // TODO: Detect if default storage pool is available and if not, create a directory based pool for
-        //       Multipass
-
-        QJsonObject devices{
-            {"eth0", QJsonObject{{"name", "eth0"}, {"nictype", "bridged"}, {"parent", "mpbr0"}, {"type", "nic"}}}};
-        QJsonObject profile{{"description", "Default profile for Multipass project"}, {"devices", devices}};
-
-        lxd_request(this->manager.get(), "PUT", QUrl(QString("%1/profiles/default").arg(base_url.toString())), profile);
-    }
-
-    try
-    {
-        lxd_request(this->manager.get(), "GET",
-                    QUrl(QString("%1/networks/%2").arg(base_url.toString()).arg(multipass_bridge_name)));
-    }
-    catch (const LXDNotFoundException&)
-    {
-        QJsonObject network{{"name", multipass_bridge_name}, {"description", "Network bridge for Multipass"}};
-
-        lxd_request(this->manager.get(), "POST", QUrl(QString("%1/networks").arg(base_url.toString())), network);
-    }
 }
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir, const QUrl& base_url)
@@ -108,6 +75,39 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
         mpl::log(mpl::Level::debug, category,
                  fmt::format("{}: {}", base_url.toString(), QJsonDocument(reply).toJson(QJsonDocument::Compact)));
         throw std::runtime_error("Failed to authenticate to LXD.");
+    }
+
+    try
+    {
+        lxd_request(manager.get(), "GET",
+                    QUrl(QString("%1/projects/%2").arg(base_url.toString()).arg(lxd_project_name)));
+    }
+    catch (const LXDNotFoundException&)
+    {
+        QJsonObject project{{"name", lxd_project_name}, {"description", "Project for Multipass instances"}};
+
+        lxd_request(manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
+
+        // TODO: Detect if default storage pool is available and if not, create a directory based pool for
+        //       Multipass
+
+        QJsonObject devices{
+            {"eth0", QJsonObject{{"name", "eth0"}, {"nictype", "bridged"}, {"parent", "mpbr0"}, {"type", "nic"}}}};
+        QJsonObject profile{{"description", "Default profile for Multipass project"}, {"devices", devices}};
+
+        lxd_request(manager.get(), "PUT", QUrl(QString("%1/profiles/default").arg(base_url.toString())), profile);
+    }
+
+    try
+    {
+        lxd_request(manager.get(), "GET",
+                    QUrl(QString("%1/networks/%2").arg(base_url.toString()).arg(multipass_bridge_name)));
+    }
+    catch (const LXDNotFoundException&)
+    {
+        QJsonObject network{{"name", multipass_bridge_name}, {"description", "Network bridge for Multipass"}};
+
+        lxd_request(manager.get(), "POST", QUrl(QString("%1/networks").arg(base_url.toString())), network);
     }
 }
 
