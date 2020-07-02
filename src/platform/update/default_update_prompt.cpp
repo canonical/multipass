@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,10 @@
  */
 
 #include "default_update_prompt.h"
+#include "new_release_monitor.h"
 
-#include <multipass/optional.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/version.h>
-
-#include "new_release_monitor.h"
 
 namespace mp = multipass;
 

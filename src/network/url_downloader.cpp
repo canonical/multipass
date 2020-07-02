@@ -19,9 +19,8 @@
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/download_exception.h>
-#include <multipass/logging/log.h>
-
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 
 #include <QDir>
 #include <QEventLoop>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,13 +22,11 @@
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 
-#include <QDateTime>
-
-#include <multipass/format.h>
 #include <gmock/gmock.h>
 
 #include <queue>

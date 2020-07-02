@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,15 +15,12 @@
  *
  */
 
+#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_process.h>
-#include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 
-#include <multipass/logging/log.h>
-
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
-
-#include <multipass/format.h>
 #include <libssh/callbacks.h>
 
 #include <array>

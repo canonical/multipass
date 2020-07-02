@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +24,6 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
-
-#include <multipass/format.h>
 
 #include <QUrl>
 
