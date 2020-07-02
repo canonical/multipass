@@ -20,7 +20,6 @@
 #include <multipass/version.h>
 
 #include <QRegularExpression>
-#include <QRegularExpressionMatch>
 
 namespace mp = multipass;
 

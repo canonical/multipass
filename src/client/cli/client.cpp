@@ -37,8 +37,6 @@
 #include "cmd/umount.h"
 #include "cmd/version.h"
 
-#include <grpcpp/grpcpp.h>
-
 #include <algorithm>
 
 #include <multipass/cli/argparser.h>
