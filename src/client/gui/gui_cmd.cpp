@@ -183,7 +183,7 @@ void cmd::GuiCmd::update_menu()
         }
     }
 
-    for (const auto instance : instances_to_remove)
+    for (const auto& instance : instances_to_remove)
     {
         instances_entries.erase(instance);
     }

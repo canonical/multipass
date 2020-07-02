@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,13 +88,13 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         {
             YAML::Node mount_node;
 
-            for (const auto uid_map : mount.mount_maps().uid_map())
+            for (const auto& uid_map : mount.mount_maps().uid_map())
             {
                 mount_node["uid_mappings"].push_back(
                     fmt::format("{}:{}", std::to_string(uid_map.first),
                                 (uid_map.second == mp::default_id) ? "default" : std::to_string(uid_map.second)));
             }
-            for (const auto gid_map : mount.mount_maps().gid_map())
+            for (const auto& gid_map : mount.mount_maps().gid_map())
             {
                 mount_node["gid_mappings"].push_back(
                     fmt::format("{}:{}", std::to_string(gid_map.first),
