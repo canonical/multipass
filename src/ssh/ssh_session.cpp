@@ -15,19 +15,16 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
 
 #include <libssh/callbacks.h>
-#include <libssh/socket.h>
-
-#include <multipass/format.h>
 
 #include <QDir>
 
-#include <sstream>
 #include <stdexcept>
 #include <string>
 

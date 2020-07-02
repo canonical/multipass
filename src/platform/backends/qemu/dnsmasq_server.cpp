@@ -16,21 +16,19 @@
  */
 
 #include "dnsmasq_server.h"
-
 #include "dnsmasq_process_spec.h"
+
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process.h>
 #include <multipass/utils.h>
 #include <shared/linux/process_factory.h>
-
-#include <multipass/format.h>
 
 #include <QDir>
 
 #include <fstream>
 
 #include <signal.h>
-#include <sys/types.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

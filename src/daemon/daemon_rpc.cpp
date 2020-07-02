@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,9 @@
 #include "daemon_rpc.h"
 #include "daemon_config.h"
 
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_host.h>
-
-#include <multipass/format.h>
 
 #include <chrono>
 #include <stdexcept>

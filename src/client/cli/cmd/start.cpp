@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,8 @@
  */
 
 #include "start.h"
-#include "common_cli.h"
-#include "exec.h"
-
 #include "animated_spinner.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>

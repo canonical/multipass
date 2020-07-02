@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,14 +17,12 @@
 
 #include "mount.h"
 #include "common_cli.h"
-
 #include "animated_spinner.h"
+
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
-#include <multipass/logging/log.h>
-#include <multipass/sshfs_mount/sftp_server.h>
-
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 
 #include <QDir>
 #include <QFileInfo>

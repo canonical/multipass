@@ -41,7 +41,6 @@
 #include <fcntl.h>
 #include <linux/kvm.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 namespace mp = multipass;

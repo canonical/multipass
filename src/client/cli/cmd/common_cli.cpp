@@ -16,7 +16,6 @@
  */
 
 #include "common_cli.h"
-#include "exec.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
