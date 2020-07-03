@@ -643,8 +643,10 @@ mp::MemorySize get_image_size(const mp::VMImage& image)
 // the size of the image.
 mp::MemorySize compute_final_image_size(const mp::VMImage& image, mp::optional<mp::MemorySize> command_line_value)
 {
-    mp::MemorySize image_size = get_image_size(image);
     mp::MemorySize disk_space{};
+
+    // TODO: the virtual image size should come from the vault.
+    mp::MemorySize image_size = get_image_size(image);
 
     if (!command_line_value)
     {
