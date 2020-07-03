@@ -161,11 +161,6 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
-TEST_F(PlatformLinux, test_no_extra_settings)
-{
-    EXPECT_THAT(mp::platform::extra_settings_defaults(), IsEmpty());
-}
-
 TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
 {
     for (const auto x : {"no", "matter", "what"})
