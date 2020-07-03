@@ -22,7 +22,7 @@
 
 namespace multipass::platform
 {
-QString interpret_general_hotkey(const QString& val);
+QString interpret_hotkey(const QString& val);
 } // namespace multipass::platform
 
 #endif // MULTIPASS_PLATFORM_SHARED_H

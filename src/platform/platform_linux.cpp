@@ -53,7 +53,7 @@ std::map<QString, QString> mp::platform::extra_settings_defaults()
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
     if (key == hotkey_key)
-        return mp::platform::interpret_general_hotkey(val);
+        return mp::platform::interpret_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingsException(key, val, "Setting unavailable on Linux");

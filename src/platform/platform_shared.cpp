@@ -37,7 +37,7 @@ namespace mpp = multipass::platform;
 // 4) There does not seem to be a way to specify numpad keys in QKeySequence (with or without numlock).
 // 5) meta only seems to work with other modifiers (e.g. ctrl+meta+x works, but meta+x doesn't even though it is
 // accepted with no warning)
-QString mpp::interpret_general_hotkey(const QString& val)
+QString mpp::interpret_hotkey(const QString& val)
 {
     auto sequence = QKeySequence{val};
     auto ret = sequence.toString(QKeySequence::NativeText);
