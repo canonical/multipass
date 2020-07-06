@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,14 +80,14 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
             QJsonArray mount_uids;
             QJsonArray mount_gids;
 
-            for (const auto uid_map : mount.mount_maps().uid_map())
+            for (const auto& uid_map : mount.mount_maps().uid_map())
             {
                 mount_uids.append(
                     QString("%1:%2")
                         .arg(QString::number(uid_map.first))
                         .arg((uid_map.second == mp::default_id) ? "default" : QString::number(uid_map.second)));
             }
-            for (const auto gid_map : mount.mount_maps().gid_map())
+            for (const auto& gid_map : mount.mount_maps().gid_map())
             {
                 mount_gids.append(
                     QString("%1:%2")
