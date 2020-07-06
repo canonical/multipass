@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,34 +15,14 @@
  *
  */
 
-#ifndef MULTIPASS_GET_H
-#define MULTIPASS_GET_H
-
-#include <multipass/cli/command.h>
+#ifndef MULTIPASS_PLATFORM_SHARED_H
+#define MULTIPASS_PLATFORM_SHARED_H
 
 #include <QString>
 
-namespace multipass
+namespace multipass::platform
 {
-namespace cmd
-{
-class Get final : public Command
-{
-public:
-    using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+QString interpret_hotkey(const QString& val);
+} // namespace multipass::platform
 
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
-
-private:
-    ParseCode parse_args(ArgParser* parser) override;
-
-    QString key;
-    bool raw = false;
-};
-} // namespace cmd
-} // namespace multipass
-
-#endif // MULTIPASS_GET_H
+#endif // MULTIPASS_PLATFORM_SHARED_H

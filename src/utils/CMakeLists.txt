@@ -24,4 +24,5 @@ target_link_libraries(utils
   ssh_common
   ssh
   yaml
-  Qt5::Core)
+  Qt5::Core
+  Qt5::Gui)

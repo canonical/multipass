@@ -14,6 +14,7 @@
 
 add_library(platform STATIC
   platform_linux.cpp
+  platform_shared.cpp
   platform_unix.cpp)
 
 target_link_libraries(platform
@@ -30,7 +31,8 @@ target_link_libraries(platform
   daemon
   shared
   update
-  utils)
+  utils
+  Qt5::Gui)
 
 add_subdirectory(backends)
 add_subdirectory(client)

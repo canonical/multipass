@@ -35,7 +35,12 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     {
         try
         {
-            cout << qUtf8Printable(Settings::instance().get(key)) << "\n";
+            if (auto val = Settings::instance().get(key); val.isEmpty() && !raw)
+                cout << "<empty>";
+            else
+                cout << qUtf8Printable(val);
+
+            cout << "\n";
         }
         catch (const SettingsException& e)
         {
@@ -67,6 +72,10 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("key", "Path to the setting whose configured value should be obtained.", "<key>");
 
+    QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
+                                         "values (i.e. \"\" instead of \"<empty>\").");
+    parser->addOption(raw_option);
+
     auto status = parser->commandParse(this);
     if (status == ParseCode::Ok)
     {
@@ -80,6 +89,8 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
             cerr << "Need exactly one setting key.\n";
             status = ParseCode::CommandLineError;
         }
+
+        raw = parser->isSet(raw_option);
     }
 
     return status;

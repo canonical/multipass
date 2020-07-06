@@ -22,6 +22,7 @@
 #include <multipass/utils.h> // TODO move out
 
 #include <QDir>
+#include <QKeySequence>
 #include <QSettings>
 
 #include <algorithm>
@@ -29,6 +30,7 @@
 #include <cerrno>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -41,11 +43,17 @@ const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
+QString default_hotkey()
+{
+    return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
+}
+
 std::map<QString, QString> make_defaults()
 { // clang-format off
     auto ret = std::map<QString, QString>{{mp::petenv_key, petenv_name},
                                           {mp::driver_key, mp::platform::default_driver()},
-                                          {mp::autostart_key, autostart_default}};
+                                          {mp::autostart_key, autostart_default},
+                                          {mp::hotkey_key, default_hotkey()}};
 
     for(const auto& [k, v] : mp::platform::extra_settings_defaults())
         ret.insert_or_assign(k, v);
@@ -76,9 +84,12 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
-QSettings persistent_settings(const QString& key)
+std::unique_ptr<QSettings> persistent_settings(const QString& key)
 {
-    return {file_for(key), QSettings::IniFormat};
+    auto ret = std::make_unique<QSettings>(file_for(key), QSettings::IniFormat);
+    ret->setIniCodec("UTF-8");
+
+    return ret;
 }
 
 bool exists_but_unreadable(const QString& filename)
@@ -157,7 +168,7 @@ QString mp::Settings::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
     auto settings = persistent_settings(key);
-    return checked_get(settings, key, default_ret, mutex);
+    return checked_get(*settings, key, default_ret, mutex);
 }
 
 void mp::Settings::set(const QString& key, const QString& val)
@@ -197,9 +208,9 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException(key, val, "Invalid driver");
     else if (key == autostart_key && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
-    else if (key == winterm_key)
-        val = mp::platform::interpret_setting(winterm_key, val);
+    else if (key == winterm_key || key == hotkey_key)
+        val = mp::platform::interpret_setting(key, val);
 
     auto settings = persistent_settings(key);
-    checked_set(settings, key, val, mutex);
+    checked_set(*settings, key, val, mutex);
 }
