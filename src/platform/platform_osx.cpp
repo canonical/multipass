@@ -64,7 +64,7 @@ QString interpret_macos_hotkey(QString val)
         for (const auto& before_key : before_keys)
             val.replace(before_key, after_key, Qt::CaseInsensitive);
 
-    return mp::platform::interpret_general_hotkey(val);
+    return mp::platform::interpret_hotkey(val);
 }
 
 } // namespace
