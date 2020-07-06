@@ -35,7 +35,6 @@ class DNSMasqServer
 {
 public:
     DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
-    DNSMasqServer(DNSMasqServer&& other) = default;
     ~DNSMasqServer();
 
     optional<IPAddress> get_ip_for(const std::string& hw_addr);
@@ -43,6 +42,9 @@ public:
     void check_dnsmasq_running();
 
 private:
+    DNSMasqServer(const DNSMasqServer&) = delete;
+    DNSMasqServer& operator=(const DNSMasqServer&) = delete;
+
     void start_dnsmasq();
 
     const QString data_dir;

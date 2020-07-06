@@ -63,7 +63,7 @@ void set_server_permissions(const std::string& server_address)
         return;
 
     struct group* group{nullptr};
-    for (const auto socket_group : supported_socket_groups)
+    for (const auto& socket_group : supported_socket_groups)
     {
         group = getgrnam(socket_group.c_str());
         if (group)
