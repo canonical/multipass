@@ -21,32 +21,41 @@
 
 #include <sys/ioctl.h>
 
+#include <cstdlib>
+
 namespace mp = multipass;
 
 namespace
 {
-mp::Console::ConsoleGeometry last_geometry{0, 0};
+mp::Console::ConsoleGeometry local_pty_size{0, 0};
 ssh_channel global_channel;
 int global_cout_fd;
 
-void change_ssh_pty_size(ssh_channel channel, int cout_fd)
+bool update_local_pty_size(int cout_fd)
 {
     struct winsize win = {0, 0, 0, 0};
     ioctl(cout_fd, TIOCGWINSZ, &win);
 
-    if (last_geometry.rows != win.ws_row || last_geometry.columns != win.ws_col)
-    {
-        last_geometry.rows = win.ws_row;
-        last_geometry.columns = win.ws_col;
+    bool local_pty_size_changed = local_pty_size.rows != win.ws_row || local_pty_size.columns != win.ws_col;
 
-        ssh_channel_change_pty_size(channel, win.ws_col, win.ws_row);
+    if (local_pty_size_changed)
+    {
+        local_pty_size.rows = win.ws_row;
+        local_pty_size.columns = win.ws_col;
     }
+
+    return local_pty_size_changed;
 }
 
 static void sigwinch_handler(int sig)
 {
     if (sig == SIGWINCH)
-        change_ssh_pty_size(global_channel, global_cout_fd);
+    {
+        if (update_local_pty_size(global_cout_fd))
+        {
+            ssh_channel_change_pty_size(global_channel, local_pty_size.columns, local_pty_size.rows);
+        }
+    }
 }
 } // namespace
 
@@ -64,8 +73,11 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
     {
         setup_console();
 
-        ssh_channel_request_pty(channel);
-        change_ssh_pty_size(channel, term->cout_fd());
+        const char* term_type = std::getenv("TERM");
+        term_type = (term_type == nullptr) ? "xterm" : term_type;
+
+        update_local_pty_size(term->cout_fd());
+        ssh_channel_request_pty_size(channel, term_type, local_pty_size.columns, local_pty_size.rows);
     }
 }
 
