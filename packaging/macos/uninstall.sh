@@ -18,13 +18,18 @@ done
 DELETE_VMS=0
 
 while true; do
-    read -p "Do you want to delete all your Multipass VMs and daemon preferences too? [Y/N] " yn
+    read -p "Do you want to delete all your Multipass VMs and daemon data too? [Y/N] " yn
     case $yn in
         [Yy]* ) DELETE_VMS=1; break;;
         [Nn]* ) DELETE_VMS=0; break;;
         * ) echo "Please answer yes or no.";;
     esac
 done
+
+if [ $DELETE_VMS -eq 1 ]; then
+    echo "Removing VMs:"
+    multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
+fi
 
 LAUNCH_AGENT_DEST="/Library/LaunchDaemons/com.canonical.multipassd.plist"
 
@@ -33,9 +38,8 @@ echo "Removing the Multipass daemon launch agent:"
 launchctl unload -w "$LAUNCH_AGENT_DEST"
 
 if [ $DELETE_VMS -eq 1 ]; then
-    echo "Removing VMs:"
+    echo "Removing daemon data:"
     rm -rfv "/var/root/Library/Application Support/multipassd"
-    echo "Removing daemon preferences:"
     rm -rfv "/var/root/Library/Preferences/multipassd"
 fi
 
