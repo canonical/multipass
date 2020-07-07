@@ -1229,15 +1229,15 @@ try // clang-format on
     ListNetworksReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
-    auto entry = response.add_interfaces();
-    entry->set_name("enx00133b4909cd");
-    entry->set_type("ethernet");
-    entry->set_description("ASIX Electronics Corp. AX88179 Gigabit Ethernet");
+    auto iface_list = config->factory->list_networks();
 
-    entry = response.add_interfaces();
-    entry->set_name("wlp60");
-    entry->set_type("wifi");
-    entry->set_description("Intel Corporation Wireless 7260 (rev 6b)");
+    for (auto iface : iface_list)
+    {
+        auto entry = response.add_interfaces();
+        entry->set_name(std::get<0>(iface));
+        entry->set_type(std::get<1>(iface));
+        entry->set_description(std::get<2>(iface));
+    }
 
     server->Write(response);
     status_promise->set_value(grpc::Status::OK);
