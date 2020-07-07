@@ -203,7 +203,7 @@ struct SshfsMount : public mp::test::SftpServerTest
          "/home/ubuntu/\n"},
         {"id -u", "1000\n"},
         {"id -g", "1000\n"},
-        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o allow_other :\"source\" "
+        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o allow_other  -o auto_cache -o Compression=no :\"source\" "
          "\"target\"",
          "don't care\n"}};
 };
