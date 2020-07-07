@@ -24,13 +24,16 @@
 #include <multipass/auto_join_thread.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
+#include <multipass/constants.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
+#include "extra_assertions.h"
 #include "mock_environment_helpers.h"
+#include "mock_process_factory.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
@@ -297,6 +300,42 @@ struct Daemon : public Test
         loop.exec();
     }
 
+    QByteArray fake_img_info(const mp::MemorySize& size)
+    {
+        return QByteArray::fromStdString(
+            fmt::format("some\nother\ninfo\nfirst\nvirtual size: {} ({} bytes)\nmore\ninfo\nafter\n",
+                        size.in_gigabytes(), size.in_bytes()));
+    }
+
+    void simulate_qemuimg_info(const mpt::MockProcess* process, const mp::ProcessState& produce_result,
+                               const QByteArray& produce_output = {})
+    {
+        ASSERT_EQ(process->program().toStdString(), "qemu-img");
+
+        const auto args = process->arguments();
+        ASSERT_EQ(args.size(), 2);
+        EXPECT_EQ(args.constFirst(), "info");
+
+        EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+        if (produce_result.completed_successfully())
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
+        else if (produce_result.exit_code)
+            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
+        else
+            ON_CALL(*process, read_all_standard_error).WillByDefault(Return(produce_output));
+    }
+
+    std::unique_ptr<mp::test::MockProcessFactory::Scope>
+    inject_fake_qemuimg_callback(const mp::ProcessState& qemuimg_exit_status, const QByteArray& qemuimg_output)
+    {
+        std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+        mock_factory_scope->register_callback(
+            [&](mpt::MockProcess* process) { simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output); });
+
+        return mock_factory_scope;
+    }
+
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
     QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
     mpt::TempDir cache_dir;
@@ -423,10 +462,19 @@ struct MinSpaceViolatedSuite : public Daemon,
 {
 };
 
+struct LaunchImgSizeSuite : public Daemon,
+                            public WithParamInterface<std::tuple<std::string, std::vector<std::string>, std::string>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
+
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048576"}));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
     send_command({GetParam()});
@@ -446,6 +494,10 @@ TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_instan
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048577"}));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
     send_command({GetParam()});
 }
@@ -454,6 +506,10 @@ TEST_P(DaemonCreateLaunchTestSuite, on_creation_handles_instance_image_preparati
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
+
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048578"}));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
     std::string cause = "motive";
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _)).WillOnce(Throw(std::runtime_error{cause}));
@@ -585,6 +641,10 @@ TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048579"}));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
     EXPECT_CALL(*mock_factory, configure(_, _, _))
         .WillOnce(Invoke([](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
             EXPECT_THAT(user_config, YAMLNodeContainsMap("growpart"));
@@ -624,6 +684,10 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
     config_builder.ssh_key_provider = std::make_unique<DummyKeyProvider>(expected_key);
     mp::Daemon daemon{config_builder.build()};
 
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048580"}));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
     EXPECT_CALL(*mock_factory, configure(_, _, _))
         .WillOnce(Invoke([&expected_key](const std::string& name, YAML::Node& meta_config, YAML::Node& user_config) {
             ASSERT_THAT(user_config, YAMLNodeContainsSequence("ssh_authorized_keys"));
@@ -645,6 +709,10 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
                                 multipass::version_string, QSysInfo::productType(), QSysInfo::productVersion())},
     };
     mp::Daemon daemon{config_builder.build()};
+
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048581"}));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
     EXPECT_CALL(*mock_factory, configure(_, _, _))
         .WillOnce(Invoke(
@@ -672,6 +740,10 @@ TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
     const auto& opt_name = std::get<1>(param);
     const auto& opt_value = std::get<2>(param);
 
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(mp::MemorySize{"1048582"}));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
     send_command({cmd, opt_name, opt_value});
 }
@@ -692,6 +764,93 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk"))));
 }
 
+TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto param = GetParam();
+    const auto& first_command_line_parameter = std::get<0>(param);
+    const auto& other_command_line_parameters = std::get<1>(param);
+    const auto& img_size_str = std::get<2>(param);
+    const auto img_size = mp::MemorySize(img_size_str);
+
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(img_size));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    std::vector<std::string> all_parameters{first_command_line_parameter};
+    for (const auto p : other_command_line_parameters)
+        all_parameters.push_back(p);
+
+    if (other_command_line_parameters.size() > 0 && mp::MemorySize(other_command_line_parameters[1]) < img_size)
+    {
+        std::stringstream stream;
+        EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+        send_command(all_parameters, trash_stream, stream);
+        EXPECT_THAT(stream.str(), AllOf(HasSubstr("Requested disk"), HasSubstr("below minimum for this image")));
+    }
+    else
+    {
+        EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+        send_command(all_parameters);
+    }
+}
+
+TEST_F(Daemon, stop_when_qemuimg_info_crashes)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const mp::ProcessState qemuimg_exit_status{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
+    const QByteArray qemuimg_output("about to crash");
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    std::vector<std::string> parameters{{"launch"}};
+    std::stringstream stream;
+    send_command(parameters, trash_stream, stream);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+    send_command(parameters, trash_stream, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("qemu-img failed"), HasSubstr("with output")));
+}
+
+TEST_F(Daemon, stop_when_qemuimg_info_cant_find_the_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const mp::ProcessState qemuimg_exit_status{1, mp::nullopt};
+    const QByteArray qemuimg_output("Could not find");
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    std::vector<std::string> parameters{{"launch"}};
+    std::stringstream stream;
+    send_command(parameters, trash_stream, stream);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+    send_command(parameters, trash_stream, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("qemu-img failed"), HasSubstr("Could not find")));
+}
+
+TEST_F(Daemon, stop_when_qemuimg_info_doesnt_understand_the_image_size)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output("virtual size: an unintelligible string");
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    std::vector<std::string> parameters{{"launch"}};
+    std::stringstream stream;
+    send_command(parameters, trash_stream, stream);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+    send_command(parameters, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("Could not obtain image's virtual size"));
+}
+
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
                          Combine(Values("test_create", "launch"), Values("--mem", "--disk"),
@@ -699,5 +858,9 @@ INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite,
                          Combine(Values("test_create", "launch"), Values("--mem", "--disk"),
                                  Values("0", "0B", "0GB", "123B", "42kb", "100")));
+INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
+                         Combine(Values("test_create", "launch"),
+                                 Values(std::vector<std::string>{}, std::vector<std::string>{"--disk", "4G"}),
+                                 Values("1G", mp::default_disk_size, "10G")));
 
 } // namespace

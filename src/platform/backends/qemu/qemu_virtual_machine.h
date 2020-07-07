@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
-#include <multipass/process.h>
+#include <multipass/process/process.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 

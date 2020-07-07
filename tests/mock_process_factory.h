@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "process_factory.h" // rely on build system to include the right implementation
 #include <gmock/gmock.h>
 #include <multipass/optional.h>
-#include <multipass/process.h>
+#include <multipass/process/process.h>
 
 #include <functional>
 

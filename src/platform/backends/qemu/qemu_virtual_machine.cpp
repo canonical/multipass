@@ -25,7 +25,7 @@
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
-#include <multipass/process.h>
+#include <multipass/process/process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>

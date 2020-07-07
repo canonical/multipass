@@ -18,8 +18,7 @@ pkg_search_module(APPARMOR libapparmor REQUIRED)
 add_library(shared_linux STATIC
   apparmor.cpp
   backend_utils.cpp
-  process_factory.cpp
-  qemuimg_process_spec.cpp)
+  process_factory.cpp)
 
 include_directories(shared_linux
   ..)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_BASIC_PROCESS_H
 #define MULTIPASS_BASIC_PROCESS_H
 
-#include <multipass/process.h>
-#include <multipass/process_spec.h>
+#include <multipass/process/process.h>
+#include <multipass/process/process_spec.h>
 
 #include <memory>
 
