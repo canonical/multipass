@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,6 +73,11 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
                                                      const days& days_to_expire) override
     {
         return std::make_unique<StubVMImageVault>();
+    }
+
+    std::vector<std::tuple<std::string, std::string, std::string>> list_networks() override
+    {
+        return std::vector<std::tuple<std::string, std::string, std::string>>();
     }
 };
 }
