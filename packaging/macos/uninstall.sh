@@ -27,7 +27,7 @@ while true; do
 done
 
 if [ $DELETE_VMS -eq 1 ]; then
-    echo "Removing VMs and daemon preferences:"
+    echo "Removing VMs:"
     multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
     rm -rfv "/var/root/Library/Application Support/multipassd"
 fi
