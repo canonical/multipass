@@ -21,7 +21,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
-#include <multipass/process_spec.h>
+#include <multipass/process/process_spec.h>
 
 #include <string>
 

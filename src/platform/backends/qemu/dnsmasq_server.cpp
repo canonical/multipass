@@ -20,7 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/process.h>
+#include <multipass/process/process.h>
 #include <multipass/utils.h>
 #include <shared/linux/process_factory.h>
 

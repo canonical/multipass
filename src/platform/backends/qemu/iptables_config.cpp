@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/process.h>
+#include <multipass/process/process.h>
 #include <shared/linux/process_factory.h>
 
 namespace mp = multipass;

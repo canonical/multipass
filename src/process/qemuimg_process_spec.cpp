@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,7 @@
  *
  */
 
-#include "qemuimg_process_spec.h"
-
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/snap_utils.h>
 
 namespace mp = multipass;

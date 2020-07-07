@@ -5,6 +5,12 @@
     <key>Label</key>
     <string>com.canonical.multipassd</string>
 
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>PATH</key>
+      <string>@CPACK_PACKAGING_INSTALL_PREFIX@/bin</string>
+    </dict>
+
     <key>ProgramArguments</key>
     <array>
       <string>@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipassd</string>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
 #define MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
 
-#include <multipass/process_spec.h>
+#include <multipass/process/process_spec.h>
 #include <multipass/sshfs_server_config.h>
 
 namespace multipass
