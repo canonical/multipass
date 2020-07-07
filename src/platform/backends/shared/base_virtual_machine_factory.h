@@ -50,6 +50,11 @@ public:
         return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
                                                      days_to_expire);
     };
+
+    std::vector<std::tuple<std::string, std::string, std::string>> list_networks()
+    {
+        return std::vector<std::tuple<std::string, std::string, std::string>>();
+    };
 };
 } // namespace multipass
 
