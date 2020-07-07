@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,6 +60,7 @@ public:
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
+    virtual std::vector<std::tuple<std::string, std::string, std::string>> list_networks() = 0;
 
 protected:
     VirtualMachineFactory() = default;
