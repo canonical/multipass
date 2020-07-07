@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -123,8 +123,8 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
         }
         else
         {
-            const auto keyval = args.at(0).split('=');
-            if (keyval.size() != 2 || keyval.contains(QStringLiteral("")))
+            const auto keyval = args.at(0).split('=', QString::KeepEmptyParts);
+            if (keyval.size() != 2 || keyval[0].isEmpty())
             {
                 cerr << "Bad key-value format.\n";
                 status = ParseCode::CommandLineError;

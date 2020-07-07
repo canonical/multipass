@@ -13,7 +13,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 if(MSVC)
-  add_library(platform STATIC platform_win.cpp)
+  add_library(platform STATIC
+    platform_shared.cpp
+    platform_win.cpp)
   get_target_property(JSON_INC_PATH jsoncpp_lib INTERFACE_INCLUDE_DIRECTORIES)
   target_include_directories(platform PRIVATE ${JSON_INC_PATH})
   target_link_libraries(platform
@@ -26,6 +28,7 @@ if(MSVC)
 elseif(APPLE)
   add_library(platform STATIC
     platform_osx.cpp
+    platform_shared.cpp
     platform_unix.cpp)
   target_link_libraries(platform
     shared_macos
@@ -35,6 +38,7 @@ elseif(APPLE)
 else()
   add_library(platform STATIC
     platform_linux.cpp
+    platform_shared.cpp
     platform_unix.cpp)
   target_link_libraries(platform
     qemu_backend
@@ -52,7 +56,8 @@ target_link_libraries(platform
   daemon
   shared
   update
-  utils)
+  utils
+  Qt5::Gui)
 
 add_subdirectory(backends)
 add_subdirectory(client)

@@ -55,6 +55,7 @@ add_executable(multipass_tests
   test_metrics_provider.cpp
   test_new_release_monitor.cpp
   test_petname.cpp
+  test_platform_shared.cpp
   test_private_pass_provider.cpp
   test_mock_settings.cpp
   test_mock_standard_paths.cpp

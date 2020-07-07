@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,8 @@
 #include <QObject>
 #include <QSystemTrayIcon>
 #include <QTimer>
+
+#include <QHotkey>
 
 #include <memory>
 #include <unordered_map>
@@ -79,6 +81,7 @@ private:
     void stop_instance_for(const std::string& instance_name);
     void suspend_instance_for(const std::string& instance_name);
     VersionReply retrieve_version_and_update_info();
+    void update_hotkey();
 
     QSystemTrayIcon tray_icon;
     QMenu tray_icon_menu;
@@ -120,6 +123,8 @@ private:
 
     QTimer menu_update_timer;
     QTimer about_update_timer;
+
+    QHotkey hotkey;
 };
 } // namespace cmd
 } // namespace multipass

@@ -29,6 +29,7 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
+#include "platform_shared.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/win/process_factory.h"
 #include <daemon/default_vm_image_vault.h>
@@ -262,6 +263,8 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
     if (key == mp::winterm_key)
         return interpret_winterm_setting(val);
+    else if (key == mp::hotkey_key)
+        return mp::platform::interpret_general_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingsException(key, val, "Setting unavailable on Windows");

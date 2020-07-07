@@ -31,6 +31,7 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
+#include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
@@ -52,6 +53,9 @@ std::map<QString, QString> mp::platform::extra_settings_defaults()
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
+    if (key == hotkey_key)
+        return mp::platform::interpret_hotkey(val);
+
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingsException(key, val, "Setting unavailable on Linux");
 }
