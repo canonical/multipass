@@ -37,14 +37,20 @@ constexpr auto request_category = "lxd request";
 const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::string& method, QUrl url,
                                   const mp::optional<QJsonObject>& json_data, int timeout)
 {
-    mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
-
     QEventLoop event_loop;
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    url.setQuery("project=multipass&recursion=1");
+    if (url.hasQuery())
+    {
+        url.setQuery(url.query() + "&project=multipass");
+    }
+    else
+    {
+        url.setQuery("project=multipass");
+    }
 
+    mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
     QNetworkRequest request{url};
 
     auto verb = QByteArray::fromStdString(method);
