@@ -195,18 +195,17 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
-    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images").arg(base_url.toString())));
+    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
 
     auto images = json_reply["metadata"].toArray();
 
     for (const auto image : images)
     {
         auto image_info = image.toObject();
-        auto last_used_count =
-            QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs).toMSecsSinceEpoch();
-        auto last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(last_used_count));
+        auto last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
+            QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs).toMSecsSinceEpoch()));
 
-        if (image_info.contains("update_source") && last_used + days_to_expire <= std::chrono::system_clock::now())
+        if (last_used + days_to_expire <= std::chrono::system_clock::now())
         {
             mpl::log(mpl::Level::info, category,
                      fmt::format("Source image \'{}\' is expired. Removing it…",
@@ -222,7 +221,7 @@ void mp::LXDVMImageVault::prune_expired_images()
 void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
-    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images").arg(base_url.toString())));
+    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
 
     auto images = json_reply["metadata"].toArray();
 
@@ -232,7 +231,7 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
         if (image_info.contains("update_source"))
         {
             auto release = image_info["properties"].toObject()["release"].toString();
-            mpl::log(mpl::Level::info, category, fmt::format("Checking if \'{}\' needs updating…", release));
+            mpl::log(mpl::Level::debug, category, fmt::format("Checking if \'{}\' needs updating…", release));
 
             auto id = image_info["fingerprint"].toString();
 
@@ -246,7 +245,7 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
                 }
                 else
                 {
-                    mpl::log(mpl::Level::info, category, fmt::format("No image update for \'{}\'.", release));
+                    mpl::log(mpl::Level::debug, category, fmt::format("No image update for \'{}\'.", release));
                 }
             };
 
@@ -303,6 +302,7 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
 
                 if (task_reply["error_code"].toInt(-1) != 0)
                 {
+                    mpl::log(mpl::Level::error, category, task_reply["error"].toString().toStdString());
                     break;
                 }
 

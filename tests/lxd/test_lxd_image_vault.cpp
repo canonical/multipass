@@ -56,6 +56,12 @@ struct LXDImageVault : public Test
             .WillRepeatedly(Return());
     }
 
+    void TearDown() override
+    {
+        logger.reset();
+        mpl::set_logger(logger);
+    }
+
     std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
     std::unique_ptr<NiceMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     std::vector<mp::VMImageHost*> hosts;
@@ -441,7 +447,7 @@ TEST_F(LXDImageVault, has_record_for_returns_expected_values)
     EXPECT_FALSE(image_vault.has_record_for("foo"));
 }
 
-TEST_F(LXDImageVault, update_image_refreshed_logs_expected_message)
+TEST_F(LXDImageVault, update_image_requests_refresh_and_logs_expected_message)
 {
     bool refresh_requested{false};
 
@@ -509,7 +515,7 @@ TEST_F(LXDImageVault, update_image_not_refreshed_logs_expected_message)
 
     mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
 
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+    EXPECT_CALL(*logger, log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
                              mpt::MockLogger::make_cstring_matcher(StrEq("No image update for \'bionic\'."))));
 
     image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
@@ -551,7 +557,7 @@ TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
     EXPECT_TRUE(delete_requested);
 }
 
-TEST_F(LXDImageVault, image_hash_delete_not_requested_on_expiration)
+TEST_F(LXDImageVault, image_hash_delete_requested_on_expiration)
 {
     bool delete_requested{false};
 
@@ -578,6 +584,5 @@ TEST_F(LXDImageVault, image_hash_delete_not_requested_on_expiration)
 
     image_vault.prune_expired_images();
 
-    // Should not request delete since image was stored as hash and not alias
-    EXPECT_FALSE(delete_requested);
+    EXPECT_TRUE(delete_requested);
 }
