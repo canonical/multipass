@@ -116,3 +116,42 @@ void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMIma
 void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
 {
 }
+
+std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVirtualMachineFactory::list_networks()
+{
+    std::vector<std::tuple<std::string, std::string, std::string>> networks;
+
+    // 'VBoxManage list -l' lists network interfaces with the following parameters: intnets, bridgedifs,
+    // hostonlyifs, natnets.
+    std::string bridgedifs_info = mp::utils::run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"});
+    QStringList bridgedifs_list = QString::fromStdString(bridgedifs_info).split("\n\n", QString::SkipEmptyParts);
+
+    mpl::log(mpl::Level::info, "list-networks",
+             fmt::format("{} network interfaces found in the host", bridgedifs_list.size()));
+
+    const auto pattern =
+        QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_]+)\r?$.*^MediumType: +(?<type>\\w+)\r?$.*^Wireless: "
+                       "+(?<wireless>\\w+)\r?$.*^VBoxNetworkName: +(?<description>[A-Za-z0-9-_]+)\r?$");
+    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
+                                                        QRegularExpression::DotMatchesEverythingOption};
+
+    std::string ifname, iftype, ifdescription;
+    bool ifwireless = false;
+
+    for (auto iface : bridgedifs_list)
+    {
+        const auto match = regexp.match(iface);
+
+        if (match.hasMatch())
+        {
+            ifname = match.captured("name").toStdString();
+            iftype = match.captured("type").toLower().toStdString();
+            ifwireless = match.captured("wireless") == "Yes";
+            ifdescription = match.captured("description").toStdString();
+
+            networks.push_back({ifname, ifwireless ? "wifi" : iftype, ifdescription});
+        }
+    }
+
+    return networks;
+}
