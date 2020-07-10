@@ -111,6 +111,13 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     }
 }
 
+QString mp::LXDVirtualMachineFactory::get_backend_version_string()
+{
+    auto reply = lxd_request(manager.get(), "GET", base_url);
+
+    return reply["metadata"].toObject()["environment"].toObject()["server_version"].toString();
+}
+
 mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vector<mp::VMImageHost*> image_hosts,
                                                                         mp::URLDownloader* downloader,
                                                                         const mp::Path& cache_dir_path,
