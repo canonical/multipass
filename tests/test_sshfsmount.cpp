@@ -69,7 +69,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         auto request_exec = [this, expected_cmds, &invoked](ssh_channel, const char* raw_cmd) {
             std::string cmd{raw_cmd};
 
-            for (const auto expected_cmd : expected_cmds)
+            for (const auto& expected_cmd : expected_cmds)
             {
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,8 +46,6 @@ using namespace testing;
 namespace
 { // copied from QemuVirtualMachine implementation
 constexpr auto suspend_tag = "suspend";
-constexpr auto vm_command_version_tag = "command_version";
-
 } // namespace
 
 struct QemuBackend : public mpt::TestWithMockedBinPath

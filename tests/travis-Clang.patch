@@ -6,7 +6,7 @@ index 99b6312c..bb68596d 100644
      - build-essential
      - ccache
      - cmake-extras
-+    - clang
++    - clang-10
      - git
      - golang
      - libapparmor-dev
@@ -14,8 +14,8 @@ index 99b6312c..bb68596d 100644
      - -DCMAKE_INSTALL_PREFIX=/
      - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
-+    - -DCMAKE_C_COMPILER=clang
-+    - -DCMAKE_CXX_COMPILER=clang++
++    - -DCMAKE_C_COMPILER=clang-10
++    - -DCMAKE_CXX_COMPILER=clang++-10
      override-build: |
        update-ccache-symlinks
        snapcraftctl build

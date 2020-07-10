@@ -7,7 +7,11 @@ target_sources(multipass_tests
 add_library(broken_libvirt SHARED
     ${CMAKE_CURRENT_LIST_DIR}/broken_libvirt_library.cpp)
 
-target_compile_options(multipass_tests PRIVATE -rdynamic)
+if(${CMAKE_VERSION} VERSION_LESS "3.13")
+    target_link_libraries(multipass_tests -rdynamic)
+else()
+    target_link_options(multipass_tests PRIVATE -rdynamic)
+endif()
 
 target_compile_definitions(libvirt_backend_test PRIVATE
     ${c_mock_defines})
