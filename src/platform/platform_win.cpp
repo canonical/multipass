@@ -264,7 +264,7 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
     if (key == mp::winterm_key)
         return interpret_winterm_setting(val);
     else if (key == mp::hotkey_key)
-        return mp::platform::interpret_general_hotkey(val);
+        return mp::platform::interpret_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingsException(key, val, "Setting unavailable on Windows");
