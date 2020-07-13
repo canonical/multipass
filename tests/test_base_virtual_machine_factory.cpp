@@ -62,20 +62,6 @@ TEST_F(BaseFactory, returns_image_only_fetch_type)
     EXPECT_EQ(factory.fetch_type(), mp::FetchType::ImageOnly);
 }
 
-TEST_F(BaseFactory, configure_logs_trace_message)
-{
-    const std::string name{"foo"};
-    MockBaseFactory factory;
-
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("base factory")),
-                             mpt::MockLogger::make_cstring_matcher(
-                                 StrEq(fmt::format("No driver configuration for \"{}\"", name)))));
-
-    YAML::Node node;
-
-    factory.configure(name, node, node);
-}
-
 TEST_F(BaseFactory, dir_name_returns_empty_string)
 {
     MockBaseFactory factory;
