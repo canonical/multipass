@@ -2012,7 +2012,17 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 server->Write(reply);
                 auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
-                mp::MemorySize disk_space = compute_final_image_size(vm_image, checked_args.disk_space);
+                // TODO: make this come from the image host
+                const auto& driver = utils::get_driver_str();
+                mp::MemorySize disk_space;
+                if (driver == "lxd")
+                {
+                    disk_space = *checked_args.disk_space;
+                }
+                else
+                {
+                    disk_space = compute_final_image_size(vm_image, checked_args.disk_space);
+                }
 
                 reply.set_create_message("Configuring " + name);
                 server->Write(reply);
