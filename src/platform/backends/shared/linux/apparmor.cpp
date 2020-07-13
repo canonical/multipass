@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 
 #include "apparmor.h"
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snap_utils.h>
@@ -48,7 +49,7 @@ void throw_if_binary_fails(const char* binary_name, const QStringList& arguments
 
 QStringList generate_extra_apparmor_args()
 {
-    if (mp::utils::is_snap())
+    try
     {
         QString apparmor_cache_dir = mp::utils::snap_common_dir() + "/apparmor.d/cache/multipass";
         QDir cache_dir;
@@ -61,6 +62,11 @@ QStringList generate_extra_apparmor_args()
             mpl::log(mpl::Level::debug, "daemon", "Failed to create cache directory for AppArmor - disabling caching");
         }
     }
+    catch (const mp::SnapEnvironmentException&)
+    {
+        // Ignore
+    }
+
     return {"-W"};
 }
 

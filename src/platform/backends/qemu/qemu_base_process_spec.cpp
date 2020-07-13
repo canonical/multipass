@@ -17,6 +17,7 @@
 
 #include "qemu_base_process_spec.h"
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
 
@@ -30,9 +31,14 @@ QString mp::QemuBaseProcessSpec::program() const
 
 QString mp::QemuBaseProcessSpec::working_directory() const
 {
-    if (mu::is_snap())
+    try
+    {
         return mu::snap_dir().append("/qemu");
-    return QString();
+    }
+    catch (const mp::SnapEnvironmentException&)
+    {
+        return QString();
+    }
 }
 
 QString mp::QemuBaseProcessSpec::apparmor_profile() const

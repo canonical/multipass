@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 #include "sshfs_server_process_spec.h"
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
 
 #include <QCoreApplication>
@@ -123,12 +124,12 @@ profile %1 flags=(attach_disconnected) {
                       // snap. If snapped, is located relative to $SNAP
     QString signal_peer; // if snap confined, specify only multipassd can kill dnsmasq
 
-    if (mu::is_snap())
+    try
     {
         root_dir = mu::snap_dir();
         signal_peer = "snap.multipass.multipassd";
     }
-    else
+    catch (const mp::SnapEnvironmentException&)
     {
         QDir application_dir(QCoreApplication::applicationDirPath());
         application_dir.cdUp();

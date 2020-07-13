@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
 
 #include <QFile>
@@ -34,14 +35,14 @@ TEST(SnapUtils, test_is_confined_when_snap_dir_set)
 {
     mpt::SetEnvScope env("SNAP", "/tmp");
 
-    EXPECT_TRUE(mu::is_snap());
+    EXPECT_NO_THROW(mu::snap_dir());
 }
 
 TEST(SnapUtils, test_is_not_confined_when_snap_dir_not_set)
 {
     mpt::UnsetEnvScope env("SNAP");
 
-    EXPECT_FALSE(mu::is_snap());
+    EXPECT_THROW(mu::snap_dir(), mp::SnapEnvironmentException);
 }
 
 TEST(SnapUtils, test_snap_dir_read_ok)
@@ -50,13 +51,6 @@ TEST(SnapUtils, test_snap_dir_read_ok)
     mpt::SetEnvScope env("SNAP", snap_dir.path().toUtf8());
 
     EXPECT_EQ(snap_dir.path(), mu::snap_dir());
-}
-
-TEST(SnapUtils, test_snap_dir_null_if_not_set)
-{
-    mpt::UnsetEnvScope env("SNAP");
-
-    EXPECT_EQ(QByteArray(), mu::snap_dir());
 }
 
 TEST(SnapUtils, test_snap_dir_resolves_links)
@@ -77,11 +71,11 @@ TEST(SnapUtils, test_snap_common_dir_read_ok)
     EXPECT_EQ(snap_dir.path(), mu::snap_common_dir());
 }
 
-TEST(SnapUtils, test_snap_common_dir_null_if_not_set)
+TEST(SnapUtils, test_snap_common_dir_throws_if_not_set)
 {
     mpt::UnsetEnvScope env("SNAP_COMMON");
 
-    EXPECT_EQ(QByteArray(), mu::snap_common_dir());
+    EXPECT_THROW(mu::snap_common_dir(), mp::SnapEnvironmentException);
 }
 
 TEST(SnapUtils, test_snap_common_resolves_links)

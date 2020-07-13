@@ -64,7 +64,7 @@ private:
 
 mp::optional<mp::AppArmor> create_apparmor()
 {
-    if (!mp::utils::is_snap() && qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
+    if (!qEnvironmentVariableIsSet("SNAP") && qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
     {
         mpl::log(mpl::Level::warning, "apparmor", "AppArmor disabled by environment variable");
         return mp::nullopt;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,22 @@
  *
  */
 
-#ifndef MULTIPASS_SNAP_UTILS_H
-#define MULTIPASS_SNAP_UTILS_H
+#ifndef MULTIPASS_SNAP_ENVIRONMENT_EXCEPTION_H
+#define MULTIPASS_SNAP_ENVIRONMENT_EXCEPTION_H
 
-#include <QByteArray>
+#include <stdexcept>
+
+#include <multipass/format.h>
 
 namespace multipass
 {
-namespace utils
+class SnapEnvironmentException : public std::runtime_error
 {
-QByteArray snap_dir();
-QByteArray snap_common_dir();
-} // namespace utils
+public:
+    SnapEnvironmentException(const std::string& env_var)
+        : runtime_error(fmt::format("The \'{}\' environment variable is not set.", env_var))
+    {
+    }
+};
 } // namespace multipass
-
-#endif // MULTIPASS_SNAP_UTILS_H
+#endif // MULTIPASS_SNAP_ENVIRONMENT_EXCEPTION_H
