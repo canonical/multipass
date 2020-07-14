@@ -495,3 +495,9 @@ std::function<int()> mp::platform::make_quit_watchdog()
         return 0;
     };
 }
+
+std::map<std::string, struct mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces()
+{
+    // TODO
+    return std::map<std::string, struct mp::NetworkInterfaceInfo>();
+}

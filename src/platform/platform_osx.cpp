@@ -236,3 +236,8 @@ bool mp::platform::is_image_url_supported()
     return false;
 }
 
+std::map<std::string, struct mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces()
+{
+    // TODO
+    return std::map<std::string, struct mp::NetworkInterfaceInfo>();
+}
