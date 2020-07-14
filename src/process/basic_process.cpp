@@ -180,7 +180,7 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
     mp::ProcessState exit_state;
     start();
 
-    mpl::log(mpl::Level::trace, "basic_process",
+    mpl::log(mpl::Level::debug, "basic_process",
              fmt::format("executing {} {}", qUtf8Printable(process_spec->program()),
                          qUtf8Printable(process_spec->arguments().join(' '))));
 
