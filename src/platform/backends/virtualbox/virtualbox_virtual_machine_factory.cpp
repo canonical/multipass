@@ -87,8 +87,9 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
     auto process_state = qemuimg_convert_process->execute();
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(
-            fmt::format("Conversion of image to VDI failed with error: {}", process_state.failure_message()));
+        throw std::runtime_error(fmt::format("Conversion of image to VDI failed ({}) with the following output:\n{}",
+                                             process_state.failure_message(),
+                                             qemuimg_convert_process->read_all_standard_error()));
     }
 
     if (!QFile::exists(vdi_file))
