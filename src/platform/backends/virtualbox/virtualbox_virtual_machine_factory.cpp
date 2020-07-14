@@ -34,11 +34,6 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
-namespace
-{
-constexpr auto category = "virtualbox factory";
-}
-
 mp::VirtualMachine::UPtr
 mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                             VMStatusMonitor& monitor)
