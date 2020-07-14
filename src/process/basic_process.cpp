@@ -181,7 +181,7 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
     start();
 
     mpl::log(mpl::Level::debug, "basic_process",
-             fmt::format("executing {} {}", qUtf8Printable(process_spec->program()),
+             fmt::format("executing: {} {}", qUtf8Printable(process_spec->program()),
                          qUtf8Printable(process_spec->arguments().join(' '))));
 
     if (!process.waitForStarted(timeout) || !process.waitForFinished(timeout) ||
