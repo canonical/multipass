@@ -145,7 +145,7 @@ jobs:
       - >-
         [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
         && snapcraft login --with ${HOME}/snap-login
-        && snapcraft push multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
+        && snapcraft upload multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
         && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
       - >-
         [ -z "${MULTIPASS_SNAP_CHANNEL}" ]
