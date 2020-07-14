@@ -54,10 +54,6 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
     {
     }
 
-    void configure(const std::string&, YAML::Node&, YAML::Node&) override
-    {
-    }
-
     void hypervisor_health_check() override
     {
     }

@@ -38,11 +38,6 @@ public:
         return FetchType::ImageOnly;
     };
 
-    void configure(const std::string& name, YAML::Node& /*meta_config*/, YAML::Node& /*user_config*/) override
-    {
-        log(logging::Level::trace, log_category, fmt::format("No driver configuration for \"{}\"", name));
-    };
-
     QString get_backend_directory_name() override
     {
         return {};
