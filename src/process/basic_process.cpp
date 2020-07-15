@@ -106,6 +106,9 @@ QProcessEnvironment mp::BasicProcess::process_environment() const
 
 void mp::BasicProcess::start()
 {
+    mpl::log(mpl::Level::debug, "basic_process",
+             fmt::format("starting: {} {}", qUtf8Printable(process_spec->program()),
+                         qUtf8Printable(process_spec->arguments().join(' '))));
     process.start();
 }
 
@@ -179,10 +182,6 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
 {
     mp::ProcessState exit_state;
     start();
-
-    mpl::log(mpl::Level::debug, "basic_process",
-             fmt::format("executing: {} {}", qUtf8Printable(process_spec->program()),
-                         qUtf8Printable(process_spec->arguments().join(' '))));
 
     if (!process.waitForStarted(timeout) || !process.waitForFinished(timeout) ||
         process.exitStatus() != QProcess::NormalExit)
