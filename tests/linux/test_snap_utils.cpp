@@ -71,6 +71,14 @@ TEST(SnapUtils, test_snap_common_dir_read_ok)
     EXPECT_EQ(snap_dir.path(), mu::snap_common_dir());
 }
 
+TEST(SnapUtils, test_snap_common_dir_no_throw_if_set)
+{
+    QTemporaryDir snap_dir;
+    mpt::SetEnvScope env("SNAP_COMMON", snap_dir.path().toUtf8());
+
+    EXPECT_NO_THROW(mu::snap_common_dir());
+}
+
 TEST(SnapUtils, test_snap_common_dir_throws_if_not_set)
 {
     mpt::UnsetEnvScope env("SNAP_COMMON");
