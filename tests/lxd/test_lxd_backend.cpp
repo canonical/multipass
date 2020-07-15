@@ -598,7 +598,7 @@ TEST_F(LXDBackend, returns_expected_backend_string)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    const QString backend_string{"4.3"};
+    const QString backend_string{"lxd-4.3"};
 
     EXPECT_EQ(backend.get_backend_version_string(), backend_string);
 }
