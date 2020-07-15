@@ -20,6 +20,8 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -31,11 +33,6 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
-
-namespace
-{
-constexpr auto category = "virtualbox factory";
-}
 
 mp::VirtualMachine::UPtr
 mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -79,8 +76,16 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
 
     QStringList convert_args({"convert", "-O", "vdi", source_image.image_path, vdi_file});
 
-    mpu::process_throw_on_error(QCoreApplication::applicationDirPath() + "/qemu-img", convert_args,
-                                "Conversion of image to VDI failed with error: {}", category, 300000);
+    auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(convert_args);
+    auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
+
+    auto process_state = qemuimg_convert_process->execute();
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Conversion of image to VDI failed ({}) with the following output:\n{}",
+                                             process_state.failure_message(),
+                                             qemuimg_convert_process->read_all_standard_error()));
+    }
 
     if (!QFile::exists(vdi_file))
     {
