@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,11 @@
 #include <multipass/sshfs_server_config.h>
 
 #include "mock_environment_helpers.h"
+#include "temp_dir.h"
 
 #include <gmock/gmock.h>
+
+#include <QCoreApplication>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -66,4 +69,31 @@ TEST_F(TestSSHFSServerProcessSpec, environment_correct)
 
     ASSERT_TRUE(spec.environment().contains("KEY"));
     EXPECT_EQ(spec.environment().value("KEY"), "private_key");
+}
+
+TEST_F(TestSSHFSServerProcessSpec, snap_confined_apparmor_profile_returns_expected_data)
+{
+    mpt::TempDir bin_dir;
+    mpt::SetEnvScope env_scope("SNAP", bin_dir.path().toUtf8());
+    mp::SSHFSServerProcessSpec spec(config);
+
+    const auto apparmor_profile = spec.apparmor_profile();
+
+    EXPECT_TRUE(apparmor_profile.contains(bin_dir.path() + "/bin/sshfs_server"));
+    EXPECT_TRUE(apparmor_profile.contains(bin_dir.path() + "/{usr/,}lib/**"));
+    EXPECT_TRUE(apparmor_profile.contains("signal (receive) peer=snap.multipass.multipassd"));
+}
+
+TEST_F(TestSSHFSServerProcessSpec, unconfined_apparmor_profile_returns_expected_data)
+{
+    mpt::UnsetEnvScope env_scope("SNAP");
+    mp::SSHFSServerProcessSpec spec(config);
+    QDir current_dir(QCoreApplication::applicationDirPath());
+    const auto apparmor_profile = spec.apparmor_profile();
+
+    current_dir.cdUp();
+
+    EXPECT_TRUE(apparmor_profile.contains(current_dir.absolutePath() + "/bin/sshfs_server"));
+    EXPECT_TRUE(apparmor_profile.contains(current_dir.absolutePath() + "/{usr/,}lib/**"));
+    EXPECT_TRUE(apparmor_profile.contains("signal (receive) peer=unconfined"));
 }
