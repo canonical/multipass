@@ -561,9 +561,44 @@ TEST_F(LXDBackend, prepare_source_image_does_not_modify)
 
 TEST_F(LXDBackend, returns_expected_backend_string)
 {
+    const QByteArray server_data{"{"
+                                 "\"type\": \"sync\","
+                                 "\"status\": \"Success\","
+                                 "\"status_code\": 200,"
+                                 "\"operation\": \"\","
+                                 "\"error_code\": 0,"
+                                 "\"error\": \"\","
+                                 "\"metadata\": {"
+                                 "  \"config\": {},"
+                                 "  \"api_status\": \"stable\","
+                                 "  \"api_version\": \"1.0\","
+                                 "  \"auth\": \"untrusted\","
+                                 "  \"public\": false,"
+                                 "  \"auth_methods\": ["
+                                 "    \"tls\""
+                                 "    ],"
+                                 "  \"environment\": {"
+                                 "    \"server_version\": \"4.3\""
+                                 "    }"
+                                 "  }"
+                                 "}\n"};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&server_data](auto, auto request, auto) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0"))
+            {
+                return new mpt::MockLocalSocketReply(server_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    const QString backend_string{"lxd"};
+    const QString backend_string{"lxd-4.3"};
 
     EXPECT_EQ(backend.get_backend_version_string(), backend_string);
 }
