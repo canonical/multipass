@@ -85,11 +85,12 @@ apps:
 parts:
   multipass:
     plugin: cmake
+    build-snaps:
+    - cmake
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - on armhf: [libgles2-mesa-dev]
     - build-essential
-    - cmake-extras
     - git
     - golang
     - libapparmor-dev
