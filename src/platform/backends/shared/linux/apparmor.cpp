@@ -75,7 +75,7 @@ QStringList generate_extra_apparmor_args()
 mp::AppArmor::AppArmor() : apparmor_args{generate_extra_apparmor_args()}
 {
     int ret = aa_is_enabled();
-    if (ret < 0)
+    if (ret <= 0)
     {
         throw mp::AppArmorException("AppArmor is not enabled");
     }
