@@ -15,17 +15,25 @@
 include(FindPkgConfig)
 pkg_search_module(APPARMOR libapparmor REQUIRED)
 
-add_library(shared_linux STATIC
-  apparmor.cpp
-  backend_utils.cpp
-  process_factory.cpp)
+function(add_target TARGET_NAME)
+  add_library(${TARGET_NAME} STATIC
+    apparmor.cpp
+    backend_utils.cpp
+    process_factory.cpp)
+
+  target_link_libraries(${TARGET_NAME}
+    apparmor
+    fmt
+    shared
+    utils
+    Qt5::Core)
+endfunction()
+
+add_target(shared_linux)
+if(MULTIPASS_ENABLE_TESTS)
+  add_target(shared_linux_test)
+endif()
 
 include_directories(shared_linux
   ..)
 
-target_link_libraries(shared_linux
-  apparmor
-  fmt
-  shared
-  utils
-  Qt5::Core)
