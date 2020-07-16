@@ -18,6 +18,7 @@
 #include <multipass/process/process.h>
 #include <src/platform/backends/shared/linux/process_factory.h>
 
+#include "mock_aa_syscalls.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
 #include "tests/reset_process_factory.h"
@@ -60,11 +61,12 @@ struct ApparmoredProcessTest : public mpt::TestWithMockedBinPath
     ApparmoredProcessTest()
     {
         mpl::set_logger(logger);
+        is_enabled.returnValue(1);
     }
 
     void TearDown() override
     {
-        QFile::remove("apparmor_output_file");
+        QFile::remove(apparmor_output_file);
         logger.reset();
         mpl::set_logger(logger);
     }
@@ -72,6 +74,7 @@ struct ApparmoredProcessTest : public mpt::TestWithMockedBinPath
     mpt::UnsetEnvScope env{"DISABLE_APPARMOR"};
     mpt::ResetProcessFactory scope; // will otherwise pollute other tests
     std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+    decltype(MOCK(aa_is_enabled)) is_enabled{MOCK(aa_is_enabled)};
 };
 
 TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
@@ -104,6 +107,15 @@ TEST_F(ApparmoredProcessTest, snap_enables_cache_with_expected_args)
     EXPECT_TRUE(input.contains(
         QString("args: -WL, %1/apparmor.d/cache/multipass, --abort-on-error, -r,").arg(cache_dir.path()).toUtf8()));
     EXPECT_TRUE(input.contains(apparmor_profile_text));
+}
+
+TEST_F(ApparmoredProcessTest, no_output_file_when_no_apparmor)
+{
+    REPLACE(aa_is_enabled, [] { return 0; });
+    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+    auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
+
+    EXPECT_FALSE(QFile::exists(apparmor_output_file));
 }
 
 TEST_F(ApparmoredProcessTest, unloads_profile_with_apparmor_on_process_out_of_scope)
