@@ -56,10 +56,11 @@ class TestProcessSpec : public mp::ProcessSpec
 };
 } // namespace
 
-struct ApparmoredProcessTest : public mpt::TestWithMockedBinPath
+struct ApparmoredProcessNoFactoryTest : public mpt::TestWithMockedBinPath
 {
-    ApparmoredProcessTest()
+    ApparmoredProcessNoFactoryTest()
     {
+        QFile::remove(apparmor_output_file);
         mpl::set_logger(logger);
         is_enabled.returnValue(1);
     }
@@ -77,9 +78,15 @@ struct ApparmoredProcessTest : public mpt::TestWithMockedBinPath
     decltype(MOCK(aa_is_enabled)) is_enabled{MOCK(aa_is_enabled)};
 };
 
+struct ApparmoredProcessTest : public ApparmoredProcessNoFactoryTest
+{
+    using ApparmoredProcessNoFactoryTest::ApparmoredProcessNoFactoryTest; // ctor
+
+    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+};
+
 TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
 {
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
 
     // apparmor profile should have been installed
@@ -91,7 +98,7 @@ TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
     EXPECT_TRUE(input.contains(apparmor_profile_text));
 }
 
-TEST_F(ApparmoredProcessTest, snap_enables_cache_with_expected_args)
+TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
 {
     mpt::TempDir cache_dir;
     mpt::SetEnvScope env_scope("SNAP_COMMON", cache_dir.path().toUtf8());
@@ -109,7 +116,7 @@ TEST_F(ApparmoredProcessTest, snap_enables_cache_with_expected_args)
     EXPECT_TRUE(input.contains(apparmor_profile_text));
 }
 
-TEST_F(ApparmoredProcessTest, no_output_file_when_no_apparmor)
+TEST_F(ApparmoredProcessNoFactoryTest, no_output_file_when_no_apparmor)
 {
     REPLACE(aa_is_enabled, [] { return 0; });
     const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
@@ -120,7 +127,6 @@ TEST_F(ApparmoredProcessTest, no_output_file_when_no_apparmor)
 
 TEST_F(ApparmoredProcessTest, unloads_profile_with_apparmor_on_process_out_of_scope)
 {
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
     process.reset();
 
@@ -136,7 +142,6 @@ TEST_F(ApparmoredProcessTest, unloads_profile_with_apparmor_on_process_out_of_sc
 // Copies of tests in LinuxProcessTest
 TEST_F(ApparmoredProcessTest, execute_missing_command)
 {
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("a_missing_command");
     auto process_state = process->execute();
 
@@ -149,7 +154,6 @@ TEST_F(ApparmoredProcessTest, execute_missing_command)
 
 TEST_F(ApparmoredProcessTest, execute_crashing_command)
 {
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process");
     auto process_state = process->execute();
 
@@ -163,7 +167,6 @@ TEST_F(ApparmoredProcessTest, execute_crashing_command)
 TEST_F(ApparmoredProcessTest, execute_good_command_with_positive_exit_code)
 {
     const int exit_code = 7;
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
     auto process_state = process->execute();
 
@@ -178,7 +181,6 @@ TEST_F(ApparmoredProcessTest, execute_good_command_with_positive_exit_code)
 TEST_F(ApparmoredProcessTest, execute_good_command_with_zero_exit_code)
 {
     const int exit_code = 0;
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
     auto process_state = process->execute();
 
@@ -193,7 +195,6 @@ TEST_F(ApparmoredProcessTest, execute_good_command_with_zero_exit_code)
 TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_ok)
 {
     const int exit_code = 7;
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
     process->start();
 
@@ -216,7 +217,6 @@ TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_ok)
 TEST_F(ApparmoredProcessTest, process_state_when_runs_but_fails_to_stop)
 {
     const int exit_code = 2;
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
     process->start();
 
@@ -237,7 +237,6 @@ TEST_F(ApparmoredProcessTest, process_state_when_runs_but_fails_to_stop)
 
 TEST_F(ApparmoredProcessTest, process_state_when_crashes_on_start)
 {
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process"); // will crash immediately
     process->start();
 
@@ -252,7 +251,6 @@ TEST_F(ApparmoredProcessTest, process_state_when_crashes_on_start)
 
 TEST_F(ApparmoredProcessTest, process_state_when_crashes_while_running)
 {
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process", {QString::number(0), "stay-alive"});
     process->start();
 
@@ -269,7 +267,6 @@ TEST_F(ApparmoredProcessTest, process_state_when_crashes_while_running)
 
 TEST_F(ApparmoredProcessTest, process_state_when_failed_to_start)
 {
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("a_missing_process");
     process->start();
 
@@ -285,7 +282,6 @@ TEST_F(ApparmoredProcessTest, process_state_when_failed_to_start)
 TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_immediately)
 {
     const int exit_code = 7;
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
     process->start();
 
