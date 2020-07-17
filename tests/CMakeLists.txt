@@ -168,8 +168,9 @@ else()
     BEFORE
       PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
   )
+
+  add_subdirectory(libvirt)
   add_subdirectory(linux)
   add_subdirectory(qemu)
   add_subdirectory(lxd)
-  include(libvirt/CMakeLists.txt) # with add_subdirectory it's not possible to target_link_libraries
 endif()

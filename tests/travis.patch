@@ -1,16 +1,16 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -196,6 +196,7 @@ parts:
+@@ -91,6 +91,7 @@ parts:
      - on arm64: [libgles2-mesa-dev]
      - on armhf: [libgles2-mesa-dev]
      - build-essential
 +    - ccache
-     - cmake-extras
      - git
      - golang
-@@ -213,6 +214,7 @@ parts:
-     - -DCMAKE_INSTALL_PREFIX=/
+     - libapparmor-dev
+@@ -122,6 +123,7 @@ parts:
      - -DMULTIPASS_ENABLE_TESTS=off
+     - -DMULTIPASS_UPSTREAM=origin
      override-build: |
 +      update-ccache-symlinks
        snapcraftctl build
