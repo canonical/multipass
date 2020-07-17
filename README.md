@@ -9,6 +9,14 @@ Multipass will fetch images for you and keep them up to date.
 Since it supports metadata for cloud-init, you can simulate a small cloud
 deployment on your laptop or workstation.
 
+## Project Status
+
+| Service | Status |
+|-----|:---|
+| [Travis](https://travis-ci.org) |  [![Build Status][travis-image]][travis-url]  |
+| [Snap](https://snapcraft.io/) |  [![Build Status][snap-image]][snap-url]  |
+| [Codecov](https://codecov.io/) |  [![Codecov Status][codecov-image]][codecov-url]  |
+
 # Install Multipass
 
 On Linux it's available as a snap:
@@ -187,3 +195,10 @@ Finally, use multipass's clients:
 # More information
 
 See [the Multipass documentation](https://discourse.ubuntu.com/c/multipass/doc).
+
+[travis-image]: https://travis-ci.org/canonical/multipass.svg?branch=master
+[travis-url]: https://travis-ci.org/canonical/multipass
+[snap-image]: https://build.snapcraft.io/badge/CanonicalLtd/multipass.svg
+[snap-url]: https://build.snapcraft.io/user/CanonicalLtd/multipass
+[codecov-image]: https://codecov.io/gh/canonical/multipass/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/canonical/multipass
