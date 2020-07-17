@@ -20,6 +20,7 @@
 
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/process/process.h>
 #include <multipass/process/process_spec.h>
 #include <multipass/sshfs_server_config.h>
@@ -70,6 +71,8 @@ bool is_remote_supported(const std::string& remote);
 bool is_image_url_supported();
 
 std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread
+
+std::map<std::string, struct NetworkInterfaceInfo> get_network_interfaces();
 } // namespace platform
 } // namespace multipass
 #endif // MULTIPASS_PLATFORM_H
