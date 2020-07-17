@@ -87,6 +87,8 @@ parts:
     plugin: cmake
     build-snaps:
     - cmake
+    build-environment:
+    - PATH: /snap/bin:$PATH
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - on armhf: [libgles2-mesa-dev]
