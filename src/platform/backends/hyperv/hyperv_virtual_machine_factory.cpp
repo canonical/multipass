@@ -18,6 +18,8 @@
 #include "hyperv_virtual_machine_factory.h"
 #include "hyperv_virtual_machine.h"
 
+#include <multipass/format.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/shared_backend_utils.h>
@@ -178,6 +180,19 @@ void check_hyperv_support()
         throw std::runtime_error("The computer needs to be rebooted in order for Hyper-V to be fully available");
     }
 }
+
+std::string switch_description(const QString& switch_type)
+{
+    // TODO use regex instead
+    if (switch_type.compare("\"private\"", Qt::CaseInsensitive) == 0)
+        return "Private virtual switch";
+    else if (switch_type.compare("\"internal\"", Qt::CaseInsensitive) == 0)
+        return "Virtual Switch without external networking";
+    else if (switch_type.compare("\"external\"", Qt::CaseInsensitive) == 0)
+        return "Virtual Switch bridged with Ethernet";
+    else
+        return fmt::format("Unknown Virtual Switch type: {}", switch_type);
+}
 } // namespace
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -235,4 +250,26 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 {
     check_hyperv_support();
+}
+
+auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
+{
+
+    if (QString ps_output; PowerShell::exec({"get-vmswitch", "|", "Select-Object", "-Property", "Name,SwitchType", "|",
+                                             "ConvertTo-Csv", "-NoTypeInformation", "|", "select-object", "-skip", "1"},
+                                            "Hyper-V Switch Listing", ps_output))
+    {
+        std::vector<NetworkInterfaceInfo> ret{};
+        for (const auto& line : ps_output.split('\n', QString::SkipEmptyParts))
+        {
+            auto components = line.split(',', QString::SkipEmptyParts);
+
+            assert(components.size() == 2 && "Unless there is a hole in the powershell command above");
+            ret.push_back({components.at(0).toStdString(), "switch", switch_description(components.at(1)), mp::nullopt});
+        }
+
+        return ret;
+    }
+
+    throw std::runtime_error{"Could not determine available networks"};
 }
