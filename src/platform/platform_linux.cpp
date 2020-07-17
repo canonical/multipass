@@ -37,6 +37,18 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
+#include <arpa/inet.h>
+#include <cstring>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#include <QDir>
+#include <QFile>
+#include <QIODevice>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
@@ -167,8 +179,96 @@ bool mp::platform::is_image_url_supported()
     return true;
 }
 
+mp::IPAddress get_ip_address(const std::string& iface_name)
+{
+    const char* iface = iface_name.c_str();
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+    ioctl(fd, SIOCGIFADDR, &ifr);
+
+    close(fd);
+
+    return mp::IPAddress(inet_ntoa(((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr));
+}
+
+struct mp::NetworkInterfaceInfo get_network_interface_info(const std::string& iface_name)
+{
+    QString iface_name_qstr = QString::fromStdString(iface_name);
+    std::string type;
+    std::string description;
+    mp::optional<mp::IPAddress> ip_address;
+
+    QString iface_dir_name("/sys/class/net/" + iface_name_qstr);
+    QFile carrier_file(iface_dir_name + "/carrier");
+
+    bool is_up = false;
+    if (carrier_file.open(QIODevice::ReadOnly))
+    {
+        auto carrier_line = carrier_file.readLine();
+        is_up = carrier_line[0] == '1';
+        carrier_file.close();
+    }
+
+    bool is_virtual = QFile::exists("/sys/devices/virtual/net/" + iface_name_qstr);
+
+    if (is_virtual)
+    {
+        bool is_bridge = QFile::exists(iface_dir_name + "/bridge");
+        type = is_bridge ? "bridge" : "virtual";
+        description = "unknown";
+    }
+    else
+    {
+        QFile vendor_file(iface_dir_name + "/device/vendor");
+        QFile model_file(iface_dir_name + "/device/device");
+
+        type = QFile::exists(iface_dir_name + "/wireless") ? "wifi" : "ethernet";
+
+        std::string vendor, model;
+        if (vendor_file.open(QIODevice::ReadOnly))
+        {
+            vendor = vendor_file.readLine().mid(2, 4).toStdString();
+            vendor_file.close();
+        }
+        if (model_file.open(QIODevice::ReadOnly))
+        {
+            model = model_file.readLine().mid(2, 4).toStdString();
+            model_file.close();
+        }
+
+        description = (vendor != "" && model != "") ? vendor + ":" + model : "unknown";
+    }
+
+    if (is_up)
+    {
+        ip_address = get_ip_address(iface_name);
+    }
+
+    mp::NetworkInterfaceInfo iface_info{iface_name, type, description, ip_address};
+
+    return iface_info;
+}
+
 std::map<std::string, struct mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces()
 {
-    // TODO
-    return std::map<std::string, struct mp::NetworkInterfaceInfo>();
+    auto ifaces_info = std::map<std::string, struct mp::NetworkInterfaceInfo>();
+    QDir iface_dir("/sys/class/net");
+    QFileInfoList all_files_in_dir = iface_dir.entryInfoList();
+
+    for (auto entry : all_files_in_dir)
+    {
+        auto entry_qstr = entry.baseName();
+        std::string entry_str = entry_qstr.toStdString();
+
+        if (entry_qstr != "" && entry_qstr[0] != '.')
+        {
+            ifaces_info.emplace(std::make_pair(entry_str, get_network_interface_info(entry_str)));
+        }
+    }
+
+    return ifaces_info;
 }
