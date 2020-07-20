@@ -101,7 +101,10 @@ TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
 TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
 {
     mpt::TempDir cache_dir;
+    const QByteArray snap_name{"multipass"};
+
     mpt::SetEnvScope env_scope("SNAP_COMMON", cache_dir.path().toUtf8());
+    mpt::SetEnvScope env_scope2("SNAP_NAME", snap_name);
 
     const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());

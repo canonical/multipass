@@ -74,7 +74,10 @@ TEST_F(TestSSHFSServerProcessSpec, environment_correct)
 TEST_F(TestSSHFSServerProcessSpec, snap_confined_apparmor_profile_returns_expected_data)
 {
     mpt::TempDir bin_dir;
+    const QByteArray snap_name{"multipass"};
+
     mpt::SetEnvScope env_scope("SNAP", bin_dir.path().toUtf8());
+    mpt::SetEnvScope env_scope2("SNAP_NAME", snap_name);
     mp::SSHFSServerProcessSpec spec(config);
 
     const auto apparmor_profile = spec.apparmor_profile();
@@ -86,7 +89,10 @@ TEST_F(TestSSHFSServerProcessSpec, snap_confined_apparmor_profile_returns_expect
 
 TEST_F(TestSSHFSServerProcessSpec, unconfined_apparmor_profile_returns_expected_data)
 {
+    const QByteArray snap_name{"multipass"};
+
     mpt::UnsetEnvScope env_scope("SNAP");
+    mpt::SetEnvScope env_scope2("SNAP_NAME", snap_name);
     mp::SSHFSServerProcessSpec spec(config);
     QDir current_dir(QCoreApplication::applicationDirPath());
     const auto apparmor_profile = spec.apparmor_profile();
