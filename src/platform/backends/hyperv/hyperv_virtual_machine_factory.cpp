@@ -260,10 +260,12 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 
 auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    if (QString ps_output; PowerShell::exec({"get-vmswitch", "|", "Select-Object", "-Property",
-                                             "Name,SwitchType,NetAdapterInterfaceDescription", "|", "ConvertTo-Csv",
-                                             "-NoTypeInformation", "|", "select-object", "-skip", "1"},
-                                            "Hyper-V Switch Listing", ps_output))
+    static constexpr auto ps_cmd =
+        "Get-VMSwitch | Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription | "
+        "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1";
+    static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
+
+    if (QString ps_output; PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
     {
         std::vector<NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegExp{"[\r\n]"}, QString::SkipEmptyParts))
