@@ -181,14 +181,23 @@ void check_hyperv_support()
     }
 }
 
-std::string switch_description(const QString& switch_type)
+std::string switch_description(const QString& switch_type, const QString& physical_adapter)
 {
     if (switch_type.contains("private", Qt::CaseInsensitive))
+    {
+        assert(physical_adapter.isEmpty() && "Private switches should not be connected to physical adapters");
         return "Private virtual switch";
+    }
     else if (switch_type.contains("internal", Qt::CaseInsensitive))
+    {
+        assert(physical_adapter.isEmpty() && "Internal switches should not be connected to physical adapters");
         return "Virtual Switch with internal networking";
+    }
     else if (switch_type.contains("external", Qt::CaseInsensitive))
-        return "Virtual Switch with external networking via Ethernet";
+    {
+        assert(!physical_adapter.isEmpty() && "External switches need a physical adapter");
+        return fmt::format("Virtual Switch with external networking via {}", physical_adapter);
+    }
     else
         return fmt::format("Unknown Virtual Switch type: {}", switch_type);
 }
@@ -253,18 +262,18 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 
 auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
-
-    if (QString ps_output; PowerShell::exec({"get-vmswitch", "|", "Select-Object", "-Property", "Name,SwitchType", "|",
-                                             "ConvertTo-Csv", "-NoTypeInformation", "|", "select-object", "-skip", "1"},
+    if (QString ps_output; PowerShell::exec({"get-vmswitch", "|", "Select-Object", "-Property",
+                                             "Name,SwitchType,NetAdapterInterfaceDescription", "|", "ConvertTo-Csv",
+                                             "-NoTypeInformation", "|", "select-object", "-skip", "1"},
                                             "Hyper-V Switch Listing", ps_output))
     {
         std::vector<NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegExp{"[\r\n]"}, QString::SkipEmptyParts))
         {
-            auto components = line.split(',', QString::SkipEmptyParts);
+            auto terms = line.split(',', QString::KeepEmptyParts);
 
-            assert(components.size() == 2 && "Unless there is a hole in the powershell command above");
-            ret.push_back({components.at(0).toStdString(), "switch", switch_description(components.at(1)), mp::nullopt});
+            assert(terms.size() == 3 && "Unless there is a hole in the powershell command above");
+            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
         }
 
         return ret;
