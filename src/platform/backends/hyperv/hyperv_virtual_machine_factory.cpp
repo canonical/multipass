@@ -259,7 +259,7 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
                                             "Hyper-V Switch Listing", ps_output))
     {
         std::vector<NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split('\n', QString::SkipEmptyParts))
+        for (const auto& line : ps_output.split(QRegExp{"[\r\n]"}, QString::SkipEmptyParts))
         {
             auto components = line.split(',', QString::SkipEmptyParts);
 
