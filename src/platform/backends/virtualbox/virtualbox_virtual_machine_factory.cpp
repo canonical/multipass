@@ -121,35 +121,63 @@ std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVir
 {
     std::vector<std::tuple<std::string, std::string, std::string>> networks;
 
-    // 'VBoxManage list -l' lists network interfaces with the following parameters: intnets, bridgedifs,
-    // hostonlyifs, natnets.
-    std::string bridgedifs_info = mp::utils::run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"});
-    QStringList bridgedifs_list = QString::fromStdString(bridgedifs_info).split("\n\n", QString::SkipEmptyParts);
+    // 'VBoxManage list -l' lists network interfaces with the following parameters.
+    QStringList list_parameters{"intnets", "bridgedifs", "hostonlyifs", "natnets"};
 
-    mpl::log(mpl::Level::info, "list-networks",
-             fmt::format("{} network interfaces found in the host", bridgedifs_list.size()));
+    // List to store the output of the query command; each element corresponds to one interface.
+    QStringList if_list;
 
+    for (auto parameter : list_parameters)
+    {
+        std::string ifs_info = mp::utils::run_cmd_for_output("VBoxManage", {"list", "-l", parameter});
+        QStringList new_ifs = QString::fromStdString(ifs_info).split("\n\n", QString::SkipEmptyParts);
+        if_list.append(new_ifs);
+    }
+
+    mpl::log(mpl::Level::info, "list-networks", fmt::format("Found {} network interfaces", if_list.size()));
+
+    // This pattern is intended to gather from VBoxManage output the information we need. However, only the Mac
+    // version gives us enough information (and for some interfaces only).
     const auto pattern =
-        QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_]+)\r?$.*^MediumType: +(?<type>\\w+)\r?$.*^Wireless: "
-                       "+(?<wireless>\\w+)\r?$.*^VBoxNetworkName: +(?<description>[A-Za-z0-9-_]+)\r?$");
+        QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)(: (?<description>[A-Za-z0-9-_()\\? :]+))?\r?$.*"
+                       "^MediumType: +(?<type>\\w+)\r?$.*^Wireless: +(?<wireless>\\w+)\r?$");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
                                                         QRegularExpression::DotMatchesEverythingOption};
 
     std::string ifname, iftype, ifdescription;
-    bool ifwireless = false;
 
-    for (auto iface : bridgedifs_list)
+    // For each interface in the list, see if VBoxManage gave us enough information. If not, ask the OS.
+    for (auto iface : if_list)
     {
         const auto match = regexp.match(iface);
 
         if (match.hasMatch())
         {
             ifname = match.captured("name").toStdString();
-            iftype = match.captured("type").toLower().toStdString();
-            ifwireless = match.captured("wireless") == "Yes";
             ifdescription = match.captured("description").toStdString();
+            if (ifdescription.empty())
+            {
+                // Ask the OS for information about the interface.
+                mp::NetworkInterfaceInfo if_info = mp::platform::get_network_interface_info(ifname);
+                iftype = if_info.type;
+                ifdescription = if_info.description;
+            }
+            else
+            {
+                // Get the information from the VBoxManage output.
+                if (match.captured("wireless") == "Yes")
+                {
+                    iftype = "wifi";
+                }
+                else
+                {
+                    iftype = ifdescription.compare(0, 11, "Thunderbolt")
+                                 ? match.captured("type").toLower().toStdString()
+                                 : "thunderbolt";
+                }
+            }
 
-            networks.push_back({ifname, ifwireless ? "wifi" : iftype, ifdescription});
+            networks.push_back({ifname, iftype, ifdescription});
         }
     }
 
