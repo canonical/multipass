@@ -185,17 +185,23 @@ std::string switch_description(const QString& switch_type, const QString& physic
 {
     if (switch_type.contains("private", Qt::CaseInsensitive))
     {
-        assert(physical_adapter.isEmpty() && "Private switches should not be connected to physical adapters");
+        if (!physical_adapter.isEmpty())
+            throw std::runtime_error{"Unexpected adapter for private switch"};
+
         return "Private virtual switch";
     }
     else if (switch_type.contains("internal", Qt::CaseInsensitive))
     {
-        assert(physical_adapter.isEmpty() && "Internal switches should not be connected to physical adapters");
+        if (!physical_adapter.isEmpty())
+            throw std::runtime_error{"Unexpected adapter for private switch"};
+
         return "Virtual Switch with internal networking";
     }
     else if (switch_type.contains("external", Qt::CaseInsensitive))
     {
-        assert(!physical_adapter.isEmpty() && "External switches need a physical adapter");
+        if (physical_adapter.isEmpty())
+            throw std::runtime_error{"Missing adapter for external switch"};
+
         return fmt::format("Virtual Switch with external networking via {}", physical_adapter);
     }
     else
@@ -271,13 +277,17 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
         for (const auto& line : ps_output.split(QRegExp{"[\r\n]"}, QString::SkipEmptyParts))
         {
             auto terms = line.split(',', QString::KeepEmptyParts);
+            if (terms.size() != 3)
+            {
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+            }
 
-            assert(terms.size() == 3 && "Unless there is a hole in the powershell command above");
             ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
         }
 
         return ret;
     }
 
-    throw std::runtime_error{"Could not determine available networks"};
+    throw std::runtime_error{"Could not determine available networks - error executing powershell command"};
 }
