@@ -183,13 +183,12 @@ void check_hyperv_support()
 
 std::string switch_description(const QString& switch_type)
 {
-    // TODO use regex instead
-    if (switch_type.compare("\"private\"", Qt::CaseInsensitive) == 0)
+    if (switch_type.contains("private", Qt::CaseInsensitive))
         return "Private virtual switch";
-    else if (switch_type.compare("\"internal\"", Qt::CaseInsensitive) == 0)
-        return "Virtual Switch without external networking";
-    else if (switch_type.compare("\"external\"", Qt::CaseInsensitive) == 0)
-        return "Virtual Switch bridged with Ethernet";
+    else if (switch_type.contains("internal", Qt::CaseInsensitive))
+        return "Virtual Switch with internal networking";
+    else if (switch_type.contains("external", Qt::CaseInsensitive))
+        return "Virtual Switch with external networking via Ethernet";
     else
         return fmt::format("Unknown Virtual Switch type: {}", switch_type);
 }
