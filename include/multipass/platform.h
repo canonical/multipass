@@ -72,7 +72,10 @@ bool is_image_url_supported();
 
 std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread
 
-std::map<std::string, struct NetworkInterfaceInfo> get_network_interfaces();
+// Get information of one given network interface, or about all of them.
+NetworkInterfaceInfo get_network_interface_info(const std::string& iface_name);
+std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info();
+
 } // namespace platform
 } // namespace multipass
 #endif // MULTIPASS_PLATFORM_H

@@ -223,7 +223,7 @@ std::string get_uevent_value(const std::string& file, const std::string& key)
 }
 
 // TODO: refactor this long function.
-struct mp::NetworkInterfaceInfo get_network_interface_info(const std::string& iface_name)
+mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
 {
     QString iface_name_qstr = QString::fromStdString(iface_name);
     std::string type;
@@ -326,9 +326,9 @@ struct mp::NetworkInterfaceInfo get_network_interface_info(const std::string& if
     return iface_info;
 }
 
-std::map<std::string, struct mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces()
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
-    auto ifaces_info = std::map<std::string, struct mp::NetworkInterfaceInfo>();
+    auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
     QDir iface_dir("/sys/class/net");
     QFileInfoList all_files_in_dir = iface_dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs);
 
