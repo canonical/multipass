@@ -139,12 +139,13 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
 
     QObject::connect(&power_shell, &QProcess::readyReadStandardOutput, [&name, &output, &power_shell]() {
         output += power_shell.readAllStandardOutput();
-        mpl::log(mpl::Level::trace, name, output.toStdString());
     });
 
     power_shell.start();
     power_shell.waitForFinished();
 
     output = output.trimmed();
+    mpl::log(mpl::Level::trace, name, output.toStdString());
+
     return power_shell.exitStatus() == QProcess::NormalExit && power_shell.exitCode() == 0;
 }
