@@ -183,27 +183,19 @@ void check_hyperv_support()
 
 std::string switch_description(const QString& switch_type, const QString& physical_adapter)
 {
-    if (switch_type.contains("private", Qt::CaseInsensitive))
-    {
-        if (!physical_adapter.isEmpty())
-            throw std::runtime_error{"Unexpected adapter for private switch"};
-
-        return "Private virtual switch";
-    }
-    else if (switch_type.contains("internal", Qt::CaseInsensitive))
-    {
-        if (!physical_adapter.isEmpty())
-            throw std::runtime_error{"Unexpected adapter for private switch"};
-
-        return "Virtual Switch with internal networking";
-    }
-    else if (switch_type.contains("external", Qt::CaseInsensitive))
+    if (switch_type.contains("external", Qt::CaseInsensitive))
     {
         if (physical_adapter.isEmpty())
             throw std::runtime_error{"Missing adapter for external switch"};
 
         return fmt::format("Virtual Switch with external networking via {}", physical_adapter);
     }
+    else if (!physical_adapter.isEmpty())
+        throw std::runtime_error{fmt::format("Unexpected adapter for non-external switch: {}", physical_adapter)};
+    else if (switch_type.contains("private", Qt::CaseInsensitive))
+        return "Private virtual switch";
+    else if (switch_type.contains("internal", Qt::CaseInsensitive))
+        return "Virtual Switch with internal networking";
     else
         return fmt::format("Unknown Virtual Switch type: {}", switch_type);
 }
