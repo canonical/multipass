@@ -279,21 +279,31 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
     }
     else
     {
-        QFile vendor_file(iface_dir_name + "/device/vendor");
-        QFile model_file(iface_dir_name + "/device/device");
-
         type = QFile::exists(iface_dir_name + "/wireless") ? "wifi" : "ethernet";
 
-        std::string vendor, model;
+        QFile vendor_file(iface_dir_name + "/device/vendor");
+        std::string vendor;
         if (vendor_file.open(QIODevice::ReadOnly))
         {
             vendor = vendor_file.readLine().mid(2, 4).toStdString();
             vendor_file.close();
+
+            QFile model_file(iface_dir_name + "/device/device");
+            std::string model;
+            if (model_file.open(QIODevice::ReadOnly))
+            {
+                model = model_file.readLine().mid(2, 4).toStdString();
+                model_file.close();
+            }
+            description = vendor + ":" + model;
         }
-        if (model_file.open(QIODevice::ReadOnly))
+        else
         {
-            model = model_file.readLine().mid(2, 4).toStdString();
-            model_file.close();
+            // If there is no vendor specified, this can be a USB interface.
+            description =
+                get_uevent_value((iface_dir_name + "/device/uevent").toStdString(), "DEVTYPE") == "usb_interface"
+                    ? "USB interface"
+                    : "Unknown";
         }
 
         description = (vendor != "" && model != "") ? vendor + ":" + model : "unknown";
