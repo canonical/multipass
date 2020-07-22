@@ -129,9 +129,8 @@ std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVir
 
     for (auto parameter : list_parameters)
     {
-        std::string ifs_info = mp::utils::run_cmd_for_output("VBoxManage", {"list", "-l", parameter});
-        QStringList new_ifs = QString::fromStdString(ifs_info).split("\n\n", QString::SkipEmptyParts);
-        if_list.append(new_ifs);
+        QString ifs_info = QString::fromStdString(mpu::run_cmd_for_output("VBoxManage", {"list", "-l", parameter}));
+        if_list.append(ifs_info.split(QRegularExpression("\r?\n\r?\n"), QString::SkipEmptyParts));
     }
 
     mpl::log(mpl::Level::info, "list-networks", fmt::format("Found {} network interfaces", if_list.size()));
