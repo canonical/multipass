@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_AA_IS_ENABLED_H
-#define MULTIPASS_AA_IS_ENABLED_H
+#ifndef MULTIPASS_MOCK_AA_SYSCALLS_H
+#define MULTIPASS_MOCK_AA_SYSCALLS_H
 
 #include <premock.hpp>
 
@@ -24,4 +24,4 @@
 
 DECL_MOCK(aa_is_enabled);
 
-#endif // MULTIPASS_AA_IS_ENABLED_H
+#endif // MULTIPASS_MOCK_AA_SYSCALLS_H
