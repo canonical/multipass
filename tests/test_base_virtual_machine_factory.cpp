@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/base_virtual_machine_factory.h>
@@ -42,6 +43,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD2(prepare_instance_image, void(const mp::VMImage&, const mp::VirtualMachineDescription&));
     MOCK_METHOD0(hypervisor_health_check, void());
     MOCK_METHOD0(get_backend_version_string, QString());
+    MOCK_METHOD0(list_networks, std::vector<mp::NetworkInterfaceInfo>());
 };
 
 struct BaseFactory : public Test

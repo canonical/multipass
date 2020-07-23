@@ -19,6 +19,7 @@
 #include "libvirt_virtual_machine.h"
 
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <shared/linux/backend_utils.h>
@@ -196,4 +197,9 @@ QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
 
     mpl::log(mpl::Level::error, logging_category, "Failed to determine libvirtd version.");
     return QString("libvirt-unknown");
+}
+
+auto multipass::LibVirtVirtualMachineFactory::list_networks() -> std::vector<NetworkInterfaceInfo>
+{
+    return {}; // TODO
 }
