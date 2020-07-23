@@ -43,7 +43,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD2(prepare_instance_image, void(const mp::VMImage&, const mp::VirtualMachineDescription&));
     MOCK_METHOD0(hypervisor_health_check, void());
     MOCK_METHOD0(get_backend_version_string, QString());
-    MOCK_METHOD0(list_networks, std::vector<mp::NetworkInterfaceInfo>());
+    MOCK_CONST_METHOD0(list_networks, std::vector<mp::NetworkInterfaceInfo>());
 };
 
 struct BaseFactory : public Test
