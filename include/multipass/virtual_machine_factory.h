@@ -61,7 +61,7 @@ public:
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
-    virtual std::vector<NetworkInterfaceInfo> list_networks() = 0;
+    virtual std::vector<NetworkInterfaceInfo> list_networks() const = 0;
 
 protected:
     VirtualMachineFactory() = default;
