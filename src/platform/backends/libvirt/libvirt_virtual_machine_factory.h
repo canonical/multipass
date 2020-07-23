@@ -42,7 +42,7 @@ public:
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_version_string() override;
-    std::vector<NetworkInterfaceInfo> list_networks() override;
+    std::vector<NetworkInterfaceInfo> list_networks() const override;
 
     // Making this public makes this modifiable which is necessary for testing
     LibvirtWrapper::UPtr libvirt_wrapper;
