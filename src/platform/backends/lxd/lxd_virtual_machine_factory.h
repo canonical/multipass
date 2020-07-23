@@ -51,7 +51,7 @@ public:
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                           const Path& cache_dir_path, const Path& data_dir_path,
                                           const days& days_to_expire) override;
-    std::vector<NetworkInterfaceInfo> list_networks() override;
+    std::vector<NetworkInterfaceInfo> list_networks() const override;
 
 private:
     NetworkAccessManager::UPtr manager;
