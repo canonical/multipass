@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <daemon/default_vm_image_vault.h>
@@ -51,9 +52,9 @@ public:
                                                      days_to_expire);
     };
 
-    std::vector<std::tuple<std::string, std::string, std::string>> list_networks() override
+    std::vector<NetworkInterfaceInfo> list_networks() override
     {
-        return std::vector<std::tuple<std::string, std::string, std::string>>();
+        return {}; // TODO@ricab do we really need this
     };
 };
 } // namespace multipass
