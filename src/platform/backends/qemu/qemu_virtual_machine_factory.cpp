@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -211,4 +212,9 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     }
 
     return QString("qemu-unknown");
+}
+
+auto multipass::QemuVirtualMachineFactory::list_networks() -> std::vector<NetworkInterfaceInfo>
+{
+    return {}; // TODO
 }
