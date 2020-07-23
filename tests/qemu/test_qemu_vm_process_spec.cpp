@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -185,9 +185,11 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_identifier)
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
 {
+    const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir;
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
@@ -197,11 +199,14 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
 {
+    const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, link_dir;
+
     link_dir.remove();
     QFile::link(snap_dir.path(), link_dir.path());
 
     mpt::SetEnvScope e("SNAP", link_dir.path().toUtf8());
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
@@ -210,7 +215,10 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
 {
+    const QByteArray snap_name{"multipass"};
+
     mpt::UnsetEnvScope e("SNAP");
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));

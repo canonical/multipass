@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -81,12 +82,12 @@ std::string mp::platform::default_server_address()
 {
     std::string base_dir;
 
-    if (mu::is_snap())
+    try
     {
         // if Snap, client and daemon can both access $SNAP_COMMON so can put socket there
         base_dir = mu::snap_common_dir().toStdString();
     }
-    else
+    catch (const mp::SnapEnvironmentException&)
     {
         base_dir = "/run";
     }

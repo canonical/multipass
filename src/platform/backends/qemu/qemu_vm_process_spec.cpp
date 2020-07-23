@@ -17,6 +17,7 @@
 
 #include "qemu_vm_process_spec.h"
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snap_utils.h>
@@ -230,13 +231,13 @@ profile %1 flags=(attach_disconnected) {
     QString signal_peer; // who can send kill signal to qemu
     QString firmware;    // location of bootloader firmware needed by qemu
 
-    if (mu::is_snap())
+    try
     {
         root_dir = mu::snap_dir();
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
         firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
     }
-    else
+    catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
         firmware = "/usr/share/seabios/*";
