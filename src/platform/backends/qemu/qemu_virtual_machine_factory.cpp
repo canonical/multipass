@@ -214,7 +214,7 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     return QString("qemu-unknown");
 }
 
-auto multipass::QemuVirtualMachineFactory::list_networks() -> std::vector<NetworkInterfaceInfo>
+auto multipass::QemuVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
     return {}; // TODO
 }

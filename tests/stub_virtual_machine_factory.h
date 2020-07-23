@@ -76,7 +76,7 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
         return std::make_unique<StubVMImageVault>();
     }
 
-    std::vector<NetworkInterfaceInfo> list_networks() override
+    std::vector<NetworkInterfaceInfo> list_networks() const override
     {
         return {};
     }
