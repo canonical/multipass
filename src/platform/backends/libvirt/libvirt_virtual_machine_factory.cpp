@@ -199,7 +199,7 @@ QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
     return QString("libvirt-unknown");
 }
 
-auto multipass::LibVirtVirtualMachineFactory::list_networks() -> std::vector<NetworkInterfaceInfo>
+auto multipass::LibVirtVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
     return {}; // TODO
 }
