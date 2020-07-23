@@ -24,7 +24,7 @@ set(OPENSSL_VERSION "1.1.1")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion")
 
-set(OPENSSL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../grpc/third_party/boringssl/include)
+set(OPENSSL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../grpc/third_party/boringssl-with-bazel/src/include)
 set(LIBSSH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libssh/include)
 
 # Needed only because of libssh install target
@@ -48,7 +48,7 @@ configure_file(libssh/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/libssh/config.h
 
 # Must be set after configure checks as crypto has not been built yet
 # but will be included in the final libssh shared library
-set(OPENSSL_CRYPTO_LIBRARY crypto decrepit ssh-boringssl-compat)
+set(OPENSSL_CRYPTO_LIBRARY crypto ssh-boringssl-compat)
 
 message(STATUS "Checking for 'libssh' version")
 

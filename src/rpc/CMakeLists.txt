@@ -1,4 +1,4 @@
-# Copyright © 2017 Canonical Ltd.
+# Copyright © 2017-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,12 +11,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
 set(MULTIPASS_PROTOCOL_SPEC multipass.proto)
 set(GRPC_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/rpc)
 file(MAKE_DIRECTORY ${GRPC_GENERATED_SOURCE_DIR})
+
+add_compile_options(-Wno-error)
 
 generate_grpc_cpp(GRPC_GENERATED_SOURCES ${GRPC_GENERATED_SOURCE_DIR} ${MULTIPASS_PROTOCOL_SPEC})
 
