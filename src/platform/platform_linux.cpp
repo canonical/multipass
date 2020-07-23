@@ -194,7 +194,7 @@ mp::IPAddress get_ip_address(const std::string& iface_name)
 
     close(fd);
 
-    return mp::IPAddress(inet_ntoa(((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr));
+    return mp::IPAddress(inet_ntoa((reinterpret_cast<struct sockaddr_in*>(&ifr.ifr_addr))->sin_addr));
 }
 
 // The uevent files in /sys have a set of KEY=value pairs, one per line. This function takes as arguments a file
