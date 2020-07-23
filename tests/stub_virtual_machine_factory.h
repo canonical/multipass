@@ -21,6 +21,7 @@
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
 
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_factory.h>
 
 namespace multipass
@@ -75,9 +76,9 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
         return std::make_unique<StubVMImageVault>();
     }
 
-    std::vector<std::tuple<std::string, std::string, std::string>> list_networks() override
+    std::vector<NetworkInterfaceInfo> list_networks() override
     {
-        return std::vector<std::tuple<std::string, std::string, std::string>>();
+        return {};
     }
 };
 }

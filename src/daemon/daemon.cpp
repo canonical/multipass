@@ -1234,9 +1234,9 @@ try // clang-format on
     for (auto iface : iface_list)
     {
         auto entry = response.add_interfaces();
-        entry->set_name(std::get<0>(iface));
-        entry->set_type(std::get<1>(iface));
-        entry->set_description(std::get<2>(iface));
+        entry->set_name(iface.id);
+        entry->set_type(iface.type);
+        entry->set_description(iface.description);
     }
 
     server->Write(response);
