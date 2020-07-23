@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/snap_utils.h>
 
@@ -65,13 +66,13 @@ profile %1 flags=(attach_disconnected) {
     QString extra_capabilities;
     QString signal_peer; // who can send kill signal to qemu-img
 
-    if (mu::is_snap())
+    try
     {
         root_dir = mu::snap_dir();
         image_dir = mu::snap_common_dir();         // FIXME - am guessing we work inside this directory
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu-img signals
     }
-    else
+    catch (mp::SnapEnvironmentException&)
     {
         extra_capabilities =
             "capability dac_read_search,\n    capability dac_override,"; // FIXME - unclear why this is required when

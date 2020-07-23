@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,27 +15,48 @@
  *
  */
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
 
 #include <QFileInfo>
+#include <QString>
 
+namespace mp = multipass;
 namespace mu = multipass::utils;
 
-bool mu::is_snap()
+namespace
 {
-    // Decide if Snap based on if $SNAP env var is set.
-    // TODO: can this be better?
-    return !snap_dir().isEmpty();
+const QString snap_name{"multipass"};
+
+void verify_snap_name()
+{
+    if (qgetenv("SNAP_NAME") != snap_name)
+        throw mp::SnapEnvironmentException("SNAP_NAME", snap_name.toStdString());
 }
+} // namespace
 
 QByteArray mu::snap_dir()
 {
+    verify_snap_name();
+
     auto snap_dir = qgetenv("SNAP");                         // Inside snap, this can be trusted.
+    if (snap_dir.isEmpty())
+    {
+        throw mp::SnapEnvironmentException("SNAP");
+    }
+
     return QFileInfo(snap_dir).canonicalFilePath().toUtf8(); // To resolve any symlinks
 }
 
 QByteArray mu::snap_common_dir()
 {
+    verify_snap_name();
+
     auto snap_common = qgetenv("SNAP_COMMON");                  // Inside snap, this can be trusted
+    if (snap_common.isEmpty())
+    {
+        throw mp::SnapEnvironmentException("SNAP_COMMON");
+    }
+
     return QFileInfo(snap_common).canonicalFilePath().toUtf8(); // To resolve any symlinks
 }

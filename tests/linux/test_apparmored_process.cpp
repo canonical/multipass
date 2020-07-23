@@ -18,8 +18,11 @@
 #include <multipass/process/process.h>
 #include <src/platform/backends/shared/linux/process_factory.h>
 
+#include "mock_aa_syscalls.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_logger.h"
 #include "tests/reset_process_factory.h"
+#include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
 #include <gmock/gmock.h>
@@ -27,6 +30,7 @@
 #include <QFile>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -52,15 +56,33 @@ class TestProcessSpec : public mp::ProcessSpec
 };
 } // namespace
 
-struct ApparmoredProcessTest : public mpt::TestWithMockedBinPath
+struct ApparmoredProcessNoFactoryTest : public mpt::TestWithMockedBinPath
 {
-    mpt::UnsetEnvScope env{"DISABLE_APPARMOR"};
-    mpt::ResetProcessFactory scope; // will otherwise pollute other tests
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+    ApparmoredProcessNoFactoryTest()
+    {
+        QFile::remove(apparmor_output_file);
+        mpl::set_logger(logger);
+        is_enabled.returnValue(1);
+    }
+
     void TearDown() override
     {
-        QFile::remove("apparmor_output_file");
+        QFile::remove(apparmor_output_file);
+        logger.reset();
+        mpl::set_logger(logger);
     }
+
+    mpt::UnsetEnvScope env{"DISABLE_APPARMOR"};
+    mpt::ResetProcessFactory scope; // will otherwise pollute other tests
+    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+    decltype(MOCK(aa_is_enabled)) is_enabled{MOCK(aa_is_enabled)};
+};
+
+struct ApparmoredProcessTest : public ApparmoredProcessNoFactoryTest
+{
+    using ApparmoredProcessNoFactoryTest::ApparmoredProcessNoFactoryTest; // ctor
+
+    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
 };
 
 TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
@@ -74,6 +96,36 @@ TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
 
     EXPECT_TRUE(input.contains("args: -W, --abort-on-error, -r,"));
     EXPECT_TRUE(input.contains(apparmor_profile_text));
+}
+
+TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
+{
+    mpt::TempDir cache_dir;
+    const QByteArray snap_name{"multipass"};
+
+    mpt::SetEnvScope env_scope("SNAP_COMMON", cache_dir.path().toUtf8());
+    mpt::SetEnvScope env_scope2("SNAP_NAME", snap_name);
+
+    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+    auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
+
+    // apparmor profile should have been installed
+    QFile apparmor_input(apparmor_output_file);
+    ASSERT_TRUE(apparmor_input.open(QIODevice::ReadOnly | QIODevice::Text));
+    auto input = apparmor_input.readAll();
+
+    EXPECT_TRUE(input.contains(
+        QString("args: -WL, %1/apparmor.d/cache/multipass, --abort-on-error, -r,").arg(cache_dir.path()).toUtf8()));
+    EXPECT_TRUE(input.contains(apparmor_profile_text));
+}
+
+TEST_F(ApparmoredProcessNoFactoryTest, no_output_file_when_no_apparmor)
+{
+    REPLACE(aa_is_enabled, [] { return 0; });
+    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+    auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
+
+    EXPECT_FALSE(QFile::exists(apparmor_output_file));
 }
 
 TEST_F(ApparmoredProcessTest, unloads_profile_with_apparmor_on_process_out_of_scope)

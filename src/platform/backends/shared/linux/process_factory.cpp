@@ -16,13 +16,14 @@
  */
 
 #include "process_factory.h"
+
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/basic_process.h>
 #include <multipass/process/process_spec.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/snap_utils.h>
-#include <multipass/utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -64,23 +65,28 @@ private:
 
 mp::optional<mp::AppArmor> create_apparmor()
 {
-    if (!mp::utils::is_snap() && qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
+    try
     {
-        mpl::log(mpl::Level::warning, "apparmor", "AppArmor disabled by environment variable");
-        return mp::nullopt;
+        mp::utils::snap_dir();
     }
-    else
+    catch (const mp::SnapEnvironmentException&)
     {
-        try
+        if (qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
         {
-            mpl::log(mpl::Level::info, "apparmor", "Using AppArmor support");
-            return mp::AppArmor{};
-        }
-        catch (mp::AppArmorException& e)
-        {
-            mpl::log(mpl::Level::warning, "apparmor", fmt::format("Failed to enable AppArmor: {}", e.what()));
+            mpl::log(mpl::Level::warning, "apparmor", "AppArmor disabled by environment variable");
             return mp::nullopt;
         }
+    }
+
+    try
+    {
+        mpl::log(mpl::Level::info, "apparmor", "Using AppArmor support");
+        return mp::AppArmor{};
+    }
+    catch (mp::AppArmorException& e)
+    {
+        mpl::log(mpl::Level::warning, "apparmor", fmt::format("Failed to enable AppArmor: {}", e.what()));
+        return mp::nullopt;
     }
 }
 } // namespace

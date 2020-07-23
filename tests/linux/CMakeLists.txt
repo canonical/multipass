@@ -5,7 +5,14 @@ target_sources(multipass_tests
     ${CMAKE_CURRENT_LIST_DIR}/test_local_network_access_manager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_platform_linux.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_snap_utils.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/mock_aa_syscalls.cpp
 )
+
+target_compile_definitions(shared_linux_test PRIVATE
+  -Daa_is_enabled=ut_aa_is_enabled)
+
+target_link_libraries(multipass_tests
+  shared_linux_test)
 
 add_executable(apparmor_parser
   mock_apparmor_parser.cpp)

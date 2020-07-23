@@ -65,9 +65,12 @@ TEST(TestQemuImgProcessSpec, no_apparmor_profile_identifier)
 
 TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
 {
+    const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, common_dir;
+
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_COMMON", common_dir.path().toUtf8());
+    mpt::SetEnvScope e3("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({});
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
@@ -76,7 +79,9 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
 
 TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
 {
+    const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, snap_link_dir, common_dir, common_link_dir;
+
     snap_link_dir.remove();
     common_link_dir.remove();
     QFile::link(snap_dir.path(), snap_link_dir.path());
@@ -84,6 +89,7 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
 
     mpt::SetEnvScope e("SNAP", snap_link_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_COMMON", common_link_dir.path().toUtf8());
+    mpt::SetEnvScope e3("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({});
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
@@ -92,7 +98,10 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
 
 TEST(TestQemuImgProcessSpec, apparmor_profile_not_running_as_snap_correct)
 {
+    const QByteArray snap_name{"multipass"};
+
     mpt::UnsetEnvScope e("SNAP");
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({});
 
     EXPECT_TRUE(spec.apparmor_profile().contains("capability dac_read_search,"));

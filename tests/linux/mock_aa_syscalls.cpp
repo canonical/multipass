@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,6 @@
  *
  */
 
-#ifndef MULTIPASS_SNAP_UTILS_H
-#define MULTIPASS_SNAP_UTILS_H
+#include "mock_aa_syscalls.h"
 
-#include <QByteArray>
-
-namespace multipass
-{
-namespace utils
-{
-QByteArray snap_dir();
-QByteArray snap_common_dir();
-} // namespace utils
-} // namespace multipass
-
-#endif // MULTIPASS_SNAP_UTILS_H
+extern "C" IMPL_MOCK_DEFAULT(0, aa_is_enabled);

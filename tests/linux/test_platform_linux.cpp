@@ -328,6 +328,27 @@ TEST_F(PlatformLinux, test_is_remote_supported_lxd_driver)
     EXPECT_FALSE(mp::platform::is_remote_supported("appliance"));
 }
 
+TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
+{
+    const QByteArray base_dir{"/tmp"};
+    const QByteArray snap_name{"multipass"};
+
+    mpt::SetEnvScope env("SNAP_COMMON", base_dir);
+    mpt::SetEnvScope env2("SNAP_NAME", snap_name);
+
+    EXPECT_EQ(mp::platform::default_server_address(), fmt::format("unix:{}/multipass_socket", base_dir.toStdString()));
+}
+
+TEST_F(PlatformLinux, test_not_snap_returns_expected_default_address)
+{
+    const QByteArray snap_name{"multipass"};
+
+    mpt::UnsetEnvScope unset_env("SNAP_COMMON");
+    mpt::SetEnvScope env2("SNAP_NAME", snap_name);
+
+    EXPECT_EQ(mp::platform::default_server_address(), fmt::format("unix:/run/multipass_socket"));
+}
+
 struct TestUnsupportedDrivers : public TestWithParam<QString>
 {
 };

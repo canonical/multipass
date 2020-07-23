@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,13 @@
  *
  */
 
-#ifndef MULTIPASS_SNAP_UTILS_H
-#define MULTIPASS_SNAP_UTILS_H
+#ifndef MULTIPASS_MOCK_AA_SYSCALLS_H
+#define MULTIPASS_MOCK_AA_SYSCALLS_H
 
-#include <QByteArray>
+#include <premock.hpp>
 
-namespace multipass
-{
-namespace utils
-{
-QByteArray snap_dir();
-QByteArray snap_common_dir();
-} // namespace utils
-} // namespace multipass
+#include <sys/apparmor.h>
 
-#endif // MULTIPASS_SNAP_UTILS_H
+DECL_MOCK(aa_is_enabled);
+
+#endif // MULTIPASS_MOCK_AA_SYSCALLS_H

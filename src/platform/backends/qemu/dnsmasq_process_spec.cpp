@@ -17,6 +17,7 @@
 
 #include "dnsmasq_process_spec.h"
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/snap_utils.h>
 
@@ -112,12 +113,13 @@ profile %1 flags=(attach_disconnected) {
     QString root_dir;    // root directory: either "" or $SNAP
     QString signal_peer; // who can send kill signal to dnsmasq
 
-    if (mu::is_snap()) // if snap confined, specify only multipassd can kill dnsmasq
+    try
     {
+        // if snap confined, specify only multipassd can kill dnsmasq
         root_dir = mu::snap_dir();
         signal_peer = "snap.multipass.multipassd";
     }
-    else
+    catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
     }
