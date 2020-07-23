@@ -21,6 +21,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/utils.h>
 
 #include <QJsonDocument>
@@ -125,4 +126,9 @@ mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vec
                                                                         const mp::days& days_to_expire)
 {
     return std::make_unique<mp::LXDVMImageVault>(image_hosts, manager.get(), base_url, days_to_expire);
+}
+
+auto multipass::LXDVirtualMachineFactory::list_networks() -> std::vector<NetworkInterfaceInfo>
+{
+    return {}; // TODO
 }
