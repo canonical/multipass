@@ -2,6 +2,8 @@
 # and protobuf not knowing so finding the system version instead
 include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
 
+set(gRPC_SSL_PROVIDER "package" CACHE STRING "Provider of ssl library")
+
 # Add the subdir here to avoid polluting their cmake scope
 add_subdirectory(grpc EXCLUDE_FROM_ALL)
 

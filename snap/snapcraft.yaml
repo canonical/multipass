@@ -98,6 +98,7 @@ parts:
     - libapparmor-dev
     - libqt5x11extras5-dev
     - libsystemd-dev
+    - libssl-dev
     - libvirt-dev
     - pkg-config
     - qtbase5-dev
@@ -113,6 +114,7 @@ parts:
     - libqt5network5
     - libqt5widgets5
     - libqt5x11extras5
+    - libssl1.1
     - libxml2
     - libvirt0
     - dnsmasq-base
