@@ -26,6 +26,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#include "backends/hyperv/powershell.h" // TODO: move powershell functions outside backends/hyperv/
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
@@ -38,6 +39,8 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QRegularExpression>
+#include <QString>
 #include <QTemporaryFile>
 #include <QtGlobal>
 
@@ -61,6 +64,7 @@ extern "C"
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -496,14 +500,98 @@ std::function<int()> mp::platform::make_quit_watchdog()
     };
 }
 
-mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
+// Given the unique identifier of a network interface, get its info.
+mp::NetworkInterfaceInfo get_network_interface_info_from_id(int if_id, mp::PowerShell& power_shell)
 {
-    // TODO
-    return mp::NetworkInterfaceInfo();
+    QString ps_out;
+    // Look for the IP address, alias and description of the interface.
+    // TODO: get the hardware type from somewhere.
+    power_shell.run({"Get-NetIPConfiguration", "-InterfaceIndex", QString::number(if_id)}, ps_out);
+
+    const auto pattern = QStringLiteral("^InterfaceAlias +: (?<alias>[A-Za-z0-9-_#\\+ ]+)\r$.*"
+                                        "^InterfaceDescription +: (?<description>[A-Za-z0-9-_#\\+ ]+)\r$.*"
+                                        "^IPv4Address +: (?<ip>[0-9\\.]+)\r$.*");
+    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
+                                                        QRegularExpression::DotMatchesEverythingOption};
+    const auto match = regexp.match(ps_out);
+
+    std::string id, type, description;
+    mp::optional<mp::IPAddress> ip;
+
+    if (match.hasMatch())
+    {
+        id = match.captured("alias").toStdString();
+        type = "";
+        description = match.captured("description").toStdString();
+        *ip = mp::IPAddress(match.captured("ip").toStdString());
+    }
+
+    mpl::log(mpl::Level::debug, "get_interfaces",
+             fmt::format("{}: \"{}\", \"{}\", \"{}\", \"{}\"", if_id, id, type, description, ip->as_string()));
+
+    return mp::NetworkInterfaceInfo{id, type, description, ip};
+}
+
+// The alias given to this function can be the interface alias or the description. Both can be used by Windows to
+// identify an interface. From this alias or description, we will get the interface index, which is an integer
+// which also uniquely identifies the interface.
+mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& if_alias)
+{
+    // TODO: don't use a power shell session for getting the information of every interface; use one for all.
+    mp::PowerShell power_shell("Interface info " + if_alias);
+    // The power shell output.
+    QString ps_out;
+
+    // See if with the alias we can get the interface index. If not, that means that we need to use description.
+    power_shell.run({"Get-NetAdapter", "-InterfaceAlias", QString::fromStdString('\"' + if_alias + '\"')}, ps_out);
+
+    // If the output of is not a table whose first heading is the name, look for the given alias as description.
+    if (ps_out.left(4) != "Name")
+    {
+        ps_out = "";
+        power_shell.run({"Get-NetAdapter", "-InterfaceDescription", QString::fromStdString('\"' + if_alias + '\"')},
+                        ps_out);
+        if (ps_out.left(4) != "Name")
+        {
+            return mp::NetworkInterfaceInfo();
+        }
+    }
+
+    // Gather the interface index from the power shell output.
+    QStringList split_ps_out = ps_out.split("\r\n", QString::SkipEmptyParts);
+
+    if (split_ps_out.count() != 3)
+    {
+        return mp::NetworkInterfaceInfo();
+    }
+
+    // Get the interface index from the only useful line of output.
+    int if_index = split_ps_out[2].mid(66, 7).simplified().toInt();
+
+    return get_network_interface_info_from_id(if_index, power_shell);
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
-    // TODO
-    return std::map<std::string, mp::NetworkInterfaceInfo>();
+    auto ifs_info = std::map<std::string, mp::NetworkInterfaceInfo>();
+
+    mp::PowerShell power_shell("get_network_interfaces_info");
+    QString ps_out;
+
+    // This gives a table with some information on the interfaces; the first field is the index we want.
+    power_shell.run({"Get-NetIPInterface", "-AddressFamily", "IPv4"}, ps_out);
+
+    QStringList split_ps_out = ps_out.split("\r\n", QString::SkipEmptyParts);
+
+    for (auto line : split_ps_out.mid(2))
+    {
+        int if_index = line.mid(0, 7).simplified().toInt();
+        mp::NetworkInterfaceInfo if_info = get_network_interface_info_from_id(if_index, power_shell);
+        if (!if_info.id.empty())
+        {
+            ifs_info.emplace(std::make_pair(if_info.id, if_info));
+        }
+    }
+
+    return ifs_info;
 }
