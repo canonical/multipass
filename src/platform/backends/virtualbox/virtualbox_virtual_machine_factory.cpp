@@ -143,7 +143,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVir
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
                                                         QRegularExpression::DotMatchesEverythingOption};
 
-    std::string ifname, iftype, ifdescription;
+    std::string ifname, ifid, iftype, ifdescription;
 
     // For each interface in the list, see if VBoxManage gave us enough information. If not, ask the OS.
     for (auto iface : if_list)
@@ -158,11 +158,13 @@ std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVir
             {
                 // Ask the OS for information about the interface.
                 mp::NetworkInterfaceInfo if_info = mp::platform::get_network_interface_info(ifname);
+                ifid = if_info.id;
                 iftype = if_info.type;
                 ifdescription = if_info.description;
             }
             else
             {
+                ifid = ifname;
                 // Get the information from the VBoxManage output.
                 if (match.captured("wireless") == "Yes")
                 {
@@ -176,7 +178,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVir
                 }
             }
 
-            networks.push_back({ifname, iftype, ifdescription});
+            networks.push_back({ifid.empty() ? ifname : ifid, iftype, ifdescription});
         }
     }
 
