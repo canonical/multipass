@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/utils.h>
@@ -117,9 +118,9 @@ void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
 {
 }
 
-std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVirtualMachineFactory::list_networks()
+auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    std::vector<std::tuple<std::string, std::string, std::string>> networks;
+    std::vector<NetworkInterfaceInfo> networks;
 
     // 'VBoxManage list -l' lists network interfaces with the following parameters.
     QStringList list_parameters{"intnets", "bridgedifs", "hostonlyifs", "natnets"};
@@ -178,7 +179,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> mp::VirtualBoxVir
                 }
             }
 
-            networks.push_back({ifid.empty() ? ifname : ifid, iftype, ifdescription});
+            networks.push_back({ifid.empty() ? ifname : ifid, iftype, ifdescription, mp::nullopt});
         }
     }
 

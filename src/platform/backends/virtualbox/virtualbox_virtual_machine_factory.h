@@ -39,7 +39,7 @@ public:
     {
         return "virtualbox";
     };
-    std::vector<std::tuple<std::string, std::string, std::string>> list_networks() override;
+    std::vector<NetworkInterfaceInfo> list_networks() const override;
 };
 } // namespace multipass
 
