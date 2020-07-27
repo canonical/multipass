@@ -20,6 +20,7 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -238,12 +239,52 @@ bool mp::platform::is_image_url_supported()
 
 mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
 {
+    auto ifconfig_spec = mp::simple_process_spec("ifconfig", {QString::fromStdString(iface_name)});
+    auto ifconfig_process = mp::platform::make_process(std::make_unique<mp::ProcessSpec>(ifconfig_spec));
+    auto ifconfig_exit_state = ifconfig_process->execute();
+
+    if (!exit_state.completed_successfully())
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to execute ifconfig: {}", ifconfig_process->read_all_standard_error()));
+    }
+
     // TODO
     return mp::NetworkInterfaceInfo();
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
-    // TODO
-    return std::map<std::string, mp::NetworkInterfaceInfo>();
+    auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
+
+    // Get the output of 'ifconfig'.
+    auto ifconfig_spec = mp::simple_process_spec("ifconfig");
+    auto ifconfig_process = mp::platform::make_process(std::move(ifconfig_spec));
+    auto ifconfig_exit_state = ifconfig_process->execute();
+
+    if (!ifconfig_exit_state.completed_successfully())
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to execute ifconfig: {}", ifconfig_process->read_all_standard_error()));
+    }
+
+    auto ifconfig_output = QString(ifconfig_process->read_all_standard_output());
+
+    // Parse the output to get the interface names.
+    const auto pattern = QStringLiteral("^(?<name>[A-Za-z0-9-_]+):.*$");
+    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+    QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);
+
+    // For every gathered interface name, ask for information.
+    while (match_it.hasNext())
+    {
+        auto match = match_it.next();
+        if (match.hasMatch())
+        {
+            std::string iface_name = match.captured("name").toStdString();
+            networks.emplace(std::make_pair(iface_name, get_network_interface_info(iface_name)));
+        }
+    }
+
+    return networks;
 }
