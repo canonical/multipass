@@ -35,6 +35,7 @@ public:
     {
         return "hyperv";
     };
+    std::vector<NetworkInterfaceInfo> list_networks() const override;
 };
 } // namespace multipass
 

@@ -19,6 +19,7 @@
 #include "hyperv_virtual_machine.h"
 #include "powershell.h"
 
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/shared_backend_utils.h>
@@ -235,4 +236,9 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 {
     check_hyperv_support();
+}
+
+auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
+{
+    return {}; // TODO
 }

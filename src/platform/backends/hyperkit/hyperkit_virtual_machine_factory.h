@@ -38,6 +38,7 @@ public:
     {
         return "hyperkit";
     };
+    std::vector<NetworkInterfaceInfo> list_networks() const override;
 };
 }
 
