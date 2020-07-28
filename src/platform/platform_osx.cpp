@@ -244,7 +244,7 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
     auto ifconfig_process = mp::platform::make_process(std::make_unique<mp::ProcessSpec>(ifconfig_spec));
     auto ifconfig_exit_state = ifconfig_process->execute();
 
-    if (!exit_state.completed_successfully())
+    if (!ifconfig_exit_state.completed_successfully())
     {
         throw std::runtime_error(
             fmt::format("Failed to execute ifconfig: {}", ifconfig_process->read_all_standard_error()));
