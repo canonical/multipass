@@ -36,6 +36,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QKeySequence>
+#include <QRegularExpression>
 #include <QString>
 #include <QtGlobal>
 
