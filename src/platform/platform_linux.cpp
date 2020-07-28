@@ -44,7 +44,6 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 #include <QDir>
 #include <QFile>
