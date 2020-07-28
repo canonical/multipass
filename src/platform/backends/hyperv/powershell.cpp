@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -138,12 +138,14 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     setup_powershell(&power_shell, args, name);
 
     QObject::connect(&power_shell, &QProcess::readyReadStandardOutput, [&name, &output, &power_shell]() {
-        output += power_shell.readAllStandardOutput().trimmed();
-        mpl::log(mpl::Level::trace, name, output.toStdString());
+        output += power_shell.readAllStandardOutput();
     });
 
     power_shell.start();
     power_shell.waitForFinished();
+
+    output = output.trimmed();
+    mpl::log(mpl::Level::trace, name, output.toStdString());
 
     return power_shell.exitStatus() == QProcess::NormalExit && power_shell.exitCode() == 0;
 }
