@@ -17,9 +17,8 @@
 
 #include "powershell.h"
 
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
-
-#include <fmt/format.h>
 
 #include <QMetaEnum>
 #include <QProcess>
@@ -96,7 +95,7 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
     auto cmdlet_exit_found{false};
     while (!cmdlet_exit_found)
     {
-        powershell_proc.waitForReadyRead();
+        powershell_proc.waitForReadyRead(); // ignore timeouts - will just loop back if no output
 
         powershell_output.append(powershell_proc.readAllStandardOutput());
         if (powershell_output.contains(unique_echo_string))
@@ -142,10 +141,13 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     });
 
     power_shell.start();
-    power_shell.waitForFinished();
+    auto wait_result = power_shell.waitForFinished();
+    if (!wait_result)
+        mpl::log(mpl::Level::warning, name,
+                 fmt::format("cmdlet failed with {}: {}", power_shell.errorString(), args.join(" ")));
 
     output = output.trimmed();
     mpl::log(mpl::Level::trace, name, output.toStdString());
 
-    return power_shell.exitStatus() == QProcess::NormalExit && power_shell.exitCode() == 0;
+    return wait_result && power_shell.exitStatus() == QProcess::NormalExit && power_shell.exitCode() == 0;
 }
