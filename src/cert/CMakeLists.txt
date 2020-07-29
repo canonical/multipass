@@ -1,4 +1,4 @@
-# Copyright © 2018 Canonical Ltd.
+# Copyright © 2018-2020 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -20,7 +20,7 @@ add_library(cert
 )
 
 target_include_directories(cert PRIVATE
-  ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/boringssl/include)
+  ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/boringssl-with-bazel/src/include)
 
 foreach(flag -Wno-nested-anon-types -Wno-gnu -Wno-pedantic -Wno-ignored-qualifiers)
   check_cxx_compiler_flag(${flag} SUPPORTED)
@@ -30,6 +30,7 @@ foreach(flag -Wno-nested-anon-types -Wno-gnu -Wno-pedantic -Wno-ignored-qualifie
 endforeach()
 
 target_link_libraries(cert
+  ssl
   crypto
   fmt
   utils
