@@ -23,6 +23,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -221,15 +222,13 @@ std::string get_uevent_value(const std::string& file, const std::string& key)
     return std::string();
 }
 
-// TODO: refactor this long function.
-mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
+mp::NetworkInterfaceInfo get_virtual_interface_info(const std::string& iface_name)
 {
-    QString iface_name_qstr = QString::fromStdString(iface_name);
     std::string type;
     std::string description;
     mp::optional<mp::IPAddress> ip_address;
 
-    QString iface_dir_name("/sys/class/net/" + iface_name_qstr);
+    QString iface_dir_name("/sys/devices/virtual/net/" + QString::fromStdString(iface_name));
 
     // The carrier file only says if the interface is up. If it is, we get the IP.
     QFile carrier_file(iface_dir_name + "/carrier");
@@ -243,88 +242,54 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
         }
     }
 
-    // Distinguish between hardware and virtual interfaces. In the virtual/ folder, there is one entry for each
-    // virtual interface.
-    if (QFile::exists("/sys/devices/virtual/net/" + iface_name_qstr))
+    // TUN and TAP devices have a file containing flags. The only way of knowing which one of both types the
+    // interface has, is to parse the flags.
+    QFile tun_flags_file(iface_dir_name + "/tun_flags");
+    if (tun_flags_file.open(QIODevice::ReadOnly))
     {
-        // TUN and TAP devices have a file containing flags. The only way of knowing which one of both types the
-        // interface is, is to parse the flags.
-        QFile tun_flags_file(iface_dir_name + "/tun_flags");
-        if (tun_flags_file.open(QIODevice::ReadOnly))
+        long tun_flags = tun_flags_file.readLine().trimmed().toLong(nullptr, 0);
+        tun_flags_file.close();
+        if (tun_flags & IFF_TUN)
         {
-            long tun_flags = tun_flags_file.readLine().trimmed().toLong(nullptr, 0);
-            tun_flags_file.close();
-            if (tun_flags & IFF_TUN)
-            {
-                description = "TUN ";
-            }
-            else
-            {
-                if (tun_flags & IFF_TAP)
-                {
-                    description = "TAP ";
-                }
-            }
-        }
-
-        // A virtual interface can be bridge or bridged, but not both.
-        bool is_bridge = QFile::exists(iface_dir_name + "/bridge");
-        if (is_bridge)
-        {
-            type = "bridge";
-            QDir bridged_dir(iface_dir_name + "/brif");
-            QStringList all_bridged = bridged_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
-            if (all_bridged.isEmpty())
-            {
-                description += "Empty network bridge";
-            }
-            else
-            {
-                description += "Network bridge containing " + all_bridged.join(", ").toStdString();
-            }
+            description = "TUN ";
         }
         else
         {
-            std::string associated_to =
-                get_uevent_value((iface_dir_name + "/brport/bridge/uevent").toStdString(), "INTERFACE");
-            type = "virtual";
-            if (associated_to.empty())
+            if (tun_flags & IFF_TAP)
             {
-                description += "Virtual interface";
+                description = "TAP ";
             }
-            else
-            {
-                description += "Virtual interface associated to " + associated_to;
-            }
+        }
+    }
+
+    // A virtual interface can be bridge or bridged, but not both.
+    bool is_bridge = QFile::exists(iface_dir_name + "/bridge");
+    if (is_bridge)
+    {
+        type = "bridge";
+        QDir bridged_dir(iface_dir_name + "/brif");
+        QStringList all_bridged = bridged_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        if (all_bridged.isEmpty())
+        {
+            description += "Empty network bridge";
+        }
+        else
+        {
+            description += "Network bridge containing " + all_bridged.join(", ").toStdString();
         }
     }
     else
     {
-        type = QFile::exists(iface_dir_name + "/wireless") ? "wifi" : "ethernet";
-
-        QFile vendor_file(iface_dir_name + "/device/vendor");
-        std::string vendor;
-        if (vendor_file.open(QIODevice::ReadOnly))
+        std::string associated_to =
+            get_uevent_value((iface_dir_name + "/brport/bridge/uevent").toStdString(), "INTERFACE");
+        type = "virtual";
+        if (associated_to.empty())
         {
-            vendor = vendor_file.readLine().mid(2, 4).toStdString();
-            vendor_file.close();
-
-            QFile model_file(iface_dir_name + "/device/device");
-            std::string model;
-            if (model_file.open(QIODevice::ReadOnly))
-            {
-                model = model_file.readLine().mid(2, 4).toStdString();
-                model_file.close();
-            }
-            description = vendor + ":" + model;
+            description += "Virtual interface";
         }
         else
         {
-            // If there is no vendor specified, this can be a USB interface.
-            description =
-                get_uevent_value((iface_dir_name + "/device/uevent").toStdString(), "DEVTYPE") == "usb_interface"
-                    ? "USB interface"
-                    : "Unknown";
+            description += "Virtual interface associated to " + associated_to;
         }
     }
 
@@ -333,16 +298,77 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
     return iface_info;
 }
 
+std::string get_ip_output(QStringList ip_args)
+{
+    auto ip_spec = mp::simple_process_spec("ip", ip_args);
+    auto ip_process = mp::platform::make_process(std::move(ip_spec));
+    auto ip_exit_state = ip_process->execute();
+
+    if (!ip_exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
+    }
+
+    return ip_process->read_all_standard_output().toStdString();
+}
+
+mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name)
+{
+    QString iface_name_qstr = QString::fromStdString(iface_name);
+    std::string type;
+    std::string description;
+    mp::optional<mp::IPAddress> ip_address;
+
+    QString ip_output =
+        QString::fromStdString(get_ip_output({"link", "show", "dev", QString::fromStdString(iface_name)}));
+
+    // Get the IP if the interface is up.
+    // TODO: use ifconfig if ip is not present in the system.
+    if (ip_output.contains("state UP"))
+    {
+        ip_address = get_ip_address(iface_name);
+    }
+
+    type = "unknown";
+    description = "Ethernet or wifi";
+
+    return mp::NetworkInterfaceInfo{iface_name, type, description, ip_address};
+}
+
+mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
+{
+    // The interface can be a hardware or virtual one. To distinguish between them, we see if a folder with the
+    // interface name exists in /sys/devices/net/virtual.
+    if (QFile::exists("/sys/devices/virtual/net/" + QString::fromStdString(iface_name)))
+    {
+        return get_virtual_interface_info(iface_name);
+    }
+    else
+    {
+        return get_physical_interface_info(iface_name);
+    }
+}
+
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
     auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
-    QDir iface_dir("/sys/class/net");
-    QFileInfoList all_files_in_dir = iface_dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs);
 
-    for (auto entry : all_files_in_dir)
+    // All interfaces will be returned by the command ip.
+    // TODO: However, ip is not present in all systems, on which we would need to run ifconfig.
+    QString ip_output = QString::fromStdString(get_ip_output({"address"}));
+
+    const auto pattern = QStringLiteral("^\\d+: (?<name>[A-Za-z0-9-_]+): .*$");
+    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+    QRegularExpressionMatchIterator match_it = regexp.globalMatch(ip_output);
+
+    while (match_it.hasNext())
     {
-        auto entry_str = entry.baseName().toStdString();
-        ifaces_info.emplace(std::make_pair(entry_str, get_network_interface_info(entry_str)));
+        auto match = match_it.next();
+        if (match.hasMatch())
+        {
+            std::string iface_name = match.captured("name").toStdString();
+            ifaces_info.emplace(std::make_pair(iface_name, get_network_interface_info(iface_name)));
+        }
     }
 
     return ifaces_info;
