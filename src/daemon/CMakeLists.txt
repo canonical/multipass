@@ -87,6 +87,6 @@ if(MSVC)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/multipassd.exe\"  \"\"  \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
     " COMPONENT multipassd)
 
-  file(GLOB SSL_DLLS "${CMAKE_SOURCE_DIR}/openssl-1.1.1c-win64/*.dll")
+  file(GLOB SSL_DLLS "${OPENSSL_INCLUDE_DIR}/../*.dll")
   install(FILES ${SSL_DLLS} DESTINATION bin COMPONENT multipassd)
 endif()

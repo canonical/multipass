@@ -7,8 +7,6 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
 - fmt: https://github.com/fmtlib/fmt
 - grpc: https://github.com/grpc/grpc
   - abseil-cpp: https://github.com/abseil/abseil-cpp
-  - boringssl: https://github.com/google/boringssl
-    - fiat-crypto https://github.com/mit-plv/fiat-crypto
   - c-ares: https://github.com/c-ares/c-ares
   - gflags: https://github.com/gflags/gflags
   - protobuf: https://github.com/google/protobuf
@@ -22,7 +20,7 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
 
 ### Additional binaries used:
 - qemu (qemu-img): https://chocolatey.org/packages/qemu-img
-- OpenSSL (libssl-1_1-x64.dll & libcrypto-1_1-x64.dll): http://wiki.overbyte.eu/arch/openssl-1.1.1c-win64.zip
+- OpenSSL (libssl-1_1-x64.dll & libcrypto-1_1-x64.dll): https://chocolatey.org/packages/openssl
 
 ### Licensing:
 Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
@@ -30,11 +28,6 @@ Below is a summary of the licensing used in the respective projects. See their s
 - fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich
 - grpc: Apache License 2.0
 - abseil-cpp: Apache License 2.0
-- boringssl:
-  - OpenSSL; Copyright (c) 1998-2019 The OpenSSL Project.
-  - SSLeay; Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
-  - ISC; Copyright (c) 2015, Google Inc.
-- fiat-crypto: MIT License; Copyright (c) 2015-2016 the fiat-crypto authors (see the AUTHORS file).
 - c-ares: MIT License; Copyright (c) 2007 - 2018, Daniel Stenberg with many contributors, see AUTHORS file.
 - gflags: BSD 3-Clause "New" or "Revised" License; Copyright (c) 2006, Google Inc.
 - protobuf: BSD 3-Clause "New" or "Revised" License; Copyright 2008 Google Inc.
@@ -59,7 +52,7 @@ Below is a summary of the licensing used in the respective projects. See their s
 - pcre: GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
 - qemu (qemu-img): GNU GPL Version 2 License; See AUTHORS file for Copyright information
 - OpenSSL (libssl-1_1-x64.dll & libcrypto-1_1-x64.dll):
-  - OpenSSL; Copyright (c) 1998-2019 The OpenSSL Project.
+  - OpenSSL; Copyright (c) 1998-2020 The OpenSSL Project.
   - SSLeay; Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
 
 ### Licenses:
