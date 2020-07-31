@@ -45,3 +45,13 @@ Version: cfc1499
 Version: 0.6.3
 [https://github.com/jbeder/yaml-cpp.git](https://github.com/jbeder/yaml-cpp.git)
 [https://github.com/jbeder/yaml-cpp/releases](https://github.com/jbeder/yaml-cpp/releases)
+
+### JsonCpp
+Version: 1.9.3
+<https://github.com/open-source-parsers/jsoncpp.git>
+<https://github.com/open-source-parsers/jsoncpp/releases>
+
+### HyperKit
+Version: v0.20200224
+<https://github.com/moby/hyperkit.git>
+<https://github.com/moby/hyperkit/releases>
