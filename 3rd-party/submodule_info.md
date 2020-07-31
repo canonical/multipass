@@ -17,12 +17,12 @@ Version: 0.9.3 (+[our patches](https://github.com/CanonicalLtd/libssh/compare/li
 [https://www.libssh.org/](https://www.libssh.org/)
 
 ### fmt
-Version: 6.1.2
+Version: 7.0.2
 [https://github.com/fmtlib/fmt.git](https://github.com/fmtlib/fmt.git)
 [https://github.com/fmtlib/fmt/releases](https://github.com/fmtlib/fmt/releases)
 
 ### QHotKey
-Version: 1.2.2 (+[upstream patches](https://github.com/Skycoder42/QHotkey/compare/1.2.2..96a0710))
+Version: 1.4.1
 [https://github.com/Skycoder42/QHotkey.git](https://github.com/Skycoder42/QHotkey.git)
 [https://github.com/Skycoder42/QHotkey/releases](https://github.com/Skycoder42/QHotkey/releases)
 
@@ -32,12 +32,12 @@ Version: 0.2.3 (+[upstream patches](https://github.com/ricab/scope_guard/compare
 [https://github.com/ricab/scope_guard/releases](https://github.com/ricab/scope_guard/releases)
 
 ### semver
-Version: 1.0.0 (+[our patches](https://github.com/CanonicalLtd/semver/compare/1.1.0..e7d4ab2))
+Version: 1.1.0 (+[our patches](https://github.com/CanonicalLtd/semver/compare/1.1.0..69e1b1e))
 [https://github.com/CanonicalLtd/semver.git](https://github.com/CanonicalLtd/semver.git)
 [https://github.com/zmarko/semver/releases](https://github.com/zmarko/semver/releases)
 
 ### xz-embedded
-Version: 79b68de
+Version: cfc1499
 [https://git.tukaani.org/xz-embedded.git](https://git.tukaani.org/xz-embedded.git)
 [https://tukaani.org/xz/embedded.html](https://tukaani.org/xz/embedded.html)
 
