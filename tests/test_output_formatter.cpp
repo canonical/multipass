@@ -108,6 +108,45 @@ auto add_petenv_to_reply(mp::ListReply& reply)
     instance->set_current_release("Not Available");
 }
 
+auto construct_one_short_line_list_networks_reply()
+{
+    mp::ListNetworksReply list_networks_reply;
+
+    // This reply will have strings shorter than the column headers, to test formatting.
+    auto list_networks_entry = list_networks_reply.add_interfaces();
+    list_networks_entry->set_name("en0");
+    list_networks_entry->set_type("eth");
+    list_networks_entry->set_description("Ether");
+
+    return list_networks_reply;
+}
+
+auto construct_one_long_line_list_networks_reply()
+{
+    mp::ListNetworksReply list_networks_reply;
+
+    // This reply will have strings shorter than the column headers, to test formatting.
+    auto list_networks_entry = list_networks_reply.add_interfaces();
+    list_networks_entry->set_name("enp3s0");
+    list_networks_entry->set_type("ethernet");
+    list_networks_entry->set_description("Amazingly fast and robust ethernet adapter");
+
+    return list_networks_reply;
+}
+
+auto construct_multiple_lines_list_networks_reply()
+{
+    mp::ListNetworksReply list_networks_reply = construct_one_short_line_list_networks_reply();
+
+    // This reply will have strings shorter than the column headers, to test formatting.
+    auto list_networks_entry = list_networks_reply.add_interfaces();
+    list_networks_entry->set_name("wlx0123456789ab");
+    list_networks_entry->set_type("wifi");
+    list_networks_entry->set_description("Wireless");
+
+    return list_networks_reply;
+}
+
 auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
@@ -326,10 +365,16 @@ const mp::TableFormatter table_formatter;
 const mp::JsonFormatter json_formatter;
 const mp::CSVFormatter csv_formatter;
 const mp::YamlFormatter yaml_formatter;
+
 const auto empty_list_reply = mp::ListReply();
 const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
 const auto unsorted_list_reply = construct_unsorted_list_reply();
+
+const auto empty_list_networks_reply = mp::ListNetworksReply();
+const auto one_short_line_list_networks_reply = construct_one_short_line_list_networks_reply();
+const auto one_long_line_list_networks_reply = construct_one_long_line_list_networks_reply();
+const auto multiple_lines_list_networks_reply = construct_multiple_lines_list_networks_reply();
 
 const auto empty_info_reply = mp::InfoReply();
 const auto single_instance_info_reply = construct_single_instance_info_reply();
@@ -355,6 +400,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
      "trusty-190611-1542      Running           --               Ubuntu N/A\n",
      "table_list_unsorted"},
+
     {&table_formatter, &empty_info_reply, "\n", "table_info_empty"},
     {&table_formatter, &single_instance_info_reply,
      "Name:           foo\n"
@@ -393,6 +439,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Disk usage:     --\n"
      "Memory usage:   --\n",
      "table_info_multiple"},
+
     {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release\n", "csv_list_empty"},
     {&csv_formatter, &single_instance_list_reply,
      "Name,State,IPv4,IPv6,Release\n"
@@ -410,6 +457,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1539,Suspended,,,N/A\n"
      "trusty-190611-1542,Running,,,N/A\n",
      "csv_list_unsorted"},
+
     {&csv_formatter, &empty_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
      "usage,Memory total,Mounts\n",
@@ -429,6 +477,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "source;\nbombastic,Stopped,,,,"
      "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n",
      "csv_info_multiple"},
+
     {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
     {&yaml_formatter, &single_instance_list_reply,
      "foo:\n"
@@ -472,6 +521,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "    release: N/A\n",
      "yaml_list_unsorted"},
     {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
+
     {&yaml_formatter, &single_instance_info_reply,
      "errors:\n"
      "  - ~\n"
@@ -712,7 +762,102 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "        }\n"
      "    }\n"
      "}\n",
-     "json_info_multiple"}};
+     "json_info_multiple"},
+
+    {&table_formatter, &empty_list_networks_reply, "No network interfaces found.\n", "table_list_networks_empty"},
+    {&table_formatter, &one_short_line_list_networks_reply,
+     "Name Type Description\n"
+     "en0  eth  Ether\n",
+     "table_list_networks_one_short_line"},
+    {&table_formatter, &one_long_line_list_networks_reply,
+     "Name   Type     Description\n"
+     "enp3s0 ethernet Amazingly fast and robust ethernet adapter\n",
+     "table_list_networks_one_long_line"},
+    {&table_formatter, &multiple_lines_list_networks_reply,
+     "Name            Type Description\n"
+     "en0             eth  Ether\n"
+     "wlx0123456789ab wifi Wireless\n",
+     "table_list_networks_multiple_lines"},
+
+    {&csv_formatter, &empty_list_networks_reply, "Name,Type,Description\n", "csv_list_networks_empty"},
+    {&csv_formatter, &one_short_line_list_networks_reply,
+     "Name,Type,Description\n"
+     "en0,eth,\"Ether\"\n",
+     "csv_list_networks_one_short_line"},
+    {&csv_formatter, &one_long_line_list_networks_reply,
+     "Name,Type,Description\n"
+     "enp3s0,ethernet,\"Amazingly fast and robust ethernet adapter\"\n",
+     "csv_list_networks_one_long_line"},
+    {&csv_formatter, &multiple_lines_list_networks_reply,
+     "Name,Type,Description\n"
+     "en0,eth,\"Ether\"\n"
+     "wlx0123456789ab,wifi,\"Wireless\"\n",
+     "csv_list_networks_multiple_lines"},
+
+    {&yaml_formatter, &empty_list_networks_reply, "\n", "yaml_list_networks_empty"},
+    {&yaml_formatter, &one_short_line_list_networks_reply,
+     "en0:\n"
+     "  - type: eth\n"
+     "    description: Ether\n",
+     "yaml_list_networks_one_short_line"},
+    {&yaml_formatter, &one_long_line_list_networks_reply,
+     "enp3s0:\n"
+     "  - type: ethernet\n"
+     "    description: Amazingly fast and robust ethernet adapter\n",
+     "yaml_list_networks_one_long_line"},
+    {&yaml_formatter, &multiple_lines_list_networks_reply,
+     "en0:\n"
+     "  - type: eth\n"
+     "    description: Ether\n"
+     "wlx0123456789ab:\n"
+     "  - type: wifi\n"
+     "    description: Wireless\n",
+     "yaml_list_networks_multiple_lines"},
+
+    {&json_formatter, &empty_list_networks_reply,
+     "{\n"
+     "    \"list\": [\n"
+     "    ]\n"
+     "}\n",
+     "json_list_networks_empty"},
+    {&json_formatter, &one_short_line_list_networks_reply,
+     "{\n"
+     "    \"list\": [\n"
+     "        {\n"
+     "            \"description\": \"Ether\",\n"
+     "            \"name\": \"en0\",\n"
+     "            \"type\": \"eth\"\n"
+     "        }\n"
+     "    ]\n"
+     "}\n",
+     "json_list_networks_one_short_line"},
+    {&json_formatter, &one_long_line_list_networks_reply,
+     "{\n"
+     "    \"list\": [\n"
+     "        {\n"
+     "            \"description\": \"Amazingly fast and robust ethernet adapter\",\n"
+     "            \"name\": \"enp3s0\",\n"
+     "            \"type\": \"ethernet\"\n"
+     "        }\n"
+     "    ]\n"
+     "}\n",
+     "json_list_networks_one_long_line"},
+    {&json_formatter, &multiple_lines_list_networks_reply,
+     "{\n"
+     "    \"list\": [\n"
+     "        {\n"
+     "            \"description\": \"Ether\",\n"
+     "            \"name\": \"en0\",\n"
+     "            \"type\": \"eth\"\n"
+     "        },\n"
+     "        {\n"
+     "            \"description\": \"Wireless\",\n"
+     "            \"name\": \"wlx0123456789ab\",\n"
+     "            \"type\": \"wifi\"\n"
+     "        }\n"
+     "    ]\n"
+     "}\n",
+     "json_list_networks_multiple_lines"}};
 
 const auto empty_find_reply = mp::FindReply();
 const auto find_one_reply = construct_find_one_reply();
@@ -896,6 +1041,8 @@ TEST_P(FormatterSuite, properly_formats_output)
     std::string output;
 
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
+        output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::ListNetworksReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
