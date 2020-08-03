@@ -23,6 +23,7 @@
 #include "mock_lxd_server_responses.h"
 #include "mock_network_access_manager.h"
 #include "tests/extra_assertions.h"
+#include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_status_monitor.h"
@@ -388,6 +389,96 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
     }
 
     EXPECT_TRUE(vm_shutdown);
+    EXPECT_TRUE(stop_requested);
+}
+
+TEST_F(LXDBackend, does_not_call_stop_when_snap_refresh_is_detected)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    bool stop_requested{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&stop_requested](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
+            {
+                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                }
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("stop"))
+            {
+                stop_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    QTemporaryDir common_dir;
+    mpt::SetEnvScope env("SNAP_COMMON", common_dir.path().toUtf8());
+    mpt::SetEnvScope env2("SNAP_NAME", "multipass");
+    QFile refresh_file{common_dir.path() + "/snap_refresh"};
+    refresh_file.open(QIODevice::WriteOnly);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(0);
+
+    // create in its own scope so the dtor is called
+    {
+        mp::LXDVirtualMachine machine{default_description, mock_monitor, mock_network_access_manager.get(), base_url};
+    }
+
+    EXPECT_FALSE(stop_requested);
+}
+
+TEST_F(LXDBackend, calls_stop_when_snap_refresh_does_not_exist)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    bool stop_requested{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&stop_requested](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
+            {
+                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                }
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("stop"))
+            {
+                stop_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    QTemporaryDir common_dir;
+    mpt::SetEnvScope env("SNAP_COMMON", common_dir.path().toUtf8());
+    mpt::SetEnvScope env2("SNAP_NAME", "multipass");
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(0);
+
+    // create in its own scope so the dtor is called
+    {
+        mp::LXDVirtualMachine machine{default_description, mock_monitor, mock_network_access_manager.get(), base_url};
+    }
+
     EXPECT_TRUE(stop_requested);
 }
 
