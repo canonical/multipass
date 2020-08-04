@@ -23,6 +23,8 @@
 #include <multipass/process/process_spec.h>
 #include <multipass/singleton.h>
 
+#define MP_PROCFACTORY multipass::ProcessFactory::instance()
+
 namespace multipass
 {
 class Process;

@@ -145,12 +145,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
 {
-    return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
+    return MP_PROCFACTORY.create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_process(std::unique_ptr<mp::ProcessSpec>&& process_spec)
 {
-    return mp::ProcessFactory::instance().create_process(std::move(process_spec));
+    return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
