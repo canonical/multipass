@@ -40,7 +40,7 @@ auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, 
 {
     auto process_spec =
         std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, pid_file_path, subnet, conf_file_path);
-    return mp::ProcessFactory::instance().create_process(std::move(process_spec));
+    return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
 
 auto get_dnsmasq_pid(const mp::Path& pid_file_path)
