@@ -21,12 +21,14 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/optional.h>
+#include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -180,7 +182,17 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
     update_shutdown_status = false;
 
     if (state == State::running)
-        stop();
+    {
+        try
+        {
+            if (!QFileInfo::exists(mp::utils::snap_common_dir() + "/snap_refresh"))
+                stop();
+        }
+        catch (const mp::SnapEnvironmentException&)
+        {
+            stop();
+        }
+    }
 }
 
 void mp::LXDVirtualMachine::start()
