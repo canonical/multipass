@@ -17,8 +17,6 @@
 
 #include "local_socket_reply.h"
 
-#include <multipass/version.h>
-
 #include <QRegularExpression>
 
 namespace mp = multipass;
@@ -141,28 +139,51 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     // Build the HTTP method part
     http_data += op;
     http_data += ' ';
-    http_data += request.url().toString();
+    http_data += request.url().path();
+
+    if (request.url().hasQuery())
+    {
+        http_data += "?";
+        http_data += request.url().query();
+    }
+
     http_data += " HTTP/1.1\r\n";
 
     // Build the HTTP Host header
-    // Host can be anything, so we'll use 'multipass'
-    http_data += "Host: multipass\r\n";
+    auto host = request.url().host();
+    if (!host.isEmpty())
+    {
+        http_data += "Host: ";
+        http_data += host;
+        http_data += "\r\n";
+    }
 
     // Build the HTTP User-Agent header
-    http_data += "User-Agent: Multipass/";
-    http_data += mp::version_string;
-    http_data += "\r\n";
+    auto user_agent = request.header(QNetworkRequest::UserAgentHeader).toByteArray();
+    if (!user_agent.isEmpty())
+    {
+        http_data += "User-Agent: ";
+        http_data += user_agent;
+        http_data += "\r\n";
+    }
 
     if (op == "POST" || op == "PUT")
     {
-        http_data += "Content-Type: application/x-www-form-urlencoded\r\n";
+        http_data += "Content-Type: ";
+        http_data += request.header(QNetworkRequest::ContentTypeHeader).toByteArray();
+        http_data += "\r\n";
 
         if (outgoingData)
         {
             outgoingData->open(QIODevice::ReadOnly);
 
-            http_data += "Content-Length: ";
-            http_data += QByteArray::number(outgoingData->size());
+            auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
+            if (!content_length.isEmpty())
+            {
+                http_data += "Content-Length: ";
+                http_data += content_length;
+            }
+
             http_data += "\r\n\r\n";
             http_data += outgoingData->readAll();
         }

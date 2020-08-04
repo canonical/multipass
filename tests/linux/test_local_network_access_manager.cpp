@@ -49,6 +49,13 @@ struct LocalNetworkAccessManager : public Test
     auto handle_request(const QUrl& url, const QByteArray& verb, const QByteArray& data = QByteArray())
     {
         QNetworkRequest request{url};
+        request.setHeader(QNetworkRequest::UserAgentHeader, "Test");
+
+        if (!data.isEmpty())
+        {
+            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+            request.setHeader(QNetworkRequest::ContentLengthHeader, data.size());
+        }
 
         std::unique_ptr<QNetworkReply> reply{manager.sendCustomRequest(request, verb, data)};
 
@@ -152,19 +159,14 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
 
 TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
 {
-    QByteArray expected_data;
-    expected_data += "POST /1.0 HTTP/1.1\r\n"
-                     "Host: multipass\r\n"
-                     "User-Agent: Multipass/";
-    expected_data += mp::version_string;
-    expected_data += "\r\n"
-                     "Content-Type: application/x-www-form-urlencoded\r\n"
-                     "Content-Length: 11\r\n\r\n"
-                     "Hello World\r\n";
+    QByteArray expected_data{"POST /1.0 HTTP/1.1\r\n"
+                             "Host: test\r\n"
+                             "User-Agent: Test\r\n"
+                             "Content-Type: application/x-www-form-urlencoded\r\n"
+                             "Content-Length: 11\r\n\r\n"
+                             "Hello World\r\n"};
 
-    QByteArray http_response;
-    http_response += "HTTP/1.1 200 OK\r\n";
-    http_response += "\r\n";
+    QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
 
     auto server_response = [&http_response, &expected_data](auto data) {
         EXPECT_EQ(data, expected_data);
@@ -173,6 +175,7 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
 
     test_server.local_socket_server_handler(server_response);
 
+    base_url.setHost("test");
     handle_request(base_url, "POST", "Hello World");
 }
 
