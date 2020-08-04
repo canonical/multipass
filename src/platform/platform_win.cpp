@@ -113,9 +113,8 @@ QString locate_profiles_path()
     // The profiles file is expected in
     // $env:LocalAppData\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
     // where $env:LocalAppData is normally C:\Users\<USER>\AppData\Local
-    return mp::StandardPaths::instance().locate(
-        mp::StandardPaths::GenericConfigLocation,
-        "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
+    return MP_STDPATHS.locate(mp::StandardPaths::GenericConfigLocation,
+                              "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
 }
 
 struct WintermSyncException : public std::runtime_error
