@@ -347,7 +347,7 @@ QString mp::utils::get_driver_str()
                  fmt::format("{} is now ignored, please use `multipass set {}` instead.", mp::driver_env_var,
                              mp::driver_key));
     }
-    return mp::Settings::instance().get(mp::driver_key);
+    return MP_SETTINGS.get(mp::driver_key);
 }
 
 QString mp::utils::make_uuid()

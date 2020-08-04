@@ -41,7 +41,7 @@ constexpr auto unknown_error_fmt = "Instance '{}' failed in an unexpected way, c
 
 mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 {
-    petenv_name = Settings::instance().get(petenv_key);
+    petenv_name = MP_SETTINGS.get(petenv_key);
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {

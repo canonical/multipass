@@ -35,7 +35,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     {
         try
         {
-            if (auto val = Settings::instance().get(key); val.isEmpty() && !raw)
+            if (auto val = MP_SETTINGS.get(key); val.isEmpty() && !raw)
                 cout << "<empty>";
             else
                 cout << qUtf8Printable(val);

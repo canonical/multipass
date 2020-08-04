@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ QString cmd::Restart::description() const
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 {
-    const auto petenv_name = Settings::instance().get(petenv_key);
+    const auto petenv_name = MP_SETTINGS.get(petenv_key);
     parser->addPositionalArgument(
         "name",
         QString{"Names of instances to restart. If omitted, and without the --all option, '%1' will be assumed."}.arg(
