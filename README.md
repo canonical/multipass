@@ -9,12 +9,20 @@ Multipass will fetch images for you and keep them up to date.
 Since it supports metadata for cloud-init, you can simulate a small cloud
 deployment on your laptop or workstation.
 
+## Project Status
+
+| Service | Status |
+|-----|:---|
+| [Travis](https://travis-ci.org) |  [![Build Status][travis-image]][travis-url]  |
+| [Snap](https://snapcraft.io/) |  [![Build Status][snap-image]][snap-url]  |
+| [Codecov](https://codecov.io/) |  [![Codecov Status][codecov-image]][codecov-url]  |
+
 # Install Multipass
 
 On Linux it's available as a snap:
 
 ```
-sudo snap install multipass --classic
+sudo snap install multipass
 ```
 
 For macOS, you can download the installers [from GitHub](https://github.com/canonical/multipass/releases) or [use Homebrew](https://github.com/Homebrew/brew):
@@ -31,14 +39,13 @@ On Windows, download the installer [from GitHub](https://github.com/canonical/mu
 ## Find available images
 ```
 $ multipass find
-Image                   Aliases           Version          Description
-core                    core16            20190424         Ubuntu Core 16
-core18                                    20190213         Ubuntu Core 18
-16.04                   xenial            20190628         Ubuntu 16.04 LTS
-18.04                   bionic,lts        20190627.1       Ubuntu 18.04 LTS
-18.10                   cosmic            20190628         Ubuntu 18.10
-19.04                   disco             20190628         Ubuntu 19.04
-daily:19.10             devel,eoan        20190623         Ubuntu 19.10
+Image                       Aliases           Version          Description
+core                        core16            20200213         Ubuntu Core 16
+core18                                        20200210         Ubuntu Core 18
+16.04                       xenial            20200721         Ubuntu 16.04 LTS
+18.04                       bionic,lts        20200717         Ubuntu 18.04 LTS
+20.04                       focal             20200720         Ubuntu 20.04 LTS
+daily:20.10                 devel,groovy      20200721         Ubuntu 20.10
 ```
 
 ## Launch a fresh instance of the current Ubuntu LTS
@@ -187,3 +194,10 @@ Finally, use multipass's clients:
 # More information
 
 See [the Multipass documentation](https://discourse.ubuntu.com/c/multipass/doc).
+
+[travis-image]: https://travis-ci.org/canonical/multipass.svg?branch=master
+[travis-url]: https://travis-ci.org/canonical/multipass
+[snap-image]: https://build.snapcraft.io/badge/CanonicalLtd/multipass.svg
+[snap-url]: https://build.snapcraft.io/user/CanonicalLtd/multipass
+[codecov-image]: https://codecov.io/gh/canonical/multipass/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/canonical/multipass
