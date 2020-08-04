@@ -51,7 +51,7 @@ namespace
 {
 auto petenv_name()
 {
-    return mp::Settings::instance().get(mp::petenv_key).toStdString();
+    return MP_SETTINGS.get(mp::petenv_key).toStdString();
 }
 
 struct MockDaemonRpc : public mp::DaemonRpc
@@ -1711,7 +1711,7 @@ TEST_F(Client, set_cmd_rejects_bad_driver)
 
 TEST_F(Client, set_cmd_falls_through_instances_when_no_driver_change)
 {
-    const auto default_driver = mp::Settings::instance().get(mp::driver_key);
+    const auto default_driver = MP_SETTINGS.get(mp::driver_key);
     EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, default_driver)}), Eq(mp::ReturnCode::Ok));
 }

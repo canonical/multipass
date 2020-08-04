@@ -50,7 +50,7 @@ const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
-    petenv_name = Settings::instance().get(petenv_key);
+    petenv_name = MP_SETTINGS.get(petenv_key);
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
     {
         return parser->returnCodeFrom(ret);

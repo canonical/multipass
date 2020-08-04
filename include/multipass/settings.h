@@ -28,6 +28,8 @@
 #include <mutex>
 #include <set>
 
+#define MP_SETTINGS multipass::Settings::instance()
+
 namespace multipass
 {
 class Settings : public Singleton<Settings>

@@ -51,7 +51,7 @@ int mp::ClientGui::run(const QStringList& arguments)
     parser.process(arguments);
 
     auto ret = ReturnCode::Ok;
-    if (!parser.isSet(autostart) || Settings::instance().get_as<bool>(autostart_key))
+    if (!parser.isSet(autostart) || MP_SETTINGS.get_as<bool>(autostart_key))
         ret = gui_cmd->run(&parser);
 
     return ret;

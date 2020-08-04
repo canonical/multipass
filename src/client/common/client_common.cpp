@@ -90,7 +90,7 @@ std::string mp::client::get_server_address()
 
 std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
 {
-    auto data_dir = StandardPaths::instance().writableLocation(StandardPaths::AppDataLocation);
+    auto data_dir = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
     auto client_cert_dir = mp::utils::make_dir(data_dir, "client-certificate");
     return std::make_unique<mp::SSLCertProvider>(client_cert_dir);
 }

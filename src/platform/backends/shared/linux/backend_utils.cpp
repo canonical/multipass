@@ -149,7 +149,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     const auto qcow2_path{image_path + ".qcow2"};
 
     auto qemuimg_info_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path});
-    auto qemuimg_info_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_info_spec));
+    auto qemuimg_info_process = MP_PROCFACTORY.create_process(std::move(qemuimg_info_spec));
 
     auto process_state = qemuimg_info_process->execute();
     if (!process_state.completed_successfully())
@@ -166,7 +166,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     {
         auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path});
-        auto qemuimg_convert_process = mp::ProcessFactory::instance().create_process(std::move(qemuimg_convert_spec));
+        auto qemuimg_convert_process = MP_PROCFACTORY.create_process(std::move(qemuimg_convert_spec));
         process_state = qemuimg_convert_process->execute(-1);
 
         if (!process_state.completed_successfully())

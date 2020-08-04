@@ -110,7 +110,7 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     create_menu();
     tray_icon.show();
 
-    QFile first_run_file(StandardPaths::instance().writableLocation(StandardPaths::AppDataLocation) + "/first_run");
+    QFile first_run_file(MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation) + "/first_run");
 
     if (!first_run_file.exists())
     {
@@ -127,7 +127,7 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
 
 void cmd::GuiCmd::update_hotkey()
 {
-    if (!hotkey.setShortcut(Settings::instance().get_as<QKeySequence>(hotkey_key), true) || !hotkey.isRegistered())
+    if (!hotkey.setShortcut(MP_SETTINGS.get_as<QKeySequence>(hotkey_key), true) || !hotkey.isRegistered())
     {
         cerr << "Failed to register hotkey.\n";
     }
@@ -141,7 +141,7 @@ void cmd::GuiCmd::create_actions()
     config_watcher.addPath(client_config_path);
     QObject::connect(&config_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString& path) {
         update_hotkey();
-        autostart_option.setChecked(Settings::instance().get_as<bool>(autostart_key));
+        autostart_option.setChecked(MP_SETTINGS.get_as<bool>(autostart_key));
 
         // Needed since the original watched file may be removed and opened as a new file
         if (!config_watcher.files().contains(path) && QFile::exists(path))
@@ -288,9 +288,9 @@ void cmd::GuiCmd::create_menu()
     about_menu.setTitle("About");
 
     autostart_option.setCheckable(true);
-    autostart_option.setChecked(Settings::instance().get_as<bool>(autostart_key));
+    autostart_option.setChecked(MP_SETTINGS.get_as<bool>(autostart_key));
     QObject::connect(&autostart_option, &QAction::toggled, this,
-                     [](bool checked) { Settings::instance().set(autostart_key, QVariant(checked).toString()); });
+                     [](bool checked) { MP_SETTINGS.set(autostart_key, QVariant(checked).toString()); });
 
     about_client_version.setEnabled(false);
     about_daemon_version.setEnabled(false);
@@ -381,7 +381,7 @@ void cmd::GuiCmd::create_menu_actions_for(const std::string& instance_name, cons
 
 void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrField<mp::ListVMInstance>& instances)
 {
-    auto petenv_name = Settings::instance().get(petenv_key).toStdString();
+    auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
     auto petenv_instance =
         std::find_if(instances.cbegin(), instances.cend(),
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
