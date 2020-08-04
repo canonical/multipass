@@ -110,7 +110,7 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     create_menu();
     tray_icon.show();
 
-    QFile first_run_file(StandardPaths::instance().writableLocation(StandardPaths::AppDataLocation) + "/first_run");
+    QFile first_run_file(MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation) + "/first_run");
 
     if (!first_run_file.exists())
     {
