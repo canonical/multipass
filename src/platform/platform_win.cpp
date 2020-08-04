@@ -274,7 +274,7 @@ void mp::platform::sync_winterm_profiles()
 {
     constexpr auto log_category = "winterm";
     const auto profiles_path = locate_profiles_path();
-    const auto winterm_setting = mp::Settings::instance().get(mp::winterm_key);
+    const auto winterm_setting = MP_SETTINGS.get(mp::winterm_key);
 
     try
     {
