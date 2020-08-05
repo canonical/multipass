@@ -105,9 +105,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     mpl::set_logger(multiplexing_logger);
 
     if (cache_directory.isEmpty())
-        cache_directory = StandardPaths::instance().writableLocation(StandardPaths::CacheLocation);
+        cache_directory = MP_STDPATHS.writableLocation(StandardPaths::CacheLocation);
     if (data_directory.isEmpty())
-        data_directory = StandardPaths::instance().writableLocation(StandardPaths::AppDataLocation);
+        data_directory = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (factory == nullptr)

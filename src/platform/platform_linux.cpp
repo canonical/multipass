@@ -74,7 +74,7 @@ QString mp::platform::autostart_test_data()
 
 void mp::platform::setup_gui_autostart_prerequisites()
 {
-    const auto config_dir = QDir{StandardPaths::instance().writableLocation(StandardPaths::GenericConfigLocation)};
+    const auto config_dir = QDir{MP_STDPATHS.writableLocation(StandardPaths::GenericConfigLocation)};
     const auto link_dir = QDir{config_dir.absoluteFilePath("autostart")};
     mu::link_autostart_file(link_dir, mp::client_name, autostart_filename);
 }
@@ -132,12 +132,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
 {
-    return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
+    return MP_PROCFACTORY.create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_process(std::unique_ptr<mp::ProcessSpec>&& process_spec)
 {
-    return mp::ProcessFactory::instance().create_process(std::move(process_spec));
+    return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
 
 mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()

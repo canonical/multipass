@@ -87,7 +87,7 @@ auto multipass_iptables_comment(const QString& bridge_name)
 
 void add_iptables_rule(const QString& table, const QString& chain, const QStringList& rule, bool append = false)
 {
-    auto process = mp::ProcessFactory::instance().create_process(
+    auto process = MP_PROCFACTORY.create_process(
         iptables, QStringList() << wait << dash_t << table << (append ? append_rule : insert_rule) << chain << rule);
 
     auto exit_state = process->execute();
@@ -101,8 +101,8 @@ void delete_iptables_rule(const QString& table, const QStringList& chain_and_rul
 {
     auto args = QStringList() << iptables << wait << dash_t << table << delete_rule << chain_and_rule;
 
-    auto process = mp::ProcessFactory::instance().create_process(
-        QStringLiteral("sh"), QStringList() << QStringLiteral("-c") << args.join(" "));
+    auto process =
+        MP_PROCFACTORY.create_process(QStringLiteral("sh"), QStringList() << QStringLiteral("-c") << args.join(" "));
 
     auto exit_state = process->execute();
 
@@ -113,8 +113,7 @@ void delete_iptables_rule(const QString& table, const QStringList& chain_and_rul
 
 auto get_iptables_rules(const QString& table)
 {
-    auto process =
-        mp::ProcessFactory::instance().create_process(iptables, QStringList() << wait << dash_t << table << list_rules);
+    auto process = MP_PROCFACTORY.create_process(iptables, QStringList() << wait << dash_t << table << list_rules);
 
     auto exit_state = process->execute();
 

@@ -113,9 +113,8 @@ QString locate_profiles_path()
     // The profiles file is expected in
     // $env:LocalAppData\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
     // where $env:LocalAppData is normally C:\Users\<USER>\AppData\Local
-    return mp::StandardPaths::instance().locate(
-        mp::StandardPaths::GenericConfigLocation,
-        "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
+    return MP_STDPATHS.locate(mp::StandardPaths::GenericConfigLocation,
+                              "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
 }
 
 struct WintermSyncException : public std::runtime_error
@@ -274,7 +273,7 @@ void mp::platform::sync_winterm_profiles()
 {
     constexpr auto log_category = "winterm";
     const auto profiles_path = locate_profiles_path();
-    const auto winterm_setting = mp::Settings::instance().get(mp::winterm_key);
+    const auto winterm_setting = MP_SETTINGS.get(mp::winterm_key);
 
     try
     {
@@ -365,12 +364,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
 {
-    return mp::ProcessFactory::instance().create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
+    return MP_PROCFACTORY.create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_process(std::unique_ptr<mp::ProcessSpec>&& process_spec)
 {
-    return mp::ProcessFactory::instance().create_process(std::move(process_spec));
+    return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)

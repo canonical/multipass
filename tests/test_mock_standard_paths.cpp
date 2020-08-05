@@ -47,7 +47,7 @@ TEST(StandardPaths, provides_regular_locate_by_default)
     // Confirm the subdir is properly located
     const auto proof = QStandardPaths::locate(location_type, find, locate_options);
     ASSERT_TRUE(proof.endsWith(find));
-    ASSERT_EQ(mp::StandardPaths::instance().locate(location_type, find, locate_options), proof);
+    ASSERT_EQ(MP_STDPATHS.locate(location_type, find, locate_options), proof);
 }
 
 TEST(StandardPaths, can_have_locate_mocked)
@@ -59,13 +59,13 @@ TEST(StandardPaths, can_have_locate_mocked)
     auto& mock = mpt::MockStandardPaths::mock_instance();
 
     EXPECT_CALL(mock, locate(location_type, find, locate_options)).WillOnce(Return(proof));
-    ASSERT_EQ(mp::StandardPaths::instance().locate(location_type, find, locate_options), proof);
+    ASSERT_EQ(MP_STDPATHS.locate(location_type, find, locate_options), proof);
 }
 
 TEST(StandardPaths, provides_regular_standard_locations_by_default)
 {
     const auto& test = mp::StandardPaths::MusicLocation;
-    ASSERT_EQ(mp::StandardPaths::instance().standardLocations(test), QStandardPaths::standardLocations(test));
+    ASSERT_EQ(MP_STDPATHS.standardLocations(test), QStandardPaths::standardLocations(test));
 }
 
 TEST(StandardPaths, can_have_standard_locations_mocked)
@@ -75,13 +75,13 @@ TEST(StandardPaths, can_have_standard_locations_mocked)
     auto& mock = mpt::MockStandardPaths::mock_instance();
 
     EXPECT_CALL(mock, standardLocations(test)).WillOnce(Return(proof));
-    ASSERT_EQ(mp::StandardPaths::instance().standardLocations(test), proof);
+    ASSERT_EQ(MP_STDPATHS.standardLocations(test), proof);
 }
 
 TEST(StandardPaths, provides_regular_writable_location_by_default)
 {
     const auto test = mp::StandardPaths::MoviesLocation;
-    ASSERT_EQ(mp::StandardPaths::instance().writableLocation(test), QStandardPaths::writableLocation(test));
+    ASSERT_EQ(MP_STDPATHS.writableLocation(test), QStandardPaths::writableLocation(test));
 }
 
 TEST(StandardPaths, can_have_writable_location_mocked)
@@ -91,6 +91,6 @@ TEST(StandardPaths, can_have_writable_location_mocked)
     auto& mock = mpt::MockStandardPaths::mock_instance();
 
     EXPECT_CALL(mock, writableLocation(test)).WillOnce(Return(proof));
-    ASSERT_EQ(mp::StandardPaths::instance().writableLocation(test), proof);
+    ASSERT_EQ(MP_STDPATHS.writableLocation(test), proof);
 }
 } // namespace

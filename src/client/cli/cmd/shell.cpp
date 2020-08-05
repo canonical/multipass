@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ using RpcMethod = mp::Rpc::Stub;
 
 mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 {
-    petenv_name = Settings::instance().get(petenv_key);
+    petenv_name = MP_SETTINGS.get(petenv_key);
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {

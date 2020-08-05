@@ -25,6 +25,8 @@
 
 #include <windows.h>
 
+#define MP_PROCFACTORY multipass::ProcessFactory::instance()
+
 namespace multipass
 {
 class Process;
