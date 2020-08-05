@@ -22,6 +22,8 @@
 
 #include <QStandardPaths>
 
+#define MP_STDPATHS multipass::StandardPaths::instance()
+
 namespace multipass
 {
 class StandardPaths : public Singleton<StandardPaths>

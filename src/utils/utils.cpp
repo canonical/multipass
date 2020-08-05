@@ -59,13 +59,12 @@ auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
 QString find_autostart_target(const QString& subdir, const QString& autostart_filename)
 {
     const auto target_subpath = QDir{subdir}.filePath(autostart_filename);
-    const auto target_path =
-        mp::StandardPaths::instance().locate(mp::StandardPaths::GenericDataLocation, target_subpath);
+    const auto target_path = MP_STDPATHS.locate(mp::StandardPaths::GenericDataLocation, target_subpath);
 
     if (target_path.isEmpty())
     {
         QString detail{};
-        for (const auto& path : mp::StandardPaths::instance().standardLocations(mp::StandardPaths::GenericDataLocation))
+        for (const auto& path : MP_STDPATHS.standardLocations(mp::StandardPaths::GenericDataLocation))
             detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
 
         throw mp::AutostartSetupException{fmt::format("could not locate the autostart file '{}'", autostart_filename),
@@ -347,7 +346,7 @@ QString mp::utils::get_driver_str()
                  fmt::format("{} is now ignored, please use `multipass set {}` instead.", mp::driver_env_var,
                              mp::driver_key));
     }
-    return mp::Settings::instance().get(mp::driver_key);
+    return MP_SETTINGS.get(mp::driver_key);
 }
 
 QString mp::utils::make_uuid()

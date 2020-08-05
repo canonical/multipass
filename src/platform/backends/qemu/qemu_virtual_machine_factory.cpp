@@ -176,8 +176,7 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()
 {
-    auto process =
-        mp::ProcessFactory::instance().create_process("qemu-system-" + mp::backend::cpu_arch(), {"--version"});
+    auto process = MP_PROCFACTORY.create_process("qemu-system-" + mp::backend::cpu_arch(), {"--version"});
 
     auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
     auto exit_state = process->execute();

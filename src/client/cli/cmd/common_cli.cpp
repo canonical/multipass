@@ -156,7 +156,7 @@ auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
 
 QString multipass::cmd::describe_settings_keys()
 {
-    const auto keys = Settings::instance().keys();
+    const auto keys = MP_SETTINGS.keys();
     return std::accumulate(cbegin(keys), cend(keys), QStringLiteral("Keys:"),
                            [](const auto& a, const auto& b) { return a + "\n  " + b; });
 }

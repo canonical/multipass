@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ namespace
 {
 auto petenv_name()
 {
-    return mp::Settings::instance().get(mp::petenv_key).toStdString();
+    return MP_SETTINGS.get(mp::petenv_key).toStdString();
 }
 
 auto construct_single_instance_list_reply()

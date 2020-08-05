@@ -82,7 +82,7 @@ struct ApparmoredProcessTest : public ApparmoredProcessNoFactoryTest
 {
     using ApparmoredProcessNoFactoryTest::ApparmoredProcessNoFactoryTest; // ctor
 
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+    const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
 };
 
 TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
@@ -106,7 +106,7 @@ TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
     mpt::SetEnvScope env_scope("SNAP_COMMON", cache_dir.path().toUtf8());
     mpt::SetEnvScope env_scope2("SNAP_NAME", snap_name);
 
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+    const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
 
     // apparmor profile should have been installed
@@ -122,7 +122,7 @@ TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
 TEST_F(ApparmoredProcessNoFactoryTest, no_output_file_when_no_apparmor)
 {
     REPLACE(aa_is_enabled, [] { return 0; });
-    const mp::ProcessFactory& process_factory{mp::ProcessFactory::instance()};
+    const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
 
     EXPECT_FALSE(QFile::exists(apparmor_output_file));

@@ -35,7 +35,7 @@ namespace
 TEST(Settings, provides_get_default_as_get_by_default)
 {
     const auto& key = mp::driver_key;
-    ASSERT_EQ(mp::Settings::instance().get(key), mpt::MockSettings::mock_instance().get_default(key));
+    ASSERT_EQ(MP_SETTINGS.get(key), mpt::MockSettings::mock_instance().get_default(key));
 }
 
 TEST(Settings, can_have_get_mocked)
@@ -44,7 +44,7 @@ TEST(Settings, can_have_get_mocked)
     auto& mock = mpt::MockSettings::mock_instance();
 
     EXPECT_CALL(mock, get(test)).WillOnce(Return(proof));
-    ASSERT_EQ(mp::Settings::instance().get(test), proof);
+    ASSERT_EQ(MP_SETTINGS.get(test), proof);
 }
 
 } // namespace
