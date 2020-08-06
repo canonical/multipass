@@ -55,9 +55,11 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
     });
 
     QObject::connect(power_shell, &mp::Process::finished, [&name](mp::ProcessState state) {
-        mpl::log(mpl::Level::debug, name,
-                 fmt::format("powershell finished with exit code {}",
-                             *state.exit_code)); // TODO@ricab adapt to ProcessState interface
+        if (state.completed_successfully())
+            mpl::log(mpl::Level::debug, name, "powershell finished successfully");
+        else
+            mpl::log(mpl::Level::warning, name,
+                     fmt::format("powershell finished abnormally: {}", state.failure_message()));
     });
 }
 
