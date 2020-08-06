@@ -19,13 +19,14 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/utils.h>
 #include <shared/win/process_factory.h>
 
-#include <QMetaEnum>
 #include <QProcess>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -45,13 +46,12 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
                      [&name]() { mpl::log(mpl::Level::debug, name, "powershell started"); });
 
     QObject::connect(power_shell, &mp::Process::state_changed, [&name](QProcess::ProcessState newState) {
-        auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
-        mpl::log(mpl::Level::debug, name, fmt::format("powershell state changed to {}", meta.valueToKey(newState)));
+        mpl::log(mpl::Level::debug, name,
+                 fmt::format("powershell state changed to {}", mpu::qenum_to_qstring(newState)));
     });
 
     QObject::connect(power_shell, &mp::Process::error_occurred, [&name](QProcess::ProcessError error) {
-        auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
-        mpl::log(mpl::Level::debug, name, fmt::format("powershell error occurred {}", meta.valueToKey(error)));
+        mpl::log(mpl::Level::debug, name, fmt::format("powershell error occurred {}", mpu::qenum_to_qstring(error)));
     });
 
     QObject::connect(power_shell, &mp::Process::finished, [&name](mp::ProcessState state) {
