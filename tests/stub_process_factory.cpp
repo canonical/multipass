@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,7 +71,13 @@ public:
     {
         return true;
     }
+
     bool wait_for_finished(int msecs = 30000) override
+    {
+        return true;
+    }
+
+    bool wait_for_ready_read(int msecs = 30000) override
     {
         return true;
     }
@@ -84,6 +90,11 @@ public:
     mp::ProcessState process_state() const override
     {
         return mp::ProcessState();
+    }
+
+    QString error_string() const override
+    {
+        return {};
     }
 
     QByteArray read_all_standard_output() override
@@ -101,6 +112,10 @@ public:
     }
 
     void close_write_channel() override
+    {
+    }
+
+    void set_process_channel_mode(QProcess::ProcessChannelMode) override
     {
     }
 

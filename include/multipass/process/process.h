@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,15 +90,18 @@ public:
 
     virtual bool wait_for_started(int msecs = 30000) = 0;
     virtual bool wait_for_finished(int msecs = 30000) = 0;
+    virtual bool wait_for_ready_read(int msecs = 30000) = 0;
 
     virtual bool running() const = 0;
     virtual ProcessState process_state() const = 0;
+    virtual QString error_string() const = 0;
 
     virtual QByteArray read_all_standard_output() = 0;
     virtual QByteArray read_all_standard_error() = 0;
 
     virtual qint64 write(const QByteArray& data) = 0;
     virtual void close_write_channel() = 0;
+    virtual void set_process_channel_mode(QProcess::ProcessChannelMode mode) = 0;
 
     virtual ProcessState execute(const int timeout = 30000) = 0;
 
