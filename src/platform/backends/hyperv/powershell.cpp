@@ -37,12 +37,10 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
     power_shell->set_process_channel_mode(QProcess::MergedChannels);
 
-    mpl::log(mpl::Level::debug, name,
-             fmt::format("powershell arguments '{}'", power_shell->arguments().join(", ").toStdString()));
+    mpl::log(mpl::Level::debug, name, fmt::format("powershell arguments '{}'", power_shell->arguments().join(", ")));
 
-    mpl::log(mpl::Level::debug, name,
-             fmt::format("powershell working dir '{}'", power_shell->working_directory().toStdString()));
-    mpl::log(mpl::Level::debug, name, fmt::format("powershell program '{}'", power_shell->program().toStdString()));
+    mpl::log(mpl::Level::debug, name, fmt::format("powershell working dir '{}'", power_shell->working_directory()));
+    mpl::log(mpl::Level::debug, name, fmt::format("powershell program '{}'", power_shell->program()));
     QObject::connect(power_shell, &mp::Process::started,
                      [&name]() { mpl::log(mpl::Level::debug, name, "powershell started"); });
 
@@ -84,8 +82,7 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
     QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(unique_echo_string);
     bool cmdlet_code{false};
 
-    mpl::log(mpl::Level::trace, name,
-             fmt::format("cmdlet: '{}'", args.join(" ").toStdString()));
+    mpl::log(mpl::Level::trace, name, fmt::format("cmdlet: '{}'", args.join(" ")));
     powershell_proc->write(args.join(" ").toUtf8() + "\n"); // TODO@ricab check return
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
