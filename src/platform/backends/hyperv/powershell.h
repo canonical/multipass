@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,12 @@
 #ifndef MULTIPASS_POWERSHELL_H
 #define MULTIPASS_POWERSHELL_H
 
-#include <string>
+#include <multipass/process/process.h>
 
-#include <QProcess>
 #include <QStringList>
+
+#include <memory>
+#include <string>
 
 namespace multipass
 {
@@ -36,7 +38,7 @@ public:
     static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
 private:
-    QProcess powershell_proc;
+    std::unique_ptr<Process> powershell_proc;
     const std::string name;
 };
 } // namespace multipass
