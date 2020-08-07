@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+touch $SNAP_COMMON/snap_refresh

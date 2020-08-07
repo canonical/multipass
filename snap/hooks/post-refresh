@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+rm -f $SNAP_COMMON/snap_refresh
