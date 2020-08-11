@@ -93,44 +93,44 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
     bool cmdlet_code{false};
 
     mpl::log(mpl::Level::trace, name, fmt::format("cmdlet: '{}'", args.join(" ")));
-    powershell_proc->write(args.join(" ").toUtf8() + "\n"); // TODO@ricab check return
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
-    powershell_proc->write(echo_cmdlet.toUtf8()); // TODO@ricab check return
-
-    QString powershell_output;
-    auto cmdlet_exit_found{false};
-    while (!cmdlet_exit_found)
+    if (write(args.join(" ").toUtf8() + "\n") && write(echo_cmdlet.toUtf8()))
     {
-        powershell_proc->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
-
-        powershell_output.append(powershell_proc->read_all_standard_output());
-        if (powershell_output.contains(unique_echo_string))
+        QString powershell_output;
+        auto cmdlet_exit_found{false};
+        while (!cmdlet_exit_found)
         {
-            auto parsed_output = powershell_output.split(unique_echo_string);
-            if (parsed_output.size() == 2)
-            {
-                // Be sure the exit status is fully read from output
-                // Exit status can only be "True" or "False"
-                auto exit_value = parsed_output.at(1);
-                if (exit_value.contains("True"))
-                {
-                    cmdlet_code = true;
-                    cmdlet_exit_found = true;
-                }
-                else if (exit_value.contains("False"))
-                {
-                    cmdlet_code = false;
-                    cmdlet_exit_found = true;
-                }
-            }
+            powershell_proc->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
 
-            // Get the actual cmdlet's output
-            if (cmdlet_exit_found)
+            powershell_output.append(powershell_proc->read_all_standard_output());
+            if (powershell_output.contains(unique_echo_string))
             {
-                output = parsed_output.at(0).trimmed();
-                mpl::log(mpl::Level::trace, name, output.toStdString());
+                auto parsed_output = powershell_output.split(unique_echo_string);
+                if (parsed_output.size() == 2)
+                {
+                    // Be sure the exit status is fully read from output
+                    // Exit status can only be "True" or "False"
+                    auto exit_value = parsed_output.at(1);
+                    if (exit_value.contains("True"))
+                    {
+                        cmdlet_code = true;
+                        cmdlet_exit_found = true;
+                    }
+                    else if (exit_value.contains("False"))
+                    {
+                        cmdlet_code = false;
+                        cmdlet_exit_found = true;
+                    }
+                }
+
+                // Get the actual cmdlet's output
+                if (cmdlet_exit_found)
+                {
+                    output = parsed_output.at(0).trimmed();
+                    mpl::log(mpl::Level::trace, name, output.toStdString());
+                }
             }
         }
     }
