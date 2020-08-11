@@ -38,28 +38,28 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
     power_shell->set_process_channel_mode(QProcess::MergedChannels);
 
-    mpl::log(mpl::Level::debug, name, fmt::format("powershell arguments '{}'", power_shell->arguments().join(", ")));
+    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell arguments '{}'", power_shell->arguments().join(", ")));
 
-    mpl::log(mpl::Level::debug, name, fmt::format("powershell working dir '{}'", power_shell->working_directory()));
-    mpl::log(mpl::Level::debug, name, fmt::format("powershell program '{}'", power_shell->program()));
+    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell working dir '{}'", power_shell->working_directory()));
+    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell program '{}'", power_shell->program()));
     QObject::connect(power_shell, &mp::Process::started,
-                     [&name]() { mpl::log(mpl::Level::debug, name, "powershell started"); });
+                     [&name]() { mpl::log(mpl::Level::debug, name, "PowerShell started"); });
 
     QObject::connect(power_shell, &mp::Process::state_changed, [&name](QProcess::ProcessState newState) {
         mpl::log(mpl::Level::debug, name,
-                 fmt::format("powershell state changed to {}", mpu::qenum_to_qstring(newState)));
+                 fmt::format("PowerShell state changed to {}", mpu::qenum_to_qstring(newState)));
     });
 
     QObject::connect(power_shell, &mp::Process::error_occurred, [&name](QProcess::ProcessError error) {
-        mpl::log(mpl::Level::debug, name, fmt::format("powershell error occurred {}", mpu::qenum_to_qstring(error)));
+        mpl::log(mpl::Level::debug, name, fmt::format("PowerShell error occurred {}", mpu::qenum_to_qstring(error)));
     });
 
     QObject::connect(power_shell, &mp::Process::finished, [&name](mp::ProcessState state) {
         if (state.completed_successfully())
-            mpl::log(mpl::Level::debug, name, "powershell finished successfully");
+            mpl::log(mpl::Level::debug, name, "PowerShell finished successfully");
         else
             mpl::log(mpl::Level::warning, name,
-                     fmt::format("powershell finished abnormally: {}", state.failure_message()));
+                     fmt::format("PowerShell finished abnormally: {}", state.failure_message()));
     });
 }
 
@@ -78,7 +78,7 @@ mp::PowerShell::~PowerShell()
     if (!write("Exit\n") || !powershell_proc->wait_for_finished())
     {
         auto error = powershell_proc->error_string();
-        auto msg = std::string{"Failed to exit powershell gracefully"};
+        auto msg = std::string{"Failed to exit PowerShell gracefully"};
         if (!error.isEmpty())
             msg = fmt::format("{}: {}", msg, error);
 
@@ -92,7 +92,7 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
     QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(unique_echo_string);
     bool cmdlet_code{false};
 
-    mpl::log(mpl::Level::trace, name, fmt::format("cmdlet: '{}'", args.join(" ")));
+    mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet: '{}'", args.join(" ")));
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
@@ -135,7 +135,7 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
         }
     }
 
-    mpl::log(mpl::Level::trace, name, fmt::format("cmdlet exit status is '{}'", cmdlet_code));
+    mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet exit status is '{}'", cmdlet_code));
     return cmdlet_code;
 }
 
@@ -151,7 +151,7 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     auto wait_result = power_shell->wait_for_finished();
     if (!wait_result)
         mpl::log(mpl::Level::warning, name,
-                 fmt::format("cmdlet failed with {}: {}", power_shell->error_string(), args.join(" ")));
+                 fmt::format("Cmdlet failed with {}: {}", power_shell->error_string(), args.join(" ")));
 
     output = output.trimmed();
     mpl::log(mpl::Level::trace, name, output.toStdString());
