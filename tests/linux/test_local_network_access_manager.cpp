@@ -164,7 +164,7 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
                              "User-Agent: Test\r\n"
                              "Content-Type: application/x-www-form-urlencoded\r\n"
                              "Content-Length: 11\r\n\r\n"
-                             "Hello World\r\n"};
+                             "Hello World\r\n\r\n\r\n"};
 
     QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
 

@@ -167,31 +167,85 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         http_data += "\r\n";
     }
 
+    local_socket->write(http_data);
+
     if (op == "POST" || op == "PUT")
     {
-        http_data += "Content-Type: ";
+        http_data = "Content-Type: ";
         http_data += request.header(QNetworkRequest::ContentTypeHeader).toByteArray();
         http_data += "\r\n";
 
         if (outgoingData)
         {
-            outgoingData->open(QIODevice::ReadOnly);
-
             auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
             if (!content_length.isEmpty())
             {
                 http_data += "Content-Length: ";
                 http_data += content_length;
+                http_data += "\r\n";
             }
 
-            http_data += "\r\n\r\n";
-            http_data += outgoingData->readAll();
+            auto transfer_encoding = request.rawHeader("Transfer-Encoding");
+            if (!transfer_encoding.isEmpty())
+            {
+                http_data += "Transfer-Encoding: ";
+                http_data += transfer_encoding;
+                http_data += "\r\n";
+            }
+
+            http_data += "\r\n";
+
+            local_socket->write(http_data);
+            local_socket->flush();
+
+            outgoingData->open(QIODevice::ReadOnly);
+            QByteArray data_buffer;
+            const auto max_bytes{32768};
+
+            while (true)
+            {
+                auto bytes_available = outgoingData->bytesAvailable();
+                if (bytes_available == 0)
+                    break;
+
+                data_buffer = outgoingData->read(bytes_available);
+
+                auto data_ptr = data_buffer.data();
+
+                while (bytes_available > 0)
+                {
+                    auto bytes_to_write = bytes_available < max_bytes ? bytes_available : max_bytes;
+
+                    if (transfer_encoding == "chunked")
+                    {
+                        QByteArray http_chunk_size{QByteArray::number(bytes_to_write, 16)};
+                        http_chunk_size += "\r\n";
+                        local_socket->write(http_chunk_size);
+                    }
+
+                    auto bytes_written = local_socket->write(data_ptr, bytes_to_write);
+                    if (bytes_written < 0)
+                    {
+                        setError(QNetworkReply::InternalServerError, local_socket->errorString());
+                        emit error(QNetworkReply::InternalServerError);
+
+                        return;
+                    }
+
+                    if (bytes_written == 0)
+                        break;
+
+                    local_socket->write("\r\n");
+                    local_socket->waitForBytesWritten();
+
+                    bytes_available -= bytes_written;
+                    data_ptr += bytes_written;
+                }
+            }
         }
     }
 
-    http_data += "\r\n";
-
-    local_socket->write(http_data);
+    local_socket->write("\r\n\r\n");
     local_socket->flush();
 }
 
