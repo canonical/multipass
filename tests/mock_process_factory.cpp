@@ -115,19 +115,9 @@ bool mpt::MockProcess::wait_for_started(int)
     return true;
 }
 
-bool mpt::MockProcess::wait_for_finished(int)
-{
-    return true;
-}
-
 bool mpt::MockProcess::wait_for_ready_read(int)
 {
     return true;
-}
-
-qint64 mpt::MockProcess::write(const QByteArray&)
-{
-    return 0;
 }
 
 void mpt::MockProcess::close_write_channel()

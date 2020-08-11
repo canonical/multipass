@@ -80,6 +80,8 @@ public:
     MOCK_CONST_METHOD0(process_state, ProcessState());
     MOCK_CONST_METHOD0(error_string, QString());
     MOCK_METHOD1(execute, ProcessState(int));
+    MOCK_METHOD1(write, qint64(const QByteArray&));
+    MOCK_METHOD1(wait_for_finished, bool(int msecs));
 
     MockProcess(std::unique_ptr<ProcessSpec>&& spec, std::vector<MockProcessFactory::ProcessInfo>& process_list);
 
@@ -89,11 +91,9 @@ public:
     QProcessEnvironment process_environment() const override;
 
     bool wait_for_started(int msecs = 30000) override;
-    bool wait_for_finished(int msecs = 30000) override;
     bool wait_for_ready_read(int msecs = 30000) override;
     MOCK_METHOD0(read_all_standard_output, QByteArray());
     MOCK_METHOD0(read_all_standard_error, QByteArray());
-    qint64 write(const QByteArray& data) override;
     void close_write_channel() override;
     void set_process_channel_mode(QProcess::ProcessChannelMode) override;
     void setup_child_process() override;
