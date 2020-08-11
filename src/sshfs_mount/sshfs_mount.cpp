@@ -87,7 +87,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 
     auto version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
 
-    sshfs_exec += " -o slave -o transform_symlinks -o allow_other";
+    sshfs_exec += " -o slave -o transform_symlinks -o allow_other -o Compression=no";
 
     auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
     if (!fuse_version_line.empty())
@@ -107,7 +107,11 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         // The option was made the default in libfuse 3.0
         else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))
         {
-            sshfs_exec += " -o nonempty";
+            sshfs_exec += " -o nonempty -o cache_timeout=3";
+        }
+        else
+        {
+            sshfs_exec += " -o dcache_timeout=3";
         }
     }
     else
