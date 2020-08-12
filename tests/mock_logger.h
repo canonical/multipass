@@ -68,6 +68,11 @@ public:
     {
         return Property(&multipass::logging::CString::c_str, matcher);
     }
+
+    void expect_log(multipass::logging::Level lvl, const std::string& substr)
+    {
+        EXPECT_CALL(*this, log(lvl, testing::_, make_cstring_matcher(testing::HasSubstr(substr))));
+    }
 };
 
 inline auto guarded_mock_logger()
@@ -77,15 +82,6 @@ inline auto guarded_mock_logger()
     multipass::logging::set_logger(mock_logger);
 
     return std::make_pair(mock_logger, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
-}
-
-inline auto expect_log(multipass::logging::Level lvl, const std::string& substr)
-{
-    auto [mock_logger, guard] = guarded_mock_logger();
-
-    EXPECT_CALL(*mock_logger, log(lvl, testing::_, MockLogger::make_cstring_matcher(testing::HasSubstr(substr))));
-
-    return std::move(guard); // needs to be moved because it's only part of an implicit local var (NRVO does not apply)
 }
 
 } // namespace test
