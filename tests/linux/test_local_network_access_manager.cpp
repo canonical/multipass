@@ -21,6 +21,8 @@
 #include <multipass/network_access_manager.h>
 #include <multipass/version.h>
 
+#include <random>
+
 #include <QEventLoop>
 #include <QNetworkReply>
 #include <QTimer>
@@ -35,6 +37,23 @@ using namespace testing;
 namespace
 {
 using HTTPErrorParamType = std::pair<QByteArray, QNetworkReply::NetworkError>;
+constexpr auto max_bytes{32768};
+
+auto generate_random_data(int length)
+{
+    const std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_int_distribution<int> dist(0, str.size() - 1);
+    QByteArray random_data;
+
+    for (int i = 0; i < length; ++i)
+    {
+        random_data += str[dist(generator)];
+    }
+
+    return random_data;
+}
 
 struct LocalNetworkAccessManager : public Test
 {
@@ -54,7 +73,16 @@ struct LocalNetworkAccessManager : public Test
         if (!data.isEmpty())
         {
             request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-            request.setHeader(QNetworkRequest::ContentLengthHeader, data.size());
+
+            auto data_size = data.size();
+            if (data_size < max_bytes)
+            {
+                request.setHeader(QNetworkRequest::ContentLengthHeader, data.size());
+            }
+            else
+            {
+                request.setRawHeader("Transfer-Encoding", "chunked");
+            }
         }
 
         std::unique_ptr<QNetworkReply> reply{manager.sendCustomRequest(request, verb, data)};
@@ -245,6 +273,30 @@ TEST_F(LocalNetworkAccessManager, query_in_url_is_preserved)
     test_server.local_socket_server_handler(server_response);
 
     handle_request(base_url, "GET");
+}
+
+TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
+{
+    QByteArray random_data = generate_random_data(65536);
+    QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
+
+    auto server_response = [&http_response, &random_data](auto data) {
+        QByteArray first_part = random_data.mid(0, 32768);
+        QByteArray second_part = random_data.mid(32768);
+
+        // Implies the data was split, ie, chunked
+        EXPECT_FALSE(data.contains(random_data));
+
+        // Implies that the correct data was still received
+        EXPECT_TRUE(data.contains(first_part));
+        EXPECT_TRUE(data.contains(second_part));
+
+        return http_response;
+    };
+
+    test_server.local_socket_server_handler(server_response);
+
+    handle_request(base_url, "POST", random_data);
 }
 
 TEST_P(HTTPErrorsTestSuite, returns_expected_error)
