@@ -26,6 +26,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+// TODO@ricab move implementations to cpp
+
 namespace multipass
 {
 namespace test
@@ -33,9 +35,33 @@ namespace test
 class MockLogger : public multipass::logging::Logger
 {
 public:
-    MockLogger() = default;
+    MockLogger() = default; // TODO@ricab disable except through inject
     MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
                                  multipass::logging::CString message));
+
+    class Scope
+    {
+    public:
+        ~Scope()
+        {
+            multipass::logging::set_logger(nullptr);
+        }
+
+        std::shared_ptr<testing::NiceMock<MockLogger>> mock_logger = std::make_shared<testing::NiceMock<MockLogger>>();
+
+    private:
+        Scope()
+        {
+            multipass::logging::set_logger(mock_logger);
+        }
+
+        friend class MockLogger;
+    };
+
+    [[nodiscard]] static Scope inject()
+    {
+        return Scope{};
+    }
 
     template <typename Matcher>
     static auto make_cstring_matcher(const Matcher& matcher)
