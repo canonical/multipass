@@ -21,8 +21,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
 
-#include <scope_guard.hpp>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -74,16 +72,6 @@ public:
         EXPECT_CALL(*this, log(lvl, testing::_, make_cstring_matcher(testing::HasSubstr(substr))));
     }
 };
-
-inline auto guarded_mock_logger()
-{
-    auto guard = sg::make_scope_guard([] { multipass::logging::set_logger(nullptr); });
-    auto mock_logger = std::make_shared<testing::StrictMock<MockLogger>>();
-    multipass::logging::set_logger(mock_logger);
-
-    return std::make_pair(mock_logger, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
-}
-
 } // namespace test
 } // namespace multipass
 
