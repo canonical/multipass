@@ -71,6 +71,16 @@ public:
     {
         EXPECT_CALL(*this, log(lvl, testing::_, make_cstring_matcher(testing::HasSubstr(substr))));
     }
+
+    // Reject logs with severity `from_lvl` or higher (lower integer)
+    void reject_logs(multipass::logging::Level from_lvl = multipass::logging::Level::trace)
+    {
+        namespace mpl = multipass::logging;
+        for (auto i = 0; i <= mpl::enum_type(from_lvl); ++i)
+        {
+            EXPECT_CALL(*this, log(mpl::level_from(i), testing::_, testing::_)).Times(0);
+        }
+    }
 };
 } // namespace test
 } // namespace multipass

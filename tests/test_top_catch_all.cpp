@@ -34,6 +34,11 @@ namespace
 {
 struct TopCatchAll : public Test
 {
+    void SetUp() override
+    {
+        logger_scope.mock_logger->reject_logs();
+    }
+
     auto make_category_matcher()
     {
         return mpt::MockLogger::make_cstring_matcher(StrEq(category.c_str()));
