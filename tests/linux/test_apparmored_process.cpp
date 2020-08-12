@@ -61,20 +61,17 @@ struct ApparmoredProcessNoFactoryTest : public mpt::TestWithMockedBinPath
     ApparmoredProcessNoFactoryTest()
     {
         QFile::remove(apparmor_output_file);
-        mpl::set_logger(logger);
         is_enabled.returnValue(1);
     }
 
     void TearDown() override
     {
         QFile::remove(apparmor_output_file);
-        logger.reset();
-        mpl::set_logger(logger);
     }
 
     mpt::UnsetEnvScope env{"DISABLE_APPARMOR"};
     mpt::ResetProcessFactory scope; // will otherwise pollute other tests
-    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     decltype(MOCK(aa_is_enabled)) is_enabled{MOCK(aa_is_enabled)};
 };
 

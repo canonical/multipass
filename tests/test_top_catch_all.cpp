@@ -23,7 +23,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <memory>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -35,25 +34,13 @@ namespace
 {
 struct TopCatchAll : public Test
 {
-    void SetUp() override
-    {
-        mock_logger = std::make_shared<StrictMock<mpt::MockLogger>>();
-        mpl::set_logger(mock_logger);
-    }
-
-    void TearDown() override
-    {
-        mock_logger.reset();
-        mpl::set_logger(mock_logger);
-    }
-
     auto make_category_matcher()
     {
         return mpt::MockLogger::make_cstring_matcher(StrEq(category.c_str()));
     }
 
     const std::string category = "testing";
-    std::shared_ptr<StrictMock<mpt::MockLogger>> mock_logger = nullptr;
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
 struct CustomExceptionForTesting : public std::exception
@@ -88,8 +75,8 @@ TEST_F(TopCatchAll, handles_unknown_error)
 {
     int got = 0;
 
-    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
-                                  mpt::MockLogger::make_cstring_matcher(HasSubstr("unknown"))));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                               mpt::MockLogger::make_cstring_matcher(HasSubstr("unknown"))));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
                         throw 123;
                         return 0;
@@ -103,8 +90,8 @@ TEST_F(TopCatchAll, handles_standard_exception)
     const std::string emsg = "some error";
     const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(emsg.c_str()));
 
-    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
-                                  mpt::MockLogger::make_cstring_matcher(msg_matcher)));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                               mpt::MockLogger::make_cstring_matcher(msg_matcher)));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [&emsg] {
                         throw std::runtime_error{emsg};
                         return 0;
@@ -117,8 +104,8 @@ TEST_F(TopCatchAll, handles_custom_exception)
     int got = 0;
     const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(CustomExceptionForTesting::msg));
 
-    EXPECT_CALL(*mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
-                                  mpt::MockLogger::make_cstring_matcher(msg_matcher)));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                               mpt::MockLogger::make_cstring_matcher(msg_matcher)));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
                         throw CustomExceptionForTesting{};
                         return 42;

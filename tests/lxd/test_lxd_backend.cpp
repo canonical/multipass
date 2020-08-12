@@ -55,10 +55,10 @@ struct LXDBackend : public Test
 {
     LXDBackend() : mock_network_access_manager{std::make_unique<NiceMock<mpt::MockNetworkAccessManager>>()}
     {
-        mpl::set_logger(logger);
-
-        EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                                 Matcher<multipass::logging::CString>(_)))
+        // TODO@ricab check if this is still needed
+        EXPECT_CALL(*logger_scope.mock_logger,
+                    log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
+                        Matcher<multipass::logging::CString>(_)))
             .WillRepeatedly(Return());
     }
 
@@ -74,7 +74,7 @@ struct LXDBackend : public Test
                                                       {},
                                                       {}};
 
-    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::TempDir data_dir;
     std::unique_ptr<NiceMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url{"unix:///foo@1.0"};
@@ -694,12 +694,14 @@ TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
 
     const std::string name{"foo"};
 
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
-                             mpt::MockLogger::make_cstring_matcher(
-                                 StrEq(fmt::format("No resources to remove for \"{}\"", name)))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
+            mpt::MockLogger::make_cstring_matcher(StrEq(fmt::format("No resources to remove for \"{}\"", name)))));
 
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
-                             mpt::MockLogger::make_cstring_matcher(StrEq("No driver preparation for instance image"))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("No driver preparation for instance image"))));
 
     mp::VMImage image;
     YAML::Node node;
@@ -945,8 +947,9 @@ TEST_F(LXDBackend, start_while_frozen_unfreezes)
 
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
 
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-                             mpt::MockLogger::make_cstring_matcher(StrEq("Resuming from a suspended state"))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Resuming from a suspended state"))));
 
     machine.start();
 
@@ -1017,8 +1020,9 @@ TEST_F(LXDBackend, shutdown_while_frozen_does_nothing_and_logs_info)
     ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(0);
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-                             mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring shutdown issued while suspended"))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring shutdown issued while suspended"))));
 
     machine.shutdown();
 
