@@ -20,6 +20,7 @@
 
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
+#include <multipass/private_pass_provider.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -30,10 +31,17 @@ namespace multipass
 {
 namespace test
 {
-class MockLogger : public multipass::logging::Logger
+class MockLogger : public multipass::logging::Logger, public PrivatePassProvider<MockLogger>
 {
 public:
-    MockLogger() = default; // TODO@ricab disable except through inject
+    MockLogger(const PrivatePass&)
+    {
+    }
+
+    MockLogger() = delete;
+    MockLogger(const MockLogger&) = delete;
+    MockLogger& operator=(const MockLogger&) = delete;
+
     MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
                                  multipass::logging::CString message));
 
@@ -45,7 +53,8 @@ public:
             multipass::logging::set_logger(nullptr);
         }
 
-        std::shared_ptr<testing::NiceMock<MockLogger>> mock_logger = std::make_shared<testing::NiceMock<MockLogger>>();
+        std::shared_ptr<testing::NiceMock<MockLogger>> mock_logger =
+            std::make_shared<testing::NiceMock<MockLogger>>(pass);
 
     private:
         Scope()
@@ -56,11 +65,13 @@ public:
         friend class MockLogger;
     };
 
+    // only one at a time, please
     [[nodiscard]] static Scope inject()
     {
         return Scope{};
     }
 
+    // TODO@ricab check what can be made private
     template <typename Matcher>
     static auto make_cstring_matcher(const Matcher& matcher)
     {
