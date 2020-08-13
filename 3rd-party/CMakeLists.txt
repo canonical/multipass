@@ -95,8 +95,6 @@ target_include_directories(scope_guard INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/scope_guard)
 
 # semver library
-# Set option to disable tests, avoid a Boost dependency that is test-only
-set(ENABLE_TESTS OFF CACHE BOOL "Disable tests in Semver lib" FORCE)
 add_subdirectory(semver EXCLUDE_FROM_ALL)
 target_include_directories(semver INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/semver/include)

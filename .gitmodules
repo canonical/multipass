@@ -9,9 +9,6 @@
 [submodule "3rd-party/libssh/libssh"]
 	path = 3rd-party/libssh/libssh
 	url = https://github.com/CanonicalLtd/libssh.git
-[submodule "3rd-party/fmt"]
-	path = 3rd-party/fmt
-	url = https://github.com/canonical/fmt.git
 [submodule "3rd-party/xz-decoder/xz-embedded"]
 	path = 3rd-party/xz-decoder/xz-embedded
 	url = https://git.tukaani.org/xz-embedded.git
@@ -24,3 +21,6 @@
 [submodule "3rd-party/qhotkey"]
 	path = 3rd-party/qhotkey/QHotkey
 	url = https://github.com/Skycoder42/QHotkey.git
+[submodule "3rd-party/fmt"]
+	path = 3rd-party/fmt
+	url = https://github.com/fmtlib/fmt.git
