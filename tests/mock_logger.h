@@ -83,13 +83,15 @@ public:
         EXPECT_CALL(*this, log(lvl, testing::_, make_cstring_matcher(testing::HasSubstr(substr))));
     }
 
-    // Reject logs with severity `from_lvl` or higher (lower integer)
-    void reject_logs(multipass::logging::Level from_lvl = multipass::logging::Level::trace)
+    // Reject logs with severity `lvl` or higher (lower integer), accept the rest
+    // By default, all logs are rejected. Pass error level to accept everything but errors (expect those explicitly)
+    void screen_logs(multipass::logging::Level lvl = multipass::logging::Level::trace)
     {
         namespace mpl = multipass::logging;
-        for (auto i = 0; i <= mpl::enum_type(from_lvl); ++i)
+        for (auto i = 0; i <= mpl::enum_type(mpl::Level::trace); ++i)
         {
-            EXPECT_CALL(*this, log(mpl::level_from(i), testing::_, testing::_)).Times(0);
+            auto times = i < mpl::enum_type(lvl) ? testing::Exactly(0) : testing::AnyNumber();
+            EXPECT_CALL(*this, log(mpl::level_from(i), testing::_, testing::_)).Times(times);
         }
     }
 };

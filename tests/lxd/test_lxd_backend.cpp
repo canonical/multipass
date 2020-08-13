@@ -55,11 +55,7 @@ struct LXDBackend : public Test
 {
     LXDBackend() : mock_network_access_manager{std::make_unique<NiceMock<mpt::MockNetworkAccessManager>>()}
     {
-        // TODO@ricab check if this is still needed
-        EXPECT_CALL(*logger_scope.mock_logger,
-                    log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                        Matcher<multipass::logging::CString>(_)))
-            .WillRepeatedly(Return());
+        logger_scope.mock_logger->screen_logs(mpl::Level::error);
     }
 
     mp::VirtualMachineDescription default_description{2,

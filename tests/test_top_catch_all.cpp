@@ -36,7 +36,7 @@ struct TopCatchAll : public Test
 {
     void SetUp() override
     {
-        logger_scope.mock_logger->reject_logs();
+        logger_scope.mock_logger->screen_logs();
     }
 
     auto make_category_matcher()

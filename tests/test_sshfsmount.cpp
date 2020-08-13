@@ -411,11 +411,7 @@ TEST_F(SshfsMount, blank_fuse_version_logs_error)
 {
     CommandVector commands = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:\n"}};
 
-    // TODO@ricab check if this is still needed
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                    Matcher<multipass::logging::CString>(_)))
-        .WillRepeatedly(Return());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
                     mpt::MockLogger::make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
@@ -503,11 +499,7 @@ TEST_F(SshfsMount, install_sshfs_timeout_logs_info)
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    // TODO@ricab check if this is still needed
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                    Matcher<multipass::logging::CString>(_)))
-        .WillRepeatedly(Return());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("utils")),
                     mpt::MockLogger::make_cstring_matcher(StrEq("Timeout while installing 'sshfs' in 'foo'"))));

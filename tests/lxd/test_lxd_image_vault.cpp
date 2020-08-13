@@ -50,11 +50,7 @@ struct LXDImageVault : public Test
 
         ON_CALL(host, info_for_full_hash(_)).WillByDefault([this](auto...) { return host.mock_image_info; });
 
-        // TODO@ricab check if this is still needed
-        EXPECT_CALL(*logger_scope.mock_logger,
-                    log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                        Matcher<multipass::logging::CString>(_)))
-            .WillRepeatedly(Return());
+        logger_scope.mock_logger->screen_logs(mpl::Level::error);
     }
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
