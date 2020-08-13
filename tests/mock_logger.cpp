@@ -38,7 +38,8 @@ mpt::MockLogger::Scope::Scope()
 
 mpt::MockLogger::Scope::~Scope()
 {
-    mpl::set_logger(nullptr);
+    if (mpl::get_logger() == mock_logger.get() && mock_logger.use_count() == 2)
+        mpl::set_logger(nullptr); // only reset if we are the last scope with the registered logger
 }
 
 void mpt::MockLogger::expect_log(mpl::Level lvl, const std::string& substr)
