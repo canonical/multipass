@@ -153,9 +153,6 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
             {"config", config},
             {"devices", devices},
             {"source", QJsonObject{{"type", "image"},
-                                   {"mode", "pull"},
-                                   {"server", QString::fromStdString(desc.image.stream_location)},
-                                   {"protocol", "simplestreams"},
                                    {"fingerprint", QString::fromStdString(desc.image.id)}}}};
 
         auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),

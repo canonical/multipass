@@ -513,9 +513,6 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
                              "\"name\":\"pied-piper-valley\","
                              "\"source\":{"
                              "\"fingerprint\":\"\","
-                             "\"mode\":\"pull\","
-                             "\"protocol\":\"simplestreams\","
-                             "\"server\":\"\","
                              "\"type\":\"image\""
                              "}"
                              "}"};
@@ -588,9 +585,6 @@ TEST_F(LXDBackend, posts_expected_data_including_disk_size_when_creating_instanc
                              "\"name\":\"pied-piper-valley\","
                              "\"source\":{"
                              "\"fingerprint\":\"\","
-                             "\"mode\":\"pull\","
-                             "\"protocol\":\"simplestreams\","
-                             "\"server\":\"\","
                              "\"type\":\"image\""
                              "}"
                              "}"};
