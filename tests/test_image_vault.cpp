@@ -289,7 +289,7 @@ TEST_F(ImageVault, uses_image_from_prepare)
     mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name, "", "", source_image.id, "", "", "", "", {}};
+        return {file_name, "", "", source_image.id, "", "", "", {}};
     };
 
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -309,7 +309,7 @@ TEST_F(ImageVault, image_purged_expired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, "", "", source_image.id, "", "", "", "", {}};
+        return {file_name, "", "", source_image.id, "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
@@ -329,7 +329,7 @@ TEST_F(ImageVault, image_exists_not_expired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, "", "", source_image.id, "", "", "", "", {}};
+        return {file_name, "", "", source_image.id, "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
@@ -450,7 +450,6 @@ TEST_F(ImageVault, http_download_returns_expected_image_info)
     // Hash is based on image url
     EXPECT_THAT(image.id, Eq("7404f51c9b4f40312fa048a0ad36e07b74b718a2d3a5a08e8cca906c69059ddf"));
     EXPECT_THAT(image.release_date, Eq(default_last_modified.toString().toStdString()));
-    EXPECT_TRUE(image.stream_location.empty());
 }
 
 TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)

@@ -99,7 +99,6 @@ TEST_F(LXDImageVault, instance_exists_fetch_returns_expected_image_info)
                         image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
 
     EXPECT_EQ(image.id, mpt::default_id);
-    EXPECT_EQ(image.stream_location, mpt::default_stream_location);
     EXPECT_EQ(image.original_release, "18.04 LTS");
     EXPECT_EQ(image.release_date, mpt::default_version);
 }
@@ -129,7 +128,6 @@ TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
     EXPECT_NO_THROW(image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor));
 
     EXPECT_EQ(image.id, mpt::default_id);
-    EXPECT_EQ(image.stream_location, mpt::default_stream_location);
     EXPECT_EQ(image.original_release, "18.04 LTS");
     EXPECT_EQ(image.release_date, mpt::default_version);
 }
