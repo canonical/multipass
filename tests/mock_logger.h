@@ -25,8 +25,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-// TODO@ricab move implementations to cpp
-
 namespace multipass
 {
 namespace test
@@ -34,9 +32,7 @@ namespace test
 class MockLogger : public multipass::logging::Logger, public PrivatePassProvider<MockLogger>
 {
 public:
-    MockLogger(const PrivatePass&)
-    {
-    }
+    MockLogger(const PrivatePass&);
 
     MockLogger() = delete;
     MockLogger(const MockLogger&) = delete;
@@ -48,54 +44,34 @@ public:
     class Scope
     {
     public:
-        ~Scope()
-        {
-            multipass::logging::set_logger(nullptr);
-        }
-
+        ~Scope();
         std::shared_ptr<testing::NiceMock<MockLogger>> mock_logger =
             std::make_shared<testing::NiceMock<MockLogger>>(pass);
 
     private:
-        Scope()
-        {
-            multipass::logging::set_logger(mock_logger);
-        }
-
+        Scope();
         friend class MockLogger;
     };
 
     // only one at a time, please
-    [[nodiscard]] static Scope inject()
-    {
-        return Scope{};
-    }
+    [[nodiscard]] static Scope inject();
 
-    // TODO@ricab check what can be made private
     template <typename Matcher>
-    static auto make_cstring_matcher(const Matcher& matcher)
-    {
-        return Property(&multipass::logging::CString::c_str, matcher);
-    }
+    static auto make_cstring_matcher(const Matcher& matcher);
 
-    void expect_log(multipass::logging::Level lvl, const std::string& substr)
-    {
-        EXPECT_CALL(*this, log(lvl, testing::_, make_cstring_matcher(testing::HasSubstr(substr))));
-    }
+    void expect_log(multipass::logging::Level lvl, const std::string& substr);
 
     // Reject logs with severity `lvl` or higher (lower integer), accept the rest
     // By default, all logs are rejected. Pass error level to accept everything but errors (expect those explicitly)
-    void screen_logs(multipass::logging::Level lvl = multipass::logging::Level::trace)
-    {
-        namespace mpl = multipass::logging;
-        for (auto i = 0; i <= mpl::enum_type(mpl::Level::trace); ++i)
-        {
-            auto times = i < mpl::enum_type(lvl) ? testing::Exactly(0) : testing::AnyNumber();
-            EXPECT_CALL(*this, log(mpl::level_from(i), testing::_, testing::_)).Times(times);
-        }
-    }
+    void screen_logs(multipass::logging::Level lvl = multipass::logging::Level::trace);
 };
 } // namespace test
 } // namespace multipass
+
+template <typename Matcher>
+auto multipass::test::MockLogger::make_cstring_matcher(const Matcher& matcher)
+{
+    return testing::Property(&multipass::logging::CString::c_str, matcher);
+}
 
 #endif // MULTIPASS_MOCK_LOGGER_H
