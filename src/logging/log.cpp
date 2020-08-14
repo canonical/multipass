@@ -71,3 +71,8 @@ void mpl::set_logger(std::shared_ptr<Logger> logger)
     global_logger = std::move(logger);
     qInstallMessageHandler(qt_message_handler);
 }
+
+auto mpl::get_logger() -> Logger* // for tests, don't rely on it lasting
+{
+    return global_logger.get();
+}

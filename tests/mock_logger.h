@@ -20,8 +20,7 @@
 
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
-
-#include <scope_guard.hpp>
+#include <multipass/private_pass_provider.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -30,39 +29,50 @@ namespace multipass
 {
 namespace test
 {
-class MockLogger : public multipass::logging::Logger
+class MockLogger : public multipass::logging::Logger, public PrivatePassProvider<MockLogger>
 {
 public:
-    MockLogger() = default;
+    MockLogger(const PrivatePass&);
+
+    MockLogger() = delete;
+    MockLogger(const MockLogger&) = delete;
+    MockLogger& operator=(const MockLogger&) = delete;
+
     MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
                                  multipass::logging::CString message));
 
-    template <typename Matcher>
-    static auto make_cstring_matcher(const Matcher& matcher)
+    class Scope
     {
-        return Property(&multipass::logging::CString::c_str, matcher);
-    }
+    public:
+        ~Scope();
+        std::shared_ptr<testing::NiceMock<MockLogger>> mock_logger =
+            std::make_shared<testing::NiceMock<MockLogger>>(pass);
+
+    private:
+        Scope();
+        friend class MockLogger;
+    };
+
+    // only one at a time, please
+    [[nodiscard]] static Scope inject();
+
+    template <typename Matcher>
+    static auto make_cstring_matcher(const Matcher& matcher);
+
+    void expect_log(multipass::logging::Level lvl, const std::string& substr,
+                    const testing::Cardinality& times = testing::Exactly(1));
+
+    // Reject logs with severity `lvl` or higher (lower integer), accept the rest
+    // By default, all logs are rejected. Pass error level to accept everything but errors (expect those explicitly)
+    void screen_logs(multipass::logging::Level lvl = multipass::logging::Level::trace);
 };
-
-inline auto guarded_mock_logger()
-{
-    auto guard = sg::make_scope_guard([] { multipass::logging::set_logger(nullptr); });
-    auto mock_logger = std::make_shared<testing::StrictMock<MockLogger>>();
-    multipass::logging::set_logger(mock_logger);
-
-    return std::make_pair(mock_logger, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
-}
-
-inline auto expect_log(multipass::logging::Level lvl, const std::string& substr)
-{
-    auto [mock_logger, guard] = guarded_mock_logger();
-
-    EXPECT_CALL(*mock_logger, log(lvl, testing::_, MockLogger::make_cstring_matcher(testing::HasSubstr(substr))));
-
-    return std::move(guard); // needs to be moved because it's only part of an implicit local var (NRVO does not apply)
-}
-
 } // namespace test
 } // namespace multipass
+
+template <typename Matcher>
+auto multipass::test::MockLogger::make_cstring_matcher(const Matcher& matcher)
+{
+    return testing::Property(&multipass::logging::CString::c_str, matcher);
+}
 
 #endif // MULTIPASS_MOCK_LOGGER_H
