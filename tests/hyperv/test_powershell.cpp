@@ -119,4 +119,20 @@ TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 
     mp::PowerShell ps{"test"};
 }
+
+TEST_F(PowerShell, uses_name_in_logs)
+{
+    auto logger_scope = mpt::MockLogger::inject();
+    auto logger = logger_scope.mock_logger;
+    constexpr auto name = "Shevek";
+
+    logger->screen_logs();
+    EXPECT_CALL(*logger, log(_, mpt::MockLogger::make_cstring_matcher(StrEq(name)), _)).Times(AtLeast(1));
+
+    auto factory_scope = mpt::MockProcessFactory::Inject();
+    factory_scope->register_callback([this](mpt::MockProcess* process) { check(process); });
+
+    mp::PowerShell ps{name};
+}
+
 } // namespace
