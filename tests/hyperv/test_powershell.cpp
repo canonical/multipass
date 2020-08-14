@@ -50,39 +50,44 @@ struct PowerShell : public Test
         ASSERT_TRUE(forked);
     }
 
-    void check(mpt::MockProcess* process)
+    void setup(const mpt::MockProcessFactory::Callback& callback = {})
+    {
+        factory_scope->register_callback([this, callback](mpt::MockProcess* process) {
+            setup_process(process);
+            if (callback)
+                callback(process);
+        });
+    }
+
+    void setup_process(mpt::MockProcess* process)
     {
         ASSERT_EQ(process->program(), psexe);
+
+        ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
+        ON_CALL(*process, write(Eq(psexit))).WillByDefault(Return(std::strlen(psexit)));
+
         forked = true;
     }
 
     bool forked = false;
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
 };
 
 TEST_F(PowerShell, creates_ps_process)
 {
-    auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
-
-    auto factory_scope = mpt::MockProcessFactory::Inject();
-    factory_scope->register_callback([this](mpt::MockProcess* process) {
-        check(process);
-        EXPECT_CALL(*process, start()).Times(1);
-    });
+    setup([](auto* process) { EXPECT_CALL(*process, start()).Times(1); });
 
     mp::PowerShell ps{"test"};
 }
 
 TEST_F(PowerShell, exits_ps_process)
 {
-    auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
-
-    auto factory_scope = mpt::MockProcessFactory::Inject();
-    factory_scope->register_callback([this](mpt::MockProcess* process) {
-        check(process);
-        EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(std::strlen(psexit)));
-        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
+    setup([](auto* process) {
+        EXPECT_CALL(*process, write(Eq(psexit)));
+        EXPECT_CALL(*process, wait_for_finished(_));
     });
 
     mp::PowerShell ps{"test"};
@@ -90,15 +95,12 @@ TEST_F(PowerShell, exits_ps_process)
 
 TEST_F(PowerShell, handles_failure_to_write_on_exit)
 {
-    auto logger_scope = mpt::MockLogger::inject();
     auto logger = logger_scope.mock_logger;
     logger->screen_logs(mpl::Level::error);
+    logger->expect_log(mpl::Level::warning, "Failed to exit");
 
-    auto factory_scope = mpt::MockProcessFactory::Inject();
-    factory_scope->register_callback([this, logger](mpt::MockProcess* process) {
-        check(process);
+    setup([](auto* process) {
         EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(-1));
-        logger->expect_log(mpl::Level::warning, "Failed to exit");
         EXPECT_CALL(*process, kill);
     });
 
@@ -107,21 +109,18 @@ TEST_F(PowerShell, handles_failure_to_write_on_exit)
 
 TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 {
-    auto logger_scope = mpt::MockLogger::inject();
     auto logger = logger_scope.mock_logger;
     logger->screen_logs(mpl::Level::error);
 
-    auto factory_scope = mpt::MockProcessFactory::Inject();
-    factory_scope->register_callback([this, logger](mpt::MockProcess* process) {
-        check(process);
-        EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(std::strlen(psexit)));
+    auto err = "timeout";
+    auto msg_matcher = mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("Failed to exit"), HasSubstr(err)));
+    EXPECT_CALL(*logger, log(mpl::Level::warning, _, msg_matcher));
+
+    setup([err](auto* process) {
+        EXPECT_CALL(*process, write(Eq(psexit)));
         EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
 
-        auto err = "timeout";
         EXPECT_CALL(*process, error_string).WillOnce(Return(err));
-
-        auto msg_matcher = mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("Failed to exit"), HasSubstr(err)));
-        EXPECT_CALL(*logger, log(mpl::Level::warning, _, msg_matcher));
         EXPECT_CALL(*process, kill);
     });
 
@@ -130,15 +129,12 @@ TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 
 TEST_F(PowerShell, uses_name_in_logs)
 {
-    auto logger_scope = mpt::MockLogger::inject();
     auto logger = logger_scope.mock_logger;
     constexpr auto name = "Shevek";
 
     logger->screen_logs();
     EXPECT_CALL(*logger, log(_, mpt::MockLogger::make_cstring_matcher(StrEq(name)), _)).Times(AtLeast(1));
-
-    auto factory_scope = mpt::MockProcessFactory::Inject();
-    factory_scope->register_callback([this](mpt::MockProcess* process) { check(process); });
+    setup();
 
     mp::PowerShell ps{name};
 }
@@ -146,15 +142,11 @@ TEST_F(PowerShell, uses_name_in_logs)
 TEST_F(PowerShell, write_silent_on_success)
 {
     constexpr auto data = "Abbenay";
-    auto factory_scope = mpt::MockProcessFactory::Inject();
-    factory_scope->register_callback([this, data](mpt::MockProcess* process) {
-        check(process);
+    setup([data](auto* process) {
         EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
         EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data)));
-        ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true)); // TODO@ricab extract scopes and add this
     });
 
-    auto logger_scope = mpt::MockLogger::inject();
     mp::PowerShell ps{"asdf"};
 
     logger_scope.mock_logger->screen_logs();
