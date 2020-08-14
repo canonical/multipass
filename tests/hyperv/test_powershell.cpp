@@ -34,30 +34,45 @@ namespace
 {
 constexpr auto psexe = "powershell.exe";
 constexpr auto psexit = "Exit\n";
-}
 
-TEST(PowerShell, creates_ps_process)
+struct PowerShell : public Test
+{
+    void TearDown() override
+    {
+        ASSERT_TRUE(forked);
+    }
+
+    void check(mpt::MockProcess* process)
+    {
+        ASSERT_EQ(process->program(), psexe);
+        forked = true;
+    }
+
+    bool forked = false;
+};
+
+TEST_F(PowerShell, creates_ps_process)
 {
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
 
-    auto scope = mpt::MockProcessFactory::Inject();
-    scope->register_callback([](mpt::MockProcess* process) {
-        ASSERT_EQ(process->program(), psexe);
+    auto factory_scope = mpt::MockProcessFactory::Inject();
+    factory_scope->register_callback([this](mpt::MockProcess* process) {
+        check(process);
         EXPECT_CALL(*process, start()).Times(1);
     });
 
     mp::PowerShell ps{"test"};
 }
 
-TEST(PowerShell, exits_ps_process)
+TEST_F(PowerShell, exits_ps_process)
 {
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
 
-    auto scope = mpt::MockProcessFactory::Inject();
-    scope->register_callback([](mpt::MockProcess* process) {
-        ASSERT_EQ(process->program(), psexe);
+    auto factory_scope = mpt::MockProcessFactory::Inject();
+    factory_scope->register_callback([this](mpt::MockProcess* process) {
+        check(process);
         EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(std::strlen(psexit)));
         EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
     });
@@ -65,15 +80,15 @@ TEST(PowerShell, exits_ps_process)
     mp::PowerShell ps{"test"};
 }
 
-TEST(PowerShell, handles_failure_to_write_on_exit)
+TEST_F(PowerShell, handles_failure_to_write_on_exit)
 {
     auto logger_scope = mpt::MockLogger::inject();
     auto logger = logger_scope.mock_logger;
     logger->screen_logs(mpl::Level::error);
 
-    auto scope = mpt::MockProcessFactory::Inject();
-    scope->register_callback([logger](mpt::MockProcess* process) {
-        ASSERT_EQ(process->program(), psexe);
+    auto factory_scope = mpt::MockProcessFactory::Inject();
+    factory_scope->register_callback([this, logger](mpt::MockProcess* process) {
+        check(process);
         EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(-1));
         logger->expect_log(mpl::Level::warning, "Failed to exit");
         EXPECT_CALL(*process, kill);
@@ -82,15 +97,15 @@ TEST(PowerShell, handles_failure_to_write_on_exit)
     mp::PowerShell ps{"test"};
 }
 
-TEST(PowerShell, handles_failure_to_finish_on_exit)
+TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 {
     auto logger_scope = mpt::MockLogger::inject();
     auto logger = logger_scope.mock_logger;
     logger->screen_logs(mpl::Level::error);
 
-    auto scope = mpt::MockProcessFactory::Inject();
-    scope->register_callback([logger](mpt::MockProcess* process) {
-        ASSERT_EQ(process->program(), psexe);
+    auto factory_scope = mpt::MockProcessFactory::Inject();
+    factory_scope->register_callback([this, logger](mpt::MockProcess* process) {
+        check(process);
         EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(std::strlen(psexit)));
         EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
 
@@ -104,3 +119,4 @@ TEST(PowerShell, handles_failure_to_finish_on_exit)
 
     mp::PowerShell ps{"test"};
 }
+} // namespace
