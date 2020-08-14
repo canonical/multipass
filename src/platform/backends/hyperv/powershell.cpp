@@ -75,8 +75,16 @@ mp::PowerShell::PowerShell(const std::string& name)
 
 mp::PowerShell::~PowerShell()
 {
-    powershell_proc->write("Exit\n");     // TODO@ricab check return
-    powershell_proc->wait_for_finished(); // TODO@ricab check return
+    if (!write("Exit\n") || !powershell_proc->wait_for_finished())
+    {
+        auto error = powershell_proc->error_string();
+        auto msg = std::string{"Failed to exit powershell gracefully"};
+        if (!error.isEmpty())
+            msg = fmt::format("{}: {}", msg, error);
+
+        mpl::log(mpl::Level::warning, name, msg);
+        powershell_proc->kill();
+    }
 }
 
 bool mp::PowerShell::run(const QStringList& args, QString& output)
@@ -149,4 +157,19 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     mpl::log(mpl::Level::trace, name, output.toStdString());
 
     return wait_result && power_shell->process_state().completed_successfully();
+}
+
+bool mp::PowerShell::write(const QByteArray& data)
+{
+    if (auto written = powershell_proc->write(data); written < data.size())
+    {
+        auto msg = fmt::format("Failed to send input data '{}'.", data);
+        if (written > 0)
+            msg = fmt::format("{}. Only the first {} bytes were written", msg, written);
+
+        mpl::log(mpl::Level::warning, name, msg);
+        return false;
+    }
+
+    return true;
 }

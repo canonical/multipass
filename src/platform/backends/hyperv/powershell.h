@@ -38,6 +38,8 @@ public:
     static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
 private:
+    bool write(const QByteArray& data);
+
     std::unique_ptr<Process> powershell_proc;
     const std::string name;
 };
