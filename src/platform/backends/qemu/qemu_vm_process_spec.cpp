@@ -38,27 +38,27 @@ QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, co
     auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
     `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
-    QStringList args{
-        "--enable-kvm",
-        "-hda",
-        desc.image.image_path,
-        "-smp",
-        QString::number(desc.num_cores),
-        "-m",
-        mem_size,
-        "-device",
-        QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1").arg(QString::fromStdString(desc.mac_addr)),
-        "-netdev",
-        QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name),
-        "-qmp",
-        "stdio",
-        "-cpu",
-        "host",
-        "-chardev",
-        "null,id=char0",
-        "-serial",
-        "chardev:char0",
-        "-nographic"};
+    QStringList args{"--enable-kvm",
+                     "-hda",
+                     desc.image.image_path,
+                     "-smp",
+                     QString::number(desc.num_cores),
+                     "-m",
+                     mem_size,
+                     "-device",
+                     QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1")
+                         .arg(QString::fromStdString(desc.interfaces[0].mac_address)),
+                     "-netdev",
+                     QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name),
+                     "-qmp",
+                     "stdio",
+                     "-cpu",
+                     "host",
+                     "-chardev",
+                     "null,id=char0",
+                     "-serial",
+                     "chardev:char0",
+                     "-nographic"};
 
     if (use_cdrom)
     {
@@ -127,7 +127,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         args << "-m" << mem_size;
         // Create a virtual NIC in the VM
         args << "-device"
-             << QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1").arg(QString::fromStdString(desc.mac_addr));
+             << QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1")
+                    .arg(QString::fromStdString(desc.interfaces[0].mac_address));
         // Create tap device to connect to virtual bridge
         args << "-netdev";
         args << QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name);
