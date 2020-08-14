@@ -32,7 +32,7 @@ struct TestQemuVMProcessSpec : public Test
                                              mp::MemorySize{"3G"} /*mem_size*/,
                                              mp::MemorySize{"4G"} /*disk_space*/,
                                              "vm_name",
-                                             "00:11:22:33:44:55",
+                                             {{"default", "00:11:22:33:44:55"}},
                                              "ssh_username",
                                              {"/path/to/image", "", "", "", "", "", "", {}}, // VMImage
                                              mp::Path{"/path/to/cloud_init.iso"},
