@@ -1113,6 +1113,9 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(mpl::Level::error, _, mpt::MockLogger::make_cstring_matcher(HasSubstr("unexpected LXD state"))))
+        .Times(AnyNumber());
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url};
 
     EXPECT_EQ(machine.current_state(), expected_state);

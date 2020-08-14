@@ -51,7 +51,7 @@ void mpt::MockLogger::screen_logs(mpl::Level lvl)
 {
     for (auto i = 0; i <= mpl::enum_type(mpl::Level::trace); ++i)
     {
-        auto times = i < mpl::enum_type(lvl) ? Exactly(0) : AnyNumber();
+        auto times = i <= mpl::enum_type(lvl) ? Exactly(0) : AnyNumber();
         EXPECT_CALL(*this, log(mpl::level_from(i), _, _)).Times(times);
     }
 }
