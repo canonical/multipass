@@ -27,6 +27,13 @@
 
 namespace multipass
 {
+// fwd declarations, to befriend below
+class PowerShell;
+namespace test
+{
+bool ps_write_accessor(PowerShell&, const QByteArray&);
+}
+
 class PowerShell
 {
 public:
@@ -38,6 +45,7 @@ public:
     static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
 private:
+    friend bool multipass::test::ps_write_accessor(PowerShell&, const QByteArray&); // for tests
     bool write(const QByteArray& data);
 
     std::unique_ptr<Process> powershell_proc;

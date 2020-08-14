@@ -30,6 +30,14 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace multipass::test
+{
+bool ps_write_accessor(PowerShell& ps, const QByteArray& data)
+{
+    return ps.write(data);
+}
+} // namespace multipass::test
+
 namespace
 {
 constexpr auto psexe = "powershell.exe";
@@ -135,4 +143,21 @@ TEST_F(PowerShell, uses_name_in_logs)
     mp::PowerShell ps{name};
 }
 
+TEST_F(PowerShell, write_silent_on_success)
+{
+    constexpr auto data = "Abbenay";
+    auto factory_scope = mpt::MockProcessFactory::Inject();
+    factory_scope->register_callback([this, data](mpt::MockProcess* process) {
+        check(process);
+        EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
+        EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data)));
+        ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true)); // TODO@ricab extract scopes and add this
+    });
+
+    auto logger_scope = mpt::MockLogger::inject();
+    mp::PowerShell ps{"asdf"};
+
+    logger_scope.mock_logger->screen_logs();
+    mpt::ps_write_accessor(ps, data);
+}
 } // namespace
