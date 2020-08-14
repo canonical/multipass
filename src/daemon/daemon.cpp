@@ -29,6 +29,7 @@
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
+#include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
@@ -163,9 +164,10 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
                                               const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
-                                              const std::string& mac_addr, const std::string& ssh_username,
-                                              const mp::VMImage& image, YAML::Node& meta_data_config,
-                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config)
+                                              const std::vector<mp::NetworkInterface>& interfaces,
+                                              const std::string& ssh_username, const mp::VMImage& image,
+                                              YAML::Node& meta_data_config, YAML::Node& user_data_config,
+                                              YAML::Node& vendor_data_config)
 {
     const auto num_cores = request->num_cores() < std::stoi(mp::min_cpu_cores)
                                ? std::stoi(mp::default_cpu_cores)
@@ -173,8 +175,10 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
     const auto instance_dir = mp::utils::base_dir(image.image_path);
     const auto cloud_init_iso =
         make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
-    return {num_cores,        mem_size,         disk_space,        name, mac_addr, ssh_username, image, cloud_init_iso,
-            meta_data_config, user_data_config, vendor_data_config};
+
+    return {
+        num_cores,        mem_size,         disk_space,        name, interfaces, ssh_username, image, cloud_init_iso,
+        meta_data_config, user_data_config, vendor_data_config};
 }
 
 template <typename T>
@@ -228,7 +232,6 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto num_cores = record["num_cores"].toInt();
         auto mem_size = record["mem_size"].toString().toStdString();
         auto disk_space = record["disk_space"].toString().toStdString();
-        auto mac_addr = record["mac_addr"].toString().toStdString();
         auto ssh_username = record["ssh_username"].toString().toStdString();
         auto state = record["state"].toInt();
         auto deleted = record["deleted"].toBool();
@@ -236,6 +239,26 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
         if (ssh_username.empty())
             ssh_username = "ubuntu";
+
+        // Read networking information. In old versions of Multipass, only a "mac_addr" field was present. In newer
+        // versions, there is a list of network interfaces under the "interfaces" field.
+        // Note: "mac_address" is still written for backward compatibility, it can be removed at some point. If
+        // both "interfaces" and "mac_addr" are present, we prefer to read data from "interfaces".
+        std::vector<mp::NetworkInterface> interfaces;
+
+        if (record.contains("interfaces"))
+        {
+            for (const auto& entry : record["interfaces"].toArray())
+            {
+                auto id = entry.toObject()["id"].toString().toStdString();
+                auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
+                interfaces.push_back(mp::NetworkInterface{id, mac_address});
+            }
+        }
+        else
+        {
+            interfaces.push_back(mp::NetworkInterface{"default", record["mac_addr"].toString().toStdString()});
+        }
 
         std::unordered_map<std::string, mp::VMMount> mounts;
         std::unordered_map<int, int> uid_map;
@@ -263,7 +286,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         reconstructed_records[key] = {num_cores,
                                       mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
                                       mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
-                                      mac_addr,
+                                      interfaces,
                                       ssh_username,
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
@@ -293,6 +316,40 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
     {
         return mp::nullopt;
     }
+}
+
+// The associated bool indicates whether the interface mode is 'auto', i.e., needs to be configured by cloud-init.
+std::pair<mp::NetworkInterface, bool> validate_network_options(const std::string& options)
+{
+    // We use a map and not an unordered_map because the map is very small. We save the time for hashing and don't
+    // care about searching complexities.
+    auto parsed_options = std::map<std::string, std::string>();
+
+    QStringList split = QString::fromStdString(options).split(',', QString::SkipEmptyParts);
+    for (auto key_value_pair : split)
+    {
+        QStringList key_value_split = key_value_pair.split('=', QString::SkipEmptyParts);
+        if (key_value_split.size() == 2 &&
+            ((key_value_split[0] == "mode" && (key_value_split[1] == "auto" || key_value_split[1] == "manual")) ||
+             key_value_split[0] == "id" ||
+             (key_value_split[0] == "mac" && mp::utils::valid_mac_address(key_value_split[1].toStdString()))) &&
+            parsed_options.count(key_value_split[0].toStdString()) == 0)
+        {
+            parsed_options.emplace(std::make_pair(key_value_split[0].toStdString(), key_value_split[1].toStdString()));
+        }
+        else
+        {
+            throw std::runtime_error("error parsing network options");
+        }
+    }
+
+    // Transfer the verified data to the return struct.
+    bool auto_mode = "auto" == parsed_options["mode"];
+    std::string id = parsed_options["id"];
+    std::string mac_address = parsed_options["mac"];
+
+    // TODO: check that the given MAC address was not already used.
+    return std::make_pair(mp::NetworkInterface{id, mac_address}, auto_mode);
 }
 
 auto validate_create_arguments(const mp::LaunchRequest* request)
@@ -333,13 +390,34 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
+    std::vector<std::pair<mp::NetworkInterface, bool>> interfaces;
+
+    // Add the default network interface first. The MAC address will be generated later, inside the daemon (to
+    // avoid repetition of MAC addresses).
+    interfaces.push_back(std::make_pair(mp::NetworkInterface{"default", ""}, true));
+
+    // Add the interfaces specified by the user.
+    try
+    {
+        int network_option_number = request->network_options_size();
+        for (int i = 0; i < network_option_number; ++i)
+        {
+            interfaces.push_back(validate_network_options(request->network_options(i)));
+        }
+    }
+    catch (const std::exception& e)
+    {
+        option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
+    }
+
     struct CheckedArguments
     {
         mp::MemorySize mem_size;
         mp::optional<mp::MemorySize> disk_space;
         std::string instance_name;
+        std::vector<std::pair<mp::NetworkInterface, bool>> interfaces;
         mp::LaunchError option_errors;
-    } ret{mem_size, disk_space, instance_name, option_errors};
+    } ret{mem_size, disk_space, instance_name, interfaces, option_errors};
     return ret;
 }
 
@@ -655,14 +733,34 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        auto mac_addr = spec.mac_addr;
-        if (mac_addr.empty())
+        auto interfaces = spec.interfaces;
+
+        // If there are no interfaces specified in spec, add to the instance the default one. If there are
+        // interfaces, check all of them for the mac address and generate it if missing.
+        if (interfaces.empty())
         {
-            mac_addr = mp::utils::generate_mac_address();
-            vm_instance_specs[name].mac_addr = mac_addr;
-            mac_addr_missing = true;
+            interfaces.push_back(mp::NetworkInterface{"default", generate_unused_mac_address()});
         }
-        allocated_mac_addrs.insert(mac_addr);
+        else
+        {
+            for (auto& iface : interfaces)
+            {
+                if (iface.mac_address.empty())
+                {
+                    iface.mac_address = generate_unused_mac_address();
+                    mac_addr_missing = true;
+                }
+                else
+                {
+                    // Make sure we have a correct mac address.
+                    // TODO: at some point, this check won't be needed. Remove, then.
+                    if (!mp::utils::valid_mac_address(iface.mac_address))
+                    {
+                        throw std::runtime_error("Invalid MAC address");
+                    }
+                }
+            }
+        }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
@@ -671,7 +769,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec.mem_size,
                                               spec.disk_space,
                                               name,
-                                              mac_addr,
+                                              interfaces,
                                               spec.ssh_username,
                                               vm_image,
                                               cloud_init_iso,
@@ -1786,6 +1884,22 @@ QJsonObject mp::Daemon::retrieve_metadata_for(const std::string& name)
     return vm_instance_specs[name].metadata;
 }
 
+std::string mp::Daemon::generate_unused_mac_address()
+{
+    std::string mac_address = mp::utils::generate_mac_address();
+
+    // TODO: Checking in our list of MAC addresses does not suffice to conclude the generated MAC is unique. We
+    // should also check in the ARP table.
+    while (allocated_mac_addrs.find(mac_address) != allocated_mac_addrs.end())
+    {
+        mac_address = mp::utils::generate_mac_address();
+    }
+
+    allocated_mac_addrs.insert(mac_address);
+
+    return mac_address;
+}
+
 void mp::Daemon::persist_instances()
 {
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
@@ -1793,11 +1907,32 @@ void mp::Daemon::persist_instances()
         json.insert("num_cores", specs.num_cores);
         json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
         json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
-        json.insert("mac_addr", QString::fromStdString(specs.mac_addr));
         json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
         json.insert("state", static_cast<int>(specs.state));
         json.insert("deleted", specs.deleted);
         json.insert("metadata", specs.metadata);
+
+        if (0 == specs.interfaces.size())
+        {
+            throw std::runtime_error("No network interfaces");
+        }
+
+        // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
+        // default network interface. This must be done for backward compatibility.
+        // TODO: remove this field when we think old versions of Multipass are not running anymore (in any case, it
+        // is unlikely an instance created with a version of Multipass is ran on an older version).
+        json.insert("mac_addr", QString::fromStdString(specs.interfaces[0].mac_address));
+
+        QJsonArray interfaces;
+        for (const auto& interface : specs.interfaces)
+        {
+            QJsonObject entry;
+            entry.insert("id", QString::fromStdString(interface.id));
+            entry.insert("mac_address", QString::fromStdString(interface.mac_address));
+            interfaces.append(entry);
+        }
+
+        json.insert("interfaces", interfaces);
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)
@@ -1926,7 +2061,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
                                            vm_desc.disk_space,
-                                           vm_desc.mac_addr,
+                                           vm_desc.interfaces,
                                            config->ssh_username,
                                            VirtualMachine::State::off,
                                            {},
@@ -2012,20 +2147,26 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
                 prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
 
-                std::string mac_addr;
-                while (true)
+                // Check that we have at least one network interface.
+                if (0 == checked_args.interfaces.size())
                 {
-                    mac_addr = mp::utils::generate_mac_address();
-
-                    auto it = allocated_mac_addrs.find(mac_addr);
-                    if (it == allocated_mac_addrs.end())
-                    {
-                        allocated_mac_addrs.insert(mac_addr);
-                        break;
-                    }
+                    throw std::runtime_error("No network interfaces");
                 }
 
-                auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, mac_addr,
+                // Generate MAC addresses for the interfaces on which it was not specified and put the modified
+                // interfaces in a new vector.
+                std::vector<mp::NetworkInterface> interfaces;
+
+                for (auto iface : checked_args.interfaces)
+                {
+                    if ("" == iface.first.mac_address)
+                    {
+                        iface.first.mac_address = generate_unused_mac_address();
+                    }
+                    interfaces.push_back(iface.first);
+                }
+
+                auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, interfaces,
                                                config->ssh_username, vm_image, meta_data_cloud_init_config,
                                                user_data_cloud_init_config, vendor_data_cloud_init_config);
 
