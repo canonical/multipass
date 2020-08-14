@@ -110,14 +110,14 @@ TEST_F(PowerShell, handles_failure_to_write_on_exit)
 
 TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 {
+    static constexpr auto err = "timeout";
     auto logger = logger_scope.mock_logger;
     logger->screen_logs(mpl::Level::error);
 
-    auto err = "timeout";
     auto msg_matcher = mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("Failed to exit"), HasSubstr(err)));
     EXPECT_CALL(*logger, log(mpl::Level::warning, _, msg_matcher));
 
-    setup([err](auto* process) {
+    setup([](auto* process) {
         EXPECT_CALL(*process, write(Eq(psexit)));
         EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
 
@@ -131,7 +131,7 @@ TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 TEST_F(PowerShell, uses_name_in_logs)
 {
     auto logger = logger_scope.mock_logger;
-    constexpr auto name = "Shevek";
+    static constexpr auto name = "Shevek";
 
     logger->screen_logs();
     EXPECT_CALL(*logger, log(_, mpt::MockLogger::make_cstring_matcher(StrEq(name)), _)).Times(AtLeast(1));
@@ -142,8 +142,8 @@ TEST_F(PowerShell, uses_name_in_logs)
 
 TEST_F(PowerShell, write_silent_on_success)
 {
-    constexpr auto data = "Abbenay";
-    setup([data](auto* process) {
+    static constexpr auto data = "Abbenay";
+    setup([](auto* process) {
         EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
         EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data)));
     });
