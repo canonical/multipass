@@ -521,6 +521,20 @@ TEST_F(LXDImageVault, update_image_not_refreshed_logs_expected_message)
     EXPECT_TRUE(refresh_requested);
 }
 
+TEST_F(LXDImageVault, update_image_no_project_does_not_throw)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
+
+    EXPECT_NO_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
+}
+
 TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
 {
     bool delete_requested{false};
@@ -583,4 +597,18 @@ TEST_F(LXDImageVault, image_hash_delete_requested_on_expiration)
     image_vault.prune_expired_images();
 
     EXPECT_TRUE(delete_requested);
+}
+
+TEST_F(LXDImageVault, prune_expired_image_no_project_does_not_throw)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
+
+    EXPECT_NO_THROW(image_vault.prune_expired_images());
 }
