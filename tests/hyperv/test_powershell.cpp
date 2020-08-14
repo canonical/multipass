@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/format.h>
 #include <src/platform/backends/hyperv/powershell.h>
 
 #include "tests/mock_logger.h"
@@ -152,4 +153,38 @@ TEST_F(PowerShell, write_silent_on_success)
     logger_scope.mock_logger->screen_logs();
     mpt::ps_write_accessor(ps, data);
 }
+
+TEST_F(PowerShell, write_logs_on_failure)
+{
+    static constexpr auto data = "Nio Esseia";
+    setup([](auto* process) {
+        EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
+        EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(-1));
+    });
+
+    mp::PowerShell ps{"Takver"};
+
+    auto logger = logger_scope.mock_logger;
+    logger->screen_logs();
+    logger->expect_log(mpl::Level::warning, "Failed to send");
+    mpt::ps_write_accessor(ps, data);
+}
+
+TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
+{
+    static constexpr auto data = "Anarres";
+    static constexpr auto part = 3;
+    setup([](auto* process) {
+        EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
+        EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(part));
+    });
+
+    mp::PowerShell ps{"Palat"};
+
+    auto logger = logger_scope.mock_logger;
+    logger->screen_logs();
+    logger->expect_log(mpl::Level::warning, fmt::format("{} bytes", part));
+    mpt::ps_write_accessor(ps, data);
+}
+
 } // namespace
