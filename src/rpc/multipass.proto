@@ -48,16 +48,6 @@ message OptInStatus {
     Status opt_in_status = 1;
 }
 
-message NetworkKeyValuePair {
-    enum NetworkOptionKey {
-        MODE = 0;
-        ID = 1;
-        MAC = 2;
-    }
-    NetworkOptionKey key = 1;
-    string value = 2;
-}
-
 message LaunchRequest {
     string instance_name = 1;
     string image = 2;
@@ -70,7 +60,7 @@ message LaunchRequest {
     string remote_name = 9;
     OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
-    repeated NetworkKeyValuePair network_options = 12;
+    repeated string network_options = 12;
 }
 
 message LaunchError {
@@ -80,6 +70,7 @@ message LaunchError {
         INVALID_MEM_SIZE = 2;
         INVALID_DISK_SIZE = 3;
         INVALID_HOSTNAME = 4;
+        INVALID_NETWORK = 5;
     }
     repeated ErrorCodes error_codes = 1;
 }
@@ -242,14 +233,14 @@ message ListNetworksRequest {
     int32 verbosity_level = 1;
 }
 
-message NetworkInterface {
+message NetInterface {
     string name = 1;
     string type = 2;
     string description = 3;
 }
 
 message ListNetworksReply {
-    repeated NetworkInterface interfaces = 1;
+    repeated NetInterface interfaces = 1;
     UpdateInfo update_info = 2;
     string log_line = 3;
 }

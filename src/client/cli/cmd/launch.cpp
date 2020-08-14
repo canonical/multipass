@@ -126,7 +126,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption});
+    QCommandLineOption networkOption("network",
+                                     "Add a network interface to the instance, where <definition> is in the "
+                                     "\"key=value,key=value\" format, with the following keys available:\n"
+                                     "mode: auto|manual (default: auto)\n"
+                                     "id: the network to connect to (required, default: none)\n"
+                                     "mac: hardware address (default: random)",
+                                     "definition");
+
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});
 
     auto status = parser->commandParse(this);
 
@@ -219,6 +227,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         {
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
+        }
+    }
+
+    if (parser->isSet(networkOption))
+    {
+        QStringList network_options = parser->values(networkOption);
+        for (auto option : network_options)
+        {
+            request.add_network_options(option.toStdString());
         }
     }
 
@@ -315,6 +332,15 @@ mp::ReturnCode cmd::Launch::request_launch()
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
                 error_details = fmt::format("Invalid instance name supplied: {}", request.instance_name());
+            }
+            else if (error == LaunchError::INVALID_NETWORK)
+            {
+                // TODO: show the option which triggered the error only. This will need a refactor in the
+                // LaunchError proto.
+                std::string all_network_options = request.network_options(0);
+                for (int i = 1; i < request.network_options_size(); ++i)
+                    all_network_options += "; " + request.network_options(i);
+                error_details = fmt::format("Invalid network options supplied: {}", all_network_options);
             }
         }
 
