@@ -62,6 +62,7 @@ private:
     NetworkAccessManager* manager;
     const QUrl base_url;
     const QString bridge_name;
+    const QString mac_addr;
 
     const QUrl url();
     const QUrl state_url();

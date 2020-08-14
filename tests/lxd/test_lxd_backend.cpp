@@ -67,7 +67,7 @@ struct LXDBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      "",
+                                                      "00:16:3e:fe:f2:b9",
                                                       "yoda",
                                                       {},
                                                       "",
@@ -510,6 +510,13 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
                              "\"source\":\"cloud-init:config\","
                              "\"type\":\"disk\""
                              "},"
+                             "\"eth0\":{"
+                             "\"hwaddr\":\"00:16:3e:fe:f2:b9\","
+                             "\"name\":\"eth0\","
+                             "\"nictype\":\"bridged\","
+                             "\"parent\":\"mpbr0\","
+                             "\"type\":\"nic\""
+                             "},"
                              "\"root\":{"
                              "\"path\":\"/\","
                              "\"pool\":\"default\","
@@ -582,6 +589,13 @@ TEST_F(LXDBackend, posts_expected_data_including_disk_size_when_creating_instanc
                              "\"config\":{"
                              "\"source\":\"cloud-init:config\","
                              "\"type\":\"disk\""
+                             "},"
+                             "\"eth0\":{"
+                             "\"hwaddr\":\"00:16:3e:fe:f2:b9\","
+                             "\"name\":\"eth0\","
+                             "\"nictype\":\"bridged\","
+                             "\"parent\":\"mpbr0\","
+                             "\"type\":\"nic\""
                              "},"
                              "\"root\":{"
                              "\"path\":\"/\","

@@ -77,20 +77,19 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
     }
 }
 
-mp::optional<mp::IPAddress> get_ip_for(const QString& name, mp::NetworkAccessManager* manager, const QUrl& url)
+mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAccessManager* manager, const QUrl& url)
 {
     const auto json_leases = lxd_request(manager, "GET", url);
     const auto leases = json_leases["metadata"].toArray();
 
     for (const auto lease : leases)
     {
-        if (lease.toObject()["hostname"].toString() == name)
+        if (lease.toObject()["hwaddr"].toString() == mac_addr)
         {
             return mp::optional<mp::IPAddress>{lease.toObject()["address"].toString().toStdString()};
         }
     }
 
-    mpl::log(mpl::Level::trace, name.toStdString(), fmt::format("IP for {} not found...", name));
     return mp::nullopt;
 }
 
@@ -119,7 +118,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
       monitor{&monitor},
       manager{manager},
       base_url{base_url},
-      bridge_name{bridge_name}
+      bridge_name{bridge_name},
+      mac_addr{QString::fromStdString(desc.mac_addr)}
 {
     try
     {
@@ -147,7 +147,12 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
             {"root", QJsonObject{{"path", "/"},
                                  {"pool", "default"},
                                  {"size", QString::number(get_minimum_disk_size(desc.disk_space).in_bytes())},
-                                 {"type", "disk"}}}};
+                                 {"type", "disk"}}},
+            {"eth0", QJsonObject{{"name", "eth0"},
+                                 {"nictype", "bridged"},
+                                 {"parent", "mpbr0"},
+                                 {"type", "nic"},
+                                 {"hwaddr", mac_addr}}}};
 
         QJsonObject virtual_machine{
             {"name", name},
@@ -309,13 +314,14 @@ std::string mp::LXDVirtualMachine::ssh_hostname()
     {
         auto action = [this] {
             ensure_vm_is_running();
-            ip = get_ip_for(name, manager, network_leases_url());
+            ip = get_ip_for(mac_addr, manager, network_leases_url());
             if (ip)
             {
                 return mpu::TimeoutAction::done;
             }
             else
             {
+                mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
                 return mpu::TimeoutAction::retry;
             }
         };
@@ -335,9 +341,12 @@ std::string mp::LXDVirtualMachine::ipv4()
 {
     if (!ip)
     {
-        ip = get_ip_for(name, manager, network_leases_url());
+        ip = get_ip_for(mac_addr, manager, network_leases_url());
         if (!ip)
+        {
+            mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
             return "UNKNOWN";
+        }
     }
 
     return ip.value().as_string();
