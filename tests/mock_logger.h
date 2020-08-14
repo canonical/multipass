@@ -59,7 +59,8 @@ public:
     template <typename Matcher>
     static auto make_cstring_matcher(const Matcher& matcher);
 
-    void expect_log(multipass::logging::Level lvl, const std::string& substr);
+    void expect_log(multipass::logging::Level lvl, const std::string& substr,
+                    const testing::Cardinality& times = testing::Exactly(1));
 
     // Reject logs with severity `lvl` or higher (lower integer), accept the rest
     // By default, all logs are rejected. Pass error level to accept everything but errors (expect those explicitly)
