@@ -23,6 +23,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <cstring>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -31,17 +33,33 @@ using namespace testing;
 namespace
 {
 constexpr auto psexe = "powershell.exe";
+constexpr auto psexit = "Exit\n";
 }
 
 TEST(PowerShell, creates_ps_process)
 {
     auto logger_scope = mpt::MockLogger::inject();
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
 
     auto scope = mpt::MockProcessFactory::Inject();
     scope->register_callback([](mpt::MockProcess* process) {
         ASSERT_EQ(process->program(), psexe);
         EXPECT_CALL(*process, start()).Times(1);
+    });
+
+    mp::PowerShell ps{"test"};
+}
+
+TEST(PowerShell, exits_ps_process)
+{
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+
+    auto scope = mpt::MockProcessFactory::Inject();
+    scope->register_callback([](mpt::MockProcess* process) {
+        ASSERT_EQ(process->program(), psexe);
+        EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(std::strlen(psexit)));
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
     });
 
     mp::PowerShell ps{"test"};
