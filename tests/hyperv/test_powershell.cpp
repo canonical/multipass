@@ -198,4 +198,20 @@ TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
     ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
+TEST_F(PowerShell, run_writes_and_logs_cmd)
+{
+    static constexpr auto cmdlet = "some cmd and args";
+    auto logger = logger_scope.mock_logger;
+    logger->screen_logs(mpl::Level::error);
+    logger->expect_log(mpl::Level::trace, cmdlet);
+
+    setup([](auto* process) {
+        EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))))
+            .WillOnce(Return(-1)); // short-circuit the attempt
+        EXPECT_CALL(*process, write(Eq(psexit)));
+    });
+
+    mp::PowerShell ps{"foo"};
+    ASSERT_FALSE(ps.run(QString{cmdlet}.split(' ')));
+}
 } // namespace
