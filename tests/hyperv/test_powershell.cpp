@@ -64,3 +64,43 @@ TEST(PowerShell, exits_ps_process)
 
     mp::PowerShell ps{"test"};
 }
+
+TEST(PowerShell, handles_failure_to_write_on_exit)
+{
+    auto logger_scope = mpt::MockLogger::inject();
+    auto logger = logger_scope.mock_logger;
+    logger->screen_logs(mpl::Level::error);
+
+    auto scope = mpt::MockProcessFactory::Inject();
+    scope->register_callback([logger](mpt::MockProcess* process) {
+        ASSERT_EQ(process->program(), psexe);
+        EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(-1));
+        logger->expect_log(mpl::Level::warning, "Failed to exit");
+        EXPECT_CALL(*process, kill);
+    });
+
+    mp::PowerShell ps{"test"};
+}
+
+TEST(PowerShell, handles_failure_to_finish_on_exit)
+{
+    auto logger_scope = mpt::MockLogger::inject();
+    auto logger = logger_scope.mock_logger;
+    logger->screen_logs(mpl::Level::error);
+
+    auto scope = mpt::MockProcessFactory::Inject();
+    scope->register_callback([logger](mpt::MockProcess* process) {
+        ASSERT_EQ(process->program(), psexe);
+        EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(std::strlen(psexit)));
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
+
+        auto err = "timeout";
+        EXPECT_CALL(*process, error_string).WillOnce(Return(err));
+
+        auto msg_matcher = mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("Failed to exit"), HasSubstr(err)));
+        EXPECT_CALL(*logger, log(mpl::Level::warning, _, msg_matcher));
+        EXPECT_CALL(*process, kill);
+    });
+
+    mp::PowerShell ps{"test"};
+}
