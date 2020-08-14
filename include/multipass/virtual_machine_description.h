@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,13 @@
 #define MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
 
 #include <multipass/memory_size.h>
+#include <multipass/network_interface.h>
 #include <multipass/vm_image.h>
 
 #include <yaml-cpp/yaml.h>
 
 #include <string>
+#include <vector>
 
 #include <QMetaType>
 
@@ -39,7 +41,7 @@ public:
     MemorySize mem_size;
     MemorySize disk_space;
     std::string vm_name;
-    std::string mac_addr;
+    std::vector<NetworkInterface> interfaces;
     std::string ssh_username;
     VMImage image;
     Path cloud_init_iso;

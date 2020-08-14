@@ -199,7 +199,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
     : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
       desc{desc},
-      mac_addr{desc.mac_addr},
+      mac_addr{desc.interfaces[0].mac_address},
       username{desc.ssh_username},
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor}
