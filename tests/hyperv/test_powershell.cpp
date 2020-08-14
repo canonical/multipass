@@ -17,12 +17,14 @@
 
 #include <src/platform/backends/hyperv/powershell.h>
 
+#include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -33,6 +35,9 @@ constexpr auto psexe = "powershell.exe";
 
 TEST(PowerShell, creates_ps_process)
 {
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
     auto scope = mpt::MockProcessFactory::Inject();
     scope->register_callback([](mpt::MockProcess* process) {
         ASSERT_EQ(process->program(), psexe);
