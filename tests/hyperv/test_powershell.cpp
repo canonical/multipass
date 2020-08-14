@@ -33,10 +33,21 @@ using namespace testing;
 
 namespace multipass::test
 {
-bool ps_write_accessor(PowerShell& ps, const QByteArray& data)
+struct PowerShellTestAccessor
 {
-    return ps.write(data);
-}
+    PowerShellTestAccessor(PowerShell& ps) : ps{ps}
+    {
+    }
+
+    bool write(const QByteArray& data)
+    {
+        return ps.write(data);
+    }
+
+    inline static const QString& output_end_marker = PowerShell::output_end_marker;
+
+    PowerShell& ps;
+};
 } // namespace multipass::test
 
 namespace
@@ -151,7 +162,7 @@ TEST_F(PowerShell, write_silent_on_success)
     mp::PowerShell ps{"asdf"};
 
     logger_scope.mock_logger->screen_logs();
-    mpt::ps_write_accessor(ps, data);
+    ASSERT_TRUE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
 TEST_F(PowerShell, write_logs_on_failure)
@@ -167,7 +178,7 @@ TEST_F(PowerShell, write_logs_on_failure)
     auto logger = logger_scope.mock_logger;
     logger->screen_logs();
     logger->expect_log(mpl::Level::warning, "Failed to send");
-    mpt::ps_write_accessor(ps, data);
+    ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
 TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
@@ -184,7 +195,7 @@ TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
     auto logger = logger_scope.mock_logger;
     logger->screen_logs();
     logger->expect_log(mpl::Level::warning, fmt::format("{} bytes", part));
-    mpt::ps_write_accessor(ps, data);
+    ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
 } // namespace

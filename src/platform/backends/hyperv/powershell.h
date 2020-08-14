@@ -27,11 +27,9 @@
 
 namespace multipass
 {
-// fwd declarations, to befriend below
-class PowerShell;
 namespace test
 {
-bool ps_write_accessor(PowerShell&, const QByteArray&);
+struct PowerShellTestAccessor; // fwd declaration, to befriend below
 }
 
 class PowerShell
@@ -45,11 +43,13 @@ public:
     static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
 private:
-    friend bool multipass::test::ps_write_accessor(PowerShell&, const QByteArray&); // for tests
+    friend struct multipass::test::PowerShellTestAccessor;
     bool write(const QByteArray& data);
 
     std::unique_ptr<Process> powershell_proc;
     const std::string name;
+
+    inline static const QString output_end_marker = "cmdlet status is";
 };
 } // namespace multipass
 

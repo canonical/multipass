@@ -32,7 +32,6 @@ namespace
 {
 constexpr auto ps_cmd = "powershell.exe";
 const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
-const QString unique_echo_string{"cmdlet status is"};
 
 void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
@@ -89,7 +88,7 @@ mp::PowerShell::~PowerShell()
 
 bool mp::PowerShell::run(const QStringList& args, QString& output)
 {
-    QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(unique_echo_string);
+    QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(output_end_marker);
     bool cmdlet_code{false};
 
     mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet: '{}'", args.join(" ")));
@@ -105,9 +104,9 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
             powershell_proc->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
 
             powershell_output.append(powershell_proc->read_all_standard_output());
-            if (powershell_output.contains(unique_echo_string))
+            if (powershell_output.contains(output_end_marker))
             {
-                auto parsed_output = powershell_output.split(unique_echo_string);
+                auto parsed_output = powershell_output.split(output_end_marker);
                 if (parsed_output.size() == 2)
                 {
                     // Be sure the exit status is fully read from output
