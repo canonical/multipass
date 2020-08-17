@@ -127,7 +127,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
     catch (const LXDNotFoundException& e)
     {
         mpl::log(mpl::Level::debug, name.toStdString(),
-                 fmt::format("Creating container with stream: {}, id: {}", desc.image.stream_location, desc.image.id));
+                 fmt::format("Creating instance with image id: {}", desc.image.id));
 
         QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
                            {"limits.memory", QString::number(desc.mem_size.in_bytes())}};

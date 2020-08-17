@@ -93,7 +93,6 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             VMImage source_image;
 
             source_image.id = id.toStdString();
-            source_image.stream_location = info.stream_location.toStdString();
             source_image.original_release = info.release_title.toStdString();
             source_image.release_date = info.version.toStdString();
 
@@ -123,7 +122,6 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     VMImage source_image;
 
     source_image.id = id.toStdString();
-    source_image.stream_location = info.stream_location.toStdString();
     source_image.original_release = info.release_title.toStdString();
     source_image.release_date = info.version.toStdString();
 

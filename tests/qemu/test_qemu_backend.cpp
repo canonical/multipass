@@ -58,7 +58,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       "pied-piper-valley",
                                                       "",
                                                       "",
-                                                      {dummy_image.name(), "", "", "", "", "", "", {}, {}},
+                                                      {dummy_image.name(), "", "", "", "", "", {}, {}},
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},

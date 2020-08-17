@@ -153,8 +153,8 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
                                         image_url, // image_location
                                         image_info.second.kernel_location,
                                         image_info.second.initrd_location,
-                                        base_image_info.hash,          // id
-                                        prefix,                        // stream_location
+                                        base_image_info.hash, // id
+                                        "",
                                         base_image_info.last_modified, // version
                                         0,
                                         true};
