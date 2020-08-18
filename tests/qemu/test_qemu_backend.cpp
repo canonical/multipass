@@ -63,6 +63,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},
+                                                      {},
                                                       {}};
     mpt::TempDir data_dir;
     const std::string tap_device{"tapfoo"};

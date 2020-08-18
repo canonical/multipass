@@ -48,6 +48,7 @@ public:
     YAML::Node meta_data_config;
     YAML::Node user_data_config;
     YAML::Node vendor_data_config;
+    YAML::Node network_data_config;
 };
 } // namespace multipass
 
