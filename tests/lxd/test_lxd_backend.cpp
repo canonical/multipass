@@ -69,6 +69,7 @@ struct LXDBackend : public Test
                                                       "",
                                                       {},
                                                       {},
+                                                      {},
                                                       {}};
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
