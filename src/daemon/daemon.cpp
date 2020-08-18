@@ -59,6 +59,7 @@
 #include <functional>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -135,8 +136,33 @@ auto make_cloud_init_meta_config(const std::string& name)
     return meta_data;
 }
 
+auto make_cloud_init_network_config(const std::vector<mp::NetworkInterface>& interfaces)
+{
+    YAML::Node network_data, interfaces_data;
+
+    if (!interfaces.empty())
+    {
+        network_data["version"] = "2";
+        for (size_t i = 0; i < interfaces.size(); ++i)
+        {
+            std::string name = "adapter" + std::to_string(i);
+            network_data["ethernets"][name]["match"]["macaddress"] = interfaces[i].mac_address;
+            network_data["ethernets"][name]["dhcp4"] = true;
+            network_data["ethernets"][name]["wakeonlan"] = "true";
+            // We make the default gateway associated with the first interface.
+            if (i)
+            {
+                network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = "200";
+            }
+        }
+    }
+
+    return network_data;
+}
+
 auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
-                           YAML::Node& user_data_config, YAML::Node& vendor_data_config)
+                           YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                           YAML::Node& network_data_config)
 {
     const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
     if (QFile::exists(cloud_init_iso))
@@ -145,6 +171,7 @@ auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YA
     mp::CloudInitIso iso;
     iso.add_file("meta-data", mpu::emit_cloud_config(meta_data_config));
     iso.add_file("vendor-data", mpu::emit_cloud_config(vendor_data_config));
+    iso.add_file("network-config", mpu::emit_cloud_config(network_data_config));
     iso.add_file("user-data", mpu::emit_cloud_config(user_data_config));
     iso.write_to(cloud_init_iso);
 
@@ -167,18 +194,27 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
                                               const std::vector<mp::NetworkInterface>& interfaces,
                                               const std::string& ssh_username, const mp::VMImage& image,
                                               YAML::Node& meta_data_config, YAML::Node& user_data_config,
-                                              YAML::Node& vendor_data_config)
+                                              YAML::Node& vendor_data_config, YAML::Node& network_data_config)
 {
     const auto num_cores = request->num_cores() < std::stoi(mp::min_cpu_cores)
                                ? std::stoi(mp::default_cpu_cores)
                                : request->num_cores();
     const auto instance_dir = mp::utils::base_dir(image.image_path);
-    const auto cloud_init_iso =
-        make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config, vendor_data_config);
+    const auto cloud_init_iso = make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config,
+                                                      vendor_data_config, network_data_config);
 
-    return {
-        num_cores,        mem_size,         disk_space,        name, interfaces, ssh_username, image, cloud_init_iso,
-        meta_data_config, user_data_config, vendor_data_config};
+    return {num_cores,
+            mem_size,
+            disk_space,
+            name,
+            interfaces,
+            ssh_username,
+            image,
+            cloud_init_iso,
+            meta_data_config,
+            user_data_config,
+            vendor_data_config,
+            network_data_config};
 }
 
 template <typename T>
@@ -773,6 +809,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec.ssh_username,
                                               vm_image,
                                               cloud_init_iso,
+                                              {},
                                               {},
                                               {},
                                               {}};
@@ -2140,12 +2177,6 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
                 reply.set_create_message("Configuring " + name);
                 server->Write(reply);
-                auto vendor_data_cloud_init_config =
-                    make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                                  config->factory->get_backend_version_string().toStdString());
-                auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
-                auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-                prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
 
                 // Check that we have at least one network interface.
                 if (0 == checked_args.interfaces.size())
@@ -2154,8 +2185,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 }
 
                 // Generate MAC addresses for the interfaces on which it was not specified and put the modified
-                // interfaces in a new vector.
-                std::vector<mp::NetworkInterface> interfaces;
+                // interfaces in a new vector. Create another vector containing only the interfaces which must be
+                // configured via cloud-init.
+                std::vector<mp::NetworkInterface> interfaces, cloud_init_interfaces;
 
                 for (auto iface : checked_args.interfaces)
                 {
@@ -2164,11 +2196,25 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                         iface.first.mac_address = generate_unused_mac_address();
                     }
                     interfaces.push_back(iface.first);
+
+                    if (iface.second)
+                    {
+                        cloud_init_interfaces.push_back(iface.first);
+                    }
                 }
 
-                auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, interfaces,
-                                               config->ssh_username, vm_image, meta_data_cloud_init_config,
-                                               user_data_cloud_init_config, vendor_data_cloud_init_config);
+                auto vendor_data_cloud_init_config =
+                    make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
+                                                  config->factory->get_backend_version_string().toStdString());
+                auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
+                auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
+                prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+                auto network_data_cloud_init_config = make_cloud_init_network_config(cloud_init_interfaces);
+
+                auto vm_desc =
+                    to_machine_desc(request, name, checked_args.mem_size, disk_space, interfaces, config->ssh_username,
+                                    vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
+                                    vendor_data_cloud_init_config, network_data_cloud_init_config);
 
                 config->factory->prepare_instance_image(vm_image, vm_desc);
 
