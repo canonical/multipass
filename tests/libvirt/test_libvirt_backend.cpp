@@ -56,6 +56,7 @@ struct LibVirtBackend : public Test
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},
+                                                      {},
                                                       {}};
     mpt::TempDir data_dir;
     // This indicates that LibvirtWrapper should open the test executable
