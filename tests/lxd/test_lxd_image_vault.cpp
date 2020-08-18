@@ -521,6 +521,59 @@ TEST_F(LXDImageVault, update_image_not_refreshed_logs_expected_message)
     EXPECT_TRUE(refresh_requested);
 }
 
+TEST_F(LXDImageVault, update_image_no_project_does_not_throw)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
+
+    EXPECT_NO_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
+}
+
+TEST_F(LXDImageVault, update_image_refresh_image_fails_does_no_throw)
+{
+    bool refresh_requested{false}, operation_requested{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&refresh_requested, &operation_requested](auto, auto request, auto) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
+            {
+                if (url.contains("1.0/images"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::image_info_update_source_info);
+                }
+                else if (url.contains("1.0/operations/b4d2419f-61c7-44ff-9d17-68cd13e7c6df"))
+                {
+                    // Should not be called
+                    operation_requested = true;
+                }
+            }
+            else if (op == "POST" &&
+                     url.contains(
+                         "1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855/refresh"))
+            {
+                refresh_requested = true;
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
+
+    EXPECT_NO_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
+
+    EXPECT_TRUE(refresh_requested);
+    EXPECT_FALSE(operation_requested);
+}
+
 TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
 {
     bool delete_requested{false};
@@ -581,6 +634,49 @@ TEST_F(LXDImageVault, image_hash_delete_requested_on_expiration)
     mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
 
     image_vault.prune_expired_images();
+
+    EXPECT_TRUE(delete_requested);
+}
+
+TEST_F(LXDImageVault, prune_expired_image_no_project_does_not_throw)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
+
+    EXPECT_NO_THROW(image_vault.prune_expired_images());
+}
+
+TEST_F(LXDImageVault, prune_expired_image_delete_fails_does_no_throw)
+{
+    bool delete_requested{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&delete_requested](auto, auto request, auto) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/images"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::image_info_data);
+            }
+            else if (op == "DELETE" &&
+                     url.contains("1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+            {
+                delete_requested = true;
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
+
+    EXPECT_NO_THROW(image_vault.prune_expired_images());
 
     EXPECT_TRUE(delete_requested);
 }

@@ -193,7 +193,16 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
-    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+    QJsonObject json_reply;
+
+    try
+    {
+        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+    }
+    catch (const LXDNotFoundException&)
+    {
+        return;
+    }
 
     auto images = json_reply["metadata"].toArray();
 
@@ -209,9 +218,16 @@ void mp::LXDVMImageVault::prune_expired_images()
                      fmt::format("Source image \'{}\' is expired. Removing it…",
                                  image_info["properties"].toObject()["release"].toString()));
 
-            lxd_request(
-                manager, "DELETE",
-                QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(image_info["fingerprint"].toString())));
+            try
+            {
+                lxd_request(
+                    manager, "DELETE",
+                    QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(image_info["fingerprint"].toString())));
+            }
+            catch (const LXDNotFoundException&)
+            {
+                continue;
+            }
         }
     }
 }
@@ -219,7 +235,16 @@ void mp::LXDVMImageVault::prune_expired_images()
 void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
-    auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+    QJsonObject json_reply;
+
+    try
+    {
+        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+    }
+    catch (const LXDNotFoundException&)
+    {
+        return;
+    }
 
     auto images = json_reply["metadata"].toArray();
 
@@ -233,21 +258,28 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
 
             auto id = image_info["fingerprint"].toString();
 
-            auto json_reply =
-                lxd_request(manager, "POST", QUrl(QString("%1/images/%2/refresh").arg(base_url.toString()).arg(id)));
+            try
+            {
+                auto json_reply = lxd_request(manager, "POST",
+                                              QUrl(QString("%1/images/%2/refresh").arg(base_url.toString()).arg(id)));
 
-            auto task_complete = [&release](auto metadata) {
-                if (metadata["metadata"].toObject()["refreshed"].toBool())
-                {
-                    mpl::log(mpl::Level::info, category, fmt::format("Image update for \'{}\' complete.", release));
-                }
-                else
-                {
-                    mpl::log(mpl::Level::debug, category, fmt::format("No image update for \'{}\'.", release));
-                }
-            };
+                auto task_complete = [&release](auto metadata) {
+                    if (metadata["metadata"].toObject()["refreshed"].toBool())
+                    {
+                        mpl::log(mpl::Level::info, category, fmt::format("Image update for \'{}\' complete.", release));
+                    }
+                    else
+                    {
+                        mpl::log(mpl::Level::debug, category, fmt::format("No image update for \'{}\'.", release));
+                    }
+                };
 
-            poll_download_operation(json_reply, monitor, task_complete);
+                poll_download_operation(json_reply, monitor, task_complete);
+            }
+            catch (const LXDNotFoundException&)
+            {
+                continue;
+            }
         }
     }
 }
