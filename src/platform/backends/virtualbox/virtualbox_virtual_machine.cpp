@@ -19,6 +19,7 @@
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
@@ -93,6 +94,29 @@ auto instance_state_for(const QString& name)
 }
 } // namespace
 
+QStringList networking_arguments(const std::vector<mp::NetworkInterface>& interfaces)
+{
+    // Start with the default interface, which is also the first interface in the input vector.
+    QStringList arguments{"--nic1", "nat", "--macaddress1",
+                          QString::fromStdString(interfaces[0].mac_address).remove(':')};
+
+    for (size_t i = 1; i < interfaces.size(); ++i)
+    {
+        QString iface_index_str = QString::number(i + 1, 10);
+        arguments.push_back("--nic" + iface_index_str);
+        arguments.push_back("bridged");
+        if (!interfaces[i].id.empty())
+        {
+            arguments.push_back("--bridgeadapter" + iface_index_str);
+            arguments.push_back(QString::fromStdString(interfaces[i].id));
+        }
+        arguments.push_back("--macaddress" + iface_index_str);
+        arguments.push_back(QString::fromStdString(interfaces[i].mac_address).remove(':'));
+    }
+
+    return arguments;
+}
+
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
     : VirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
@@ -107,27 +131,12 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
             "VBoxManage", {"createvm", "--name", name, "--groups", "/Multipass", "--ostype", "ubuntu_64", "--register"},
             "Could not create VM: {}", name);
 
-        mpu::process_throw_on_error(
-            "VBoxManage",
-            {"modifyvm",
-             name,
-             "--cpus",
-             QString::number(desc.num_cores),
-             "--memory",
-             QString::number(desc.mem_size.in_megabytes()),
-             "--boot1",
-             "disk",
-             "--boot2",
-             "none",
-             "--boot3",
-             "none",
-             "--boot4",
-             "none",
-             "--acpi",
-             "on",
-             "--nic1",
-             "nat",
-             "--firmware",
+        QStringList modify_arguments({"modifyvm", name, "--cpus", QString::number(desc.num_cores), "--memory",
+                                      QString::number(desc.mem_size.in_megabytes()), "--boot1", "disk", "--boot2",
+                                      "none", "--boot3", "none", "--boot4", "none", "--acpi", "on"});
+        modify_arguments += networking_arguments(desc.interfaces);
+        modify_arguments +=
+            {"--firmware",
              "bios",
              "--rtcuseutc",
              "on",
@@ -138,8 +147,9 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
              "4",
              "--uartmode1",
              "file",
-             QString("%1/%2.log").arg(MP_STDPATHS.writableLocation(StandardPaths::TempLocation)).arg(name)},
-            "Could not modify VM: {}", name);
+             QString("%1/%2.log").arg(MP_STDPATHS.writableLocation(StandardPaths::TempLocation)).arg(name)};
+
+        mpu::process_throw_on_error("VBoxManage", modify_arguments, "Could not modify VM: {}", name);
 
         mpu::process_throw_on_error("VBoxManage",
                                     {"storagectl", name, "--add", "sata", "--name", "SATA_0", "--portcount", "2"},
