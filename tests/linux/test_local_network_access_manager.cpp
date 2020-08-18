@@ -18,6 +18,7 @@
 #include "local_socket_server_test_fixture.h"
 #include "tests/temp_dir.h"
 
+#include <multipass/exceptions/http_local_socket_exception.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/version.h>
 
@@ -63,6 +64,7 @@ struct LocalNetworkAccessManager : public Test
           base_url{QString("unix://%1@1.0").arg(socket_path)}
     {
         download_timeout.setInterval(2000);
+        base_url.setHost("test");
     }
 
     auto handle_request(const QUrl& url, const QByteArray& verb, const QByteArray& data = QByteArray())
@@ -203,7 +205,6 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
 
     test_server.local_socket_server_handler(server_response);
 
-    base_url.setHost("test");
     handle_request(base_url, "POST", "Hello World");
 }
 
@@ -297,6 +298,34 @@ TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
     test_server.local_socket_server_handler(server_response);
 
     handle_request(base_url, "POST", random_data);
+}
+
+TEST_F(LocalNetworkAccessManager, no_host_set_throws)
+{
+    base_url.setHost("");
+
+    QNetworkRequest request{base_url};
+
+    EXPECT_THROW(manager.sendCustomRequest(request, "GET"), mp::HttpLocalSocketException);
+}
+
+TEST_F(LocalNetworkAccessManager, content_length_and_transfer_encoding_both_set_throws)
+{
+    QNetworkRequest request{base_url};
+    QByteArray some_data{"This is some data"};
+
+    request.setHeader(QNetworkRequest::ContentLengthHeader, some_data.size());
+    request.setRawHeader("Transfer-Encoding", "chunked");
+
+    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data), mp::HttpLocalSocketException);
+}
+
+TEST_F(LocalNetworkAccessManager, content_length_and_transfer_encoding_not_set_throws)
+{
+    QNetworkRequest request{base_url};
+    QByteArray some_data{"This is some data"};
+
+    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data), mp::HttpLocalSocketException);
 }
 
 TEST_P(HTTPErrorsTestSuite, returns_expected_error)

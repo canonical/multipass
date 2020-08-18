@@ -17,6 +17,8 @@
 
 #include "local_socket_reply.h"
 
+#include <multipass/exceptions/http_local_socket_exception.h>
+
 #include <QRegularExpression>
 
 namespace mp = multipass;
@@ -157,6 +159,10 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         http_data += host;
         http_data += "\r\n";
     }
+    else
+    {
+        throw mp::HttpLocalSocketException("Host is required in URL");
+    }
 
     // Build the HTTP User-Agent header
     auto user_agent = request.header(QNetworkRequest::UserAgentHeader).toByteArray();
@@ -178,15 +184,25 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         if (outgoingData)
         {
             auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
-            if (!content_length.isEmpty())
+            auto transfer_encoding = request.rawHeader("Transfer-Encoding");
+
+            if (!content_length.isEmpty() && !transfer_encoding.isEmpty())
+            {
+                throw mp::HttpLocalSocketException(
+                    "Both \'Content-Length\' and \'Transfer-Encoding\' headers cannot be set at the same time");
+            }
+            else if (content_length.isEmpty() && transfer_encoding.isEmpty())
+            {
+                throw mp::HttpLocalSocketException(
+                    "Either the \'Content-Length\' or the \'Transfer-Encoding\' header must be set");
+            }
+            else if (!content_length.isEmpty())
             {
                 http_data += "Content-Length: ";
                 http_data += content_length;
                 http_data += "\r\n";
             }
-
-            auto transfer_encoding = request.rawHeader("Transfer-Encoding");
-            if (!transfer_encoding.isEmpty())
+            else
             {
                 http_data += "Transfer-Encoding: ";
                 http_data += transfer_encoding;
