@@ -72,6 +72,7 @@ struct LXDBackend : public Test
                                                       "",
                                                       {},
                                                       {},
+                                                      {},
                                                       {}};
 
     std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();

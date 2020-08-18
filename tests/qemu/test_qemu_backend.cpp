@@ -62,6 +62,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},
+                                                      {},
                                                       {}};
     mpt::TempDir data_dir;
 

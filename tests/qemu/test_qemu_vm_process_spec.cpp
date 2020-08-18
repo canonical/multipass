@@ -38,6 +38,7 @@ struct TestQemuVMProcessSpec : public Test
                                              mp::Path{"/path/to/cloud_init.iso"},
                                              {},
                                              {},
+                                             {},
                                              {}};
     const QString tap_device_name{"tap_device"};
 };
