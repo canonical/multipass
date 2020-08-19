@@ -143,25 +143,20 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toByteArray();
 
     // Build the HTTP method part
-    http_data += op;
-    http_data += ' ';
-    http_data += request.url().path();
+    http_data += op + ' ' + request.url().path();
 
     if (request.url().hasQuery())
     {
-        http_data += "?";
-        http_data += request.url().query();
+        http_data += "?" + request.url().query();
     }
 
     http_data += " HTTP/1.1\r\n";
 
     // Build the HTTP Host header
-    auto host = request.url().host();
+    auto host = request.url().host().toUtf8();
     if (!host.isEmpty())
     {
-        http_data += "Host: ";
-        http_data += host;
-        http_data += "\r\n";
+        http_data += "Host: " + host + "\r\n";
     }
     else
     {
@@ -172,9 +167,7 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     auto user_agent = request.header(QNetworkRequest::UserAgentHeader).toByteArray();
     if (!user_agent.isEmpty())
     {
-        http_data += "User-Agent: ";
-        http_data += user_agent;
-        http_data += "\r\n";
+        http_data += "User-Agent: " + user_agent + "\r\n";
     }
 
     if (!local_socket_write(http_data))
@@ -182,14 +175,13 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
 
     if (op == "POST" || op == "PUT")
     {
-        http_data = "Content-Type: ";
-        http_data += request.header(QNetworkRequest::ContentTypeHeader).toByteArray();
-        http_data += "\r\n";
+        http_data = "Content-Type: " + request.header(QNetworkRequest::ContentTypeHeader).toByteArray() + "\r\n";
 
         if (outgoingData)
         {
             auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
             auto transfer_encoding = request.rawHeader("Transfer-Encoding");
+            bool is_chunked{false};
 
             if (!content_length.isEmpty() && !transfer_encoding.isEmpty())
             {
@@ -203,20 +195,15 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
             }
             else if (!content_length.isEmpty())
             {
-                http_data += "Content-Length: ";
-                http_data += content_length;
-                http_data += "\r\n";
+                http_data += "Content-Length: " + content_length + "\r\n";
             }
             else
             {
-                http_data += "Transfer-Encoding: ";
-                http_data += transfer_encoding;
-                http_data += "\r\n";
+                http_data += "Transfer-Encoding: " + transfer_encoding + "\r\n";
+                is_chunked = true;
             }
 
-            http_data += "\r\n";
-
-            if (!local_socket_write(http_data))
+            if (!local_socket_write(http_data + "\r\n"))
                 return;
 
             local_socket->flush();
@@ -237,26 +224,22 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
                 if (bytes_read == 0)
                     break;
 
-                if (transfer_encoding == "chunked")
-                {
-                    QByteArray http_chunk_size{QByteArray::number(bytes_read, 16)};
-                    http_chunk_size += "\r\n";
-                    if (!local_socket_write(http_chunk_size))
-                        return;
-                }
-
-                if (!local_socket_write(QByteArray::fromRawData(data_buffer.data(), bytes_read)))
+                if (is_chunked && !local_socket_write(QByteArray::number(bytes_read, 16) + "\r\n"))
                     return;
 
-                if (!local_socket_write("\r\n"))
+                if (!local_socket_write(QByteArray::fromRawData(data_buffer.data(), bytes_read) + "\r\n"))
                     return;
 
                 local_socket->waitForBytesWritten();
             }
+
+            // Trailer part for chunked data
+            if (is_chunked && !local_socket_write("0\r\n"))
+                return;
         }
     }
 
-    if (!local_socket_write("\r\n\r\n"))
+    if (!local_socket_write("\r\n"))
         return;
 
     local_socket->flush();
