@@ -177,7 +177,8 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         http_data += "\r\n";
     }
 
-    local_socket->write(http_data);
+    if (!local_socket_write(http_data))
+        return;
 
     if (op == "POST" || op == "PUT")
     {
@@ -215,7 +216,9 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
 
             http_data += "\r\n";
 
-            local_socket->write(http_data);
+            if (!local_socket_write(http_data))
+                return;
+
             local_socket->flush();
 
             outgoingData->open(QIODevice::ReadOnly);
@@ -238,28 +241,24 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
                 {
                     QByteArray http_chunk_size{QByteArray::number(bytes_read, 16)};
                     http_chunk_size += "\r\n";
-                    local_socket->write(http_chunk_size);
+                    if (!local_socket_write(http_chunk_size))
+                        return;
                 }
 
-                auto bytes_written = local_socket->write(QByteArray::fromRawData(data_buffer.data(), bytes_read));
-                if (bytes_written < 0)
-                {
-                    setError(QNetworkReply::InternalServerError, local_socket->errorString());
-                    emit error(QNetworkReply::InternalServerError);
-
+                if (!local_socket_write(QByteArray::fromRawData(data_buffer.data(), bytes_read)))
                     return;
-                }
 
-                if (bytes_written == 0)
-                    break;
+                if (!local_socket_write("\r\n"))
+                    return;
 
-                local_socket->write("\r\n");
                 local_socket->waitForBytesWritten();
             }
         }
     }
 
-    local_socket->write("\r\n\r\n");
+    if (!local_socket_write("\r\n\r\n"))
+        return;
+
     local_socket->flush();
 }
 
@@ -332,4 +331,18 @@ void mp::LocalSocketReply::parse_status(const QByteArray& status)
 
         emit error(error_code);
     }
+}
+
+bool mp::LocalSocketReply::local_socket_write(const QByteArray& data)
+{
+    auto bytes_written = local_socket->write(data);
+    if (bytes_written < 0)
+    {
+        setError(QNetworkReply::InternalServerError, local_socket->errorString());
+        emit error(QNetworkReply::InternalServerError);
+
+        return false;
+    }
+
+    return true;
 }
