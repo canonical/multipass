@@ -18,6 +18,9 @@
 #include "local_socket_reply.h"
 
 #include <multipass/exceptions/http_local_socket_exception.h>
+#include <multipass/format.h>
+
+#include <vector>
 
 #include <QRegularExpression>
 
@@ -26,6 +29,7 @@ namespace mp = multipass;
 namespace
 {
 constexpr int len = 65536;
+constexpr int max_bytes = 32768;
 
 // Status code mapping based on
 // https://github.com/qt/qtbase/blob/dev/src/network/access/qhttpthreaddelegate.cpp
@@ -215,48 +219,42 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
             local_socket->flush();
 
             outgoingData->open(QIODevice::ReadOnly);
-            QByteArray data_buffer;
-            const auto max_bytes{32768};
+            std::vector<char> data_buffer;
+            data_buffer.reserve(max_bytes);
 
             while (true)
             {
-                auto bytes_available = outgoingData->bytesAvailable();
-                if (bytes_available == 0)
+                auto bytes_read = outgoingData->read(data_buffer.data(), max_bytes);
+                if (bytes_read < 0)
+                {
+                    throw mp::HttpLocalSocketException(
+                        fmt::format("Cannot read data to send to socket: {}", outgoingData->errorString()));
+                }
+
+                if (bytes_read == 0)
                     break;
 
-                data_buffer = outgoingData->read(bytes_available);
-
-                auto data_ptr = data_buffer.data();
-
-                while (bytes_available > 0)
+                if (transfer_encoding == "chunked")
                 {
-                    auto bytes_to_write = bytes_available < max_bytes ? bytes_available : max_bytes;
-
-                    if (transfer_encoding == "chunked")
-                    {
-                        QByteArray http_chunk_size{QByteArray::number(bytes_to_write, 16)};
-                        http_chunk_size += "\r\n";
-                        local_socket->write(http_chunk_size);
-                    }
-
-                    auto bytes_written = local_socket->write(data_ptr, bytes_to_write);
-                    if (bytes_written < 0)
-                    {
-                        setError(QNetworkReply::InternalServerError, local_socket->errorString());
-                        emit error(QNetworkReply::InternalServerError);
-
-                        return;
-                    }
-
-                    if (bytes_written == 0)
-                        break;
-
-                    local_socket->write("\r\n");
-                    local_socket->waitForBytesWritten();
-
-                    bytes_available -= bytes_written;
-                    data_ptr += bytes_written;
+                    QByteArray http_chunk_size{QByteArray::number(bytes_read, 16)};
+                    http_chunk_size += "\r\n";
+                    local_socket->write(http_chunk_size);
                 }
+
+                auto bytes_written = local_socket->write(QByteArray::fromRawData(data_buffer.data(), bytes_read));
+                if (bytes_written < 0)
+                {
+                    setError(QNetworkReply::InternalServerError, local_socket->errorString());
+                    emit error(QNetworkReply::InternalServerError);
+
+                    return;
+                }
+
+                if (bytes_written == 0)
+                    break;
+
+                local_socket->write("\r\n");
+                local_socket->waitForBytesWritten();
             }
         }
     }
