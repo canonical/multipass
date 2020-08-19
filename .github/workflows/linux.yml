@@ -1,0 +1,42 @@
+name: Linux
+
+on:
+  push:
+    branches:
+    - master
+    - staging
+    - trying
+    - release/[0-9]+.[0-9]+
+    tags:
+    - v[0-9]+.[0-9]+.[0-9]+
+  pull_request:
+
+jobs:
+  Debug:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 60
+    steps:
+    - name: Install Snapcraft
+      uses: samuelmeuli/action-snapcraft@v1
+      with:
+        use_lxd: true
+
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        # Need to fetch it all for submodules to work.
+        fetch-depth: 0
+
+    - name: Check out tags and submodules
+      uses: ./.github/actions/checkout
+
+    - name: Patch
+      run: |
+        [ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch
+        [ ! -f tests/travis-${{ github.job }}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${{ github.job }}.patch
+
+    - name: Build
+      run: |
+        # Build the `multipass` part.
+        sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
