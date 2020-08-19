@@ -77,21 +77,19 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
     }
 }
 
-mp::optional<mp::IPAddress> get_ip_for(const QString& name, mp::NetworkAccessManager* manager, const QUrl& url)
+mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAccessManager* manager, const QUrl& url)
 {
-    const auto json_state = lxd_request(manager, "GET", url);
-    const auto addresses =
-        json_state["metadata"].toObject()["network"].toObject()["eth0"].toObject()["addresses"].toArray();
+    const auto json_leases = lxd_request(manager, "GET", url);
+    const auto leases = json_leases["metadata"].toArray();
 
-    for (const auto address : addresses)
+    for (const auto lease : leases)
     {
-        if (address.toObject()["family"].toString() == "inet")
+        if (lease.toObject()["hwaddr"].toString() == mac_addr)
         {
-            return mp::optional<mp::IPAddress>{address.toObject()["address"].toString().toStdString()};
+            return mp::optional<mp::IPAddress>{lease.toObject()["address"].toString().toStdString()};
         }
     }
 
-    mpl::log(mpl::Level::trace, name.toStdString(), fmt::format("IP for {} not found...", name));
     return mp::nullopt;
 }
 
@@ -112,13 +110,16 @@ mp::MemorySize get_minimum_disk_size(const mp::MemorySize& requested_disk_size)
 } // namespace
 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
-                                         NetworkAccessManager* manager, const QUrl& base_url)
+                                         NetworkAccessManager* manager, const QUrl& base_url,
+                                         const QString& bridge_name)
     : VirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor},
+      manager{manager},
       base_url{base_url},
-      manager{manager}
+      bridge_name{bridge_name},
+      mac_addr{QString::fromStdString(desc.mac_addr)}
 {
     try
     {
@@ -146,7 +147,12 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
             {"root", QJsonObject{{"path", "/"},
                                  {"pool", "default"},
                                  {"size", QString::number(get_minimum_disk_size(desc.disk_space).in_bytes())},
-                                 {"type", "disk"}}}};
+                                 {"type", "disk"}}},
+            {"eth0", QJsonObject{{"name", "eth0"},
+                                 {"nictype", "bridged"},
+                                 {"parent", "mpbr0"},
+                                 {"type", "nic"},
+                                 {"hwaddr", mac_addr}}}};
 
         QJsonObject virtual_machine{
             {"name", name},
@@ -308,13 +314,14 @@ std::string mp::LXDVirtualMachine::ssh_hostname()
     {
         auto action = [this] {
             ensure_vm_is_running();
-            ip = get_ip_for(name, manager, state_url());
+            ip = get_ip_for(mac_addr, manager, network_leases_url());
             if (ip)
             {
                 return mpu::TimeoutAction::done;
             }
             else
             {
+                mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
                 return mpu::TimeoutAction::retry;
             }
         };
@@ -334,9 +341,12 @@ std::string mp::LXDVirtualMachine::ipv4()
 {
     if (!ip)
     {
-        ip = get_ip_for(name, manager, state_url());
+        ip = get_ip_for(mac_addr, manager, network_leases_url());
         if (!ip)
+        {
+            mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
             return "UNKNOWN";
+        }
     }
 
     return ip.value().as_string();
@@ -360,6 +370,11 @@ const QUrl mp::LXDVirtualMachine::url()
 const QUrl mp::LXDVirtualMachine::state_url()
 {
     return url().toString() + "/state";
+}
+
+const QUrl mp::LXDVirtualMachine::network_leases_url()
+{
+    return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
 const QJsonObject mp::LXDVirtualMachine::request_state(const QString& new_state)
