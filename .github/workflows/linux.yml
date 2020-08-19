@@ -43,10 +43,32 @@ jobs:
         [ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch
         [ ! -f tests/travis-${{ github.job }}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${{ github.job }}.patch
 
+    - name: Set up CCache
+      id: setup-ccache
+      run: |
+        sudo apt-get install ccache
+        ccache --max-size=2G
+        sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
+
+        # Find common base between master and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin master
+        echo "::set-output name=key::$( git merge-base origin/master ${{ github.sha }} )"
+
+    - name: CCache
+      uses: actions/cache@v2
+      with:
+        key: ccache-${{ runner.os }}-${{ github.job }}-${{ steps.setup-ccache.outputs.key }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ github.job }}-
+        path: ~/.ccache/**
+
     - name: Build
       run: |
         # Build the `multipass` part.
         sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+
+    - name: Clear CCache stats
+      run: ccache --show-stats --zero-stats
 
     - name: Test
       timeout-minutes: 1
