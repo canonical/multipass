@@ -47,3 +47,13 @@ jobs:
       run: |
         # Build the `multipass` part.
         sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+
+    - name: Test
+      timeout-minutes: 1
+      run: |
+        sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        sg lxd -c \
+          '/snap/bin/lxc exec snapcraft-multipass -- \
+             env CTEST_OUTPUT_ON_FAILURE=1 \
+                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+                 /root/parts/multipass/build/bin/multipass_tests'
