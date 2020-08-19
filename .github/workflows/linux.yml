@@ -19,8 +19,15 @@ jobs:
     steps:
     - name: Install Snapcraft
       uses: samuelmeuli/action-snapcraft@v1
-      with:
-        use_lxd: true
+
+    # Could use `use_lxd: true` above, but lxc/lxd-pkg-snap#63 makes it go stuck for 10 minutes.
+    - name: Install LXD
+      run: |
+        sudo apt-get remove --purge --yes lxd lxd-client
+        sudo snap install lxd
+        sudo /snap/bin/lxd waitready
+        sudo /snap/bin/lxd init --auto
+        sudo usermod --append --groups lxd $USER
 
     - name: Check out code
       uses: actions/checkout@v2
