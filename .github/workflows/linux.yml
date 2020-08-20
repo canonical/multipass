@@ -12,7 +12,25 @@ on:
   pull_request:
 
 jobs:
+  Lint:
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'pull_request' || contains('refs/heads/staging refs/heads/trying', github.ref) }}
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+
+    - name: Run clang-format through the diff
+      uses: ./.github/actions/lint
+
   Build-Test:
+    needs: Lint
+    # Need to explicitly continue on Lint getting skipped.
+    if: ${{ !failure() }}
+
     strategy:
       matrix:
         build-type: [Debug, Clang, RelWithDebInfo, Coverage]
