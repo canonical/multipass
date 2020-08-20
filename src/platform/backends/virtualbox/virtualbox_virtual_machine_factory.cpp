@@ -122,17 +122,11 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 {
     std::vector<NetworkInterfaceInfo> networks;
 
-    // 'VBoxManage list -l' lists network interfaces with the following parameters.
-    QStringList list_parameters{"intnets", "bridgedifs", "hostonlyifs", "natnets"};
+    // Get the list of all the interfaces which can be bridged.
+    QString ifs_info = QString::fromStdString(mpu::run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
 
     // List to store the output of the query command; each element corresponds to one interface.
-    QStringList if_list;
-
-    for (auto parameter : list_parameters)
-    {
-        QString ifs_info = QString::fromStdString(mpu::run_cmd_for_output("VBoxManage", {"list", "-l", parameter}));
-        if_list.append(ifs_info.split(QRegularExpression("\r?\n\r?\n"), QString::SkipEmptyParts));
-    }
+    QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), QString::SkipEmptyParts));
 
     mpl::log(mpl::Level::info, "list-networks", fmt::format("Found {} network interfaces", if_list.size()));
 
