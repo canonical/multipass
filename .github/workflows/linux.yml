@@ -66,6 +66,12 @@ jobs:
           ccache-${{ runner.os }}-${{ matrix.build-type }}-
         path: ~/.ccache/**
 
+    - name: Set up coverage
+      if: ${{ matrix.build-type == 'Coverage' }}
+      run: |
+        mkdir "${HOME}/parts"
+        sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
+
     - name: Build
       run: |
         # Build the `multipass` part.
@@ -84,3 +90,13 @@ jobs:
              env CTEST_OUTPUT_ON_FAILURE=1 \
                  LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
                  /root/parts/multipass/build/bin/multipass_tests'
+
+    - name: Measure coverage
+      if: ${{ matrix.build-type == 'Coverage' }}
+      timeout-minutes: 5
+      run: |
+        sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        sg lxd -c \
+          '/snap/bin/lxc exec snapcraft-multipass -- \
+             cmake --build /root/parts/multipass/build --target covreport'
+        bash <(curl -s https://codecov.io/bash) -Z -s ${HOME}/parts
