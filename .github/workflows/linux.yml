@@ -37,6 +37,11 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      # Regexes for release branch and tag
+      MULTIPASS_RELEASE_BRANCH_PATTERN: ^refs/heads/release/[0-9\.]+$
+      MULTIPASS_RELEASE_TAG_PATTERN: ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$
+
     timeout-minutes: 60
     steps:
     - name: Install Snapcraft
@@ -59,6 +64,10 @@ jobs:
 
     - name: Check out tags and submodules
       uses: ./.github/actions/checkout
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
 
     - name: Patch
       run: |
@@ -92,6 +101,11 @@ jobs:
 
     - name: Build
       run: |
+        # Inject the build label.
+        if [ -n "${{ steps.build-params.outputs.label }}" ]; then
+            sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
+        fi
+
         # Build the `multipass` part.
         sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
 

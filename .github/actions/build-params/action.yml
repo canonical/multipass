@@ -1,0 +1,34 @@
+name: Determine build parameters
+description: Determine Multipass build parameters (labels, snap channels etc.)
+
+outputs:
+  label:
+    description: Label to annotate the build version with
+    value: ${{ steps.build-params.outputs.label }}
+  channel:
+    description: Snap channel to publish to
+    value: ${{ steps.build-params.outputs.channel }}
+
+runs:
+  using: composite
+
+  steps:
+  - name: Determine build parameters
+    id: build-params
+    shell: bash
+    run: |
+      # If it's a pull request or `trying` push, annotate with `pr#`.
+      if [ ${{ github.event_name }} == "pull_request" ]; then
+        echo "::set-output name=label::pr${{ github.event.number }}"
+      elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/trying" && "${{ github.event.head_commit.message }}" =~ ^Try\ #([0-9]+): ]]; then
+        echo "::set-output name=label::pr${BASH_REMATCH[1]}"
+
+      # All other pushes annotate with the CI run number.
+      elif [ ${{ github.event_name }} == "push" ]; then
+        echo "::set-output name=label::ci${{ github.run_number }}"
+
+      # This shouldn't happen.
+      else
+          echo "##[error] Build parameter determination fell through"
+          exit 1
+      fi
