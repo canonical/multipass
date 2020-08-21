@@ -17,11 +17,18 @@ runs:
     id: build-params
     shell: bash
     run: |
-      # If it's a pull request or `trying` push, annotate with `pr#`.
+      # If it's a pull request or `trying` push, annotate with `pr#` and publish to `edge/pr#`.
       if [ ${{ github.event_name }} == "pull_request" ]; then
         echo "::set-output name=label::pr${{ github.event.number }}"
+        echo "::set-output name=channel::edge/pr${{ github.event.number }}"
       elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/trying" && "${{ github.event.head_commit.message }}" =~ ^Try\ #([0-9]+): ]]; then
         echo "::set-output name=label::pr${BASH_REMATCH[1]}"
+        echo "::set-output name=channel::edge/pr${BASH_REMATCH[1]}"
+
+      # If it's a release tag or branch, publish to the `candidate` channel.
+      elif [[ ${{ github.ref }} =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
+        || ${{ github.ref }} =~ ${MULTIPASS_RELEASE_TAG_PATTERN} ]]; then
+        echo "::set-output name=channel::candidate"
 
       # All other pushes annotate with the CI run number.
       elif [ ${{ github.event_name }} == "push" ]; then

@@ -31,6 +31,10 @@ jobs:
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() }}
 
+    outputs:
+      channel: ${{ steps.build-params.outputs.channel }}
+      snap-file: ${{ steps.build-snap.outputs.snap-file }}
+
     strategy:
       matrix:
         build-type: [Debug, Clang, RelWithDebInfo, Coverage]
@@ -41,6 +45,7 @@ jobs:
       # Regexes for release branch and tag
       MULTIPASS_RELEASE_BRANCH_PATTERN: ^refs/heads/release/[0-9\.]+$
       MULTIPASS_RELEASE_TAG_PATTERN: ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$
+      SNAPCRAFT_BUILD_INFO: 1
 
     timeout-minutes: 60
     steps:
@@ -132,6 +137,51 @@ jobs:
           '/snap/bin/lxc exec snapcraft-multipass -- \
              cmake --build /root/parts/multipass/build --target covreport'
         bash <(curl -s https://codecov.io/bash) -Z -s ${HOME}/parts
+
+    - name: Build and verify the snap
+      id: build-snap
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
+      env:
+        SNAP_ENFORCE_RESQUASHFS: 0
+      run: |
+        # Actually build the snap.
+        sg lxd -c '/snap/bin/snapcraft --use-lxd'
+
+        sudo snap install review-tools
+        /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap
+
+        echo "::set-output name=snap-file::$( ls *.snap )"
+
+    - name: Upload the snap
+      uses: actions/upload-artifact@v2
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
+      with:
+        name: ${{ steps.build-snap.outputs.snap-file }}
+        path: ${{ steps.build-snap.outputs.snap-file }}
+        if-no-files-found: error
+
+  # Publish the snap to the store if a channel was determined and we have access to secrets.
+  Publish-Snap:
+    needs: Build-Test
+    if: ${{ needs.Build-Test.outputs.channel != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+    steps:
+    - name: Download the built snap
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ needs.Build-Test.outputs.snap-file }}
+
+    - name: Install Snapcraft and log in
+      uses: samuelmeuli/action-snapcraft@v1
+      with:
+        snapcraft_token: ${{ secrets.SNAPCRAFT_TOKEN }}
+
+    - name: Publish the snap
+      run: |
+        snapcraft upload *.snap --release ${{ needs.Build-Test.outputs.channel }}
 
   # Report result to Bors on `staging` and `trying` branches.
   Bors:
