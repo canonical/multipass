@@ -177,7 +177,7 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     {
         http_data = "Content-Type: " + request.header(QNetworkRequest::ContentTypeHeader).toByteArray() + "\r\n";
 
-        if (outgoingData)
+        if (outgoingData && outgoingData->size() > 0)
         {
             auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
             auto transfer_encoding = request.rawHeader("Transfer-Encoding");
