@@ -132,3 +132,17 @@ jobs:
           '/snap/bin/lxc exec snapcraft-multipass -- \
              cmake --build /root/parts/multipass/build --target covreport'
         bash <(curl -s https://codecov.io/bash) -Z -s ${HOME}/parts
+
+  # Report result to Bors on `staging` and `trying` branches.
+  Bors:
+    if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    needs:
+    - Lint
+    - Build-Test
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check test result
+      run: |
+        [ ${{ needs.Lint.result }} == success ] && [ ${{ needs.Build-Test.result }} == success ] || exit 1
