@@ -22,6 +22,7 @@
 #include "stub_vm_image_vault.h"
 
 #include <multipass/network_interface_info.h>
+#include <multipass/path.h>
 #include <multipass/virtual_machine_factory.h>
 
 namespace multipass
@@ -79,6 +80,13 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
     std::vector<NetworkInterfaceInfo> list_networks() const override
     {
         return {};
+    }
+
+    multipass::Path make_cloud_init_image(const QDir& instance_dir, YAML::Node& meta_data_config,
+                                          YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                                          YAML::Node& network_data_config) const
+    {
+        return Path();
     }
 };
 }
