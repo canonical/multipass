@@ -70,6 +70,10 @@ jobs:
     - name: Check out submodules and fetch tags
       uses: ./.github/actions/checkout
 
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
     - name: Set up MSVC
       uses: ilammy/msvc-dev-cmd@v1.3.0
 
@@ -89,6 +93,7 @@ jobs:
           -DCMAKE_C_COMPILER=cl.exe
           -DCMAKE_CXX_COMPILER=cl.exe
           -DMULTIPASS_UPSTREAM=origin
+          -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Package
       id: cmake-package
