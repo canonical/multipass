@@ -149,6 +149,7 @@ add_dependencies(multipass_tests mock_process)
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
+  target_compile_options(multipass_tests PRIVATE /bigobj)
   target_include_directories(multipass_tests
     BEFORE
       PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/win

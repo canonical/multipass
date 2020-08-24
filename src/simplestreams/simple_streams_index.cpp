@@ -23,6 +23,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <stdexcept>
+
 namespace mp = multipass;
 
 namespace
