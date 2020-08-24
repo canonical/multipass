@@ -95,6 +95,12 @@ jobs:
           -DMULTIPASS_UPSTREAM=origin
           -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
+    - name: Test
+      continue-on-error: true
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        bin/multipass_tests.exe
+
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
