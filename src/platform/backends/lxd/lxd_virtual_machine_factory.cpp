@@ -52,7 +52,7 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                               VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url);
+    return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name);
 }
 
 void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)

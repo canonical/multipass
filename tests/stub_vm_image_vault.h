@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,8 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  *
  */
 
@@ -32,7 +30,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
     multipass::VMImage fetch_image(const multipass::FetchType&, const multipass::Query&, const PrepareAction& prepare,
                                    const multipass::ProgressMonitor&) override
     {
-        return prepare({dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}, {}, {}});
+        return prepare({dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}, {}});
     };
 
     void remove(const std::string&) override{};
