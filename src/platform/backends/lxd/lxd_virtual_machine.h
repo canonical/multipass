@@ -36,7 +36,7 @@ class LXDVirtualMachine final : public VirtualMachine
 {
 public:
     LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, NetworkAccessManager* manager,
-                      const QUrl& base_url);
+                      const QUrl& base_url, const QString& bridge_name);
     ~LXDVirtualMachine() override;
     void stop() override;
     void start() override;
@@ -59,11 +59,14 @@ private:
     VMStatusMonitor* monitor;
     bool update_shutdown_status{true};
     multipass::optional<IPAddress> ip;
-    const QUrl base_url;
     NetworkAccessManager* manager;
+    const QUrl base_url;
+    const QString bridge_name;
+    const QString mac_addr;
 
     const QUrl url();
     const QUrl state_url();
+    const QUrl network_leases_url();
     const QJsonObject request_state(const QString& new_state);
     const multipass::optional<multipass::IPAddress> get_ip();
 };
