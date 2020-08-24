@@ -1,15 +1,7 @@
 name: Linux
 
 on:
-  push:
-    branches:
-    - master
-    - staging
-    - trying
-    - release/[0-9]+.[0-9]+
-    tags:
-    - v[0-9]+.[0-9]+.[0-9]+
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   Lint:
