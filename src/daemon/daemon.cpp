@@ -2257,7 +2257,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
                 auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
                 prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
-                auto network_data_cloud_init_config = make_cloud_init_network_config(cloud_init_interfaces);
+                auto network_data_cloud_init_config = mpu::get_driver_str() == "virtualbox"
+                                                          ? make_cloud_init_network_config(cloud_init_interfaces)
+                                                          : YAML::Node();
 
                 auto vm_desc =
                     to_machine_desc(request, name, checked_args.mem_size, disk_space, interfaces, config->ssh_username,
