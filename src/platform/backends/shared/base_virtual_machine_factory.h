@@ -18,8 +18,10 @@
 #ifndef MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <daemon/default_vm_image_vault.h>
@@ -50,6 +52,26 @@ public:
         return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
                                                      days_to_expire);
     };
+
+    // By default, no network initialization data will be written to cloud-init, because cloud-init automatically
+    // configures the default network interface. If many interfaces are present on an instance, then this function
+    // must be overriden.
+    Path make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
+                               YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                               YAML::Node& network_data_config) const override
+    {
+        const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
+        if (QFile::exists(cloud_init_iso))
+            return cloud_init_iso;
+
+        CloudInitIso iso;
+        iso.add_file("meta-data", utils::emit_cloud_config(meta_data_config));
+        iso.add_file("vendor-data", utils::emit_cloud_config(vendor_data_config));
+        iso.add_file("user-data", utils::emit_cloud_config(user_data_config));
+        iso.write_to(cloud_init_iso);
+
+        return cloud_init_iso;
+    }
 };
 } // namespace multipass
 

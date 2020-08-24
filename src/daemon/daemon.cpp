@@ -161,24 +161,6 @@ auto make_cloud_init_network_config(const std::vector<mp::NetworkInterface>& int
     return network_data;
 }
 
-auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
-                           YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                           YAML::Node& network_data_config)
-{
-    const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-    if (QFile::exists(cloud_init_iso))
-        return cloud_init_iso;
-
-    mp::CloudInitIso iso;
-    iso.add_file("meta-data", mpu::emit_cloud_config(meta_data_config));
-    iso.add_file("vendor-data", mpu::emit_cloud_config(vendor_data_config));
-    iso.add_file("network-config", mpu::emit_cloud_config(network_data_config));
-    iso.add_file("user-data", mpu::emit_cloud_config(user_data_config));
-    iso.write_to(cloud_init_iso);
-
-    return cloud_init_iso;
-}
-
 void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 {
     auto users = user_data_config["users"];
@@ -194,15 +176,13 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
                                               const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
                                               const std::vector<mp::NetworkInterface>& interfaces,
                                               const std::string& ssh_username, const mp::VMImage& image,
-                                              YAML::Node& meta_data_config, YAML::Node& user_data_config,
-                                              YAML::Node& vendor_data_config, YAML::Node& network_data_config)
+                                              const mp::Path& cloud_init_iso, YAML::Node& meta_data_config,
+                                              YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                                              YAML::Node& network_data_config)
 {
     const auto num_cores = request->num_cores() < std::stoi(mp::min_cpu_cores)
                                ? std::stoi(mp::default_cpu_cores)
                                : request->num_cores();
-    const auto instance_dir = mp::utils::base_dir(image.image_path);
-    const auto cloud_init_iso = make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config,
-                                                      vendor_data_config, network_data_config);
 
     return {num_cores,
             mem_size,
@@ -2259,9 +2239,14 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
                 auto network_data_cloud_init_config = make_cloud_init_network_config(cloud_init_interfaces);
 
+                const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
+                const auto cloud_init_iso = config->factory->make_cloud_init_image(
+                    name, instance_dir, meta_data_cloud_init_config, user_data_cloud_init_config,
+                    vendor_data_cloud_init_config, network_data_cloud_init_config);
+
                 auto vm_desc =
                     to_machine_desc(request, name, checked_args.mem_size, disk_space, interfaces, config->ssh_username,
-                                    vm_image, meta_data_cloud_init_config, user_data_cloud_init_config,
+                                    vm_image, cloud_init_iso, meta_data_cloud_init_config, user_data_cloud_init_config,
                                     vendor_data_cloud_init_config, network_data_cloud_init_config);
 
                 config->factory->prepare_instance_image(vm_image, vm_desc);

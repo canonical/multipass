@@ -25,6 +25,8 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_vault.h>
 
+#include <QDir>
+
 namespace YAML
 {
 class Node;
@@ -62,6 +64,9 @@ public:
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
     virtual std::vector<NetworkInterfaceInfo> list_networks() const = 0;
+    virtual Path make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
+                                       YAML::Node& user_data_config, YAML::Node& vendor_data_config,
+                                       YAML::Node& network_data_config) const = 0;
 
 protected:
     VirtualMachineFactory() = default;
