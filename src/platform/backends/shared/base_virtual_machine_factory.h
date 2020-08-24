@@ -56,9 +56,8 @@ public:
     // By default, no network initialization data will be written to cloud-init, because cloud-init automatically
     // configures the default network interface. If many interfaces are present on an instance, then this function
     // must be overriden.
-    Path make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
-                               YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                               YAML::Node& network_data_config) const override
+    Path make_cloud_init_image(const QDir& instance_dir, YAML::Node& meta_data_config, YAML::Node& user_data_config,
+                               YAML::Node& vendor_data_config, YAML::Node&) const override
     {
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
         if (QFile::exists(cloud_init_iso))

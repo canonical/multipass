@@ -2241,7 +2241,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
                 const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
                 const auto cloud_init_iso = config->factory->make_cloud_init_image(
-                    name, instance_dir, meta_data_cloud_init_config, user_data_cloud_init_config,
+                    instance_dir, meta_data_cloud_init_config, user_data_cloud_init_config,
                     vendor_data_cloud_init_config, network_data_cloud_init_config);
 
                 auto vm_desc =
