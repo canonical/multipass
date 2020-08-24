@@ -105,7 +105,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
       manager{manager},
       base_url{base_url},
       bridge_name{bridge_name},
-      mac_addr{QString::fromStdString(desc.mac_addr)}
+      mac_addr{QString::fromStdString(desc.interfaces[0].mac_address)}
 {
     try
     {
