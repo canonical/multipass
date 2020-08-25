@@ -48,8 +48,8 @@ public:
     int ssh_port() override;
     std::string ssh_hostname() override;
     std::string ssh_username() override;
-    std::string ipv4() override;
-    std::string ipv6() override;
+    std::vector<std::string> ipv4() override;
+    std::vector<std::string> ipv6() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void ensure_vm_is_running() override;
     void update_state() override;

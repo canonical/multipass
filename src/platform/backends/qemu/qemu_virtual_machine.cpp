@@ -440,21 +440,28 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::QemuVirtualMachine::ipv4()
+std::vector<std::string> mp::QemuVirtualMachine::ipv4()
 {
+    std::vector<std::string> ipv4;
+
     if (!ip)
     {
         auto result = dnsmasq_server->get_ip_for(mac_addr);
         if (result)
             ip.emplace(result.value());
         else
-            return "UNKNOWN";
+        {
+            ipv4.push_back("UNKNOWN");
+            return ipv4;
+        }
     }
 
-    return ip.value().as_string();
+    ipv4.push_back(ip.value().as_string());
+
+    return ipv4;
 }
 
-std::string mp::QemuVirtualMachine::ipv6()
+std::vector<std::string> mp::QemuVirtualMachine::ipv6()
 {
     return {};
 }

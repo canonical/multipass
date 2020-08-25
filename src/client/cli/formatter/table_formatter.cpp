@@ -58,11 +58,15 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     {
         fmt::format_to(buf, "{:<16}{}\n", "Name:", info.name());
         fmt::format_to(buf, "{:<16}{}\n", "State:", mp::format::status_string_for(info.instance_status()));
-        fmt::format_to(buf, "{:<16}{}\n", "IPv4:", info.ipv4().empty() ? "--" : info.ipv4());
+        fmt::format_to(buf, "{:<16}{}\n", "IPv4:", info.ipv4_size() ? info.ipv4()[0] : "--");
+        for (int i = 1; i < info.ipv4_size(); ++i)
+            fmt::format_to(buf, "{:<16}{}\n", "     ", info.ipv4(i));
 
-        if (!info.ipv6().empty())
+        if (info.ipv6_size())
         {
-            fmt::format_to(buf, "{:<16}{}\n", "IPv6:", info.ipv6());
+            fmt::format_to(buf, "{:<16}{}\n", "IPv6:", info.ipv6(0));
+            for (int i = 1; i < info.ipv6_size(); ++i)
+                fmt::format_to(buf, "{:<16}{}\n", "     ", info.ipv6(i));
         }
 
         fmt::format_to(buf, "{:<16}{}\n", "Release:", info.current_release().empty() ? "--" : info.current_release());
@@ -146,9 +150,12 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     {
         fmt::format_to(buf, row_format, instance.name(), name_column_width,
                        mp::format::status_string_for(instance.instance_status()), state_column_width,
-                       instance.ipv4().empty() ? "--" : instance.ipv4(), ip_column_width,
+                       instance.ipv4_size() ? instance.ipv4(0) : "--", ip_column_width,
                        instance.current_release().empty() ? "Not Available"
                                                           : fmt::format("Ubuntu {}", instance.current_release()));
+        for (int i = 1; i < instance.ipv4_size(); ++i)
+            fmt::format_to(buf, "{:<{}}{:<}\n", "", name_column_width + state_column_width, instance.ipv4(i),
+                           ip_column_width);
     }
 
     return fmt::to_string(buf);

@@ -80,8 +80,8 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
         instance_node["memory"] = memory;
 
-        if (!info.ipv4().empty())
-            instance_node["ipv4"].push_back(info.ipv4());
+        for (int i = 0; i < info.ipv4_size(); ++i)
+            instance_node["ipv4"].push_back(info.ipv4(i));
 
         YAML::Node mounts;
         for (const auto& mount : info.mount_info().mount_paths())
@@ -120,7 +120,14 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
 
-        instance_node["ipv4"].push_back(instance.ipv4());
+        if (instance.ipv4_size())
+        {
+            for (int i = 0; i < instance.ipv4_size(); ++i)
+                instance_node["ipv4"].push_back(instance.ipv4(i));
+        }
+        else
+            instance_node["ipv4"].push_back("");
+
         instance_node["release"] = instance.current_release();
 
         list[instance.name()].push_back(instance_node);

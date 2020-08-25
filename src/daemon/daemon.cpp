@@ -1301,7 +1301,8 @@ try // clang-format on
                 run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_disk_total(
                 run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
-            info->set_ipv4(vm->ipv4());
+            for (auto ip : vm->ipv4())
+                info->add_ipv4(ip);
 
             auto current_release = run_in_vm("lsb_release -ds");
             info->set_current_release(!current_release.empty() ? current_release : original_release);
@@ -1356,7 +1357,8 @@ try // clang-format on
         entry->set_current_release(current_release);
 
         if (mp::utils::is_running(present_state))
-            entry->set_ipv4(vm->ipv4());
+            for (auto ip : vm->ipv4())
+                entry->add_ipv4(ip);
     }
 
     for (const auto& instance : deleted_instances)

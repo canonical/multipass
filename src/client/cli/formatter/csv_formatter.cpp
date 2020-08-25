@@ -32,10 +32,26 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
 
     for (const auto& info : format::sorted(reply.info()))
     {
-        fmt::format_to(buf, "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
-                       mp::format::status_string_for(info.instance_status()), info.ipv4(), info.ipv6(),
-                       info.current_release(), info.id(), info.image_release(), info.load(), info.disk_usage(),
-                       info.disk_total(), info.memory_usage(), info.memory_total());
+        fmt::format_to(buf, "{},{},", info.name(), mp::format::status_string_for(info.instance_status()));
+
+        if (info.ipv4_size())
+        {
+            fmt::format_to(buf, "{}", info.ipv4(0));
+            for (int i = 1; i < info.ipv4_size(); ++i)
+                fmt::format_to(buf, ";{}", info.ipv4(i));
+        }
+
+        fmt::format_to(buf, ",");
+
+        if (info.ipv6_size())
+        {
+            fmt::format_to(buf, "{}", info.ipv6(0));
+            for (int i = 1; i < info.ipv6_size(); ++i)
+                fmt::format_to(buf, ";{}", info.ipv6(i));
+        }
+
+        fmt::format_to(buf, ",{},{},{},{},{},{},{},{},", info.current_release(), info.id(), info.image_release(),
+                       info.load(), info.disk_usage(), info.disk_total(), info.memory_usage(), info.memory_total());
 
         auto mount_paths = info.mount_info().mount_paths();
         for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
@@ -56,9 +72,25 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
 
     for (const auto& instance : format::sorted(reply.instances()))
     {
-        fmt::format_to(buf, "{},{},{},{},{}\n", instance.name(),
-                       mp::format::status_string_for(instance.instance_status()), instance.ipv4(), instance.ipv6(),
-                       instance.current_release());
+        fmt::format_to(buf, "{},{},", instance.name(), mp::format::status_string_for(instance.instance_status()));
+
+        if (instance.ipv4_size())
+        {
+            fmt::format_to(buf, "{}", instance.ipv4(0));
+            for (int i = 1; i < instance.ipv4_size(); ++i)
+                fmt::format_to(buf, ";{}", instance.ipv4(i));
+        }
+
+        fmt::format_to(buf, ",");
+
+        if (instance.ipv6_size())
+        {
+            fmt::format_to(buf, "{}", instance.ipv6(0));
+            for (int i = 1; i < instance.ipv6_size(); ++i)
+                fmt::format_to(buf, ";{}", instance.ipv6(i));
+        }
+
+        fmt::format_to(buf, ",{}\n", instance.current_release());
     }
 
     return fmt::to_string(buf);

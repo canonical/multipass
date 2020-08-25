@@ -337,22 +337,27 @@ std::string mp::LXDVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::LXDVirtualMachine::ipv4()
+std::vector<std::string> mp::LXDVirtualMachine::ipv4()
 {
+    std::vector<std::string> ipv4;
+
     if (!ip)
     {
         ip = get_ip_for(mac_addr, manager, network_leases_url());
         if (!ip)
         {
             mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
-            return "UNKNOWN";
+            ipv4.push_back("UNKNOWN");
+            return ipv4;
         }
     }
 
-    return ip.value().as_string();
+    ipv4.push_back(ip.value().as_string());
+
+    return ipv4;
 }
 
-std::string mp::LXDVirtualMachine::ipv6()
+std::vector<std::string> mp::LXDVirtualMachine::ipv6()
 {
     return {};
 }
