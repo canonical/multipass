@@ -8,26 +8,79 @@ on:
     tags:
     - v[0-9]+.[0-9]+.[0-9]+
   pull_request:
+  repository_dispatch:
+    types: [public_build]
+
+env:
+  HEAD_REF: ci${{ github.run_id }}
 
 jobs:
-  Lint:
+  Checkout:
     runs-on: ubuntu-latest
-
-    if: ${{ github.event_name == 'pull_request' }}
 
     steps:
     - name: Check out code
       uses: actions/checkout@v2
       with:
-        fetch-depth: 2
+        # Need to check it all out to merge successfully.
+        fetch-depth: 0
+
+    - name: Fetch the dispatching ref
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      run: |
+        # Try and fetch the matching branch.
+        if [ -n "${{ github.event.client_payload.head_ref }}" && git fetch origin ${{ github.event.client_payload.head_ref }}; then
+          echo "::set-output name=ref::${{ github.event.client_payload.head_ref }}"
+        else
+          # Otherwise fetch the triggering commit.
+          git -c protocol.version=2 fetch --prune --progress --no-recurse-submodules ${{ github.event.client_payload.repositoryUrl }} ${{ github.event.client_payload.sha }}
+          echo "::set-output name=ref::${{ github.event.client_payload.ref }}"
+        fi
+
+    - name: Merge the dispatching ref
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      run: |
+        git config user.name "Multipass CI Bot"
+        git config user.email "multipass-ci-bot@canonical.com"
+        git merge FETCH_HEAD -m "Automatic merge of ${{ github.event.client_payload.ref }}@$( git rev-parse --short FETCH_HEAD )"
+
+    - name: Create the branch
+      run: git branch ${{ env.HEAD_REF }}
+
+    - name: Remove authentication
+      run: git config --local http.https://github.com/.extraheader ""
+
+    - name: Upload the repository
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ env.HEAD_REF }}.git
+        path: .git/**
+        if-no-files-found: error
+
+  Lint:
+    needs: Checkout
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name != 'push' }}
+
+    steps:
+    - name: Retrieve the repository
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ env.HEAD_REF }}.git
+        path: .git
+
+    - name: Check out the code
+      run: |
+        git checkout --progress --force ${{ env.HEAD_REF }}
 
     - name: Run clang-format through the diff
       uses: ./.github/actions/lint
 
   Build-Test:
-    needs: Lint
+    needs: [Checkout, Lint]
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ always() && needs.Lint.result != 'failure' }}
+    if: ${{ !failure() }}
 
     runs-on: windows-latest
 
@@ -35,6 +88,25 @@ jobs:
       BUILD_DIR: ../build
 
     steps:
+    - name: Retrieve the repository
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ env.HEAD_REF }}.git
+        path: .git
+
+    - name: Check out the code
+      run: |
+        # Authenticate with the new token.
+        git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( [Convert]::ToBase64String([System.Text.Encoding]::Ascii.GetBytes('x-access-token:${{ secrets.GITHUB_TOKEN }}')) )"
+        git checkout --progress --force ${{ env.HEAD_REF }}
+
+    - name: Check out submodules and fetch tags
+      uses: ./.github/actions/checkout
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
 
@@ -61,18 +133,6 @@ jobs:
 
     - name: Enable symlinks
       run: git config --global core.symlinks true
-
-    - name: Check out
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-
-    - name: Check out submodules and fetch tags
-      uses: ./.github/actions/checkout
-
-    - name: Determine build parameters
-      id: build-params
-      uses: ./.github/actions/build-params
 
     - name: Set up MSVC
       uses: ilammy/msvc-dev-cmd@v1.3.0
