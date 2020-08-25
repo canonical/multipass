@@ -380,7 +380,7 @@ std::pair<mp::NetworkInterface, bool> validate_network_options(const std::string
     }
 
     // Transfer the verified data to the return struct.
-    bool auto_mode = "auto" == parsed_options["mode"];
+    bool auto_mode = "manual" != parsed_options["mode"];
     std::string id = parsed_options["id"];
     std::string mac_address = parsed_options["mac"];
 
