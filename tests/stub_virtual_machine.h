@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,12 +66,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "ubuntu";
     }
 
-    std::string ipv4() override
+    std::vector<std::string> ipv4() override
     {
         return {};
     }
 
-    std::string ipv6() override
+    std::vector<std::string> ipv6() override
     {
         return {};
     }

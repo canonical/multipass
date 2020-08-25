@@ -50,7 +50,8 @@ auto construct_single_instance_list_reply()
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
-    list_entry->set_ipv4("10.168.32.2");
+    list_entry->add_ipv4("10.168.32.2");
+    list_entry->add_ipv4("192.168.122.9");
 
     return list_reply;
 }
@@ -63,7 +64,7 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
-    list_entry->set_ipv4("10.21.124.56");
+    list_entry->add_ipv4("10.21.124.56");
 
     list_entry = list_reply.add_instances();
     list_entry->set_name("bombastic");
@@ -178,7 +179,7 @@ auto construct_single_instance_info_reply()
     info_entry->set_disk_usage("1288490188");
     info_entry->set_disk_total("5153960756");
     info_entry->set_current_release("Ubuntu 16.04.3 LTS");
-    info_entry->set_ipv4("10.168.32.2");
+    info_entry->add_ipv4("10.168.32.2");
 
     return info_reply;
 }
@@ -208,7 +209,8 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_disk_usage("1932735284");
     info_entry->set_disk_total("6764573492");
     info_entry->set_current_release("Ubuntu 16.04.3 LTS");
-    info_entry->set_ipv4("10.21.124.56");
+    info_entry->add_ipv4("10.21.124.56");
+    info_entry->add_ipv4("192.168.2.201");
 
     info_entry = info_reply.add_info();
     info_entry->set_name("bombastic");
@@ -384,7 +386,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
     {&table_formatter, &single_instance_list_reply,
      "Name                    State             IPv4             Image\n"
-     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n",
+     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n"
+     "                                          192.168.122.9\n",
      "table_list_single"},
 
     {&table_formatter, &multiple_instances_list_reply,
@@ -422,6 +425,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Name:           bogus-instance\n"
      "State:          Running\n"
      "IPv4:           10.21.124.56\n"
+     "                192.168.2.201\n"
      "Release:        Ubuntu 16.04.3 LTS\n"
      "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
      "Load:           0.03 0.10 0.15\n"
@@ -443,7 +447,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release\n", "csv_list_empty"},
     {&csv_formatter, &single_instance_list_reply,
      "Name,State,IPv4,IPv6,Release\n"
-     "foo,Running,10.168.32.2,,16.04 LTS\n",
+     "foo,Running,10.168.32.2;192.168.122.9,,16.04 LTS\n",
      "csv_list_single"},
     {&csv_formatter, &multiple_instances_list_reply,
      "Name,State,IPv4,IPv6,Release\n"
@@ -471,7 +475,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "csv_info_single"},
     {&csv_formatter, &multiple_instances_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
+     "usage,Memory total,Mounts\nbogus-instance,Running,10.21.124.56;192.168.2.201,,Ubuntu 16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
      "source;\nbombastic,Stopped,,,,"
@@ -484,6 +488,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Running\n"
      "    ipv4:\n"
      "      - 10.168.32.2\n"
+     "      - 192.168.122.9\n"
      "    release: 16.04 LTS\n",
      "yaml_list_single"},
     {&yaml_formatter, &multiple_instances_list_reply,
@@ -578,6 +583,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "      total: 1610612736\n"
      "    ipv4:\n"
      "      - 10.21.124.56\n"
+     "      - 192.168.2.201\n"
      "    mounts:\n"
      "      source:\n"
      "        uid_mappings:\n"
@@ -612,7 +618,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "    \"list\": [\n"
      "        {\n"
      "            \"ipv4\": [\n"
-     "                \"10.168.32.2\"\n"
+     "                \"10.168.32.2\",\n"
+     "                \"192.168.122.9\"\n"
      "            ],\n"
      "            \"name\": \"foo\",\n"
      "            \"release\": \"16.04 LTS\",\n"
@@ -717,7 +724,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
      "            \"image_release\": \"16.04 LTS\",\n"
      "            \"ipv4\": [\n"
-     "                \"10.21.124.56\"\n"
+     "                \"10.21.124.56\",\n"
+     "                \"192.168.2.201\"\n"
      "            ],\n"
      "            \"load\": [\n"
      "                0.03,\n"
