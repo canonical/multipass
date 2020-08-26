@@ -1,18 +1,12 @@
 name: Checkout
 description: Check out Multipass code along with tags and submodules
 
-inputs:
-  token:
-    description: GitHub authorization token (Optional).
-
 runs:
   using: composite
   steps:
   - name: Check out submodules
     shell: bash
     working-directory: ${{ github.workspace }}
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
     run: |
       git submodule sync
       # This repository can't do depth.
