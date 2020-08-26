@@ -99,10 +99,13 @@ jobs:
         path: ~/.ccache/**
 
     - name: Set up coverage
+      id: coverage-setup
       if: ${{ matrix.build-type == 'Coverage' }}
       run: |
-        mkdir "${HOME}/parts"
-        sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
+        COVERAGE_BUILD=${HOME}/build
+        mkdir --parents ${COVERAGE_BUILD}
+        sg lxd -c "/snap/bin/lxc profile device add default build disk source=${COVERAGE_BUILD} path=/root/parts/multipass/build"
+        echo "::set-output name=build::${COVERAGE_BUILD}"
 
     - name: Build
       run: |
@@ -136,7 +139,8 @@ jobs:
         sg lxd -c \
           '/snap/bin/lxc exec snapcraft-multipass -- \
              cmake --build /root/parts/multipass/build --target covreport'
-        bash <(curl -s https://codecov.io/bash) -Z -s ${HOME}/parts
+        bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+      continue-on-error: true
 
     - name: Build and verify the snap
       id: build-snap
