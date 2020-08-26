@@ -1,6 +1,14 @@
 name: Determine build parameters
 description: Determine Multipass build parameters (labels, snap channels etc.)
 
+inputs:
+  release-branch-re:
+    description: "Release branch pattern"
+    default: ^refs/heads/release/[0-9\.]+$
+  release-tag-re:
+    description: "Release tag pattern"
+    default: ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$
+
 outputs:
   label:
     description: Label to annotate the build version with
