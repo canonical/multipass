@@ -72,9 +72,11 @@ jobs:
       uses: ./.github/actions/build-params
 
     - name: Patch
+      env:
+        PATCH_PREFIX: .github/workflows/linux
       run: |
-        [ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch
-        [ ! -f tests/travis-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${{ matrix.build-type }}.patch
+        [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
+        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
     - name: Set up CCache
       id: setup-ccache
