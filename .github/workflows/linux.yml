@@ -1,0 +1,198 @@
+name: Linux
+
+on:
+  push:
+    branches:
+    - master
+    - staging
+    - trying
+    - release/[0-9]+.[0-9]+
+    tags:
+    - v[0-9]+.[0-9]+.[0-9]+
+  pull_request:
+
+jobs:
+  Lint:
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'pull_request' || contains('refs/heads/staging refs/heads/trying', github.ref) }}
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+
+    - name: Run clang-format through the diff
+      uses: ./.github/actions/lint
+
+  BuildAndTest:
+    needs: Lint
+    # Need to explicitly continue on Lint getting skipped.
+    if: ${{ !failure() }}
+
+    outputs:
+      channel: ${{ steps.build-params.outputs.channel }}
+      snap-file: ${{ steps.build-snap.outputs.snap-file }}
+
+    strategy:
+      matrix:
+        build-type: [Debug, Clang, RelWithDebInfo, Coverage]
+
+    runs-on: ubuntu-latest
+
+    env:
+      SNAPCRAFT_BUILD_INFO: 1
+
+    timeout-minutes: 60
+    steps:
+    - name: Install Snapcraft
+      uses: samuelmeuli/action-snapcraft@v1
+
+    # Could use `use_lxd: true` above, but lxc/lxd-pkg-snap#63 makes it go stuck for 10 minutes.
+    - name: Install LXD
+      run: |
+        sudo apt-get remove --purge --yes lxd lxd-client
+        sudo snap install lxd
+        sudo /snap/bin/lxd waitready
+        sudo /snap/bin/lxd init --auto
+        sudo usermod --append --groups lxd $USER
+
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        # Need to fetch it all for submodules to work.
+        fetch-depth: 0
+
+    - name: Check out tags and submodules
+      uses: ./.github/actions/checkout
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
+    - name: Patch
+      env:
+        PATCH_PREFIX: .github/workflows/linux
+      run: |
+        [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
+        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
+
+    - name: Set up CCache
+      id: setup-ccache
+      run: |
+        sudo apt-get install ccache
+        ccache --max-size=2G
+        sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
+
+        # Find common base between master and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin master
+        echo "::set-output name=key::$( git merge-base origin/master ${{ github.sha }} )"
+
+    - name: CCache
+      uses: actions/cache@v2
+      with:
+        key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.key }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ matrix.build-type }}-
+        path: ~/.ccache/**
+
+    - name: Set up coverage
+      id: coverage-setup
+      if: ${{ matrix.build-type == 'Coverage' }}
+      run: |
+        COVERAGE_BUILD=${HOME}/build
+        mkdir --parents ${COVERAGE_BUILD}
+        sg lxd -c "/snap/bin/lxc profile device add default build disk source=${COVERAGE_BUILD} path=/root/parts/multipass/build"
+        echo "::set-output name=build::${COVERAGE_BUILD}"
+
+    - name: Build
+      run: |
+        # Inject the build label.
+        sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
+
+        # Build the `multipass` part.
+        sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+
+    - name: Clear CCache stats
+      run: ccache --show-stats --zero-stats
+
+    - name: Test
+      if: ${{ matrix.build-type == 'Debug' }}
+      timeout-minutes: 1
+      run: |
+        sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        sg lxd -c \
+          '/snap/bin/lxc exec snapcraft-multipass -- \
+             env CTEST_OUTPUT_ON_FAILURE=1 \
+                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+                 /root/parts/multipass/build/bin/multipass_tests'
+
+    - name: Measure coverage
+      if: ${{ matrix.build-type == 'Coverage' }}
+      timeout-minutes: 5
+      run: |
+        sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        sg lxd -c \
+          '/snap/bin/lxc exec snapcraft-multipass -- \
+             cmake --build /root/parts/multipass/build --target covreport'
+        bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+      continue-on-error: true
+
+    - name: Build and verify the snap
+      id: build-snap
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
+      env:
+        SNAP_ENFORCE_RESQUASHFS: 0
+      run: |
+        # Actually build the snap.
+        sg lxd -c '/snap/bin/snapcraft --use-lxd'
+
+        sudo snap install review-tools
+        /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap
+
+        echo "::set-output name=snap-file::$( ls *.snap )"
+
+    - name: Upload the snap
+      uses: actions/upload-artifact@v2
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
+      with:
+        name: ${{ steps.build-snap.outputs.snap-file }}
+        path: ${{ steps.build-snap.outputs.snap-file }}
+        if-no-files-found: error
+
+  # Publish the snap to the store if a channel was determined and we have access to secrets.
+  Publish-Snap:
+    needs: BuildAndTest
+    if: ${{ needs.BuildAndTest.outputs.channel != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+    steps:
+    - name: Download the built snap
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ needs.BuildAndTest.outputs.snap-file }}
+
+    - name: Install Snapcraft and log in
+      uses: samuelmeuli/action-snapcraft@v1
+      with:
+        snapcraft_token: ${{ secrets.SNAPCRAFT_TOKEN }}
+
+    - name: Publish the snap
+      run: |
+        snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
+
+  # Report result to Bors on `staging` and `trying` branches.
+  Bors:
+    if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    needs:
+    - BuildAndTest
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report failure
+      if: ${{ needs.BuildAndTest.result != 'success' }}
+      run: exit 1
