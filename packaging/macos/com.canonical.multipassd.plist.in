@@ -8,7 +8,7 @@
     <key>EnvironmentVariables</key>
     <dict>
       <key>PATH</key>
-      <string>@CPACK_PACKAGING_INSTALL_PREFIX@/bin</string>
+      <string>@CPACK_PACKAGING_INSTALL_PREFIX@/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 
     <key>ProgramArguments</key>
