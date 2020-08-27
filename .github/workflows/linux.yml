@@ -26,7 +26,7 @@ jobs:
     - name: Run clang-format through the diff
       uses: ./.github/actions/lint
 
-  Build-Test:
+  BuildAndTest:
     needs: Lint
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() }}
@@ -163,8 +163,8 @@ jobs:
 
   # Publish the snap to the store if a channel was determined and we have access to secrets.
   Publish-Snap:
-    needs: Build-Test
-    if: ${{ needs.Build-Test.outputs.channel != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    needs: BuildAndTest
+    if: ${{ needs.BuildAndTest.outputs.channel != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
 
     runs-on: ubuntu-latest
 
@@ -173,7 +173,7 @@ jobs:
     - name: Download the built snap
       uses: actions/download-artifact@v2
       with:
-        name: ${{ needs.Build-Test.outputs.snap-file }}
+        name: ${{ needs.BuildAndTest.outputs.snap-file }}
 
     - name: Install Snapcraft and log in
       uses: samuelmeuli/action-snapcraft@v1
@@ -182,17 +182,17 @@ jobs:
 
     - name: Publish the snap
       run: |
-        snapcraft upload *.snap --release ${{ needs.Build-Test.outputs.channel }}
+        snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
 
   # Report result to Bors on `staging` and `trying` branches.
   Bors:
     if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
     needs:
-    - Build-Test
+    - BuildAndTest
 
     runs-on: ubuntu-latest
 
     steps:
     - name: Report failure
-      if: ${{ needs.Build-Test.result != 'success' }}
+      if: ${{ needs.BuildAndTest.result != 'success' }}
       run: exit 1
