@@ -140,29 +140,13 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     }
     catch (const LXDNotFoundException&)
     {
-        QJsonObject source_object;
-
-        source_object.insert("type", "image");
-        source_object.insert("mode", "pull");
-        source_object.insert("server", info.stream_location);
-        source_object.insert("protocol", "simplestreams");
-        source_object.insert("image_type", "virtual-machine");
-
-        if (id.startsWith(QString::fromStdString(query.release)))
+        try
         {
-            source_object.insert("fingerprint", id);
+            lxd_download_image(id, info.stream_location, QString::fromStdString(query.release), monitor);
         }
-        else
+        catch (const LXDNotFoundException&)
         {
-            source_object.insert("alias", QString::fromStdString(query.release));
         }
-
-        QJsonObject image_object{{"source", source_object}};
-
-        auto json_reply =
-            lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
-
-        poll_download_operation(json_reply, monitor);
     }
 
     return source_image;
@@ -315,6 +299,33 @@ mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
     }
 
     throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
+}
+
+void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& stream_location, const QString& release,
+                                             const ProgressMonitor& monitor)
+{
+    QJsonObject source_object;
+
+    source_object.insert("type", "image");
+    source_object.insert("mode", "pull");
+    source_object.insert("server", stream_location);
+    source_object.insert("protocol", "simplestreams");
+    source_object.insert("image_type", "virtual-machine");
+
+    if (id.startsWith(release))
+    {
+        source_object.insert("fingerprint", id);
+    }
+    else
+    {
+        source_object.insert("alias", release);
+    }
+
+    QJsonObject image_object{{"source", source_object}};
+
+    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
+
+    poll_download_operation(json_reply, monitor);
 }
 
 void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply, const ProgressMonitor& monitor,

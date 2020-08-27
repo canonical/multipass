@@ -51,6 +51,8 @@ public:
 
 private:
     VMImageInfo info_for(const Query& query);
+    void lxd_download_image(const QString& id, const QString& stream_location, const QString& release,
+                            const ProgressMonitor& monitor);
     void poll_download_operation(
         const QJsonObject& json_reply, const ProgressMonitor& monitor, const TaskCompleteAction& action = [](auto) {});
 
