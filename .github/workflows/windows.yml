@@ -77,7 +77,7 @@ jobs:
     - name: Run clang-format through the diff
       uses: ./.github/actions/lint
 
-  Build-Test:
+  BuildAndTest:
     needs: [Checkout, Lint]
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() }}
