@@ -34,8 +34,8 @@ runs:
         echo "::set-output name=channel::edge/pr${BASH_REMATCH[1]}"
 
       # If it's a release tag or branch, publish to the `candidate` channel.
-      elif [[ ${{ github.ref }} =~ ${MULTIPASS_RELEASE_BRANCH_PATTERN} \
-        || ${{ github.ref }} =~ ${MULTIPASS_RELEASE_TAG_PATTERN} ]]; then
+      elif [[ ${{ github.ref }} =~ ${{ inputs.release-branch-re }} \
+        || ${{ github.ref }} =~ ${{ inputs.release-tag-re }} ]]; then
         echo "::set-output name=channel::candidate"
 
       # All other pushes annotate with the CI run number.
