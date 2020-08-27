@@ -6,7 +6,6 @@ runs:
   steps:
   - name: Check out submodules
     shell: bash
-    working-directory: ${{ github.workspace }}
     run: |
       git submodule sync
       # This repository can't do depth.
@@ -15,6 +14,5 @@ runs:
 
   - name: Fetch tags
     shell: bash
-    working-directory: ${{ github.workspace }}
     run: |
       git fetch --no-recurse-submodules origin +refs/tags/*:refs/tags/*

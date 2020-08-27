@@ -18,7 +18,7 @@ jobs:
     - name: Run clang-format through the diff
       uses: ./.github/actions/lint
 
-  Build-Test:
+  BuildAndTest:
     needs: Lint
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() }}
@@ -34,9 +34,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Regexes for release branch and tag
-      MULTIPASS_RELEASE_BRANCH_PATTERN: ^refs/heads/release/[0-9\.]+$
-      MULTIPASS_RELEASE_TAG_PATTERN: ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$
       SNAPCRAFT_BUILD_INFO: 1
 
     timeout-minutes: 60
@@ -67,9 +64,11 @@ jobs:
       uses: ./.github/actions/build-params
 
     - name: Patch
+      env:
+        PATCH_PREFIX: .github/workflows/linux
       run: |
-        [ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch
-        [ ! -f tests/travis-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${{ matrix.build-type }}.patch
+        [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
+        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
     - name: Set up CCache
       id: setup-ccache
@@ -91,17 +90,18 @@ jobs:
         path: ~/.ccache/**
 
     - name: Set up coverage
+      id: coverage-setup
       if: ${{ matrix.build-type == 'Coverage' }}
       run: |
-        mkdir "${HOME}/parts"
-        sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
+        COVERAGE_BUILD=${HOME}/build
+        mkdir --parents ${COVERAGE_BUILD}
+        sg lxd -c "/snap/bin/lxc profile device add default build disk source=${COVERAGE_BUILD} path=/root/parts/multipass/build"
+        echo "::set-output name=build::${COVERAGE_BUILD}"
 
     - name: Build
       run: |
         # Inject the build label.
-        if [ -n "${{ steps.build-params.outputs.label }}" ]; then
-            sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
-        fi
+        sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
 
         # Build the `multipass` part.
         sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
@@ -128,7 +128,8 @@ jobs:
         sg lxd -c \
           '/snap/bin/lxc exec snapcraft-multipass -- \
              cmake --build /root/parts/multipass/build --target covreport'
-        bash <(curl -s https://codecov.io/bash) -Z -s ${HOME}/parts
+        bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+      continue-on-error: true
 
     - name: Build and verify the snap
       id: build-snap
@@ -154,8 +155,8 @@ jobs:
 
   # Publish the snap to the store if a channel was determined and we have access to secrets.
   Publish-Snap:
-    needs: Build-Test
-    if: ${{ needs.Build-Test.outputs.channel != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    needs: BuildAndTest
+    if: ${{ needs.BuildAndTest.outputs.channel != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
 
     runs-on: ubuntu-latest
 
@@ -164,7 +165,7 @@ jobs:
     - name: Download the built snap
       uses: actions/download-artifact@v2
       with:
-        name: ${{ needs.Build-Test.outputs.snap-file }}
+        name: ${{ needs.BuildAndTest.outputs.snap-file }}
 
     - name: Install Snapcraft and log in
       uses: samuelmeuli/action-snapcraft@v1
@@ -173,18 +174,17 @@ jobs:
 
     - name: Publish the snap
       run: |
-        snapcraft upload *.snap --release ${{ needs.Build-Test.outputs.channel }}
+        snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
 
   # Report result to Bors on `staging` and `trying` branches.
   Bors:
     if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
     needs:
-    - Lint
-    - Build-Test
+    - BuildAndTest
 
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check test result
-      run: |
-        [ ${{ needs.Lint.result }} == success ] && [ ${{ needs.Build-Test.result }} == success ] || exit 1
+    - name: Report failure
+      if: ${{ needs.BuildAndTest.result != 'success' }}
+      run: exit 1
