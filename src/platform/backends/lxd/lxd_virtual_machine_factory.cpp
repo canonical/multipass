@@ -124,5 +124,5 @@ mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vec
                                                                         const mp::Path& data_dir_path,
                                                                         const mp::days& days_to_expire)
 {
-    return std::make_unique<mp::LXDVMImageVault>(image_hosts, manager.get(), base_url, days_to_expire);
+    return std::make_unique<mp::LXDVMImageVault>(image_hosts, downloader, manager.get(), base_url, days_to_expire);
 }

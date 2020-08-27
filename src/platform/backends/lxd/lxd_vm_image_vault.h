@@ -31,14 +31,15 @@
 namespace multipass
 {
 class NetworkAccessManager;
+class URLDownloader;
 
 class LXDVMImageVault final : public VMImageVault
 {
 public:
     using TaskCompleteAction = std::function<void(const QJsonObject&)>;
 
-    LXDVMImageVault(std::vector<VMImageHost*> image_host, NetworkAccessManager* manager, const QUrl& base_url,
-                    const multipass::days& days_to_expire);
+    LXDVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, NetworkAccessManager* manager,
+                    const QUrl& base_url, const multipass::days& days_to_expire);
 
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;
@@ -54,6 +55,7 @@ private:
         const QJsonObject& json_reply, const ProgressMonitor& monitor, const TaskCompleteAction& action = [](auto) {});
 
     std::vector<VMImageHost*> image_hosts;
+    URLDownloader* const url_downloader;
     NetworkAccessManager* manager;
     const QUrl base_url;
     const days days_to_expire;

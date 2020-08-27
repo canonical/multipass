@@ -58,9 +58,13 @@ auto parse_percent_as_int(const QString& progress_string)
 }
 } // namespace
 
-mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, NetworkAccessManager* manager,
-                                     const QUrl& base_url, const days& days_to_expire)
-    : image_hosts{image_hosts}, manager{manager}, base_url{base_url}, days_to_expire{days_to_expire}
+mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
+                                     NetworkAccessManager* manager, const QUrl& base_url, const days& days_to_expire)
+    : image_hosts{image_hosts},
+      url_downloader{downloader},
+      manager{manager},
+      base_url{base_url},
+      days_to_expire{days_to_expire}
 {
     for (const auto& image_host : image_hosts)
     {
