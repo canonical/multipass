@@ -1,0 +1,18 @@
+name: Checkout
+description: Check out Multipass code along with tags and submodules
+
+runs:
+  using: composite
+  steps:
+  - name: Check out submodules
+    shell: bash
+    run: |
+      git submodule sync
+      # This repository can't do depth.
+      git -c protocol.version=2 submodule update --init 3rd-party/xz-decoder/xz-embedded
+      git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+
+  - name: Fetch tags
+    shell: bash
+    run: |
+      git fetch --no-recurse-submodules origin +refs/tags/*:refs/tags/*

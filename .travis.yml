@@ -22,7 +22,6 @@ env:
   - MULTIPASS_REPORT_OPTIONS=()
 
 stages:
-- name: static
 - name: build
   if: | # bors and release branches, release tags and all pull requests
     (type = push
@@ -35,159 +34,20 @@ stages:
 
 jobs:
   include:
-    - stage: static
-      name: Clang format
-      if: type = pull_request
-
-      addons:
-        apt:
-          packages: [clang-format-10]
-
-      script:
-      - git diff -U0 --no-color origin/${TRAVIS_BRANCH} | clang-format-diff-10 -p1 | tee ${HOME}/clang-diff
-      - |
-        if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
-          echo "ERROR: please apply the above diff to correct formatting"
-          exit 1
-        fi
-
-    - &snapcraft-build
-      stage: build
-      name: Debug
-      env: BUILD_TYPE=Debug
-
-      git:
-        depth: false
-        submodules: true
-
-      addons:
-        snaps:
-        - &lxd-snap lxd
-        - &snapcraft-snap
-          name: snapcraft
-          classic: true
-
-      before_install:
-      # determine build properties and targets
-      - &setup-build source tools/setup_build.sh
-
-      install:
-      - sudo apt remove --purge --assume-yes lxd lxd-client
-      - sudo /snap/bin/lxd waitready
-      - sudo /snap/bin/lxd init --auto
-      - sudo adduser $USER lxd
-      - ccache --max-size=5G
-
-      before_script:
-      # patch build system for the build type being processed
-      - "[ ! -f tests/travis.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis.patch"
-      - "[ ! -f tests/travis-${BUILD_TYPE}.patch ] || patch -p1 --no-backup-if-mismatch < tests/travis-${BUILD_TYPE}.patch"
-
-      # set up ccache
-      - sg lxd -c '/snap/bin/lxc profile set default environment.PATH "/usr/lib/ccache:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"'
-      - sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
-      - ccache --zero-stats
-
-      # inject build identifier
-      - sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${MULTIPASS_BUILD_LABEL}" snap/snapcraft.yaml
-
-      script:
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-      - sg lxd -c
-          '/snap/bin/lxc exec snapcraft-multipass --
-             env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/
-                 /root/parts/multipass/build/bin/multipass_tests'
-
-      after_failure:
-      - cat /tmp/*/trace.txt
-
-      after_script:
-      - ccache --show-stats
-
-      cache: ccache
-
-    - <<: *snapcraft-build
-      name: Clang
-      env: BUILD_TYPE=Clang
-      script:
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-
-    - <<: *snapcraft-build
-      name: RelWithDebInfo
-      env: BUILD_TYPE=RelWithDebInfo
-      if: &secure_condition |
+    - stage: build
+      name: macOS
+      env: BUILD_TYPE=macOS
+      if: |
         repo = canonical/multipass
                AND (type != pull_request
                     OR head_repo = repo)
 
-      addons:
-        snaps:
-        - *lxd-snap
-        - *snapcraft-snap
-        - review-tools
-
       before_install:
-      - *setup-build
+      - source tools/setup_build.sh
       - &decrypt-bot-data |
         openssl aes-256-cbc -K $encrypted_1b80fb3c7803_key -iv $encrypted_1b80fb3c7803_iv \
           -in tools/bot-data.tar.xz.enc -out tools/bot-data.tar.xz -d
         tar --extract --xz --file tools/bot-data.tar.xz --directory ${HOME}
-
-      script:
-      - sg lxd -c '/snap/bin/snapcraft --use-lxd'
-      - SNAP_ENFORCE_RESQUASHFS=0 /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap
-
-      after_success:
-      - &python-requirements pyenv local 3.8.1 && python3 -m pip install --requirement tools/requirements.txt boto3
-      - BUILDS=()
-      - >-
-        [ -n "${MULTIPASS_SNAP_CHANNEL}" ]
-        && snapcraft login --with ${HOME}/snap-login
-        && snapcraft upload multipass_*.snap --release ${MULTIPASS_SNAP_CHANNEL}
-        && BUILDS+=("\`snap refresh multipass --channel ${MULTIPASS_SNAP_CHANNEL}\`")
-      - >-
-        [ -z "${MULTIPASS_SNAP_CHANNEL}" ]
-        && MULTIPASS_REPORT_OPTIONS+=(
-          --file *.snap
-          --s3-bucket multipass-ci
-          --s3-prefix ${MULTIPASS_BUILD_LABEL}
-        )
-        && BUILDS+=('[{filename}]({url})')
-      - >-
-        [ -n "${MULTIPASS_PUBLISH}" ]
-        && python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}" Snap "${BUILDS[@]}"
-
-    - <<: *snapcraft-build
-      name: Coverage
-      env: BUILD_TYPE=Coverage
-      script:
-      - mkdir "${HOME}/parts"
-      - sg lxd -c '/snap/bin/lxc profile device add default build disk source=${HOME}/parts path=/root/parts'
-      - sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
-      - sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-      - sg lxd -c
-          '/snap/bin/lxc exec snapcraft-multipass --
-             env CTEST_OUTPUT_ON_FAILURE=1
-                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/
-                 cmake --build /root/parts/multipass/build --target covreport'
-      after_success:
-      - bash <(curl -s https://codecov.io/bash) -Z -s ${HOME/parts}
-
-    - stage: build
-      name: macOS
-      env: BUILD_TYPE=macOS
-      if: *secure_condition
-
-      git:
-        submodules: false
-
-      addons: ~
-
-      before_install:
-      - *setup-build
-      - *decrypt-bot-data
 
       script:
       - |
@@ -199,7 +59,8 @@ jobs:
         ARTIFACTS_DIR=$( ssh -q -p ${MAC_PORT} ${MAC_USERHOST} mktemp -d )
         ssh -q -p ${MAC_PORT} ${MAC_USERHOST} multipass-build/build-in-snapshot.sh public "${REF}" "${ARTIFACTS_DIR}" "${MULTIPASS_BUILD_LABEL}"
       after_success:
-      - *python-requirements
+      - &python-requirements |
+        pyenv local 3.8.1 && python3 -m pip install --requirement tools/requirements.txt boto3
       - scp -P ${MAC_PORT} ${MAC_USERHOST}:${ARTIFACTS_DIR}/*.pkg .
       - python3 -m tools.report_build "${MULTIPASS_REPORT_OPTIONS[@]}"
           --file *.pkg
