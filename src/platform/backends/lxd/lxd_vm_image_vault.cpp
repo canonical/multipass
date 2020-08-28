@@ -25,11 +25,18 @@
 #include <multipass/platform.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
+#include <multipass/xz_image_decoder.h>
 
+#include <shared/linux/backend_utils.h>
+
+#include <QCryptographicHash>
+#include <QFile>
 #include <QJsonArray>
 #include <QRegularExpression>
+#include <QTemporaryDir>
 
 #include <chrono>
 #include <thread>
@@ -56,6 +63,97 @@ auto parse_percent_as_int(const QString& progress_string)
 
     return -1;
 }
+
+// TODO: Refactor into ImageVault common utilities and from DefaultVMImageVault
+auto filename_for(const QString& path)
+{
+    QFileInfo file_info(path);
+    return file_info.fileName();
+}
+
+// TODO: Refactor into utils and from DefaultVMImageVault
+void delete_file(const QString& path)
+{
+    QFile file{path};
+    file.remove();
+}
+
+// TODO: Refactor into ImageVault common utilities and from DefaultVMImageVault
+void verify_image_download(const mp::Path& image_path, const QString& image_hash)
+{
+    QFile image_file(image_path);
+    if (!image_file.open(QFile::ReadOnly))
+    {
+        throw std::runtime_error("Cannot open image file for computing hash");
+    }
+
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    if (!hash.addData(&image_file))
+    {
+        throw std::runtime_error("Cannot read image file to compute hash");
+    }
+
+    if (hash.result().toHex() != image_hash)
+    {
+        throw std::runtime_error("Downloaded image hash does not match");
+    }
+}
+
+// TODO: Maybe refactor into ImageVault common utilities.
+//       This is a little different than the DefaultVMImageVault implementation
+QString extract_downloaded_image(const QString& image_path, const mp::ProgressMonitor& monitor)
+{
+    mp::XzImageDecoder xz_decoder(image_path);
+    QString new_image_path{image_path};
+
+    new_image_path.remove(".xz");
+
+    xz_decoder.decode_to(new_image_path, monitor);
+
+    delete_file(image_path);
+
+    return new_image_path;
+}
+
+QString post_process_downloaded_image(const QString& image_path, const mp::ProgressMonitor& monitor)
+{
+    QString new_image_path;
+
+    if (image_path.endsWith(".xz"))
+    {
+        new_image_path = extract_downloaded_image(image_path, monitor);
+    }
+
+    QString original_image_path{new_image_path};
+    new_image_path = mp::backend::convert_to_qcow_if_necessary(new_image_path);
+
+    if (original_image_path != new_image_path)
+    {
+        delete_file(original_image_path);
+    }
+
+    return new_image_path;
+}
+
+// TODO: Refactor into ImageVault common utilities and from DefaultVMImageVault
+class DeleteOnException
+{
+public:
+    explicit DeleteOnException(const mp::Path& path) : file(path)
+    {
+    }
+    ~DeleteOnException()
+    {
+        if (std::uncaught_exceptions() > initial_exc_count)
+        {
+            file.remove();
+        }
+    }
+
+private:
+    QFile file;
+    const int initial_exc_count = std::uncaught_exceptions();
+};
 } // namespace
 
 mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
@@ -140,12 +238,19 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     }
     catch (const LXDNotFoundException&)
     {
-        try
+        if (!info.stream_location.isEmpty())
         {
             lxd_download_image(id, info.stream_location, QString::fromStdString(query.release), monitor);
         }
-        catch (const LXDNotFoundException&)
+        else
         {
+            // TODO: Need to make this async like in DefaultVMImageVault
+            QTemporaryDir image_dir;
+            auto image_path = image_dir.filePath(filename_for(info.image_location));
+
+            url_download_image(info, image_path, monitor);
+
+            image_path = post_process_downloaded_image(image_path, monitor);
         }
     }
 
@@ -326,6 +431,20 @@ void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& s
     auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
 
     poll_download_operation(json_reply, monitor);
+}
+
+void mp::LXDVMImageVault::url_download_image(const VMImageInfo& info, const QString& image_path,
+                                             const ProgressMonitor& monitor)
+{
+    DeleteOnException image_file{image_path};
+
+    url_downloader->download_to(info.image_location, image_path, info.size, LaunchProgress::IMAGE, monitor);
+
+    if (info.verify)
+    {
+        monitor(LaunchProgress::VERIFY, -1);
+        verify_image_download(image_path, info.id);
+    }
 }
 
 void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply, const ProgressMonitor& monitor,

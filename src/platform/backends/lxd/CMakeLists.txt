@@ -29,4 +29,5 @@ target_link_libraries(lxd_backend
   rpc
   ssh
   utils
+  xz_image_decoder
   yaml)
