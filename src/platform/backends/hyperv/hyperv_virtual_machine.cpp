@@ -105,6 +105,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                           "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size});
         power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
         power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'});
+        power_shell->run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
+                          QString::fromStdString('"' + desc.interfaces[0].mac_address + '"')});
 
         state = State::off;
     }
