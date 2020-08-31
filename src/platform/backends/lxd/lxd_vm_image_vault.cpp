@@ -31,11 +31,16 @@
 #include <multipass/xz_image_decoder.h>
 
 #include <shared/linux/backend_utils.h>
+#include <shared/linux/process_factory.h>
+
+#include <yaml-cpp/yaml.h>
 
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QFile>
 #include <QJsonArray>
 #include <QRegularExpression>
+#include <QSysInfo>
 #include <QTemporaryDir>
 
 #include <chrono>
@@ -49,6 +54,10 @@ using namespace std::literals::chrono_literals;
 namespace
 {
 constexpr auto category = "lxd image vault";
+
+const QHash<QString, QString> host_to_lxd_arch{{"x86_64", "x86_64"}, {"arm", "armv7l"}, {"arm64", "aarch64"},
+                                               {"i386", "i686"},     {"power", "ppc"},  {"power64", "ppc64"},
+                                               {"s390x", "s390x"}};
 
 auto parse_percent_as_int(const QString& progress_string)
 {
@@ -117,7 +126,7 @@ QString extract_downloaded_image(const QString& image_path, const mp::ProgressMo
 
 QString post_process_downloaded_image(const QString& image_path, const mp::ProgressMonitor& monitor)
 {
-    QString new_image_path;
+    QString new_image_path{image_path};
 
     if (image_path.endsWith(".xz"))
     {
@@ -133,6 +142,41 @@ QString post_process_downloaded_image(const QString& image_path, const mp::Progr
     }
 
     return new_image_path;
+}
+
+QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir& lxd_import_dir)
+{
+    QFile metadata_yaml_file{lxd_import_dir.filePath("metadata.yaml")};
+    YAML::Node metadata_node;
+
+    metadata_node["architecture"] = host_to_lxd_arch.value(QSysInfo::currentCpuArchitecture()).toStdString();
+    metadata_node["creation_date"] = QDateTime::currentSecsSinceEpoch();
+    metadata_node["properties"]["description"] = info.release_title.toStdString();
+    metadata_node["properties"]["os"] = info.os.toStdString();
+    metadata_node["properties"]["release"] = info.release.toStdString();
+    metadata_node["properties"]["version"] = info.version.toStdString();
+
+    YAML::Emitter emitter;
+    emitter << metadata_node << YAML::Newline;
+
+    metadata_yaml_file.open(QIODevice::WriteOnly);
+    metadata_yaml_file.write(emitter.c_str());
+    metadata_yaml_file.close();
+
+    const auto metadata_tarball_path = lxd_import_dir.filePath("metadata.tar");
+    auto process = MP_PROCFACTORY.create_process(
+        "tar", QStringList() << "-cf" << metadata_tarball_path << "-C" << lxd_import_dir.path()
+                             << QFileInfo(metadata_yaml_file.fileName()).fileName());
+
+    auto exit_state = process->execute();
+
+    if (!exit_state.completed_successfully())
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to create LXD image import metadata tarball: {}", process->read_all_standard_error()));
+    }
+
+    return metadata_tarball_path;
 }
 
 // TODO: Refactor into ImageVault common utilities and from DefaultVMImageVault
@@ -245,12 +289,16 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
         else
         {
             // TODO: Need to make this async like in DefaultVMImageVault
-            QTemporaryDir image_dir;
-            auto image_path = image_dir.filePath(filename_for(info.image_location));
+            QTemporaryDir lxd_import_dir;
+            auto image_path = lxd_import_dir.filePath(filename_for(info.image_location));
 
             url_download_image(info, image_path, monitor);
 
             image_path = post_process_downloaded_image(image_path, monitor);
+
+            monitor(LaunchProgress::WAITING, -1);
+
+            auto metadata_tarball_path = create_metadata_tarball(info, lxd_import_dir);
         }
     }
 
