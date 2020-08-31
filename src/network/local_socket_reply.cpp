@@ -153,7 +153,7 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     http_data += " HTTP/1.1\r\n";
 
     // Build the HTTP Host header
-    auto host = request.url().host().toUtf8();
+    auto host = request.url().host().toLatin1();
     if (!host.isEmpty())
     {
         http_data += "Host: " + host + "\r\n";
@@ -180,27 +180,28 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         if (outgoingData && outgoingData->size() > 0)
         {
             auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
-            auto transfer_encoding = request.rawHeader("Transfer-Encoding");
-            bool is_chunked{false};
+            auto transfer_encoding = request.rawHeader("Transfer-Encoding").toLower();
+            bool is_chunked = transfer_encoding.contains("chunked") ? true : false;
 
-            if (!content_length.isEmpty() && !transfer_encoding.isEmpty())
+            if (!content_length.isEmpty())
             {
-                throw mp::HttpLocalSocketException(
-                    "Both \'Content-Length\' and \'Transfer-Encoding\' headers cannot be set at the same time");
-            }
-            else if (content_length.isEmpty() && transfer_encoding.isEmpty())
-            {
-                throw mp::HttpLocalSocketException(
-                    "Either the \'Content-Length\' or the \'Transfer-Encoding\' header must be set");
-            }
-            else if (!content_length.isEmpty())
-            {
+                if (is_chunked)
+                {
+                    throw mp::HttpLocalSocketException("Both the \'Content-Length\' header and \'chunked\' transfer "
+                                                       "encoding cannot be set at the same time");
+                }
+
                 http_data += "Content-Length: " + content_length + "\r\n";
             }
-            else
+            else if (content_length.isEmpty() && !is_chunked)
+            {
+                throw mp::HttpLocalSocketException(
+                    "Either the \'Content-Length\' header or \'chunked\' transfer encoding must be set");
+            }
+
+            if (!transfer_encoding.isEmpty())
             {
                 http_data += "Transfer-Encoding: " + transfer_encoding + "\r\n";
-                is_chunked = true;
             }
 
             if (!local_socket_write(http_data + "\r\n"))
@@ -212,25 +213,25 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
             std::vector<char> data_buffer;
             data_buffer.reserve(max_bytes);
 
-            while (true)
+            int bytes_read{0};
+            while ((bytes_read = outgoingData->read(data_buffer.data(), max_bytes)) > 0)
             {
-                auto bytes_read = outgoingData->read(data_buffer.data(), max_bytes);
-                if (bytes_read < 0)
-                {
-                    throw mp::HttpLocalSocketException(
-                        fmt::format("Cannot read data to send to socket: {}", outgoingData->errorString()));
-                }
-
-                if (bytes_read == 0)
-                    break;
-
                 if (is_chunked && !local_socket_write(QByteArray::number(bytes_read, 16) + "\r\n"))
                     return;
 
-                if (!local_socket_write(QByteArray::fromRawData(data_buffer.data(), bytes_read) + "\r\n"))
+                if (!local_socket_write(QByteArray::fromRawData(data_buffer.data(), bytes_read)))
+                    return;
+
+                if (is_chunked && !local_socket_write("\r\n"))
                     return;
 
                 local_socket->waitForBytesWritten();
+            }
+
+            if (bytes_read < 0)
+            {
+                throw mp::HttpLocalSocketException(
+                    fmt::format("Cannot read data to send to socket: {}", outgoingData->errorString()));
             }
 
             // Trailer part for chunked data

@@ -123,7 +123,7 @@ struct LocalSocketWriteErrorTestSuite : LocalNetworkAccessManager, WithParamInte
 {
 };
 
-const std::vector<int> local_socket_write_error_suite_inputs{0, 1, 2, 3, 4, 5};
+const std::vector<int> local_socket_write_error_suite_inputs{0, 1, 2, 3, 4, 5, 6};
 
 const std::vector<HTTPErrorParamType> http_error_suite_inputs{
     {"HTTP/1.1 400 Bad Request\r\n\r\n", QNetworkReply::ProtocolInvalidOperationError},
@@ -205,7 +205,7 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
                              "User-Agent: Test\r\n"
                              "Content-Type: application/x-www-form-urlencoded\r\n"
                              "Content-Length: 11\r\n\r\n"
-                             "Hello World\r\n\r\n"};
+                             "Hello World\r\n"};
 
     QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
 
