@@ -56,6 +56,7 @@ private:
     void url_download_image(const VMImageInfo& info, const QString& image_path, const ProgressMonitor& monitor);
     void poll_download_operation(
         const QJsonObject& json_reply, const ProgressMonitor& monitor, const TaskCompleteAction& action = [](auto) {});
+    void lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path);
 
     std::vector<VMImageHost*> image_hosts;
     URLDownloader* const url_downloader;

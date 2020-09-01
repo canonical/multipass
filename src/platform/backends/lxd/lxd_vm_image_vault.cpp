@@ -38,6 +38,8 @@
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QFile>
+#include <QFileInfo>
+#include <QHttpMultiPart>
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <QSysInfo>
@@ -299,6 +301,8 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             monitor(LaunchProgress::WAITING, -1);
 
             auto metadata_tarball_path = create_metadata_tarball(info, lxd_import_dir);
+
+            lxd_import_metadata_and_image(metadata_tarball_path, image_path);
         }
     }
 
@@ -544,5 +548,46 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
                 break;
             }
         }
+    }
+}
+
+void mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path)
+{
+    QHttpMultiPart lxd_multipart{QHttpMultiPart::FormDataType};
+    QFileInfo metadata_info{metadata_path}, image_info{image_path};
+
+    QHttpPart metadata_part;
+    metadata_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    metadata_part.setHeader(
+        QNetworkRequest::ContentDispositionHeader,
+        QVariant(QString("form-data; name=\"metadata\"; filename=\"%1\"").arg(metadata_info.fileName())));
+    QFile* metadata_file = new QFile(metadata_path);
+    metadata_file->open(QIODevice::ReadOnly);
+    metadata_part.setBodyDevice(metadata_file);
+    metadata_file->setParent(&lxd_multipart);
+
+    QHttpPart image_part;
+    image_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    image_part.setHeader(
+        QNetworkRequest::ContentDispositionHeader,
+        QVariant(QString("form-data; name=\"rootfs.img\"; filename=\"%1\"").arg(image_info.fileName())));
+    QFile* image_file = new QFile(image_path);
+    image_file->open(QIODevice::ReadOnly);
+    image_part.setBodyDevice(image_file);
+    image_file->setParent(&lxd_multipart);
+
+    lxd_multipart.append(metadata_part);
+    lxd_multipart.append(image_part);
+
+    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), lxd_multipart);
+
+    if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
+        json_reply["status_code"].toInt(-1) == 100)
+    {
+        QUrl task_url(QString("%1/operations/%2/wait")
+                          .arg(base_url.toString())
+                          .arg(json_reply["metadata"].toObject()["id"].toString()));
+
+        auto task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, 300000);
     }
 }
