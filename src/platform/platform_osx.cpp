@@ -47,6 +47,7 @@
 #include <unistd.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
 namespace
@@ -282,8 +283,9 @@ mp::optional<mp::IPAddress> get_ip_address(const std::string& iface_name)
 
     if (!ipconfig_exit_state.completed_successfully())
     {
-        throw std::runtime_error(
-            fmt::format("Failed to execute ipconfig: {}", ipconfig_process->read_all_standard_error()));
+        mpl::log(mpl::Level::info, "get_ip_address",
+                 fmt::format("Failed to execute ipconfig: \"{}\"", ipconfig_process->read_all_standard_error()));
+        return mp::nullopt;
     }
 
     QString ipconfig_output = ipconfig_process->read_all_standard_output().trimmed();
