@@ -515,21 +515,21 @@ mp::NetworkInterfaceInfo get_network_interface_info_from_id(int if_id, mp::Power
                                                         QRegularExpression::DotMatchesEverythingOption};
     const auto match = regexp.match(ps_out);
 
-    std::string id, type, description;
+    std::string alias, type, description;
     mp::optional<mp::IPAddress> ip;
 
     if (match.hasMatch())
     {
-        id = match.captured("alias").toStdString();
+        alias = match.captured("alias").toStdString();
         type = "";
         description = match.captured("description").toStdString();
         *ip = mp::IPAddress(match.captured("ip").toStdString());
     }
 
     mpl::log(mpl::Level::debug, "get_interfaces",
-             fmt::format("{}: \"{}\", \"{}\", \"{}\", \"{}\"", if_id, id, type, description, ip->as_string()));
+             fmt::format("{}: \"{}\", \"{}\", \"{}\", \"{}\"", if_id, alias, type, description, ip->as_string()));
 
-    return mp::NetworkInterfaceInfo{id, type, description, ip};
+    return mp::NetworkInterfaceInfo{description, type, alias, ip};
 }
 
 // The alias given to this function can be the interface alias or the description. Both can be used by Windows to

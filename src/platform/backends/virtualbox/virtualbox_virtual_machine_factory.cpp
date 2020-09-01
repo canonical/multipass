@@ -122,7 +122,10 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 {
     std::vector<NetworkInterfaceInfo> networks;
 
-    // Get the list of all the interfaces which can be bridged.
+    // Get the information about the host network interfaces.
+    auto platform_ifs_info = mp::platform::get_network_interfaces_info();
+
+    // Get the list of all the interfaces which can be bridged by VirtualBox.
     QString ifs_info = QString::fromStdString(mpu::run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
 
     // List to store the output of the query command; each element corresponds to one interface.
@@ -148,32 +151,37 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
         if (match.hasMatch())
         {
             ifname = match.captured("name").toStdString();
-            ifdescription = match.captured("description").toStdString();
-            if (ifdescription.empty())
+            auto platform_if_info = platform_ifs_info.find(ifname);
+
+            // Show this interface only if the OS knows about it.
+            if (platform_if_info != platform_ifs_info.end())
             {
-                // Ask the OS for information about the interface.
-                mp::NetworkInterfaceInfo if_info = mp::platform::get_network_interface_info(ifname);
-                ifid = if_info.id;
-                iftype = if_info.type;
-                ifdescription = if_info.description;
-            }
-            else
-            {
-                ifid = ifname;
-                // Get the information from the VBoxManage output.
-                if (match.captured("wireless") == "Yes")
+                mp::NetworkInterfaceInfo if_info = platform_if_info->second;
+
+                ifdescription = match.captured("description").toStdString();
+                if (ifdescription.empty())
                 {
-                    iftype = "wifi";
+                    // Use the OS information about the interface.
+                    iftype = if_info.type;
+                    ifdescription = if_info.description;
                 }
                 else
                 {
-                    iftype = ifdescription.compare(0, 11, "Thunderbolt")
-                                 ? match.captured("type").toLower().toStdString()
-                                 : "thunderbolt";
+                    // Get the information from the VBoxManage output.
+                    if (match.captured("wireless") == "Yes")
+                    {
+                        iftype = "wifi";
+                    }
+                    else
+                    {
+                        iftype = ifdescription.compare(0, 11, "Thunderbolt")
+                                     ? match.captured("type").toLower().toStdString()
+                                     : "thunderbolt";
+                    }
                 }
-            }
 
-            networks.push_back({ifid.empty() ? ifname : ifid, iftype, ifdescription, mp::nullopt});
+                networks.push_back({if_info.id, iftype.empty() ? "unknown" : iftype, ifdescription, mp::nullopt});
+            }
         }
     }
 
