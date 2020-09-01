@@ -16,6 +16,7 @@ env:
 
 jobs:
   Checkout:
+    if: ${{ ! github.event.pull_request.draft }}
     runs-on: ubuntu-latest
 
     steps:
@@ -80,7 +81,7 @@ jobs:
   BuildAndTest:
     needs: [Checkout, Lint]
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !failure() }}
+    if: ${{ needs.Checkout.result == 'success' }}
 
     runs-on: windows-latest
 
