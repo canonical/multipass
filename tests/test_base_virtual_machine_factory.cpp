@@ -46,12 +46,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
 
 struct BaseFactory : public Test
 {
-    BaseFactory()
-    {
-        mpl::set_logger(logger);
-    }
-
-    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 } // namespace
 

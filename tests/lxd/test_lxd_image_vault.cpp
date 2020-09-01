@@ -47,22 +47,13 @@ struct LXDImageVault : public Test
     LXDImageVault() : mock_network_access_manager{std::make_unique<NiceMock<mpt::MockNetworkAccessManager>>()}
     {
         hosts.push_back(&host);
-        mpl::set_logger(logger);
 
         ON_CALL(host, info_for_full_hash(_)).WillByDefault([this](auto...) { return host.mock_image_info; });
 
-        EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                                 Matcher<multipass::logging::CString>(_)))
-            .WillRepeatedly(Return());
+        logger_scope.mock_logger->screen_logs(mpl::Level::error);
     }
 
-    void TearDown() override
-    {
-        logger.reset();
-        mpl::set_logger(logger);
-    }
-
-    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     std::unique_ptr<NiceMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     std::vector<mp::VMImageHost*> hosts;
     NiceMock<mpt::MockImageHost> host;
@@ -415,9 +406,10 @@ TEST_F(LXDImageVault, logs_warning_when_removing_nonexistent_instance)
     mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
 
     const std::string name{"foo"};
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                             mpt::MockLogger::make_cstring_matcher(
-                                 StrEq(fmt::format("Instance \'{}\' does not exist: not removing", name)))))
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        StrEq(fmt::format("Instance \'{}\' does not exist: not removing", name)))))
         .Times(1);
     EXPECT_NO_THROW(image_vault.remove(name));
 }
@@ -475,8 +467,9 @@ TEST_F(LXDImageVault, update_image_requests_refresh_and_logs_expected_message)
 
     mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
 
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                             mpt::MockLogger::make_cstring_matcher(StrEq("Image update for \'bionic\' complete."))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Image update for \'bionic\' complete."))));
 
     image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
 
@@ -513,8 +506,9 @@ TEST_F(LXDImageVault, update_image_not_refreshed_logs_expected_message)
 
     mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
 
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                             mpt::MockLogger::make_cstring_matcher(StrEq("No image update for \'bionic\'."))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("No image update for \'bionic\'."))));
 
     image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
 
@@ -599,7 +593,7 @@ TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
 
     mp::LXDVMImageVault image_vault{hosts, mock_network_access_manager.get(), base_url, mp::days{0}};
 
-    EXPECT_CALL(*logger,
+    EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
                     mpt::MockLogger::make_cstring_matcher(StrEq("Source image \'bionic\' is expired. Removing it…"))));
 

@@ -48,14 +48,8 @@ struct SshfsMount : public mp::test::SftpServerTest
 {
     SshfsMount()
     {
-        mpl::set_logger(logger);
         channel_read.returnValue(0);
         channel_is_closed.returnValue(0);
-    }
-
-    ~SshfsMount()
-    {
-        mpl::set_logger(nullptr);
     }
 
     mp::SshfsMount make_sshfsmount(mp::optional<std::string> target = mp::nullopt)
@@ -193,7 +187,7 @@ struct SshfsMount : public mp::test::SftpServerTest
     std::string default_target{"target"};
     std::unordered_map<int, int> default_map;
     int default_id{1000};
-    std::shared_ptr<NiceMock<mpt::MockLogger>> logger = std::make_shared<NiceMock<mpt::MockLogger>>();
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
     const std::unordered_map<std::string, std::string> default_cmds{
         {"snap run multipass-sshfs.env", "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n"},
@@ -417,14 +411,14 @@ TEST_F(SshfsMount, blank_fuse_version_logs_error)
 {
     CommandVector commands = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:\n"}};
 
-    EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                             Matcher<multipass::logging::CString>(_)))
-        .WillRepeatedly(Return());
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
-                             mpt::MockLogger::make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
-    EXPECT_CALL(*logger, log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
-                             mpt::MockLogger::make_cstring_matcher(
-                                 StrEq("Unable to parse the FUSE library version: FUSE library version:"))));
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        StrEq("Unable to parse the FUSE library version: FUSE library version:"))));
 
     test_command_execution(commands);
 }
@@ -505,10 +499,8 @@ TEST_F(SshfsMount, install_sshfs_timeout_logs_info)
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    EXPECT_CALL(*logger, log(Matcher<multipass::logging::Level>(_), Matcher<multipass::logging::CString>(_),
-                             Matcher<multipass::logging::CString>(_)))
-        .WillRepeatedly(Return());
-    EXPECT_CALL(*logger,
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("utils")),
                     mpt::MockLogger::make_cstring_matcher(StrEq("Timeout while installing 'sshfs' in 'foo'"))));
 

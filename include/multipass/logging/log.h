@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ namespace logging
 {
 void log(Level level, CString category, CString message);
 void set_logger(std::shared_ptr<Logger> logger);
+Logger* get_logger(); // for tests, don't rely on it lasting
 } // namespace logging
 } // namespace multipass
 #endif // MULTIPASS_LOG_H

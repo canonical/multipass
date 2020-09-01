@@ -49,6 +49,14 @@ using namespace testing;
 namespace
 {
 
+auto expect_only_log(multipass::logging::Level lvl, const std::string& substr)
+{
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs();
+    logger_scope.mock_logger->expect_log(lvl, substr);
+    return logger_scope;
+}
+
 void mock_winterm_setting(const QString& ret)
 {
     EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::winterm_key))).WillOnce(Return(ret));
@@ -156,7 +164,7 @@ TEST_P(TestWinTermSyncLesserLogging, logging_on_no_file)
 
     mock_winterm_setting(setting);
     mock_stdpaths_locate("");
-    auto mock_logger_guard = mpt::expect_log(lvl, "Could not find");
+    auto mock_logger_guard = expect_only_log(lvl, "Could not find");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -175,7 +183,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unreadable_settings)
 
     mock_winterm_setting(setting);
     mock_stdpaths_locate("C:\\unreadable\\settings.json");
-    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not read");
+    const auto mock_logger_guard = expect_only_log(lvl, "Could not read");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -186,7 +194,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unparseable_settings)
     mock_winterm_setting(setting);
 
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json("~!@#$% rubbish ^&*()_+");
-    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not parse");
+    const auto mock_logger_guard = expect_only_log(lvl, "Could not parse");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -197,7 +205,7 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unavailable_profiles)
     mock_winterm_setting(setting);
 
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json("{ \"someNode\": \"someValue\" }");
-    const auto mock_logger_guard = mpt::expect_log(lvl, "Could not find");
+    const auto mock_logger_guard = expect_only_log(lvl, "Could not find");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -222,7 +230,7 @@ TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
 
     std::ifstream handle{json_file_name.toStdString()}; // open the file, to provoke a failure in overwriting
-    const auto mock_logger_guard = mpt::expect_log(mpl::Level::error, "Could not update");
+    const auto mock_logger_guard = expect_only_log(mpl::Level::error, "Could not update");
 
     mp::platform::sync_winterm_profiles();
 }
@@ -247,11 +255,13 @@ TEST_P(TestWinTermSyncNoLeftovers, no_leftover_files_on_overwriting)
     const auto file_list = json_file_info.dir().entryList();
 
     std::ifstream handle;
-    auto [mock_logger, mock_logger_guard] = mpt::guarded_mock_logger();
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs();
+
     if (fail)
     {
         handle.open(json_file_name.toStdString()); // block overwriting
-        EXPECT_CALL(*mock_logger, log(mpl::Level::error, _, _));
+        EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::error, _, _));
     }
 
     mp::platform::sync_winterm_profiles();
@@ -289,15 +299,7 @@ public:
 
     void SetUp() override
     {
-        auto [mock_logger, guard] = mpt::guarded_mock_logger();
-        EXPECT_CALL(*mock_logger, log(_, _, _)).Times(AnyNumber());
-        EXPECT_CALL(*mock_logger, log(AnyOf(mpl::Level::error, mpl::Level::warning), _, _)).Times(0);
-        mock_logger_guard.emplace(std::move(guard));
-    }
-
-    void TearDown() override
-    {
-        mock_logger_guard.reset();
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     }
 
     void dress_up(Json::Value& json, unsigned char flags)
@@ -398,7 +400,7 @@ private:
             json["stuff"]["a"]["b"]["c"] = "asdf";
     }
 
-    mp::optional<decltype(mpt::guarded_mock_logger().second)> mock_logger_guard;
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
 TEST_P(TestWinTermSyncJson, winterm_sync_keeps_visible_profile_if_setting_primary)
