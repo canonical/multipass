@@ -587,10 +587,22 @@ Function MakeReboot
   ${If} ${Errors}
     SetRebootFlag true
   ${Else}
-    ;This should be replaced with exit codes interpreted by the "outer" installer
-    WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_NAME@" "InstallerRebootRequired" true
+    ; Similar to DISM, communicate that a reboot is required via an exit code
+    DetailPrint "Skipping reboot due to /NoRestart"
+    SetErrorLevel 3010
   ${EndIf}
 FunctionEnd
+
+Function MakeWrapped
+  Pop $0
+  ClearErrors
+  ${GetOptions} "$CMDLINE" "/Wrapped" $1
+  ${IfNot} ${Errors}
+    DetailPrint "Setting exit code to: '$0'"
+    SetErrorLevel $0
+  ${EndIf}
+FunctionEnd
+
 
 ;--------------------------------
 
@@ -883,6 +895,9 @@ Section "-Enable Hypervisor"
           Goto okHyperv
         noHyperv:
           MessageBox MB_ICONEXCLAMATION "Cannot automatically enable Hyper-V, please complete manually."
+          ; Communicate that the hypervisor isn't available at this point
+          Push 3011
+          Call MakeWrapped
         okHyperv:
       ${Else}
         Call MakeReboot
@@ -900,7 +915,9 @@ Section "-Enable Hypervisor"
     SetRegView default
     ${If} ${Errors}
       MessageBox MB_ICONEXCLAMATION "You will need to install Oracle VM VirtualBox before using @CPACK_PACKAGE_NAME@."
-      WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_NAME@" "InstallerRebootRequired" false
+      ; Communicate that the hypervisor isn't available at this point
+      Push 3011
+      Call MakeWrapped
     ${EndIf}
   ${EndIf}
 
