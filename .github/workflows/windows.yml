@@ -168,7 +168,7 @@ jobs:
         echo "::set-output name=path::$( ( Get-ChildItem multipass-*.exe ).FullName )"
 
     - name: Get NSIS logs
-      if: ${{ steps.cmake-package.outcome == 'failure' }}
+      if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
       run: cat ${{ env.BUILD_DIR }}/_CPack_Packages/win64/NSIS/NSISOutput.log
 
     - name: Upload package
