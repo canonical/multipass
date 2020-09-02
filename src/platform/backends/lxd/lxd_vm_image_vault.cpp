@@ -157,6 +157,7 @@ QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir
     metadata_node["properties"]["os"] = info.os.toStdString();
     metadata_node["properties"]["release"] = info.release.toStdString();
     metadata_node["properties"]["version"] = info.version.toStdString();
+    metadata_node["properties"]["original_hash"] = info.id.toStdString();
 
     YAML::Emitter emitter;
     emitter << metadata_node << YAML::Newline;
@@ -284,7 +285,12 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     }
     catch (const LXDNotFoundException&)
     {
-        if (!info.stream_location.isEmpty())
+        auto lxd_image_hash = get_lxd_image_hash_for(id);
+        if (!lxd_image_hash.empty())
+        {
+            source_image.id = lxd_image_hash;
+        }
+        else if (!info.stream_location.isEmpty())
         {
             lxd_download_image(id, info.stream_location, QString::fromStdString(query.release), monitor);
         }
@@ -302,7 +308,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
             auto metadata_tarball_path = create_metadata_tarball(info, lxd_import_dir);
 
-            lxd_import_metadata_and_image(metadata_tarball_path, image_path);
+            source_image.id = lxd_import_metadata_and_image(metadata_tarball_path, image_path);
         }
     }
 
@@ -551,7 +557,7 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
     }
 }
 
-void mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path)
+std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path)
 {
     QHttpMultiPart lxd_multipart{QHttpMultiPart::FormDataType};
     QFileInfo metadata_info{metadata_path}, image_info{image_path};
@@ -589,5 +595,43 @@ void mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_
                           .arg(json_reply["metadata"].toObject()["id"].toString()));
 
         auto task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, 300000);
+
+        return task_reply["metadata"].toObject()["metadata"].toObject()["fingerprint"].toString().toStdString();
     }
+
+    return {};
+}
+
+std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)
+{
+    // TODO: Refactor out the images retrieval with code in update_images()
+    QJsonObject json_reply;
+
+    try
+    {
+        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+    }
+    catch (const LXDNotFoundException&)
+    {
+        return {};
+    }
+
+    auto images = json_reply["metadata"].toArray();
+
+    for (const auto image : images)
+    {
+        auto image_info = image.toObject();
+        auto properties = image_info["properties"].toObject();
+
+        if (properties.contains("original_hash"))
+        {
+            auto original_hash = properties["original_hash"].toString();
+            if (original_hash == id)
+            {
+                return image_info["fingerprint"].toString().toStdString();
+            }
+        }
+    }
+
+    return {};
 }
