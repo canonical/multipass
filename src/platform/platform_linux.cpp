@@ -159,11 +159,6 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
 
 bool mp::platform::is_remote_supported(const std::string& remote)
 {
-    const auto& driver = utils::get_driver_str();
-    // TODO: Remove this constraint once we support other image remotes for the LXD backend
-    if (driver == QStringLiteral("lxd") && (remote != "release" && remote != "daily"))
-        return false;
-
     return true;
 }
 
