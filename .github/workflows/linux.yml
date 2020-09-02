@@ -32,6 +32,7 @@ jobs:
     if: ${{ !failure() }}
 
     outputs:
+      label: ${{ steps.build-params.outputs.label }}
       channel: ${{ steps.build-params.outputs.channel }}
       snap-file: ${{ steps.build-snap.outputs.snap-file }}
 
@@ -196,3 +197,35 @@ jobs:
     - name: Report failure
       if: ${{ needs.BuildAndTest.result != 'success' }}
       run: exit 1
+
+  # Dispatch to the private side
+  Dispatch:
+    needs: BuildAndTest
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Determine dispatch parameters
+      id: dispatch-params
+      run: |
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "::set-output name=head_sha::${{ github.event.pull_request.head_sha }}"
+        else
+            echo "::set-output name=head_sha::${{ github.sha }}"
+        fi
+
+    - uses: peter-evans/repository-dispatch@v1
+      with:
+        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
+        repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
+        event-type: public_build
+        client-payload: |
+          {
+            "repositoryUrl": "${{ github.repositoryUrl }}",
+            "head_ref": "${{ github.head_ref }}",
+            "head_sha": "${{ steps.dispatch-params.outputs.head_sha }}",
+            "ref": "${{ github.ref }}",
+            "sha": "${{ github.sha }}",
+            "draft": "${{ github.event.pull_request.draft }}",
+            "label": "${{ needs.BuildAndTest.outputs.label }}"
+          }
