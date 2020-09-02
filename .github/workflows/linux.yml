@@ -196,3 +196,24 @@ jobs:
     - name: Report failure
       if: ${{ needs.BuildAndTest.result != 'success' }}
       run: exit 1
+
+  # Dispatch to the private side
+  Dispatch:
+    needs: BuildAndTest
+    if: ${{ ! github.event.pull_request.draft }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: peter-evans/repository-dispatch@v1
+      with:
+        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
+        repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
+        event-type: public_build
+        client-payload: |
+          {
+            "repositoryUrl": "${{ github.repositoryUrl }}",
+            "head_ref": "${{ github.head_ref }}",
+            "ref": "${{ github.ref }}",
+            "sha": "${{ github.sha }}"
+          }
