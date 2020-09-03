@@ -75,8 +75,10 @@ struct PowerShell : public Test
     {
         ASSERT_EQ(process->program(), psexe);
 
+        // succeed these by default
         ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
-        ON_CALL(*process, write(Eq(psexit))).WillByDefault(Return(std::strlen(psexit)));
+        ON_CALL(*process, write(_)).WillByDefault(Return(1000));
+        EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
 
         forked = true;
     }
@@ -155,7 +157,6 @@ TEST_F(PowerShell, write_silent_on_success)
 {
     static constexpr auto data = "Abbenay";
     setup([](auto* process) {
-        EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
         EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data)));
     });
 
@@ -169,7 +170,6 @@ TEST_F(PowerShell, write_logs_on_failure)
 {
     static constexpr auto data = "Nio Esseia";
     setup([](auto* process) {
-        EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
         EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(-1));
     });
 
@@ -186,7 +186,6 @@ TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
     static constexpr auto data = "Anarres";
     static constexpr auto part = 3;
     setup([](auto* process) {
-        EXPECT_CALL(*process, write(_)).Times(AnyNumber()).WillRepeatedly(Return(1000));
         EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(part));
     });
 
@@ -208,10 +207,9 @@ TEST_F(PowerShell, run_writes_and_logs_cmd)
     setup([](auto* process) {
         EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))))
             .WillOnce(Return(-1)); // short-circuit the attempt
-        EXPECT_CALL(*process, write(Eq(psexit)));
     });
 
-    mp::PowerShell ps{"foo"};
+    mp::PowerShell ps{"Tirin"};
     ASSERT_FALSE(ps.run(QString{cmdlet}.split(' ')));
 }
 } // namespace
