@@ -325,7 +325,11 @@ std::string mp::LXDVirtualMachine::ssh_hostname()
                 return mpu::TimeoutAction::retry;
             }
         };
-        auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
+        auto on_timeout = [this] {
+            state = State::unknown;
+            throw std::runtime_error("failed to determine IP address");
+        };
+
         mpu::try_action_for(on_timeout, std::chrono::minutes(2), action);
     }
 
