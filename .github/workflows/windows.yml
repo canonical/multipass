@@ -10,6 +10,7 @@ on:
   pull_request:
   repository_dispatch:
     types: [public_build]
+  workflow_dispatch:
 
 env:
   HEAD_REF: ci${{ github.run_id }}
