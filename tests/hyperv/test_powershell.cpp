@@ -215,6 +215,10 @@ TEST_F(PowerShell, run_writes_and_logs_cmd)
 
 struct TestPSStatusAndOutput : public PowerShell, public WithParamInterface<bool>
 {
+    QByteArray get_status()
+    {
+        return GetParam() ? " True\n" : " False\n";
+    }
 };
 
 TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
@@ -225,13 +229,13 @@ TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
     logger->screen_logs(mpl::Level::warning);
     logger->expect_log(mpl::Level::trace, fmt::format("{}", GetParam()));
 
-    setup([](auto* process) {
+    setup([this](auto* process) {
         EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))));
         EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
                                              HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
 
-        auto status = GetParam() ? " True" : " False";
-        auto ret = QByteArray{data}.append('\n').append(mpt::PowerShellTestAccessor::output_end_marker).append(status);
+        auto ret =
+            QByteArray{data}.append('\n').append(mpt::PowerShellTestAccessor::output_end_marker).append(get_status());
         EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(ret));
     });
 
@@ -241,6 +245,39 @@ TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
     EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), output), GetParam());
     ASSERT_EQ(output, data);
 }
+
+TEST_P(TestPSStatusAndOutput, run_handles_trickling_output)
+{
+    static constexpr auto cmdlet = "cat file";
+    static constexpr auto datum1 = "blah";
+    static constexpr auto datum2 = "bleh";
+    static constexpr auto datum3 = "blih";
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    setup([this](auto* process) {
+        EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))));
+        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
+                                             HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
+
+        auto end = QByteArray{"\n"}.append(mpt::PowerShellTestAccessor::output_end_marker).append(get_status());
+        EXPECT_CALL(*process, read_all_standard_output)
+            .WillOnce(Return(""))
+            .WillOnce(Return(datum1))
+            .WillOnce(Return(""))
+            .WillOnce(Return(datum2))
+            .WillOnce(Return(datum3))
+            .WillOnce(Return(""))
+            .WillOnce(Return(""))
+            .WillOnce(Return(end));
+    });
+
+    mp::PowerShell ps{"Gvarab"};
+    QString expect = QString{datum1} + datum2 + datum3;
+    QString output;
+
+    EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), output), GetParam());
+    ASSERT_EQ(output, expect);
+};
 
 INSTANTIATE_TEST_SUITE_P(PowerShell, TestPSStatusAndOutput, Values(true, false));
 
