@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,6 @@
 
 #include "libvirt_wrapper.h"
 
-#include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -46,7 +44,7 @@ public:
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
-    std::string ssh_hostname() override;
+    std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
@@ -62,7 +60,6 @@ private:
     std::string mac_addr;
     const std::string username;
     const VirtualMachineDescription desc;
-    optional<IPAddress> ip;
     VMStatusMonitor* monitor;
     // Make this a reference since LibVirtVirtualMachineFactory can modify the name later
     const std::string& bridge_name;
