@@ -57,6 +57,8 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
         QNetworkRequest request{orig_request};
 
         QUrl url(QString("/%1").arg(server_path));
+        url.setHost(orig_request.url().host());
+
         request.setUrl(url);
 
         // The caller needs to be responsible for freeing the allocated memory

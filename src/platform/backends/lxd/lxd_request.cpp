@@ -20,6 +20,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_access_manager.h>
+#include <multipass/version.h>
 
 #include <QEventLoop>
 #include <QJsonDocument>
@@ -41,23 +42,35 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
+    if (url.host().isEmpty())
+    {
+        url.setHost(lxd_project_name);
+    }
+
+    const QString project_query_string = QString("project=%1").arg(lxd_project_name);
     if (url.hasQuery())
     {
-        url.setQuery(url.query() + "&project=multipass");
+        url.setQuery(url.query() + "&" + project_query_string);
     }
     else
     {
-        url.setQuery("project=multipass");
+        url.setQuery(project_query_string);
     }
 
     mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
     QNetworkRequest request{url};
+
+    request.setHeader(QNetworkRequest::UserAgentHeader, QString("Multipass/%1").arg(mp::version_string));
 
     auto verb = QByteArray::fromStdString(method);
     QByteArray data;
     if (json_data)
     {
         data = QJsonDocument(*json_data).toJson(QJsonDocument::Compact);
+
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        request.setHeader(QNetworkRequest::ContentLengthHeader, QByteArray::number(data.size()));
+
         mpl::log(mpl::Level::trace, request_category, fmt::format("Sending data: {}", data));
     }
 

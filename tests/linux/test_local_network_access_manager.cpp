@@ -16,11 +16,19 @@
  */
 
 #include "local_socket_server_test_fixture.h"
+#include "mock_q_buffer.h"
+#include "mock_q_local_socket.h"
 #include "tests/temp_dir.h"
 
+#include <src/network/local_socket_reply.h>
+
+#include <multipass/exceptions/http_local_socket_exception.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/version.h>
 
+#include <random>
+
+#include <QBuffer>
 #include <QEventLoop>
 #include <QNetworkReply>
 #include <QTimer>
@@ -35,6 +43,23 @@ using namespace testing;
 namespace
 {
 using HTTPErrorParamType = std::pair<QByteArray, QNetworkReply::NetworkError>;
+constexpr auto max_bytes{32768};
+
+auto generate_random_data(int length)
+{
+    const std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_int_distribution<int> dist(0, str.size() - 1);
+    QByteArray random_data;
+
+    for (int i = 0; i < length; ++i)
+    {
+        random_data += str[dist(generator)];
+    }
+
+    return random_data;
+}
 
 struct LocalNetworkAccessManager : public Test
 {
@@ -44,11 +69,28 @@ struct LocalNetworkAccessManager : public Test
           base_url{QString("unix://%1@1.0").arg(socket_path)}
     {
         download_timeout.setInterval(2000);
+        base_url.setHost("test");
     }
 
     auto handle_request(const QUrl& url, const QByteArray& verb, const QByteArray& data = QByteArray())
     {
         QNetworkRequest request{url};
+        request.setHeader(QNetworkRequest::UserAgentHeader, "Test");
+
+        if (!data.isEmpty())
+        {
+            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+            auto data_size = data.size();
+            if (data_size < max_bytes)
+            {
+                request.setHeader(QNetworkRequest::ContentLengthHeader, data.size());
+            }
+            else
+            {
+                request.setRawHeader("Transfer-Encoding", "chunked");
+            }
+        }
 
         std::unique_ptr<QNetworkReply> reply{manager.sendCustomRequest(request, verb, data)};
 
@@ -76,6 +118,12 @@ struct LocalNetworkAccessManager : public Test
 struct HTTPErrorsTestSuite : LocalNetworkAccessManager, WithParamInterface<HTTPErrorParamType>
 {
 };
+
+struct LocalSocketWriteErrorTestSuite : LocalNetworkAccessManager, WithParamInterface<int>
+{
+};
+
+const std::vector<int> local_socket_write_error_suite_inputs{0, 1, 2, 3, 4, 5, 6};
 
 const std::vector<HTTPErrorParamType> http_error_suite_inputs{
     {"HTTP/1.1 400 Bad Request\r\n\r\n", QNetworkReply::ProtocolInvalidOperationError},
@@ -152,19 +200,14 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
 
 TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
 {
-    QByteArray expected_data;
-    expected_data += "POST /1.0 HTTP/1.1\r\n"
-                     "Host: multipass\r\n"
-                     "User-Agent: Multipass/";
-    expected_data += mp::version_string;
-    expected_data += "\r\n"
-                     "Content-Type: application/x-www-form-urlencoded\r\n"
-                     "Content-Length: 11\r\n\r\n"
-                     "Hello World\r\n";
+    QByteArray expected_data{"POST /1.0 HTTP/1.1\r\n"
+                             "Host: test\r\n"
+                             "User-Agent: Test\r\n"
+                             "Content-Type: application/x-www-form-urlencoded\r\n"
+                             "Content-Length: 11\r\n\r\n"
+                             "Hello World\r\n"};
 
-    QByteArray http_response;
-    http_response += "HTTP/1.1 200 OK\r\n";
-    http_response += "\r\n";
+    QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
 
     auto server_response = [&http_response, &expected_data](auto data) {
         EXPECT_EQ(data, expected_data);
@@ -244,6 +287,77 @@ TEST_F(LocalNetworkAccessManager, query_in_url_is_preserved)
     handle_request(base_url, "GET");
 }
 
+TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
+{
+    QByteArray random_data = generate_random_data(65536);
+    QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
+
+    auto server_response = [&http_response, &random_data](auto data) {
+        QByteArray first_part = random_data.mid(0, 32768);
+        QByteArray second_part = random_data.mid(32768);
+
+        // Implies the data was split, ie, chunked
+        EXPECT_FALSE(data.contains(random_data));
+
+        // Implies that the correct data was still received
+        EXPECT_TRUE(data.contains(first_part));
+        EXPECT_TRUE(data.contains(second_part));
+
+        return http_response;
+    };
+
+    test_server.local_socket_server_handler(server_response);
+
+    handle_request(base_url, "POST", random_data);
+}
+
+TEST_F(LocalNetworkAccessManager, no_host_set_throws)
+{
+    base_url.setHost("");
+
+    QNetworkRequest request{base_url};
+
+    EXPECT_THROW(manager.sendCustomRequest(request, "GET"), mp::HttpLocalSocketException);
+}
+
+TEST_F(LocalNetworkAccessManager, content_length_and_transfer_encoding_both_set_throws)
+{
+    QNetworkRequest request{base_url};
+    QByteArray some_data{"This is some data"};
+
+    request.setHeader(QNetworkRequest::ContentLengthHeader, some_data.size());
+    request.setRawHeader("Transfer-Encoding", "chunked");
+
+    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data), mp::HttpLocalSocketException);
+}
+
+TEST_F(LocalNetworkAccessManager, content_length_and_transfer_encoding_not_set_throws)
+{
+    QNetworkRequest request{base_url};
+    QByteArray some_data{"This is some data"};
+
+    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data), mp::HttpLocalSocketException);
+}
+
+TEST_F(LocalNetworkAccessManager, qiodevice_read_fails_throws)
+{
+    auto mock_q_local_socket = std::make_unique<mpt::MockQLocalSocket>(10); // Not failing any writes
+
+    base_url.setHost("test");
+    QNetworkRequest request{base_url};
+
+    request.setAttribute(QNetworkRequest::CustomVerbAttribute, "POST");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    request.setRawHeader("Transfer-Encoding", "chunked");
+
+    auto data{generate_random_data(32768)};
+    mpt::MockQBuffer buffer{&data};
+
+    EXPECT_THROW(mp::LocalSocketReply local_socket_reply(std::move(mock_q_local_socket), request, &buffer),
+                 mp::HttpLocalSocketException);
+    EXPECT_TRUE(buffer.read_attempted());
+}
+
 TEST_P(HTTPErrorsTestSuite, returns_expected_error)
 {
     const auto http_response = GetParam().first;
@@ -257,4 +371,29 @@ TEST_P(HTTPErrorsTestSuite, returns_expected_error)
     EXPECT_EQ(reply->error(), expected_error);
 }
 
+TEST_P(LocalSocketWriteErrorTestSuite, write_fails_emits_error_and_returns)
+{
+    const int writes_before_failure = GetParam();
+    auto mock_q_local_socket = std::make_unique<mpt::MockQLocalSocket>(writes_before_failure);
+    auto mock_q_local_socket_ptr = mock_q_local_socket.get();
+
+    base_url.setHost("test");
+    QNetworkRequest request{base_url};
+
+    request.setAttribute(QNetworkRequest::CustomVerbAttribute, "POST");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    request.setRawHeader("Transfer-Encoding", "chunked");
+
+    auto data{generate_random_data(32768)};
+    QBuffer buffer{&data};
+
+    mp::LocalSocketReply local_socket_reply{std::move(mock_q_local_socket), request, &buffer};
+
+    EXPECT_EQ(local_socket_reply.error(), QNetworkReply::InternalServerError);
+    EXPECT_EQ(mock_q_local_socket_ptr->num_writes_called(), writes_before_failure + 1);
+}
+
 INSTANTIATE_TEST_SUITE_P(LocalNetworkAccessManager, HTTPErrorsTestSuite, ValuesIn(http_error_suite_inputs));
+
+INSTANTIATE_TEST_SUITE_P(LocalNetworkAccessManager, LocalSocketWriteErrorTestSuite,
+                         ValuesIn(local_socket_write_error_suite_inputs));

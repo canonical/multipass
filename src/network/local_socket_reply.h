@@ -52,6 +52,7 @@ private:
     void send_request(const QNetworkRequest& request, QIODevice* outgoingData);
     void parse_reply();
     void parse_status(const QByteArray& status);
+    bool local_socket_write(const QByteArray& data);
 
     LocalSocketUPtr local_socket;
     QByteArray reply_data;
