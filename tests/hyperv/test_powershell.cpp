@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include <cstring>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -281,6 +282,35 @@ TEST_P(TestPSStatusAndOutput, run_handles_trickling_output)
 
     ASSERT_EQ(run(), QString{datum1} + datum2 + datum3);
 };
+
+auto halves(const QString& str)
+{
+    auto total = str.size();
+    auto half = total / 2;
+
+    return std::make_pair(str.leftRef(half).toUtf8(), str.rightRef(total - half).toUtf8());
+};
+
+TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
+{
+    static constexpr auto data = "lots of info";
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    setup([this](auto* process) {
+        const auto marker_halves = halves(mpt::PowerShellTestAccessor::output_end_marker);
+        const auto status_halves = halves(get_status());
+
+        expect_writes(process);
+        EXPECT_CALL(*process, read_all_standard_output)
+            .WillOnce(Return(QByteArray{data}.append('\n')))
+            .WillOnce(Return(marker_halves.first))
+            .WillOnce(Return(marker_halves.second))
+            .WillOnce(Return(status_halves.first))
+            .WillOnce(Return(status_halves.second));
+    });
+
+    ASSERT_EQ(run(), QString{data});
+}
 
 INSTANTIATE_TEST_SUITE_P(PowerShell, TestPSStatusAndOutput, Values(true, false));
 
