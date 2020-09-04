@@ -160,7 +160,7 @@ TEST_F(PowerShell, write_silent_on_success)
         EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data)));
     });
 
-    mp::PowerShell ps{"asdf"};
+    mp::PowerShell ps{"Bedap"};
 
     logger_scope.mock_logger->screen_logs();
     ASSERT_TRUE(mpt::PowerShellTestAccessor{ps}.write(data));
@@ -219,47 +219,55 @@ struct TestPSStatusAndOutput : public PowerShell, public WithParamInterface<bool
     {
         return GetParam() ? " True\n" : " False\n";
     }
+
+    QByteArray end_marker()
+    {
+        return QByteArray{"\n"}.append(mpt::PowerShellTestAccessor::output_end_marker).append(get_status());
+    }
+
+    void expect_writes(mpt::MockProcess* process)
+    {
+        EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))));
+        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
+                                             HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
+    }
+
+    QString run()
+    {
+        mp::PowerShell ps{"Gvarab"};
+        QString output;
+        EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), output), GetParam());
+
+        return output;
+    }
+
+    inline static constexpr auto cmdlet = "gimme data";
 };
 
 TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
 {
-    static constexpr auto cmdlet = "gimme data";
     static constexpr auto data = "here's data";
     auto logger = logger_scope.mock_logger;
     logger->screen_logs(mpl::Level::warning);
     logger->expect_log(mpl::Level::trace, fmt::format("{}", GetParam()));
 
     setup([this](auto* process) {
-        EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))));
-        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
-                                             HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
-
-        auto ret =
-            QByteArray{data}.append('\n').append(mpt::PowerShellTestAccessor::output_end_marker).append(get_status());
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(ret));
+        expect_writes(process);
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray{data}.append(end_marker())));
     });
 
-    mp::PowerShell ps{"Bedap"};
-    QString output;
-
-    EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), output), GetParam());
-    ASSERT_EQ(output, data);
+    ASSERT_EQ(run(), data);
 }
 
 TEST_P(TestPSStatusAndOutput, run_handles_trickling_output)
 {
-    static constexpr auto cmdlet = "cat file";
     static constexpr auto datum1 = "blah";
     static constexpr auto datum2 = "bleh";
     static constexpr auto datum3 = "blih";
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
     setup([this](auto* process) {
-        EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))));
-        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
-                                             HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
-
-        auto end = QByteArray{"\n"}.append(mpt::PowerShellTestAccessor::output_end_marker).append(get_status());
+        expect_writes(process);
         EXPECT_CALL(*process, read_all_standard_output)
             .WillOnce(Return(""))
             .WillOnce(Return(datum1))
@@ -268,15 +276,10 @@ TEST_P(TestPSStatusAndOutput, run_handles_trickling_output)
             .WillOnce(Return(datum3))
             .WillOnce(Return(""))
             .WillOnce(Return(""))
-            .WillOnce(Return(end));
+            .WillOnce(Return(end_marker()));
     });
 
-    mp::PowerShell ps{"Gvarab"};
-    QString expect = QString{datum1} + datum2 + datum3;
-    QString output;
-
-    EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), output), GetParam());
-    ASSERT_EQ(output, expect);
+    ASSERT_EQ(run(), QString{datum1} + datum2 + datum3);
 };
 
 INSTANTIATE_TEST_SUITE_P(PowerShell, TestPSStatusAndOutput, Values(true, false));
