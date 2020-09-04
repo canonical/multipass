@@ -57,7 +57,11 @@ public:
     virtual void suspend() = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname() = 0;
+    virtual std::string ssh_hostname()
+    {
+        return ssh_hostname(std::chrono::minutes(2));
+    };
+    virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
     virtual std::string ipv4() = 0;
     virtual std::string ipv6() = 0;
