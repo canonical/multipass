@@ -212,4 +212,28 @@ TEST_F(PowerShell, run_writes_and_logs_cmd)
     mp::PowerShell ps{"Tirin"};
     ASSERT_FALSE(ps.run(QString{cmdlet}.split(' ')));
 }
+
+TEST_F(PowerShell, run_returns_cmdlet_status_and_output)
+{
+    static constexpr auto cmdlet = "gimme data";
+    static constexpr auto data = "here's data";
+    auto logger = logger_scope.mock_logger;
+    logger->screen_logs(mpl::Level::warning);
+    logger->expect_log(mpl::Level::trace, fmt::format("{}", GetParam()));
+
+    setup([](auto* process) {
+        EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))));
+        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
+                                             HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
+
+        auto ret = QByteArray{data}.append('\n').append(mpt::PowerShellTestAccessor::output_end_marker).append(" True");
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(ret));
+    });
+
+    mp::PowerShell ps{"Bedap"};
+    QString output;
+
+    ASSERT_TRUE(ps.run(QString{cmdlet}.split(' '), output));
+    ASSERT_EQ(output, data);
+}
 } // namespace
