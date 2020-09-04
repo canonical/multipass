@@ -137,7 +137,8 @@ auto make_cloud_init_meta_config(const std::string& name)
     return meta_data;
 }
 
-auto make_cloud_init_network_config(const std::vector<mp::NetworkInterface>& interfaces)
+auto make_cloud_init_network_config(const std::vector<mp::NetworkInterface>& interfaces,
+                                    const std::unordered_map<mp::NetworkInterface, mp::NetworkInterfaceMatch>& matches)
 {
     YAML::Node network_data, interfaces_data;
 
@@ -146,11 +147,31 @@ auto make_cloud_init_network_config(const std::vector<mp::NetworkInterface>& int
         network_data["version"] = "2";
         for (size_t i = 0; i < interfaces.size(); ++i)
         {
-            std::string name = "adapter" + std::to_string(i);
-            network_data["ethernets"][name]["match"]["macaddress"] = interfaces[i].mac_address;
+            std::string name;
+            auto match = matches.find(interfaces[i]);
+
+            if (match == matches.end())
+            {
+                throw std::runtime_error(fmt::format("no match for network interface {}", i));
+            }
+            else
+            {
+                if (match->second.type == mp::NetworkInterfaceMatch::Type::MAC_ADDRESS)
+                {
+                    name = "adapter" + std::to_string(i);
+                    network_data["ethernets"][name]["match"]["macaddress"] = match->second.value;
+                }
+                else
+                {
+                    name = match->second.value;
+                    network_data["ethernets"][name]["match"]["name"] = match->second.value;
+                }
+            }
+
             network_data["ethernets"][name]["dhcp4"] = true;
             network_data["ethernets"][name]["wakeonlan"] = "true";
-            // We make the default gateway associated with the first interface.
+
+            // Make the default gateway be associated to the first interface.
             if (i)
             {
                 network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = "200";
@@ -2251,13 +2272,17 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                     }
                 }
 
+                // Ask the factory how to match the network interfaces of this instance.
+                auto interface_matches = config->factory->match_network_interfaces(interfaces);
+
                 auto vendor_data_cloud_init_config =
                     make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
                                                   config->factory->get_backend_version_string().toStdString());
                 auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
                 auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
                 prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
-                auto network_data_cloud_init_config = make_cloud_init_network_config(cloud_init_interfaces);
+                auto network_data_cloud_init_config =
+                    make_cloud_init_network_config(cloud_init_interfaces, interface_matches);
 
                 auto vm_desc =
                     to_machine_desc(request, name, checked_args.mem_size, disk_space, interfaces, config->ssh_username,

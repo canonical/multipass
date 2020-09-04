@@ -42,7 +42,24 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD5(create_image_vault,
                  VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
     MOCK_CONST_METHOD0(list_networks, std::vector<NetworkInterfaceInfo>());
-    MOCK_CONST_METHOD5(make_cloud_init_image, Path(const QDir&, YAML::Node&, YAML::Node&, YAML::Node&, YAML::Node&));
+
+    // MOCK_CONST_METHOD1(match_network_interfaces, std::unordered_map<NetworkInterface, NetworkInterfaceMatch>(const
+    // std::vector<NetworkInterface>&));
+    // TODO: where to move the definition of this function?
+    std::unordered_map<multipass::NetworkInterface, multipass::NetworkInterfaceMatch>
+    match_network_interfaces(const std::vector<NetworkInterface>& interfaces) const override
+    {
+        std::unordered_map<multipass::NetworkInterface, multipass::NetworkInterfaceMatch> iface_matches;
+
+        for (const auto& iface : interfaces)
+        {
+            iface_matches.emplace(
+                std::make_pair(iface, multipass::NetworkInterfaceMatch{
+                                          multipass::NetworkInterfaceMatch::Type::MAC_ADDRESS, iface.mac_address}));
+        }
+
+        return iface_matches;
+    }
 };
 }
 }

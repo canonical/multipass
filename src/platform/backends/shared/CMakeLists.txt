@@ -16,6 +16,7 @@ set (CMAKE_AUTOMOC ON)
 
 add_library(shared STATIC
   sshfs_server_process_spec.cpp
+  base_virtual_machine_factory.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 
 target_link_libraries(shared

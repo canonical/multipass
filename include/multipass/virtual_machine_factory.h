@@ -36,7 +36,9 @@ class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
+struct NetworkInterface;
 struct NetworkInterfaceInfo;
+struct NetworkInterfaceMatch;
 
 class VirtualMachineFactory
 {
@@ -62,6 +64,8 @@ public:
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
     virtual std::vector<NetworkInterfaceInfo> list_networks() const = 0;
+    virtual std::unordered_map<NetworkInterface, NetworkInterfaceMatch>
+    match_network_interfaces(const std::vector<NetworkInterface>& interfaces) const = 0;
 
 protected:
     VirtualMachineFactory() = default;

@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -79,4 +80,21 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
     auto vault = factory.create_image_vault(hosts, &stub_downloader, cache_dir.path(), data_dir.path(), mp::days{0});
 
     EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
+}
+
+TEST_F(BaseFactory, match_network_interfaces_returns_one_single_value)
+{
+    MockBaseFactory factory;
+
+    std::string default_mac{"00:22:44:66:88:aa"};
+    auto default_interface = mp::NetworkInterface{"default", default_mac};
+    auto arg = std::vector<mp::NetworkInterface>(1, default_interface);
+
+    auto match_dict = factory.match_network_interfaces(arg);
+    auto default_match_pair = match_dict.find(default_interface);
+    auto expected_match = mp::NetworkInterfaceMatch{mp::NetworkInterfaceMatch::Type::MAC_ADDRESS, default_mac};
+
+    EXPECT_EQ(match_dict.size(), (size_t)1);
+    EXPECT_EQ(default_match_pair->second.type, expected_match.type);
+    EXPECT_EQ(default_match_pair->second.value, expected_match.value);
 }

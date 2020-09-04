@@ -20,6 +20,8 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface.h>
+#include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <daemon/default_vm_image_vault.h>
@@ -50,6 +52,9 @@ public:
         return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
                                                      days_to_expire);
     };
+
+    std::unordered_map<NetworkInterface, NetworkInterfaceMatch>
+    match_network_interfaces(const std::vector<NetworkInterface>& interfaces) const override;
 };
 } // namespace multipass
 

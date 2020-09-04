@@ -82,14 +82,22 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
         return {};
     }
 
-    multipass::Path make_cloud_init_image(const QDir& instance_dir, YAML::Node& meta_data_config,
-                                          YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                                          YAML::Node& network_data_config) const
+    std::unordered_map<multipass::NetworkInterface, multipass::NetworkInterfaceMatch>
+    match_network_interfaces(const std::vector<NetworkInterface>& interfaces) const override
     {
-        return Path();
+        std::unordered_map<multipass::NetworkInterface, multipass::NetworkInterfaceMatch> iface_matches;
+
+        for (const auto& iface : interfaces)
+        {
+            iface_matches.emplace(
+                std::make_pair(iface, multipass::NetworkInterfaceMatch{
+                                          multipass::NetworkInterfaceMatch::Type::MAC_ADDRESS, iface.mac_address}));
+        }
+
+        return iface_matches;
     }
 };
-}
-}
+} // namespace test
+} // namespace multipass
 
 #endif // MULTIPASS_STUB_VIRTUAL_MACHINE_FACTORY_H
