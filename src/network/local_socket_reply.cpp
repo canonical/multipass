@@ -17,7 +17,10 @@
 
 #include "local_socket_reply.h"
 
-#include <multipass/version.h>
+#include <multipass/exceptions/http_local_socket_exception.h>
+#include <multipass/format.h>
+
+#include <vector>
 
 #include <QRegularExpression>
 
@@ -26,6 +29,7 @@ namespace mp = multipass;
 namespace
 {
 constexpr int len = 65536;
+constexpr int max_bytes = 32768;
 
 // Status code mapping based on
 // https://github.com/qt/qtbase/blob/dev/src/network/access/qhttpthreaddelegate.cpp
@@ -139,38 +143,106 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toByteArray();
 
     // Build the HTTP method part
-    http_data += op;
-    http_data += ' ';
-    http_data += request.url().toString();
+    http_data += op + ' ' + request.url().path();
+
+    if (request.url().hasQuery())
+    {
+        http_data += "?" + request.url().query();
+    }
+
     http_data += " HTTP/1.1\r\n";
 
     // Build the HTTP Host header
-    // Host can be anything, so we'll use 'multipass'
-    http_data += "Host: multipass\r\n";
+    auto host = request.url().host().toLatin1();
+    if (!host.isEmpty())
+    {
+        http_data += "Host: " + host + "\r\n";
+    }
+    else
+    {
+        throw mp::HttpLocalSocketException("Host is required in URL");
+    }
 
     // Build the HTTP User-Agent header
-    http_data += "User-Agent: Multipass/";
-    http_data += mp::version_string;
-    http_data += "\r\n";
+    auto user_agent = request.header(QNetworkRequest::UserAgentHeader).toByteArray();
+    if (!user_agent.isEmpty())
+    {
+        http_data += "User-Agent: " + user_agent + "\r\n";
+    }
+
+    if (!local_socket_write(http_data))
+        return;
 
     if (op == "POST" || op == "PUT")
     {
-        http_data += "Content-Type: application/x-www-form-urlencoded\r\n";
+        http_data = "Content-Type: " + request.header(QNetworkRequest::ContentTypeHeader).toByteArray() + "\r\n";
 
-        if (outgoingData)
+        if (outgoingData && outgoingData->size() > 0)
         {
-            outgoingData->open(QIODevice::ReadOnly);
+            auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
+            auto transfer_encoding = request.rawHeader("Transfer-Encoding").toLower();
+            bool is_chunked = transfer_encoding.contains("chunked") ? true : false;
 
-            http_data += "Content-Length: ";
-            http_data += QByteArray::number(outgoingData->size());
-            http_data += "\r\n\r\n";
-            http_data += outgoingData->readAll();
+            if (!content_length.isEmpty())
+            {
+                if (is_chunked)
+                {
+                    throw mp::HttpLocalSocketException("Both the \'Content-Length\' header and \'chunked\' transfer "
+                                                       "encoding cannot be set at the same time");
+                }
+
+                http_data += "Content-Length: " + content_length + "\r\n";
+            }
+            else if (content_length.isEmpty() && !is_chunked)
+            {
+                throw mp::HttpLocalSocketException(
+                    "Either the \'Content-Length\' header or \'chunked\' transfer encoding must be set");
+            }
+
+            if (!transfer_encoding.isEmpty())
+            {
+                http_data += "Transfer-Encoding: " + transfer_encoding + "\r\n";
+            }
+
+            if (!local_socket_write(http_data + "\r\n"))
+                return;
+
+            local_socket->flush();
+
+            outgoingData->open(QIODevice::ReadOnly);
+            std::vector<char> data_buffer;
+            data_buffer.reserve(max_bytes);
+
+            int bytes_read{0};
+            while ((bytes_read = outgoingData->read(data_buffer.data(), max_bytes)) > 0)
+            {
+                if (is_chunked && !local_socket_write(QByteArray::number(bytes_read, 16) + "\r\n"))
+                    return;
+
+                if (!local_socket_write(QByteArray::fromRawData(data_buffer.data(), bytes_read)))
+                    return;
+
+                if (is_chunked && !local_socket_write("\r\n"))
+                    return;
+
+                local_socket->waitForBytesWritten();
+            }
+
+            if (bytes_read < 0)
+            {
+                throw mp::HttpLocalSocketException(
+                    fmt::format("Cannot read data to send to socket: {}", outgoingData->errorString()));
+            }
+
+            // Trailer part for chunked data
+            if (is_chunked && !local_socket_write("0\r\n"))
+                return;
         }
     }
 
-    http_data += "\r\n";
+    if (!local_socket_write("\r\n"))
+        return;
 
-    local_socket->write(http_data);
     local_socket->flush();
 }
 
@@ -243,4 +315,18 @@ void mp::LocalSocketReply::parse_status(const QByteArray& status)
 
         emit error(error_code);
     }
+}
+
+bool mp::LocalSocketReply::local_socket_write(const QByteArray& data)
+{
+    auto bytes_written = local_socket->write(data);
+    if (bytes_written < 0)
+    {
+        setError(QNetworkReply::InternalServerError, local_socket->errorString());
+        emit error(QNetworkReply::InternalServerError);
+
+        return false;
+    }
+
+    return true;
 }

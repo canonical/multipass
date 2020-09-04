@@ -863,6 +863,7 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
         return reply;
     });
 
+    base_url.setHost("test");
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url, mp::nullopt, 3),
                          std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()),
@@ -879,6 +880,7 @@ TEST_F(LXDBackend, lxd_request_invalid_json_throws)
         return new mpt::MockLocalSocketReply(invalid_json);
     });
 
+    base_url.setHost("test");
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
                          Property(&std::runtime_error::what,
                                   AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value"))));
@@ -896,6 +898,7 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws)
             return new mpt::MockLocalSocketReply(invalid_json);
         });
 
+    base_url.setHost("test");
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()),
                                                                    HasSubstr(invalid_json.toStdString()))));
