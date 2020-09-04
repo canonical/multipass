@@ -32,6 +32,7 @@ struct MockVirtualMachine : public multipass::VirtualMachine
         ON_CALL(*this, current_state()).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port()).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
+        ON_CALL(*this, ssh_hostname(_)).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_username()).WillByDefault(Return("ubuntu"));
         ON_CALL(*this, ipv4()).WillByDefault(Return("0.0.0.0"));
         ON_CALL(*this, ipv6()).WillByDefault(Return("::/0"));
@@ -44,6 +45,7 @@ struct MockVirtualMachine : public multipass::VirtualMachine
     MOCK_METHOD0(current_state, multipass::VirtualMachine::State());
     MOCK_METHOD0(ssh_port, int());
     MOCK_METHOD0(ssh_hostname, std::string());
+    MOCK_METHOD1(ssh_hostname, std::string(std::chrono::milliseconds));
     MOCK_METHOD0(ssh_username, std::string());
     MOCK_METHOD0(ipv4, std::string());
     MOCK_METHOD0(ipv6, std::string());
