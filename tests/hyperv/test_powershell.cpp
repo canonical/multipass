@@ -213,7 +213,11 @@ TEST_F(PowerShell, run_writes_and_logs_cmd)
     ASSERT_FALSE(ps.run(QString{cmdlet}.split(' ')));
 }
 
-TEST_F(PowerShell, run_returns_cmdlet_status_and_output)
+struct TestPSStatusAndOutput : public PowerShell, public WithParamInterface<bool>
+{
+};
+
+TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
 {
     static constexpr auto cmdlet = "gimme data";
     static constexpr auto data = "here's data";
@@ -226,14 +230,18 @@ TEST_F(PowerShell, run_returns_cmdlet_status_and_output)
         EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
                                              HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
 
-        auto ret = QByteArray{data}.append('\n').append(mpt::PowerShellTestAccessor::output_end_marker).append(" True");
+        auto status = GetParam() ? " True" : " False";
+        auto ret = QByteArray{data}.append('\n').append(mpt::PowerShellTestAccessor::output_end_marker).append(status);
         EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(ret));
     });
 
     mp::PowerShell ps{"Bedap"};
     QString output;
 
-    ASSERT_TRUE(ps.run(QString{cmdlet}.split(' '), output));
+    EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), output), GetParam());
     ASSERT_EQ(output, data);
 }
+
+INSTANTIATE_TEST_SUITE_P(PowerShell, TestPSStatusAndOutput, Values(true, false));
+
 } // namespace
