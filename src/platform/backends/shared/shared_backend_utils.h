@@ -46,7 +46,12 @@ std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, s
                 return utils::TimeoutAction::retry;
             }
         };
-        auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
+
+        auto on_timeout = [virtual_machine] {
+            virtual_machine->state = VirtualMachine::State::unknown;
+            throw std::runtime_error("failed to determine IP address");
+        };
+
         utils::try_action_for(on_timeout, timeout, action);
     }
 
