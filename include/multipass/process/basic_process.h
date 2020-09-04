@@ -47,16 +47,18 @@ public:
 
     bool wait_for_started(int msecs = 30000) override;
     bool wait_for_finished(int msecs = 30000) override;
+    bool wait_for_ready_read(int msecs = 30000) override;
 
     bool running() const override;
     ProcessState process_state() const override;
-    QString error_string() const;
+    QString error_string() const override;
 
     QByteArray read_all_standard_output() override;
     QByteArray read_all_standard_error() override;
 
     qint64 write(const QByteArray& data) override;
     void close_write_channel() override;
+    void set_process_channel_mode(QProcess::ProcessChannelMode mode) override;
 
     ProcessState execute(const int timeout = 30000) override;
 
