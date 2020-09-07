@@ -314,6 +314,18 @@ TEST(Utils, split_returns_one_token_if_no_delimiter)
     EXPECT_THAT(tokens[0], StrEq(content));
 }
 
+TEST(Utils, valid_mac_address_works)
+{
+    EXPECT_TRUE(mp::utils::valid_mac_address("00:11:22:33:44:55"));
+    EXPECT_TRUE(mp::utils::valid_mac_address("aa:bb:cc:dd:ee:ff"));
+    EXPECT_TRUE(mp::utils::valid_mac_address("AA:BB:CC:DD:EE:FF"));
+    EXPECT_TRUE(mp::utils::valid_mac_address("52:54:00:dd:ee:ff"));
+    EXPECT_TRUE(mp::utils::valid_mac_address("52:54:00:AB:CD:EF"));
+    EXPECT_FALSE(mp::utils::valid_mac_address("01:23:45:67:89:AG"));
+    EXPECT_FALSE(mp::utils::valid_mac_address("012345678901"));
+    EXPECT_FALSE(mp::utils::valid_mac_address("1:23:45:65:89:ab"));
+}
+
 TEST(Utils, has_only_digits_works)
 {
     EXPECT_FALSE(mp::utils::has_only_digits("124ft:,"));
