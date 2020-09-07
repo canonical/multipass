@@ -308,4 +308,17 @@ TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
 
 INSTANTIATE_TEST_SUITE_P(PowerShell, TestPSStatusAndOutput, Values(true, false));
 
+TEST_F(PowerShell, exec_runs_given_cmd)
+{
+    static constexpr auto cmdlet = "make me a sandwich";
+    const auto args = QString{cmdlet}.split(' ');
+
+    auto logger = logger_scope.mock_logger;
+    const auto log_matcher = mpt::MockLogger::make_cstring_matcher(ContainsRegex(args.join(".*").toStdString()));
+    logger->screen_logs(mpl::Level::warning);
+    EXPECT_CALL(*logger, log(_, _, log_matcher));
+
+    setup([&args](auto* process) { EXPECT_EQ(process->arguments(), args); });
+    mp::PowerShell::exec(args, "Mitis");
+}
 } // namespace
