@@ -334,3 +334,10 @@ TEST_F(LibVirtBackend, returns_version_string_when_failed_connecting)
     EXPECT_EQ(backend.get_backend_version_string(), "libvirt-unknown");
     EXPECT_EQ(called, 0);
 }
+
+TEST_F(LibVirtBackend, lists_no_networks)
+{
+    mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
+
+    EXPECT_EQ(backend.list_networks().size(), (size_t)0);
+}

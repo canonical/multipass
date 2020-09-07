@@ -491,3 +491,10 @@ TEST_F(QemuBackend, returns_version_string_when_exec_failed)
 
     EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
 }
+
+TEST_F(QemuBackend, lists_no_networks)
+{
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.list_networks().size(), (size_t)0);
+}
