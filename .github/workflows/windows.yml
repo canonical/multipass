@@ -82,7 +82,7 @@ jobs:
   BuildAndTest:
     needs: [Checkout, Lint]
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ needs.Checkout.result == 'success' }}
+    if: ${{ !failure() && needs.Checkout.result == 'success' }}
 
     runs-on: windows-latest
 
