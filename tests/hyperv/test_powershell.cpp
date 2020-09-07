@@ -322,6 +322,53 @@ TEST_F(PowerShell, exec_runs_given_cmd)
     mp::PowerShell::exec(args, "Mitis");
 }
 
+TEST_F(PowerShell, exec_succeeds_when_no_timeout_and_process_successful)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    setup([](auto* process) {
+        InSequence seq;
+        EXPECT_CALL(*process, start);
+        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{0, mp::nullopt}));
+    });
+
+    EXPECT_TRUE(mp::PowerShell::exec({}, "Efor"));
+}
+
+TEST_F(PowerShell, exec_fails_when_timeout)
+{
+    auto logger = logger_scope.mock_logger;
+    logger->screen_logs(mpl::Level::warning);
+
+    static constexpr auto msg = "timeout";
+    logger->expect_log(mpl::Level::warning, msg);
+
+    setup([](auto* process) {
+        InSequence seq;
+
+        EXPECT_CALL(*process, start);
+        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(false));
+        EXPECT_CALL(*process, error_string).WillOnce(Return(msg));
+    });
+
+    EXPECT_FALSE(mp::PowerShell::exec({}, "Sabul"));
+}
+
+TEST_F(PowerShell, exec_fails_when_cmd_returns_bad_exit_code)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    setup([](auto* process) {
+        InSequence seq;
+
+        EXPECT_CALL(*process, start);
+        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{-1, mp::nullopt}));
+    });
+
+    EXPECT_FALSE(mp::PowerShell::exec({}, "Rulag"));
+}
+
 TEST_F(PowerShell, exec_returns_cmd_output)
 {
     static constexpr auto datum1 = "bloh";
@@ -345,4 +392,5 @@ TEST_F(PowerShell, exec_returns_cmd_output)
     mp::PowerShell::exec(cmdlet, "Gimar", output);
     EXPECT_EQ(output, QString{datum1} + datum2);
 }
+
 } // namespace
