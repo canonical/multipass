@@ -1,4 +1,4 @@
-name: Windows
+name: WindowsMacOS
 
 on:
   push:
@@ -79,7 +79,127 @@ jobs:
     - name: Run clang-format through the diff
       uses: ./.github/actions/lint
 
-  BuildAndTest:
+  macOS:
+    needs: [Checkout, Lint]
+    # Need to explicitly continue on Lint getting skipped.
+    if: ${{ !failure() && needs.Checkout.result == 'success' }}
+
+    runs-on: macos-latest
+
+    env:
+      BUILD_DIR: ../build
+      MACOSX_DEPLOYMENT_TARGET: "10.12"
+      OPAM_COMP: "4.11.1"
+      OPAMVERBOSE: 1
+      OPAMYES: 1
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      QT_VERSION: "5.12.9"
+
+    steps:
+    - name: Retrieve the repository
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ env.HEAD_REF }}.git
+        path: .git
+
+    - name: Check out the code
+      # This can't be easily abstracted into the `checkout` action due to a chicken'n'egg problem.
+      run: |
+        # Authenticate with the new token.
+        git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( echo -n x-access-token:${{ secrets.GITHUB_TOKEN }} | base64 )"
+        git checkout --progress --force ${{ env.HEAD_REF }}
+
+    - name: Check out submodules and fetch tags
+      uses: ./.github/actions/checkout
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
+    - name: Determine cache parameters
+      id: cache-params
+      run: |
+        echo "::set-output name=hyperkit-sha::$( git -C 3rd-party/hyperkit rev-parse HEAD )"
+
+    - name: Install dependencies from brew
+      run: |
+        brew install \
+          cmake \
+          coreutils \
+          libev \
+          libffi \
+          ninja \
+          pkg-config \
+          wget
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: ${{ env.QT_VERSION }}
+
+    - name: Cache OPAM
+      uses: actions/cache@v2
+      with:
+        path: "~/.opam"
+        key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ steps.cache-params.outputs.hyperkit-sha }}
+        restore-keys: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-
+
+    - name: Set up OCaml
+      uses: avsm/setup-ocaml@v1
+      with:
+        ocaml-version: ${{ env.OPAM_COMP }}
+
+    - name: Set up OPAM environment
+      id: opam-setup
+      run: |
+        for var in OPAM_SWITCH_PREFIX CAML_LD_LIBRARY_PATH OCAML_TOPLEVEL_PATH; do
+            opam exec -- bash -c "echo ::set-env name=${var}::\${${var}}"
+        done
+        opam exec -- bash -c "echo ::add-path::\${OPAM_SWITCH_PREFIX}/bin"
+
+    - name: Install OPAM dependencies
+      run: |
+        opam install 3rd-party/hyperkit --deps-only
+
+    - name: Build
+      uses: lukka/run-cmake@v2
+      with:
+        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+        cmakeBuildType: RelWithDebInfo
+        buildDirectory: ${{ env.BUILD_DIR }}
+        cmakeAppendedArgs:
+          -GNinja
+          -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
+          -DMULTIPASS_UPSTREAM=origin
+          -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+
+    - name: Test
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        bin/multipass_tests
+      continue-on-error: true
+
+    - name: Package
+      id: cmake-package
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        cmake --build . --target package
+        echo "::set-output name=name::$( basename *.pkg )"
+        echo "::set-output name=path::$( greadlink -f *.pkg )"
+
+    - name: Upload package
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ steps.cmake-package.outputs.name }}
+        path: ${{ steps.cmake-package.outputs.path }}
+        if-no-files-found: error
+
+    - name: Cleanup
+      if: ${{ always() }}
+      run: |
+        rm -Rf ${{ runner.workspace }}/Qt
+
+  Windows:
     needs: [Checkout, Lint]
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() && needs.Checkout.result == 'success' }}
@@ -100,6 +220,7 @@ jobs:
       run: git config --local core.symlinks true
 
     - name: Check out the code
+      # This can't be easily abstracted into the `checkout` action due to a chicken'n'egg problem.
       run: |
         # Authenticate with the new token.
         git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( [Convert]::ToBase64String([System.Text.Encoding]::Ascii.GetBytes('x-access-token:${{ secrets.GITHUB_TOKEN }}')) )"
