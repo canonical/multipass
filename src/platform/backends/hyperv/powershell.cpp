@@ -153,7 +153,7 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
                  fmt::format("Cmdlet failed with {}: {}", power_shell->error_string(), args.join(" ")));
 
     output = output.trimmed();
-    mpl::log(mpl::Level::trace, name, output.toStdString());
+    mpl::log(mpl::Level::trace, name, fmt::format("output: {}", output));
 
     return wait_result && power_shell->process_state().completed_successfully();
 }
