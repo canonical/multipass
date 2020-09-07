@@ -321,4 +321,28 @@ TEST_F(PowerShell, exec_runs_given_cmd)
     setup([&args](auto* process) { EXPECT_EQ(process->arguments(), args); });
     mp::PowerShell::exec(args, "Mitis");
 }
+
+TEST_F(PowerShell, exec_returns_cmd_output)
+{
+    static constexpr auto datum1 = "bloh";
+    static constexpr auto datum2 = "bluh";
+    const auto cmdlet = QStringList{"sudo", "make", "me", "a", "sandwich"};
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    setup([](auto* process) {
+        InSequence seq;
+        auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
+
+        EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+        EXPECT_CALL(*process, read_all_standard_output)
+            .WillOnce(DoAll(Invoke(emit_ready_read), Return(datum2))) // the invoke needs to be 1st
+            .WillOnce(Return(datum1));                                // which results in the last return happening 1st
+        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+    });
+
+    QString output;
+    mp::PowerShell::exec(cmdlet, "Gimar", output);
+    EXPECT_EQ(output, QString{datum1} + datum2);
+}
 } // namespace
