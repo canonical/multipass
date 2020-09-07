@@ -216,6 +216,11 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_image_release("18.04 LTS");
     info_entry->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
 
+    info_entry = info_reply.add_info();
+    info_entry->set_name("smitten-bluegill");
+    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+    info_entry->set_image_release("Debian GNU/Linux 10 (buster)");
+
     return info_reply;
 }
 
@@ -437,6 +442,14 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
      "Load:           --\n"
      "Disk usage:     --\n"
+     "Memory usage:   --\n\n"
+     "Name:           smitten-bluegill\n"
+     "State:          Suspended\n"
+     "IPv4:           --\n"
+     "Release:        --\n"
+     "Image hash:     Not Available\n"
+     "Load:           --\n"
+     "Disk usage:     --\n"
      "Memory usage:   --\n",
      "table_info_multiple"},
 
@@ -475,7 +488,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
      "source;\nbombastic,Stopped,,,,"
-     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n",
+     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n"
+     "smitten-bluegill,Suspended,,,,,Debian GNU/Linux 10 (buster),,,,,,\n",
      "csv_info_multiple"},
 
     {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
@@ -589,6 +603,19 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Stopped\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
      "    image_release: 18.04 LTS\n"
+     "    release: ~\n"
+     "    disks:\n"
+     "      - sda1:\n"
+     "          used: ~\n"
+     "          total: ~\n"
+     "    memory:\n"
+     "      usage: ~\n"
+     "      total: ~\n"
+     "    mounts: ~\n"
+     "smitten-bluegill:\n"
+     "  - state: Suspended\n"
+     "    image_hash: \"\"\n"
+     "    image_release: Debian GNU/Linux 10 (buster)\n"
      "    release: ~\n"
      "    disks:\n"
      "      - sda1:\n"
@@ -759,6 +786,24 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"release\": \"\",\n"
      "            \"state\": \"Stopped\"\n"
+     "        },\n"
+     "        \"smitten-bluegill\": {\n"
+     "            \"disks\": {\n"
+     "                \"sda1\": {\n"
+     "                }\n"
+     "            },\n"
+     "            \"image_hash\": \"\",\n"
+     "            \"image_release\": \"Debian GNU/Linux 10 (buster)\",\n"
+     "            \"ipv4\": [\n"
+     "            ],\n"
+     "            \"load\": [\n"
+     "            ],\n"
+     "            \"memory\": {\n"
+     "            },\n"
+     "            \"mounts\": {\n"
+     "            },\n"
+     "            \"release\": \"\",\n"
+     "            \"state\": \"Suspended\"\n"
      "        }\n"
      "    }\n"
      "}\n",
