@@ -213,7 +213,8 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     return QString("qemu-unknown");
 }
 
+// This function returns an empty list as long as bridging is not implemented in the backend.
 auto multipass::QemuVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    return {}; // TODO
+    return {};
 }
