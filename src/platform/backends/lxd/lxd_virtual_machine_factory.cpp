@@ -128,7 +128,8 @@ mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vec
     return std::make_unique<mp::LXDVMImageVault>(image_hosts, manager.get(), base_url, days_to_expire);
 }
 
+// This function returns an empty list as long as bridging is not implemented in the backend.
 auto multipass::LXDVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    return {}; // TODO
+    return {};
 }
