@@ -434,3 +434,10 @@ TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
+
+TEST_F(LibVirtBackend, lists_no_networks)
+{
+    mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
+
+    EXPECT_EQ(backend.list_networks().size(), (size_t)0);
+}
