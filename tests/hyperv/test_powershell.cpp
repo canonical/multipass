@@ -157,9 +157,7 @@ TEST_F(PowerShell, uses_name_in_logs)
 TEST_F(PowerShell, write_silent_on_success)
 {
     static constexpr auto data = "Abbenay";
-    setup([](auto* process) {
-        EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data)));
-    });
+    setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data))); });
 
     mp::PowerShell ps{"Bedap"};
 
@@ -170,9 +168,7 @@ TEST_F(PowerShell, write_silent_on_success)
 TEST_F(PowerShell, write_logs_on_failure)
 {
     static constexpr auto data = "Nio Esseia";
-    setup([](auto* process) {
-        EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(-1));
-    });
+    setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(-1)); });
 
     mp::PowerShell ps{"Takver"};
 
@@ -186,9 +182,7 @@ TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
 {
     static constexpr auto data = "Anarres";
     static constexpr auto part = 3;
-    setup([](auto* process) {
-        EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(part));
-    });
+    setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(part)); });
 
     mp::PowerShell ps{"Palat"};
 
