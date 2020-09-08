@@ -110,9 +110,9 @@ TEST_F(PowerShell, exits_ps_process)
 
 TEST_F(PowerShell, handles_failure_to_write_on_exit)
 {
-    auto logger = logger_scope.mock_logger;
-    logger->screen_logs(mpl::Level::error);
-    logger->expect_log(mpl::Level::warning, "Failed to exit");
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs(mpl::Level::error);
+    logger.expect_log(mpl::Level::warning, "Failed to exit");
 
     setup([](auto* process) {
         EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(-1));
@@ -125,11 +125,11 @@ TEST_F(PowerShell, handles_failure_to_write_on_exit)
 TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 {
     static constexpr auto err = "timeout";
-    auto logger = logger_scope.mock_logger;
-    logger->screen_logs(mpl::Level::error);
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs(mpl::Level::error);
 
     auto msg_matcher = mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("Failed to exit"), HasSubstr(err)));
-    EXPECT_CALL(*logger, log(mpl::Level::warning, _, msg_matcher));
+    EXPECT_CALL(logger, log(mpl::Level::warning, _, msg_matcher));
 
     setup([](auto* process) {
         EXPECT_CALL(*process, write(Eq(psexit)));
@@ -144,11 +144,11 @@ TEST_F(PowerShell, handles_failure_to_finish_on_exit)
 
 TEST_F(PowerShell, uses_name_in_logs)
 {
-    auto logger = logger_scope.mock_logger;
+    auto& logger = *logger_scope.mock_logger;
     static constexpr auto name = "Shevek";
 
-    logger->screen_logs();
-    EXPECT_CALL(*logger, log(_, mpt::MockLogger::make_cstring_matcher(StrEq(name)), _)).Times(AtLeast(1));
+    logger.screen_logs();
+    EXPECT_CALL(logger, log(_, mpt::MockLogger::make_cstring_matcher(StrEq(name)), _)).Times(AtLeast(1));
     setup();
 
     mp::PowerShell ps{name};
@@ -172,9 +172,9 @@ TEST_F(PowerShell, write_logs_on_failure)
 
     mp::PowerShell ps{"Takver"};
 
-    auto logger = logger_scope.mock_logger;
-    logger->screen_logs();
-    logger->expect_log(mpl::Level::warning, "Failed to send");
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs();
+    logger.expect_log(mpl::Level::warning, "Failed to send");
     ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
@@ -186,18 +186,18 @@ TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
 
     mp::PowerShell ps{"Palat"};
 
-    auto logger = logger_scope.mock_logger;
-    logger->screen_logs();
-    logger->expect_log(mpl::Level::warning, fmt::format("{} bytes", part));
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs();
+    logger.expect_log(mpl::Level::warning, fmt::format("{} bytes", part));
     ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
 TEST_F(PowerShell, run_writes_and_logs_cmd)
 {
     static constexpr auto cmdlet = "some cmd and args";
-    auto logger = logger_scope.mock_logger;
-    logger->screen_logs(mpl::Level::error);
-    logger->expect_log(mpl::Level::trace, cmdlet);
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs(mpl::Level::error);
+    logger.expect_log(mpl::Level::trace, cmdlet);
 
     setup([](auto* process) {
         EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))))
@@ -242,9 +242,9 @@ struct TestPSStatusAndOutput : public PowerShell, public WithParamInterface<bool
 TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
 {
     static constexpr auto data = "here's data";
-    auto logger = logger_scope.mock_logger;
-    logger->screen_logs(mpl::Level::warning);
-    logger->expect_log(mpl::Level::trace, fmt::format("{}", GetParam()));
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs(mpl::Level::warning);
+    logger.expect_log(mpl::Level::trace, fmt::format("{}", GetParam()));
 
     setup([this](auto* process) {
         expect_writes(process);
@@ -313,10 +313,10 @@ TEST_F(PowerShell, exec_runs_given_cmd)
     static constexpr auto cmdlet = "make me a sandwich";
     const auto args = QString{cmdlet}.split(' ');
 
-    auto logger = logger_scope.mock_logger;
+    auto& logger = *logger_scope.mock_logger;
     const auto log_matcher = mpt::MockLogger::make_cstring_matcher(ContainsRegex(args.join(".*").toStdString()));
-    logger->screen_logs(mpl::Level::warning);
-    EXPECT_CALL(*logger, log(_, _, log_matcher));
+    logger.screen_logs(mpl::Level::warning);
+    EXPECT_CALL(logger, log(_, _, log_matcher));
 
     setup([&args](auto* process) { EXPECT_EQ(process->arguments(), args); });
     mp::PowerShell::exec(args, "Mitis");
@@ -337,11 +337,11 @@ TEST_F(PowerShell, exec_succeeds_when_no_timeout_and_process_successful)
 
 TEST_F(PowerShell, exec_fails_when_timeout)
 {
-    auto logger = logger_scope.mock_logger;
-    logger->screen_logs(mpl::Level::warning);
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs(mpl::Level::warning);
 
     static constexpr auto msg = "timeout";
-    logger->expect_log(mpl::Level::warning, msg);
+    logger.expect_log(mpl::Level::warning, msg);
 
     setup([](auto* process) {
         InSequence seq;
