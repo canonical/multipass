@@ -22,6 +22,7 @@
 #include "qemu_vmstate_process_spec.h"
 #include <shared/linux/backend_utils.h>
 #include <shared/linux/process_factory.h>
+#include <shared/shared_backend_utils.h>
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -411,28 +412,11 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
     }
 }
 
-std::string mp::QemuVirtualMachine::ssh_hostname()
+std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    if (!ip)
-    {
-        auto action = [this] {
-            ensure_vm_is_running();
-            auto result = dnsmasq_server->get_ip_for(mac_addr);
-            if (result)
-            {
-                ip.emplace(result.value());
-                return mp::utils::TimeoutAction::done;
-            }
-            else
-            {
-                return mp::utils::TimeoutAction::retry;
-            }
-        };
-        auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
-        mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
-    }
+    auto get_ip = [this]() -> optional<IPAddress> { return dnsmasq_server->get_ip_for(mac_addr); };
 
-    return ip.value().as_string();
+    return mp::backend::ip_address_for(this, get_ip, timeout);
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
