@@ -37,9 +37,12 @@ public:
     DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
     ~DNSMasqServer();
 
-    optional<IPAddress> get_ip_for(const std::string& hw_addr);
+    virtual optional<IPAddress> get_ip_for(const std::string& hw_addr);
     void release_mac(const std::string& hw_addr);
     void check_dnsmasq_running();
+
+protected:
+    DNSMasqServer() = default; // For testing
 
 private:
     DNSMasqServer(const DNSMasqServer&) = delete;

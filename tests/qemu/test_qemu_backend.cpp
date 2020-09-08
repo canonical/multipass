@@ -15,8 +15,10 @@
  *
  */
 
+#include <src/platform/backends/qemu/qemu_virtual_machine.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
+#include "mock_dnsmasq_server.h"
 #include "tests/extra_assertions.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
@@ -64,6 +66,9 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       {},
                                                       {}};
     mpt::TempDir data_dir;
+    const std::string tap_device{"tapfoo"};
+    const QString bridge_name{"dummy-bridge"};
+    const std::string subnet{"192.168.64"};
 
     mpt::MockProcessFactory::Callback handle_external_process_calls = [](mpt::MockProcess* process) {
         // Have "qemu-img snapshot" return a string with the suspend tag in it
@@ -489,4 +494,36 @@ TEST_F(QemuBackend, returns_version_string_when_exec_failed)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
+}
+
+TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    const std::string expected_ip{"10.10.0.34"};
+    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+
+    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
+        return mp::optional<mp::IPAddress>{expected_ip};
+    });
+
+    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    machine.start();
+    machine.state = mp::VirtualMachine::State::running;
+
+    EXPECT_EQ(machine.VirtualMachine::ssh_hostname(), expected_ip);
+}
+
+TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+
+    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([](auto...) { return mp::nullopt; });
+
+    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    machine.start();
+    machine.state = mp::VirtualMachine::State::running;
+
+    EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
 }
