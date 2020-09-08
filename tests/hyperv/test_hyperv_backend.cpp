@@ -22,6 +22,7 @@
 #include <multipass/virtual_machine_factory.h>
 #include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
 
+#include "tests/extra_assertions.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
@@ -30,6 +31,8 @@
 #include "tests/windows/power_shell_test.h"
 
 #include <gmock/gmock.h>
+
+#include <stdexcept>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -64,26 +67,27 @@ TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
 
 struct HyperVListNetworks : public mpt::PowerShellTest
 {
-    void simulate_ps_exec_output(const QByteArray& output)
+    void simulate_ps_exec_output(const QByteArray& output, bool succeed = true)
     {
-        setup([output](auto* process) {
+        setup([output, succeed](auto* process) {
             InSequence seq;
 
             auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
             EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
             EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
-            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
         });
     }
 
     mp::HyperVVirtualMachineFactory backend;
+    inline static constexpr auto cmdlet = "Get-VMSwitch";
 };
 
 TEST_F(HyperVListNetworks, requests_switches)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
-    setup([](auto* process) { EXPECT_THAT(process->arguments(), Contains("Get-VMSwitch")); });
+    setup([](auto* process) { EXPECT_THAT(process->arguments(), Contains(cmdlet)); });
 
     backend.list_networks();
 }
@@ -94,5 +98,17 @@ TEST_F(HyperVListNetworks, returns_empty_when_no_switches_found)
 
     simulate_ps_exec_output("");
     EXPECT_THAT(backend.list_networks(), IsEmpty());
+}
+
+TEST_F(HyperVListNetworks, throws_on_failure_to_execute_cmdlet)
+{
+    auto& logger = *logger_scope.mock_logger;
+    logger.screen_logs(mpl::Level::warning);
+    logger.expect_log(mpl::Level::warning, cmdlet);
+
+    constexpr auto error = "error msg";
+    simulate_ps_exec_output(error, false);
+    MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr(error)));
 }
 } // namespace
