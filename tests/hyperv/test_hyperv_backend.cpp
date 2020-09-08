@@ -22,6 +22,8 @@
 #include <multipass/virtual_machine_factory.h>
 #include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
 
+#include "tests/mock_logger.h"
+#include "tests/mock_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
@@ -29,11 +31,14 @@
 #include <gmock/gmock.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
 {
+constexpr auto psexe = "powershell.exe";
+
 struct HyperVBackend : public testing::Test
 {
     mpt::TempFile dummy_image;
@@ -57,4 +62,24 @@ TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
+
+TEST_F(HyperVBackend, list_networks_requests_switches)
+{
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
+
+    bool forked = false;
+    factory_scope->register_callback([&forked](auto* process) {
+        ASSERT_EQ(process->program(), psexe);
+        EXPECT_THAT(process->arguments(), Contains("Get-VMSwitch"));
+        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+
+        forked = true;
+    });
+
+    backend.list_networks();
+    ASSERT_TRUE(forked);
 }
