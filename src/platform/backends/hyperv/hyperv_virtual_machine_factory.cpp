@@ -265,7 +265,8 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
         "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1";
     static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
 
-    if (QString ps_output; PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
+    QString ps_output;
+    if (PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
     {
         std::vector<NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegExp{"[\r\n]"}, QString::SkipEmptyParts))
@@ -283,5 +284,7 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
         return ret;
     }
 
-    throw std::runtime_error{"Could not determine available networks - error executing powershell command"};
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+    throw std::runtime_error{err};
 }
