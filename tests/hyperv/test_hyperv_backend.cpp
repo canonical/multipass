@@ -64,6 +64,18 @@ TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
 
 struct HyperVListNetworks : public mpt::PowerShellTest
 {
+    void simulate_ps_exec_output(const QByteArray& output)
+    {
+        setup([output](auto* process) {
+            InSequence seq;
+
+            auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
+            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        });
+    }
+
     mp::HyperVVirtualMachineFactory backend;
 };
 
@@ -74,5 +86,13 @@ TEST_F(HyperVListNetworks, requests_switches)
     setup([](auto* process) { EXPECT_THAT(process->arguments(), Contains("Get-VMSwitch")); });
 
     backend.list_networks();
+}
+
+TEST_F(HyperVListNetworks, returns_empty_when_no_switches_found)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    simulate_ps_exec_output("");
+    EXPECT_THAT(backend.list_networks(), IsEmpty());
 }
 } // namespace
