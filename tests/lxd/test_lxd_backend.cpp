@@ -1121,9 +1121,9 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     mp::AutoJoinThread thread = [&machine] { machine.shutdown(); };
 
-    // sleep just long enough for the thread above to run
     using namespace std::chrono_literals;
-    std::this_thread::sleep_for(100ms);
+    while (machine.state != mp::VirtualMachine::State::stopped)
+        std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(machine.ensure_vm_is_running(), mp::StartException,
                          Property(&mp::StartException::what, StrEq("Instance shutdown during start")));
