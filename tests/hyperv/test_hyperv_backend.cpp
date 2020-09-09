@@ -111,4 +111,14 @@ TEST_F(HyperVListNetworks, throws_on_failure_to_execute_cmdlet)
     MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
                          Property(&std::runtime_error::what, HasSubstr(error)));
 }
+
+TEST_F(HyperVListNetworks, throws_on_unexpected_cmdlet_output)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    constexpr auto output = "g1bb€r1$h";
+    simulate_ps_exec_output(output);
+    MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
+                         Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
+}
 } // namespace
