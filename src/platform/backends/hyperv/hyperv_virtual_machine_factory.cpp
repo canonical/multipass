@@ -29,6 +29,7 @@
 
 #include <QFileInfo>
 #include <QProcess>
+#include <QRegExp>
 
 namespace mp = multipass;
 
@@ -188,7 +189,7 @@ std::string switch_description(const QString& switch_type, const QString& physic
         if (physical_adapter.isEmpty())
             throw std::runtime_error{"Missing adapter for external switch"};
 
-        return fmt::format("Virtual Switch with external networking via {}", physical_adapter);
+        return fmt::format("Virtual Switch with external networking via \"{}\"", physical_adapter);
     }
     else if (!physical_adapter.isEmpty())
         throw std::runtime_error{fmt::format("Unexpected adapter for non-external switch: {}", physical_adapter)};
@@ -263,6 +264,7 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
     static constexpr auto ps_cmd =
         "Get-VMSwitch | Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription | "
         "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1";
+    static constexpr auto surrounding_quote_regexp = R"(^"|"$)";
     static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
 
     QString ps_output;
@@ -278,6 +280,7 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
+            terms.replaceInStrings(QRegExp{surrounding_quote_regexp}, QStringLiteral(""));
             ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
         }
 
