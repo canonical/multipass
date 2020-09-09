@@ -162,4 +162,11 @@ TEST_F(HyperVListNetworks, returns_provided_interface_ids)
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
     EXPECT_THAT(backend.list_networks(), UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
 }
+
+TEST_F(HyperVListNetworks, returns_only_switches)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning); // TODO@ricab extract this if possible
+    simulate_ps_exec_output("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
+    EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
+}
 } // namespace
