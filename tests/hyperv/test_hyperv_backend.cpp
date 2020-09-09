@@ -68,6 +68,12 @@ TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
 
 struct HyperVListNetworks : public mpt::PowerShellTest
 {
+    void SetUp() override
+    {
+        mpt::PowerShellTest::SetUp(); // This isn't there ATTOW, but could come in the future, so avoid shadowing it
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    }
+
     void simulate_ps_exec_output(const QByteArray& output, bool succeed = true)
     {
         setup([output, succeed](auto* process) {
@@ -86,8 +92,6 @@ struct HyperVListNetworks : public mpt::PowerShellTest
 
 TEST_F(HyperVListNetworks, requests_switches)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-
     setup([](auto* process) { EXPECT_THAT(process->arguments(), Contains(cmdlet)); });
 
     backend.list_networks();
@@ -95,8 +99,6 @@ TEST_F(HyperVListNetworks, requests_switches)
 
 TEST_F(HyperVListNetworks, returns_empty_when_no_switches_found)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-
     simulate_ps_exec_output("");
     EXPECT_THAT(backend.list_networks(), IsEmpty());
 }
@@ -115,8 +117,6 @@ TEST_F(HyperVListNetworks, throws_on_failure_to_execute_cmdlet)
 
 TEST_F(HyperVListNetworks, throws_on_unexpected_cmdlet_output)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-
     constexpr auto output = "g1bb€r1$h";
     simulate_ps_exec_output(output);
     MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
@@ -130,8 +130,6 @@ struct TestWrongFields : public HyperVListNetworks, public WithParamInterface<st
 
 TEST_P(TestWrongFields, throws_on_output_with_wrong_fields)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-
     simulate_ps_exec_output(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
     ASSERT_THROW(backend.list_networks(), std::runtime_error);
 }
@@ -143,7 +141,6 @@ INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestWrongFields,
 
 TEST_F(HyperVListNetworks, returns_as_many_items_as_lines_in_proper_output)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     simulate_ps_exec_output("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
     EXPECT_THAT(backend.list_networks(), SizeIs(7));
 }
@@ -157,7 +154,6 @@ TEST_F(HyperVListNetworks, returns_provided_interface_ids)
                                    "\"{}\",\"Internal\",\n"
                                    "\"{}\",\"External\",\"adapter description\"\n";
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     simulate_ps_exec_output(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
     EXPECT_THAT(backend.list_networks(), UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
@@ -165,7 +161,6 @@ TEST_F(HyperVListNetworks, returns_provided_interface_ids)
 
 TEST_F(HyperVListNetworks, returns_only_switches)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning); // TODO@ricab extract this if possible
     simulate_ps_exec_output("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
     EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
