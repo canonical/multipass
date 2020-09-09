@@ -34,12 +34,35 @@ constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca49
 constexpr auto default_version = "20200519.1";
 constexpr auto default_stream_location = "https://some/stream";
 
+constexpr auto snapcraft_image_id = "c14a2047c6ba57722bc612115b1d44bea4a29ac2212fcc0628c49aa832dba867";
+constexpr auto lxd_snapcraft_image_id = "da708063589b9c83dfeaec7049deac82da96f8969b413d1346dc067897e5934b";
+constexpr auto snapcraft_release_info = "Snapcraft builder for Core 20";
+constexpr auto snapcraft_image_version = "20200901";
+
+constexpr auto custom_image_id = "aedb5a84aaf2e4e443e090511156366a2800c26cec1b6a46f44d153c4bf04205";
+constexpr auto lxd_custom_image_id = "bc5a973bd6f2bef30658fb51177cf5e506c1d60958a4c97813ee26416dc368da";
+constexpr auto custom_release_info = "Custom Ubuntu for Testing";
+constexpr auto custom_image_version = "20200909";
+
 class MockImageHost : public VMImageHost
 {
 public:
     MockImageHost()
     {
-        ON_CALL(*this, info_for(_)).WillByDefault([this](auto...) { return mock_image_info; });
+        ON_CALL(*this, info_for(_)).WillByDefault([this](const auto& query) {
+            if (query.release == "snapcraft")
+            {
+                return mock_snapcraft_image_info;
+            }
+            else if (query.release == "custom")
+            {
+                return mock_custom_image_info;
+            }
+            else
+            {
+                return mock_bionic_image_info;
+            }
+        });
         ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, info_for_full_hash(_)).WillByDefault(Return(empty_vm_image_info));
         ON_CALL(*this, all_images_for(_, _)).WillByDefault(Return(empty_image_info_vector));
@@ -56,19 +79,35 @@ public:
     TempFile image;
     TempFile kernel;
     TempFile initrd;
-    VMImageInfo mock_image_info{{"default"},
-                                "Ubuntu",
-                                "bionic",
-                                "18.04 LTS",
-                                true,
-                                image.url(),
-                                kernel.url(),
-                                initrd.url(),
-                                default_id,
-                                default_stream_location,
-                                default_version,
-                                1,
-                                true};
+    VMImageInfo mock_bionic_image_info{{"default"},
+                                       "Ubuntu",
+                                       "bionic",
+                                       "18.04 LTS",
+                                       true,
+                                       image.url(),
+                                       kernel.url(),
+                                       initrd.url(),
+                                       default_id,
+                                       default_stream_location,
+                                       default_version,
+                                       1,
+                                       true};
+    VMImageInfo mock_snapcraft_image_info{
+        {"snapcraft"}, "Ubuntu",           "core20", snapcraft_release_info,  true, image.url(), kernel.url(),
+        initrd.url(),  snapcraft_image_id, "",       snapcraft_image_version, 1,    true};
+    VMImageInfo mock_custom_image_info{{"custom"},
+                                       "Ubuntu",
+                                       "Custom Core",
+                                       custom_release_info,
+                                       true,
+                                       image.url(),
+                                       kernel.url(),
+                                       initrd.url(),
+                                       custom_image_id,
+                                       "",
+                                       custom_image_version,
+                                       1,
+                                       true};
 
 private:
     std::vector<VMImageInfo> empty_image_info_vector;
