@@ -123,6 +123,23 @@ TEST_F(HyperVListNetworks, throws_on_unexpected_cmdlet_output)
                          Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
 }
 
+struct TestWrongFields : public HyperVListNetworks, public WithParamInterface<std::string>
+{
+    inline static constexpr auto bad_line_in_output_format = "a,few,\ngood,lines,\n{}\naround,a,\nbad,one,";
+};
+
+TEST_P(TestWrongFields, throws_on_output_with_wrong_fields)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
+    ASSERT_THROW(backend.list_networks(), std::runtime_error);
+}
+
+INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestWrongFields,
+                         Values("too,many,fields,here", "insufficient,fields",
+                                "an, internal switch, shouldn't be connected to an external adapter",
+                                "nor should a, private, one", "but an, external one should,"));
 TEST_F(HyperVListNetworks, returns_provided_interface_ids)
 {
     constexpr auto id1 = "\"toto\"";
