@@ -29,7 +29,7 @@
 
 #include <QFileInfo>
 #include <QProcess>
-#include <QRegExp>
+#include <QRegularExpression>
 
 namespace mp = multipass;
 
@@ -271,7 +271,7 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
     if (PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
     {
         std::vector<NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegExp{"[\r\n]"}, QString::SkipEmptyParts))
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
         {
             auto terms = line.split(',', QString::KeepEmptyParts);
             if (terms.size() != 3)
@@ -280,7 +280,7 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
-            terms.replaceInStrings(QRegExp{surrounding_quote_regexp}, QStringLiteral(""));
+            terms.replaceInStrings(QRegularExpression{surrounding_quote_regexp}, QStringLiteral(""));
             ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
         }
 
