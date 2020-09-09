@@ -23,7 +23,9 @@
 #include "tests/extra_assertions.h"
 #include "tests/mock_image_host.h"
 #include "tests/mock_logger.h"
+#include "tests/mock_process_factory.h"
 #include "tests/stub_url_downloader.h"
+#include "tests/tracking_url_downloader.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/format.h>
@@ -49,7 +51,7 @@ struct LXDImageVault : public Test
     {
         hosts.push_back(&host);
 
-        ON_CALL(host, info_for_full_hash(_)).WillByDefault([this](auto...) { return host.mock_image_info; });
+        ON_CALL(host, info_for_full_hash(_)).WillByDefault([this](auto...) { return host.mock_bionic_image_info; });
 
         logger_scope.mock_logger->screen_logs(mpl::Level::error);
     }
@@ -135,7 +137,7 @@ TEST_F(LXDImageVault, throws_with_invalid_alias)
             return mp::nullopt;
         }
 
-        return host.mock_image_info;
+        return host.mock_bionic_image_info;
     });
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
@@ -697,4 +699,85 @@ TEST_F(LXDImageVault, prune_expired_image_delete_fails_does_no_throw)
     EXPECT_NO_THROW(image_vault.prune_expired_images());
 
     EXPECT_TRUE(delete_requested);
+}
+
+TEST_F(LXDImageVault, custom_image_found_returns_expected_info)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && url.contains("1.0/images?recursion=1"))
+        {
+            return new mpt::MockLocalSocketReply(mpt::image_info_data);
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
+                                    mp::days{0}};
+
+    const mp::Query query{"", "snapcraft", false, "release", mp::Query::Type::Alias};
+    auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
+
+    EXPECT_EQ(image.id, mpt::lxd_snapcraft_image_id);
+    EXPECT_EQ(image.original_release, mpt::snapcraft_release_info);
+    EXPECT_EQ(image.release_date, mpt::snapcraft_image_version);
+}
+
+TEST_F(LXDImageVault, custom_image_downloads_and_creates_correct_upload)
+{
+    const std::string content{"This is a fake image!"};
+    mpt::TrackingURLDownloader url_downloader{content};
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback([](mpt::MockProcess* process) {
+        if (process->program().startsWith("tar"))
+        {
+            auto tar_args = process->arguments();
+
+            EXPECT_EQ(tar_args.size(), 5);
+            QFile output_file{tar_args[1]}, input_file{tar_args[3] + "/" + tar_args[4]};
+
+            output_file.open(QIODevice::WriteOnly);
+            input_file.open(QIODevice::ReadOnly);
+
+            output_file.write(input_file.readAll());
+
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+        }
+    });
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([](auto, auto request, auto outgoingData) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "POST" && url.contains("1.0/images"))
+            {
+                auto content_header = request.header(QNetworkRequest::ContentTypeHeader).toString();
+
+                EXPECT_TRUE(content_header.contains("multipart/form-data"));
+                EXPECT_TRUE(content_header.contains("boundary"));
+
+                return new mpt::MockLocalSocketReply(mpt::image_upload_task_data);
+            }
+            else if (op == "GET" && url.contains("1.0/operations/dcce4fda-aab9-4117-89c1-9f42b8e3f4a8"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::image_upload_task_complete_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts, &url_downloader, mock_network_access_manager.get(), base_url, mp::days{0}};
+
+    const mp::Query query{"", "custom", false, "release", mp::Query::Type::Alias};
+    auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
+
+    EXPECT_EQ(image.id, mpt::lxd_custom_image_id);
+    EXPECT_EQ(image.original_release, mpt::custom_release_info);
+    EXPECT_EQ(image.release_date, mpt::custom_image_version);
 }

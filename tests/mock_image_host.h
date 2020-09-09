@@ -107,7 +107,7 @@ public:
                                        "",
                                        custom_image_version,
                                        1,
-                                       true};
+                                       false};
 
 private:
     std::vector<VMImageInfo> empty_image_info_vector;
