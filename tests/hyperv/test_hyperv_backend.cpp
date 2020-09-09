@@ -140,6 +140,14 @@ INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestWrongFields,
                          Values("too,many,fields,here", "insufficient,fields",
                                 "an, internal switch, shouldn't be connected to an external adapter",
                                 "nor should a, private, one", "but an, external one should,"));
+
+TEST_F(HyperVListNetworks, returns_as_many_items_as_lines_in_proper_output)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    simulate_ps_exec_output("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
+    EXPECT_THAT(backend.list_networks(), SizeIs(7));
+}
+
 TEST_F(HyperVListNetworks, returns_provided_interface_ids)
 {
     constexpr auto id1 = "\"toto\"";
