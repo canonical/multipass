@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
@@ -120,5 +121,20 @@ TEST_F(HyperVListNetworks, throws_on_unexpected_cmdlet_output)
     simulate_ps_exec_output(output);
     MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
+}
+
+TEST_F(HyperVListNetworks, returns_provided_interface_ids)
+{
+    constexpr auto id1 = "\"toto\"";
+    constexpr auto id2 = " te et te";
+    constexpr auto id3 = "\"ti\"-+%ti\t";
+    constexpr auto output_format = "\"{}\",\"Private\",\n"
+                                   "\"{}\",\"Internal\",\n"
+                                   "\"{}\",\"External\",\"adapter description\"\n";
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
+    auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
+    EXPECT_THAT(backend.list_networks(), UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
 }
 } // namespace
