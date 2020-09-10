@@ -31,6 +31,8 @@
 #include "tests/temp_file.h"
 #include "tests/windows/power_shell_test.h"
 
+#include <QRegularExpression>
+
 #include <gmock/gmock.h>
 
 #include <stdexcept>
@@ -165,11 +167,24 @@ TEST_F(HyperVListNetworks, returns_only_switches)
     EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
-TEST_F(HyperVListNetworks, recognizes_private_switches)
+struct TestNonExternalSwitchTypes : public HyperVListNetworks, public WithParamInterface<QString>
 {
-    simulate_ps_exec_output("some switch,private,");
-    EXPECT_THAT(backend.list_networks(),
-                ElementsAre(Field(&mp::NetworkInterfaceInfo::description,
-                                  AnyOf(HasSubstr("Private"), HasSubstr("private"))))); // regex are limited on win
+};
+
+TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
+{
+    const auto& type = GetParam();
+    const auto regex_required = QRegularExpression{type, QRegularExpression::CaseInsensitiveOption};
+    const auto regex_forbidden = QRegularExpression{"external|unknown", QRegularExpression::CaseInsensitiveOption};
+
+    const auto matcher = Truly([&regex_required, &regex_forbidden](const std::string& str) {
+        auto qstr = QString::fromStdString(str);
+        return qstr.contains(regex_required) && !qstr.contains(regex_forbidden);
+    });
+
+    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,{},", type)));
+    EXPECT_THAT(backend.list_networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, matcher)));
 }
+
+INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestNonExternalSwitchTypes, Values("Private", "Internal"));
 } // namespace
