@@ -161,7 +161,7 @@ void mp::HyperkitVirtualMachine::on_shutdown()
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     if (state == State::starting)
     {
-        state_wait.wait(lock, [this] { return state == State::off; });
+        state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
     else
     {
@@ -177,15 +177,9 @@ void mp::HyperkitVirtualMachine::on_shutdown()
 
 void mp::HyperkitVirtualMachine::ensure_vm_is_running()
 {
-    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (!thread.isRunning())
-    {
-        // Have to set 'off' here so there is an actual state change to compare to for
-        // the cond var's predicate
-        state = State::off;
-        state_wait.notify_all();
-        throw mp::StartException(vm_name, "Instance stopped while starting");
-    }
+    auto is_vm_running = [this] { return thread.isRunning(); };
+
+    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance stopped while starting");
 }
 
 mp::VirtualMachine::State mp::HyperkitVirtualMachine::current_state()
