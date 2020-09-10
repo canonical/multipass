@@ -338,7 +338,7 @@ void mp::LibVirtVirtualMachine::shutdown()
     else if (state == State::starting)
     {
         libvirt_wrapper->virDomainDestroy(domain.get());
-        state_wait.wait(lock, [this] { return state == State::off; });
+        state_wait.wait(lock, [this] { return shutdown_while_starting; });
         update_state();
     }
     else if (state == State::suspended)
@@ -404,17 +404,12 @@ int mp::LibVirtVirtualMachine::ssh_port()
 
 void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 {
-    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
-    if (!domain_is_running(domain.get(), libvirt_wrapper))
-    {
-        // Have to set 'off' here so there is an actual state change to compare to for
-        // the cond var's predicate
-        state = State::off;
-        state_wait.notify_all();
+    auto is_vm_running = [this] {
+        auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
+        return domain_is_running(domain.get(), libvirt_wrapper);
+    };
 
-        throw mp::StartException(vm_name, "Instance failed to start");
-    }
+    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance failed to start");
 }
 
 std::string mp::LibVirtVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
