@@ -167,6 +167,20 @@ TEST_F(HyperVListNetworks, returns_only_switches)
     EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
+auto make_required_forbidden_regex_matcher(const QRegularExpression& required, const QRegularExpression& forbidden)
+{
+    return Truly([required, forbidden](const std::string& str) {
+        auto qstr = QString::fromStdString(str);
+        return qstr.contains(required) && !qstr.contains(forbidden);
+    });
+}
+
+template <typename Matcher>
+auto adapt_to_single_description_matcher(const Matcher& matcher)
+{
+    return ElementsAre(Field(&mp::NetworkInterfaceInfo::description, matcher));
+}
+
 struct TestNonExternalSwitchTypes : public HyperVListNetworks, public WithParamInterface<QString>
 {
 };
@@ -174,17 +188,25 @@ struct TestNonExternalSwitchTypes : public HyperVListNetworks, public WithParamI
 TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
 {
     const auto& type = GetParam();
-    const auto regex_required = QRegularExpression{type, QRegularExpression::CaseInsensitiveOption};
-    const auto regex_forbidden = QRegularExpression{"external|unknown", QRegularExpression::CaseInsensitiveOption};
-
-    const auto matcher = Truly([&regex_required, &regex_forbidden](const std::string& str) {
-        auto qstr = QString::fromStdString(str);
-        return qstr.contains(regex_required) && !qstr.contains(regex_forbidden);
-    });
+    const auto matcher = adapt_to_single_description_matcher(make_required_forbidden_regex_matcher(
+        QRegularExpression{type, QRegularExpression::CaseInsensitiveOption},
+        QRegularExpression{"external|unknown", QRegularExpression::CaseInsensitiveOption}));
 
     simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,{},", type)));
-    EXPECT_THAT(backend.list_networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, matcher)));
+    EXPECT_THAT(backend.list_networks(), matcher);
 }
 
 INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestNonExternalSwitchTypes, Values("Private", "Internal"));
+
+TEST_F(HyperVListNetworks, recognizes_external_switch)
+{
+    constexpr auto nic = "some NIC";
+    const auto matcher_part =
+        make_required_forbidden_regex_matcher(QRegularExpression{"external", QRegularExpression::CaseInsensitiveOption},
+                                              QRegularExpression{"unknown", QRegularExpression::CaseInsensitiveOption});
+    const auto matcher = adapt_to_single_description_matcher(AllOf(matcher_part, HasSubstr(nic)));
+
+    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,external,{}", nic)));
+    EXPECT_THAT(backend.list_networks(), matcher);
+}
 } // namespace
