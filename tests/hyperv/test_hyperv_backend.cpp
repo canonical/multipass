@@ -209,4 +209,17 @@ TEST_F(HyperVListNetworks, recognizes_external_switch)
     simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,external,{}", nic)));
     EXPECT_THAT(backend.list_networks(), matcher);
 }
+
+TEST_F(HyperVListNetworks, handles_unknown_switch_types)
+{
+    constexpr auto type = "Strange";
+    const auto matcher_part = make_required_forbidden_regex_matcher(
+        QRegularExpression{"unknown", QRegularExpression::CaseInsensitiveOption},
+        QRegularExpression{"private|internal|external", QRegularExpression::CaseInsensitiveOption});
+    const auto matcher = adapt_to_single_description_matcher(AllOf(matcher_part, HasSubstr(type)));
+
+    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("Custom Switch,{},", type)));
+    EXPECT_THAT(backend.list_networks(), matcher);
+}
+
 } // namespace
