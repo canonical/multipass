@@ -13,14 +13,6 @@ adopt-info: multipass
 confinement: strict
 base: core18
 
-architectures:
-- build-on: amd64
-  run-on: amd64
-- build-on: armhf
-  run-on: armhf
-- build-on: arm64
-  run-on: arm64
-
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
