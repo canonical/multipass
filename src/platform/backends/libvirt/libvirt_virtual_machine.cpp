@@ -20,12 +20,12 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/linux/backend_utils.h>
+#include <shared/shared_backend_utils.h>
 
 #include <QXmlStreamReader>
 
@@ -417,25 +417,11 @@ void mp::LibVirtVirtualMachine::ensure_vm_is_running()
     }
 }
 
-std::string mp::LibVirtVirtualMachine::ssh_hostname()
+std::string mp::LibVirtVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        ensure_vm_is_running();
-        auto result = instance_ip_for(mac_addr, libvirt_wrapper);
-        if (result)
-        {
-            ip.emplace(result.value());
-            return mp::utils::TimeoutAction::done;
-        }
-        else
-        {
-            return mp::utils::TimeoutAction::retry;
-        }
-    };
-    auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
-    mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
+    auto get_ip = [this]() -> optional<IPAddress> { return instance_ip_for(mac_addr, libvirt_wrapper); };
 
-    return ip.value().as_string();
+    return mp::backend::ip_address_for(this, get_ip, timeout);
 }
 
 std::string mp::LibVirtVirtualMachine::ssh_username()

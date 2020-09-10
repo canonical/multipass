@@ -813,7 +813,45 @@ TEST_F(LXDBackend, returns_expected_network_info)
     EXPECT_TRUE(machine.ipv6().empty());
     EXPECT_EQ(machine.ssh_username(), default_description.ssh_username);
     EXPECT_EQ(machine.ssh_port(), 22);
-    EXPECT_EQ(machine.ssh_hostname(), "10.217.27.168");
+    EXPECT_EQ(machine.VirtualMachine::ssh_hostname(), "10.217.27.168");
+}
+
+TEST_F(LXDBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
+            {
+                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                }
+                else if (url.contains("1.0/networks/" + bridge_name + "/leases"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::network_no_leases_data);
+                }
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("stop"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+
+    EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
 }
 
 TEST_F(LXDBackend, no_ip_address_returns_unknown)

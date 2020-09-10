@@ -333,3 +333,56 @@ TEST_F(LibVirtBackend, returns_version_string_when_failed_connecting)
     EXPECT_EQ(backend.get_backend_version_string(), "libvirt-unknown");
     EXPECT_EQ(called, 0);
 }
+
+TEST_F(LibVirtBackend, ssh_hostname_returns_expected_value)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
+
+    const std::string expected_ip{"10.10.0.34"};
+    auto virNetworkGetDHCPLeases = [&expected_ip](auto, auto, auto leases, auto) {
+        virNetworkDHCPLeasePtr* leases_ret;
+        leases_ret = (virNetworkDHCPLeasePtr*)calloc(1, sizeof(virNetworkDHCPLeasePtr));
+        leases_ret[0] = (virNetworkDHCPLeasePtr)calloc(1, sizeof(virNetworkDHCPLease));
+        leases_ret[0]->ipaddr = strdup(expected_ip.c_str());
+        *leases = leases_ret;
+
+        return 1;
+    };
+
+    static auto static_virNetworkGetDHCPLeases = virNetworkGetDHCPLeases;
+
+    backend.libvirt_wrapper->virNetworkGetDHCPLeases = [](virNetworkPtr network, const char* mac,
+                                                          virNetworkDHCPLeasePtr** leases, unsigned int flags) {
+        return static_virNetworkGetDHCPLeases(network, mac, leases, flags);
+    };
+
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    machine->start();
+
+    backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_RUNNING;
+        return 0;
+    };
+
+    EXPECT_EQ(machine->VirtualMachine::ssh_hostname(), expected_ip);
+}
+
+TEST_F(LibVirtBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
+
+    backend.libvirt_wrapper->virNetworkGetDHCPLeases = [](auto...) { return 0; };
+
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    machine->start();
+
+    backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_RUNNING;
+        return 0;
+    };
+
+    EXPECT_THROW(machine->ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_EQ(machine->state, mp::VirtualMachine::State::unknown);
+}
