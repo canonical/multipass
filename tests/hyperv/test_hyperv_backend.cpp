@@ -167,18 +167,26 @@ TEST_F(HyperVListNetworks, returns_only_switches)
     EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
-auto make_required_forbidden_regex_matcher(const QRegularExpression& required, const QRegularExpression& forbidden)
+template <typename Str>
+QRegularExpression make_case_insensitive_regex(Str&& str)
 {
-    return Truly([required, forbidden](const std::string& str) {
+    return QRegularExpression{std::forward<Str>(str), QRegularExpression::CaseInsensitiveOption};
+}
+
+template <typename Str1, typename Str2>
+auto make_required_forbidden_regex_matcher(Str1&& required, Str2&& forbidden)
+{
+    return Truly([required = make_case_insensitive_regex(std::forward<Str1>(required)),
+                  forbidden = make_case_insensitive_regex(std::forward<Str2>(forbidden))](const std::string& str) {
         auto qstr = QString::fromStdString(str);
         return qstr.contains(required) && !qstr.contains(forbidden);
     });
 }
 
 template <typename Matcher>
-auto adapt_to_single_description_matcher(const Matcher& matcher)
+auto adapt_to_single_description_matcher(Matcher&& matcher)
 {
-    return ElementsAre(Field(&mp::NetworkInterfaceInfo::description, matcher));
+    return ElementsAre(Field(&mp::NetworkInterfaceInfo::description, std::forward<Matcher>(matcher)));
 }
 
 struct TestNonExternalSwitchTypes : public HyperVListNetworks, public WithParamInterface<QString>
@@ -188,9 +196,8 @@ struct TestNonExternalSwitchTypes : public HyperVListNetworks, public WithParamI
 TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
 {
     const auto& type = GetParam();
-    const auto matcher = adapt_to_single_description_matcher(make_required_forbidden_regex_matcher(
-        QRegularExpression{type, QRegularExpression::CaseInsensitiveOption},
-        QRegularExpression{"external|unknown", QRegularExpression::CaseInsensitiveOption}));
+    const auto matcher =
+        adapt_to_single_description_matcher(make_required_forbidden_regex_matcher(type, "external|unknown"));
 
     simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,{},", type)));
     EXPECT_THAT(backend.list_networks(), matcher);
@@ -201,10 +208,8 @@ INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestNonExternalSwitchTypes, Values(
 TEST_F(HyperVListNetworks, recognizes_external_switch)
 {
     constexpr auto nic = "some NIC";
-    const auto matcher_part =
-        make_required_forbidden_regex_matcher(QRegularExpression{"external", QRegularExpression::CaseInsensitiveOption},
-                                              QRegularExpression{"unknown", QRegularExpression::CaseInsensitiveOption});
-    const auto matcher = adapt_to_single_description_matcher(AllOf(matcher_part, HasSubstr(nic)));
+    const auto matcher = adapt_to_single_description_matcher(
+        AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(nic)));
 
     simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,external,{}", nic)));
     EXPECT_THAT(backend.list_networks(), matcher);
@@ -213,10 +218,8 @@ TEST_F(HyperVListNetworks, recognizes_external_switch)
 TEST_F(HyperVListNetworks, handles_unknown_switch_types)
 {
     constexpr auto type = "Strange";
-    const auto matcher_part = make_required_forbidden_regex_matcher(
-        QRegularExpression{"unknown", QRegularExpression::CaseInsensitiveOption},
-        QRegularExpression{"private|internal|external", QRegularExpression::CaseInsensitiveOption});
-    const auto matcher = adapt_to_single_description_matcher(AllOf(matcher_part, HasSubstr(type)));
+    const auto matcher = adapt_to_single_description_matcher(
+        AllOf(make_required_forbidden_regex_matcher("unknown", "private|internal|external"), HasSubstr(type)));
 
     simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("Custom Switch,{},", type)));
     EXPECT_THAT(backend.list_networks(), matcher);
