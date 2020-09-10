@@ -164,4 +164,12 @@ TEST_F(HyperVListNetworks, returns_only_switches)
     simulate_ps_exec_output("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
     EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
+
+TEST_F(HyperVListNetworks, recognizes_private_switches)
+{
+    simulate_ps_exec_output("some switch,private,");
+    EXPECT_THAT(backend.list_networks(),
+                ElementsAre(Field(&mp::NetworkInterfaceInfo::description,
+                                  AnyOf(HasSubstr("Private"), HasSubstr("private"))))); // regex are limited on win
+}
 } // namespace
