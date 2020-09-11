@@ -18,8 +18,6 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 
-#include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/process/process.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -46,7 +44,7 @@ public:
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
-    std::string ssh_hostname() override;
+    std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
     std::string ipv4() override;
     std::string ipv6() override;
@@ -68,7 +66,6 @@ private:
     const std::string tap_device_name;
     const VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
-    multipass::optional<IPAddress> ip;
     const std::string mac_addr;
     const std::string username;
     DNSMasqServer* dnsmasq_server;

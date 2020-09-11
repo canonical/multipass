@@ -24,14 +24,14 @@
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
-#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_access_manager.h>
-#include <multipass/optional.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
+
+#include <shared/shared_backend_utils.h>
 
 #include <chrono>
 #include <thread>
@@ -308,28 +308,11 @@ void mp::LXDVirtualMachine::update_state()
     monitor->persist_state_for(vm_name, state);
 }
 
-std::string mp::LXDVirtualMachine::ssh_hostname()
+std::string mp::LXDVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    if (!ip)
-    {
-        auto action = [this] {
-            ensure_vm_is_running();
-            ip = get_ip_for(mac_addr, manager, network_leases_url());
-            if (ip)
-            {
-                return mpu::TimeoutAction::done;
-            }
-            else
-            {
-                mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
-                return mpu::TimeoutAction::retry;
-            }
-        };
-        auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
-        mpu::try_action_for(on_timeout, std::chrono::minutes(2), action);
-    }
+    auto get_ip = [this]() -> optional<IPAddress> { return get_ip_for(mac_addr, manager, network_leases_url()); };
 
-    return ip.value().as_string();
+    return mp::backend::ip_address_for(this, get_ip, timeout);
 }
 
 std::string mp::LXDVirtualMachine::ssh_username()

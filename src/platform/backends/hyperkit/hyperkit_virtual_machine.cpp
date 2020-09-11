@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,8 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
+
+#include <shared/shared_backend_utils.h>
 
 #include <QEventLoop>
 #include <QMetaObject>
@@ -201,31 +203,15 @@ int mp::HyperkitVirtualMachine::ssh_port()
     return 22;
 }
 
-std::string mp::HyperkitVirtualMachine::ssh_hostname()
+std::string mp::HyperkitVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    if (!ip)
-    {
-        auto action = [this] {
-            ensure_vm_is_running();
-            std::ifstream leases_file(leases_path.toStdString());
-            auto result = get_ip_for(vm_name, leases_file);
-            if (result)
-            {
-                ip.emplace(*result);
-                return mp::utils::TimeoutAction::done;
-            }
-            else
-            {
-                return mp::utils::TimeoutAction::retry;
-            }
-        };
-        auto on_timeout = [] { throw std::runtime_error("failed to determine IP address"); };
-        mp::utils::try_action_for(on_timeout, std::chrono::minutes(2), action);
-    }
+    auto get_ip = [this]() -> optional<IPAddress> {
+        std::ifstream leases_file(leases_path.toStdString());
+        return get_ip_for(vm_name, leases_file);
+    };
 
-    assert(ip && "`ip` should never be empty here");
-
-    return ip->as_string();
+    return mp::backend::ip_address_for(this, get_ip, timeout);
+    ;
 }
 
 std::string mp::HyperkitVirtualMachine::ssh_username()

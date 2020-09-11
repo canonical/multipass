@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,9 @@
 
 #ifndef MULTIPASS_VIRTUAL_MACHINE_H
 #define MULTIPASS_VIRTUAL_MACHINE_H
+
+#include <multipass/ip_address.h>
+#include <multipass/optional.h>
 
 #include <chrono>
 #include <condition_variable>
@@ -54,7 +57,11 @@ public:
     virtual void suspend() = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname() = 0;
+    virtual std::string ssh_hostname()
+    {
+        return ssh_hostname(std::chrono::minutes(2));
+    };
+    virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
     virtual std::string ipv4() = 0;
     virtual std::string ipv6() = 0;
@@ -66,6 +73,7 @@ public:
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
+    optional<IPAddress> ip;
 
 protected:
     VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};

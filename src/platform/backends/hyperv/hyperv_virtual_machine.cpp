@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -221,7 +221,7 @@ void mp::HyperVVirtualMachine::update_state()
     monitor->persist_state_for(vm_name, state);
 }
 
-std::string mp::HyperVVirtualMachine::ssh_hostname()
+std::string mp::HyperVVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
 {
     return name.toStdString() + ".mshome.net";
 }
@@ -235,7 +235,7 @@ std::string mp::HyperVVirtualMachine::ipv4()
 {
     if (!ip)
     {
-        auto result = remote_ip(ssh_hostname(), ssh_port());
+        auto result = remote_ip(VirtualMachine::ssh_hostname(), ssh_port());
         if (result)
             ip.emplace(result.value());
     }
