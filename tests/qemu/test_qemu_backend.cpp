@@ -30,13 +30,12 @@
 #include "tests/temp_file.h"
 #include "tests/test_with_mocked_bin_path.h"
 
+#include <multipass/auto_join_thread.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <scope_guard.hpp>
 
 #include <QJsonArray>
 #include <thread>
@@ -160,16 +159,36 @@ TEST_F(QemuBackend, throws_when_starting_while_suspending)
 
 TEST_F(QemuBackend, throws_when_shutdown_while_starting)
 {
+    mpt::MockProcess* vmproc = nullptr;
     auto factory = mpt::MockProcessFactory::Inject();
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    factory->register_callback([&vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith("qemu-system-") &&
+            !process->arguments().contains("-dump-vmstate")) // we only care about the actual vm process
+        {
+            vmproc = process; // save this to control later
+        }
+    });
+
+    mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
-    machine->state = mp::VirtualMachine::State::starting;
-    machine->shutdown();
+    machine->start();
+    ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
+
+    mp::AutoJoinThread thread{[&machine, vmproc] {
+        ON_CALL(*vmproc, running()).WillByDefault(Return(false));
+        machine->shutdown();
+    }};
+
+    using namespace std::chrono_literals;
+    while (machine->state != mp::VirtualMachine::State::off)
+        std::this_thread::sleep_for(1ms);
+
     MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
                          Property(&mp::StartException::name, Eq(machine->vm_name)));
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
 TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
@@ -186,10 +205,10 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
         }
     });
 
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
     machine->start(); // we need this so that Process signals get connected to their handlers
     EXPECT_EQ(machine->state, mp::VirtualMachine::State::starting);
@@ -199,25 +218,21 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
     ON_CALL(*vmproc, running()).WillByDefault(Return(false)); /* simulate process not running anymore,
                                                                  to avoid blocking on destruction */
 
-    std::thread finishing_thread{[vmproc]() {
+    mp::AutoJoinThread finishing_thread{[vmproc]() {
         mp::ProcessState exit_state;
         exit_state.exit_code = 1;
         emit vmproc->finished(exit_state); /* note that this waits on a condition variable that is unblocked by
                                               ensure_vm_is_running */
     }};
 
-    { // inner scope to ensure thread joined before destroyed
-        const auto joining_guard = sg::make_scope_guard([&finishing_thread] { finishing_thread.join(); });
+    using namespace std::chrono_literals;
+    while (machine->state != mp::VirtualMachine::State::off)
+        std::this_thread::sleep_for(1ms);
 
-        using namespace std::chrono_literals;
-        std::this_thread::sleep_for(0.1s); // yield not enough in practice
-
-        MP_EXPECT_THROW_THAT(
-            machine->ensure_vm_is_running(), mp::StartException,
-            AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
-                  Property(&mp::StartException::what,
-                           AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
-    }
+    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
+                         AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
+                               Property(&mp::StartException::what,
+                                        AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
 }
 
 TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
