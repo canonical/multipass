@@ -271,18 +271,7 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
-    QJsonObject json_reply;
-
-    try
-    {
-        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
-    }
-    catch (const LXDNotFoundException&)
-    {
-        return;
-    }
-
-    auto images = json_reply["metadata"].toArray();
+    auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
@@ -313,18 +302,7 @@ void mp::LXDVMImageVault::prune_expired_images()
 void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
-    QJsonObject json_reply;
-
-    try
-    {
-        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
-    }
-    catch (const LXDNotFoundException&)
-    {
-        return;
-    }
-
-    auto images = json_reply["metadata"].toArray();
+    auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
@@ -531,19 +509,7 @@ std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& me
 
 std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)
 {
-    // TODO: Refactor out the images retrieval with code in update_images()
-    QJsonObject json_reply;
-
-    try
-    {
-        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
-    }
-    catch (const LXDNotFoundException&)
-    {
-        return {};
-    }
-
-    auto images = json_reply["metadata"].toArray();
+    auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
@@ -561,4 +527,22 @@ std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)
     }
 
     return {};
+}
+
+QJsonArray mp::LXDVMImageVault::retrieve_image_list()
+{
+    QJsonArray image_list;
+
+    try
+    {
+        auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+
+        image_list = json_reply["metadata"].toArray();
+    }
+    catch (const LXDNotFoundException&)
+    {
+        // ignore exception
+    }
+
+    return image_list;
 }

@@ -23,6 +23,7 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QUrl>
 
@@ -59,6 +60,7 @@ private:
         const QJsonObject& json_reply, const ProgressMonitor& monitor, const TaskCompleteAction& action = [](auto) {});
     std::string lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path);
     std::string get_lxd_image_hash_for(const QString& id);
+    QJsonArray retrieve_image_list();
 
     std::vector<VMImageHost*> image_hosts;
     URLDownloader* const url_downloader;
