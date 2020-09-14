@@ -146,10 +146,10 @@ jobs:
         ASM_NASM: "${{ github.workspace }}\\..\\yasm.exe"
       with:
         cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-        cmakeBuildType: RelWithDebInfo
         buildDirectory: ${{ env.BUILD_DIR }}
         cmakeAppendedArgs:
           -GNinja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
           -DCMAKE_C_COMPILER=cl.exe
           -DCMAKE_CXX_COMPILER=cl.exe
           -DMULTIPASS_UPSTREAM=origin
