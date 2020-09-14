@@ -28,14 +28,18 @@ namespace test
 {
 struct TrackingURLDownloader : public URLDownloader
 {
-    TrackingURLDownloader() : URLDownloader{std::chrono::seconds(10)}
+    TrackingURLDownloader(const std::string& content) : URLDownloader{std::chrono::seconds(10)}, content{content}
+    {
+    }
+
+    TrackingURLDownloader() : TrackingURLDownloader{""}
     {
     }
 
     void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                      const ProgressMonitor&) override
     {
-        make_file_with_content(file_name, "");
+        make_file_with_content(file_name, content);
         downloaded_urls << url.toString();
         downloaded_files << file_name;
     }
@@ -50,6 +54,7 @@ struct TrackingURLDownloader : public URLDownloader
         return QDateTime::currentDateTime();
     }
 
+    const std::string content;
     QStringList downloaded_files;
     QStringList downloaded_urls;
 };
