@@ -17,6 +17,7 @@
 
 #include "tests/fake_handle.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
 #include "tests/test_with_mocked_bin_path.h"
 
@@ -160,6 +161,46 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
+
+void simulate_ip(const mpt::MockProcess* process, const mp::ProcessState& produce_result,
+                 const QByteArray& produce_output = {})
+{
+    ASSERT_EQ(process->program().toStdString(), "ip");
+
+    // ip can be called with arguments "link show dev" or "address".
+    const auto args = process->arguments();
+    ASSERT_THAT(args.size(), Ge(1));
+    if (args.size() == 1)
+    {
+        EXPECT_EQ(args.constFirst(), "address");
+    }
+    else
+    {
+        EXPECT_EQ(args.size(), 4);
+        EXPECT_EQ(args[0], "link");
+        EXPECT_EQ(args[1], "show");
+        EXPECT_EQ(args[2], "dev");
+    }
+
+    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+    if (produce_result.completed_successfully())
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
+    else if (produce_result.exit_code)
+        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
+    else
+        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(produce_output));
+}
+
+std::unique_ptr<mp::test::MockProcessFactory::Scope> inject_fake_ip_callback(const mp::ProcessState& ip_exit_status,
+                                                                             const QByteArray& ip_output)
+{
+    std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback(
+        [&](mpt::MockProcess* process) { simulate_ip(process, ip_exit_status, ip_output); });
+
+    return mock_factory_scope;
+}
 
 TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
 {
@@ -372,4 +413,98 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
                          Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
+
+struct TestNetworkInterfacesInfo : public TestWithParam<std::tuple<QByteArray, std::string, mp::NetworkInterfaceInfo>>
+{
+};
+
+const QByteArray ip_addr_output(
+    "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n"
+    "    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n"
+    "    inet 127.0.0.1/8 scope host lo\n"
+    "       valid_lft forever preferred_lft forever\n"
+    "    inet6 ::1/128 scope host \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "2: enp3s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN group default qlen 1000\n"
+    "    link/ether 20:47:47:fe:04:56 brd ff:ff:ff:ff:ff:ff\n"
+    "3: wlx60e3270f55fe: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000\n"
+    "    link/ether 60:e3:27:0f:55:fe brd ff:ff:ff:ff:ff:ff\n"
+    "    inet 192.168.2.184/24 brd 192.168.2.255 scope global dynamic noprefixroute wlx60e3270f55fe\n"
+    "       valid_lft 23375sec preferred_lft 23375sec\n"
+    "    inet6 fd52:2ccf:f758::4ca/128 scope global noprefixroute \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "    inet6 fdde:2681:7a2:0:3b2b:d6d8:5bf9:b45b/64 scope global noprefixroute \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "    inet6 fd52:2ccf:f758:0:a342:79b5:e2ba:e05e/64 scope global noprefixroute \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "    inet6 fe80::132d:7392:fe19:2ff6/64 scope link noprefixroute \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "4: virbr0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000\n"
+    "    link/ether 52:54:00:d9:b1:0a brd ff:ff:ff:ff:ff:ff\n"
+    "    inet 192.168.122.1/24 brd 192.168.122.255 scope global virbr0\n"
+    "       valid_lft forever preferred_lft forever\n"
+    "5: virbr0-nic: <BROADCAST,MULTICAST> mtu 1500 qdisc fq_codel master virbr0 state DOWN group default qlen 1000\n"
+    "    link/ether 52:54:00:d9:b1:0a brd ff:ff:ff:ff:ff:ff\n"
+    "6: mpqemubr0-dummy: <BROADCAST,NOARP> mtu 1500 qdisc noop master mpqemubr0 state DOWN group default qlen 1000\n"
+    "    link/ether 52:54:00:fb:84:b4 brd ff:ff:ff:ff:ff:ff\n"
+    "7: mpqemubr0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000\n"
+    "    link/ether 52:54:00:fb:84:b4 brd ff:ff:ff:ff:ff:ff\n"
+    "    inet 10.248.40.1/24 brd 10.248.40.255 scope global mpqemubr0\n"
+    "       valid_lft forever preferred_lft forever\n"
+    "    inet6 fe80::5054:ff:fefb:84b4/64 scope link \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "8: tap-c4218ab4e59: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel master mpqemubr0 state DOWN group "
+    "default qlen 1000\n"
+    "    link/ether f6:1f:05:65:31:64 brd ff:ff:ff:ff:ff:ff\n"
+    "    inet6 fe80::f41f:5ff:fe65:3164/64 scope link \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "9: tap-6690bec4d37: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel master mpqemubr0 state DOWN group "
+    "default qlen 1000\n"
+    "    link/ether 76:a9:bb:18:c5:67 brd ff:ff:ff:ff:ff:ff\n"
+    "10: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN group default qlen 100\n"
+    "    link/none \n"
+    "    inet 10.8.8.23/24 brd 10.8.8.255 scope global noprefixroute tun0\n"
+    "       valid_lft forever preferred_lft forever\n"
+    "    inet6 fe80::c4be:53c0:4628:6946/64 scope link stable-privacy \n"
+    "       valid_lft forever preferred_lft forever\n"
+    "11: tun1: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN group default qlen 100\n"
+    "    link/none \n"
+    "    inet 10.172.66.58/18 brd 10.172.127.255 scope global noprefixroute tun1\n"
+    "       valid_lft forever preferred_lft forever\n"
+    "    inet6 2001:67c:1562:8007::aac:423a peer 2001:67c:1562:8007::1/64 scope global noprefixroute \n"
+    "       valid_lft forever preferred_lft forever\n");
+
+TEST_P(TestNetworkInterfacesInfo, test_network_interfaces_info)
+{
+    const auto param = GetParam();
+    const auto& ip_output = std::get<0>(param);
+    const auto& iface_name = std::get<1>(param);
+    const auto& iface_info = std::get<2>(param);
+    const mp::ProcessState ip_exit_status{0, mp::nullopt};
+    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status, ip_output);
+
+    QStringList args{"address"};
+    auto interfaces_info = mp::platform::get_network_interfaces_info();
+
+    mp::NetworkInterfaceInfo output_info = interfaces_info[iface_name];
+
+    ASSERT_EQ(output_info.id, iface_info.id);
+    ASSERT_EQ(output_info.type, iface_info.type);
+    ASSERT_EQ(output_info.description, iface_info.description);
+    if (iface_info.ip_address)
+    {
+        ASSERT_EQ(output_info.ip_address->as_string(), iface_info.ip_address->as_string());
+    }
+}
+
+auto make_test_input(const std::string& id, const std::string& type, const std::string& descr, const std::string& ip)
+{
+    return std::make_tuple(
+        ip_addr_output, id,
+        mp::NetworkInterfaceInfo{id, type, descr, ip.empty() ? mp::nullopt : mp::optional<mp::IPAddress>(ip)});
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestNetworkInterfacesInfo,
+                         Values(make_test_input("lo", "virtual", "Virtual interface", "127.0.0.1"),
+                                make_test_input("enp3s0", "unknown", "Ethernet or wifi", "")));
 } // namespace
