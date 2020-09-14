@@ -15,7 +15,10 @@
 cmake_minimum_required(VERSION 3.13)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
+if (APPLE)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
+  set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+endif()
 
 project(Multipass)
 
@@ -57,6 +60,9 @@ if(cmake_build_type_lower MATCHES "coverage")
     message(FATAL_ERROR "Coverage build only supported with GCC")
   endif()
 endif()
+
+# OpenSSL config
+find_package(OpenSSL REQUIRED)
 
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)

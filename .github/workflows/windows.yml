@@ -118,17 +118,7 @@ jobs:
     - name: Install Dependencies from Choco
       uses: crazy-max/ghaction-chocolatey@v1.3.0
       with:
-        args: install --yes qemu-img
-
-    - name: Download OpenSSL
-      uses: carlosperate/download-file-action@v1.0.3
-      with:
-        file-url: http://wiki.overbyte.eu/arch/openssl-1.1.1c-win64.zip
-        file-name: openssl.zip
-        location: ${{ github.workspace }}/../
-
-    - name: Unpack OpenSSL
-      run: 7z x -o"openssl-1.1.1c-win64" ../openssl.zip
+        args: install --yes qemu-img openssl
 
     - name: Download YASM
       uses: carlosperate/download-file-action@v1.0.3

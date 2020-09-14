@@ -13,14 +13,6 @@ adopt-info: multipass
 confinement: strict
 base: core18
 
-architectures:
-- build-on: amd64
-  run-on: amd64
-- build-on: armhf
-  run-on: armhf
-- build-on: arm64
-  run-on: arm64
-
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
@@ -98,6 +90,7 @@ parts:
     - libapparmor-dev
     - libqt5x11extras5-dev
     - libsystemd-dev
+    - libssl-dev
     - libvirt-dev
     - pkg-config
     - qtbase5-dev
@@ -113,6 +106,7 @@ parts:
     - libqt5network5
     - libqt5widgets5
     - libqt5x11extras5
+    - libssl1.1
     - libxml2
     - libvirt0
     - dnsmasq-base

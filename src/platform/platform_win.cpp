@@ -53,6 +53,12 @@
 #include <filesystem>
 #include <fstream>
 
+// Needed for OpenSSL dll compatibility
+extern "C"
+{
+#include <openssl/applink.c>
+}
+
 namespace mp = multipass;
 namespace mpl = mp::logging;
 

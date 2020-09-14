@@ -10,7 +10,7 @@ Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey
 
 After chocolatey is installed you can now install the rest of the dependencies:
 
-    choco install visualcpp-build-tools cmake ninja golang cmder qemu-img nsis -yfd
+    choco install visualcpp-build-tools cmake ninja golang cmder qemu-img nsis openssl -yfd
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker.
 Search for Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable Real-time protection.
@@ -48,15 +48,6 @@ In the online installer, under Qt, select MSVC 2017 64-bit.
 If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
 
 Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt5_5124/qt.qt5.5124.win64_msvc2017_64/5.12.4-0-201906140149qtbase-Windows-Windows_10-MSVC2017-Windows-Windows_10-X86_64.7z) and extract it to `C:\Qt` (so it ends up in `C:\Qt\5.12.4`).
-
-### OpenSSL
-Qt needs OpenSSL for doing https connections.
-
-Download pre-built binaries from: <http://wiki.overbyte.eu/arch/openssl-1.1.1c-win64.zip>
-
-Unzip that file to the top of the Multipass source directory, to a directory with the same name but for the extension, (e.g. `7z x -o"<multipass_src>\openssl-1.1.1c-win64" openssl-1.1.1c-win64.zip`)
-
-The dlls within are redistributed with the package. but if you want a locally built multipassd to use https, you will need to copy them manually to the bin directory (or somewhere on the `Path`).
 
 ### Path setup
 You'll have to manually add CMake and Qt to your account's PATH variable.

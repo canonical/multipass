@@ -6,6 +6,8 @@ if (MSVC)
   add_compile_options(-wd5045) #Disable warning about Spectre mitigation
 endif()
 
+set(gRPC_SSL_PROVIDER "package" CACHE STRING "Provider of ssl library")
+
 # Add the subdir here to avoid polluting their cmake scope
 add_subdirectory(grpc EXCLUDE_FROM_ALL)
 

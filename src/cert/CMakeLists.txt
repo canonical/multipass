@@ -20,7 +20,7 @@ add_library(cert
 )
 
 target_include_directories(cert PRIVATE
-  ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/boringssl-with-bazel/src/include)
+  ${OPENSSL_INCLUDE_DIR})
 
 foreach(flag -Wno-nested-anon-types -Wno-gnu -Wno-pedantic -Wno-ignored-qualifiers)
   check_cxx_compiler_flag(${flag} SUPPORTED)
@@ -30,9 +30,9 @@ foreach(flag -Wno-nested-anon-types -Wno-gnu -Wno-pedantic -Wno-ignored-qualifie
 endforeach()
 
 target_link_libraries(cert
-  ssl
-  crypto
   fmt
   utils
+  OpenSSL::SSL
+  OpenSSL::Crypto
   Qt5::Core
 )
