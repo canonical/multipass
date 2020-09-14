@@ -56,6 +56,9 @@ if(cmake_build_type_lower MATCHES "coverage")
   endif()
 endif()
 
+# OpenSSL config
+find_package(OpenSSL REQUIRED)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 

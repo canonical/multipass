@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ mp::BIOMem::BIOMem(const std::string& pem_source) : BIOMem()
 
 std::string mp::BIOMem::as_string() const
 {
-    std::vector<char> pem(bio->num_write);
+    std::vector<char> pem(BIO_number_written(bio.get()));
     BIO_read(bio.get(), pem.data(), pem.size());
     return {pem.begin(), pem.end()};
 }
