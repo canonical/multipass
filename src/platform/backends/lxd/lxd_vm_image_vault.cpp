@@ -508,7 +508,7 @@ std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& me
         return task_reply["metadata"].toObject()["metadata"].toObject()["fingerprint"].toString().toStdString();
     }
 
-    return {};
+    throw std::runtime_error("Unable to retrieve hash for image from LXD");
 }
 
 std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)
