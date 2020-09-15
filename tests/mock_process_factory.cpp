@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -114,17 +114,17 @@ bool mpt::MockProcess::wait_for_started(int)
 {
     return true;
 }
-bool mpt::MockProcess::wait_for_finished(int)
+
+bool mpt::MockProcess::wait_for_ready_read(int)
 {
     return true;
 }
 
-qint64 mpt::MockProcess::write(const QByteArray&)
+void mpt::MockProcess::close_write_channel()
 {
-    return 0;
 }
 
-void mpt::MockProcess::close_write_channel()
+void mpt::MockProcess::set_process_channel_mode(QProcess::ProcessChannelMode)
 {
 }
 

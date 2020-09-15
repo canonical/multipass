@@ -19,135 +19,156 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/utils.h>
+#include <shared/win/process_factory.h>
 
-#include <QMetaEnum>
 #include <QProcess>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
-const QString unique_echo_string{"cmdlet status is"};
+constexpr auto ps_cmd = "powershell.exe";
+const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
 
-void setup_powershell(QProcess* power_shell, const QStringList& args, const std::string& name)
+void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
-    power_shell->setProgram("powershell.exe");
+    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell arguments '{}'", power_shell->arguments().join(", ")));
+    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell working dir '{}'", power_shell->working_directory()));
+    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell program '{}'", power_shell->program()));
 
-    power_shell->setArguments(args);
-    power_shell->setProcessChannelMode(QProcess::MergedChannels);
+    power_shell->set_process_channel_mode(QProcess::MergedChannels);
 
-    mpl::log(mpl::Level::debug, name,
-             fmt::format("powershell arguments '{}'", power_shell->arguments().join(", ").toStdString()));
+    QObject::connect(power_shell, &mp::Process::started,
+                     [&name]() { mpl::log(mpl::Level::debug, name, "PowerShell started"); });
 
-    mpl::log(mpl::Level::debug, name,
-             fmt::format("powershell working dir '{}'", power_shell->workingDirectory().toStdString()));
-    mpl::log(mpl::Level::debug, name, fmt::format("powershell program '{}'", power_shell->program().toStdString()));
-
-    QObject::connect(power_shell, &QProcess::started,
-                     [&name]() { mpl::log(mpl::Level::debug, name, "powershell started"); });
-
-    QObject::connect(power_shell, &QProcess::stateChanged, [&name](QProcess::ProcessState newState) {
-        auto meta = QMetaEnum::fromType<QProcess::ProcessState>();
-        mpl::log(mpl::Level::debug, name, fmt::format("powershell state changed to {}", meta.valueToKey(newState)));
+    QObject::connect(power_shell, &mp::Process::state_changed, [&name](QProcess::ProcessState newState) {
+        mpl::log(mpl::Level::debug, name,
+                 fmt::format("PowerShell state changed to {}", mpu::qenum_to_qstring(newState)));
     });
 
-    QObject::connect(power_shell, &QProcess::errorOccurred, [&name](QProcess::ProcessError error) {
-        auto meta = QMetaEnum::fromType<QProcess::ProcessError>();
-        mpl::log(mpl::Level::debug, name, fmt::format("powershell error occurred {}", meta.valueToKey(error)));
+    QObject::connect(power_shell, &mp::Process::error_occurred, [&name](QProcess::ProcessError error) {
+        mpl::log(mpl::Level::debug, name, fmt::format("PowerShell error occurred {}", mpu::qenum_to_qstring(error)));
     });
 
-    QObject::connect(power_shell, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                     [&name](int exitCode, QProcess::ExitStatus exitStatus) {
-                         mpl::log(mpl::Level::debug, name,
-                                  fmt::format("powershell finished with exit code {}", exitCode));
-                     });
+    QObject::connect(power_shell, &mp::Process::finished, [&name](mp::ProcessState state) {
+        if (state.completed_successfully())
+            mpl::log(mpl::Level::debug, name, "PowerShell finished successfully");
+        else
+            mpl::log(mpl::Level::warning, name,
+                     fmt::format("PowerShell finished abnormally: {}", state.failure_message()));
+    });
 }
+
 } // namespace
 
-mp::PowerShell::PowerShell(const std::string& name) : name(name)
+mp::PowerShell::PowerShell(const std::string& name)
+    : powershell_proc{MP_PROCFACTORY.create_process(ps_cmd, default_args)}, name(name)
 {
-    setup_powershell(&powershell_proc, {"-NoProfile", "-NoExit", "-Command", "-"}, this->name);
+    setup_powershell(powershell_proc.get(), this->name);
 
-    powershell_proc.start();
+    powershell_proc->start();
 }
 
 mp::PowerShell::~PowerShell()
 {
-    powershell_proc.write("Exit\n");
-    powershell_proc.waitForFinished();
+    if (!write("Exit\n") || !powershell_proc->wait_for_finished())
+    {
+        auto error = powershell_proc->error_string();
+        auto msg = std::string{"Failed to exit PowerShell gracefully"};
+        if (!error.isEmpty())
+            msg = fmt::format("{}: {}", msg, error);
+
+        mpl::log(mpl::Level::warning, name, msg);
+        powershell_proc->kill();
+    }
 }
 
 bool mp::PowerShell::run(const QStringList& args, QString& output)
 {
-    QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(unique_echo_string);
+    QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(output_end_marker);
     bool cmdlet_code{false};
 
-    mpl::log(mpl::Level::trace, name,
-             fmt::format("cmdlet: '{}'", args.join(" ").toStdString()));
-    powershell_proc.write(args.join(" ").toUtf8() + "\n");
+    mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet: '{}'", args.join(" ")));
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
-    powershell_proc.write(echo_cmdlet.toUtf8());
-
-    QString powershell_output;
-    auto cmdlet_exit_found{false};
-    while (!cmdlet_exit_found)
+    if (write(args.join(" ").toUtf8() + "\n") && write(echo_cmdlet.toUtf8()))
     {
-        powershell_proc.waitForReadyRead(); // ignore timeouts - will just loop back if no output
-
-        powershell_output.append(powershell_proc.readAllStandardOutput());
-        if (powershell_output.contains(unique_echo_string))
+        QString powershell_output;
+        auto cmdlet_exit_found{false};
+        while (!cmdlet_exit_found)
         {
-            auto parsed_output = powershell_output.split(unique_echo_string);
-            if (parsed_output.size() == 2)
-            {
-                // Be sure the exit status is fully read from output
-                // Exit status can only be "True" or "False"
-                auto exit_value = parsed_output.at(1);
-                if (exit_value.contains("True"))
-                {
-                    cmdlet_code = true;
-                    cmdlet_exit_found = true;
-                }
-                else if (exit_value.contains("False"))
-                {
-                    cmdlet_code = false;
-                    cmdlet_exit_found = true;
-                }
-            }
+            powershell_proc->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
 
-            // Get the actual cmdlet's output
-            if (cmdlet_exit_found)
+            powershell_output.append(powershell_proc->read_all_standard_output());
+            if (powershell_output.contains(output_end_marker))
             {
-                output = parsed_output.at(0).trimmed();
-                mpl::log(mpl::Level::trace, name, output.toStdString());
+                auto parsed_output = powershell_output.split(output_end_marker);
+                if (parsed_output.size() == 2)
+                {
+                    // Be sure the exit status is fully read from output
+                    // Exit status can only be "True" or "False"
+                    auto exit_value = parsed_output.at(1);
+                    if (exit_value.contains("True"))
+                    {
+                        cmdlet_code = true;
+                        cmdlet_exit_found = true;
+                    }
+                    else if (exit_value.contains("False"))
+                    {
+                        cmdlet_code = false;
+                        cmdlet_exit_found = true;
+                    }
+                }
+
+                // Get the actual cmdlet's output
+                if (cmdlet_exit_found)
+                {
+                    output = parsed_output.at(0).trimmed();
+                    mpl::log(mpl::Level::trace, name, output.toStdString());
+                }
             }
         }
     }
 
-    mpl::log(mpl::Level::trace, name, fmt::format("cmdlet exit status is '{}'", cmdlet_code));
+    mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet exit status is '{}'", cmdlet_code));
     return cmdlet_code;
 }
 
 bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QString& output)
 {
-    QProcess power_shell;
-    setup_powershell(&power_shell, args, name);
+    auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
+    setup_powershell(power_shell.get(), name);
 
-    QObject::connect(&power_shell, &QProcess::readyReadStandardOutput, [&name, &output, &power_shell]() {
-        output += power_shell.readAllStandardOutput();
-    });
+    QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_output,
+                     [&output, &power_shell]() { output += power_shell->read_all_standard_output(); });
 
-    power_shell.start();
-    auto wait_result = power_shell.waitForFinished();
+    power_shell->start();
+    auto wait_result = power_shell->wait_for_finished();
     if (!wait_result)
         mpl::log(mpl::Level::warning, name,
-                 fmt::format("cmdlet failed with {}: {}", power_shell.errorString(), args.join(" ")));
+                 fmt::format("Cmdlet failed with {}: {}", power_shell->error_string(), args.join(" ")));
 
     output = output.trimmed();
-    mpl::log(mpl::Level::trace, name, output.toStdString());
+    mpl::log(mpl::Level::trace, name, fmt::format("output: {}", output));
 
-    return wait_result && power_shell.exitStatus() == QProcess::NormalExit && power_shell.exitCode() == 0;
+    return wait_result && power_shell->process_state().completed_successfully();
+}
+
+bool mp::PowerShell::write(const QByteArray& data)
+{
+    if (auto written = powershell_proc->write(data); written < data.size())
+    {
+        auto msg = fmt::format("Failed to send input data '{}'.", data);
+        if (written > 0)
+            msg = fmt::format("{}. Only the first {} bytes were written", msg, written);
+
+        mpl::log(mpl::Level::warning, name, msg);
+        return false;
+    }
+
+    return true;
 }

@@ -132,6 +132,11 @@ bool mp::BasicProcess::wait_for_finished(int msecs)
     return process.waitForFinished(msecs);
 }
 
+bool mp::BasicProcess::wait_for_ready_read(int msecs)
+{
+    return process.waitForReadyRead(msecs);
+}
+
 mp::ProcessState mp::BasicProcess::process_state() const
 {
     mp::ProcessState state;
@@ -176,6 +181,11 @@ qint64 mp::BasicProcess::write(const QByteArray& data)
 void mp::BasicProcess::close_write_channel()
 {
     process.closeWriteChannel();
+}
+
+void mp::BasicProcess::set_process_channel_mode(QProcess::ProcessChannelMode mode)
+{
+    process.setProcessChannelMode(mode);
 }
 
 mp::ProcessState mp::BasicProcess::execute(const int timeout)
