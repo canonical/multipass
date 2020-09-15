@@ -34,6 +34,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
@@ -131,11 +132,13 @@ QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir
 } // namespace
 
 mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                     NetworkAccessManager* manager, const QUrl& base_url, const days& days_to_expire)
+                                     NetworkAccessManager* manager, const QUrl& base_url, const QString& cache_dir_path,
+                                     const days& days_to_expire)
     : image_hosts{image_hosts},
       url_downloader{downloader},
       manager{manager},
       base_url{base_url},
+      template_path{QString("%1/%2-").arg(cache_dir_path).arg(QCoreApplication::applicationName())},
       days_to_expire{days_to_expire}
 {
     for (const auto& image_host : image_hosts)
@@ -224,7 +227,8 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
         else
         {
             // TODO: Need to make this async like in DefaultVMImageVault
-            QTemporaryDir lxd_import_dir;
+            QTemporaryDir lxd_import_dir{template_path};
+
             auto image_path = lxd_import_dir.filePath(mp::vault::filename_for(info.image_location));
 
             url_download_image(info, image_path, monitor);

@@ -25,6 +25,7 @@
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/stub_url_downloader.h"
+#include "tests/temp_dir.h"
 #include "tests/tracking_url_downloader.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
@@ -67,6 +68,7 @@ struct LXDImageVault : public Test
     std::string instance_name{"pied-piper-valley"};
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
     mpt::StubURLDownloader stub_url_downloader;
+    mpt::TempDir cache_dir;
 };
 } // namespace
 
@@ -87,8 +89,8 @@ TEST_F(LXDImageVault, instance_exists_fetch_returns_expected_image_info)
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     mp::VMImage image;
     EXPECT_NO_THROW(image =
@@ -118,8 +120,8 @@ TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
 
     mp::Query query{"", "bionic", false, "release", mp::Query::Type::Alias};
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     mp::VMImage image;
     EXPECT_NO_THROW(image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor));
@@ -147,8 +149,8 @@ TEST_F(LXDImageVault, throws_with_invalid_alias)
     const std::string alias{"xenial"};
     mp::Query query{"", alias, false, "release", mp::Query::Type::Alias};
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     MP_EXPECT_THROW_THAT(
         image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error,
@@ -163,8 +165,8 @@ TEST_F(LXDImageVault, throws_with_non_alias_queries)
 
     mp::Query query{"", "", false, "", mp::Query::Type::HttpDownload};
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
                          std::runtime_error,
@@ -180,8 +182,8 @@ TEST_F(LXDImageVault, throws_with_invalid_remote)
     const std::string remote{"bar"};
     mp::Query query{"", "foo", false, remote, mp::Query::Type::Alias};
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
                          std::runtime_error,
@@ -209,8 +211,8 @@ TEST_F(LXDImageVault, does_not_download_if_image_exists)
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_NO_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
 }
@@ -244,8 +246,8 @@ TEST_F(LXDImageVault, instance_exists_missing_image_downloads_image)
         throw std::runtime_error("Unable to find an image matching hash");
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     mp::VMImage image;
     EXPECT_NO_THROW(image =
@@ -271,8 +273,8 @@ TEST_F(LXDImageVault, requests_download_if_image_does_not_exist)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_NO_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
     EXPECT_TRUE(download_requested);
@@ -297,8 +299,8 @@ TEST_F(LXDImageVault, sets_fingerprint_with_hash_query)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     const mp::Query query{"", "e3b0c44298fc1c1", false, "release", mp::Query::Type::Alias};
     EXPECT_NO_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor));
@@ -336,8 +338,8 @@ TEST_F(LXDImageVault, download_deletes_and_throws_on_cancel)
         return false;
     }};
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, monitor),
                  mp::AbortedDownloadException);
@@ -373,8 +375,8 @@ TEST_F(LXDImageVault, percent_complete_returns_negative_on_metadata_download)
         return false;
     }};
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, monitor),
                  mp::AbortedDownloadException);
@@ -398,8 +400,8 @@ TEST_F(LXDImageVault, delete_requested_on_instance_remove)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_NO_THROW(image_vault.remove(instance_name));
     EXPECT_TRUE(delete_requested);
@@ -419,8 +421,8 @@ TEST_F(LXDImageVault, logs_warning_when_removing_nonexistent_instance)
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     const std::string name{"foo"};
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -448,8 +450,8 @@ TEST_F(LXDImageVault, has_record_for_returns_expected_values)
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_TRUE(image_vault.has_record_for(instance_name));
     EXPECT_FALSE(image_vault.has_record_for("foo"));
@@ -483,8 +485,8 @@ TEST_F(LXDImageVault, update_image_requests_refresh_and_logs_expected_message)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
@@ -523,8 +525,8 @@ TEST_F(LXDImageVault, update_image_not_refreshed_logs_expected_message)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
@@ -544,8 +546,8 @@ TEST_F(LXDImageVault, update_image_no_project_does_not_throw)
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_NO_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
 }
@@ -581,8 +583,8 @@ TEST_F(LXDImageVault, update_image_refresh_image_fails_does_no_throw)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_NO_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
 
@@ -613,8 +615,8 @@ TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
@@ -648,8 +650,8 @@ TEST_F(LXDImageVault, image_hash_delete_requested_on_expiration)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     image_vault.prune_expired_images();
 
@@ -665,8 +667,8 @@ TEST_F(LXDImageVault, prune_expired_image_no_project_does_not_throw)
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_NO_THROW(image_vault.prune_expired_images());
 }
@@ -693,8 +695,8 @@ TEST_F(LXDImageVault, prune_expired_image_delete_fails_does_no_throw)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_NO_THROW(image_vault.prune_expired_images());
 
@@ -715,8 +717,8 @@ TEST_F(LXDImageVault, custom_image_found_returns_expected_info)
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
 
-    mp::LXDVMImageVault image_vault{hosts, &stub_url_downloader, mock_network_access_manager.get(), base_url,
-                                    mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
 
     const mp::Query query{"", "snapcraft", false, "release", mp::Query::Type::Alias};
     auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
@@ -772,7 +774,8 @@ TEST_F(LXDImageVault, custom_image_downloads_and_creates_correct_upload)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVMImageVault image_vault{hosts, &url_downloader, mock_network_access_manager.get(), base_url, mp::days{0}};
+    mp::LXDVMImageVault image_vault{hosts,    &url_downloader,  mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(), mp::days{0}};
 
     const mp::Query query{"", "custom", false, "release", mp::Query::Type::Alias};
     auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);

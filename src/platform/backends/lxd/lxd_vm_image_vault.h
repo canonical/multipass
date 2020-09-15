@@ -41,7 +41,7 @@ public:
     using TaskCompleteAction = std::function<void(const QJsonObject&)>;
 
     LXDVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, NetworkAccessManager* manager,
-                    const QUrl& base_url, const multipass::days& days_to_expire);
+                    const QUrl& base_url, const QString& cache_dir_path, const multipass::days& days_to_expire);
 
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;
@@ -66,6 +66,7 @@ private:
     URLDownloader* const url_downloader;
     NetworkAccessManager* manager;
     const QUrl base_url;
+    const QString template_path;
     const days days_to_expire;
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };
