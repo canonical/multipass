@@ -26,6 +26,7 @@
 
 namespace multipass
 {
+struct NetworkInterface;
 class PowerShell;
 class SSHKeyProvider;
 class VirtualMachineDescription;
@@ -51,6 +52,9 @@ public:
     void update_state() override;
 
 private:
+    void setup_network_interfaces(const NetworkInterface& default_interface,
+                                  const std::vector<NetworkInterface>& extra_interfaces);
+
     const QString name;
     const std::string username;
     multipass::optional<multipass::IPAddress> ip;

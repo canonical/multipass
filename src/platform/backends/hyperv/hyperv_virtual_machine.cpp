@@ -105,12 +105,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                           "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size});
         power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
         power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'});
-        power_shell->run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
-                          QString::fromStdString('"' + desc.default_interface.mac_address + '"')});
 
-        for (const auto& net : desc.extra_interfaces)
-            power_shell->run({"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", QString::fromStdString(net.id),
-                              "-StaticMacAddress", QString::fromStdString('"' + net.mac_address + '"')});
+        setup_network_interfaces(desc.default_interface, desc.extra_interfaces);
 
         state = State::off;
     }
@@ -118,6 +114,17 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     {
         state = instance_state_for(power_shell.get(), name);
     }
+}
+
+void mp::HyperVVirtualMachine::setup_network_interfaces(const NetworkInterface& default_interface,
+                                                        const std::vector<NetworkInterface>& extra_interfaces)
+{
+    power_shell->run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
+                      QString::fromStdString('"' + default_interface.mac_address + '"')});
+
+    for (const auto& net : extra_interfaces)
+        power_shell->run({"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", QString::fromStdString(net.id),
+                          "-StaticMacAddress", QString::fromStdString('"' + net.mac_address + '"')});
 }
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
