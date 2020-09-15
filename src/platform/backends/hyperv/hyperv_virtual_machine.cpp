@@ -137,10 +137,15 @@ void mp::HyperVVirtualMachine::setup_network_interfaces(const NetworkInterface& 
                    "Could not setup default adapter");
 
     for (const auto& net : extra_interfaces)
+    {
+        const auto switch_ = QString::fromStdString(net.id);
+        checked_ps_run(*power_shell, {"Get-VMSwitch", "-Name", switch_},
+                       fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
         checked_ps_run(*power_shell,
-                       {"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", QString::fromStdString(net.id),
-                        "-StaticMacAddress", QString::fromStdString('"' + net.mac_address + '"')},
+                       {"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", switch_, "-StaticMacAddress",
+                        QString::fromStdString('"' + net.mac_address + '"')},
                        fmt::format("Could not setup adapter for {}", net.id));
+    }
 }
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
