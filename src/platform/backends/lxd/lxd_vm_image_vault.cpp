@@ -224,7 +224,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
         {
             lxd_download_image(id, info.stream_location, QString::fromStdString(query.release), monitor);
         }
-        else
+        else if (!info.image_location.isEmpty())
         {
             // TODO: Need to make this async like in DefaultVMImageVault
             QTemporaryDir lxd_import_dir{template_path};
@@ -240,6 +240,10 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             auto metadata_tarball_path = create_metadata_tarball(info, lxd_import_dir);
 
             source_image.id = lxd_import_metadata_and_image(metadata_tarball_path, image_path);
+        }
+        else
+        {
+            throw std::runtime_error(fmt::format("Unable to fetch image with hash \'{}\'", id));
         }
     }
 
