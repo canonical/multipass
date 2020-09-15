@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_SHARED_BACKEND_UTILS_H
 #define MULTIPASS_SHARED_BACKEND_UTILS_H
 
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -56,6 +57,18 @@ std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, s
     }
 
     return virtual_machine->ip->as_string();
+}
+
+template <typename Callable>
+void ensure_vm_is_running_for(VirtualMachine* virtual_machine, Callable&& is_vm_running, const std::string& msg)
+{
+    std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+    if (!is_vm_running())
+    {
+        virtual_machine->shutdown_while_starting = true;
+        virtual_machine->state_wait.notify_all();
+        throw StartException(virtual_machine->vm_name, msg);
+    }
 }
 } // namespace backend
 } // namespace multipass

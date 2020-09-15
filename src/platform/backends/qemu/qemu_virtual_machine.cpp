@@ -24,7 +24,6 @@
 #include <shared/linux/process_factory.h>
 #include <shared/shared_backend_utils.h>
 
-#include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/process.h>
 #include <multipass/ssh/ssh_session.h>
@@ -305,7 +304,6 @@ void mp::QemuVirtualMachine::shutdown()
         if (vm_process)
         {
             vm_process->kill();
-            vm_process->wait_for_finished();
         }
     }
 }
@@ -364,16 +362,15 @@ void mp::QemuVirtualMachine::on_error()
 void mp::QemuVirtualMachine::on_shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    if (state == State::starting)
+    auto current_state = state;
+
+    state = State::off;
+    if (current_state == State::starting)
     {
         if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
             saved_error_msg.append("\n");
         saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
-        state_wait.wait(lock, [this] { return state == State::off; });
-    }
-    else
-    {
-        state = State::off;
+        state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
     ip = nullopt;
@@ -401,15 +398,9 @@ void mp::QemuVirtualMachine::on_restart()
 
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
-    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (!vm_process || !vm_process->running())
-    {
-        // Have to set 'off' here so there is an actual state change to compare to for
-        // the cond var's predicate
-        state = State::off;
-        state_wait.notify_all();
-        throw mp::StartException(vm_name, saved_error_msg);
-    }
+    auto is_vm_running = [this] { return (vm_process && vm_process->running()); };
+
+    mp::backend::ensure_vm_is_running_for(this, is_vm_running, saved_error_msg);
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)

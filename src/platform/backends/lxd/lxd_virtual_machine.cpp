@@ -255,7 +255,7 @@ void mp::LXDVirtualMachine::stop()
 
     if (present_state == State::starting)
     {
-        state_wait.wait(lock, [this] { return state == State::off; });
+        state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
     port = mp::nullopt;
@@ -292,15 +292,9 @@ int mp::LXDVirtualMachine::ssh_port()
 
 void mp::LXDVirtualMachine::ensure_vm_is_running()
 {
-    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (current_state() == State::stopped)
-    {
-        // Have to set 'off' here so there is an actual state change to compare to for
-        // the cond var's predicate
-        state = State::off;
-        state_wait.notify_all();
-        throw mp::StartException(vm_name, "Instance shutdown during start");
-    }
+    auto is_vm_running = [this] { return current_state() != State::stopped; };
+
+    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
 }
 
 void mp::LXDVirtualMachine::update_state()

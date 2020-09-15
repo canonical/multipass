@@ -26,6 +26,8 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <shared/shared_backend_utils.h>
+
 #include <fmt/format.h>
 
 #include <QProcess>
@@ -197,8 +199,8 @@ void mp::VirtualBoxVirtualMachine::stop()
     else if (present_state == State::starting)
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "poweroff"}, "Could not power VM off: {}", name);
-        state = State::off;
-        state_wait.wait(lock, [this] { return state == State::stopped; });
+        state = State::stopped;
+        state_wait.wait(lock, [this] { return shutdown_while_starting; });
         port = mp::nullopt;
     }
     else if (present_state == State::suspended)
@@ -274,15 +276,9 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
 
 void mp::VirtualBoxVirtualMachine::ensure_vm_is_running()
 {
-    std::lock_guard<decltype(state_mutex)> lock{state_mutex};
-    if (state == State::off)
-    {
-        // Have to set 'stopped' here so there is an actual state change to compare to for
-        // the cond var's predicate
-        state = State::stopped;
-        state_wait.notify_all();
-        throw mp::StartException(vm_name, "Instance shutdown during start");
-    }
+    auto is_vm_running = [this] { return state != State::stopped; };
+
+    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
 }
 
 void mp::VirtualBoxVirtualMachine::update_state()
