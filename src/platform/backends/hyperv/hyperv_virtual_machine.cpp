@@ -85,6 +85,13 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 
     return mp::VirtualMachine::State::unknown;
 }
+
+// require rvalue ref for the error msg, to avoid confusion with output parameter in PS::run
+void checked_ps_run(mp::PowerShell& ps, const QStringList& args, std::string&& error_msg)
+{
+    if (!ps.run(args))
+        throw std::runtime_error{std::move(error_msg)};
+}
 } // namespace
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
@@ -99,12 +106,17 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         auto mem_size = QString::number(desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
         `-MemoryStartupBytes` option; */
 
-        power_shell->run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)});
+        checked_ps_run(*power_shell, {QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)},
+                       "Could not find the default switch");
 
-        power_shell->run({"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", '"' + desc.image.image_path + '"', "-BootDevice",
-                          "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size});
-        power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
-        power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'});
+        checked_ps_run(*power_shell,
+                       {"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", '"' + desc.image.image_path + '"',
+                        "-BootDevice", "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size},
+                       "Could not create VM");
+        checked_ps_run(*power_shell, {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
+                       "Could not configure VM processor");
+        checked_ps_run(*power_shell, {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
+                       "Could not setup cloud-init drive");
 
         setup_network_interfaces(desc.default_interface, desc.extra_interfaces);
 
@@ -119,12 +131,16 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 void mp::HyperVVirtualMachine::setup_network_interfaces(const NetworkInterface& default_interface,
                                                         const std::vector<NetworkInterface>& extra_interfaces)
 {
-    power_shell->run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
-                      QString::fromStdString('"' + default_interface.mac_address + '"')});
+    checked_ps_run(*power_shell,
+                   {"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
+                    QString::fromStdString('"' + default_interface.mac_address + '"')},
+                   "Could not setup default adapter");
 
     for (const auto& net : extra_interfaces)
-        power_shell->run({"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", QString::fromStdString(net.id),
-                          "-StaticMacAddress", QString::fromStdString('"' + net.mac_address + '"')});
+        checked_ps_run(*power_shell,
+                       {"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", QString::fromStdString(net.id),
+                        "-StaticMacAddress", QString::fromStdString('"' + net.mac_address + '"')},
+                       fmt::format("Could not setup adapter for {}", net.id));
 }
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
