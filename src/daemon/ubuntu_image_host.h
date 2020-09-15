@@ -31,6 +31,7 @@ namespace multipass
 constexpr auto release_remote = "release";
 constexpr auto daily_remote = "daily";
 constexpr auto appliance_remote = "appliance";
+constexpr auto snapcraft_remote = "snapcraft";
 
 class URLDownloader;
 class UbuntuVMImageHost final : public CommonVMImageHost
