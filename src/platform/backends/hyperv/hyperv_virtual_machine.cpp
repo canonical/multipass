@@ -108,6 +108,10 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         power_shell->run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
                           QString::fromStdString('"' + desc.default_interface.mac_address + '"')});
 
+        for (const auto& net : desc.extra_interfaces)
+            power_shell->run({"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", QString::fromStdString(net.id),
+                              "-StaticMacAddress", QString::fromStdString('"' + net.mac_address + '"')});
+
         state = State::off;
     }
     else
