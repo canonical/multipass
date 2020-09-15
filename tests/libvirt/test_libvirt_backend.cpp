@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 
+#include "tests/extra_assertions.h"
 #include "tests/fake_handle.h"
 #include "tests/mock_ssh.h"
 #include "tests/mock_status_monitor.h"
@@ -25,6 +26,8 @@
 #include "tests/temp_dir.h"
 #include "tests/temp_file.h"
 
+#include <multipass/auto_join_thread.h>
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
@@ -385,4 +388,48 @@ TEST_F(LibVirtBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
     EXPECT_THROW(machine->ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
     EXPECT_EQ(machine->state, mp::VirtualMachine::State::unknown);
+}
+
+TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
+
+    auto destroy_called{false};
+    auto virDomainDestroy = [&backend, &destroy_called](auto...) {
+        destroy_called = true;
+
+        backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
+            *state = VIR_DOMAIN_SHUTOFF;
+            return 0;
+        };
+
+        return 0;
+    };
+
+    static auto static_virDomainDestroy = virDomainDestroy;
+
+    backend.libvirt_wrapper->virDomainDestroy = [](virDomainPtr domain) { return static_virDomainDestroy(domain); };
+
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+
+    machine->start();
+
+    backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_RUNNING;
+        return 0;
+    };
+
+    ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
+
+    mp::AutoJoinThread thread = [&machine] { machine->shutdown(); };
+
+    using namespace std::chrono_literals;
+    while (!destroy_called)
+        std::this_thread::sleep_for(1ms);
+
+    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
+                         Property(&mp::StartException::what, StrEq("Instance failed to start")));
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }

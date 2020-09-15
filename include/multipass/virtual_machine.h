@@ -74,6 +74,7 @@ public:
     std::condition_variable state_wait;
     std::mutex state_mutex;
     optional<IPAddress> ip;
+    bool shutdown_while_starting{false};
 
 protected:
     VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
