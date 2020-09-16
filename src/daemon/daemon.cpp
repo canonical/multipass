@@ -201,14 +201,11 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
     QFile db_file{data_dir.filePath(instance_db_name)};
-    auto opened = db_file.open(QIODevice::ReadOnly);
-    if (!opened)
+    if (!db_file.open(QIODevice::ReadOnly))
     {
         // Try to open the old location
-        QDir cache_dir{cache_path};
         db_file.setFileName(cache_dir.filePath(instance_db_name));
-        auto opened = db_file.open(QIODevice::ReadOnly);
-        if (!opened)
+        if (!db_file.open(QIODevice::ReadOnly))
             return {};
     }
 
