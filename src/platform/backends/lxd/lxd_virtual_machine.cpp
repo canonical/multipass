@@ -131,7 +131,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
                  fmt::format("Creating instance with image id: {}", desc.image.id));
 
         QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
-                           {"limits.memory", QString::number(desc.mem_size.in_bytes())}};
+                           {"limits.memory", QString::number(desc.mem_size.in_bytes())},
+                           {"security.secureboot", "false"}};
 
         if (!desc.meta_data_config.IsNull())
             config["user.meta-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.meta_data_config));
