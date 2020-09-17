@@ -138,7 +138,7 @@ void mp::HyperVVirtualMachine::setup_network_interfaces(const NetworkInterface& 
 
     for (const auto& net : extra_interfaces)
     {
-        const auto switch_ = QString::fromStdString(net.id);
+        const auto switch_ = '"' + QString::fromStdString(net.id) + '"';
         checked_ps_run(*power_shell, {"Get-VMSwitch", "-Name", switch_},
                        fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
         checked_ps_run(*power_shell,
