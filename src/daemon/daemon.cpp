@@ -354,6 +354,26 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
     }
 }
 
+// TODO can't we keep the bool in the struct with the rest?
+std::vector<std::pair<mp::NetworkInterface, bool>> validate_interfaces(const mp::LaunchRequest* request,
+                                                                       mp::LaunchError& option_errors)
+{
+    // Add the default network interface first. The MAC address will be generated later, inside the daemon (to
+    // avoid repetition of MAC addresses).
+    // The associated bool indicates whether the interface mode is 'auto', i.e., needs to be configured by cloud-init.
+    std::vector<std::pair<mp::NetworkInterface, bool>> interfaces;
+    interfaces.push_back(std::make_pair(mp::NetworkInterface{"default", ""}, true));
+    for (const auto& net : request->network_options())
+    {
+        if (const auto& mac = net.mac_address(); mac.empty() || mpu::valid_mac_address(mac))
+            interfaces.emplace_back(mp::NetworkInterface{net.id(), mac},
+                                    net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL);
+        else
+            option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
+    }
+    return interfaces;
+}
+
 auto validate_create_arguments(const mp::LaunchRequest* request)
 {
     static const auto min_mem = try_mem_size(mp::min_memory_size);
@@ -392,22 +412,6 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    // TODO@ricab extract
-    // Add the default network interface first. The MAC address will be generated later, inside the daemon (to
-    // avoid repetition of MAC addresses).
-    // The associated bool indicates whether the interface mode is 'auto', i.e., needs to be configured by cloud-init.
-    std::vector<std::pair<mp::NetworkInterface, bool>> interfaces;
-    interfaces.push_back(std::make_pair(mp::NetworkInterface{"default", ""}, true));
-    for (const auto& net : request->network_options())
-    {
-        if (const auto& mac = net.mac_address(); mac.empty() || mpu::valid_mac_address(mac))
-            interfaces.emplace_back(
-                mp::NetworkInterface{net.id(), mac},
-                net.mode() != mp::LaunchRequest_NetworkOptions_Mode::LaunchRequest_NetworkOptions_Mode_MANUAL);
-        else
-            option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
-    }
-
     struct CheckedArguments
     {
         mp::MemorySize mem_size;
@@ -415,7 +419,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
         std::string instance_name;
         std::vector<std::pair<mp::NetworkInterface, bool>> interfaces;
         mp::LaunchError option_errors;
-    } ret{mem_size, disk_space, instance_name, interfaces, option_errors};
+    } ret{mem_size, disk_space, instance_name, validate_interfaces(request, option_errors), option_errors};
     return ret;
 }
 
