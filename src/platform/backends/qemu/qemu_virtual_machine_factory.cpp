@@ -132,7 +132,7 @@ mp::QemuVirtualMachineFactory::~QemuVirtualMachineFactory()
     delete_virtual_switch(bridge_name);
 }
 
-mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(VirtualMachineDescription& desc,
                                                                                VMStatusMonitor& monitor)
 {
     auto tap_device_name = generate_tap_device_name(desc.vm_name);

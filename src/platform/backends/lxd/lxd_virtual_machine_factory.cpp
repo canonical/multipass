@@ -49,7 +49,7 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
 {
 }
 
-mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(VirtualMachineDescription& desc,
                                                                               VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name);

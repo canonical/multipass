@@ -194,7 +194,7 @@ auto generate_metadata(const QStringList& args)
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
+mp::QemuVirtualMachine::QemuVirtualMachine(VirtualMachineDescription& desc, const std::string& tap_device_name,
                                            DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
     : VirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off, desc.vm_name},
       tap_device_name{tap_device_name},
@@ -204,6 +204,15 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       dnsmasq_server{&dnsmasq_server},
       monitor{&monitor}
 {
+    // Set all network interfaces as matched by MAC address if the match type was not set.
+    for (auto& iface : desc.interfaces)
+    {
+        if (!iface.match_type)
+        {
+            iface.match_type = mp::make_optional(mp::NetworkInterface::MatchType::MAC_ADDRESS);
+        }
+    }
+
     QObject::connect(this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
                      [this] {
                          mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));

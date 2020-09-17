@@ -36,8 +36,7 @@ public:
     explicit QemuVirtualMachineFactory(const Path& data_dir);
     ~QemuVirtualMachineFactory();
 
-    VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                VMStatusMonitor& monitor) override;
+    VirtualMachine::UPtr create_virtual_machine(VirtualMachineDescription& desc, VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;

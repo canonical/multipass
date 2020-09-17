@@ -38,15 +38,14 @@ class VMImageHost;
 class VMStatusMonitor;
 struct NetworkInterface;
 struct NetworkInterfaceInfo;
-struct NetworkInterfaceMatch;
 
 class VirtualMachineFactory
 {
 public:
     using UPtr = std::unique_ptr<VirtualMachineFactory>;
     virtual ~VirtualMachineFactory() = default;
-    virtual VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                        VMStatusMonitor& monitor) = 0;
+    // Creating a virtual machine also sets in the description how network interfaces are matched.
+    virtual VirtualMachine::UPtr create_virtual_machine(VirtualMachineDescription& desc, VMStatusMonitor& monitor) = 0;
 
     /** Removes any resources associated with a VM of the given name.
      *
@@ -64,8 +63,6 @@ public:
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
     virtual std::vector<NetworkInterfaceInfo> list_networks() const = 0;
-    virtual std::unordered_map<NetworkInterface, NetworkInterfaceMatch>
-    match_network_interfaces(const std::vector<NetworkInterface>& interfaces) const = 0;
 
 protected:
     VirtualMachineFactory() = default;

@@ -52,9 +52,6 @@ public:
         return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
                                                      days_to_expire);
     };
-
-    std::unordered_map<NetworkInterface, NetworkInterfaceMatch>
-    match_network_interfaces(const std::vector<NetworkInterface>& interfaces) const override;
 };
 } // namespace multipass
 

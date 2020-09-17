@@ -120,7 +120,7 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& d
 {
 }
 
-mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(VirtualMachineDescription& desc,
                                                                                   VMStatusMonitor& monitor)
 {
     if (bridge_name.empty())

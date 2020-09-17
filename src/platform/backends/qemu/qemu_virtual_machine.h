@@ -36,7 +36,7 @@ class QemuVirtualMachine final : public QObject, public VirtualMachine
 {
     Q_OBJECT
 public:
-    QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
+    QemuVirtualMachine(VirtualMachineDescription& desc, const std::string& tap_device_name,
                        DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 

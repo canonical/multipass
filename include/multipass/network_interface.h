@@ -22,25 +22,25 @@
 #include <string>
 #include <unordered_map>
 
+#include <multipass/optional.h>
+
 namespace multipass
 {
 struct NetworkInterface
 {
-    std::string id;
-    std::string mac_address;
-};
-
-struct NetworkInterfaceMatch
-{
-    enum Type
+    enum MatchType
     {
         MAC_ADDRESS,
-        NAME
+        NAME,
+        NO_MATCH
     };
 
-    Type type;
-    std::string value;
+    std::string id;
+    std::string mac_address;
+    multipass::optional<MatchType> match_type;
+    multipass::optional<std::string> match_value;
 };
+
 } // namespace multipass
 
 template <>
