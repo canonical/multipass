@@ -60,7 +60,18 @@ message LaunchRequest {
     string remote_name = 9;
     OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
-    repeated string network_options = 12;
+
+    message NetworkOptions {
+        enum Mode {
+            AUTO = 0;
+            MANUAL = 1;
+        }
+
+        string id = 1;
+        Mode mode = 2;
+        string mac_address = 3;
+    }
+    repeated NetworkOptions network_options = 12;
 }
 
 message LaunchError {
