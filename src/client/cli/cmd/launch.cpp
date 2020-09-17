@@ -23,6 +23,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/settings.h>
+#include <multipass/utils.h>
 
 #include <multipass/format.h>
 
@@ -36,6 +37,7 @@
 #include <unordered_map>
 
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
@@ -46,6 +48,61 @@ const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
 const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
 const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
+
+struct NetworkDefinitionException : public std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
+
+auto checked_mode(const std::string& mode)
+{
+    if (mode == "auto")
+        return mp::LaunchRequest_NetworkOptions_Mode::LaunchRequest_NetworkOptions_Mode_AUTO;
+    if (mode == "manual")
+        return mp::LaunchRequest_NetworkOptions_Mode::LaunchRequest_NetworkOptions_Mode_MANUAL;
+    else
+        throw NetworkDefinitionException{fmt::format("Bad network mode '{}', need 'auto' or 'manual'", mode)};
+}
+
+const std::string& checked_mac(const std::string& mac)
+{
+    if (!mpu::valid_mac_address(mac))
+        throw NetworkDefinitionException(fmt::format("Invalid MAC address: {}", mac));
+
+    return mac;
+}
+
+// needs updating to accept "<ID>" (or if we decide to default the ID to "none")
+auto net_digest(const QString& options)
+{
+    multipass::LaunchRequest_NetworkOptions net;
+    QStringList split = options.split(',', QString::SkipEmptyParts);
+    for (const auto& key_value_pair : split)
+    {
+        QStringList key_value_split = key_value_pair.split('=', QString::SkipEmptyParts);
+        if (key_value_split.size() == 2)
+        {
+
+            const auto& key = key_value_split[0].toLower();
+            const auto& val = key_value_split[1];
+            if (key == "id")
+                net.set_id(val.toStdString());
+            else if (key == "mode")
+                net.set_mode(checked_mode(val.toLower().toStdString()));
+            else if (key == "mac")
+                net.set_mac_address(checked_mac(val.toStdString()));
+            else
+                throw NetworkDefinitionException{fmt::format("Bad network field: {}", key)};
+        }
+        else
+            throw NetworkDefinitionException{fmt::format("Bad network field definition: {}", key_value_pair)};
+    }
+
+    if (net.id().empty())
+        throw NetworkDefinitionException{fmt::format("Bad network definition, need at least an ID field")};
+
+    return net;
+}
 } // namespace
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
@@ -230,13 +287,16 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
     }
 
-    if (parser->isSet(networkOption))
+    try
     {
-        QStringList network_options = parser->values(networkOption);
-        for (auto option : network_options)
-        {
-            request.add_network_options(option.toStdString());
-        }
+        if (parser->isSet(networkOption))
+            for (const auto& net : parser->values(networkOption))
+                request.mutable_network_options()->Add(net_digest(net));
+    }
+    catch (NetworkDefinitionException& e)
+    {
+        cerr << "error: " << e.what() << "\n";
+        return ParseCode::CommandLineError;
     }
 
     request.set_verbosity_level(parser->verbosityLevel());
@@ -337,10 +397,7 @@ mp::ReturnCode cmd::Launch::request_launch()
             {
                 // TODO: show the option which triggered the error only. This will need a refactor in the
                 // LaunchError proto.
-                std::string all_network_options = request.network_options(0);
-                for (int i = 1; i < request.network_options_size(); ++i)
-                    all_network_options += "; " + request.network_options(i);
-                error_details = fmt::format("Invalid network options supplied: {}", all_network_options);
+                error_details = "Invalid network options supplied";
             }
         }
 
