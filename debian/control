@@ -1,7 +1,6 @@
 Source: multipass
 Build-Depends: build-essential,
                cmake,
-               golang,
                google-mock,
                libapparmor-dev,
                libqt5x11extras5-dev,
