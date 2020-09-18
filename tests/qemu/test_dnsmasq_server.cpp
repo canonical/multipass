@@ -150,9 +150,7 @@ TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
 
 TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
 {
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, error_subnet};
-
-    EXPECT_THROW(dns.check_dnsmasq_running(), std::runtime_error);
+    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}), std::runtime_error);
 }
 
 TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
