@@ -86,7 +86,6 @@ parts:
     - on armhf: [libgles2-mesa-dev]
     - build-essential
     - git
-    - golang
     - libapparmor-dev
     - libqt5x11extras5-dev
     - libsystemd-dev
