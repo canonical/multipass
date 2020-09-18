@@ -25,13 +25,8 @@ namespace mp = multipass;
 namespace mu = multipass::utils;
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir, const QString& bridge_name,
-                                           const QString& pid_file_path, const std::string& subnet,
-                                           const QString& conf_file_path)
-    : data_dir(data_dir),
-      bridge_name(bridge_name),
-      pid_file_path{pid_file_path},
-      subnet{subnet},
-      conf_file_path{conf_file_path}
+                                           const std::string& subnet, const QString& conf_file_path)
+    : data_dir(data_dir), bridge_name(bridge_name), subnet{subnet}, conf_file_path{conf_file_path}
 {
 }
 
@@ -47,7 +42,7 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
     const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
 
     return QStringList() << "--strict-order"
-                         << "--bind-interfaces" << QString("--pid-file=%1").arg(pid_file_path) << "--domain=multipass"
+                         << "--bind-interfaces" << QString("--pid-file") << "--domain=multipass"
                          << "--local=/multipass/"
                          << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                          << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
@@ -104,8 +99,7 @@ profile %1 flags=(attach_disconnected) {
   %5/dnsmasq.leases rw,           # Leases file
   %5/dnsmasq.hosts r,             # Hosts file
 
-  %6 w,     # pid file
-  %7 r,     # conf file
+  %6 r,     # conf file
 }
     )END");
 
@@ -124,6 +118,5 @@ profile %1 flags=(attach_disconnected) {
         signal_peer = "unconfined";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, pid_file_path,
-                                conf_file_path);
+    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, conf_file_path);
 }

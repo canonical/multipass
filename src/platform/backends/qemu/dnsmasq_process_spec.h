@@ -31,8 +31,8 @@ namespace multipass
 class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
-    explicit DNSMasqProcessSpec(const Path& data_dir, const QString& bridge_name, const QString& pid_file_path,
-                                const std::string& subnet, const QString& conf_file_path);
+    explicit DNSMasqProcessSpec(const Path& data_dir, const QString& bridge_name, const std::string& subnet,
+                                const QString& conf_file_path);
 
     QString program() const override;
     QStringList arguments() const override;
@@ -43,7 +43,6 @@ public:
 private:
     const Path data_dir;
     const QString bridge_name;
-    const QString pid_file_path;
     const std::string subnet;
     const QString conf_file_path;
 };

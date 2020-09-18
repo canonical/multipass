@@ -21,6 +21,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
+#include <multipass/process/process.h>
 
 #include <QTemporaryFile>
 
@@ -29,13 +30,10 @@
 
 namespace multipass
 {
-class Process;
-
 class DNSMasqServer
 {
 public:
     DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
-    ~DNSMasqServer();
 
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr);
     void release_mac(const std::string& hw_addr);
@@ -52,7 +50,6 @@ private:
 
     const QString data_dir;
     const QString bridge_name;
-    const QString pid_file_path;
     const std::string subnet;
     std::unique_ptr<Process> dnsmasq_cmd;
     QTemporaryFile conf_file;
