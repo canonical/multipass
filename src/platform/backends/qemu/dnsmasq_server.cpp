@@ -35,60 +35,24 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const QString& pid_file_path,
-                          const std::string& subnet, const QString& conf_file_path)
+auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const std::string& subnet,
+                          const QString& conf_file_path)
 {
-    auto process_spec =
-        std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, pid_file_path, subnet, conf_file_path);
+    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, subnet, conf_file_path);
     return MP_PROCFACTORY.create_process(std::move(process_spec));
-}
-
-auto get_dnsmasq_pid(const mp::Path& pid_file_path)
-{
-    std::ifstream pid_file{pid_file_path.toStdString()};
-    std::string pid;
-
-    getline(pid_file, pid);
-    mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("Read pid \"{}\" from file \"{}\"", pid, pid_file_path));
-
-    // std::stoi will throw if pid doesn't exist or is invalid
-    return static_cast<unsigned int>(std::stoi(pid));
 }
 } // namespace
 
 mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet)
     : data_dir{data_dir},
       bridge_name{bridge_name},
-      pid_file_path{QDir(data_dir).filePath("dnsmasq.pid")},
       subnet{subnet},
       conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
     conf_file.open();
     conf_file.close();
 
-    try
-    {
-        mpl::log(mpl::Level::debug, "dnsmasq", "Looking for dnsmasq");
-        check_dnsmasq_running();
-    }
-    catch (const std::exception&)
-    {
-        mpl::log(logging::Level::warning, "dnsmasq", "Could not confirm dnsmasq is running");
-        // Ignore
-    }
-}
-
-mp::DNSMasqServer::~DNSMasqServer()
-{
-    try
-    {
-        auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
-        kill(dnsmasq_pid, SIGKILL);
-    }
-    catch (const std::exception&)
-    {
-        // Ignore
-    }
+    start_dnsmasq();
 }
 
 mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
@@ -145,28 +109,18 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
 
 void mp::DNSMasqServer::check_dnsmasq_running()
 {
-    try
+    if (!dnsmasq_cmd->running())
     {
-        auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
-        if (kill(dnsmasq_pid, 0) == 0)
-        {
-            mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("existing dnsmasq found with pid {}", dnsmasq_pid));
-            return;
-        }
+        mpl::log(mpl::Level::warning, "dnsmasq", "Not running");
+        start_dnsmasq();
     }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("Exception caught while looking for dnsmasq: {}", e.what()));
-        // Ignore and fall-through
-    }
-
-    mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
-    start_dnsmasq();
 }
 
 void mp::DNSMasqServer::start_dnsmasq()
 {
-    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, pid_file_path, subnet, conf_file.fileName());
+    mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
+
+    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
     const auto dnsmasq_daemon_fork_state = dnsmasq_cmd->execute();
 
     if (dnsmasq_daemon_fork_state.error)
