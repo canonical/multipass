@@ -29,10 +29,10 @@ Install Qt5:
 
     brew install qt5
 
-### Cmake/Go/OpenSSL
-Building a Multipass package requires cmake 3.9 or greater. Go and OpenSSL are also necessary at build time. The most convenient means to obtain these dependencies is with Homebrew <https://brew.sh/>.
+### Cmake/OpenSSL
+Building a Multipass package requires cmake 3.9 or greater. OpenSSL is also necessary at build time. The most convenient means to obtain these dependencies is with Homebrew <https://brew.sh/>.
 
-    brew install cmake go openssl@1.1
+    brew install cmake openssl@1.1
 
 And again need to adjust the $PATH:
 
