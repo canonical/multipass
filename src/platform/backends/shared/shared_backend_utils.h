@@ -29,6 +29,10 @@ namespace multipass
 {
 namespace backend
 {
+using namespace std::chrono_literals;
+
+constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
+
 template <typename Callable>
 std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, std::chrono::milliseconds timeout)
 {
