@@ -54,6 +54,7 @@ private:
     const QString bridge_name;
     const std::string subnet;
     std::unique_ptr<Process> dnsmasq_cmd;
+    QMetaObject::Connection finish_connection;
     QTemporaryFile conf_file;
 };
 } // namespace multipass
