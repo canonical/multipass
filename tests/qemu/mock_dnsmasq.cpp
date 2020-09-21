@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,10 @@
 #include <QFile>
 
 #include <cerrno>
+#include <csignal>
 #include <cstring>
 #include <iostream>
+#include <sys/prctl.h>
 #include <unistd.h>
 
 const auto unexpected_error = 5;
@@ -61,6 +63,12 @@ int main(int argc, char* argv[])
     if (pid == 0)
     {
         close(pipefd[0]);
+
+        if (prctl(PR_SET_PDEATHSIG, SIGHUP) != 0)
+        {
+            std::cerr << "Failed to set the parent-death signal: " << std::strerror(errno) << std::endl;
+            return unexpected_error;
+        }
 
         if (parser.isSet(pidOption))
         {
