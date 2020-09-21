@@ -31,7 +31,7 @@ jobs:
       if: ${{ github.event_name == 'repository_dispatch' }}
       run: |
         # Try and fetch the matching branch.
-        if [ -n "${{ github.event.client_payload.head_ref }}" && git fetch origin ${{ github.event.client_payload.head_ref }}; then
+        if [ -n "${{ github.event.client_payload.head_ref }}" ] && git fetch origin ${{ github.event.client_payload.head_ref }}; then
           echo "::set-output name=ref::${{ github.event.client_payload.head_ref }}"
         else
           # Otherwise fetch the triggering commit.
