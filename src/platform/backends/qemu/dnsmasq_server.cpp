@@ -28,13 +28,12 @@
 
 #include <fstream>
 
-#include <signal.h>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
+
 auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const std::string& subnet,
                           const QString& conf_file_path)
 {
@@ -53,6 +52,22 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
     conf_file.close();
 
     start_dnsmasq();
+}
+
+mp::DNSMasqServer::~DNSMasqServer()
+{
+    // TODO@ricab check returns
+    mpl::log(mpl::Level::debug, "dnsmasq", "terminating");
+    dnsmasq_cmd->terminate();
+
+    if (!dnsmasq_cmd->wait_for_finished(1000))
+    {
+        mpl::log(mpl::Level::info, "dnsmasq", "failed to terminate nicely, killing");
+
+        dnsmasq_cmd->kill();
+        if (!dnsmasq_cmd->wait_for_finished(100))
+            mpl::log(mpl::Level::warning, "dnsmasq", "failed to kill");
+    }
 }
 
 mp::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
@@ -121,18 +136,17 @@ void mp::DNSMasqServer::start_dnsmasq()
     mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
 
     dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
-    const auto dnsmasq_daemon_fork_state = dnsmasq_cmd->execute();
+    dnsmasq_cmd->start();
+    if (!dnsmasq_cmd->wait_for_started())
+    {
+        auto err_msg = std::string{"Multipass dnsmasq failed to start"};
+        if (auto err_detail = dnsmasq_cmd->process_state().failure_message(); !err_detail.isEmpty())
+            err_msg += fmt::format(": {}", err_detail);
 
-    if (dnsmasq_daemon_fork_state.error)
-    {
-        throw std::runtime_error(
-            fmt::format("Multipass dnsmasq failed to start: {}", dnsmasq_daemon_fork_state.error.value().message));
+        dnsmasq_cmd->kill();
+        throw std::runtime_error(err_msg);
     }
-    else if (dnsmasq_daemon_fork_state.exit_code != 0)
-    {
-        // exit_code == 2 signifies dnsmasq network-related error. See `man dnsmasq`.
-        throw std::runtime_error(
-            fmt::format("Multipass dnsmasq is not running.{}",
-                        (dnsmasq_daemon_fork_state.exit_code == 2) ? " Ensure nothing is using port 53." : ""));
-    }
+
+    // TODO@ricab watch process finishing
+    // (dnsmasq_daemon_fork_state.exit_code == 2) ? " Ensure nothing is using port 53." : "")
 }

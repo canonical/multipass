@@ -41,7 +41,8 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
     const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
 
-    return QStringList() << "--strict-order"
+    return QStringList() << "--keep-in-foreground"
+                         << "--strict-order"
                          << "--bind-interfaces" << QString("--pid-file") << "--domain=multipass"
                          << "--local=/multipass/"
                          << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
