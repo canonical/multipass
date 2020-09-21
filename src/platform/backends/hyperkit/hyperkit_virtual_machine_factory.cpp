@@ -21,6 +21,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <shared/shared_backend_utils.h>
+
 #include <fmt/format.h>
 
 #include <QCoreApplication>
@@ -34,7 +36,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-const int conversion_timeout = 300000; // Timeout in milliseconds
 constexpr auto category = "hyperkit factory";
 }
 
@@ -78,7 +79,7 @@ mp::VMImage mp::HyperkitVirtualMachineFactory::prepare_source_image(const VMImag
 
     QProcess uncompress;
     uncompress.start(QCoreApplication::applicationDirPath() + "/qemu-img", uncompress_args);
-    if (!uncompress.waitForFinished(conversion_timeout))
+    if (!uncompress.waitForFinished(mp::backend::image_resize_timeout))
     {
         if (uncompress.state() == QProcess::Running)
         {
