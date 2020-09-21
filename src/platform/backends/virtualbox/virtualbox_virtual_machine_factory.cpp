@@ -25,6 +25,8 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <shared/shared_backend_utils.h>
+
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QProcess>
@@ -79,7 +81,7 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
     auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(convert_args);
     auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
 
-    auto process_state = qemuimg_convert_process->execute();
+    auto process_state = qemuimg_convert_process->execute(mp::backend::image_resize_timeout);
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Conversion of image to VDI failed ({}) with the following output:\n{}",

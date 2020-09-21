@@ -21,6 +21,8 @@
 
 #include <multipass/virtual_machine_description.h>
 
+#include <shared/shared_backend_utils.h>
+
 #include <yaml-cpp/yaml.h>
 
 #include <QFileInfo>
@@ -202,7 +204,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
     convert.setArguments(convert_args);
     convert.start();
 
-    if (!convert.waitForFinished(300000))
+    if (!convert.waitForFinished(mp::backend::image_resize_timeout))
     {
         throw std::runtime_error(
             qPrintable("Conversion of image to vhdx timed out..."));
