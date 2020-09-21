@@ -20,6 +20,8 @@
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 
+#include <shared/shared_backend_utils.h>
+
 #include "tests/extra_assertions.h"
 #include "tests/mock_process_factory.h"
 

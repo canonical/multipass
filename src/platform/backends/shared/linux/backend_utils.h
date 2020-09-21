@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,6 @@ class ProcessFactory;
 
 namespace backend
 {
-using namespace std::chrono_literals;
-
-constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
-
 std::string generate_random_subnet();
 std::string get_subnet(const Path& network_dir, const QString& bridge_name);
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
