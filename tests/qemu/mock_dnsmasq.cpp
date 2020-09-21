@@ -33,10 +33,8 @@ int main(int argc, char* argv[])
     QCoreApplication app(argc, argv);
 
     QCommandLineParser parser;
-    QCommandLineOption pidOption("pid-file", "Path for the pid file", "path");
     QCommandLineOption listenOption("listen-address", "Address to listen on", "address");
-
-    parser.addOptions({pidOption, listenOption});
+    parser.addOption(listenOption);
 
     parser.parse(QCoreApplication::arguments());
 
@@ -68,13 +66,6 @@ int main(int argc, char* argv[])
         {
             std::cerr << "Failed to set the parent-death signal: " << std::strerror(errno) << std::endl;
             return unexpected_error;
-        }
-
-        if (parser.isSet(pidOption))
-        {
-            QFile pid_file{parser.value(pidOption)};
-            pid_file.open(QIODevice::WriteOnly);
-            pid_file.write(QString::number(getpid()).toUtf8());
         }
 
         if (write(pipefd[1], "0", 1) < 1)
