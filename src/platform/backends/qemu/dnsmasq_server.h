@@ -35,6 +35,8 @@ class DNSMasqServer
 {
 public:
     DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
+    DNSMasqServer(const DNSMasqServer&) = delete;
+    DNSMasqServer& operator=(const DNSMasqServer&) = delete;
     virtual ~DNSMasqServer(); // inherited by mock for testing
 
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr);
@@ -45,9 +47,6 @@ protected:
     DNSMasqServer() = default; // For testing
 
 private:
-    DNSMasqServer(const DNSMasqServer&) = delete;
-    DNSMasqServer& operator=(const DNSMasqServer&) = delete;
-
     void start_dnsmasq();
 
     const QString data_dir;
