@@ -44,8 +44,8 @@ TEST_F(TestDnsmasqProcessSpec, default_arguments_correct)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::DNSMasqProcessSpec spec(data_dir, bridge_name, subnet, conf_file_path);
     EXPECT_EQ(spec.arguments(),
-              QStringList({"--strict-order", "--bind-interfaces", "--pid-file", "--domain=multipass",
-                           "--local=/multipass/", "--except-interface=lo", "--interface=bridgey",
+              QStringList({"--keep-in-foreground", "--strict-order", "--bind-interfaces", "--pid-file",
+                           "--domain=multipass", "--local=/multipass/", "--except-interface=lo", "--interface=bridgey",
                            "--listen-address=1.2.3.1", "--dhcp-no-override", "--dhcp-authoritative",
                            "--dhcp-leasefile=/data/dnsmasq.leases", "--dhcp-hostsfile=/data/dnsmasq.hosts",
                            "--dhcp-range", "1.2.3.2,1.2.3.254,infinite", "--conf-file=/path/to/file.conf"}));
