@@ -56,18 +56,21 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
-    QObject::disconnect(finish_connection);
-
-    mpl::log(mpl::Level::debug, "dnsmasq", "terminating");
-    dnsmasq_cmd->terminate();
-
-    if (!dnsmasq_cmd->wait_for_finished(1000))
+    if (dnsmasq_cmd)
     {
-        mpl::log(mpl::Level::info, "dnsmasq", "failed to terminate nicely, killing");
+        QObject::disconnect(finish_connection);
 
-        dnsmasq_cmd->kill();
-        if (!dnsmasq_cmd->wait_for_finished(100))
-            mpl::log(mpl::Level::warning, "dnsmasq", "failed to kill");
+        mpl::log(mpl::Level::debug, "dnsmasq", "terminating");
+        dnsmasq_cmd->terminate();
+
+        if (!dnsmasq_cmd->wait_for_finished(1000))
+        {
+            mpl::log(mpl::Level::info, "dnsmasq", "failed to terminate nicely, killing");
+
+            dnsmasq_cmd->kill();
+            if (!dnsmasq_cmd->wait_for_finished(100))
+                mpl::log(mpl::Level::warning, "dnsmasq", "failed to kill");
+        }
     }
 }
 
