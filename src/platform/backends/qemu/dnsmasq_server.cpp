@@ -137,11 +137,17 @@ void mp::DNSMasqServer::check_dnsmasq_running()
 
 namespace
 {
+std::string dnsmasq_failure_msg(std::string err_base, const mp::ProcessState& state)
+{
+    if (auto err_detail = state.failure_message(); !err_detail.isEmpty())
+        err_base += fmt::format(": {}", err_detail);
+
+    return err_base;
+}
+
 std::string dnsmasq_failure_msg(const mp::ProcessState& state)
 {
-    auto err_msg = std::string{"dnsmasq died"};
-    if (auto err_detail = state.failure_message(); !err_detail.isEmpty())
-        err_msg += fmt::format(": {}", err_detail);
+    auto err_msg = dnsmasq_failure_msg("dnsmasq died", state);
     if (state.exit_code == 2)
         err_msg += ". Ensure nothing is using port 53.";
 
@@ -162,9 +168,7 @@ void mp::DNSMasqServer::start_dnsmasq()
     dnsmasq_cmd->start();
     if (!dnsmasq_cmd->wait_for_started())
     {
-        auto err_msg = std::string{"Multipass dnsmasq failed to start"};
-        if (auto err_detail = dnsmasq_cmd->process_state().failure_message(); !err_detail.isEmpty())
-            err_msg += fmt::format(": {}", err_detail);
+        auto err_msg = dnsmasq_failure_msg("Multipass dnsmasq failed to start", dnsmasq_cmd->process_state());
 
         dnsmasq_cmd->kill();
         throw std::runtime_error(err_msg);
