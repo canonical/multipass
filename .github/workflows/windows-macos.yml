@@ -84,7 +84,7 @@ jobs:
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() && needs.Checkout.result == 'success' }}
 
-    runs-on: macos-latest
+    runs-on: multipass-macos-10.12
 
     env:
       BUILD_DIR: ../build
