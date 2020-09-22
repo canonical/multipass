@@ -151,11 +151,11 @@ void mp::DNSMasqServer::start_dnsmasq()
         throw std::runtime_error(err_msg);
     }
 
-    finish_connection = QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](ProcessState process_state) {
+    finish_connection = QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](const ProcessState& state) {
         auto err_msg = std::string{"died"};
-        if (auto err_detail = process_state.failure_message(); !err_detail.isEmpty())
+        if (auto err_detail = state.failure_message(); !err_detail.isEmpty())
             err_msg += fmt::format(": {}", err_detail);
-        if (process_state.exit_code == 2)
+        if (state.exit_code == 2)
             err_msg += ". Ensure nothing is using port 53.";
 
         mpl::log(mpl::Level::error, "dnsmasq", err_msg);
