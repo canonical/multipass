@@ -17,16 +17,8 @@
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
-#include <QFile>
 
-#include <cerrno>
-#include <csignal>
-#include <cstring>
-#include <iostream>
-#include <sys/prctl.h>
 #include <unistd.h>
-
-const auto unexpected_error = 5;
 
 int main(int argc, char* argv[])
 {
@@ -48,48 +40,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    int pipefd[2];
-    if (pipe(pipefd))
-    {
-        std::cerr << "Failed to create pipe: " << std::strerror(errno) << std::endl;
-        return unexpected_error;
-    }
-
-    char exit_code;
-
-    auto pid = fork();
-    if (pid == 0)
-    {
-        close(pipefd[0]);
-
-        if (prctl(PR_SET_PDEATHSIG, SIGHUP) != 0)
-        {
-            std::cerr << "Failed to set the parent-death signal: " << std::strerror(errno) << std::endl;
-            return unexpected_error;
-        }
-
-        if (write(pipefd[1], "0", 1) < 1)
-        {
-            std::cerr << "Failed to write to pipe: " << std::strerror(errno) << std::endl;
-            return unexpected_error;
-        }
-
-        close(pipefd[1]);
-
-        return QCoreApplication::exec();
-    }
-    else if (pid > 0)
-    {
-        close(pipefd[1]);
-
-        if (read(pipefd[0], &exit_code, 1) < 1)
-        {
-            std::cerr << "Failed to read from pipe: " << std::strerror(errno) << std::endl;
-            return unexpected_error;
-        }
-
-        close(pipefd[0]);
-
-        return atoi(&exit_code);
-    }
+    pause(); // wait to be terminated from the outside
+    return 0;
 }
