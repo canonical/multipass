@@ -72,7 +72,6 @@ const std::string& checked_mac(const std::string& mac)
     return mac;
 }
 
-// needs updating to accept "<ID>" (or if we decide to default the ID to "none")
 auto net_digest(const QString& options)
 {
     multipass::LaunchRequest_NetworkOptions net;
@@ -94,6 +93,11 @@ auto net_digest(const QString& options)
             else
                 throw NetworkDefinitionException{fmt::format("Bad network field: {}", key)};
         }
+
+        // Interpret as "id" the argument when there are no ',' and no '='.
+        else if (key_value_split.size() == 1 && split.size() == 1)
+            net.set_id(key_value_split[0].toStdString());
+
         else
             throw NetworkDefinitionException{fmt::format("Bad network field definition: {}", key_value_pair)};
     }
