@@ -135,11 +135,30 @@ void mp::DNSMasqServer::check_dnsmasq_running()
     }
 }
 
+namespace
+{
+std::string dnsmasq_failure_msg(const mp::ProcessState& state)
+{
+    auto err_msg = std::string{"dnsmasq died"};
+    if (auto err_detail = state.failure_message(); !err_detail.isEmpty())
+        err_msg += fmt::format(": {}", err_detail);
+    if (state.exit_code == 2)
+        err_msg += ". Ensure nothing is using port 53.";
+
+    return err_msg;
+}
+} // namespace
+
 void mp::DNSMasqServer::start_dnsmasq()
 {
     mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
 
     dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
+
+    finish_connection = QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](const ProcessState& state) {
+        mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_failure_msg(state));
+    });
+
     dnsmasq_cmd->start();
     if (!dnsmasq_cmd->wait_for_started())
     {
@@ -151,13 +170,6 @@ void mp::DNSMasqServer::start_dnsmasq()
         throw std::runtime_error(err_msg);
     }
 
-    finish_connection = QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](const ProcessState& state) {
-        auto err_msg = std::string{"died"};
-        if (auto err_detail = state.failure_message(); !err_detail.isEmpty())
-            err_msg += fmt::format(": {}", err_detail);
-        if (state.exit_code == 2)
-            err_msg += ". Ensure nothing is using port 53.";
-
-        mpl::log(mpl::Level::error, "dnsmasq", err_msg);
-    });
+    if (dnsmasq_cmd->wait_for_finished(5)) // detect immediate failures (in the first 5ms)
+        throw std::runtime_error{dnsmasq_failure_msg(dnsmasq_cmd->process_state())};
 }
