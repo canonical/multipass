@@ -35,7 +35,7 @@ class DNSMasqServer
 {
 public:
     DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
-    ~DNSMasqServer();
+    virtual ~DNSMasqServer(); // inherited by mock for testing
 
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr);
     void release_mac(const std::string& hw_addr);
