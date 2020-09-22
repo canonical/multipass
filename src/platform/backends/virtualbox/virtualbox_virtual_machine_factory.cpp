@@ -134,7 +134,8 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
     mpl::log(mpl::Level::info, "list-networks", fmt::format("Found {} network interfaces", if_list.size()));
 
     // This pattern is intended to gather from VBoxManage output the information we need. However, only the Mac
-    // version gives us enough information (and for some interfaces only).
+    // version gives us enough information (and for some interfaces only). This extra information provided by the
+    // Mac version is captured in <description>.
     const auto pattern =
         QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)(: (?<description>[A-Za-z0-9-_()\\? :]+))?\r?$.*"
                        "^MediumType: +(?<type>\\w+)\r?$.*^Wireless: +(?<wireless>\\w+)\r?$");
@@ -152,6 +153,23 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
         {
             ifname = match.captured("name").toStdString();
             auto platform_if_info = platform_ifs_info.find(ifname);
+
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+            // In Windows, VirtualBox lists interfaces using their description as name. Thus, if the map returned
+            // by the OS does not contain our given name, we should iterate over the map values to find the
+            // description we've been given.
+            if (platform_if_info == platform_ifs_info.end()) // This will be be true until VirtualBox fixes the issue.
+            {
+                for (auto map_it = platform_ifs_info.begin(); map_it != platform_ifs_info.end(); ++map_it)
+                {
+                    if (map_it->second.description == ifname)
+                    {
+                        platform_if_info = map_it;
+                        break;
+                    }
+                }
+            }
+#endif
 
             // Show this interface only if the OS knows about it.
             if (platform_if_info != platform_ifs_info.end())
@@ -186,4 +204,21 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
     }
 
     return networks;
+}
+
+// The day VirtualBox corrects the bug in Windows which avoids us to use the correct interface name instead of the
+// description, we'll have to modify this function and check the VirtualBox version.
+std::string mp::VirtualBoxVirtualMachineFactory::interface_id(const std::string& user_id) const
+{
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    // Get information about all the interfaces.
+    auto if_info = mp::platform::get_network_interface_info(user_id);
+
+    if (if_info.id == "")
+        throw std::runtime_error(fmt::format("Network interface \"{}\" not found", user_id));
+    else
+        return if_info.description;
+#else
+    return user_id;
+#endif
 }

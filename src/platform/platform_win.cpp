@@ -529,7 +529,7 @@ mp::NetworkInterfaceInfo get_network_interface_info_from_id(int if_id, mp::Power
     mpl::log(mpl::Level::debug, "get_interfaces",
              fmt::format("{}: \"{}\", \"{}\", \"{}\", \"{}\"", if_id, alias, type, description, ip->as_string()));
 
-    return mp::NetworkInterfaceInfo{description, type, alias, ip};
+    return mp::NetworkInterfaceInfo{alias, type, description, ip};
 }
 
 // The alias given to this function can be the interface alias or the description. Both can be used by Windows to
@@ -545,16 +545,10 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
     // See if with the alias we can get the interface index. If not, that means that we need to use description.
     power_shell.run({"Get-NetAdapter", "-InterfaceAlias", QString::fromStdString('\"' + if_alias + '\"')}, ps_out);
 
-    // If the output of is not a table whose first heading is the name, look for the given alias as description.
+    // If the output of is not a table whose first heading is the name, then this interface does not exist.
     if (ps_out.left(4) != "Name")
     {
-        ps_out = "";
-        power_shell.run({"Get-NetAdapter", "-InterfaceDescription", QString::fromStdString('\"' + if_alias + '\"')},
-                        ps_out);
-        if (ps_out.left(4) != "Name")
-        {
-            return mp::NetworkInterfaceInfo();
-        }
+        return mp::NetworkInterfaceInfo();
     }
 
     // Gather the interface index from the power shell output.
