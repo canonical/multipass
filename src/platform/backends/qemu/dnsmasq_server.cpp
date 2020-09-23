@@ -51,6 +51,7 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
     conf_file.open();
     conf_file.close();
 
+    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
     start_dnsmasq();
 }
 
@@ -158,8 +159,6 @@ std::string dnsmasq_failure_msg(const mp::ProcessState& state)
 void mp::DNSMasqServer::start_dnsmasq()
 {
     mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
-
-    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
 
     finish_connection = QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](const ProcessState& state) {
         mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_failure_msg(state));
