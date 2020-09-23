@@ -321,12 +321,25 @@ void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autosta
 
 mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
 {
-    if (!a_dir.mkpath(name))
+    mp::Path dir_path;
+    bool success{false};
+
+    if (name.isEmpty())
     {
-        QString dir{a_dir.filePath(name)};
-        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir));
+        success = a_dir.mkpath(".");
+        dir_path = a_dir.absolutePath();
     }
-    return a_dir.filePath(name);
+    else
+    {
+        success = a_dir.mkpath(name);
+        dir_path = a_dir.filePath(name);
+    }
+
+    if (!success)
+    {
+        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir_path));
+    }
+    return dir_path;
 }
 
 QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)

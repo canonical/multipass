@@ -19,13 +19,44 @@
 #define MULTIPASS_VM_IMAGE_VAULT_H
 
 #include <multipass/fetch_type.h>
+#include <multipass/path.h>
 #include <multipass/progress_monitor.h>
+
+#include <QFile>
+#include <QString>
 
 #include <functional>
 #include <memory>
 
 namespace multipass
 {
+namespace vault
+{
+// Helper functions and classes for all image vault types
+QString filename_for(const Path& path);
+void delete_file(const Path& path);
+void verify_image_download(const Path& image_path, const QString& image_hash);
+QString extract_image(const Path& image_path, const ProgressMonitor& monitor, const bool delete_file = false);
+
+class DeleteOnException
+{
+public:
+    explicit DeleteOnException(const Path& path) : file(path)
+    {
+    }
+    ~DeleteOnException()
+    {
+        if (std::uncaught_exceptions() > initial_exc_count)
+        {
+            file.remove();
+        }
+    }
+
+private:
+    QFile file;
+    const int initial_exc_count = std::uncaught_exceptions();
+};
+} // namespace vault
 
 class Query;
 class VMImage;

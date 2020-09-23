@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@
 
 #include <multipass/format.h>
 
-#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -49,12 +48,6 @@ namespace
 constexpr auto category = "image vault";
 constexpr auto instance_db_name = "multipassd-instance-image-records.json";
 constexpr auto image_db_name = "multipassd-image-records.json";
-
-auto filename_for(const QString& path)
-{
-    QFileInfo file_info(path);
-    return file_info.fileName();
-}
 
 auto query_to_json(const mp::Query& query)
 {
@@ -190,41 +183,15 @@ QString copy(const QString& file_name, const QDir& output_dir)
     return new_path;
 }
 
-void delete_file(const QString& path)
-{
-    QFile file{path};
-    file.remove();
-}
-
 void remove_source_images(const mp::VMImage& source_image, const mp::VMImage& prepared_image)
 {
     // The prepare phase may have been a no-op, check and only remove source images
     if (source_image.image_path != prepared_image.image_path)
-        delete_file(source_image.image_path);
+        mp::vault::delete_file(source_image.image_path);
     if (source_image.kernel_path != prepared_image.kernel_path)
-        delete_file(source_image.kernel_path);
+        mp::vault::delete_file(source_image.kernel_path);
     if (source_image.initrd_path != prepared_image.initrd_path)
-        delete_file(source_image.initrd_path);
-}
-
-void verify_image_download(const mp::Path& image_path, const std::string& image_hash)
-{
-    QFile image_file(image_path);
-    if (!image_file.open(QFile::ReadOnly))
-    {
-        throw std::runtime_error("Cannot open image file for computing hash");
-    }
-
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    if (!hash.addData(&image_file))
-    {
-        throw std::runtime_error("Cannot read image file to compute hash");
-    }
-
-    if (hash.result().toHex().toStdString() != image_hash)
-    {
-        throw std::runtime_error("Downloaded image hash does not match");
-    }
+        mp::vault::delete_file(source_image.initrd_path);
 }
 
 void delete_image_dir(const mp::Path& image_path)
@@ -238,25 +205,6 @@ void delete_image_dir(const mp::Path& image_path)
             image_file.dir().removeRecursively();
     }
 }
-
-class DeleteOnException
-{
-public:
-    explicit DeleteOnException(const mp::Path& path) : file(path)
-    {
-    }
-    ~DeleteOnException()
-    {
-        if (std::uncaught_exceptions() > initial_exc_count)
-        {
-            file.remove();
-        }
-    }
-
-private:
-    QFile file;
-    const int initial_exc_count = std::uncaught_exceptions();
-};
 } // namespace
 
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
@@ -314,7 +262,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image = extract_image_from(query.name, source_image, monitor);
+            source_image.image_path = extract_image_from(query.name, source_image, monitor);
         }
         else
         {
@@ -388,7 +336,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                                        last_modified.toString(),
                                        0,
                                        false};
-                const auto image_filename = filename_for(image_url.path());
+                const auto image_filename = mp::vault::filename_for(image_url.path());
                 // Attempt to make a sane directory name based on the filename of the image
 
                 const auto image_dir_name =
@@ -601,7 +549,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     const FetchType& fetch_type, const PrepareAction& prepare, const ProgressMonitor& monitor)
 {
     VMImage source_image;
-    auto id = info.id.toStdString();
+    auto id = info.id;
 
     if (existing_source_image)
     {
@@ -609,8 +557,8 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
     else
     {
-        source_image.id = id;
-        source_image.image_path = image_dir.filePath(filename_for(info.image_location));
+        source_image.id = id.toStdString();
+        source_image.image_path = image_dir.filePath(mp::vault::filename_for(info.image_location));
         source_image.original_release = info.release_title.toStdString();
         source_image.release_date = info.version.toStdString();
 
@@ -620,7 +568,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         }
     }
 
-    DeleteOnException image_file{source_image.image_path};
+    mp::vault::DeleteOnException image_file{source_image.image_path};
 
     try
     {
@@ -630,7 +578,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         if (info.verify)
         {
             monitor(LaunchProgress::VERIFY, -1);
-            verify_image_download(source_image.image_path, id);
+            mp::vault::verify_image_download(source_image.image_path, id);
         }
 
         if (fetch_type == FetchType::ImageKernelAndInitrd)
@@ -640,7 +588,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image = extract_downloaded_image(source_image, monitor);
+            source_image.image_path = mp::vault::extract_image(source_image.image_path, monitor, true);
         }
 
         auto prepared_image = prepare(source_image);
@@ -658,8 +606,8 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
 }
 
-mp::VMImage mp::DefaultVMImageVault::extract_image_from(const std::string& instance_name, const VMImage& source_image,
-                                                        const ProgressMonitor& monitor)
+QString mp::DefaultVMImageVault::extract_image_from(const std::string& instance_name, const VMImage& source_image,
+                                                    const ProgressMonitor& monitor)
 {
     const auto name = QString::fromStdString(instance_name);
     const QDir output_dir{mp::utils::make_dir(instances_dir, name)};
@@ -667,27 +615,7 @@ mp::VMImage mp::DefaultVMImageVault::extract_image_from(const std::string& insta
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = output_dir.filePath(image_name);
 
-    VMImage image{source_image};
-    image.image_path = image_path;
-
-    XzImageDecoder xz_decoder(source_image.image_path);
-    xz_decoder.decode_to(image_path, monitor);
-
-    return image;
-}
-
-mp::VMImage mp::DefaultVMImageVault::extract_downloaded_image(const VMImage& source_image,
-                                                              const ProgressMonitor& monitor)
-{
-    VMImage image{source_image};
-    XzImageDecoder xz_decoder(image.image_path);
-    auto image_path = image.image_path.remove(".xz");
-
-    xz_decoder.decode_to(image_path, monitor);
-    delete_file(source_image.image_path);
-    image.image_path = image_path;
-
-    return image;
+    return mp::vault::extract_image(image_path, monitor);
 }
 
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& instance_name,
@@ -711,10 +639,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& 
 {
     auto image{source_image};
 
-    image.kernel_path = image_dir.filePath(filename_for(info.kernel_location));
-    image.initrd_path = image_dir.filePath(filename_for(info.initrd_location));
-    DeleteOnException kernel_file{image.kernel_path};
-    DeleteOnException initrd_file{image.initrd_path};
+    image.kernel_path = image_dir.filePath(mp::vault::filename_for(info.kernel_location));
+    image.initrd_path = image_dir.filePath(mp::vault::filename_for(info.initrd_location));
+    mp::vault::DeleteOnException kernel_file{image.kernel_path};
+    mp::vault::DeleteOnException initrd_file{image.initrd_path};
     url_downloader->download_to(info.kernel_location, image.kernel_path, -1, LaunchProgress::KERNEL, monitor);
     url_downloader->download_to(info.initrd_location, image.initrd_path, -1, LaunchProgress::INITRD, monitor);
 

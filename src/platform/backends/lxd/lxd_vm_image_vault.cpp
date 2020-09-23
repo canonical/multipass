@@ -25,11 +25,24 @@
 #include <multipass/platform.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 
+#include <shared/linux/backend_utils.h>
+#include <shared/linux/process_factory.h>
+
+#include <yaml-cpp/yaml.h>
+
+#include <QCoreApplication>
+#include <QDateTime>
+#include <QFile>
+#include <QFileInfo>
+#include <QHttpMultiPart>
 #include <QJsonArray>
 #include <QRegularExpression>
+#include <QSysInfo>
+#include <QTemporaryDir>
 
 #include <chrono>
 #include <thread>
@@ -42,6 +55,10 @@ using namespace std::literals::chrono_literals;
 namespace
 {
 constexpr auto category = "lxd image vault";
+
+const QHash<QString, QString> host_to_lxd_arch{{"x86_64", "x86_64"}, {"arm", "armv7l"}, {"arm64", "aarch64"},
+                                               {"i386", "i686"},     {"power", "ppc"},  {"power64", "ppc64"},
+                                               {"s390x", "s390x"}};
 
 auto parse_percent_as_int(const QString& progress_string)
 {
@@ -56,11 +73,73 @@ auto parse_percent_as_int(const QString& progress_string)
 
     return -1;
 }
+
+QString post_process_downloaded_image(const QString& image_path, const mp::ProgressMonitor& monitor)
+{
+    QString new_image_path{image_path};
+
+    if (image_path.endsWith(".xz"))
+    {
+        new_image_path = mp::vault::extract_image(image_path, monitor, true);
+    }
+
+    QString original_image_path{new_image_path};
+    new_image_path = mp::backend::convert_to_qcow_if_necessary(new_image_path);
+
+    if (original_image_path != new_image_path)
+    {
+        mp::vault::delete_file(original_image_path);
+    }
+
+    return new_image_path;
+}
+
+QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir& lxd_import_dir)
+{
+    QFile metadata_yaml_file{lxd_import_dir.filePath("metadata.yaml")};
+    YAML::Node metadata_node;
+
+    metadata_node["architecture"] = host_to_lxd_arch.value(QSysInfo::currentCpuArchitecture()).toStdString();
+    metadata_node["creation_date"] = QDateTime::currentSecsSinceEpoch();
+    metadata_node["properties"]["description"] = info.release_title.toStdString();
+    metadata_node["properties"]["os"] = info.os.toStdString();
+    metadata_node["properties"]["release"] = info.release.toStdString();
+    metadata_node["properties"]["version"] = info.version.toStdString();
+    metadata_node["properties"]["original_hash"] = info.id.toStdString();
+
+    YAML::Emitter emitter;
+    emitter << metadata_node << YAML::Newline;
+
+    metadata_yaml_file.open(QIODevice::WriteOnly);
+    metadata_yaml_file.write(emitter.c_str());
+    metadata_yaml_file.close();
+
+    const auto metadata_tarball_path = lxd_import_dir.filePath("metadata.tar");
+    auto process = MP_PROCFACTORY.create_process(
+        "tar", QStringList() << "-cf" << metadata_tarball_path << "-C" << lxd_import_dir.path()
+                             << QFileInfo(metadata_yaml_file.fileName()).fileName());
+
+    auto exit_state = process->execute();
+
+    if (!exit_state.completed_successfully())
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to create LXD image import metadata tarball: {}", process->read_all_standard_error()));
+    }
+
+    return metadata_tarball_path;
+}
 } // namespace
 
-mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, NetworkAccessManager* manager,
-                                     const QUrl& base_url, const days& days_to_expire)
-    : image_hosts{image_hosts}, manager{manager}, base_url{base_url}, days_to_expire{days_to_expire}
+mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
+                                     NetworkAccessManager* manager, const QUrl& base_url, const QString& cache_dir_path,
+                                     const days& days_to_expire)
+    : image_hosts{image_hosts},
+      url_downloader{downloader},
+      manager{manager},
+      base_url{base_url},
+      template_path{QString("%1/%2-").arg(cache_dir_path).arg(QCoreApplication::applicationName())},
+      days_to_expire{days_to_expire}
 {
     for (const auto& image_host : image_hosts)
     {
@@ -136,29 +215,36 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     }
     catch (const LXDNotFoundException&)
     {
-        QJsonObject source_object;
-
-        source_object.insert("type", "image");
-        source_object.insert("mode", "pull");
-        source_object.insert("server", info.stream_location);
-        source_object.insert("protocol", "simplestreams");
-        source_object.insert("image_type", "virtual-machine");
-
-        if (id.startsWith(QString::fromStdString(query.release)))
+        auto lxd_image_hash = get_lxd_image_hash_for(id);
+        if (!lxd_image_hash.empty())
         {
-            source_object.insert("fingerprint", id);
+            source_image.id = lxd_image_hash;
+        }
+        else if (!info.stream_location.isEmpty())
+        {
+            lxd_download_image(id, info.stream_location, QString::fromStdString(query.release), monitor);
+        }
+        else if (!info.image_location.isEmpty())
+        {
+            // TODO: Need to make this async like in DefaultVMImageVault
+            QTemporaryDir lxd_import_dir{template_path};
+
+            auto image_path = lxd_import_dir.filePath(mp::vault::filename_for(info.image_location));
+
+            url_download_image(info, image_path, monitor);
+
+            image_path = post_process_downloaded_image(image_path, monitor);
+
+            monitor(LaunchProgress::WAITING, -1);
+
+            auto metadata_tarball_path = create_metadata_tarball(info, lxd_import_dir);
+
+            source_image.id = lxd_import_metadata_and_image(metadata_tarball_path, image_path);
         }
         else
         {
-            source_object.insert("alias", QString::fromStdString(query.release));
+            throw std::runtime_error(fmt::format("Unable to fetch image with hash \'{}\'", id));
         }
-
-        QJsonObject image_object{{"source", source_object}};
-
-        auto json_reply =
-            lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
-
-        poll_download_operation(json_reply, monitor);
     }
 
     return source_image;
@@ -193,18 +279,7 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
-    QJsonObject json_reply;
-
-    try
-    {
-        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
-    }
-    catch (const LXDNotFoundException&)
-    {
-        return;
-    }
-
-    auto images = json_reply["metadata"].toArray();
+    auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
@@ -235,18 +310,7 @@ void mp::LXDVMImageVault::prune_expired_images()
 void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
-    QJsonObject json_reply;
-
-    try
-    {
-        json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
-    }
-    catch (const LXDNotFoundException&)
-    {
-        return;
-    }
-
-    auto images = json_reply["metadata"].toArray();
+    auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
@@ -313,6 +377,47 @@ mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
     throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
 }
 
+void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& stream_location, const QString& release,
+                                             const ProgressMonitor& monitor)
+{
+    QJsonObject source_object;
+
+    source_object.insert("type", "image");
+    source_object.insert("mode", "pull");
+    source_object.insert("server", stream_location);
+    source_object.insert("protocol", "simplestreams");
+    source_object.insert("image_type", "virtual-machine");
+
+    if (id.startsWith(release))
+    {
+        source_object.insert("fingerprint", id);
+    }
+    else
+    {
+        source_object.insert("alias", release);
+    }
+
+    QJsonObject image_object{{"source", source_object}};
+
+    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
+
+    poll_download_operation(json_reply, monitor);
+}
+
+void mp::LXDVMImageVault::url_download_image(const VMImageInfo& info, const QString& image_path,
+                                             const ProgressMonitor& monitor)
+{
+    mp::vault::DeleteOnException image_file{image_path};
+
+    url_downloader->download_to(info.image_location, image_path, info.size, LaunchProgress::IMAGE, monitor);
+
+    if (info.verify)
+    {
+        monitor(LaunchProgress::VERIFY, -1);
+        mp::vault::verify_image_download(image_path, info.id);
+    }
+}
+
 void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply, const ProgressMonitor& monitor,
                                                   const TaskCompleteAction& task_complete)
 {
@@ -363,4 +468,89 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
             }
         }
     }
+}
+
+std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path)
+{
+    QHttpMultiPart lxd_multipart{QHttpMultiPart::FormDataType};
+    QFileInfo metadata_info{metadata_path}, image_info{image_path};
+
+    QHttpPart metadata_part;
+    metadata_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    metadata_part.setHeader(
+        QNetworkRequest::ContentDispositionHeader,
+        QVariant(QString("form-data; name=\"metadata\"; filename=\"%1\"").arg(metadata_info.fileName())));
+    QFile* metadata_file = new QFile(metadata_path);
+    metadata_file->open(QIODevice::ReadOnly);
+    metadata_part.setBodyDevice(metadata_file);
+    metadata_file->setParent(&lxd_multipart);
+
+    QHttpPart image_part;
+    image_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    image_part.setHeader(
+        QNetworkRequest::ContentDispositionHeader,
+        QVariant(QString("form-data; name=\"rootfs.img\"; filename=\"%1\"").arg(image_info.fileName())));
+    QFile* image_file = new QFile(image_path);
+    image_file->open(QIODevice::ReadOnly);
+    image_part.setBodyDevice(image_file);
+    image_file->setParent(&lxd_multipart);
+
+    lxd_multipart.append(metadata_part);
+    lxd_multipart.append(image_part);
+
+    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), lxd_multipart);
+
+    if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
+        json_reply["status_code"].toInt(-1) == 100)
+    {
+        QUrl task_url(QString("%1/operations/%2/wait")
+                          .arg(base_url.toString())
+                          .arg(json_reply["metadata"].toObject()["id"].toString()));
+
+        auto task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, 300000);
+
+        return task_reply["metadata"].toObject()["metadata"].toObject()["fingerprint"].toString().toStdString();
+    }
+
+    throw std::runtime_error("Unable to retrieve hash for image from LXD");
+}
+
+std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)
+{
+    auto images = retrieve_image_list();
+
+    for (const auto image : images)
+    {
+        auto image_info = image.toObject();
+        auto properties = image_info["properties"].toObject();
+
+        if (properties.contains("original_hash"))
+        {
+            auto original_hash = properties["original_hash"].toString();
+            if (original_hash == id)
+            {
+                return image_info["fingerprint"].toString().toStdString();
+            }
+        }
+    }
+
+    return {};
+}
+
+QJsonArray mp::LXDVMImageVault::retrieve_image_list()
+{
+    QJsonArray image_list;
+
+    try
+    {
+        auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+
+        image_list = json_reply["metadata"].toArray();
+    }
+    catch (const LXDNotFoundException&)
+    {
+        // ignore exception
+    }
+
+    return image_list;
 }

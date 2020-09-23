@@ -438,3 +438,24 @@ TEST(Utils, line_matcher_no_match_returns_empty_string)
 
     EXPECT_TRUE(snap_data.empty());
 }
+
+TEST(Utils, make_dir_creates_correct_dir)
+{
+    mpt::TempDir temp_dir;
+    QString new_dir{"foo"};
+
+    auto new_path = mp::utils::make_dir(QDir(temp_dir.path()), new_dir);
+
+    EXPECT_TRUE(QFile::exists(new_path));
+    EXPECT_EQ(new_path, temp_dir.path() + "/" + new_dir);
+}
+
+TEST(Utils, make_dir_with_no_new_dir)
+{
+    mpt::TempDir temp_dir;
+
+    auto new_path = mp::utils::make_dir(QDir(temp_dir.path()), "");
+
+    EXPECT_TRUE(QFile::exists(new_path));
+    EXPECT_EQ(new_path, temp_dir.path());
+}
