@@ -83,6 +83,11 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     const std::string expected_ip{"10.177.224.22"};
     const std::string lease_entry =
         "0 "s + hw_addr + " "s + expected_ip + " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
+
+    mp::DNSMasqServer make_default_dnsmasq_server()
+    {
+        return mp::DNSMasqServer{data_dir.path(), bridge_name, subnet};
+    }
 };
 
 TEST_F(DNSMasqServer, starts_dnsmasq_process)
@@ -92,7 +97,7 @@ TEST_F(DNSMasqServer, starts_dnsmasq_process)
 
 TEST_F(DNSMasqServer, finds_ip)
 {
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    auto dns = make_default_dnsmasq_server();
     make_lease_entry();
 
     auto ip = dns.get_ip_for(hw_addr);
@@ -103,7 +108,7 @@ TEST_F(DNSMasqServer, finds_ip)
 
 TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
 {
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    auto dns = make_default_dnsmasq_server();
 
     const std::string hw_addr{"00:01:02:03:04:05"};
     auto ip = dns.get_ip_for(hw_addr);
@@ -149,7 +154,7 @@ TEST_F(DNSMasqServer, release_mac_logs_failures)
 
 TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
 {
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    auto dns = make_default_dnsmasq_server();
 
     EXPECT_NO_THROW(dns.check_dnsmasq_running());
 }
@@ -161,13 +166,17 @@ TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
 
 TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
 {
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    auto dns = make_default_dnsmasq_server();
 
     EXPECT_FALSE(QDir(data_dir.path()).entryList({"dnsmasq-??????.conf"}, QDir::Files).isEmpty());
 }
 
 struct DNSMasqServerMockedProcess : public DNSMasqServer
 {
+    void SetUp() override
+    {
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning); // warning and above expected explicitly in tests
+    }
 
     void TearDown() override
     {
@@ -212,7 +221,6 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_skips_start_if_already_running)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     setup([this](auto* process) {
         InSequence seq;
 
@@ -221,13 +229,12 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_skips_start_if_already_running)
         setup_successful_finish(process);
     });
 
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    auto dns = make_default_dnsmasq_server();
     dns.check_dnsmasq_running();
 }
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_warns_and_starts_if_not_running)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Not running");
     setup([this](auto* process) {
         InSequence seq;
@@ -238,13 +245,12 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_warns_and_starts_if_not_running
         setup_successful_finish(process);
     });
 
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    auto dns = make_default_dnsmasq_server();
     dns.check_dnsmasq_running();
 }
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     logger_scope.mock_logger->expect_log(mpl::Level::error, "died");
     setup([](auto* process) {
         InSequence seq;
@@ -254,14 +260,12 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
         EXPECT_CALL(*process, kill());
     });
 
-    MP_EXPECT_THROW_THAT((mp::DNSMasqServer{data_dir.path(), bridge_name, subnet}), std::runtime_error,
+    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(), std::runtime_error,
                          Property(&std::runtime_error::what, HasSubstr("failed to start")));
 }
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-
     constexpr auto msg = "an error msg";
     setup([msg](auto* process) {
         InSequence seq;
@@ -275,14 +279,12 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
     });
 
     MP_EXPECT_THROW_THAT(
-        (mp::DNSMasqServer{data_dir.path(), bridge_name, subnet}), std::runtime_error,
+        make_default_dnsmasq_server(), std::runtime_error,
         Property(&std::runtime_error::what, AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
 }
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_logs_error_when_it_dies)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-
     constexpr auto msg = "crash test dummy";
     logger_scope.mock_logger->expect_log(mpl::Level::error, msg);
 
@@ -295,7 +297,7 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_logs_error_when_it_dies)
         dnsmasq_proc = process;
     });
 
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    auto dns = make_default_dnsmasq_server();
     ASSERT_TRUE(dnsmasq_proc);
 
     mp::ProcessState state{-1, mp::ProcessState::Error{QProcess::Crashed, msg}};
