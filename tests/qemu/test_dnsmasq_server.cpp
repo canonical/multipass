@@ -21,6 +21,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
 
+#include "tests/extra_assertions.h"
 #include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
@@ -33,6 +34,7 @@
 
 #include <memory>
 #include <src/platform/backends/qemu/dnsmasq_process_spec.h>
+#include <stdexcept>
 #include <string>
 
 namespace mp = multipass;
@@ -157,6 +159,22 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_warns_and_starts_if_not_running
 
     mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
     dns.check_dnsmasq_running();
+}
+
+TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "died");
+    setup([](auto* process) {
+        InSequence seq;
+
+        EXPECT_CALL(*process, start()).Times(1);
+        EXPECT_CALL(*process, wait_for_started(_)).WillOnce(Return(false));
+        EXPECT_CALL(*process, kill());
+    });
+
+    MP_EXPECT_THROW_THAT((mp::DNSMasqServer{data_dir.path(), bridge_name, subnet}), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr("failed to start")));
 }
 
 TEST_F(DNSMasqServer, starts_dnsmasq_process)
