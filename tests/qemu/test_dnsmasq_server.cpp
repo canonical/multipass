@@ -177,6 +177,27 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
                          Property(&std::runtime_error::what, HasSubstr("failed to start")));
 }
 
+TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    constexpr auto msg = "an error msg";
+    setup([msg](auto* process) {
+        InSequence seq;
+
+        EXPECT_CALL(*process, start()).Times(1);
+        EXPECT_CALL(*process, wait_for_started(_)).WillOnce(Return(true));
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
+
+        mp::ProcessState state{2, mp::ProcessState::Error{QProcess::Crashed, msg}};
+        EXPECT_CALL(*process, process_state()).WillOnce(Return(state));
+    });
+
+    MP_EXPECT_THROW_THAT(
+        (mp::DNSMasqServer{data_dir.path(), bridge_name, subnet}), std::runtime_error,
+        Property(&std::runtime_error::what, AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
+}
+
 TEST_F(DNSMasqServer, starts_dnsmasq_process)
 {
     EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, subnet));
