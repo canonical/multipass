@@ -85,6 +85,87 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
         "0 "s + hw_addr + " "s + expected_ip + " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 };
 
+TEST_F(DNSMasqServer, starts_dnsmasq_process)
+{
+    EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, subnet));
+}
+
+TEST_F(DNSMasqServer, finds_ip)
+{
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    make_lease_entry();
+
+    auto ip = dns.get_ip_for(hw_addr);
+
+    ASSERT_TRUE(ip);
+    EXPECT_THAT(ip.value(), Eq(mp::IPAddress(expected_ip)));
+}
+
+TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
+{
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+
+    const std::string hw_addr{"00:01:02:03:04:05"};
+    auto ip = dns.get_ip_for(hw_addr);
+
+    EXPECT_FALSE(ip);
+}
+
+TEST_F(DNSMasqServer, release_mac_releases_ip)
+{
+    const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
+
+    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, subnet};
+    make_lease_entry();
+
+    dns.release_mac(hw_addr);
+
+    EXPECT_TRUE(QFile::exists(dchp_release_called));
+}
+
+TEST_F(DNSMasqServer, release_mac_logs_failure_on_missing_ip)
+{
+    const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
+
+    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, subnet};
+    dns.release_mac(hw_addr);
+
+    EXPECT_FALSE(QFile::exists(dchp_release_called));
+    EXPECT_TRUE(logger->logged_lines.size() > 0);
+}
+
+TEST_F(DNSMasqServer, release_mac_logs_failures)
+{
+    const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called.fail")};
+
+    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, subnet};
+    make_lease_entry();
+
+    dns.release_mac(hw_addr);
+
+    EXPECT_TRUE(QFile::exists(dchp_release_called));
+    EXPECT_TRUE(logger->logged_lines.size() > 0);
+}
+
+TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
+{
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+
+    EXPECT_NO_THROW(dns.check_dnsmasq_running());
+}
+
+TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
+{
+    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}), std::runtime_error);
+}
+
+TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
+{
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+
+    EXPECT_FALSE(QDir(data_dir.path()).entryList({"dnsmasq-??????.conf"}, QDir::Files).isEmpty());
+}
+
 struct DNSMasqServerMockedProcess : public DNSMasqServer
 {
 
@@ -128,7 +209,6 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
 
     inline static const auto exe = mp::DNSMasqProcessSpec{{}, {}, {}, {}}.program();
 };
-} // namespace
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_skips_start_if_already_running)
 {
@@ -221,84 +301,4 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_logs_error_when_it_dies)
     mp::ProcessState state{-1, mp::ProcessState::Error{QProcess::Crashed, msg}};
     emit dnsmasq_proc->finished(state);
 }
-
-TEST_F(DNSMasqServer, starts_dnsmasq_process)
-{
-    EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, subnet));
-}
-
-TEST_F(DNSMasqServer, finds_ip)
-{
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
-    make_lease_entry();
-
-    auto ip = dns.get_ip_for(hw_addr);
-
-    ASSERT_TRUE(ip);
-    EXPECT_THAT(ip.value(), Eq(mp::IPAddress(expected_ip)));
-}
-
-TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
-{
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
-
-    const std::string hw_addr{"00:01:02:03:04:05"};
-    auto ip = dns.get_ip_for(hw_addr);
-
-    EXPECT_FALSE(ip);
-}
-
-TEST_F(DNSMasqServer, release_mac_releases_ip)
-{
-    const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
-
-    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, subnet};
-    make_lease_entry();
-
-    dns.release_mac(hw_addr);
-
-    EXPECT_TRUE(QFile::exists(dchp_release_called));
-}
-
-TEST_F(DNSMasqServer, release_mac_logs_failure_on_missing_ip)
-{
-    const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
-
-    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, subnet};
-    dns.release_mac(hw_addr);
-
-    EXPECT_FALSE(QFile::exists(dchp_release_called));
-    EXPECT_TRUE(logger->logged_lines.size() > 0);
-}
-
-TEST_F(DNSMasqServer, release_mac_logs_failures)
-{
-    const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called.fail")};
-
-    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, subnet};
-    make_lease_entry();
-
-    dns.release_mac(hw_addr);
-
-    EXPECT_TRUE(QFile::exists(dchp_release_called));
-    EXPECT_TRUE(logger->logged_lines.size() > 0);
-}
-
-TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
-{
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
-
-    EXPECT_NO_THROW(dns.check_dnsmasq_running());
-}
-
-TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
-{
-    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}), std::runtime_error);
-}
-
-TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
-{
-    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
-
-    EXPECT_FALSE(QDir(data_dir.path()).entryList({"dnsmasq-??????.conf"}, QDir::Files).isEmpty());
-}
+} // namespace
