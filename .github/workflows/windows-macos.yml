@@ -161,6 +161,24 @@ jobs:
       run: |
         opam install 3rd-party/hyperkit --deps-only
 
+    - name: Set up CCache
+      id: setup-ccache
+      run: |
+        brew install ccache
+        ccache --max-size=2G
+
+        # Find common base between full and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
+        echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
+
+    - name: CCache
+      uses: actions/cache@v2
+      with:
+        key: ccache-${{ runner.os }}-${{ steps.setup-ccache.outputs.key }}
+        restore-keys: |
+          ccache-${{ runner.os }}-
+        path: ~/.ccache
+
     - name: Build
       uses: lukka/run-cmake@v2
       with:
@@ -172,6 +190,11 @@ jobs:
           -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
           -DMULTIPASS_UPSTREAM=origin
           -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+    - name: Clear CCache stats
+      run: ccache --show-stats --zero-stats
 
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
