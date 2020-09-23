@@ -57,7 +57,7 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
-    if (dnsmasq_cmd)
+    if (dnsmasq_cmd && dnsmasq_cmd->running())
     {
         QObject::disconnect(finish_connection);
 

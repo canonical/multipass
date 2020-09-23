@@ -117,6 +117,7 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
 
     void setup_successful_finish(mpt::MockProcess* process)
     {
+        EXPECT_CALL(*process, running()).WillOnce(Return(true));
         EXPECT_CALL(*process, terminate()).Times(1);
         EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
     }
