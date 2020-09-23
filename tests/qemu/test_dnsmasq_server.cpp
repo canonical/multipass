@@ -198,6 +198,29 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
         Property(&std::runtime_error::what, AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
 }
 
+TEST_F(DNSMasqServerMockedProcess, dnsmasq_logs_error_when_it_dies)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    constexpr auto msg = "crash test dummy";
+    logger_scope.mock_logger->expect_log(mpl::Level::error, msg);
+
+    mp::Process* dnsmasq_proc = nullptr;
+    setup([this, &dnsmasq_proc](auto* process) {
+        InSequence seq;
+
+        setup_successful_start(process);
+        EXPECT_CALL(*process, running).WillOnce(Return(false));
+        dnsmasq_proc = process;
+    });
+
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    ASSERT_TRUE(dnsmasq_proc);
+
+    mp::ProcessState state{-1, mp::ProcessState::Error{QProcess::Crashed, msg}};
+    emit dnsmasq_proc->finished(state);
+}
+
 TEST_F(DNSMasqServer, starts_dnsmasq_process)
 {
     EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, subnet));
