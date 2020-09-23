@@ -15,6 +15,7 @@
  *
  */
 
+#include <src/platform/backends/qemu/dnsmasq_process_spec.h>
 #include <src/platform/backends/qemu/dnsmasq_server.h>
 
 #include <multipass/logging/log.h>
@@ -22,12 +23,16 @@
 
 #include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_logger.h"
+#include "tests/mock_process_factory.h"
 #include "tests/reset_process_factory.h"
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
+
 #include <QDir>
 
 #include <memory>
+#include <src/platform/backends/qemu/dnsmasq_process_spec.h>
 #include <string>
 
 namespace mp = multipass;
@@ -77,7 +82,82 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     const std::string lease_entry =
         "0 "s + hw_addr + " "s + expected_ip + " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 };
+
+struct DNSMasqServerMockedProcess : public DNSMasqServer
+{
+
+    void TearDown() override
+    {
+        ASSERT_TRUE(forked);
+    }
+
+    void setup(const mpt::MockProcessFactory::Callback& callback = {})
+    {
+        factory_scope->register_callback([this, callback](mpt::MockProcess* process) {
+            setup_process(process);
+            if (callback)
+                callback(process);
+        });
+    }
+
+    void setup_process(mpt::MockProcess* process)
+    {
+        ASSERT_EQ(process->program(), exe);
+        forked = true;
+    }
+
+    void setup_successful_start(mpt::MockProcess* process)
+    {
+        EXPECT_CALL(*process, start()).Times(1);
+        EXPECT_CALL(*process, wait_for_started(_)).WillOnce(Return(true));
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
+    }
+
+    void setup_successful_finish(mpt::MockProcess* process)
+    {
+        EXPECT_CALL(*process, terminate()).Times(1);
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
+    }
+
+    bool forked = false;
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
+
+    inline static const auto exe = mp::DNSMasqProcessSpec{{}, {}, {}, {}}.program();
+};
 } // namespace
+
+TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_skips_start_if_already_running)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    setup([this](auto* process) {
+        InSequence seq;
+
+        setup_successful_start(process);
+        EXPECT_CALL(*process, running()).WillOnce(Return(true));
+        setup_successful_finish(process);
+    });
+
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    dns.check_dnsmasq_running();
+}
+
+TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_warns_and_starts_if_not_running)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Not running");
+    setup([this](auto* process) {
+        InSequence seq;
+
+        setup_successful_start(process);
+        EXPECT_CALL(*process, running()).WillOnce(Return(false));
+        setup_successful_start(process);
+        setup_successful_finish(process);
+    });
+
+    mp::DNSMasqServer dns{data_dir.path(), bridge_name, subnet};
+    dns.check_dnsmasq_running();
+}
 
 TEST_F(DNSMasqServer, starts_dnsmasq_process)
 {
