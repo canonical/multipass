@@ -19,12 +19,14 @@
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
+#include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+#include <src/platform/platform_linux.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
@@ -414,6 +416,8 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
                          Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
 
+// To test network interfaces, we mock the output of the command `ip`. With this, we can get information about the
+// `lo` interface (present in all systems) and about physical interfaces.
 struct TestNetworkInterfacesInfo : public TestWithParam<std::tuple<QByteArray, std::string, mp::NetworkInterfaceInfo>>
 {
 };
@@ -425,54 +429,8 @@ const QByteArray ip_addr_output(
     "       valid_lft forever preferred_lft forever\n"
     "    inet6 ::1/128 scope host \n"
     "       valid_lft forever preferred_lft forever\n"
-    "2: enp3s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN group default qlen 1000\n"
-    "    link/ether 20:47:47:fe:04:56 brd ff:ff:ff:ff:ff:ff\n"
-    "3: wlx60e3270f55fe: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000\n"
-    "    link/ether 60:e3:27:0f:55:fe brd ff:ff:ff:ff:ff:ff\n"
-    "    inet 192.168.2.184/24 brd 192.168.2.255 scope global dynamic noprefixroute wlx60e3270f55fe\n"
-    "       valid_lft 23375sec preferred_lft 23375sec\n"
-    "    inet6 fd52:2ccf:f758::4ca/128 scope global noprefixroute \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "    inet6 fdde:2681:7a2:0:3b2b:d6d8:5bf9:b45b/64 scope global noprefixroute \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "    inet6 fd52:2ccf:f758:0:a342:79b5:e2ba:e05e/64 scope global noprefixroute \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "    inet6 fe80::132d:7392:fe19:2ff6/64 scope link noprefixroute \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "4: virbr0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000\n"
-    "    link/ether 52:54:00:d9:b1:0a brd ff:ff:ff:ff:ff:ff\n"
-    "    inet 192.168.122.1/24 brd 192.168.122.255 scope global virbr0\n"
-    "       valid_lft forever preferred_lft forever\n"
-    "5: virbr0-nic: <BROADCAST,MULTICAST> mtu 1500 qdisc fq_codel master virbr0 state DOWN group default qlen 1000\n"
-    "    link/ether 52:54:00:d9:b1:0a brd ff:ff:ff:ff:ff:ff\n"
-    "6: mpqemubr0-dummy: <BROADCAST,NOARP> mtu 1500 qdisc noop master mpqemubr0 state DOWN group default qlen 1000\n"
-    "    link/ether 52:54:00:fb:84:b4 brd ff:ff:ff:ff:ff:ff\n"
-    "7: mpqemubr0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000\n"
-    "    link/ether 52:54:00:fb:84:b4 brd ff:ff:ff:ff:ff:ff\n"
-    "    inet 10.248.40.1/24 brd 10.248.40.255 scope global mpqemubr0\n"
-    "       valid_lft forever preferred_lft forever\n"
-    "    inet6 fe80::5054:ff:fefb:84b4/64 scope link \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "8: tap-c4218ab4e59: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel master mpqemubr0 state DOWN group "
-    "default qlen 1000\n"
-    "    link/ether f6:1f:05:65:31:64 brd ff:ff:ff:ff:ff:ff\n"
-    "    inet6 fe80::f41f:5ff:fe65:3164/64 scope link \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "9: tap-6690bec4d37: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel master mpqemubr0 state DOWN group "
-    "default qlen 1000\n"
-    "    link/ether 76:a9:bb:18:c5:67 brd ff:ff:ff:ff:ff:ff\n"
-    "10: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN group default qlen 100\n"
-    "    link/none \n"
-    "    inet 10.8.8.23/24 brd 10.8.8.255 scope global noprefixroute tun0\n"
-    "       valid_lft forever preferred_lft forever\n"
-    "    inet6 fe80::c4be:53c0:4628:6946/64 scope link stable-privacy \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "11: tun1: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN group default qlen 100\n"
-    "    link/none \n"
-    "    inet 10.172.66.58/18 brd 10.172.127.255 scope global noprefixroute tun1\n"
-    "       valid_lft forever preferred_lft forever\n"
-    "    inet6 2001:67c:1562:8007::aac:423a peer 2001:67c:1562:8007::1/64 scope global noprefixroute \n"
-    "       valid_lft forever preferred_lft forever\n");
+    "2: enp4s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN group default qlen 1000\n"
+    "    link/ether 20:47:47:fe:04:56 brd ff:ff:ff:ff:ff:ff\n");
 
 TEST_P(TestNetworkInterfacesInfo, test_network_interfaces_info)
 {
@@ -506,5 +464,74 @@ auto make_test_input(const std::string& id, const std::string& type, const std::
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestNetworkInterfacesInfo,
                          Values(make_test_input("lo", "virtual", "Virtual interface", "127.0.0.1"),
-                                make_test_input("enp3s0", "unknown", "Ethernet or wifi", "")));
+                                make_test_input("enp4s0", "unknown", "Ethernet or wifi", "")));
+
+// To test virtual network interfaces, we need to mock the filesystem under /sys/devices/virtual/net/.
+void create_file_containing(const std::string& name, const std::string& contents)
+{
+    QStringList folders = QString::fromStdString(name).split('/', QString::SkipEmptyParts);
+    folders.removeLast();
+    QString path = '/' + folders.join('/');
+    QDir().mkpath(path);
+
+    FILE* tun_flags_fd = fopen(name.c_str(), "w");
+    fprintf(tun_flags_fd, "%s", contents.c_str());
+    fclose(tun_flags_fd);
+}
+
+// The test data for each interface will be a tuple containing name, folders which must be present in the mocked
+// filesystem, files/contents, expected type, expected description.
+struct TestVirtualNetworkInterfacesInfo
+    : public TestWithParam<std::tuple<std::string, std::vector<std::string>,
+                                      std::vector<std::pair<std::string, std::string>>, std::string, std::string>>
+{
+};
+
+TEST_P(TestVirtualNetworkInterfacesInfo, test_virtual_network_interfaces_info)
+{
+    const auto param = GetParam();
+    const std::string& if_name = std::get<0>(param);
+    const std::vector<std::string> folders = std::get<1>(param);
+    const std::vector<std::pair<std::string, std::string>> files = std::get<2>(param);
+    const std::string& expected_type = std::get<3>(param);
+    const std::string& expected_desc = std::get<4>(param);
+
+    mpt::TempDir temp_dir;
+    std::string if_dir(temp_dir.path().toStdString());
+
+    for (const auto& folder : folders)
+    {
+        QDir().mkpath(QString::fromStdString(if_dir + "/" + folder));
+    }
+
+    for (const auto& file : files)
+    {
+        create_file_containing(if_dir + "/" + file.first, file.second);
+    }
+
+    auto if_info = mp::platform::get_virtual_interface_info(if_name, if_dir);
+
+    ASSERT_EQ(if_info.type, expected_type);
+    ASSERT_EQ(if_info.description, expected_desc);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    PlatformLinux, TestVirtualNetworkInterfacesInfo,
+    Values(std::make_tuple("tun0", std::vector<std::string>{},
+                           std::vector<std::pair<std::string, std::string>>{std::make_pair("tun_flags", "0x3001\n")},
+                           "virtual", "TUN Virtual interface"),
+           std::make_tuple("tap-6690bec4d37", std::vector<std::string>{},
+                           std::vector<std::pair<std::string, std::string>>{std::make_pair("tun_flags", "0x1802\n")},
+                           "virtual", "TAP Virtual interface"),
+           std::make_tuple("br0", std::vector<std::string>{"bridge"},
+                           std::vector<std::pair<std::string, std::string>>{}, "bridge", "Empty network bridge"),
+           std::make_tuple("br1", std::vector<std::string>{"bridge", "brif/eth2", "brif/wifi3"},
+                           std::vector<std::pair<std::string, std::string>>{}, "bridge",
+                           "Network bridge containing eth2, wifi3"),
+           std::make_tuple("virt0", std::vector<std::string>{}, std::vector<std::pair<std::string, std::string>>{},
+                           "virtual", "Virtual interface"),
+           std::make_tuple("virt1", std::vector<std::string>{},
+                           std::vector<std::pair<std::string, std::string>>{
+                               std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n")},
+                           "virtual", "Virtual interface associated to br2")));
 } // namespace
