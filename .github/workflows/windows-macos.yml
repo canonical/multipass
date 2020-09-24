@@ -219,6 +219,8 @@ jobs:
     - name: Cleanup
       if: ${{ always() }}
       run: |
+        rm -Rf $( find . -mindepth 1 -maxdepth 1 )  # to remove hidden things, too
+        rm -Rf ${{ env.BUILD_DIR }}
         rm -Rf ${{ runner.workspace }}/Qt
 
   Windows:
