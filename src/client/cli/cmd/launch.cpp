@@ -188,11 +188,13 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
     QCommandLineOption networkOption("network",
-                                     "Add a network interface to the instance, where <definition> is in the "
+                                     "Add a network interface to the instance, where <definition> can be in the "
                                      "\"key=value,key=value\" format, with the following keys available:\n"
                                      "mode: auto|manual (default: auto)\n"
-                                     "id: the network to connect to (required, default: none)\n"
-                                     "mac: hardware address (default: random)",
+                                     "id: the network to connect to (required), use the list-networks command for a "
+                                     "list of possible values\n"
+                                     "mac: hardware address (default: random).\n"
+                                     "You can use a shortcut of \"<id>\" to mean \"id=<id>\".",
                                      "definition");
 
     parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});
