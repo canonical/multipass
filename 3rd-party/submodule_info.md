@@ -52,6 +52,6 @@ Version: 1.9.3 |
 <https://github.com/open-source-parsers/jsoncpp/releases>
 
 ### HyperKit
-Version: f1dd3cb |
+Version: b54460a |
 <https://github.com/moby/hyperkit.git> |
 <https://github.com/moby/hyperkit/releases>
