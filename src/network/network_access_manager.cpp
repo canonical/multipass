@@ -17,6 +17,7 @@
 
 #include "local_socket_reply.h"
 
+#include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/network_access_manager.h>
 
@@ -41,16 +42,20 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
         const auto url_parts = orig_request.url().toString().split('@');
         if (url_parts.count() != 2)
         {
-            throw std::runtime_error("The local socket scheme is malformed.");
+            throw LocalSocketConnectionException(("The local socket scheme is malformed."),
+                                                 QLocalSocket::UnknownSocketError);
         }
 
         const auto socket_path = QUrl(url_parts[0]).path();
+
         LocalSocketUPtr local_socket = std::make_unique<QLocalSocket>();
 
         local_socket->connectToServer(socket_path);
         if (!local_socket->waitForConnected(5000))
         {
-            throw std::runtime_error(fmt::format("Cannot connect to {}: {}", socket_path, local_socket->error()));
+            throw LocalSocketConnectionException(
+                fmt::format("Cannot connect to {}: {}", socket_path, local_socket->errorString()),
+                local_socket->error());
         }
 
         const auto server_path = url_parts[1];
