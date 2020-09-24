@@ -12,17 +12,15 @@ Ensure you have development Frameworks for at least OS X 10.8 installed, with th
 
 ### Qt5
 #### Option 1: Using Qt official sources
-Install the latest stable version of Qt5.11 (5.11.1 at the moment): <http://www.qt.io/download-open-source/>.
+Install the latest stable version of Qt5.11 (5.12.9 at the moment): <http://www.qt.io/download-open-source/>.
 
 If it tells you that XCode 5.0.0 needs to be installed, go to XCode > Preferences > Locations and make a selection in the _Command Line Tools_ box.
 
 Add Qt5 to your PATH environment variable, adding to your `.bash_profile` file the following line:
 
-    export PATH=$PATH:~/Qt/5.11.1/clang_64/bin
+    export PATH=$PATH:~/Qt/5.12.9/clang_64/bin
 
 Adjust accordingly if you customized the Qt install directory.
-
-***Note:*** Qt5.8.0 has a known networking bug and should be avoided.
 
 #### Option 2: Using Homebrew
 Install Qt5:
@@ -33,10 +31,6 @@ Install Qt5:
 Building a Multipass package requires cmake 3.9 or greater. OpenSSL is also necessary at build time. The most convenient means to obtain these dependencies is with Homebrew <https://brew.sh/>.
 
     brew install cmake openssl@1.1
-
-And again need to adjust the $PATH:
-
-    export PATH=$PATH:/usr/local/go/bin
 
 ### Hyperkit dependencies
 Hyperkit is a core utility used by Multipass. To build it we need more dependencies:
@@ -50,9 +44,9 @@ Hyperkit's QCow support is implemented in an OCaml module, which we need to fetc
     opam init
     opam update
 
-Install the required modules (these may change, check the packages listed in `grep "HAVE_OCAML_QCOW :="  3rd-party/hyperkit/Makefile` for the current required modules):
+Install the required modules:
 
-    opam install qcow prometheus-app uri logs mirage-unix
+    opam install 3rd-party/hyperkit --deps-only
 
 Building
 ---------------------------------------
@@ -61,7 +55,7 @@ Building
 
 To build with official Qt sources do:
 
-    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=~/Qt/5.11.1/clang_64
+    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=~/Qt/5.12.9/clang_64
 
 Alternatively if using Qt5 from Homebrew, do
 
