@@ -33,6 +33,7 @@
 #include "backends/lxd/lxd_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
+#include "platform_linux.h"
 #include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
@@ -222,13 +223,14 @@ std::string get_uevent_value(const std::string& file, const std::string& key)
     return std::string();
 }
 
-mp::NetworkInterfaceInfo get_virtual_interface_info(const std::string& iface_name)
+mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::string& iface_name,
+                                                                  const std::string& virtual_path)
 {
     std::string type;
     std::string description;
     mp::optional<mp::IPAddress> ip_address;
 
-    QString iface_dir_name("/sys/devices/virtual/net/" + QString::fromStdString(iface_name));
+    QString iface_dir_name = QString::fromStdString(virtual_path);
 
     // The carrier file only says if the interface is up. If it is, we get the IP.
     QFile carrier_file(iface_dir_name + "/carrier");
@@ -337,11 +339,13 @@ mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_na
 
 mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
 {
+    std::string virtual_path("/sys/devices/virtual/net/" + iface_name);
+
     // The interface can be a hardware or virtual one. To distinguish between them, we see if a folder with the
     // interface name exists in /sys/devices/net/virtual.
-    if (QFile::exists("/sys/devices/virtual/net/" + QString::fromStdString(iface_name)))
+    if (QFile::exists(QString::fromStdString(virtual_path)))
     {
-        return get_virtual_interface_info(iface_name);
+        return get_virtual_interface_info(iface_name, virtual_path);
     }
     else
     {
