@@ -47,6 +47,7 @@ mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
     ON_CALL(*this, running()).WillByDefault(Return(true));
     ON_CALL(*this, process_state()).WillByDefault(Return(success_exit_state));
     ON_CALL(*this, execute(_)).WillByDefault(Return(success_exit_state));
+    ON_CALL(*this, wait_for_started(_)).WillByDefault(Return(true));
 
     mpt::MockProcessFactory::ProcessInfo p{program(), arguments()};
     process_list.emplace_back(p);
@@ -108,11 +109,6 @@ QString mpt::MockProcess::working_directory() const
 QProcessEnvironment mpt::MockProcess::process_environment() const
 {
     return spec->environment();
-}
-
-bool mpt::MockProcess::wait_for_started(int)
-{
-    return true;
 }
 
 bool mpt::MockProcess::wait_for_ready_read(int)
