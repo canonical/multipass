@@ -16,6 +16,9 @@ env:
   HEAD_REF: ci${{ github.run_id }}
 
 jobs:
+  # This job is here so that the Windows and macOS builds share exactly the same
+  # git tree (including the merge of public), and as a result have the same version
+  # numbers.
   Checkout:
     runs-on: ubuntu-latest
 
@@ -102,7 +105,9 @@ jobs:
         path: .git
 
     - name: Check out the code
-      # This can't be easily abstracted into the `checkout` action due to a chicken'n'egg problem.
+      # This can't be easily abstracted into our `checkout` action due to a chicken'n'egg problem:
+      # GitHub reads ./* actions from $PWD, so it needs to be checked out. It could be extracted
+      # into an external repository, but that would bring its own set of issues.
       run: |
         # Authenticate with the new token.
         git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( echo -n x-access-token:${{ secrets.GITHUB_TOKEN }} | base64 )"
@@ -140,6 +145,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: "~/.opam"
+        # Use OPAM version and hyperkit sha as cache key. This ensures that when we change hyperkit,
+        # any dependency changes will follow. Also start from scratch if OPAM version changes.
         key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ steps.cache-params.outputs.hyperkit-sha }}
         restore-keys: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-
 
@@ -244,7 +251,7 @@ jobs:
       run: git config --local core.symlinks true
 
     - name: Check out the code
-      # This can't be easily abstracted into the `checkout` action due to a chicken'n'egg problem.
+      # See the same step in the macOS job for why this can't be abstracted into our `checkout` action.
       run: |
         # Authenticate with the new token.
         git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( [Convert]::ToBase64String([System.Text.Encoding]::Ascii.GetBytes('x-access-token:${{ secrets.GITHUB_TOKEN }}')) )"
