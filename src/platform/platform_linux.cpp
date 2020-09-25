@@ -280,17 +280,39 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
     return iface_info;
 }
 
+std::string get_ip_output(QStringList ip_args)
+{
+    auto ip_spec = mp::simple_process_spec("ip", ip_args);
+    auto ip_process = mp::platform::make_process(std::move(ip_spec));
+    auto ip_exit_state = ip_process->execute();
+
+    if (ip_exit_state.completed_successfully())
+        return ip_process->read_all_standard_output().toStdString();
+    else if (ip_exit_state.exit_code && *(ip_exit_state.exit_code) == 1)
+        return ip_process->read_all_standard_error().toStdString();
+    else
+        throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
+}
+
 mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name)
 {
     QString iface_name_qstr = QString::fromStdString(iface_name);
     std::string type;
     std::string description;
 
-    QString ip_output =
-        QString::fromStdString(get_ip_output({"link", "show", "dev", QString::fromStdString(iface_name)}));
+    QString ip_output = QString::fromStdString(get_ip_output({"link", "show", "dev", iface_name_qstr}));
 
-    type = "unknown";
-    description = "Ethernet or wifi";
+    if (ip_output.contains(": " + iface_name_qstr + ": "))
+    {
+        type = "hardware";
+        description = "Ethernet or wifi";
+    }
+    else
+    {
+        // TODO: throw here?
+        type = "";
+        description = "";
+    }
 
     return mp::NetworkInterfaceInfo{iface_name, type, description};
 }
@@ -316,7 +338,6 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
 
     // All interfaces will be returned by the command ip.
-    // TODO: However, ip is not present in all systems, on which we would need to run ifconfig.
     QString ip_output = QString::fromStdString(get_ip_output({"address"}));
 
     const auto pattern = QStringLiteral("^\\d+: (?<name>[A-Za-z0-9-_]+): .*$");

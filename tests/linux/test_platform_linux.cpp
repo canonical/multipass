@@ -164,17 +164,30 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
-void simulate_ip(const mpt::MockProcess* process, const mp::ProcessState& produce_result,
-                 const QByteArray& produce_output = {})
+void simulate_ip(const mpt::MockProcess* process, const mp::ProcessState& produce_result)
 {
+    auto lo_output = QByteArrayLiteral(
+        "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n"
+        "    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n"
+        "    inet 127.0.0.1/8 scope host lo\n"
+        "       valid_lft forever preferred_lft forever\n"
+        "    inet6 ::1/128 scope host \n"
+        "       valid_lft forever preferred_lft forever\n");
+    auto enp4s0_output = QByteArrayLiteral(
+        "2: enp4s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN group default qlen 1000\n"
+        "    link/ether 20:47:47:fe:04:56 brd ff:ff:ff:ff:ff:ff\n");
+
     ASSERT_EQ(process->program().toStdString(), "ip");
 
-    // ip can be called with arguments "link show dev" or "address".
+    QByteArray output;
+
+    // ip can be called with arguments "link show dev <interface>" or "address".
     const auto args = process->arguments();
     ASSERT_THAT(args.size(), Ge(1));
     if (args.size() == 1)
     {
         EXPECT_EQ(args.constFirst(), "address");
+        output = lo_output + enp4s0_output;
     }
     else
     {
@@ -182,24 +195,29 @@ void simulate_ip(const mpt::MockProcess* process, const mp::ProcessState& produc
         EXPECT_EQ(args[0], "link");
         EXPECT_EQ(args[1], "show");
         EXPECT_EQ(args[2], "dev");
+
+        if ("lo" == args[3])
+            output = lo_output;
+        else if ("enp4s0" == args[3])
+            output = enp4s0_output;
+        else
+            output = "Device \"" + args[3].toLatin1() + "\" does not exist.";
     }
 
     EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
     if (produce_result.completed_successfully())
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
     else if (produce_result.exit_code)
-        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
+        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
     else
-        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(produce_output));
+        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(output));
 }
 
-std::unique_ptr<mp::test::MockProcessFactory::Scope> inject_fake_ip_callback(const mp::ProcessState& ip_exit_status,
-                                                                             const QByteArray& ip_output)
+std::unique_ptr<mp::test::MockProcessFactory::Scope> inject_fake_ip_callback(const mp::ProcessState& ip_exit_status)
 {
     std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
 
-    mock_factory_scope->register_callback(
-        [&](mpt::MockProcess* process) { simulate_ip(process, ip_exit_status, ip_output); });
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) { simulate_ip(process, ip_exit_status); });
 
     return mock_factory_scope;
 }
@@ -418,30 +436,18 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
 
 // To test network interfaces, we mock the output of the command `ip`. With this, we can get information about the
 // `lo` interface (present in all systems) and about physical interfaces.
-struct TestNetworkInterfacesInfo : public TestWithParam<std::tuple<QByteArray, std::string, mp::NetworkInterfaceInfo>>
+struct TestNetworkInterfacesInfo : public TestWithParam<std::tuple<std::string, mp::NetworkInterfaceInfo>>
 {
 };
-
-const QByteArray ip_addr_output(
-    "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n"
-    "    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n"
-    "    inet 127.0.0.1/8 scope host lo\n"
-    "       valid_lft forever preferred_lft forever\n"
-    "    inet6 ::1/128 scope host \n"
-    "       valid_lft forever preferred_lft forever\n"
-    "2: enp4s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN group default qlen 1000\n"
-    "    link/ether 20:47:47:fe:04:56 brd ff:ff:ff:ff:ff:ff\n");
 
 TEST_P(TestNetworkInterfacesInfo, test_network_interfaces_info)
 {
     const auto param = GetParam();
-    const auto& ip_output = std::get<0>(param);
-    const auto& iface_name = std::get<1>(param);
-    const auto& iface_info = std::get<2>(param);
+    const auto& iface_name = std::get<0>(param);
+    const auto& iface_info = std::get<1>(param);
     const mp::ProcessState ip_exit_status{0, mp::nullopt};
-    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status, ip_output);
+    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status);
 
-    QStringList args{"address"};
     auto interfaces_info = mp::platform::get_network_interfaces_info();
 
     mp::NetworkInterfaceInfo output_info = interfaces_info[iface_name];
@@ -458,13 +464,12 @@ TEST_P(TestNetworkInterfacesInfo, test_network_interfaces_info)
 auto make_test_input(const std::string& id, const std::string& type, const std::string& descr, const std::string& ip)
 {
     return std::make_tuple(
-        ip_addr_output, id,
-        mp::NetworkInterfaceInfo{id, type, descr, ip.empty() ? mp::nullopt : mp::optional<mp::IPAddress>(ip)});
+        id, mp::NetworkInterfaceInfo{id, type, descr, ip.empty() ? mp::nullopt : mp::optional<mp::IPAddress>(ip)});
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestNetworkInterfacesInfo,
                          Values(make_test_input("lo", "virtual", "Virtual interface", "127.0.0.1"),
-                                make_test_input("enp4s0", "unknown", "Ethernet or wifi", "")));
+                                make_test_input("enp4s0", "hardware", "Ethernet or wifi", "")));
 
 // To test virtual network interfaces, we need to mock the filesystem under /sys/devices/virtual/net/.
 void create_file_containing(const std::string& name, const std::string& contents)
@@ -496,6 +501,7 @@ TEST_P(TestVirtualNetworkInterfacesInfo, test_virtual_network_interfaces_info)
     const std::string& expected_type = std::get<3>(param);
     const std::string& expected_desc = std::get<4>(param);
 
+    // The created temp folder is automagically deleted after the test ends.
     mpt::TempDir temp_dir;
     std::string if_dir(temp_dir.path().toStdString());
 
@@ -511,6 +517,7 @@ TEST_P(TestVirtualNetworkInterfacesInfo, test_virtual_network_interfaces_info)
 
     auto if_info = mp::platform::get_virtual_interface_info(if_name, if_dir);
 
+    ASSERT_EQ(if_info.id, if_name);
     ASSERT_EQ(if_info.type, expected_type);
     ASSERT_EQ(if_info.description, expected_desc);
 }
@@ -534,4 +541,26 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::pair<std::string, std::string>>{
                                std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n")},
                            "virtual", "Virtual interface associated to br2")));
+
+TEST_F(PlatformLinux, test_network_interface_info_ip_fails)
+{
+    const mp::ProcessState ip_exit_status{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status);
+
+    EXPECT_THROW(mp::platform::get_network_interface_info("enp4s0"), std::runtime_error);
+}
+
+TEST_F(PlatformLinux, test_network_interface_info_with_empty_output)
+{
+    std::string if_name("nonexisting");
+
+    const mp::ProcessState ip_exit_status{1, mp::nullopt};
+    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status);
+
+    auto if_info = mp::platform::get_network_interface_info(if_name);
+
+    ASSERT_EQ(if_info.id, if_name);
+    ASSERT_EQ(if_info.type, "");
+    ASSERT_EQ(if_info.description, "");
+}
 } // namespace
