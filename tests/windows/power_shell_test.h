@@ -56,7 +56,7 @@ private:
 
         // succeed these by default
         ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
-        ON_CALL(*process, write(_)).WillByDefault(Return(1000));
+        ON_CALL(*process, write(_)).WillByDefault(Return(1'000'000));
         EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
 
         forked = true;
