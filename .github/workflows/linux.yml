@@ -186,7 +186,7 @@ jobs:
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
 
   # Report result to Bors on `staging` and `trying` branches.
-  Bors:
+  Linux:
     if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
     needs:
     - BuildAndTest
