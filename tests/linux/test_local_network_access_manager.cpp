@@ -18,11 +18,13 @@
 #include "local_socket_server_test_fixture.h"
 #include "mock_q_buffer.h"
 #include "mock_q_local_socket.h"
+#include "tests/extra_assertions.h"
 #include "tests/temp_dir.h"
 
 #include <src/network/local_socket_reply.h>
 
 #include <multipass/exceptions/http_local_socket_exception.h>
+#include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/version.h>
 
@@ -237,7 +239,8 @@ TEST_F(LocalNetworkAccessManager, malformed_unix_schema_throws)
 
     QNetworkRequest request{base_url};
 
-    EXPECT_THROW(manager.sendCustomRequest(request, "GET"), std::runtime_error);
+    MP_EXPECT_THROW_THAT(manager.sendCustomRequest(request, "GET"), mp::LocalSocketConnectionException,
+                         Property(&mp::LocalSocketConnectionException::get_error, QLocalSocket::UnknownSocketError));
 }
 
 TEST_F(LocalNetworkAccessManager, unable_to_connect_throws)
@@ -246,7 +249,8 @@ TEST_F(LocalNetworkAccessManager, unable_to_connect_throws)
 
     QNetworkRequest request{base_url};
 
-    EXPECT_THROW(manager.sendCustomRequest(request, "GET"), std::runtime_error);
+    MP_EXPECT_THROW_THAT(manager.sendCustomRequest(request, "GET"), mp::LocalSocketConnectionException,
+                         Property(&mp::LocalSocketConnectionException::get_error, QLocalSocket::ServerNotFoundError));
 }
 
 TEST_F(LocalNetworkAccessManager, reply_abort_sets_expected_error)
