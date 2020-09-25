@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-namespace mpt = multipass::test;
 using namespace testing;
 
 namespace multipass::test
@@ -35,21 +34,21 @@ struct PowerShellTest : public Test
         ASSERT_TRUE(forked);
     }
 
-    void setup(const mpt::MockProcessFactory::Callback& callback = {})
+    void setup(const MockProcessFactory::Callback& callback = {})
     {
-        factory_scope->register_callback([this, callback](mpt::MockProcess* process) {
+        factory_scope->register_callback([this, callback](MockProcess* process) {
             setup_process(process);
             if (callback)
                 callback(process);
         });
     }
 
-    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
+    MockLogger::Scope logger_scope = MockLogger::inject();
+    std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();
     inline static constexpr auto psexit = "Exit\n";
 
 private:
-    void setup_process(mpt::MockProcess* process)
+    void setup_process(MockProcess* process)
     {
         ASSERT_EQ(process->program(), psexe);
 
