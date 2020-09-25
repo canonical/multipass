@@ -21,6 +21,8 @@
 #include <QCryptographicHash>
 #include <QFileInfo>
 
+#include <stdexcept>
+
 namespace mp = multipass;
 
 QString mp::vault::filename_for(const mp::Path& path)
