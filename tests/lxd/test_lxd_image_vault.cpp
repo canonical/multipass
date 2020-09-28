@@ -29,6 +29,7 @@
 #include "tests/tracking_url_downloader.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
+#include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/vm_image.h>
 
@@ -457,6 +458,27 @@ TEST_F(LXDImageVault, has_record_for_returns_expected_values)
     EXPECT_FALSE(image_vault.has_record_for("foo"));
 }
 
+TEST_F(LXDImageVault, has_record_for_error_logs_message_and_returns_true)
+{
+    const std::string exception_message{"Cannot connect to socket"};
+    const std::string instance_name{"foo"};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq(
+                        fmt::format("{} - Unable to determine if \'{}\' exists", exception_message, instance_name)))));
+
+    EXPECT_TRUE(image_vault.has_record_for(instance_name));
+}
+
 TEST_F(LXDImageVault, update_image_requests_refresh_and_logs_expected_message)
 {
     bool refresh_requested{false};
@@ -673,6 +695,25 @@ TEST_F(LXDImageVault, prune_expired_image_no_project_does_not_throw)
     EXPECT_NO_THROW(image_vault.prune_expired_images());
 }
 
+TEST_F(LXDImageVault, prune_expired_error_logs_warning_does_not_throw)
+{
+    const std::string exception_message{"Cannot connect to socket"};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq(exception_message))));
+
+    EXPECT_NO_THROW(image_vault.prune_expired_images());
+}
+
 TEST_F(LXDImageVault, prune_expired_image_delete_fails_does_no_throw)
 {
     bool delete_requested{false};
@@ -783,4 +824,28 @@ TEST_F(LXDImageVault, custom_image_downloads_and_creates_correct_upload)
     EXPECT_EQ(image.id, mpt::lxd_custom_image_id);
     EXPECT_EQ(image.original_release, mpt::custom_release_info);
     EXPECT_EQ(image.release_date, mpt::custom_image_version);
+}
+
+TEST_F(LXDImageVault, fetch_image_unable_to_connect_logs_error_and_returns_blank_vmimage)
+{
+    const std::string exception_message{"Cannot connect to socket"};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        StrEq(fmt::format("{} - returning blank image info", exception_message)))));
+
+    auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
+
+    EXPECT_TRUE(image.id.empty());
+    EXPECT_TRUE(image.original_release.empty());
+    EXPECT_TRUE(image.release_date.empty());
 }
