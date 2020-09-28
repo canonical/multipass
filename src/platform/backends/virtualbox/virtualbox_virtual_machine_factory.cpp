@@ -142,7 +142,7 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
                                                         QRegularExpression::DotMatchesEverythingOption};
 
-    std::string ifname, ifid, iftype, ifdescription;
+    std::string ifname, iftype, ifdescription;
 
     // For each interface in the list, see if VBoxManage gave us enough information. If not, ask the OS.
     for (auto iface : if_list)
@@ -176,12 +176,19 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
             {
                 mp::NetworkInterfaceInfo if_info = platform_if_info->second;
 
+                // Only VirtualBox on MacOS can fill this field in. But only for some interfaces, not necessarily
+                // for all. If the description is present, it takes precedence over the data from the OS.
                 ifdescription = match.captured("description").toStdString();
+
                 if (ifdescription.empty())
                 {
-                    // Use the OS information about the interface.
-                    iftype = if_info.type;
-                    ifdescription = if_info.description;
+                    // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
+                    // which cannot be bridged.
+                    if (if_info.type != "virtual" && if_info.description != "unknown")
+                    {
+                        networks.push_back({if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
+                                            if_info.description, mp::nullopt});
+                    }
                 }
                 else
                 {
@@ -196,9 +203,9 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
                                      ? match.captured("type").toLower().toStdString()
                                      : "thunderbolt";
                     }
-                }
 
-                networks.push_back({if_info.id, iftype.empty() ? "unknown" : iftype, ifdescription, mp::nullopt});
+                    networks.push_back({if_info.id, iftype.empty() ? "unknown" : iftype, ifdescription, mp::nullopt});
+                }
             }
         }
     }
