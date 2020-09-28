@@ -44,8 +44,13 @@ using namespace testing;
 
 namespace
 {
-struct HyperVBackend : public mpt::PowerShellRunTest
+struct HyperVBackend : public Test
 {
+    void SetUp() override
+    {
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    }
+
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mp::VirtualMachineDescription default_description{2,
@@ -57,19 +62,21 @@ struct HyperVBackend : public mpt::PowerShellRunTest
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    mpt::PowerShellTestHelper ps_helper;
     mp::HyperVVirtualMachineFactory backend;
     mpt::StubVMStatusMonitor stub_monitor;
 };
 
 TEST_F(HyperVBackend, creates_in_off_state)
 {
-    setup_mocked_run_sequence({{"Get-VM", "", false},
-                               {"Get-VMSwitch"},
-                               {"New-VM"},
-                               {"Set-VMProcessor"},
-                               {"Add-VMDvdDrive"},
-                               {"Set-VMNetworkAdapter"},
-                               {"-ExpandProperty State", "Off"}}); // for the dtor
+    ps_helper.setup_mocked_run_sequence({{"Get-VM", "", false},
+                                         {"Get-VMSwitch"},
+                                         {"New-VM"},
+                                         {"Set-VMProcessor"},
+                                         {"Add-VMDvdDrive"},
+                                         {"Set-VMNetworkAdapter"},
+                                         {"-ExpandProperty State", "Off"}}); // for the dtor
 
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());

@@ -63,6 +63,22 @@ public:
         });
     }
 
+    struct RunSpec
+    {
+        std::string expect_cmdlet_substr;
+        std::string will_output = "";
+        bool will_return = true;
+    };
+
+    void setup_mocked_run_sequence(std::vector<RunSpec> runs)
+    {
+        setup([this, runs_ = std::move(runs)](auto* process) {
+            InSequence seq;
+            for (const auto& run : runs_)
+                add_mocked_run(process, run);
+        });
+    }
+
     // setup low-level expectations on the powershell process
     void setup(const MockProcessFactory::Callback& callback = {})
     {
@@ -110,32 +126,6 @@ private:
         forked = true;
     }
 
-    bool forked = false;
-    std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();
-    inline static constexpr auto psexe = "powershell.exe";
-    inline static constexpr auto written = 1'000'000;
-};
-
-class PowerShellRunTest : public PowerShellTest
-{
-public:
-    struct RunSpec
-    {
-        std::string expect_cmdlet_substr;
-        std::string will_output = "";
-        bool will_return = true;
-    };
-
-    void setup_mocked_run_sequence(std::vector<RunSpec> runs)
-    {
-        setup([this, runs_ = std::move(runs)](auto* process) {
-            InSequence seq;
-            for (const auto& run : runs_)
-                add_mocked_run(process, run);
-        });
-    }
-
-private:
     void add_mocked_run(MockProcess* process, const RunSpec& run)
     {
         const auto& [cmdlet, output, result] = run;
@@ -150,6 +140,11 @@ private:
         auto ps_output = fmt::format("{}\n{} {}\n", output, marker, result ? "True" : "False");
         EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(ps_output)));
     }
+
+    bool forked = false;
+    std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();
+    inline static constexpr auto psexe = "powershell.exe";
+    inline static constexpr auto written = 1'000'000;
 };
 
 } // namespace multipass::test
