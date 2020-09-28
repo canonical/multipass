@@ -807,8 +807,9 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "        }\n"
      "    }\n"
      "}\n",
-     "json_info_multiple"},
+     "json_info_multiple"}};
 
+const std::vector<FormatterParamType> non_orderable_list_networks_formatter_outputs{
     {&table_formatter, &empty_list_networks_reply, "No network interfaces found.\n", "table_list_networks_empty"},
     {&table_formatter, &one_short_line_list_networks_reply,
      "Name Type Description\n"
@@ -1104,6 +1105,8 @@ INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter, FormatterSuite,
 INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter, FormatterSuite,
                          ValuesIn(non_orderable_list_info_formatter_outputs), print_param_name);
 INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_formatter_outputs), print_param_name);
+INSTANTIATE_TEST_SUITE_P(NonOrderableListNetworksOutputFormatter, FormatterSuite,
+                         ValuesIn(non_orderable_list_networks_formatter_outputs), print_param_name);
 
 #if GTEST_HAS_POSIX_RE
 TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
