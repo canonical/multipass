@@ -58,11 +58,11 @@ struct HyperVBackend : public testing::Test
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
     mp::HyperVVirtualMachineFactory backend;
+    mpt::StubVMStatusMonitor stub_monitor;
 };
 
 TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
 {
-    mpt::StubVMStatusMonitor stub_monitor;
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
