@@ -51,6 +51,11 @@ struct HyperVBackend : public Test
         logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     }
 
+    void TearDown() override
+    {
+        ASSERT_TRUE(ps_helper.was_ps_run());
+    }
+
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mp::VirtualMachineDescription default_description{2,
@@ -88,6 +93,11 @@ struct HyperVListNetworks : public Test
     void SetUp() override
     {
         logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    }
+
+    void TearDown() override
+    {
+        ASSERT_TRUE(ps_helper.was_ps_run());
     }
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
