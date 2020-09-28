@@ -29,7 +29,7 @@ using namespace testing;
 
 namespace multipass::test
 {
-struct PowerShellTestAccessor
+struct PowerShellTestAccessor // TODO@ricab merge with helper
 {
     PowerShellTestAccessor(PowerShell& ps) : ps{ps}
     {
@@ -45,14 +45,25 @@ struct PowerShellTestAccessor
     PowerShell& ps;
 };
 
-class PowerShellTest : public Test
+class PowerShellTestHelper // TODO@ricab make uncopyable
 {
 public:
-    void TearDown() override
+    virtual ~PowerShellTestHelper() = default;
+
+    // notice only the last call to this function has any effect at the moment the PS process is created
+    void mock_ps_exec(const QByteArray& output, bool succeed = true)
     {
-        ASSERT_TRUE(forked);
+        setup([output, succeed](auto* process) {
+            InSequence seq;
+
+            auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
+            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
+        });
     }
 
+    // setup low-level expectations on the powershell process
     void setup(const MockProcessFactory::Callback& callback = {})
     {
         factory_scope->register_callback([this, callback](MockProcess* process) {
@@ -79,14 +90,17 @@ public:
                                              HasSubstr(PowerShellTestAccessor::output_end_marker.toStdString()))));
     }
 
-    MockLogger::Scope logger_scope = MockLogger::inject();
-    std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();
+    bool was_ps_run() const
+    {
+        return forked;
+    }
+
     inline static constexpr auto psexit = "Exit\n";
 
 private:
     void setup_process(MockProcess* process)
     {
-        ASSERT_EQ(process->program(), psexe);
+        ASSERT_EQ(process->program(), psexe); // TODO@ricab make this an if instead, to accommodate other processes
 
         // succeed these by default
         ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
@@ -97,6 +111,7 @@ private:
     }
 
     bool forked = false;
+    std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();
     inline static constexpr auto psexe = "powershell.exe";
     inline static constexpr auto written = 1'000'000;
 };
