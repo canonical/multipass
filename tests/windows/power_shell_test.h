@@ -62,17 +62,17 @@ public:
         });
     }
 
-    QByteArray get_status(bool succeed)
+    QByteArray get_status(bool succeed) const
     {
         return succeed ? " True\n" : " False\n";
     }
 
-    QByteArray end_marker(bool succeed)
+    QByteArray end_marker(bool succeed) const
     {
         return QByteArray{"\n"}.append(PowerShellTestAccessor::output_end_marker).append(get_status(succeed));
     }
 
-    void expect_writes(MockProcess* process, QByteArray cmdlet)
+    void expect_writes(MockProcess* process, QByteArray cmdlet) const
     {
         EXPECT_CALL(*process, write(Eq(cmdlet.append('\n'))));
         EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
