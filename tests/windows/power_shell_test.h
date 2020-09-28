@@ -101,6 +101,42 @@ private:
     inline static constexpr auto written = 1'000'000;
 };
 
+class PowerShellRunTest : public PowerShellTest
+{
+public:
+    struct RunSpec
+    {
+        std::string expect_cmdlet_substr;
+        std::string will_output = "";
+        bool will_return = true;
+    };
+
+    void setup_mocked_run_sequence(std::vector<RunSpec> runs)
+    {
+        setup([this, runs_ = std::move(runs)](auto* process) {
+            InSequence seq;
+            for (const auto& run : runs_)
+                add_mocked_run(process, run);
+        });
+    }
+
+private:
+    void add_mocked_run(MockProcess* process, const RunSpec& run)
+    {
+        const auto& [cmdlet, output, result] = run;
+        const auto& marker = PowerShellTestAccessor::output_end_marker;
+
+        auto cmdlet_matcher = Property(&QByteArray::toStdString, HasSubstr(cmdlet));
+        EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
+
+        auto marker_matcher = Property(&QByteArray::toStdString, HasSubstr(marker.toStdString()));
+        EXPECT_CALL(*process, write(marker_matcher)).WillOnce(Return(written));
+
+        auto ps_output = fmt::format("{}\n{} {}\n", output, marker, result ? "True" : "False");
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(ps_output)));
+    }
+};
+
 } // namespace multipass::test
 
 #endif // MULTIPASS_POWER_SHELL_TEST_H

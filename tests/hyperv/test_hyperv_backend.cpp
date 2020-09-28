@@ -44,7 +44,7 @@ using namespace testing;
 
 namespace
 {
-struct HyperVBackend : public testing::Test
+struct HyperVBackend : public mpt::PowerShellRunTest
 {
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
@@ -63,6 +63,14 @@ struct HyperVBackend : public testing::Test
 
 TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
 {
+    setup_mocked_run_sequence({{"Get-VM", "", false},
+                               {"Get-VMSwitch"},
+                               {"New-VM"},
+                               {"Set-VMProcessor"},
+                               {"Add-VMDvdDrive"},
+                               {"Set-VMNetworkAdapter"},
+                               {"-ExpandProperty State", "Off"}}); // for the dtor
+
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
