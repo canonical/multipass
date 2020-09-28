@@ -56,7 +56,7 @@ private:
 
         // succeed these by default
         ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
-        ON_CALL(*process, write(_)).WillByDefault(Return(1'000'000));
+        ON_CALL(*process, write(_)).WillByDefault(Return(written));
         EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
 
         forked = true;
@@ -64,6 +64,7 @@ private:
 
     bool forked = false;
     inline static constexpr auto psexe = "powershell.exe";
+    inline static constexpr auto written = 1'000'000;
 };
 
 struct PowerShellTestAccessor
