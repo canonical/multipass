@@ -22,6 +22,7 @@
 #include "path.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
+#include "tracking_url_downloader.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -43,33 +44,6 @@ using namespace testing;
 namespace
 {
 const QDateTime default_last_modified{QDate(2019, 6, 25), QTime(13, 15, 0)};
-
-struct TrackingURLDownloader : public mp::URLDownloader
-{
-    TrackingURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
-    {
-    }
-    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
-                     const mp::ProgressMonitor&) override
-    {
-        mpt::make_file_with_content(file_name, "");
-        downloaded_urls << url.toString();
-        downloaded_files << file_name;
-    }
-
-    QByteArray download(const QUrl& url) override
-    {
-        return {};
-    }
-
-    QDateTime last_modified(const QUrl& url) override
-    {
-        return QDateTime::currentDateTime();
-    }
-
-    QStringList downloaded_files;
-    QStringList downloaded_urls;
-};
 
 struct BadURLDownloader : public mp::URLDownloader
 {
@@ -143,7 +117,7 @@ struct ImageVault : public testing::Test
     }
 
     QString host_url{QUrl::fromLocalFile(mpt::test_data_path()).toString()};
-    TrackingURLDownloader url_downloader;
+    mpt::TrackingURLDownloader url_downloader;
     std::vector<mp::VMImageHost*> hosts;
     NiceMock<mpt::MockImageHost> host;
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
@@ -464,9 +438,9 @@ TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)
 
     // Mock an update to the image and don't verify because of hash mismatch
     const QString new_date_string{"20180825"};
-    host.mock_image_info.id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b856";
-    host.mock_image_info.version = new_date_string;
-    host.mock_image_info.verify = false;
+    host.mock_bionic_image_info.id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b856";
+    host.mock_bionic_image_info.version = new_date_string;
+    host.mock_bionic_image_info.verify = false;
 
     vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
 

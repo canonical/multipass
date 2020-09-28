@@ -74,7 +74,7 @@ public:
 
     bool wait_for_finished(int msecs = 30000) override
     {
-        return true;
+        return false;
     }
 
     bool wait_for_ready_read(int msecs = 30000) override

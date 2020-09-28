@@ -317,15 +317,13 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
-TEST_F(PlatformLinux, test_is_remote_supported_lxd_driver)
+TEST_F(PlatformLinux, test_is_remote_supported_returns_true)
 {
-    setup_driver_settings("lxd");
-
     EXPECT_TRUE(mp::platform::is_remote_supported("release"));
     EXPECT_TRUE(mp::platform::is_remote_supported("daily"));
-    EXPECT_FALSE(mp::platform::is_remote_supported(""));
-    EXPECT_FALSE(mp::platform::is_remote_supported("snapcraft"));
-    EXPECT_FALSE(mp::platform::is_remote_supported("appliance"));
+    EXPECT_TRUE(mp::platform::is_remote_supported(""));
+    EXPECT_TRUE(mp::platform::is_remote_supported("snapcraft"));
+    EXPECT_TRUE(mp::platform::is_remote_supported("appliance"));
 }
 
 TEST_F(PlatformLinux, test_snap_returns_expected_default_address)

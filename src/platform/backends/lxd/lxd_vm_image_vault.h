@@ -23,22 +23,25 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QUrl>
 
 #include <memory>
+#include <string>
 
 namespace multipass
 {
 class NetworkAccessManager;
+class URLDownloader;
 
 class LXDVMImageVault final : public VMImageVault
 {
 public:
     using TaskCompleteAction = std::function<void(const QJsonObject&)>;
 
-    LXDVMImageVault(std::vector<VMImageHost*> image_host, NetworkAccessManager* manager, const QUrl& base_url,
-                    const multipass::days& days_to_expire);
+    LXDVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, NetworkAccessManager* manager,
+                    const QUrl& base_url, const QString& cache_dir_path, const multipass::days& days_to_expire);
 
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
                         const ProgressMonitor& monitor) override;
@@ -50,12 +53,20 @@ public:
 
 private:
     VMImageInfo info_for(const Query& query);
+    void lxd_download_image(const QString& id, const QString& stream_location, const QString& release,
+                            const ProgressMonitor& monitor);
+    void url_download_image(const VMImageInfo& info, const QString& image_path, const ProgressMonitor& monitor);
     void poll_download_operation(
         const QJsonObject& json_reply, const ProgressMonitor& monitor, const TaskCompleteAction& action = [](auto) {});
+    std::string lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path);
+    std::string get_lxd_image_hash_for(const QString& id);
+    QJsonArray retrieve_image_list();
 
     std::vector<VMImageHost*> image_hosts;
+    URLDownloader* const url_downloader;
     NetworkAccessManager* manager;
     const QUrl base_url;
+    const QString template_path;
     const days days_to_expire;
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };

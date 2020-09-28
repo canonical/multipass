@@ -28,66 +28,50 @@
 
 #include <fstream>
 
-#include <signal.h>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
-auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const QString& pid_file_path,
-                          const std::string& subnet, const QString& conf_file_path)
+
+auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const std::string& subnet,
+                          const QString& conf_file_path)
 {
-    auto process_spec =
-        std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, pid_file_path, subnet, conf_file_path);
+    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, subnet, conf_file_path);
     return MP_PROCFACTORY.create_process(std::move(process_spec));
-}
-
-auto get_dnsmasq_pid(const mp::Path& pid_file_path)
-{
-    std::ifstream pid_file{pid_file_path.toStdString()};
-    std::string pid;
-
-    getline(pid_file, pid);
-    mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("Read pid \"{}\" from file \"{}\"", pid, pid_file_path));
-
-    // std::stoi will throw if pid doesn't exist or is invalid
-    return static_cast<unsigned int>(std::stoi(pid));
 }
 } // namespace
 
 mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet)
     : data_dir{data_dir},
       bridge_name{bridge_name},
-      pid_file_path{QDir(data_dir).filePath("dnsmasq.pid")},
       subnet{subnet},
       conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
     conf_file.open();
     conf_file.close();
 
-    try
-    {
-        mpl::log(mpl::Level::debug, "dnsmasq", "Looking for dnsmasq");
-        check_dnsmasq_running();
-    }
-    catch (const std::exception&)
-    {
-        mpl::log(logging::Level::warning, "dnsmasq", "Could not confirm dnsmasq is running");
-        // Ignore
-    }
+    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
+    start_dnsmasq();
 }
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
-    try
+    if (dnsmasq_cmd && dnsmasq_cmd->running())
     {
-        auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
-        kill(dnsmasq_pid, SIGKILL);
-    }
-    catch (const std::exception&)
-    {
-        // Ignore
+        QObject::disconnect(finish_connection);
+
+        mpl::log(mpl::Level::debug, "dnsmasq", "terminating");
+        dnsmasq_cmd->terminate();
+
+        if (!dnsmasq_cmd->wait_for_finished(1000))
+        {
+            mpl::log(mpl::Level::info, "dnsmasq", "failed to terminate nicely, killing");
+
+            dnsmasq_cmd->kill();
+            if (!dnsmasq_cmd->wait_for_finished(100))
+                mpl::log(mpl::Level::warning, "dnsmasq", "failed to kill");
+        }
     }
 }
 
@@ -145,40 +129,50 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
 
 void mp::DNSMasqServer::check_dnsmasq_running()
 {
-    try
+    if (!dnsmasq_cmd->running())
     {
-        auto dnsmasq_pid = get_dnsmasq_pid(pid_file_path);
-        if (kill(dnsmasq_pid, 0) == 0)
-        {
-            mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("existing dnsmasq found with pid {}", dnsmasq_pid));
-            return;
-        }
+        mpl::log(mpl::Level::warning, "dnsmasq", "Not running");
+        start_dnsmasq();
     }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::debug, "dnsmasq", fmt::format("Exception caught while looking for dnsmasq: {}", e.what()));
-        // Ignore and fall-through
-    }
-
-    mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
-    start_dnsmasq();
 }
+
+namespace
+{
+std::string dnsmasq_failure_msg(std::string err_base, const mp::ProcessState& state)
+{
+    if (auto err_detail = state.failure_message(); !err_detail.isEmpty())
+        err_base += fmt::format(": {}", err_detail);
+
+    return err_base;
+}
+
+std::string dnsmasq_failure_msg(const mp::ProcessState& state)
+{
+    auto err_msg = dnsmasq_failure_msg("dnsmasq died", state);
+    if (state.exit_code == 2)
+        err_msg += ". Ensure nothing is using port 53.";
+
+    return err_msg;
+}
+} // namespace
 
 void mp::DNSMasqServer::start_dnsmasq()
 {
-    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, pid_file_path, subnet, conf_file.fileName());
-    const auto dnsmasq_daemon_fork_state = dnsmasq_cmd->execute();
+    mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
 
-    if (dnsmasq_daemon_fork_state.error)
+    finish_connection = QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](const ProcessState& state) {
+        mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_failure_msg(state));
+    });
+
+    dnsmasq_cmd->start();
+    if (!dnsmasq_cmd->wait_for_started())
     {
-        throw std::runtime_error(
-            fmt::format("Multipass dnsmasq failed to start: {}", dnsmasq_daemon_fork_state.error.value().message));
+        auto err_msg = dnsmasq_failure_msg("Multipass dnsmasq failed to start", dnsmasq_cmd->process_state());
+
+        dnsmasq_cmd->kill();
+        throw std::runtime_error(err_msg);
     }
-    else if (dnsmasq_daemon_fork_state.exit_code != 0)
-    {
-        // exit_code == 2 signifies dnsmasq network-related error. See `man dnsmasq`.
-        throw std::runtime_error(
-            fmt::format("Multipass dnsmasq is not running.{}",
-                        (dnsmasq_daemon_fork_state.exit_code == 2) ? " Ensure nothing is using port 53." : ""));
-    }
+
+    if (dnsmasq_cmd->wait_for_finished(5)) // detect immediate failures (in the first 5ms)
+        throw std::runtime_error{dnsmasq_failure_msg(dnsmasq_cmd->process_state())};
 }

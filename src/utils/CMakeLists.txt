@@ -17,12 +17,14 @@ add_library(utils STATIC
   settings.cpp
   snap_utils.cpp
   standard_paths.cpp
-  utils.cpp)
+  utils.cpp
+  vm_image_vault_utils.cpp)
 
 target_link_libraries(utils
   fmt
   ssh_common
   ssh
   yaml
+  xz_image_decoder
   Qt5::Core
   Qt5::Gui)
