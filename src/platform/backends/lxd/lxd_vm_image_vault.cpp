@@ -163,24 +163,44 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             manager, "GET",
             QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
 
-        auto id = instance_info["metadata"].toObject()["config"].toObject()["volatile.base_image"].toString();
+        auto config = instance_info["metadata"].toObject()["config"].toObject();
+
+        if (config.contains("image.original_hash"))
+        {
+            VMImage source_image;
+
+            source_image.id = config["image.original_hash"].toString().toStdString();
+            source_image.original_release = config["image.description"].toString().toStdString();
+            source_image.release_date = config["image.version"].toString().toStdString();
+
+            return source_image;
+        }
+
+        auto id = config["volatile.base_image"].toString();
 
         for (const auto& image_host : image_hosts)
         {
-            auto info = image_host->info_for_full_hash(id.toStdString());
-
-            VMImage source_image;
-
-            source_image.id = id.toStdString();
-            source_image.original_release = info.release_title.toStdString();
-            source_image.release_date = info.version.toStdString();
-
-            for (const auto& alias : info.aliases)
+            try
             {
-                source_image.aliases.push_back(alias.toStdString());
-            }
+                auto info = image_host->info_for_full_hash(id.toStdString());
 
-            return source_image;
+                VMImage source_image;
+
+                source_image.id = id.toStdString();
+                source_image.original_release = info.release_title.toStdString();
+                source_image.release_date = info.version.toStdString();
+
+                for (const auto& alias : info.aliases)
+                {
+                    source_image.aliases.push_back(alias.toStdString());
+                }
+
+                return source_image;
+            }
+            catch (const std::exception&)
+            {
+                // Ignore
+            }
         }
     }
     catch (const LXDNotFoundException&)
