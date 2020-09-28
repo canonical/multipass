@@ -33,6 +33,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto immediate_wait = 25; // period to wait for immediate dnsmasq failures, in ms
 
 auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const std::string& subnet,
                           const QString& conf_file_path)
@@ -173,6 +174,6 @@ void mp::DNSMasqServer::start_dnsmasq()
         throw std::runtime_error(err_msg);
     }
 
-    if (dnsmasq_cmd->wait_for_finished(5)) // detect immediate failures (in the first 5ms)
+    if (dnsmasq_cmd->wait_for_finished(immediate_wait)) // detect immediate failures (in the first few milliseconds)
         throw std::runtime_error{dnsmasq_failure_msg(dnsmasq_cmd->process_state())};
 }
