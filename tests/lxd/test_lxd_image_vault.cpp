@@ -101,6 +101,35 @@ TEST_F(LXDImageVault, instance_exists_fetch_returns_expected_image_info)
     EXPECT_EQ(image.release_date, mpt::default_version);
 }
 
+TEST_F(LXDImageVault, instance_exists_custom_image_returns_expected_image_info)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::vm_custom_info_data);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    mp::VMImage image;
+    EXPECT_NO_THROW(image =
+                        image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
+
+    EXPECT_EQ(image.id, "6937ddd3f4c3329182855843571fc91ae4fee24e8e0eb0f7cdcf2c22feed4dab");
+    EXPECT_EQ(image.original_release, "Snapcraft builder for Core 20");
+    EXPECT_EQ(image.release_date, "20200923");
+}
+
 TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
