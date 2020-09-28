@@ -29,8 +29,25 @@ using namespace testing;
 
 namespace multipass::test
 {
-struct PowerShellTest : public Test
+struct PowerShellTestAccessor
 {
+    PowerShellTestAccessor(PowerShell& ps) : ps{ps}
+    {
+    }
+
+    bool write(const QByteArray& data)
+    {
+        return ps.write(data);
+    }
+
+    inline static const QString& output_end_marker = PowerShell::output_end_marker;
+
+    PowerShell& ps;
+};
+
+class PowerShellTest : public Test
+{
+public:
     void TearDown() override
     {
         ASSERT_TRUE(forked);
@@ -43,6 +60,23 @@ struct PowerShellTest : public Test
             if (callback)
                 callback(process);
         });
+    }
+
+    QByteArray get_status(bool succeed)
+    {
+        return succeed ? " True\n" : " False\n";
+    }
+
+    QByteArray end_marker(bool succeed)
+    {
+        return QByteArray{"\n"}.append(PowerShellTestAccessor::output_end_marker).append(get_status(succeed));
+    }
+
+    void expect_writes(MockProcess* process, QByteArray cmdlet)
+    {
+        EXPECT_CALL(*process, write(Eq(cmdlet.append('\n'))));
+        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
+                                             HasSubstr(PowerShellTestAccessor::output_end_marker.toStdString()))));
     }
 
     MockLogger::Scope logger_scope = MockLogger::inject();
@@ -67,21 +101,6 @@ private:
     inline static constexpr auto written = 1'000'000;
 };
 
-struct PowerShellTestAccessor
-{
-    PowerShellTestAccessor(PowerShell& ps) : ps{ps}
-    {
-    }
-
-    bool write(const QByteArray& data)
-    {
-        return ps.write(data);
-    }
-
-    inline static const QString& output_end_marker = PowerShell::output_end_marker;
-
-    PowerShell& ps;
-};
 } // namespace multipass::test
 
 #endif // MULTIPASS_POWER_SHELL_TEST_H

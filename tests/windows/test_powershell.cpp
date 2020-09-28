@@ -157,19 +157,17 @@ struct TestPSStatusAndOutput : public PowerShellTest, public WithParamInterface<
 {
     QByteArray get_status()
     {
-        return GetParam() ? " True\n" : " False\n";
+        return PowerShellTest::get_status(GetParam());
     }
 
     QByteArray end_marker()
     {
-        return QByteArray{"\n"}.append(mpt::PowerShellTestAccessor::output_end_marker).append(get_status());
+        return PowerShellTest::end_marker(GetParam());
     }
 
     void expect_writes(mpt::MockProcess* process)
     {
-        EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))));
-        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
-                                             HasSubstr(mpt::PowerShellTestAccessor::output_end_marker.toStdString()))));
+        return PowerShellTest::expect_writes(process, cmdlet);
     }
 
     QString run()
