@@ -76,19 +76,10 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     }
     catch (const LocalSocketConnectionException& e)
     {
-        auto error_code = e.get_error();
 
-        if (error_code == QLocalSocket::ConnectionRefusedError)
-        {
-            throw std::runtime_error(
-                fmt::format("{}\nPlease ensure the LXD snap interface is connected via `snap connect "
-                            "multipass:lxd`\nand that the LXD snap is enabled and running.",
-                            e.what()));
-        }
-        else if (error_code == QLocalSocket::ServerNotFoundError)
-        {
-            throw std::runtime_error(fmt::format("{}\nPlease ensure the LXD snap is installed and running.", e.what()));
-        }
+        throw std::runtime_error(fmt::format("{}\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                                             "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                                             e.what()));
     }
 
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))
