@@ -564,7 +564,7 @@ QJsonArray mp::LXDVMImageVault::retrieve_image_list()
     {
         // ignore exception
     }
-    catch (const std::exception& e)
+    catch (const LocalSocketConnectionException& e)
     {
         mpl::log(mpl::Level::warning, category, e.what());
     }
