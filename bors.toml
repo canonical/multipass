@@ -1,4 +1,4 @@
-status = [ "Bors" ]
+status = [ "Linux", "Windows", "macOS" ]
 block-labels = [ "no-merge" ]
 timeout-sec = 12000
 delete-merged-branches = true
