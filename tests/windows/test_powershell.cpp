@@ -117,7 +117,7 @@ TEST_F(PowerShellTest, write_silent_on_success)
     mp::PowerShell ps{"Bedap"};
 
     logger_scope.mock_logger->screen_logs();
-    ASSERT_TRUE(mpt::PowerShellTestAccessor{ps}.write(data));
+    ASSERT_TRUE(ps_helper.ps_write(ps, data));
 }
 
 TEST_F(PowerShellTest, write_logs_on_failure)
@@ -130,7 +130,7 @@ TEST_F(PowerShellTest, write_logs_on_failure)
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs();
     logger.expect_log(mpl::Level::warning, "Failed to send");
-    ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
+    ASSERT_FALSE(ps_helper.ps_write(ps, data));
 }
 
 TEST_F(PowerShellTest, write_logs_writen_bytes_on_failure)
@@ -144,7 +144,7 @@ TEST_F(PowerShellTest, write_logs_writen_bytes_on_failure)
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs();
     logger.expect_log(mpl::Level::warning, fmt::format("{} bytes", part));
-    ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
+    ASSERT_FALSE(ps_helper.ps_write(ps, data));
 }
 
 TEST_F(PowerShellTest, run_writes_and_logs_cmd)
@@ -244,7 +244,7 @@ TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
     ps_helper.setup([this](auto* process) {
-        const auto marker_halves = halves(mpt::PowerShellTestAccessor::output_end_marker);
+        const auto marker_halves = halves(ps_helper.output_end_marker);
         const auto status_halves = halves(get_status());
 
         expect_writes(process);

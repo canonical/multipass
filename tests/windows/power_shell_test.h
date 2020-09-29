@@ -29,22 +29,6 @@ using namespace testing;
 
 namespace multipass::test
 {
-struct PowerShellTestAccessor // TODO@ricab merge with helper
-{
-    PowerShellTestAccessor(PowerShell& ps) : ps{ps}
-    {
-    }
-
-    bool write(const QByteArray& data)
-    {
-        return ps.write(data);
-    }
-
-    inline static const QString& output_end_marker = PowerShell::output_end_marker;
-
-    PowerShell& ps;
-};
-
 class PowerShellTestHelper // TODO@ricab make uncopyable
 {
 public:
@@ -89,6 +73,12 @@ public:
         });
     }
 
+    // proxy to private PS::write method
+    bool ps_write(PowerShell& ps, const QByteArray& data)
+    {
+        return ps.write(data);
+    }
+
     QByteArray get_status(bool succeed) const
     {
         return succeed ? " True\n" : " False\n";
@@ -96,14 +86,13 @@ public:
 
     QByteArray end_marker(bool succeed) const
     {
-        return QByteArray{"\n"}.append(PowerShellTestAccessor::output_end_marker).append(get_status(succeed));
+        return QByteArray{"\n"}.append(output_end_marker).append(get_status(succeed));
     }
 
     void expect_writes(MockProcess* process, QByteArray cmdlet) const
     {
         EXPECT_CALL(*process, write(Eq(cmdlet.append('\n'))));
-        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString,
-                                             HasSubstr(PowerShellTestAccessor::output_end_marker.toStdString()))));
+        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()))));
     }
 
     bool was_ps_run() const
@@ -112,6 +101,7 @@ public:
     }
 
     inline static constexpr auto psexit = "Exit\n";
+    inline static const QString& output_end_marker = PowerShell::output_end_marker;
 
 private:
     void setup_process(MockProcess* process)
@@ -129,7 +119,7 @@ private:
     void add_mocked_run(MockProcess* process, const RunSpec& run)
     {
         const auto& [cmdlet, output, result] = run;
-        const auto& marker = PowerShellTestAccessor::output_end_marker;
+        const auto& marker = output_end_marker;
 
         auto cmdlet_matcher = Property(&QByteArray::toStdString, HasSubstr(cmdlet));
         EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
