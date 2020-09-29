@@ -24,6 +24,8 @@
 
 #include <QString>
 
+#include <vector>
+
 namespace multipass
 {
 struct NetworkInterface;
