@@ -267,7 +267,6 @@ jobs:
         sha: ${{ github.event.client_payload.head_sha }}
         check_id: ${{ steps.public-check.outputs.check_id }}
         conclusion: ${{ job.status }}
-        details_url: ${{ env.RUN_URL }}
 
     - name: Cleanup
       if: ${{ always() }}
@@ -398,4 +397,3 @@ jobs:
         sha: ${{ github.event.client_payload.head_sha }}
         check_id: ${{ steps.public-check.outputs.check_id }}
         conclusion: ${{ job.status }}
-        details_url: ${{ env.RUN_URL }}
