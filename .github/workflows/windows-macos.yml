@@ -14,6 +14,7 @@ on:
 
 env:
   HEAD_REF: ci${{ github.run_id }}
+  RUN_URL: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
 
 jobs:
   # This job is here so that the Windows and macOS builds share exactly the same
@@ -98,6 +99,27 @@ jobs:
       QT_VERSION: "5.12.9"
 
     steps:
+    - name: Create an App token
+      id: app-token
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      uses: multipass-ci-bot/github-app-token@v1
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
+        repository: ${{ github.event.client_payload.repository }}
+
+    - name: Create a check on public
+      id: public-check
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      uses: multipass-ci-bot/checks-action@master
+      with:
+        token: ${{ steps.app-token.outputs.token }}
+        repo: ${{ github.event.client_payload.repository }}
+        sha: ${{ github.event.client_payload.head_sha }}
+        name: ${{ github.job }}
+        status: in_progress
+        details_url: ${{ env.RUN_URL }}
+
     - name: Retrieve the repository
       uses: actions/download-artifact@v2
       with:
@@ -223,6 +245,29 @@ jobs:
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
 
+    - name: Create an App token
+      # The token in app-token expires after an hour, and a full macOS build
+      # (including bors and ocaml setup) may take more than that, so need to
+      # get a new one. This would probably be better integrated into the check
+      # action itself.
+      id: app-token-update
+      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      uses: multipass-ci-bot/github-app-token@v1
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
+        repository: ${{ github.event.client_payload.repository }}
+
+    - name: Update the check on public
+      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      uses: multipass-ci-bot/checks-action@master
+      with:
+        token: ${{ steps.app-token-update.outputs.token }}
+        repo: ${{ github.event.client_payload.repository }}
+        sha: ${{ github.event.client_payload.head_sha }}
+        check_id: ${{ steps.public-check.outputs.check_id }}
+        conclusion: ${{ job.status }}
+
     - name: Cleanup
       if: ${{ always() }}
       run: |
@@ -233,7 +278,7 @@ jobs:
   Windows:
     needs: [Checkout, Lint]
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !github.event.pull_request.draft && !failure() && needs.Checkout.result == 'success' }}
+    if: ${{ !github.event.pull_request.draft && github.event.client_payload.draft != 'true' && !failure() && needs.Checkout.result == 'success' }}
 
     runs-on: windows-latest
 
@@ -241,6 +286,27 @@ jobs:
       BUILD_DIR: ../build
 
     steps:
+    - name: Create an App token
+      id: app-token
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      uses: multipass-ci-bot/github-app-token@v1
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
+        repository: ${{ github.event.client_payload.repository }}
+
+    - name: Create a check on public
+      id: public-check
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      uses: multipass-ci-bot/checks-action@master
+      with:
+        token: ${{ steps.app-token.outputs.token }}
+        repo: ${{ github.event.client_payload.repository }}
+        sha: ${{ github.event.client_payload.head_sha }}
+        name: ${{ github.job }}
+        status: in_progress
+        details_url: ${{ env.RUN_URL }}
+
     - name: Retrieve the repository
       uses: actions/download-artifact@v2
       with:
@@ -321,3 +387,13 @@ jobs:
         name: ${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
+
+    - name: Update the check on public
+      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      uses: multipass-ci-bot/checks-action@master
+      with:
+        token: ${{ steps.app-token.outputs.token }}
+        repo: ${{ github.event.client_payload.repository }}
+        sha: ${{ github.event.client_payload.head_sha }}
+        check_id: ${{ steps.public-check.outputs.check_id }}
+        conclusion: ${{ job.status }}
