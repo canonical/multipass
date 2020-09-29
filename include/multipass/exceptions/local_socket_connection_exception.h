@@ -18,8 +18,6 @@
 #ifndef MULTIPASS_LOCAL_SOCKET_CONNECTION_EXCEPTION_H
 #define MULTIPASS_LOCAL_SOCKET_CONNECTION_EXCEPTION_H
 
-#include <QLocalSocket>
-
 #include <stdexcept>
 
 namespace multipass
@@ -27,18 +25,9 @@ namespace multipass
 class LocalSocketConnectionException : public std::runtime_error
 {
 public:
-    LocalSocketConnectionException(const std::string& what, const QLocalSocket::LocalSocketError& error_code)
-        : runtime_error(what), error_code{error_code}
+    LocalSocketConnectionException(const std::string& what) : runtime_error(what)
     {
     }
-
-    QLocalSocket::LocalSocketError get_error() const
-    {
-        return error_code;
-    }
-
-private:
-    const QLocalSocket::LocalSocketError error_code;
 };
 } // namespace multipass
 #endif // MULTIPASS_HTTP_LOCAL_SOCKET_EXCEPTION_H

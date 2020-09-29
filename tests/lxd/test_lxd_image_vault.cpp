@@ -465,7 +465,7 @@ TEST_F(LXDImageVault, has_record_for_error_logs_message_and_returns_true)
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
-            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+            throw mp::LocalSocketConnectionException(exception_message);
         });
 
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
@@ -701,7 +701,7 @@ TEST_F(LXDImageVault, prune_expired_error_logs_warning_does_not_throw)
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
-            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+            throw mp::LocalSocketConnectionException(exception_message);
         });
 
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
@@ -832,7 +832,7 @@ TEST_F(LXDImageVault, fetch_image_unable_to_connect_logs_error_and_returns_blank
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
-            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+            throw mp::LocalSocketConnectionException(exception_message);
         });
 
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),

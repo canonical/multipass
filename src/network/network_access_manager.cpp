@@ -42,8 +42,7 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
         const auto url_parts = orig_request.url().toString().split('@');
         if (url_parts.count() != 2)
         {
-            throw LocalSocketConnectionException(("The local socket scheme is malformed."),
-                                                 QLocalSocket::UnknownSocketError);
+            throw LocalSocketConnectionException("The local socket scheme is malformed.");
         }
 
         const auto socket_path = QUrl(url_parts[0]).path();
@@ -54,8 +53,7 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
         if (!local_socket->waitForConnected(5000))
         {
             throw LocalSocketConnectionException(
-                fmt::format("Cannot connect to {}: {}", socket_path, local_socket->errorString()),
-                local_socket->error());
+                fmt::format("Cannot connect to {}: {}", socket_path, local_socket->errorString()));
         }
 
         const auto server_path = url_parts[1];

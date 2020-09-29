@@ -794,7 +794,7 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
-            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ConnectionRefusedError);
+            throw mp::LocalSocketConnectionException(exception_message);
         });
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
@@ -802,8 +802,8 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
     MP_EXPECT_THROW_THAT(
         backend.hypervisor_health_check(), std::runtime_error,
         Property(&std::runtime_error::what,
-                 StrEq(fmt::format("{}\nPlease ensure the LXD snap interface is connected via `snap connect "
-                                   "multipass:lxd`\nand that the LXD snap is enabled and running.",
+                 StrEq(fmt::format("{}\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                                   "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
                                    exception_message))));
 }
 
@@ -813,7 +813,7 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
-            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+            throw mp::LocalSocketConnectionException(exception_message);
         });
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
@@ -821,7 +821,9 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
     MP_EXPECT_THROW_THAT(
         backend.hypervisor_health_check(), std::runtime_error,
         Property(&std::runtime_error::what,
-                 StrEq(fmt::format("{}\nPlease ensure the LXD snap is installed and running.", exception_message))));
+                 StrEq(fmt::format("{}\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                                   "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                                   exception_message))));
 }
 
 TEST_F(LXDBackend, returns_expected_network_info)
@@ -1277,7 +1279,7 @@ TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
-            throw mp::LocalSocketConnectionException(exception_message, QLocalSocket::ServerNotFoundError);
+            throw mp::LocalSocketConnectionException(exception_message);
         });
 
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
