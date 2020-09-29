@@ -112,14 +112,15 @@ public:
 private:
     void setup_process(MockProcess* process)
     {
-        ASSERT_EQ(process->program(), psexe); // TODO@ricab make this an if instead, to accommodate other processes
+        if (process->program() == psexe)
+        {
+            // succeed these by default
+            ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
+            ON_CALL(*process, write(_)).WillByDefault(Return(written));
+            EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
 
-        // succeed these by default
-        ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
-        ON_CALL(*process, write(_)).WillByDefault(Return(written));
-        EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
-
-        forked = true;
+            forked = true;
+        }
     }
 
     void add_mocked_run(MockProcess* process, const RunSpec& run)
