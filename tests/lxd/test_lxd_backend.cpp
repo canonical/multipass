@@ -252,8 +252,10 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
+    bool start_called{false};
+
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([](auto, auto request, auto outgoingData) {
+        .WillByDefault([&start_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -263,7 +265,14 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
             {
                 if (url.contains("state"))
                 {
-                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                    if (!start_called)
+                    {
+                        return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                    }
+                    else
+                    {
+                        return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                    }
                 }
                 else
                 {
@@ -273,6 +282,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
             else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
                      data.contains("start"))
             {
+                start_called = true;
                 return new mpt::MockLocalSocketReply(mpt::start_vm_data);
             }
 
