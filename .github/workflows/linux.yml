@@ -44,7 +44,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CTEST_OUTPUT_ON_FAILURE: 1
       SNAPCRAFT_BUILD_INFO: 1
 
     timeout-minutes: 60
@@ -138,7 +137,8 @@ jobs:
         sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
         sg lxd -c \
           '/snap/bin/lxc exec snapcraft-multipass -- \
-             cmake --build /root/parts/multipass/build --target covreport'
+             env CTEST_OUTPUT_ON_FAILURE=1 \
+               cmake --build /root/parts/multipass/build --target covreport'
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
     - name: Build and verify the snap
