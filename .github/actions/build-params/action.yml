@@ -33,7 +33,8 @@ runs:
       elif [ ${{ github.event_name }} == "pull_request" ]; then
         echo "::set-output name=label::pr${{ github.event.number }}"
         echo "::set-output name=channel::edge/pr${{ github.event.number }}"
-      elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/trying" && "${{ github.event.head_commit.message }}" =~ ^Try\ #([0-9]+): ]]; then
+      # If it's the `trying` branch, get the PR number from HEAD's Subject
+      elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/trying" && "$( git log -1 --pretty=%s )" =~ ^Try\ #([0-9]+): ]]; then
         echo "::set-output name=label::pr${BASH_REMATCH[1]}"
         echo "::set-output name=channel::edge/pr${BASH_REMATCH[1]}"
 
