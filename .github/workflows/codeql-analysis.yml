@@ -25,6 +25,11 @@ jobs:
     - name: Check out submodules
       uses: ./.github/actions/checkout
 
+    - name: Install build dependencies
+      run: |
+        sudo apt-get --no-install-recommends --yes install devscripts equivs
+        mk-build-deps -s sudo -i
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
       with:
