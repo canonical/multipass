@@ -197,6 +197,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
                 return source_image;
             }
+            // TODO: Change exception type here once implemented in the image host
             catch (const std::exception&)
             {
                 // Ignore
