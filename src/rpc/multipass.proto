@@ -252,8 +252,8 @@ message NetInterface {
 
 message ListNetworksReply {
     repeated NetInterface interfaces = 1;
-    UpdateInfo update_info = 2;
-    string log_line = 3;
+    string log_line = 2;
+    UpdateInfo update_info = 3;
 }
 
 message TargetPathInfo {
