@@ -77,9 +77,10 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     catch (const LocalSocketConnectionException& e)
     {
 
-        throw std::runtime_error(fmt::format("{}\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
-                                             "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
-                                             e.what()));
+        throw std::runtime_error(
+            fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                        "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                        e.what()));
     }
 
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))

@@ -802,7 +802,7 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
     MP_EXPECT_THROW_THAT(
         backend.hypervisor_health_check(), std::runtime_error,
         Property(&std::runtime_error::what,
-                 StrEq(fmt::format("{}\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                 StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
                                    "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
                                    exception_message))));
 }
@@ -821,7 +821,7 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
     MP_EXPECT_THROW_THAT(
         backend.hypervisor_health_check(), std::runtime_error,
         Property(&std::runtime_error::what,
-                 StrEq(fmt::format("{}\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                 StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
                                    "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
                                    exception_message))));
 }
