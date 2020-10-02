@@ -445,15 +445,7 @@ void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& s
     source_object.insert("server", stream_location);
     source_object.insert("protocol", "simplestreams");
     source_object.insert("image_type", "virtual-machine");
-
-    if (id.startsWith(release))
-    {
-        source_object.insert("fingerprint", id);
-    }
-    else
-    {
-        source_object.insert("alias", release);
-    }
+    source_object.insert("fingerprint", id);
 
     QJsonObject image_object{{"source", source_object}};
 
