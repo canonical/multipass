@@ -19,6 +19,7 @@
 #include "lxd_request.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
+#include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_access_manager.h>
@@ -208,6 +209,11 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     {
         // Instance doesn't exist, so move on
     }
+    catch (const LocalSocketConnectionException& e)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("{} - returning blank image info", e.what()));
+        return VMImage{};
+    }
     catch (const std::exception&)
     {
         // Image doesn't exist, so move on
@@ -295,6 +301,13 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
     catch (const LXDNotFoundException&)
     {
         return false;
+    }
+    catch (const LocalSocketConnectionException& e)
+    {
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("{} - Unable to determine if \'{}\' exists", e.what(), name));
+        // Assume instance exists until it knows for sure
+        return true;
     }
 }
 
@@ -571,6 +584,10 @@ QJsonArray mp::LXDVMImageVault::retrieve_image_list()
     catch (const LXDNotFoundException&)
     {
         // ignore exception
+    }
+    catch (const LocalSocketConnectionException& e)
+    {
+        mpl::log(mpl::Level::warning, category, e.what());
     }
 
     return image_list;
