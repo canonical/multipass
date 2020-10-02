@@ -60,6 +60,90 @@ namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
+mp::IPAddress get_ip_address(const std::string& iface_name)
+{
+    const char* iface = iface_name.c_str();
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+    ioctl(fd, SIOCGIFADDR, &ifr);
+
+    close(fd);
+
+    return mp::IPAddress(inet_ntoa((reinterpret_cast<struct sockaddr_in*>(&ifr.ifr_addr))->sin_addr));
+}
+
+// The uevent files in /sys have a set of KEY=value pairs, one per line. This function takes as arguments a file
+// with full path and a key, and returns the value associated with that key. If the specified uevent file does not
+// exist, or the key is not found, then the empty string is returned.
+std::string get_uevent_value(const std::string& file, const std::string& key)
+{
+    QRegularExpression pattern('^' + QString::fromStdString(key) + "=(?<value>[A-Za-z0-9-_]*)$");
+    QFile uevent_file(QString::fromStdString(file));
+
+    if (uevent_file.open(QIODevice::ReadOnly))
+    {
+        while (!uevent_file.atEnd())
+        {
+            auto key_match = pattern.match(uevent_file.readLine());
+            if (key_match.hasMatch())
+            {
+                uevent_file.close();
+                return key_match.captured("value").toStdString();
+            }
+        }
+        uevent_file.close();
+    }
+
+    return std::string();
+}
+
+std::string get_ip_output(QStringList ip_args)
+{
+    auto ip_spec = mp::simple_process_spec("ip", ip_args);
+    auto ip_process = mp::platform::make_process(std::move(ip_spec));
+    auto ip_exit_state = ip_process->execute();
+
+    if (ip_exit_state.completed_successfully())
+        return ip_process->read_all_standard_output().toStdString();
+    else if (ip_exit_state.exit_code && *(ip_exit_state.exit_code) == 1)
+        return ip_process->read_all_standard_error().toStdString();
+    else
+        throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
+}
+
+mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name)
+{
+    QString iface_name_qstr = QString::fromStdString(iface_name);
+    std::string type;
+    std::string description;
+    mp::optional<mp::IPAddress> ip_address;
+
+    QString ip_output = QString::fromStdString(get_ip_output({"link", "show", "dev", iface_name_qstr}));
+
+    // Get the IP if the interface is up.
+    if (ip_output.contains("state UP"))
+    {
+        ip_address = get_ip_address(iface_name);
+    }
+
+    if (ip_output.contains(": " + iface_name_qstr + ": "))
+    {
+        type = "hardware";
+        description = "Ethernet or wifi";
+    }
+    else
+    {
+        type = "";
+        description = "";
+    }
+
+    return mp::NetworkInterfaceInfo{iface_name, type, description, ip_address};
+}
+
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -182,47 +266,8 @@ bool mp::platform::is_image_url_supported()
     return true;
 }
 
-mp::IPAddress get_ip_address(const std::string& iface_name)
-{
-    const char* iface = iface_name.c_str();
-    struct ifreq ifr;
-
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-    ioctl(fd, SIOCGIFADDR, &ifr);
-
-    close(fd);
-
-    return mp::IPAddress(inet_ntoa((reinterpret_cast<struct sockaddr_in*>(&ifr.ifr_addr))->sin_addr));
-}
-
-// The uevent files in /sys have a set of KEY=value pairs, one per line. This function takes as arguments a file
-// with full path and a key, and returns the value associated with that key. If the specified uevent file does not
-// exist, or the key is not found, then the empty string is returned.
-std::string get_uevent_value(const std::string& file, const std::string& key)
-{
-    QRegularExpression pattern('^' + QString::fromStdString(key) + "=(?<value>[A-Za-z0-9-_]*)$");
-    QFile uevent_file(QString::fromStdString(file));
-
-    if (uevent_file.open(QIODevice::ReadOnly))
-    {
-        while (!uevent_file.atEnd())
-        {
-            auto key_match = pattern.match(uevent_file.readLine());
-            if (key_match.hasMatch())
-            {
-                uevent_file.close();
-                return key_match.captured("value").toStdString();
-            }
-        }
-        uevent_file.close();
-    }
-
-    return std::string();
-}
-
+// This function is not working under confinement. Multipass has `network-control`, which allows rw access to
+// `/sys/devices/virtual/net/*/bridge/*`.
 mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::string& iface_name,
                                                                   const std::string& virtual_path)
 {
@@ -298,49 +343,6 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
     mp::NetworkInterfaceInfo iface_info{iface_name, type, description, ip_address};
 
     return iface_info;
-}
-
-std::string get_ip_output(QStringList ip_args)
-{
-    auto ip_spec = mp::simple_process_spec("ip", ip_args);
-    auto ip_process = mp::platform::make_process(std::move(ip_spec));
-    auto ip_exit_state = ip_process->execute();
-
-    if (ip_exit_state.completed_successfully())
-        return ip_process->read_all_standard_output().toStdString();
-    else if (ip_exit_state.exit_code && *(ip_exit_state.exit_code) == 1)
-        return ip_process->read_all_standard_error().toStdString();
-    else
-        throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
-}
-
-mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name)
-{
-    QString iface_name_qstr = QString::fromStdString(iface_name);
-    std::string type;
-    std::string description;
-    mp::optional<mp::IPAddress> ip_address;
-
-    QString ip_output = QString::fromStdString(get_ip_output({"link", "show", "dev", iface_name_qstr}));
-
-    // Get the IP if the interface is up.
-    if (ip_output.contains("state UP"))
-    {
-        ip_address = get_ip_address(iface_name);
-    }
-
-    if (ip_output.contains(": " + iface_name_qstr + ": "))
-    {
-        type = "hardware";
-        description = "Ethernet or wifi";
-    }
-    else
-    {
-        type = "";
-        description = "";
-    }
-
-    return mp::NetworkInterfaceInfo{iface_name, type, description, ip_address};
 }
 
 mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
