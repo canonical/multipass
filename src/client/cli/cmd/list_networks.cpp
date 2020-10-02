@@ -56,7 +56,7 @@ std::string cmd::ListNetworks::name() const
 
 std::vector<std::string> cmd::ListNetworks::aliases() const
 {
-    return {name(), "ln"};
+    return {name(), "lsn"};
 }
 
 QString cmd::ListNetworks::short_help() const
