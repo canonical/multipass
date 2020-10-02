@@ -198,9 +198,3 @@ QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
     mpl::log(mpl::Level::error, logging_category, "Failed to determine libvirtd version.");
     return QString("libvirt-unknown");
 }
-
-// This function returns an empty list as long as bridging is not implemented in the backend.
-auto multipass::LibVirtVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
-{
-    return {};
-}
