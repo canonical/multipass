@@ -324,6 +324,9 @@ TEST(Utils, valid_mac_address_works)
     EXPECT_FALSE(mp::utils::valid_mac_address("01:23:45:67:89:AG"));
     EXPECT_FALSE(mp::utils::valid_mac_address("012345678901"));
     EXPECT_FALSE(mp::utils::valid_mac_address("1:23:45:65:89:ab"));
+    EXPECT_FALSE(mp::utils::valid_mac_address("aa-bb-cc-dd-ee-ff"));
+    EXPECT_FALSE(mp::utils::valid_mac_address("aa:bb:cc:dd:ee:ff:"));
+    EXPECT_FALSE(mp::utils::valid_mac_address(":aa:bb:cc:dd:ee:ff"));
 }
 
 TEST(Utils, has_only_digits_works)

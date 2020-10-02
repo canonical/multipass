@@ -193,24 +193,11 @@ std::string mp::utils::generate_mac_address()
 bool mp::utils::valid_mac_address(const std::string& mac)
 {
     // A MAC address is a string consisting of six pairs of hyphen-separated hexadecimal digits.
-    QStringList separated_mac = QString::fromStdString(mac).toLower().split(':', QString::KeepEmptyParts);
+    const auto pattern = QStringLiteral("^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$");
+    const auto regexp = QRegularExpression{pattern};
+    const auto match = regexp.match(QString::fromStdString(mac));
 
-    if (separated_mac.size() == 6)
-    {
-        for (auto mac_group : separated_mac)
-        {
-            if (mac_group.size() != 2)
-                return false;
-
-            for (auto c : mac_group)
-                if ('0' > c || ('9' < c && 'a' > c) || 'f' < c)
-                    return false;
-        }
-
-        return true;
-    }
-
-    return false;
+    return match.hasMatch();
 }
 
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
