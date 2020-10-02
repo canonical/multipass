@@ -19,6 +19,7 @@
 #include "lxd_virtual_machine.h"
 #include "lxd_vm_image_vault.h"
 
+#include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
@@ -67,7 +68,20 @@ void mp::LXDVirtualMachineFactory::prepare_instance_image(const mp::VMImage& /* 
 
 void mp::LXDVirtualMachineFactory::hypervisor_health_check()
 {
-    auto reply = lxd_request(manager.get(), "GET", base_url);
+    QJsonObject reply;
+
+    try
+    {
+        reply = lxd_request(manager.get(), "GET", base_url);
+    }
+    catch (const LocalSocketConnectionException& e)
+    {
+
+        throw std::runtime_error(
+            fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                        "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                        e.what()));
+    }
 
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))
     {
