@@ -62,16 +62,34 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 mp::IPAddress get_ip_address(const std::string& iface_name)
 {
+    if (iface_name.size() >= IFNAMSIZ)
+    {
+        throw std::runtime_error(
+            fmt::format("Interface name \"{}\" has more than {} characters", iface_name, IFNAMSIZ - 1));
+    }
+
     const char* iface = iface_name.c_str();
     struct ifreq ifr;
 
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
 
+    if (fd == -1)
+    {
+        throw std::runtime_error(fmt::format("opening socket for {}: {}", iface_name, std::strerror(errno)));
+    }
+
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-    ioctl(fd, SIOCGIFADDR, &ifr);
 
-    close(fd);
+    if (ioctl(fd, SIOCGIFADDR, &ifr) == -1)
+    {
+        throw std::runtime_error(fmt::format("ioctl for {}: {}", iface_name, std::strerror(errno)));
+    }
+
+    if (close(fd) != 0)
+    {
+        throw std::runtime_error(fmt::format("closing socket for {}: {}", iface_name, std::strerror(errno)));
+    }
 
     return mp::IPAddress(inet_ntoa((reinterpret_cast<struct sockaddr_in*>(&ifr.ifr_addr))->sin_addr));
 }
