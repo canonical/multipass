@@ -31,6 +31,7 @@
 #include "tests/temp_dir.h"
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
@@ -252,8 +253,10 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
+    bool start_called{false};
+
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([](auto, auto request, auto outgoingData) {
+        .WillByDefault([&start_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -263,7 +266,14 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
             {
                 if (url.contains("state"))
                 {
-                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                    if (!start_called)
+                    {
+                        return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                    }
+                    else
+                    {
+                        return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                    }
                 }
                 else
                 {
@@ -273,6 +283,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
             else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
                      data.contains("start"))
             {
+                start_called = true;
                 return new mpt::MockLocalSocketReply(mpt::start_vm_data);
             }
 
@@ -777,6 +788,44 @@ TEST_F(LXDBackend, healthcheck_throws_when_untrusted)
                          Property(&std::runtime_error::what, StrEq("Failed to authenticate to LXD.")));
 }
 
+TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_message)
+{
+    const std::string exception_message{"Connection refused"};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+            throw mp::LocalSocketConnectionException(exception_message);
+        });
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    MP_EXPECT_THROW_THAT(
+        backend.hypervisor_health_check(), std::runtime_error,
+        Property(&std::runtime_error::what,
+                 StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                                   "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                                   exception_message))));
+}
+
+TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message)
+{
+    const std::string exception_message{"Unknown server"};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+            throw mp::LocalSocketConnectionException(exception_message);
+        });
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    MP_EXPECT_THROW_THAT(
+        backend.hypervisor_health_check(), std::runtime_error,
+        Property(&std::runtime_error::what,
+                 StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                                   "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                                   exception_message))));
+}
+
 TEST_F(LXDBackend, returns_expected_network_info)
 {
     mpt::StubVMStatusMonitor stub_monitor;
@@ -1171,6 +1220,76 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
     EXPECT_TRUE(start_called);
     EXPECT_TRUE(stop_called);
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
+}
+
+TEST_F(LXDBackend, start_failure_while_starting_throws_and_sets_correct_state)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    bool start_called{false};
+    int running_returned{0};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&start_called, &running_returned](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            {
+                if (!start_called || running_returned > 1)
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                }
+
+                ++running_returned;
+                return new mpt::MockLocalSocketReply(mpt::vm_state_partial_running_data);
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("start"))
+            {
+                start_called = true;
+                return new mpt::MockLocalSocketReply(mpt::start_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+
+    machine.start();
+
+    ASSERT_EQ(machine.state, mp::VirtualMachine::State::starting);
+
+    EXPECT_NO_THROW(machine.ensure_vm_is_running());
+
+    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::starting);
+
+    MP_EXPECT_THROW_THAT(machine.ensure_vm_is_running(), mp::StartException,
+                         Property(&mp::StartException::what, StrEq("Instance shutdown during start")));
+
+    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
+}
+
+TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_state)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    const std::string exception_message{"Cannot connect to socket"};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+            throw mp::LocalSocketConnectionException(exception_message);
+        });
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq(exception_message))));
+
+    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::unknown);
 }
 
 TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_state)

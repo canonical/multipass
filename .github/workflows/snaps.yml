@@ -1,0 +1,36 @@
+name: Snaps
+
+on:
+  schedule:
+  - cron: '0 5 * * *'
+
+jobs:
+  ProcessUSNs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install Python dependencies
+      uses: BSFishy/pip-action@v1
+      with:
+        requirements: tools/requirements.txt
+
+    - name: Install Snap dependencies
+      run: |
+        sudo snap install review-tools
+
+    - name: Set up Launchpad credentials
+      uses: DamianReeves/write-file-action@v1.0
+      with:
+        path: lp_credentials
+        contents: ${{ secrets.LAUNCHPAD_CREDENTIALS }}
+
+    - name: Check for USNs
+      run: tools/process_snaps.py lp_credentials

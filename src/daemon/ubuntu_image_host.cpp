@@ -172,6 +172,8 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
         }
     }
 
+    // TODO: Throw a specific exception type here so callers can be more specific about what to catch
+    //       and what to allow through.
     throw std::runtime_error(fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 }
 

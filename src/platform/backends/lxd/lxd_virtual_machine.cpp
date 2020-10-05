@@ -21,6 +21,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
+#include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
@@ -277,12 +278,21 @@ void mp::LXDVirtualMachine::suspend()
 
 mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()
 {
-    auto present_state = instance_state_for(name, manager, state_url());
+    try
+    {
+        auto present_state = instance_state_for(name, manager, state_url());
 
-    if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
-        return state;
+        if ((state == State::delayed_shutdown || state == State::starting) && present_state == State::running)
+            return state;
 
-    state = present_state;
+        state = present_state;
+    }
+    catch (const LocalSocketConnectionException& e)
+    {
+        mpl::log(mpl::Level::warning, vm_name, e.what());
+        state = State::unknown;
+    }
+
     return state;
 }
 

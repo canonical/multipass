@@ -1,4 +1,2 @@
 launchpadlib
-httplib2
-pygithub
 requests
