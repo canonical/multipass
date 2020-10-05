@@ -1352,5 +1352,5 @@ TEST_F(LXDBackend, lists_no_networks)
 {
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    EXPECT_EQ(backend.list_networks().size(), (size_t)0);
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
 }
