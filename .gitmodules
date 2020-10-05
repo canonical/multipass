@@ -8,7 +8,7 @@
 	ignore = dirty
 [submodule "3rd-party/hyperkit"]
 	path = 3rd-party/hyperkit
-	url = https://github.com/docker/hyperkit
+	url = https://github.com/canonical/hyperkit
 	ignore = dirty
 [submodule "3rd-party/libssh/libssh"]
 	path = 3rd-party/libssh/libssh
