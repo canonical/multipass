@@ -81,13 +81,6 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
     {
         return {};
     }
-
-    multipass::Path make_cloud_init_image(const QDir& instance_dir, YAML::Node& meta_data_config,
-                                          YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                                          YAML::Node& network_data_config) const
-    {
-        return Path();
-    }
 };
 }
 }

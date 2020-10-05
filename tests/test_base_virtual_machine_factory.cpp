@@ -43,7 +43,6 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD2(prepare_instance_image, void(const mp::VMImage&, const mp::VirtualMachineDescription&));
     MOCK_METHOD0(hypervisor_health_check, void());
     MOCK_METHOD0(get_backend_version_string, QString());
-    MOCK_CONST_METHOD0(list_networks, std::vector<mp::NetworkInterfaceInfo>());
 };
 
 struct BaseFactory : public Test
@@ -79,4 +78,11 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
     auto vault = factory.create_image_vault(hosts, &stub_downloader, cache_dir.path(), data_dir.path(), mp::days{0});
 
     EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
+}
+
+TEST_F(BaseFactory, list_networks_throws)
+{
+    MockBaseFactory factory;
+
+    ASSERT_THROW(factory.list_networks(), mp::NotImplementedOnThisBackendException);
 }
