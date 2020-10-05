@@ -119,8 +119,3 @@ void mp::HyperkitVirtualMachineFactory::prepare_instance_image(const mp::VMImage
     resize_image.start(QCoreApplication::applicationDirPath() + "/qemu-img", resize_image_args);
     resize_image.waitForFinished();
 }
-
-auto mp::HyperkitVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
-{
-    return {}; // TODO
-}

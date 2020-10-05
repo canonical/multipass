@@ -57,3 +57,10 @@ TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
+
+TEST_F(HyperVBackend, lists_no_networks)
+{
+    mp::HyperVVirtualMachineFactory backend;
+
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
+}

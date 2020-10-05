@@ -161,3 +161,10 @@ TEST_P(GetIPThrowingSuite, throws_on_bad_format)
 }
 
 INSTANTIATE_TEST_SUITE_P(Hyperkit, GetIPThrowingSuite, ValuesIn(throwing_hw_addr_inputs), print_param_name);
+
+TEST_F(HyperkitBackend, lists_no_networks)
+{
+    mp::HyperkitVirtualMachineFactory backend;
+
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
+}
