@@ -249,7 +249,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
         }
         else if (!info.stream_location.isEmpty())
         {
-            lxd_download_image(id, info.stream_location, QString::fromStdString(query.release), monitor);
+            lxd_download_image(id, info.stream_location, query, monitor);
         }
         else if (!info.image_location.isEmpty())
         {
@@ -318,8 +318,18 @@ void mp::LXDVMImageVault::prune_expired_images()
     for (const auto image : images)
     {
         auto image_info = image.toObject();
+        auto properties = image_info["properties"].toObject();
+
         auto last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
             QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs).toMSecsSinceEpoch()));
+
+        // If the image has been downloaded but never used, then check if we added a "last_used_at" property during
+        // update
+        if (last_used < std::chrono::system_clock::time_point(0ms) && properties.contains("last_used_at"))
+        {
+            last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
+                QDateTime::fromString(properties["last_used_at"].toString(), Qt::ISODateWithMs).toMSecsSinceEpoch()));
+        }
 
         if (last_used + days_to_expire <= std::chrono::system_clock::now())
         {
@@ -344,35 +354,36 @@ void mp::LXDVMImageVault::prune_expired_images()
 void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
+    mpl::log(mpl::Level::debug, category, "Checking for images to update…");
+
     auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
         auto image_info = image.toObject();
-        if (image_info.contains("update_source"))
-        {
-            auto release = image_info["properties"].toObject()["release"].toString();
-            mpl::log(mpl::Level::debug, category, fmt::format("Checking if \'{}\' needs updating…", release));
+        auto image_properties = image_info["properties"].toObject();
 
+        if (image_properties.contains("query.release"))
+        {
             auto id = image_info["fingerprint"].toString();
+            Query query;
+            query.release = image_properties["query.release"].toString().toStdString();
+            query.remote_name = image_properties["query.remote"].toString().toStdString();
 
             try
             {
-                auto json_reply = lxd_request(manager, "POST",
-                                              QUrl(QString("%1/images/%2/refresh").arg(base_url.toString()).arg(id)));
+                auto info = info_for(query);
 
-                auto task_complete = [&release](auto metadata) {
-                    if (metadata["metadata"].toObject()["refreshed"].toBool())
-                    {
-                        mpl::log(mpl::Level::info, category, fmt::format("Image update for \'{}\' complete.", release));
-                    }
-                    else
-                    {
-                        mpl::log(mpl::Level::debug, category, fmt::format("No image update for \'{}\'.", release));
-                    }
-                };
+                if (info.id != id)
+                {
+                    mpl::log(mpl::Level::info, category,
+                             fmt::format("Updating {} source image to latest", query.release));
 
-                poll_download_operation(json_reply, monitor, task_complete);
+                    lxd_download_image(info.id, info.stream_location, query, monitor,
+                                       image_info["last_used_at"].toString());
+
+                    lxd_request(manager, "DELETE", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
+                }
             }
             catch (const LXDNotFoundException&)
             {
@@ -435,8 +446,8 @@ mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
     throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
 }
 
-void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& stream_location, const QString& release,
-                                             const ProgressMonitor& monitor)
+void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& stream_location, const Query& query,
+                                             const ProgressMonitor& monitor, const QString& last_used)
 {
     QJsonObject source_object;
 
@@ -448,6 +459,23 @@ void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& s
     source_object.insert("fingerprint", id);
 
     QJsonObject image_object{{"source", source_object}};
+
+    auto release = QString::fromStdString(query.release);
+
+    if (!id.startsWith(release))
+    {
+        QJsonObject properties_object{{"query.release", "default"},
+                                      {"query.remote", QString::fromStdString(query.remote_name)}};
+
+        // Need to save the original image's last_used_at as a property since there is no way to modify the
+        // new image's last_used_at field.
+        if (!last_used.isEmpty())
+        {
+            properties_object.insert("last_used_at", last_used);
+        }
+
+        image_object.insert("properties", properties_object);
+    }
 
     auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
 
@@ -468,8 +496,7 @@ void mp::LXDVMImageVault::url_download_image(const VMImageInfo& info, const QStr
     }
 }
 
-void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply, const ProgressMonitor& monitor,
-                                                  const TaskCompleteAction& task_complete)
+void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply, const ProgressMonitor& monitor)
 {
     if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
         json_reply["status_code"].toInt(-1) == 100)
@@ -494,7 +521,6 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
                 auto status_code = task_reply["metadata"].toObject()["status_code"].toInt(-1);
                 if (status_code == 200)
                 {
-                    task_complete(task_reply["metadata"].toObject());
                     break;
                 }
                 else
