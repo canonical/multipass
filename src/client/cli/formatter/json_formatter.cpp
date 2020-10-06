@@ -140,7 +140,7 @@ std::string mp::JsonFormatter::format(const ListNetworksReply& reply) const
     QJsonObject list_json;
     QJsonArray interfaces;
 
-    for (const auto& interface : reply.interfaces())
+    for (const auto& interface : format::sorted(reply.interfaces()))
     {
         QJsonObject interface_obj;
         interface_obj.insert("name", QString::fromStdString(interface.name()));
