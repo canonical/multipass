@@ -235,23 +235,7 @@ void mp::LXDVirtualMachine::stop()
         return;
     }
 
-    auto state_task = request_state("stop");
-
-    try
-    {
-        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
-            state_task["status_code"].toInt(-1) == 100)
-        {
-            QUrl task_url(QString("%1/operations/%2/wait")
-                              .arg(base_url.toString())
-                              .arg(state_task["metadata"].toObject()["id"].toString()));
-            lxd_request(manager, "GET", task_url);
-        }
-    }
-    catch (const LXDNotFoundException&)
-    {
-        // Implies the task doesn't exist, move on...
-    }
+    request_state("stop");
 
     state = State::stopped;
 
@@ -365,9 +349,25 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-const QJsonObject mp::LXDVirtualMachine::request_state(const QString& new_state)
+void mp::LXDVirtualMachine::request_state(const QString& new_state)
 {
     const QJsonObject state_json{{"action", new_state}};
 
-    return lxd_request(manager, "PUT", state_url(), state_json, 5000);
+    auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
+
+    try
+    {
+        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
+            state_task["status_code"].toInt(-1) == 100)
+        {
+            QUrl task_url(QString("%1/operations/%2/wait")
+                              .arg(base_url.toString())
+                              .arg(state_task["metadata"].toObject()["id"].toString()));
+            lxd_request(manager, "GET", task_url, QJsonObject(), 60000);
+        }
+    }
+    catch (const LXDNotFoundException&)
+    {
+        // Implies the task doesn't exist, move on...
+    }
 }
