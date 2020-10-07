@@ -52,7 +52,8 @@ struct VMSpecs
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;
-    std::vector<NetworkInterface> interfaces; // We want interfaces to be ordered.
+    NetworkInterface default_interface;
+    std::vector<NetworkInterface> extra_interfaces; // We want interfaces to be ordered.
     std::string ssh_username;
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
