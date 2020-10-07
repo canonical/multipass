@@ -66,7 +66,8 @@ struct LXDBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      {{"default", "00:16:3e:fe:f2:b9"}},
+                                                      {"default", "00:16:3e:fe:f2:b9"},
+                                                      {},
                                                       "yoda",
                                                       {},
                                                       "",

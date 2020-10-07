@@ -41,7 +41,8 @@ public:
     MemorySize mem_size;
     MemorySize disk_space;
     std::string vm_name;
-    std::vector<NetworkInterface> interfaces;
+    NetworkInterface default_interface;
+    std::vector<NetworkInterface> extra_interfaces;
     std::string ssh_username;
     VMImage image;
     Path cloud_init_iso;
