@@ -140,7 +140,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
 
     auto vm = std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor);
 
-    name_to_mac_map.emplace(desc.vm_name, desc.interfaces[0].mac_address);
+    name_to_mac_map.emplace(desc.vm_name, desc.default_interface.mac_address);
     return vm;
 }
 
