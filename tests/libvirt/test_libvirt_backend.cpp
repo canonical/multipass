@@ -50,7 +50,7 @@ struct LibVirtBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      {"default", ""},
+                                                      {"default", "", true},
                                                       {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
