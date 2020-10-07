@@ -192,7 +192,7 @@ std::string mp::utils::generate_mac_address()
 
 bool mp::utils::valid_mac_address(const std::string& mac)
 {
-    // A MAC address is a string consisting of six pairs of hyphen-separated hexadecimal digits.
+    // A MAC address is a string consisting of six pairs of colon-separated hexadecimal digits.
     const auto pattern = QStringLiteral("^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$");
     const auto regexp = QRegularExpression{pattern};
     const auto match = regexp.match(QString::fromStdString(mac));
