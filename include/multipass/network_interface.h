@@ -26,6 +26,7 @@ struct NetworkInterface
 {
     std::string id;
     std::string mac_address;
+    bool auto_mode;
 };
 } // namespace multipass
 
