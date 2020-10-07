@@ -136,7 +136,6 @@ auto make_cloud_init_meta_config(const std::string& name)
     return meta_data;
 }
 
-// XXX: use the bool, Luke
 auto make_cloud_init_network_config(const mp::NetworkInterface& default_interface,
                                     const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
@@ -149,9 +148,9 @@ auto make_cloud_init_network_config(const mp::NetworkInterface& default_interfac
     network_data["ethernets"][name]["dhcp4"] = true;
     network_data["ethernets"][name]["wakeonlan"] = "true";
 
-    if (!extra_interfaces.empty())
+    for (size_t i = 0; i < extra_interfaces.size(); ++i)
     {
-        for (size_t i = 0; i < extra_interfaces.size(); ++i)
+        if (extra_interfaces[i].auto_mode)
         {
             std::string name = "extra" + std::to_string(i);
             network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
@@ -275,7 +274,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             ssh_username = "ubuntu";
 
         // Read the default network interface, constructed from the "mac_addr" field.
-        auto default_interface = mp::NetworkInterface{"default", record["mac_addr"].toString().toStdString()};
+        auto default_interface = mp::NetworkInterface{"default", record["mac_addr"].toString().toStdString(), true};
 
         // Read the extra networks interfaces, if any.
         std::vector<mp::NetworkInterface> extra_interfaces;
@@ -286,7 +285,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             {
                 auto id = entry.toObject()["id"].toString().toStdString();
                 auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-                extra_interfaces.push_back(mp::NetworkInterface{id, mac_address});
+                auto auto_mode = entry.toObject()["auto_mode"].toBool();
+                extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
             }
         }
 
@@ -349,18 +349,17 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
     }
 }
 
-// TODO can't we keep the bool in the struct with the rest?
-std::vector<std::pair<mp::NetworkInterface, bool>> validate_extra_interfaces(const mp::LaunchRequest* request,
-                                                                             mp::LaunchError& option_errors)
+std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
+                                                            mp::LaunchError& option_errors)
 {
     // The associated bool indicates whether the interface mode is 'auto', i.e., needs to be configured by cloud-init.
-    std::vector<std::pair<mp::NetworkInterface, bool>> interfaces;
+    std::vector<mp::NetworkInterface> interfaces;
 
     for (const auto& net : request->network_options())
     {
         if (const auto& mac = net.mac_address(); mac.empty() || mpu::valid_mac_address(mac))
-            interfaces.emplace_back(mp::NetworkInterface{net.id(), mac},
-                                    net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL);
+            interfaces.emplace_back(
+                mp::NetworkInterface{net.id(), mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
     }
@@ -405,7 +404,6 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    mp::NetworkInterface default_interface{"default", ""}; // The MAC address will be generated later.
     auto extra_interfaces = validate_extra_interfaces(request, option_errors);
 
     struct CheckedArguments
@@ -413,7 +411,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
         mp::MemorySize mem_size;
         mp::optional<mp::MemorySize> disk_space;
         std::string instance_name;
-        std::vector<std::pair<mp::NetworkInterface, bool>> extra_interfaces;
+        std::vector<mp::NetworkInterface> extra_interfaces;
         mp::LaunchError option_errors;
     } ret{mem_size, disk_space, instance_name, extra_interfaces, option_errors};
     return ret;
@@ -1921,6 +1919,7 @@ void mp::Daemon::persist_instances()
             QJsonObject entry;
             entry.insert("id", QString::fromStdString(interface.id));
             entry.insert("mac_address", QString::fromStdString(interface.mac_address));
+            entry.insert("auto_mode", interface.auto_mode);
             extra_interfaces.append(entry);
         }
 
@@ -2135,26 +2134,20 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 server->Write(reply);
 
                 // Generate a default network interface.
-                mp::NetworkInterface default_interface{"default", generate_unused_mac_address()};
+                mp::NetworkInterface default_interface{"default", generate_unused_mac_address(), true};
 
                 // Generate MAC addresses for the interfaces on which it was not specified and put the modified
                 // interfaces in a new vector. Create another vector containing only the interfaces which must be
                 // configured via cloud-init.
-                // XXX: use the bool, so we can get rid of cloun_init_interfaces
-                std::vector<mp::NetworkInterface> extra_interfaces, cloud_init_interfaces;
+                std::vector<mp::NetworkInterface> extra_interfaces;
 
                 for (auto iface : checked_args.extra_interfaces)
                 {
-                    if ("" == iface.first.mac_address)
+                    if ("" == iface.mac_address)
                     {
-                        iface.first.mac_address = generate_unused_mac_address();
+                        iface.mac_address = generate_unused_mac_address();
                     }
-                    extra_interfaces.push_back(iface.first);
-
-                    if (iface.second)
-                    {
-                        cloud_init_interfaces.push_back(iface.first);
-                    }
+                    extra_interfaces.push_back(iface);
                 }
 
                 auto vendor_data_cloud_init_config =
@@ -2164,7 +2157,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
                 prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
                 auto network_data_cloud_init_config =
-                    make_cloud_init_network_config(default_interface, cloud_init_interfaces);
+                    make_cloud_init_network_config(default_interface, extra_interfaces);
 
                 auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, default_interface,
                                                extra_interfaces, config->ssh_username, vm_image,

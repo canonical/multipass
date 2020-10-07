@@ -57,7 +57,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      {"default", ""},
+                                                      {"default", "", true},
                                                       {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", {}, {}},
