@@ -47,7 +47,7 @@ QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, co
                      mem_size,
                      "-device",
                      QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1")
-                         .arg(QString::fromStdString(desc.interfaces[0].mac_address)),
+                         .arg(QString::fromStdString(desc.default_interface.mac_address)),
                      "-netdev",
                      QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name),
                      "-qmp",
@@ -128,7 +128,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         // Create a virtual NIC in the VM
         args << "-device"
              << QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1")
-                    .arg(QString::fromStdString(desc.interfaces[0].mac_address));
+                    .arg(QString::fromStdString(desc.default_interface.mac_address));
         // Create tap device to connect to virtual bridge
         args << "-netdev";
         args << QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name);
