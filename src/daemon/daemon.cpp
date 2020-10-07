@@ -2143,6 +2143,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
                 for (auto iface : checked_args.extra_interfaces)
                 {
+                    iface.id = config->factory->interface_id(iface.id);
+
                     if ("" == iface.mac_address)
                     {
                         iface.mac_address = generate_unused_mac_address();

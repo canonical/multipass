@@ -21,15 +21,17 @@
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
-#include <multipass/virtual_machine_factory.h>
+
+#include <platform/backends/shared/base_virtual_machine_factory.h>
 
 namespace multipass
 {
 namespace test
 {
-struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
+struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 {
     multipass::VirtualMachine::UPtr create_virtual_machine(const multipass::VirtualMachineDescription&,
                                                            multipass::VMStatusMonitor&) override
@@ -75,11 +77,6 @@ struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
                                                      const days& days_to_expire) override
     {
         return std::make_unique<StubVMImageVault>();
-    }
-
-    std::vector<NetworkInterfaceInfo> list_networks() const override
-    {
-        return {};
     }
 };
 }

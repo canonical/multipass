@@ -61,7 +61,12 @@ public:
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
+
+    // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> list_networks() const = 0;
+
+    // Given the id the user sees in list_networks(), return the id of an interface which identifies it.
+    virtual std::string interface_id(const std::string& user_id) const = 0;
 
 protected:
     VirtualMachineFactory() = default;
