@@ -133,7 +133,8 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
 {
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
-    auto qemuimg_process = mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters));
+    auto qemuimg_process =
+        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path));
 
     auto process_state = qemuimg_process->execute(mp::backend::image_resize_timeout);
     if (!process_state.completed_successfully())
@@ -150,7 +151,8 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     // TODO: we could support converting from other the image formats that qemu-img can deal with
     const auto qcow2_path{image_path + ".qcow2"};
 
-    auto qemuimg_info_spec = std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path});
+    auto qemuimg_info_spec =
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path}, image_path);
     auto qemuimg_info_process = MP_PROCFACTORY.create_process(std::move(qemuimg_info_spec));
 
     auto process_state = qemuimg_info_process->execute();
@@ -167,7 +169,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     if (image_record["format"].toString() == "raw")
     {
         auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
-            QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path});
+            QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, image_path, qcow2_path);
         auto qemuimg_convert_process = MP_PROCFACTORY.create_process(std::move(qemuimg_convert_spec));
         process_state = qemuimg_convert_process->execute(mp::backend::image_resize_timeout);
 

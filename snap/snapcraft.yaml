@@ -46,6 +46,7 @@ apps:
       - network-bind
       - network-control
       - lxd
+      - removable-media
   multipass:
     environment:
       <<: &client-environment
