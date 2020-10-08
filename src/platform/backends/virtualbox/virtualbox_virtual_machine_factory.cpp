@@ -78,7 +78,8 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
 
     QStringList convert_args({"convert", "-O", "vdi", source_image.image_path, vdi_file});
 
-    auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(convert_args);
+    auto qemuimg_convert_spec =
+        std::make_unique<mp::QemuImgProcessSpec>(convert_args, source_image.image_path, vdi_file);
     auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
 
     auto process_state = qemuimg_convert_process->execute(mp::backend::image_resize_timeout);

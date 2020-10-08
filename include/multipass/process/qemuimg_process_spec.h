@@ -29,7 +29,7 @@ namespace multipass
 class QemuImgProcessSpec : public ProcessSpec
 {
 public:
-    explicit QemuImgProcessSpec(const QStringList& args);
+    explicit QemuImgProcessSpec(const QStringList& args, const QString& source_image, const QString& target_image = {});
 
     QString program() const override;
     QStringList arguments() const override;
@@ -38,6 +38,8 @@ public:
 
 private:
     const QStringList args;
+    const QString source_image;
+    const QString target_image;
 };
 
 } // namespace multipass
