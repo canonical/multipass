@@ -41,7 +41,8 @@ struct HyperkitBackend : public testing::Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      {{"default", ""}},
+                                                      {"default", "", true},
+                                                      {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};

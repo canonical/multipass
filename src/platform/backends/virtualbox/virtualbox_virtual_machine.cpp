@@ -92,30 +92,30 @@ auto instance_state_for(const QString& name)
 
     return mp::VirtualMachine::State::unknown;
 }
-} // namespace
 
-QStringList networking_arguments(const std::vector<mp::NetworkInterface>& interfaces)
+QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
 {
     // Start with the default interface, which is also the first interface in the input vector.
     QStringList arguments{"--nic1", "nat", "--macaddress1",
-                          QString::fromStdString(interfaces[0].mac_address).remove(':')};
+                          QString::fromStdString(desc.default_interface.mac_address).remove(':')};
 
-    for (size_t i = 1; i < interfaces.size(); ++i)
+    for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
-        QString iface_index_str = QString::number(i + 1, 10);
+        QString iface_index_str = QString::number(i + 2, 10);
         arguments.push_back("--nic" + iface_index_str);
         arguments.push_back("bridged");
-        if (!interfaces[i].id.empty())
+        if (!desc.extra_interfaces[i].id.empty())
         {
             arguments.push_back("--bridgeadapter" + iface_index_str);
-            arguments.push_back(QString::fromStdString(interfaces[i].id));
+            arguments.push_back(QString::fromStdString(desc.extra_interfaces[i].id));
         }
         arguments.push_back("--macaddress" + iface_index_str);
-        arguments.push_back(QString::fromStdString(interfaces[i].mac_address).remove(':'));
+        arguments.push_back(QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':'));
     }
 
     return arguments;
 }
+} // namespace
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
     : VirtualMachine{desc.vm_name},
@@ -134,7 +134,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
         QStringList modify_arguments({"modifyvm", name, "--cpus", QString::number(desc.num_cores), "--memory",
                                       QString::number(desc.mem_size.in_megabytes()), "--boot1", "disk", "--boot2",
                                       "none", "--boot3", "none", "--boot4", "none", "--acpi", "on"});
-        modify_arguments += networking_arguments(desc.interfaces);
+        modify_arguments += networking_arguments(desc);
         modify_arguments +=
             {"--firmware",
              "bios",
