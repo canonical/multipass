@@ -446,6 +446,35 @@ TEST_F(Daemon, proxy_contains_valid_info)
     EXPECT_THAT(config->network_proxy->port(), port);
 }
 
+TEST_F(Daemon, data_path_valid)
+{
+    QTemporaryDir xdg_data_dir;
+
+    mpt::SetEnvScope data("XDG_DATA_HOME", xdg_data_dir.filePath("data").toUtf8());
+    mpt::SetEnvScope cache("XDG_CACHE_HOME", xdg_data_dir.filePath("cache").toUtf8());
+
+    config_builder.data_directory = "";
+    config_builder.cache_directory = "";
+    auto config = config_builder.build();
+
+    EXPECT_EQ(config->data_directory.toStdString(), xdg_data_dir.filePath("data/multipass_tests").toStdString());
+    EXPECT_EQ(config->cache_directory.toStdString(), xdg_data_dir.filePath("cache/multipass_tests").toStdString());
+}
+
+TEST_F(Daemon, data_path_with_storage_valid)
+{
+    QTemporaryDir storage_dir;
+
+    mpt::SetEnvScope storage("MULTIPASS_STORAGE", storage_dir.path().toUtf8());
+
+    config_builder.data_directory = "";
+    config_builder.cache_directory = "";
+    auto config = config_builder.build();
+
+    EXPECT_EQ(config->data_directory.toStdString(), storage_dir.filePath("data").toStdString());
+    EXPECT_EQ(config->cache_directory.toStdString(), storage_dir.filePath("cache").toStdString());
+}
+
 namespace
 {
 struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<std::string>
