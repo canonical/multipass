@@ -66,11 +66,11 @@ TEST(TestQemuImgProcessSpec, no_apparmor_profile_identifier)
 TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
 {
     const QByteArray snap_name{"multipass"};
-    QTemporaryDir snap_dir, common_dir;
+    QTemporaryDir snap_dir;
     QString source_image{"/source/image/file"};
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
-    mpt::SetEnvScope e3("SNAP_NAME", snap_name);
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
@@ -80,11 +80,11 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
 TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_target_correct)
 {
     const QByteArray snap_name{"multipass"};
-    QTemporaryDir snap_dir, common_dir;
+    QTemporaryDir snap_dir;
     QString source_image{"/source/image/file"}, target_image{"/target/image/file"};
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
-    mpt::SetEnvScope e3("SNAP_NAME", snap_name);
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image, target_image);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
@@ -95,11 +95,11 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_target_correc
 TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_only_target_correct)
 {
     const QByteArray snap_name{"multipass"};
-    QTemporaryDir snap_dir, common_dir;
+    QTemporaryDir snap_dir;
     QString target_image{"/target/image/file"};
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
-    mpt::SetEnvScope e3("SNAP_NAME", snap_name);
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, "", target_image);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
