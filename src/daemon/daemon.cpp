@@ -606,7 +606,8 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
 mp::MemorySize get_image_size(const mp::VMImage& image)
 {
     QStringList qemuimg_parameters{{"info", image.image_path}};
-    auto qemuimg_process = mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters));
+    auto qemuimg_process =
+        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image.image_path));
     auto process_state = qemuimg_process->execute();
 
     if (!process_state.completed_successfully())
