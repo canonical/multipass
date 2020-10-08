@@ -22,7 +22,9 @@
 namespace mp = multipass;
 namespace mu = multipass::utils;
 
-mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args) : args{args}
+mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args, const QString& source_image,
+                                           const QString& target_image)
+    : args{args}, source_image{source_image}, target_image{target_image}
 {
 }
 
@@ -52,8 +54,8 @@ profile %1 flags=(attach_disconnected) {
   # CLASSIC ONLY: need to specify required libs from core snap
   /{,var/lib/snapd/}snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
 
-  # Subdirectory containing disk image(s)
-  %5/** rwk,
+  # Images
+%5
 
   # Allow multipassd send qemu-img signals
   signal (receive) peer=%6,
@@ -62,14 +64,13 @@ profile %1 flags=(attach_disconnected) {
 
     /* Customisations depending on if running inside snap or not */
     QString root_dir; // root directory: either "" or $SNAP
-    QString image_dir;
+    QString images;
     QString extra_capabilities;
     QString signal_peer; // who can send kill signal to qemu-img
 
     try
     {
         root_dir = mu::snap_dir();
-        image_dir = mu::snap_common_dir();         // FIXME - am guessing we work inside this directory
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu-img signals
     }
     catch (mp::SnapEnvironmentException&)
@@ -78,9 +79,13 @@ profile %1 flags=(attach_disconnected) {
             "capability dac_read_search,\n    capability dac_override,"; // FIXME - unclear why this is required when
                                                                          // not snap confined
         signal_peer = "unconfined";
-        image_dir = ""; // FIXME - Do not know where disk images might be, as passed by argument
     }
 
-    return profile_template.arg(apparmor_profile_name(), extra_capabilities, root_dir, program(), image_dir,
-                                signal_peer);
+    if (!source_image.isEmpty())
+        images.append(QString("  %1 rk,\n").arg(source_image));
+
+    if (!target_image.isEmpty())
+        images.append(QString("  %1 rwk,\n").arg(target_image));
+
+    return profile_template.arg(apparmor_profile_name(), extra_capabilities, root_dir, program(), images, signal_peer);
 }
