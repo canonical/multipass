@@ -104,19 +104,19 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    auto storage_path = qgetenv("MULTIPASS_STORAGE");
+    auto storage_path = QString::fromUtf8(qgetenv("MULTIPASS_STORAGE"));
 
     if (cache_directory.isEmpty())
     {
         if (!storage_path.isEmpty())
-            cache_directory = mp::utils::make_dir(QString::fromUtf8(storage_path), "cache");
+            cache_directory = mp::utils::make_dir(storage_path, "cache");
         else
             cache_directory = MP_STDPATHS.writableLocation(StandardPaths::CacheLocation);
     }
     if (data_directory.isEmpty())
     {
         if (!storage_path.isEmpty())
-            data_directory = mp::utils::make_dir(QString::fromUtf8(storage_path), "data");
+            data_directory = mp::utils::make_dir(storage_path, "data");
         else
             data_directory = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
     }
