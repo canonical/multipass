@@ -303,7 +303,14 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
         carrier_file.close();
         if (carrier_line[0] == '1')
         {
-            ip_address = get_ip_address(iface_name);
+            // Sometimes a virtual interface is up but has no assigned IP address and get_ip_address() throws.
+            try
+            {
+                ip_address = get_ip_address(iface_name);
+            }
+            catch (std::runtime_error&)
+            {
+            }
         }
     }
 
