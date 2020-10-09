@@ -287,7 +287,23 @@ int mp::LXDVirtualMachine::ssh_port()
 
 void mp::LXDVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] { return current_state() != State::stopped; };
+    auto is_vm_running = [this] {
+        if (current_state() != State::stopped)
+        {
+            return true;
+        }
+
+        // Sleep for 5 seconds to see if LXD is just rebooting the instance
+        std::this_thread::sleep_for(5s);
+
+        if (current_state() != State::stopped)
+        {
+            state = State::starting;
+            return true;
+        }
+
+        return false;
+    };
 
     mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
 }
