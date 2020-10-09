@@ -358,7 +358,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
     for (const auto& net : request->network_options())
     {
         if (const auto& mac = net.mac_address(); mac.empty() || mpu::valid_mac_address(mac))
-            interfaces.emplace_back(
+            interfaces.push_back(
                 mp::NetworkInterface{net.id(), mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
