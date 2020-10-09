@@ -131,7 +131,7 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
     // List to store the output of the query command; each element corresponds to one interface.
     QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), QString::SkipEmptyParts));
 
-    mpl::log(mpl::Level::info, "list-networks", fmt::format("Found {} network interfaces", if_list.size()));
+    mpl::log(mpl::Level::info, "list-networks", fmt::format("VirtualBox found {} interfaces", if_list.size()));
 
     // This pattern is intended to gather from VBoxManage output the information we need. However, only the Mac
     // version gives us enough information (and for some interfaces only). This extra information provided by the
@@ -184,7 +184,7 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
                 {
                     // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
                     // which cannot be bridged.
-                    if (if_info.type != "virtual" && if_info.description != "unknown")
+                    if (!(if_info.type == "virtual" && if_info.description == "unknown"))
                     {
                         networks.push_back({if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
                                             if_info.description, mp::nullopt});
