@@ -287,14 +287,19 @@ int mp::LXDVirtualMachine::ssh_port()
 
 void mp::LXDVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] {
+    ensure_vm_is_running(5s);
+}
+
+void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds& timeout)
+{
+    auto is_vm_running = [this, timeout] {
         if (current_state() != State::stopped)
         {
             return true;
         }
 
         // Sleep for 5 seconds to see if LXD is just rebooting the instance
-        std::this_thread::sleep_for(5s);
+        std::this_thread::sleep_for(timeout);
 
         if (current_state() != State::stopped)
         {
@@ -347,7 +352,7 @@ std::string mp::LXDVirtualMachine::ipv6()
 
 void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    mpu::wait_until_ssh_up(this, timeout, std::bind(&LXDVirtualMachine::ensure_vm_is_running, this));
+    mpu::wait_until_ssh_up(this, timeout, [this] { ensure_vm_is_running(); });
 }
 
 const QUrl mp::LXDVirtualMachine::url()
