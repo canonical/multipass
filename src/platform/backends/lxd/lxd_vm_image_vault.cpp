@@ -464,7 +464,7 @@ void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& s
 
     if (!id.startsWith(release))
     {
-        QJsonObject properties_object{{"query.release", "default"},
+        QJsonObject properties_object{{"query.release", release},
                                       {"query.remote", QString::fromStdString(query.remote_name)}};
 
         // Need to save the original image's last_used_at as a property since there is no way to modify the
