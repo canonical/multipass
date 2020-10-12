@@ -809,7 +809,7 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
     std::vector<std::string> all_parameters{first_command_line_parameter};
-    for (const auto p : other_command_line_parameters)
+    for (const auto& p : other_command_line_parameters)
         all_parameters.push_back(p);
 
     if (other_command_line_parameters.size() > 0 && mp::MemorySize(other_command_line_parameters[1]) < img_size)

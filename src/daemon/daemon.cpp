@@ -1140,11 +1140,11 @@ try // clang-format on
             entry->set_source_path(mount.second.source_path);
             entry->set_target_path(mount.first);
 
-            for (const auto uid_map : mount.second.uid_map)
+            for (const auto& uid_map : mount.second.uid_map)
             {
                 (*entry->mutable_mount_maps()->mutable_uid_map())[uid_map.first] = uid_map.second;
             }
-            for (const auto gid_map : mount.second.gid_map)
+            for (const auto& gid_map : mount.second.gid_map)
             {
                 (*entry->mutable_mount_maps()->mutable_gid_map())[gid_map.first] = gid_map.second;
             }
