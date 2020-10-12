@@ -242,17 +242,17 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         std::unordered_map<int, int> uid_map;
         std::unordered_map<int, int> gid_map;
 
-        for (const auto& entry : record["mounts"].toArray())
+        for (QJsonValueRef entry : record["mounts"].toArray())
         {
             auto target_path = entry.toObject()["target_path"].toString().toStdString();
             auto source_path = entry.toObject()["source_path"].toString().toStdString();
 
-            for (const auto& uid_entry : entry.toObject()["uid_mappings"].toArray())
+            for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
             {
                 uid_map[uid_entry.toObject()["host_uid"].toInt()] = uid_entry.toObject()["instance_uid"].toInt();
             }
 
-            for (const auto& gid_entry : entry.toObject()["gid_mappings"].toArray())
+            for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
             {
                 gid_map[gid_entry.toObject()["host_gid"].toInt()] = gid_entry.toObject()["instance_gid"].toInt();
             }
