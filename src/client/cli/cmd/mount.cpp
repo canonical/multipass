@@ -151,7 +151,11 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
     for (auto i = 1; i < parser->positionalArguments().count(); ++i)
     {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
+        auto parsed_target = QString(parser->positionalArguments().at(i)).split(":", Qt::SkipEmptyParts);
+#else
         auto parsed_target = QString(parser->positionalArguments().at(i)).split(":", QString::SkipEmptyParts);
+#endif
 
         auto entry = request.add_target_paths();
         entry->set_instance_name(parsed_target.at(0).toStdString());
