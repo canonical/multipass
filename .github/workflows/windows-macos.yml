@@ -182,9 +182,9 @@ jobs:
       id: opam-setup
       run: |
         for var in OPAM_SWITCH_PREFIX CAML_LD_LIBRARY_PATH OCAML_TOPLEVEL_PATH; do
-            opam exec -- bash -c "echo ::set-env name=${var}::\${${var}}"
+            opam exec -- bash -c "echo ${var}=\${${var}}" >> ${GITHUB_ENV}
         done
-        opam exec -- bash -c "echo ::add-path::\${OPAM_SWITCH_PREFIX}/bin"
+        opam exec -- bash -c "echo \${OPAM_SWITCH_PREFIX}/bin" >> ${GITHUB_PATH}
 
     - name: Install OPAM dependencies
       run: |
