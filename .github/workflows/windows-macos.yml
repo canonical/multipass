@@ -229,7 +229,6 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         bin/multipass_tests
-      continue-on-error: true
 
     - name: Package
       id: cmake-package
@@ -368,7 +367,6 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         bin/multipass_tests.exe
-      continue-on-error: true
 
     - name: Package
       id: cmake-package
