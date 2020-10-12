@@ -147,11 +147,11 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toByteArray();
 
     // Build the HTTP method part
-    http_data += op + ' ' + request.url().path();
+    http_data += op + ' ' + request.url().path().toLatin1();
 
     if (request.url().hasQuery())
     {
-        http_data += "?" + request.url().query();
+        http_data += "?" + request.url().query().toLatin1();
     }
 
     http_data += " HTTP/1.1\r\n";
