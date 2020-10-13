@@ -131,7 +131,7 @@ void mp::HyperkitVirtualMachine::start()
 
 void mp::HyperkitVirtualMachine::stop()
 {
-    if (state != State::off || state != State::stopped)
+    if (state != State::off && state != State::stopped)
     {
         QMetaObject::invokeMethod(vm_process.get(), "stop");
         thread.wait(20000);
