@@ -81,7 +81,7 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
 
     auto metric_batches = json.array();
 
-    for (const auto& metric_batch : metric_batches)
+    for (QJsonValueRef metric_batch : metric_batches)
     {
         EXPECT_TRUE(metric_batch.isObject());
 
@@ -100,7 +100,7 @@ TEST_F(MetricsProvider, opt_in_metrics_valid)
         EXPECT_TRUE(batch_obj["metrics"].isArray());
         auto metrics = batch_obj["metrics"].toArray();
 
-        for (const auto& metric : metrics)
+        for (QJsonValueRef metric : metrics)
         {
             EXPECT_TRUE(metric.isObject());
 
@@ -147,7 +147,7 @@ TEST_F(MetricsProvider, opt_out_denied_valid)
 
     auto metric_batches = json.array();
 
-    for (const auto& metric_batch : metric_batches)
+    for (QJsonValueRef metric_batch : metric_batches)
     {
         EXPECT_TRUE(metric_batch.isObject());
 
