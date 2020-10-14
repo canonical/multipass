@@ -1345,7 +1345,6 @@ TEST_F(LXDBackend, reboots_while_starting_does_not_throw_and_sets_correct_state)
                     return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
                 }
 
-                //++running_returned;
                 return new mpt::MockLocalSocketReply(mpt::vm_state_partial_running_data);
             }
             else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
