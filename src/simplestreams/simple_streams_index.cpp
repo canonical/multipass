@@ -51,7 +51,7 @@ mp::SimpleStreamsIndex mp::SimpleStreamsIndex::fromJson(const QByteArray& json)
 {
     auto index = parse_index(json);
 
-    for (const auto& value : index)
+    for (QJsonValueRef value : index)
     {
         auto entry = value.toObject();
         if (entry["datatype"] == "image-downloads")

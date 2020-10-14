@@ -136,13 +136,20 @@ TEST(SimpleStreamsManifest, lxd_driver_returns_expected_data)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
 
-    auto json = mpt::load_test_file("good_manifest.json");
+    auto json = mpt::load_test_file("lxd_test_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
 
-    EXPECT_EQ(manifest->products.size(), 1u);
+    EXPECT_EQ(manifest->products.size(), 2u);
 
-    const auto info = manifest->products.front();
+    const auto xenial_info = manifest->image_records["xenial"];
 
-    const QString expected_id{"09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
-    EXPECT_EQ(info.id, expected_id);
+    // combined_disk1-img_sha256 for xenial product
+    const QString expected_xenial_id{"09d24fab15c6e1c86a47d3de2e7fb6d01a10f9ff2655a43f0959a672e03e7674"};
+    EXPECT_EQ(xenial_info->id, expected_xenial_id);
+
+    // combined_disk-kvm-img_sha256 for bionic product
+    const auto bionic_info = manifest->image_records["bionic"];
+
+    const QString expected_bionic_id{"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"};
+    EXPECT_EQ(bionic_info->id, expected_bionic_id);
 }

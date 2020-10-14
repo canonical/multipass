@@ -131,7 +131,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         auto release_date = image["release_date"].toString().toStdString();
 
         std::vector<std::string> aliases;
-        for (const auto& entry : image["aliases"].toArray())
+        for (QJsonValueRef entry : image["aliases"].toArray())
         {
             auto alias = entry.toObject()["alias"].toString().toStdString();
             aliases.push_back(alias);

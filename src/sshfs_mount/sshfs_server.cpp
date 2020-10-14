@@ -40,7 +40,11 @@ unordered_map<int, int> deserialise_id_map(const char* in)
 {
     unordered_map<int, int> id_map;
     QString input(in);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
+    auto maps = input.split(',', Qt::SkipEmptyParts);
+#else
     auto maps = input.split(',', QString::SkipEmptyParts);
+#endif
     for (auto map : maps)
     {
         auto ids = map.split(":");
