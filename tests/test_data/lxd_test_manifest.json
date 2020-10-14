@@ -1,0 +1,82 @@
+{
+  "content_id": "com.ubuntu.cloud:released:download",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "http://www.canonical.com/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud:server:16.04:amd64": {
+      "aliases": "16.04,x,xenial",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "support_eol": "2021-04-21",
+      "supported": true,
+      "version": "16.04",
+      "versions": {
+        "20170516": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "7388b8e7e0e114b941a04aca591e2d64",
+              "path": "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-amd64-disk1.img",
+              "sha256": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+              "size": 287440896
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "09d24fab15c6e1c86a47d3de2e7fb6d01a10f9ff2655a43f0959a672e03e7674",
+              "combined_rootxz_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_squashfs_sha256": "8fa08537ae51c880966626561987153e72d073cbe19dfe5abc062713d929254d",
+              "ftype": "lxd.tar.xz",
+              "md5": "c63c6c383e656348a2db25ad31f1bda9",
+              "path": "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "0f95800385b5e6ab5fec7d3ca88a6a070cd0da1130c9219713980c365ea82613",
+              "size": 840
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-xenial-16.04-amd64-server-20170516"
+        }
+      }
+    },
+    "com.ubuntu.cloud:server:18.04:amd64": {
+      "aliases": "18.04,b,bionic,default,lts,ubuntu",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "bionic",
+      "release_codename": "Bionic Beaver",
+      "release_title": "18.04 LTS",
+      "support_eol": "2023-04-26",
+      "supported": true,
+      "version": "18.04",
+      "versions": {
+        "20200518.1": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "cc764afedfa309bcd15ebf0f86749b31",
+              "path": "server/releases/bionic/release-20200518.1/ubuntu-18.04-server-cloudimg-amd64.img",
+              "sha256": "19f9b706755717ee7b38a4a79d8e7599e3fd96d57fb824b8e68ac92255a8323d",
+              "size": 345505792
+            },
+            "lxd.tar.xz": {
+              "combined_disk-kvm-img_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "combined_disk1-img_sha256": "09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674",
+              "combined_rootxz_sha256": "09d7c9a6153e46276fc496faff0e93311b6701922a4f27d330e519beab2da031",
+              "combined_sha256": "09d7c9a6153e46276fc496faff0e93311b6701922a4f27d330e519beab2da031",
+              "combined_squashfs_sha256": "5539cdd71a7b2f56a75d9bb8f45c70b6c1618217ae4df5977215c5636bf8adce",
+              "ftype": "lxd.tar.xz",
+              "md5": "d98d442674e0fa820a6473f2399bfc5b",
+              "path": "server/releases/bionic/release-20200518.1/ubuntu-18.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "6b789f782681f19d823c41394b1a91a97782c90ce50d593544c7a055a713d7e2",
+              "size": 784
+            }
+          }
+        }
+      }
+    }
+  },
+  "updated": "Wed, 20 May 2020 16:47:50 +0000"
+}
