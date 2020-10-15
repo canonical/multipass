@@ -1340,9 +1340,9 @@ try // clang-format on
     ListNetworksReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
-    auto iface_list = config->factory->list_networks();
+    const auto& iface_list = config->factory->list_networks();
 
-    for (auto iface : iface_list)
+    for (const auto& iface : iface_list)
     {
         auto entry = response.add_interfaces();
         entry->set_name(iface.id);
@@ -1914,6 +1914,22 @@ std::string mp::Daemon::generate_unused_mac_address(std::unordered_set<std::stri
     return mac_address;
 }
 
+QJsonArray write_extra_interfaces(const std::vector<mp::NetworkInterface>& spec_extra_interfaces)
+{
+    QJsonArray json_extra_interfaces;
+
+    for (const auto& interface : spec_extra_interfaces)
+    {
+        QJsonObject entry;
+        entry.insert("id", QString::fromStdString(interface.id));
+        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
+        entry.insert("auto_mode", interface.auto_mode);
+        json_extra_interfaces.append(entry);
+    }
+
+    return json_extra_interfaces;
+}
+
 void mp::Daemon::persist_instances()
 {
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
@@ -1929,18 +1945,7 @@ void mp::Daemon::persist_instances()
         // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
         // default network interface. Then, write all the information about the rest of the interfaces.
         json.insert("mac_addr", QString::fromStdString(specs.default_interface.mac_address));
-
-        QJsonArray extra_interfaces;
-        for (const auto& interface : specs.extra_interfaces)
-        {
-            QJsonObject entry;
-            entry.insert("id", QString::fromStdString(interface.id));
-            entry.insert("mac_address", QString::fromStdString(interface.mac_address));
-            entry.insert("auto_mode", interface.auto_mode);
-            extra_interfaces.append(entry);
-        }
-
-        json.insert("extra_interfaces", extra_interfaces);
+        json.insert("extra_interfaces", write_extra_interfaces(specs.extra_interfaces));
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)
