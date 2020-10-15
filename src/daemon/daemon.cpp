@@ -232,6 +232,29 @@ auto name_from(const std::string& requested_name, mp::NameGenerator& name_gen, c
     return requested_name;
 }
 
+std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& record)
+{
+    // Read the extra networks interfaces, if any.
+    std::vector<mp::NetworkInterface> extra_interfaces;
+
+    if (record.contains("extra_interfaces"))
+    {
+        for (const auto& entry : record["extra_interfaces"].toArray())
+        {
+            auto id = entry.toObject()["id"].toString().toStdString();
+            auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
+            if (!mpu::valid_mac_address(mac_address))
+            {
+                throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
+            }
+            auto auto_mode = entry.toObject()["auto_mode"].toBool();
+            extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
+        }
+    }
+
+    return extra_interfaces;
+}
+
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, const mp::Path& cache_path)
 {
     QDir data_dir{data_path};
@@ -281,24 +304,6 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
         auto default_interface = mp::NetworkInterface{"default", default_mac_address, true};
 
-        // Read the extra networks interfaces, if any.
-        std::vector<mp::NetworkInterface> extra_interfaces;
-
-        if (record.contains("extra_interfaces"))
-        {
-            for (const auto& entry : record["extra_interfaces"].toArray())
-            {
-                auto id = entry.toObject()["id"].toString().toStdString();
-                auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-                if (!mpu::valid_mac_address(mac_address))
-                {
-                    throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
-                }
-                auto auto_mode = entry.toObject()["auto_mode"].toBool();
-                extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
-            }
-        }
-
         std::unordered_map<std::string, mp::VMMount> mounts;
         std::unordered_map<int, int> uid_map;
         std::unordered_map<int, int> gid_map;
@@ -326,7 +331,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
                                       mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
                                       default_interface,
-                                      extra_interfaces,
+                                      read_extra_interfaces(record),
                                       ssh_username,
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
