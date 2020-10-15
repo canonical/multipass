@@ -2174,14 +2174,12 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             // Generate MAC addresses for the interfaces on which it was not specified and put the modified
             // interfaces in a new vector.
             std::vector<mp::NetworkInterface> extra_interfaces;
-            for (auto iface : checked_args.extra_interfaces)
+            for (const auto& iface : checked_args.extra_interfaces)
             {
-                iface.id = config->factory->interface_id(iface.id);
-                if (iface.mac_address.empty())
-                {
-                    iface.mac_address = generate_unused_mac_address(added_mac_addresses);
-                }
-                extra_interfaces.push_back(iface);
+                extra_interfaces.push_back(mp::NetworkInterface{
+                    config->factory->interface_id(iface.id),
+                    iface.mac_address.empty() ? generate_unused_mac_address(added_mac_addresses) : iface.mac_address,
+                    iface.auto_mode});
             }
 
             auto vendor_data_cloud_init_config =
