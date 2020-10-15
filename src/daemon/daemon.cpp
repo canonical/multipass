@@ -729,6 +729,20 @@ std::unordered_set<std::string> mac_set_from(const mp::VMSpecs& spec)
     return macs;
 }
 
+// Move the contents of t to s. If both sets are disjoint, then s becomes sUt, t becomes undefined (for efficiency
+// reasons) and true is returned. If they are not disjoint, then s and t remain untouched and false is returned.
+bool merge_if_disjoint(std::unordered_set<std::string>& s, std::unordered_set<std::string>& t)
+{
+    for (const auto& elt : s)
+        if (t.find(elt) != t.end())
+            return false;
+
+    for (const auto& elt : t)
+        s.insert(std::move(elt));
+
+    return true;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -761,8 +775,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // only if this instance is not invalid.
         auto new_macs = mac_set_from(spec);
 
-        if (new_macs.size() <= spec.extra_interfaces.size() ||
-            (new_macs.merge(allocated_mac_addrs), !allocated_mac_addrs.empty()))
+        if (new_macs.size() <= spec.extra_interfaces.size() || !merge_if_disjoint(new_macs, allocated_mac_addrs))
         {
             // There is at least one repeated address in new_macs.
             mpl::log(mpl::Level::warning, category, fmt::format("{} has repeated MAC addresses", name));
@@ -2198,7 +2211,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.
-            allocated_mac_addrs.merge(added_mac_addresses);
+            for (const auto& elt : added_mac_addresses)
+                allocated_mac_addrs.insert(std::move(elt));
 
             return vm_desc;
         }
