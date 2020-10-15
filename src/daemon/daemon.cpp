@@ -2123,9 +2123,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     prepare_future_watcher->setFuture(QtConcurrent::run([this, server, request, name,
                                                          checked_args]() -> VirtualMachineDescription {
-        // added_mac_addresses stores the MAC's added to allocated_mac_addrs during creation. If for some
-        // reason the instance can't be created, then all the elements on this set are removed from
-        // allocated_mac_addrs.
+        // This set stores the MAC's which need to be added to allocated_mac_addrs if everything goes well.
         std::unordered_set<std::string> added_mac_addresses;
 
         try
@@ -2201,12 +2199,13 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
+            // Everything went well, add the MAC addresses used in this instance.
+            allocated_mac_addrs.merge(added_mac_addresses);
+
             return vm_desc;
         }
         catch (const std::exception& e)
         {
-            for (const auto& added_mac : added_mac_addresses)
-                allocated_mac_addrs.erase(added_mac);
             throw CreateImageException(e.what());
         }
     }));
