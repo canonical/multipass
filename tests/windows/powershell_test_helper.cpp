@@ -25,14 +25,16 @@ namespace mpt = multipass::test;
 
 void mpt::PowerShellTestHelper::mock_ps_exec(const QByteArray& output, bool succeed)
 {
-    setup([output, succeed](auto* process) {
-        InSequence seq;
+    setup(
+        [output, succeed](auto* process) {
+            InSequence seq;
 
-        auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
-        EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
-        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
-    });
+            auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
+            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
+        },
+        /* auto_exit = */ false);
 }
 
 void mpt::PowerShellTestHelper::setup_mocked_run_sequence(std::vector<RunSpec> runs)
@@ -44,10 +46,10 @@ void mpt::PowerShellTestHelper::setup_mocked_run_sequence(std::vector<RunSpec> r
     });
 }
 
-void mpt::PowerShellTestHelper::setup(const MockProcessFactory::Callback& callback)
+void mpt::PowerShellTestHelper::setup(const MockProcessFactory::Callback& callback, bool auto_exit)
 {
-    factory_scope->register_callback([this, callback](MockProcess* process) {
-        setup_process(process);
+    factory_scope->register_callback([this, callback, auto_exit](MockProcess* process) {
+        setup_process(process, auto_exit);
         if (callback)
             callback(process);
     });
@@ -70,8 +72,9 @@ QByteArray mpt::PowerShellTestHelper::end_marker(bool succeed) const
 
 void mpt::PowerShellTestHelper::expect_writes(MockProcess* process, QByteArray cmdlet) const
 {
-    EXPECT_CALL(*process, write(Eq(cmdlet.append('\n'))));
-    EXPECT_CALL(*process, write(Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()))));
+    EXPECT_CALL(*process, write(Eq(cmdlet.append('\n')))).WillOnce(Return(written));
+    EXPECT_CALL(*process, write(Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()))))
+        .WillOnce(Return(written));
 }
 
 bool mpt::PowerShellTestHelper::was_ps_run() const
@@ -79,14 +82,16 @@ bool mpt::PowerShellTestHelper::was_ps_run() const
     return forked;
 }
 
-void mpt::PowerShellTestHelper::setup_process(MockProcess* process)
+void mpt::PowerShellTestHelper::setup_process(MockProcess* process, bool auto_exit)
 {
     if (process->program() == psexe)
     {
         // succeed these by default
-        ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
-        ON_CALL(*process, write(_)).WillByDefault(Return(written));
-        EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
+        if (auto_exit)
+        {
+            EXPECT_CALL(*process, write(Eq(psexit))).WillOnce(Return(written));
+            EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
+        }
 
         forked = true;
     }

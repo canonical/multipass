@@ -55,10 +55,13 @@ TEST_F(PowerShellTest, creates_ps_process)
 TEST_F(PowerShellTest, exits_ps_process)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
-    ps_helper.setup([](auto* process) {
-        EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit)));
-        EXPECT_CALL(*process, wait_for_finished(_));
-    });
+    ps_helper.setup(
+        [](auto* process) {
+            EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit)))
+                .WillOnce(Return(mpt::PowerShellTestHelper::written));
+            EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
 
     mp::PowerShell ps{"test"};
 }
@@ -69,10 +72,12 @@ TEST_F(PowerShellTest, handles_failure_to_write_on_exit)
     logger.screen_logs(mpl::Level::error);
     logger.expect_log(mpl::Level::warning, "Failed to exit");
 
-    ps_helper.setup([](auto* process) {
-        EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit))).WillOnce(Return(-1));
-        EXPECT_CALL(*process, kill);
-    });
+    ps_helper.setup(
+        [](auto* process) {
+            EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit))).WillOnce(Return(-1));
+            EXPECT_CALL(*process, kill);
+        },
+        /* auto_exit = */ false);
 
     mp::PowerShell ps{"test"};
 }
@@ -86,13 +91,15 @@ TEST_F(PowerShellTest, handles_failure_to_finish_on_exit)
     auto msg_matcher = mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("Failed to exit"), HasSubstr(err)));
     EXPECT_CALL(logger, log(mpl::Level::warning, _, msg_matcher));
 
-    ps_helper.setup([](auto* process) {
-        EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit)));
-        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
-
-        EXPECT_CALL(*process, error_string).WillOnce(Return(err));
-        EXPECT_CALL(*process, kill);
-    });
+    ps_helper.setup(
+        [](auto* process) {
+            EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit)))
+                .WillOnce(Return(mpt::PowerShellTestHelper::written));
+            EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
+            EXPECT_CALL(*process, error_string).WillOnce(Return(err));
+            EXPECT_CALL(*process, kill);
+        },
+        /* auto_exit = */ false);
 
     mp::PowerShell ps{"test"};
 }
@@ -271,19 +278,26 @@ TEST_F(PowerShellTest, exec_runs_given_cmd)
     logger.screen_logs(mpl::Level::warning);
     EXPECT_CALL(logger, log(_, _, log_matcher));
 
-    ps_helper.setup([&args](auto* process) { EXPECT_EQ(process->arguments(), args); });
+    ps_helper.setup(
+        [&args](auto* process) {
+            EXPECT_EQ(process->arguments(), args);
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
     mp::PowerShell::exec(args, "Mitis");
 }
 
 TEST_F(PowerShellTest, exec_succeeds_when_no_timeout_and_process_successful)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-    ps_helper.setup([](auto* process) {
-        InSequence seq;
-        EXPECT_CALL(*process, start);
-        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
-        EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{0, mp::nullopt}));
-    });
+    ps_helper.setup(
+        [](auto* process) {
+            InSequence seq;
+            EXPECT_CALL(*process, start);
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+            EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{0, mp::nullopt}));
+        },
+        /* auto_exit = */ false);
 
     EXPECT_TRUE(mp::PowerShell::exec({}, "Efor"));
 }
@@ -296,13 +310,15 @@ TEST_F(PowerShellTest, exec_fails_when_timeout)
     static constexpr auto msg = "timeout";
     logger.expect_log(mpl::Level::warning, msg);
 
-    ps_helper.setup([](auto* process) {
-        InSequence seq;
+    ps_helper.setup(
+        [](auto* process) {
+            InSequence seq;
 
-        EXPECT_CALL(*process, start);
-        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(false));
-        EXPECT_CALL(*process, error_string).WillOnce(Return(msg));
-    });
+            EXPECT_CALL(*process, start);
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(false));
+            EXPECT_CALL(*process, error_string).WillOnce(Return(msg));
+        },
+        /* auto_exit = */ false);
 
     EXPECT_FALSE(mp::PowerShell::exec({}, "Sabul"));
 }
@@ -311,13 +327,15 @@ TEST_F(PowerShellTest, exec_fails_when_cmd_returns_bad_exit_code)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
-    ps_helper.setup([](auto* process) {
-        InSequence seq;
+    ps_helper.setup(
+        [](auto* process) {
+            InSequence seq;
 
-        EXPECT_CALL(*process, start);
-        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
-        EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{-1, mp::nullopt}));
-    });
+            EXPECT_CALL(*process, start);
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+            EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{-1, mp::nullopt}));
+        },
+        /* auto_exit = */ false);
 
     EXPECT_FALSE(mp::PowerShell::exec({}, "Rulag"));
 }
@@ -330,16 +348,18 @@ TEST_F(PowerShellTest, exec_returns_cmd_output)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
-    ps_helper.setup([](auto* process) {
-        InSequence seq;
-        auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
+    ps_helper.setup(
+        [](auto* process) {
+            InSequence seq;
+            auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
 
-        EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
-        EXPECT_CALL(*process, read_all_standard_output)
-            .WillOnce(DoAll(Invoke(emit_ready_read), Return(datum2))) // the invoke needs to be 1st
-            .WillOnce(Return(datum1));                                // which results in the last return happening 1st
-        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
-    });
+            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+            EXPECT_CALL(*process, read_all_standard_output)
+                .WillOnce(DoAll(Invoke(emit_ready_read), Return(datum2))) // the invoke needs to be 1st
+                .WillOnce(Return(datum1)); // which results in the last return happening 1st
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
 
     QString output;
     mp::PowerShell::exec(cmdlet, "Gimar", output);

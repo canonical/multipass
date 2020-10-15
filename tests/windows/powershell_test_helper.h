@@ -54,7 +54,7 @@ public:
     void setup_mocked_run_sequence(std::vector<RunSpec> runs);
 
     // setup low-level expectations on the powershell process
-    void setup(const MockProcessFactory::Callback& callback = {});
+    void setup(const MockProcessFactory::Callback& callback = {}, bool auto_exit = true);
 
     // proxy to private PS::write method
     bool ps_write(PowerShell& ps, const QByteArray& data);
@@ -65,16 +65,16 @@ public:
     void expect_writes(MockProcess* process, QByteArray cmdlet) const;
 
     inline static constexpr auto psexit = "Exit\n";
+    inline static constexpr auto written = 1'000'000;
     inline static const QString& output_end_marker = PowerShell::output_end_marker;
 
 private:
-    void setup_process(MockProcess* process);
+    void setup_process(MockProcess* process, bool auto_exit);
     void add_mocked_run(MockProcess* process, const RunSpec& run);
 
     bool forked = false;
     std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();
     inline static constexpr auto psexe = "powershell.exe";
-    inline static constexpr auto written = 1'000'000;
 };
 
 } // namespace multipass::test

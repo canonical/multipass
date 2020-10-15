@@ -108,7 +108,12 @@ struct HyperVListNetworks : public Test
 
 TEST_F(HyperVListNetworks, requests_switches)
 {
-    ps_helper.setup([](auto* process) { EXPECT_THAT(process->arguments(), Contains(cmdlet)); });
+    ps_helper.setup(
+        [](auto* process) {
+            EXPECT_THAT(process->arguments(), Contains(cmdlet));
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
 
     backend.list_networks();
 }
