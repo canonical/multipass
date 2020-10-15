@@ -15,9 +15,11 @@
  *
  */
 
+#include "disabling_macros.h"
+#include "mock_environment_helpers.h"
+
 #include <multipass/process/qemuimg_process_spec.h>
 
-#include "tests/mock_environment_helpers.h"
 #include <gmock/gmock.h>
 
 #include <QFile>
@@ -106,7 +108,9 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_only_target_c
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
 }
 
-TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
+TEST(TestQemuImgProcessSpec,
+     DISABLE_ON_WINDOWS(apparmor_profile_running_as_symlinked_snap_correct)) // TODO tests involving apparmor should
+                                                                             // probably be moved elsewhere
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, snap_link_dir, common_dir, common_link_dir;
