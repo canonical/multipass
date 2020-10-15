@@ -17,6 +17,7 @@
 
 #include "src/daemon/default_vm_image_vault.h"
 
+#include "disabling_macros.h"
 #include "file_operations.h"
 #include "mock_image_host.h"
 #include "path.h"
@@ -342,7 +343,7 @@ TEST_F(ImageVault, invalid_custom_image_file_throws)
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error);
 }
 
-TEST_F(ImageVault, custom_image_url_downloads)
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(custom_image_url_downloads))
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto query = default_query;
@@ -383,7 +384,7 @@ TEST_F(ImageVault, invalid_remote_throws)
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error);
 }
 
-TEST_F(ImageVault, invalid_image_alias_throw)
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalid_image_alias_throw))
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -410,7 +411,7 @@ TEST_F(ImageVault, valid_remote_and_alias_returns_valid_image_info)
     EXPECT_THAT(image.id, Eq("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
 }
 
-TEST_F(ImageVault, http_download_returns_expected_image_info)
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(http_download_returns_expected_image_info))
 {
     HttpURLDownloader http_url_downloader;
     mp::DefaultVMImageVault vault{hosts, &http_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
