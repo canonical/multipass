@@ -771,13 +771,13 @@ const std::vector<FormatterParamType> non_orderable_list_networks_formatter_outp
      "en0  eth  Ether\n",
      "table_list_networks_one_short_line"},
     {&table_formatter, &one_long_line_list_networks_reply,
-     "Name   Type     Description\n"
-     "enp3s0 ethernet Amazingly fast and robust ethernet adapter\n",
+     "Name    Type      Description\n"
+     "enp3s0  ethernet  Amazingly fast and robust ethernet adapter\n",
      "table_list_networks_one_long_line"},
     {&table_formatter, &multiple_lines_list_networks_reply,
-     "Name            Type Description\n"
-     "en0             eth  Ether\n"
-     "wlx0123456789ab wifi Wireless\n",
+     "Name             Type  Description\n"
+     "en0              eth   Ether\n"
+     "wlx0123456789ab  wifi  Wireless\n",
      "table_list_networks_multiple_lines"},
 
     {&csv_formatter, &empty_list_networks_reply, "Name,Type,Description\n", "csv_list_networks_empty"},
