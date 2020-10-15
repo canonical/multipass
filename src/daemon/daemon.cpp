@@ -745,10 +745,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         const auto& name = entry.first;
         auto& spec = entry.second;
 
-        // Store here the MAC addresses we need add to the daemon's set. But we'll add them only if this instance
-        // is not invalid.
-        std::unordered_set<std::string> instance_mac_addresses;
-
         if (!config->vault->has_record_for(name))
         {
             invalid_specs.push_back(name);
@@ -756,7 +752,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         // Check that all the interfaces in the instance have different MAC address, and that they were not used in
-        // the other instances. String validity was already checked in load_db().
+        // the other instances. String validity was already checked in load_db(). Add these MAC's to the daemon's set
+        // only if this instance is not invalid.
         auto new_macs = mac_set_from(spec);
 
         if (new_macs.size() <= spec.extra_interfaces.size() ||
@@ -792,9 +789,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         {
             auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
             instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
-
-            // If everything was ok, add the instance MAC addresses to the daemon's list.
-            allocated_mac_addrs.insert(instance_mac_addresses.cbegin(), instance_mac_addresses.cend());
         }
         catch (const std::exception& e)
         {
@@ -2162,8 +2156,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             // rest of the addresses.
             for (const auto& iface : checked_args.extra_interfaces)
                 if (!iface.mac_address.empty() &&
-                    allocated_mac_addrs.find(iface.mac_address) != allocated_mac_addrs.end() &&
-                    !added_mac_addresses.insert(iface.mac_address).second)
+                    (allocated_mac_addrs.find(iface.mac_address) != allocated_mac_addrs.end() ||
+                     !added_mac_addresses.insert(iface.mac_address).second))
                     throw std::runtime_error(fmt::format("Repeated MAC address {}", iface.mac_address));
 
             // Generate a default network interface.
