@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ struct HyperVBackend : public testing::Test
 };
 } // namespace
 
-TEST_F(HyperVBackend, creates_in_off_state)
+TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
