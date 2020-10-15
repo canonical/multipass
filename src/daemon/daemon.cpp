@@ -759,25 +759,17 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // the other instances. String validity was already checked in load_db().
         auto new_macs = mac_set_from(spec);
 
-        if (new_macs.size() <= spec.extra_interfaces.size())
+        if (new_macs.size() <= spec.extra_interfaces.size() ||
+            (new_macs.merge(allocated_mac_addrs), !allocated_mac_addrs.empty()))
         {
             // There is at least one repeated address in new_macs.
             mpl::log(mpl::Level::warning, category, fmt::format("{} has repeated MAC addresses", name));
             invalid_specs.push_back(name);
             continue;
         }
-        else if (new_macs.merge(allocated_mac_addrs); !allocated_mac_addrs.empty())
-        {
-            // There is a repeated address from a previous instance.
-            mpl::log(mpl::Level::warning, category, fmt::format("{} has repeated MAC addresses", name));
-            invalid_specs.push_back(name);
-            continue;
-        }
-        else
-        {
-            // If there are no repetitions, add the new macs to the daemon's list.
-            allocated_mac_addrs = std::move(new_macs);
-        }
+
+        // If there are no repetitions, add the new macs to the daemon's list.
+        allocated_mac_addrs = std::move(new_macs);
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
