@@ -563,13 +563,13 @@ TEST_F(Client, launch_cmd_cpu_option_fails_no_value)
     EXPECT_THAT(send_command({"launch", "-c"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_file_ok)) // TODO
+TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_file_ok))
 {
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_http_ok)) // TODO
+TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_http_ok))
 {
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
