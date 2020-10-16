@@ -23,6 +23,7 @@
 #include <src/platform/backends/hyperkit/hyperkit_virtual_machine.cpp>
 #include <src/platform/backends/hyperkit/hyperkit_virtual_machine_factory.h>
 
+#include "tests/disabling_macros.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
@@ -163,7 +164,7 @@ TEST_P(GetIPThrowingSuite, throws_on_bad_format)
 
 INSTANTIATE_TEST_SUITE_P(Hyperkit, GetIPThrowingSuite, ValuesIn(throwing_hw_addr_inputs), print_param_name);
 
-TEST_F(HyperkitBackend, lists_no_networks)
+TEST_F(HyperkitBackend, DISABLE_ON_MACOS(lists_no_networks))
 {
     mp::HyperkitVirtualMachineFactory backend;
 
