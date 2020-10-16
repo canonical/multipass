@@ -656,6 +656,51 @@ TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
     EXPECT_THAT(send_command({"launch"}), Eq(mp::ReturnCode::Ok));
 }
 
+struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
+{
+};
+
+TEST_P(TestInvalidNetworkOptions, launch_cmd_return)
+{
+    auto commands = GetParam();
+    commands.insert(commands.begin(), std::string{"launch"});
+
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).Times(0);
+
+    EXPECT_THAT(send_command(commands), Eq(mp::ReturnCode::CommandLineError));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestInvalidNetworkOptions,
+                         Values(std::vector<std::string>{"--network", "invalid=option"},
+                                std::vector<std::string>{"--network"},
+                                std::vector<std::string>{"--network", "mode=manual"},
+                                std::vector<std::string>{"--network", "mode=manual=auto"},
+                                std::vector<std::string>{"--network", "id=eth0,mode=man"},
+                                std::vector<std::string>{"--network", "id=eth1,mac=0a"},
+                                std::vector<std::string>{"--network", "eth2", "--network"}));
+
+struct TestValidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
+{
+};
+
+TEST_P(TestValidNetworkOptions, launch_cmd_return)
+{
+    auto commands = GetParam();
+    commands.insert(commands.begin(), std::string{"launch"});
+
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
+
+    EXPECT_THAT(send_command(commands), Eq(mp::ReturnCode::Ok));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestValidNetworkOptions,
+                         Values(std::vector<std::string>{"--network", "eth3"},
+                                std::vector<std::string>{"--network", "id=eth4", "--network", "eth5"},
+                                std::vector<std::string>{"--network", "id=eth6,mac=01:23:45:67:89:ab"},
+                                std::vector<std::string>{"--network", "id=eth7,mode=manual"},
+                                std::vector<std::string>{"--network", "id=eth8,mode=auto"},
+                                std::vector<std::string>{"--network", "id=eth9", "--network", "id=eth9"}));
+
 // purge cli tests
 TEST_F(Client, purge_cmd_ok_no_args)
 {
