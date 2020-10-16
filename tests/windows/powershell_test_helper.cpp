@@ -17,8 +17,6 @@
 
 #include "powershell_test_helper.h"
 
-#include <multipass/format.h>
-
 #include <gtest/gtest.h>
 
 namespace mpt = multipass::test;
@@ -72,9 +70,11 @@ QByteArray mpt::PowerShellTestHelper::end_marker(bool succeed) const
 
 void mpt::PowerShellTestHelper::expect_writes(MockProcess* process, QByteArray cmdlet) const
 {
-    EXPECT_CALL(*process, write(Eq(cmdlet.append('\n')))).WillOnce(Return(written));
-    EXPECT_CALL(*process, write(Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()))))
-        .WillOnce(Return(written));
+    auto cmdlet_matcher = Truly([expect = std::move(cmdlet)](const QByteArray& got) { return got.contains(expect); });
+    EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
+
+    auto marker_matcher = Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()));
+    EXPECT_CALL(*process, write(marker_matcher)).WillOnce(Return(written));
 }
 
 bool mpt::PowerShellTestHelper::was_ps_run() const
@@ -100,14 +100,8 @@ void mpt::PowerShellTestHelper::setup_process(MockProcess* process, bool auto_ex
 void mpt::PowerShellTestHelper::add_mocked_run(MockProcess* process, const RunSpec& run)
 {
     const auto& [cmdlet, output, result] = run;
-    const auto& marker = output_end_marker;
+    expect_writes(process, QByteArray::fromStdString(cmdlet));
 
-    auto cmdlet_matcher = Property(&QByteArray::toStdString, HasSubstr(cmdlet));
-    EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
-
-    auto marker_matcher = Property(&QByteArray::toStdString, HasSubstr(marker.toStdString()));
-    EXPECT_CALL(*process, write(marker_matcher)).WillOnce(Return(written));
-
-    auto ps_output = fmt::format("{}\n{} {}\n", output, marker, result ? "True" : "False");
-    EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(ps_output)));
+    auto ps_output = QByteArray::fromStdString(output).append(end_marker(result));
+    EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(ps_output));
 }
