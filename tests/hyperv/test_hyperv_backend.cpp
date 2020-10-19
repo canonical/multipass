@@ -83,7 +83,7 @@ struct HyperVBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used,
                                                       "pied-piper-valley",
-                                                      {"default", "", true},
+                                                      {"default", "ba:ba:ca:ca:ca:ba", true},
                                                       {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
@@ -105,14 +105,13 @@ TEST_F(HyperVBackend, creates_in_off_state)
 
 TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
 {
-    auto& mac = default_description.default_interface.mac_address = "ba:ba:ca:ca:ca:ba";
-
     // TODO we only honor default_interface.mac_address, the rest is ignored, so should probably receive only the mac
-    auto network_run = RunSpec{
-        fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"", default_description.vm_name, mac)};
+    auto network_run =
+        RunSpec{fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"", default_description.vm_name,
+                            default_description.default_interface.mac_address)};
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
 
-    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    backend.create_virtual_machine(default_description, stub_monitor);
 }
 
 TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
