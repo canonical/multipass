@@ -62,7 +62,12 @@ struct HyperVBackend : public Test
     {
         std::vector<RunSpec> ret = base_ctor_runs;
         ret.insert(std::end(ret), std::cbegin(network_runs), std::cend(network_runs));
-        ret.emplace_back(min_dtor_run);
+
+        auto failing_run_it = std::find_if(std::cbegin(network_runs), std::cend(network_runs),
+                                           [](const auto& run) { return !run.will_return; });
+        if (failing_run_it == std::cend(network_runs)) // if the ctor succeeds
+            ret.emplace_back(min_dtor_run); // network runs are executed in the ctor, so if they fail the object is
+                                            // never constructed and no dtor is called
 
         return ret;
     }
@@ -108,6 +113,17 @@ TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
 
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+}
+
+TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
+{
+    auto run = default_network_run;
+    run.will_return = false;
+
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({run}));
+
+    MP_EXPECT_THROW_THAT(backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr("default adapter")));
 }
 
 struct HyperVListNetworks : public Test
