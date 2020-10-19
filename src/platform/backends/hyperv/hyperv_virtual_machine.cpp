@@ -131,6 +131,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 void mp::HyperVVirtualMachine::setup_network_interfaces(const NetworkInterface& default_interface,
                                                         const std::vector<NetworkInterface>& extra_interfaces)
 {
+    // TODO we only honor default_interface.mac_address, the rest is ignored, so should probably receive only the mac
     checked_ps_run(*power_shell,
                    {"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
                     QString::fromStdString('"' + default_interface.mac_address + '"')},

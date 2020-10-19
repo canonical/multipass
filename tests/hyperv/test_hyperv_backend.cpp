@@ -46,6 +46,8 @@ namespace
 {
 struct HyperVBackend : public Test
 {
+    using RunSpec = mpt::PowerShellTestHelper::RunSpec;
+
     void SetUp() override
     {
         logger_scope.mock_logger->screen_logs(mpl::Level::warning);
@@ -55,6 +57,20 @@ struct HyperVBackend : public Test
     {
         ASSERT_TRUE(ps_helper.was_ps_run());
     }
+
+    std::vector<RunSpec> standard_ps_run_sequence(const std::vector<RunSpec>& network_runs = {default_network_run})
+    {
+        std::vector<RunSpec> ret = base_ctor_runs;
+        ret.insert(std::end(ret), std::cbegin(network_runs), std::cend(network_runs));
+        ret.emplace_back(min_dtor_run);
+
+        return ret;
+    }
+
+    inline static const std::vector<RunSpec> base_ctor_runs = {
+        {"Get-VM", "", false}, {"Get-VMSwitch"}, {"New-VM"}, {"Set-VMProcessor"}, {"Add-VMDvdDrive"}};
+    inline static const RunSpec default_network_run = {"Set-VMNetworkAdapter"};
+    inline static const RunSpec min_dtor_run = {"-ExpandProperty State", "Off"};
 
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
@@ -75,17 +91,23 @@ struct HyperVBackend : public Test
 
 TEST_F(HyperVBackend, creates_in_off_state)
 {
-    ps_helper.setup_mocked_run_sequence({{"Get-VM", "", false},
-                                         {"Get-VMSwitch"},
-                                         {"New-VM"},
-                                         {"Set-VMProcessor"},
-                                         {"Add-VMDvdDrive"},
-                                         {"Set-VMNetworkAdapter"},
-                                         {"-ExpandProperty State", "Off"}}); // for the dtor
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence());
 
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
+}
+
+TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
+{
+    auto& mac = default_description.default_interface.mac_address = "ba:ba:ca:ca:ca:ba";
+
+    // TODO we only honor default_interface.mac_address, the rest is ignored, so should probably receive only the mac
+    auto network_run = RunSpec{
+        fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"", default_description.vm_name, mac)};
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
+
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 }
 
 struct HyperVListNetworks : public Test
