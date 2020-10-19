@@ -125,6 +125,25 @@ TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
                          Property(&std::runtime_error::what, HasSubstr("default adapter")));
 }
 
+TEST_F(HyperVBackend, adds_extra_network_adapters)
+{
+    default_description.extra_interfaces = {
+        {"switchA", "55:66:44:77:33:88"}, {"switchB", "15:16:14:17:13:18"}, {"switchC", "5e:6f:4e:7f:3e:8f"}};
+
+    auto network_runs = std::vector<RunSpec>{default_network_run};
+    for (const auto& iface : default_description.extra_interfaces)
+    {
+        network_runs.push_back({fmt::format("Get-VMSwitch -Name \"{}\"", iface.id)});
+        network_runs.push_back(
+            {fmt::format("Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
+                         default_description.vm_name, iface.id, iface.mac_address)});
+    };
+
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(std::move(network_runs)));
+
+    backend.create_virtual_machine(default_description, stub_monitor);
+}
+
 struct HyperVListNetworks : public Test
 {
     void SetUp() override
