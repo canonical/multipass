@@ -144,6 +144,19 @@ TEST_F(HyperVBackend, adds_extra_network_adapters)
     backend.create_virtual_machine(default_description, stub_monitor);
 }
 
+TEST_F(HyperVBackend, throws_on_failure_to_detect_switch_from_extra_interface)
+{
+    auto extra_iface = mp::NetworkInterface{"MissingSwitch", "55:66:44:77:33:88"};
+    default_description.extra_interfaces.push_back(extra_iface);
+
+    auto failing_cmd = fmt::format("Get-VMSwitch -Name \"{}\"", extra_iface.id);
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({default_network_run, {failing_cmd, "", false}}));
+
+    MP_EXPECT_THROW_THAT(
+        backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+        Property(&std::runtime_error::what, AllOf(HasSubstr("Could not find"), HasSubstr(extra_iface.id))));
+}
+
 struct HyperVListNetworks : public Test
 {
     void SetUp() override
