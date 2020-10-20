@@ -2135,7 +2135,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
         });
 
     prepare_future_watcher->setFuture(QtConcurrent::run([this, server, request, name,
-                                                         checked_args]() -> VirtualMachineDescription {
+                                                         checked_args]() mutable -> VirtualMachineDescription {
         // This set stores the MAC's which need to be added to allocated_mac_addrs if everything goes well.
         std::unordered_set<std::string> added_mac_addresses;
 
@@ -2171,29 +2171,20 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             reply.set_create_message("Configuring " + name);
             server->Write(reply);
 
-            // To generate the network interfaces, we need to check first for repetition the MAC addresses
-            // which were specified by the user, and add them to the set of new MAC addresses. If it happens
-            // that we have repeated addresses, fail. Only after doing this we will be able to generate the
-            // rest of the addresses.
-            for (const auto& iface : checked_args.extra_interfaces)
-                if (!iface.mac_address.empty() &&
-                    (allocated_mac_addrs.find(iface.mac_address) != allocated_mac_addrs.end() ||
-                     !added_mac_addresses.insert(iface.mac_address).second))
+            // Generate mac if empty, check for repetition otherwise; let the backend re-interpret the id
+            for (auto& iface : checked_args.extra_interfaces)
+            {
+                iface.id = config->factory->interface_id(iface.id);
+
+                if (iface.mac_address.empty())
+                    iface.mac_address = generate_unused_mac_address(added_mac_addresses);
+                else if (allocated_mac_addrs.find(iface.mac_address) != allocated_mac_addrs.end() ||
+                         !added_mac_addresses.insert(iface.mac_address).second)
                     throw std::runtime_error(fmt::format("Repeated MAC address {}", iface.mac_address));
+            }
 
             // Generate a default network interface.
             mp::NetworkInterface default_interface{"default", generate_unused_mac_address(added_mac_addresses), true};
-
-            // Generate MAC addresses for the interfaces on which it was not specified and put the modified
-            // interfaces in a new vector.
-            std::vector<mp::NetworkInterface> extra_interfaces;
-            for (const auto& iface : checked_args.extra_interfaces)
-            {
-                extra_interfaces.push_back(mp::NetworkInterface{
-                    config->factory->interface_id(iface.id),
-                    iface.mac_address.empty() ? generate_unused_mac_address(added_mac_addresses) : iface.mac_address,
-                    iface.auto_mode});
-            }
 
             auto vendor_data_cloud_init_config =
                 make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
@@ -2201,10 +2192,11 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
             auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
-            auto network_data_cloud_init_config = make_cloud_init_network_config(default_interface, extra_interfaces);
+            auto network_data_cloud_init_config =
+                make_cloud_init_network_config(default_interface, checked_args.extra_interfaces);
 
             auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, default_interface,
-                                           extra_interfaces, config->ssh_username, vm_image,
+                                           checked_args.extra_interfaces, config->ssh_username, vm_image,
                                            meta_data_cloud_init_config, user_data_cloud_init_config,
                                            vendor_data_cloud_init_config, network_data_cloud_init_config);
 
