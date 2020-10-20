@@ -749,10 +749,14 @@ std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
 {
     // TODO: Checking in our list of MAC addresses does not suffice to conclude the generated MAC is unique. We
     // should also check in the ARP table.
-    while (true)
+    static constexpr auto max_tries = 5;
+    for (auto i = 0; i < max_tries; ++i)
         if (auto [it, success] = s.insert(mp::utils::generate_mac_address()); success)
             return *it;
 
+    throw std::runtime_error{
+        fmt::format("Failed to generate an unique mac address after {} attempts. Number of mac addresses in use: {}",
+                    max_tries, s.size())};
 }
 
 } // namespace
