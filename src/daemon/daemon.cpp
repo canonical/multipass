@@ -747,18 +747,12 @@ bool merge_if_disjoint(std::unordered_set<std::string>& s, std::unordered_set<st
 // Generate a MAC address which does not exist in the set s. Then add the address to s.
 std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
 {
-    std::string mac_address = mp::utils::generate_mac_address();
-
     // TODO: Checking in our list of MAC addresses does not suffice to conclude the generated MAC is unique. We
     // should also check in the ARP table.
-    while (s.find(mac_address) != s.end())
-    {
-        mac_address = mp::utils::generate_mac_address();
-    }
+    while (true)
+        if (auto [it, success] = s.insert(mp::utils::generate_mac_address()); success)
+            return *it;
 
-    s.insert(mac_address);
-
-    return mac_address;
 }
 
 } // namespace
