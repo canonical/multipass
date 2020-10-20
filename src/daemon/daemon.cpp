@@ -1927,20 +1927,20 @@ std::string mp::Daemon::generate_unused_mac_address(std::unordered_set<std::stri
     return mac_address;
 }
 
-QJsonArray write_extra_interfaces(const std::vector<mp::NetworkInterface>& spec_extra_interfaces)
+QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
-    QJsonArray json_extra_interfaces;
+    QJsonArray json;
 
-    for (const auto& interface : spec_extra_interfaces)
+    for (const auto& interface : extra_interfaces)
     {
         QJsonObject entry;
         entry.insert("id", QString::fromStdString(interface.id));
         entry.insert("mac_address", QString::fromStdString(interface.mac_address));
         entry.insert("auto_mode", interface.auto_mode);
-        json_extra_interfaces.append(entry);
+        json.append(entry);
     }
 
-    return json_extra_interfaces;
+    return json;
 }
 
 void mp::Daemon::persist_instances()
@@ -1958,7 +1958,7 @@ void mp::Daemon::persist_instances()
         // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
         // default network interface. Then, write all the information about the rest of the interfaces.
         json.insert("mac_addr", QString::fromStdString(specs.default_interface.mac_address));
-        json.insert("extra_interfaces", write_extra_interfaces(specs.extra_interfaces));
+        json.insert("extra_interfaces", to_json_array(specs.extra_interfaces));
 
         QJsonArray mounts;
         for (const auto& mount : specs.mounts)
