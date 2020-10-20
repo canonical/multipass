@@ -85,7 +85,6 @@ protected:
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
     void update_metadata_for(const std::string& name, const QJsonObject& metadata) override;
     QJsonObject retrieve_metadata_for(const std::string& name) override;
-    std::string generate_unused_mac_address(std::unordered_set<std::string>& s);
 
 public slots:
     virtual void create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,

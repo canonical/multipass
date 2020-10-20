@@ -744,6 +744,23 @@ bool merge_if_disjoint(std::unordered_set<std::string>& s, std::unordered_set<st
     return true;
 }
 
+// Generate a MAC address which does not exist in the set s. Then add the address to s.
+std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
+{
+    std::string mac_address = mp::utils::generate_mac_address();
+
+    // TODO: Checking in our list of MAC addresses does not suffice to conclude the generated MAC is unique. We
+    // should also check in the ARP table.
+    while (s.find(mac_address) != s.end())
+    {
+        mac_address = mp::utils::generate_mac_address();
+    }
+
+    s.insert(mac_address);
+
+    return mac_address;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1911,23 +1928,6 @@ QJsonObject mp::Daemon::retrieve_metadata_for(const std::string& name)
     return vm_instance_specs[name].metadata;
 }
 
-// Generate a MAC address which was not used before, and which does not exist in the set s. Then add the address to s.
-std::string mp::Daemon::generate_unused_mac_address(std::unordered_set<std::string>& s)
-{
-    std::string mac_address = mp::utils::generate_mac_address();
-
-    // TODO: Checking in our list of MAC addresses does not suffice to conclude the generated MAC is unique. We
-    // should also check in the ARP table.
-    while (allocated_mac_addrs.find(mac_address) != allocated_mac_addrs.end() || s.find(mac_address) != s.end())
-    {
-        mac_address = mp::utils::generate_mac_address();
-    }
-
-    s.insert(mac_address);
-
-    return mac_address;
-}
-
 QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
     QJsonArray json;
@@ -2137,9 +2137,6 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     prepare_future_watcher->setFuture(QtConcurrent::run([this, server, request, name,
                                                          checked_args]() mutable -> VirtualMachineDescription {
-        // This set stores the MAC's which need to be added to allocated_mac_addrs if everything goes well.
-        std::unordered_set<std::string> added_mac_addresses;
-
         try
         {
             auto query = query_from(request, name);
@@ -2172,20 +2169,22 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             reply.set_create_message("Configuring " + name);
             server->Write(reply);
 
+            // This set stores the MAC's which need to be in the allocated_mac_addrs if everything goes well.
+            auto new_macs = allocated_mac_addrs;
+
             // Generate mac if empty, check for repetition otherwise; let the backend re-interpret the id
             for (auto& iface : checked_args.extra_interfaces)
             {
                 iface.id = config->factory->interface_id(iface.id);
 
                 if (iface.mac_address.empty())
-                    iface.mac_address = generate_unused_mac_address(added_mac_addresses);
-                else if (allocated_mac_addrs.find(iface.mac_address) != allocated_mac_addrs.end() ||
-                         !added_mac_addresses.insert(iface.mac_address).second)
+                    iface.mac_address = generate_unused_mac_address(new_macs);
+                else if (!new_macs.insert(iface.mac_address).second)
                     throw std::runtime_error(fmt::format("Repeated MAC address {}", iface.mac_address));
             }
 
             // Generate a default network interface.
-            mp::NetworkInterface default_interface{"default", generate_unused_mac_address(added_mac_addresses), true};
+            mp::NetworkInterface default_interface{"default", generate_unused_mac_address(new_macs), true};
 
             auto vendor_data_cloud_init_config =
                 make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
@@ -2196,16 +2195,15 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             auto network_data_cloud_init_config =
                 make_cloud_init_network_config(default_interface, checked_args.extra_interfaces);
 
+            // Everything went well, add the MAC addresses used in this instance.
+            allocated_mac_addrs = std::move(new_macs);
+
             auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, default_interface,
                                            checked_args.extra_interfaces, config->ssh_username, vm_image,
                                            meta_data_cloud_init_config, user_data_cloud_init_config,
                                            vendor_data_cloud_init_config, network_data_cloud_init_config);
 
             config->factory->prepare_instance_image(vm_image, vm_desc);
-
-            // Everything went well, add the MAC addresses used in this instance.
-            for (const auto& elt : added_mac_addresses)
-                allocated_mac_addrs.insert(std::move(elt));
 
             return vm_desc;
         }
