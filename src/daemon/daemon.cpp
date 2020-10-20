@@ -152,7 +152,7 @@ auto make_cloud_init_network_config(const mp::NetworkInterface& default_interfac
     {
         if (extra_interfaces[i].auto_mode)
         {
-            std::string name = "extra" + std::to_string(i);
+            name = "extra" + std::to_string(i);
             network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
             network_data["ethernets"][name]["dhcp4"] = true;
             network_data["ethernets"][name]["wakeonlan"] = "true";
