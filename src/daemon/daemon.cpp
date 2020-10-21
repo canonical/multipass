@@ -2170,16 +2170,18 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             // This set stores the MAC's which need to be in the allocated_mac_addrs if everything goes well.
             auto new_macs = allocated_mac_addrs;
 
-            // Generate mac if empty, check for repetition otherwise; let the backend re-interpret the id
+            // let the backend re-interpret the id and check for repetition of requested macs
             for (auto& iface : checked_args.extra_interfaces)
             {
                 iface.id = config->factory->interface_id(iface.id);
-
-                if (iface.mac_address.empty())
-                    iface.mac_address = generate_unused_mac_address(new_macs);
-                else if (!new_macs.insert(iface.mac_address).second)
+                if (!iface.mac_address.empty() && !new_macs.insert(iface.mac_address).second)
                     throw std::runtime_error(fmt::format("Repeated MAC address {}", iface.mac_address));
             }
+
+            // generate missing macs in a second pass, to avoid repeating macs that the user requested
+            for (auto& iface : checked_args.extra_interfaces)
+                if (iface.mac_address.empty())
+                    iface.mac_address = generate_unused_mac_address(new_macs);
 
             // Generate a default network interface.
             mp::NetworkInterface default_interface{"default", generate_unused_mac_address(new_macs), true};
