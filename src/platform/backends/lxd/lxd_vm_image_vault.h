@@ -27,8 +27,7 @@
 #include <QJsonObject>
 #include <QUrl>
 
-#include <memory>
-#include <string>
+#include <unordered_map>
 
 namespace multipass
 {
@@ -50,6 +49,7 @@ public:
     void prune_expired_images() override;
     void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                        const ProgressMonitor& monitor) override;
+    MemorySize minimum_image_size_for(const std::string& id) override;
 
 private:
     VMImageInfo info_for(const Query& query);

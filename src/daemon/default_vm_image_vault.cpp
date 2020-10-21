@@ -544,6 +544,11 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     }
 }
 
+mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string& id)
+{
+    return MemorySize{};
+}
+
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     const VMImageInfo& info, mp::optional<VMImage>& existing_source_image, const QDir& image_dir,
     const FetchType& fetch_type, const PrepareAction& prepare, const ProgressMonitor& monitor)

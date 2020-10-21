@@ -43,6 +43,11 @@ struct StubVMImageVault final : public multipass::VMImageVault
     void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                        const ProgressMonitor& monitor) override{};
 
+    MemorySize minimum_image_size_for(const std::string& image) override
+    {
+        return MemorySize{};
+    }
+
     TempFile dummy_image;
 };
 }

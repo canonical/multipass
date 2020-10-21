@@ -382,6 +382,11 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
     }
 }
 
+mp::MemorySize mp::LXDVMImageVault::minimum_image_size_for(const std::string& id)
+{
+    return MemorySize{};
+}
+
 mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
 {
     if (!query.remote_name.empty())
