@@ -2133,8 +2133,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             delete prepare_future_watcher;
         });
 
-    prepare_future_watcher->setFuture(QtConcurrent::run([this, server, request, name,
-                                                         checked_args]() mutable -> VirtualMachineDescription {
+    auto make_vm_description = [this, server, request, name, checked_args]() mutable -> VirtualMachineDescription {
         try
         {
             auto query = query_from(request, name);
@@ -2211,7 +2210,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
         {
             throw CreateImageException(e.what());
         }
-    }));
+    };
+
+    prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
