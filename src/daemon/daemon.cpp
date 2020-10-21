@@ -1973,18 +1973,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 server->Write(reply);
                 auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
-                // TODO: make this come from the image host
-                const auto& driver = utils::get_driver_str();
-                mp::MemorySize disk_space;
-                if (driver == "lxd")
-                {
-                    disk_space = *checked_args.disk_space;
-                }
-                else
-                {
-                    const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
-                    disk_space = compute_final_image_size(image_size, checked_args.disk_space);
-                }
+                const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
+                const auto disk_space = compute_final_image_size(image_size, checked_args.disk_space);
 
                 reply.set_create_message("Configuring " + name);
                 server->Write(reply);
