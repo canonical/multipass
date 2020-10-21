@@ -1,5 +1,5 @@
 934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7 *ubuntu-core-16-amd64.img.xz
 1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f *ubuntu-core-18-amd64.img.xz
 a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48  ubuntu-16.04-minimal-cloudimg-amd64-disk1.img
-96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c  ubuntu-18.04-minimal-cloudimg-amd64.img
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ubuntu-20.04-minimal-cloudimg-amd64.img
+96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c  bionic-server-cloudimg-amd64-disk.img
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  focal-server-cloudimg-amd64-disk.img

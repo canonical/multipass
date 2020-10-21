@@ -76,8 +76,8 @@ const QMap<QString, CustomImageInfo> snapcraft_image_info{
       "ubuntu-16.04-server-cloudimg-amd64-vmlinuz-generic",
       "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
       "ubuntu-16.04-server-cloudimg-amd64-initrd-generic"}},
-    {{"ubuntu-18.04-minimal-cloudimg-amd64.img"},
-     {"https://cloud-images.ubuntu.com/minimal/releases/bionic/release/",
+    {{"bionic-server-cloudimg-amd64-disk.img"},
+     {"https://cloud-images.ubuntu.com/buildd/releases/bionic/release/",
       {"core18"},
       "",
       "snapcraft-core18",
@@ -86,8 +86,8 @@ const QMap<QString, CustomImageInfo> snapcraft_image_info{
       "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
       "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
       "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}},
-    {{"ubuntu-20.04-minimal-cloudimg-amd64.img"},
-     {"https://cloud-images.ubuntu.com/minimal/releases/focal/release/",
+    {{"focal-server-cloudimg-amd64-disk.img"},
+     {"https://cloud-images.ubuntu.com/buildd/releases/focal/release/",
       {"core20"},
       "",
       "snapcraft-core20",
