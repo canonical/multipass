@@ -30,7 +30,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
-#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/query.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -603,48 +602,12 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
     }
 }
 
-mp::MemorySize get_image_size(const mp::VMImage& image)
-{
-    QStringList qemuimg_parameters{{"info", image.image_path}};
-    auto qemuimg_process =
-        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image.image_path));
-    auto process_state = qemuimg_process->execute();
-
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
-    }
-
-    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
-    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)\r?$");
-    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
-
-    mp::MemorySize image_size{};
-
-    const auto match = re.match(img_info);
-
-    if (match.hasMatch())
-    {
-        image_size = mp::MemorySize(match.captured("size").toStdString());
-    }
-    else
-    {
-        throw std::runtime_error{"Could not obtain image's virtual size"};
-    }
-
-    return image_size;
-}
-
 // Computes the final size of an image, but also checks if the value given by the user is bigger than or equal than
 // the size of the image.
-mp::MemorySize compute_final_image_size(const mp::VMImage& image, mp::optional<mp::MemorySize> command_line_value)
+mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
+                                        mp::optional<mp::MemorySize> command_line_value)
 {
     mp::MemorySize disk_space{};
-
-    // TODO: the virtual image size should come from the vault.
-    mp::MemorySize image_size = get_image_size(image);
 
     if (!command_line_value)
     {
@@ -2019,7 +1982,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 }
                 else
                 {
-                    disk_space = compute_final_image_size(vm_image, checked_args.disk_space);
+                    const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
+                    disk_space = compute_final_image_size(image_size, checked_args.disk_space);
                 }
 
                 reply.set_create_message("Configuring " + name);
