@@ -93,21 +93,6 @@ mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAcces
 
     return mp::nullopt;
 }
-
-mp::MemorySize get_minimum_disk_size(const mp::MemorySize& requested_disk_size)
-{
-    mp::MemorySize lxd_min_disk_size{"10G"};
-
-    if (requested_disk_size > lxd_min_disk_size)
-    {
-        return requested_disk_size;
-    }
-    else
-    {
-        return lxd_min_disk_size;
-    }
-}
-
 } // namespace
 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
@@ -144,17 +129,16 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         if (!desc.user_data_config.IsNull())
             config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
 
-        QJsonObject devices{
-            {"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
-            {"root", QJsonObject{{"path", "/"},
-                                 {"pool", "default"},
-                                 {"size", QString::number(get_minimum_disk_size(desc.disk_space).in_bytes())},
-                                 {"type", "disk"}}},
-            {"eth0", QJsonObject{{"name", "eth0"},
-                                 {"nictype", "bridged"},
-                                 {"parent", "mpbr0"},
-                                 {"type", "nic"},
-                                 {"hwaddr", mac_addr}}}};
+        QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
+                            {"root", QJsonObject{{"path", "/"},
+                                                 {"pool", "default"},
+                                                 {"size", QString::number(desc.disk_space.in_bytes())},
+                                                 {"type", "disk"}}},
+                            {"eth0", QJsonObject{{"name", "eth0"},
+                                                 {"nictype", "bridged"},
+                                                 {"parent", "mpbr0"},
+                                                 {"type", "nic"},
+                                                 {"hwaddr", mac_addr}}}};
 
         QJsonObject virtual_machine{
             {"name", name},
