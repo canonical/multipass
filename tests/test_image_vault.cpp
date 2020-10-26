@@ -18,8 +18,10 @@
 #include "src/daemon/default_vm_image_vault.h"
 
 #include "disabling_macros.h"
+#include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_image_host.h"
+#include "mock_process_factory.h"
 #include "path.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
@@ -27,6 +29,7 @@
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
+#include <multipass/format.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
@@ -115,6 +118,42 @@ struct ImageVault : public testing::Test
     void SetUp()
     {
         hosts.push_back(&host);
+    }
+
+    QByteArray fake_img_info(const mp::MemorySize& size)
+    {
+        return QByteArray::fromStdString(
+            fmt::format("some\nother\ninfo\nfirst\nvirtual size: {} ({} bytes)\nmore\ninfo\nafter\n",
+                        size.in_gigabytes(), size.in_bytes()));
+    }
+
+    void simulate_qemuimg_info(const mpt::MockProcess* process, const mp::ProcessState& produce_result,
+                               const QByteArray& produce_output = {})
+    {
+        ASSERT_EQ(process->program().toStdString(), "qemu-img");
+
+        const auto args = process->arguments();
+        ASSERT_EQ(args.size(), 2);
+        EXPECT_EQ(args.constFirst(), "info");
+
+        EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+        if (produce_result.completed_successfully())
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
+        else if (produce_result.exit_code)
+            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
+        else
+            ON_CALL(*process, read_all_standard_error).WillByDefault(Return(produce_output));
+    }
+
+    std::unique_ptr<mp::test::MockProcessFactory::Scope>
+    inject_fake_qemuimg_callback(const mp::ProcessState& qemuimg_exit_status, const QByteArray& qemuimg_output)
+    {
+        std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+        mock_factory_scope->register_callback(
+            [&](mpt::MockProcess* process) { simulate_qemuimg_info(process, qemuimg_exit_status, qemuimg_output); });
+
+        return mock_factory_scope;
     }
 
     QString host_url{QUrl::fromLocalFile(mpt::test_data_path()).toString()};
@@ -463,4 +502,70 @@ TEST_F(ImageVault, aborted_download_throws)
 
     EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor),
                  mp::AbortedDownloadException);
+}
+
+TEST_F(ImageVault, minimum_image_size_returns_expected_size)
+{
+    const mp::MemorySize image_size{"1048576"};
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(image_size));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
+
+    const auto size = vault.minimum_image_size_for(vm_image.id);
+
+    EXPECT_EQ(image_size, size);
+}
+
+TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
+
+    const std::string id{"12345"};
+    MP_EXPECT_THROW_THAT(
+        vault.minimum_image_size_for(id), std::runtime_error,
+        Property(&std::runtime_error::what, StrEq(fmt::format("Cannot find prepared image with id \'{}\'", id))));
+}
+
+TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
+{
+    const mp::ProcessState qemuimg_exit_status{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
+    const QByteArray qemuimg_output("about to crash");
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
+
+    MP_EXPECT_THROW_THAT(
+        vault.minimum_image_size_for(vm_image.id), std::runtime_error,
+        Property(&std::runtime_error::what, AllOf(HasSubstr("qemu-img failed"), HasSubstr("with output"))));
+}
+
+TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_image)
+{
+    const mp::ProcessState qemuimg_exit_status{1, mp::nullopt};
+    const QByteArray qemuimg_output("Could not find");
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
+
+    MP_EXPECT_THROW_THAT(
+        vault.minimum_image_size_for(vm_image.id), std::runtime_error,
+        Property(&std::runtime_error::what, AllOf(HasSubstr("qemu-img failed"), HasSubstr("Could not find"))));
+}
+
+TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understand_the_image_size)
+{
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output("virtual size: an unintelligible string");
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
+
+    MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr("Could not obtain image's virtual size")));
 }
