@@ -118,12 +118,165 @@ void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
 {
 }
 
+#ifdef MULTIPASS_PLATFORM_LINUX
+mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
+                                           std::map<std::string, mp::NetworkInterfaceInfo>)
+{
+    // This pattern is intended to gather from VBoxManage output the information we need.
+    const auto name_pattern = QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)$.*");
+    const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)$.*");
+    const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)$");
+
+    const auto regexp_options = QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption;
+
+    const auto name_regexp = QRegularExpression{name_pattern, regexp_options};
+    const auto type_regexp = QRegularExpression{type_pattern, regexp_options};
+    const auto wireless_regexp = QRegularExpression{wireless_pattern, regexp_options};
+
+    const auto name_match = name_regexp.match(vbox_iface_info);
+
+    if (name_match.hasMatch())
+    {
+        std::string ifname = name_match.captured("name").toStdString();
+        std::string iftype = type_regexp.match(vbox_iface_info).captured("type").toStdString();
+        bool wireless = wireless_regexp.match(vbox_iface_info).captured("wireless") == "Yes";
+
+        if (iftype == "Ethernet")
+        {
+            if (wireless)
+                return mp::NetworkInterfaceInfo{ifname, "wifi", "Wi-Fi device", mp::nullopt};
+            else
+                return mp::NetworkInterfaceInfo{ifname, "ethernet", "Wired or virtual device", mp::nullopt};
+        }
+        else
+            return mp::NetworkInterfaceInfo{ifname, wireless ? "wireless" : "wired", iftype, mp::nullopt};
+    }
+
+    return mp::NetworkInterfaceInfo{"", "", "", mp::nullopt};
+}
+#endif
+
+#ifdef MULTIPASS_PLATFORM_APPLE
+mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
+                                           std::map<std::string, mp::NetworkInterfaceInfo> platform_info)
+{
+    // The Mac version of VBoxManage gives us enough information about some devices, we need to get the rest from
+    // the platform.
+    // This extra information provided by the // Mac version is captured in <description>.
+    const auto name_pattern =
+        QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)(: (?<description>[A-Za-z0-9-_()\\? :]+))?\r?$.*");
+    const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r?$.*");
+    const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r?$");
+
+    const auto regexp_options = QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption;
+
+    const auto name_regexp = QRegularExpression{name_pattern, regexp_options};
+    const auto type_regexp = QRegularExpression{type_pattern, regexp_options};
+    const auto wireless_regexp = QRegularExpression{wireless_pattern, regexp_options};
+
+    const auto name_match = name_regexp.match(vbox_iface_info);
+
+    if (name_match.hasMatch())
+    {
+        std::string ifname = name_match.captured("name").toStdString();
+
+        auto platform_if_info = platform_info.find(ifname);
+
+        if (platform_if_info != platform_info.end())
+        {
+            std::string iftype = type_regexp.match(vbox_iface_info).captured("type").toStdString();
+            std::string ifdescription = name_match.captured("description").toStdString();
+            bool wireless = wireless_regexp.match(vbox_iface_info).captured("wireless") == "Yes";
+
+            mp::NetworkInterfaceInfo if_info = platform_if_info->second;
+
+            if (ifdescription.empty())
+            {
+                // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
+                // which cannot be bridged.
+                if (!(if_info.type == "virtual" && if_info.description == "unknown"))
+                {
+                    return mp::NetworkInterfaceInfo{if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
+                                                    if_info.description, mp::nullopt};
+                }
+            }
+            else
+            {
+                // Get the information from the VBoxManage output.
+                iftype = wireless ? "wifi" : (ifdescription.compare(0, 11, "Thunderbolt") ? "thunderbolt" : iftype);
+
+                return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription.empty() ? "unknown" : ifdescription,
+                                                mp::nullopt};
+            }
+        }
+    }
+
+    return mp::NetworkInterfaceInfo{"", "", "", mp::nullopt};
+}
+#endif
+
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
+                                           std::map<std::string, mp::NetworkInterfaceInfo> platform_info)
+{
+    const auto name_pattern = QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)\r$.*");
+    const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r$.*");
+    const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r$");
+
+    const auto regexp_options = QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption;
+
+    const auto name_regexp = QRegularExpression{name_pattern, regexp_options};
+    const auto type_regexp = QRegularExpression{type_pattern, regexp_options};
+    const auto wireless_regexp = QRegularExpression{wireless_pattern, regexp_options};
+
+    const auto name_match = name_regexp.match(vbox_iface_info);
+
+    if (name_match.hasMatch())
+    {
+        std::string ifname = name_match.captured("name").toStdString();
+
+        auto platform_if_info = platform_info.find(ifname);
+
+        // In Windows, VirtualBox lists interfaces using their description as name. Thus, if the map returned
+        // by the OS does not contain our given name, we should iterate over the map values to find the
+        // description we've been given.
+        if (platform_if_info == platform_info.end()) // This will be be true until VirtualBox fixes the issue.
+        {
+            for (auto map_it = platform_info.begin(); map_it != platform_info.end(); ++map_it)
+            {
+                if (map_it->second.description == ifname)
+                {
+                    platform_if_info = map_it;
+                    break;
+                }
+            }
+        }
+
+        // Now we hopefully found the correct interface.
+        if (platform_if_info != platform_info.end())
+        {
+            std::string iftype = type_regexp.match(vbox_iface_info).captured("type").toStdString();
+            bool wireless = wireless_regexp.match(vbox_iface_info).captured("wireless") == "Yes";
+
+            mp::NetworkInterfaceInfo if_info = platform_if_info->second;
+
+            // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
+            // which cannot be bridged.
+            if (!(if_info.type == "virtual" && if_info.description == "unknown"))
+            {
+                return mp::NetworkInterfaceInfo{if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
+                                                if_info.description, mp::nullopt};
+            }
+        }
+    }
+
+    return mp::NetworkInterfaceInfo{"", "", "", mp::nullopt};
+}
+#endif
+
 auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
     std::vector<NetworkInterfaceInfo> networks;
-
-    // Get the information about the host network interfaces.
-    auto platform_ifs_info = mp::platform::get_network_interfaces_info();
 
     // Get the list of all the interfaces which can be bridged by VirtualBox.
     QString ifs_info = QString::fromStdString(mpu::run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
@@ -133,81 +286,23 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 
     mpl::log(mpl::Level::info, "list-networks", fmt::format("VirtualBox found {} interfaces", if_list.size()));
 
-    // This pattern is intended to gather from VBoxManage output the information we need. However, only the Mac
-    // version gives us enough information (and for some interfaces only). This extra information provided by the
-    // Mac version is captured in <description>.
-    const auto pattern =
-        QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)(: (?<description>[A-Za-z0-9-_()\\? :]+))?\r?$.*"
-                       "^MediumType: +(?<type>\\w+)\r?$.*^Wireless: +(?<wireless>\\w+)\r?$");
-    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
-                                                        QRegularExpression::DotMatchesEverythingOption};
-
-    std::string ifname, iftype, ifdescription;
-
-    // For each interface in the list, see if VBoxManage gave us enough information. If not, ask the OS.
-    for (auto iface : if_list)
-    {
-        const auto match = regexp.match(iface);
-
-        if (match.hasMatch())
-        {
-            ifname = match.captured("name").toStdString();
-            auto platform_if_info = platform_ifs_info.find(ifname);
-
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-            // In Windows, VirtualBox lists interfaces using their description as name. Thus, if the map returned
-            // by the OS does not contain our given name, we should iterate over the map values to find the
-            // description we've been given.
-            if (platform_if_info == platform_ifs_info.end()) // This will be be true until VirtualBox fixes the issue.
-            {
-                for (auto map_it = platform_ifs_info.begin(); map_it != platform_ifs_info.end(); ++map_it)
-                {
-                    if (map_it->second.description == ifname)
-                    {
-                        platform_if_info = map_it;
-                        break;
-                    }
-                }
-            }
+    // Unfortunately, getting interface information should be done platform-dependent.
+#ifdef MULTIPASS_PLATFORM_LINUX
+    // We don't use in the Linux backend the platform information, since we don't support VirtualBox on Linux.
+    // However, we can make Multipass use the information from Linux in the future, in order to improve reporting
+    // bridges or TUN/TAP interfaces.
+    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info;
+#else
+    // Get the information about the host network interfaces.
+    auto platform_ifs_info = mp::platform::get_network_interfaces_info();
 #endif
 
-            // Show this interface only if the OS knows about it.
-            if (platform_if_info != platform_ifs_info.end())
-            {
-                mp::NetworkInterfaceInfo if_info = platform_if_info->second;
+    for (const auto& iface : if_list)
+    {
+        auto interface_info = list_vbox_network(iface, platform_ifs_info);
 
-                // Only VirtualBox on MacOS can fill this field in. But only for some interfaces, not necessarily
-                // for all. If the description is present, it takes precedence over the data from the OS.
-                ifdescription = match.captured("description").toStdString();
-
-                if (ifdescription.empty())
-                {
-                    // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
-                    // which cannot be bridged.
-                    if (!(if_info.type == "virtual" && if_info.description == "unknown"))
-                    {
-                        networks.push_back({if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
-                                            if_info.description, mp::nullopt});
-                    }
-                }
-                else
-                {
-                    // Get the information from the VBoxManage output.
-                    if (match.captured("wireless") == "Yes")
-                    {
-                        iftype = "wifi";
-                    }
-                    else
-                    {
-                        iftype = ifdescription.compare(0, 11, "Thunderbolt")
-                                     ? match.captured("type").toLower().toStdString()
-                                     : "thunderbolt";
-                    }
-
-                    networks.push_back({if_info.id, iftype.empty() ? "unknown" : iftype, ifdescription, mp::nullopt});
-                }
-            }
-        }
+        if (!interface_info.type.empty())
+            networks.push_back(interface_info);
     }
 
     return networks;
