@@ -23,6 +23,7 @@
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/query.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
@@ -204,6 +205,40 @@ void delete_image_dir(const mp::Path& image_path)
         else
             image_file.dir().removeRecursively();
     }
+}
+
+mp::MemorySize get_image_size(const mp::Path& image_path)
+{
+    QStringList qemuimg_parameters{{"info", image_path}};
+    auto qemuimg_process =
+        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image_path));
+    auto process_state = qemuimg_process->execute();
+
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(),
+                                             qemuimg_process->read_all_standard_error()));
+    }
+
+    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
+    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)\r?$");
+    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+
+    mp::MemorySize image_size{};
+
+    const auto match = re.match(img_info);
+
+    if (match.hasMatch())
+    {
+        image_size = mp::MemorySize(match.captured("size").toStdString());
+    }
+    else
+    {
+        throw std::runtime_error{"Could not obtain image's virtual size"};
+    }
+
+    return image_size;
 }
 } // namespace
 
@@ -542,6 +577,19 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
                      fmt::format("Cannot update source image {}: {}", record.query.release, e.what()));
         }
     }
+}
+
+mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string& id)
+{
+    auto entry = prepared_image_records.find(id);
+    if (entry == prepared_image_records.end())
+    {
+        throw std::runtime_error(fmt::format("Cannot find prepared image with id \'{}\'", id));
+    }
+
+    const auto& record = entry->second;
+
+    return get_image_size(record.image.image_path);
 }
 
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
