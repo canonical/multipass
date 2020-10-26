@@ -19,6 +19,7 @@
 #define MULTIPASS_VM_IMAGE_VAULT_H
 
 #include <multipass/fetch_type.h>
+#include <multipass/memory_size.h>
 #include <multipass/path.h>
 #include <multipass/progress_monitor.h>
 
@@ -27,6 +28,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 
 namespace multipass
 {
@@ -74,6 +76,7 @@ public:
     virtual void prune_expired_images() = 0;
     virtual void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                const ProgressMonitor& monitor) = 0;
+    virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
 
 protected:
     VMImageVault() = default;

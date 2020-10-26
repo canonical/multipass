@@ -878,3 +878,70 @@ TEST_F(LXDImageVault, fetch_image_unable_to_connect_logs_error_and_returns_blank
     EXPECT_TRUE(image.original_release.empty());
     EXPECT_TRUE(image.release_date.empty());
 }
+
+TEST_F(LXDImageVault, minimum_image_size_returns_expected_size)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::normal_image_info_data);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    const auto image_size =
+        image_vault.minimum_image_size_for("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+    EXPECT_EQ(image_size, mp::MemorySize{"10G"});
+}
+
+TEST_F(LXDImageVault, minimum_image_size_large_returns_expected_size)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::large_image_info_data);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    const auto image_size =
+        image_vault.minimum_image_size_for("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+    EXPECT_EQ(image_size, mp::MemorySize{"33345572108"});
+}
+
+TEST_F(LXDImageVault, minimum_image_size_throws_when_not_found)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    const std::string id{"12345"};
+    MP_EXPECT_THROW_THAT(image_vault.minimum_image_size_for(id), std::runtime_error,
+                         Property(&std::runtime_error::what,
+                                  AllOf(HasSubstr(fmt::format("Cannot retrieve info for image with id \'{}\'", id)))));
+}

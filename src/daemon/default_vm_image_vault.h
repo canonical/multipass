@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 
 #include <multipass/days.h>
 #include <multipass/optional.h>
-#include <multipass/path.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
@@ -29,7 +28,6 @@
 #include <QDir>
 #include <QFuture>
 
-#include <memory>
 #include <mutex>
 #include <unordered_map>
 
@@ -58,6 +56,7 @@ public:
     void prune_expired_images() override;
     void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                        const ProgressMonitor& monitor) override;
+    MemorySize minimum_image_size_for(const std::string& id) override;
 
 private:
     VMImage image_instance_from(const std::string& name, const VMImage& prepared_image);
