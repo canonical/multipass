@@ -13,7 +13,7 @@ deployment on your laptop or workstation.
 
 | Service | Status |
 |-----|:---|
-| [Travis](https://travis-ci.org) |  [![Build Status][travis-image]][travis-url]  |
+| [CI](https://travis-ci.org) |  [![Build Status][gha-image]][gha-url]  |
 | [Snap](https://snapcraft.io/) |  [![Build Status][snap-image]][snap-url]  |
 | [Codecov](https://codecov.io/) |  [![Codecov Status][codecov-image]][codecov-url]  |
 
@@ -195,9 +195,9 @@ Finally, use multipass's clients:
 
 See [the Multipass documentation](https://discourse.ubuntu.com/c/multipass/doc).
 
-[travis-image]: https://travis-ci.org/canonical/multipass.svg?branch=master
-[travis-url]: https://travis-ci.org/canonical/multipass
-[snap-image]: https://build.snapcraft.io/badge/CanonicalLtd/multipass.svg
-[snap-url]: https://build.snapcraft.io/user/CanonicalLtd/multipass
+[gha-image]: https://github.com/canonical/multipass/workflows/Linux/badge.svg?branch=master
+[gha-url]: https://github.com/canonical/multipass/actions?query=branch%3Amaster+workflow%3ALinux
+[snap-image]: https://snapcraft.io/multipass/badge.svg
+[snap-url]: https://snapcraft.io/multipass
 [codecov-image]: https://codecov.io/gh/canonical/multipass/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/canonical/multipass
