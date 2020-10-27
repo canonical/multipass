@@ -2170,7 +2170,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             // let the backend re-interpret the id and check for repetition of requested macs
             for (auto& iface : checked_args.extra_interfaces)
             {
-                iface.id = config->factory->interface_id(iface.id);
+                iface.id = config->factory->reinterpret_interface_id(iface.id);
                 if (!iface.mac_address.empty() && !new_macs.insert(iface.mac_address).second)
                     throw std::runtime_error(fmt::format("Repeated MAC address {}", iface.mac_address));
             }

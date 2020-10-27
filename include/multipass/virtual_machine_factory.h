@@ -66,7 +66,7 @@ public:
     virtual std::vector<NetworkInterfaceInfo> list_networks() const = 0;
 
     // Given the id the user sees in list_networks(), return the id of an interface which identifies it.
-    virtual std::string interface_id(const std::string& user_id) const = 0;
+    virtual std::string reinterpret_interface_id(const std::string& ux_id) const = 0;
 
 protected:
     VirtualMachineFactory() = default;

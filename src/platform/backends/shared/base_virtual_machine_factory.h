@@ -57,9 +57,9 @@ public:
         throw NotImplementedOnThisBackendException("list-networks");
     };
 
-    std::string interface_id(const std::string& user_id) const override
+    std::string reinterpret_interface_id(const std::string& ux_id) const override
     {
-        return user_id;
+        return ux_id;
     }
 };
 } // namespace multipass
