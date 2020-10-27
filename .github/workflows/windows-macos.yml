@@ -239,6 +239,10 @@ jobs:
         echo "::set-output name=name::$( basename *.pkg )"
         echo "::set-output name=path::$( greadlink -f *.pkg )"
 
+    - name: Get CPack logs
+      if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
+      run: cat ${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/productbuild/InstallOutput.log
+
     - name: Upload package
       uses: actions/upload-artifact@v2
       with:
