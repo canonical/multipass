@@ -176,7 +176,7 @@ bool mp::platform::is_image_url_supported()
 mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
 {
     // TODO
-    return mp::NetworkInterfaceInfo{iface_name, "", "", mp::nullopt};
+    return mp::NetworkInterfaceInfo{iface_name, "", ""};
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()

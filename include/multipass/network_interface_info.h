@@ -28,7 +28,6 @@ struct NetworkInterfaceInfo
     std::string id;
     std::string type;
     std::string description;
-    multipass::optional<IPAddress> ip_address;
 };
 } // namespace multipass
 #endif // MULTIPASS_NETWORK_INTERFACE_INFO_H
