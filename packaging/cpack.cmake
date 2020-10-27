@@ -189,42 +189,8 @@ if(APPLE)
   set(CPACK_productbuild_COMPONENT_INSTALL ON)
 
   set(CPACK_PACKAGING_INSTALL_PREFIX   "/Library/Application Support/com.canonical.multipass")
-  set(CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qt5-libs-rpath.sh ${CMAKE_BINARY_DIR}")
-
-  # Copy and install OpenSSL libs
-  foreach (LIB ${OPENSSL_LIBRARIES})
-    get_filename_component(SSL_LIB "${LIB}" REALPATH)
-    file(COPY ${SSL_LIB} DESTINATION lib)
-    install(FILES ${SSL_LIB} DESTINATION lib COMPONENT multipassd)
-  endforeach()
-
-  # Fixup the copied libssl to refer to copied libcrypto
-  get_filename_component(LIBCRYPTO_PATH "${OPENSSL_CRYPTO_LIBRARY}" REALPATH)
-  install(CODE "execute_process(
-    COMMAND
-      install_name_tool
-      -change ${LIBCRYPTO_PATH} @rpath/libcrypto.1.1.dylib
-      ${CMAKE_BINARY_DIR}/lib/libssl.1.1.dylib)"
-    COMPONENT multipassd)
-
-  # Point all binaries to copied openssl libs
-  set(OPENSSL_LIB_PATH "/usr/local/opt/openssl@1.1/lib")
-  set(BINARIES
-    ${CMAKE_BINARY_DIR}/lib/libssh.dylib
-    ${CMAKE_BINARY_DIR}/bin/multipassd
-    ${CMAKE_BINARY_DIR}/bin/multipass
-    ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/MacOS/multipass.gui
-    ${CMAKE_BINARY_DIR}/bin/sshfs_server)
-
-  foreach(BINARY ${BINARIES})
-    install(CODE "execute_process(
-      COMMAND
-        install_name_tool
-        -change ${OPENSSL_LIB_PATH}/libssl.1.1.dylib @rpath/libssl.1.1.dylib
-        -change ${OPENSSL_LIB_PATH}/libcrypto.1.1.dylib @rpath/libcrypto.1.1.dylib
-        ${BINARY})"
-      COMPONENT multipassd)
-  endforeach()
+  list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qt5-libs-rpath.sh ${CMAKE_BINARY_DIR}")
+  list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/install-ssl-libs.sh ${CMAKE_BINARY_DIR}")
 
   set(MULTIPASSD_PLIST "com.canonical.multipassd.plist")
   set(MULTIPASSGUI_PLIST "com.canonical.multipass.gui.autostart.plist")

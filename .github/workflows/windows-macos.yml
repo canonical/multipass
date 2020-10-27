@@ -156,6 +156,7 @@ jobs:
           libev \
           libffi \
           ninja \
+          openssl@1.1 \
           pkg-config \
           wget
 
