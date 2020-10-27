@@ -146,7 +146,6 @@ auto make_cloud_init_network_config(const mp::NetworkInterface& default_interfac
     std::string name = "default";
     network_data["ethernets"][name]["match"]["macaddress"] = default_interface.mac_address;
     network_data["ethernets"][name]["dhcp4"] = true;
-    network_data["ethernets"][name]["wakeonlan"] = "true";
 
     for (size_t i = 0; i < extra_interfaces.size(); ++i)
     {
@@ -155,9 +154,8 @@ auto make_cloud_init_network_config(const mp::NetworkInterface& default_interfac
             name = "extra" + std::to_string(i);
             network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
             network_data["ethernets"][name]["dhcp4"] = true;
-            network_data["ethernets"][name]["wakeonlan"] = "true";
             // We make the default gateway associated with the first interface.
-            network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = "200";
+            network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
         }
     }
 

@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H
 
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_status_monitor.h>

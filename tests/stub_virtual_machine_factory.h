@@ -21,10 +21,6 @@
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
 
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
-#include <multipass/network_interface_info.h>
-#include <multipass/path.h>
-
 #include <platform/backends/shared/base_virtual_machine_factory.h>
 
 namespace multipass

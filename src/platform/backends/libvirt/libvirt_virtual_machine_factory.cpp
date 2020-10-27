@@ -19,7 +19,6 @@
 #include "libvirt_virtual_machine.h"
 
 #include <multipass/logging/log.h>
-#include <multipass/network_interface_info.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <shared/linux/backend_utils.h>
