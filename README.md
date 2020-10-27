@@ -13,7 +13,7 @@ deployment on your laptop or workstation.
 
 | Service | Status |
 |-----|:---|
-| [CI](https://travis-ci.org) |  [![Build Status][gha-image]][gha-url]  |
+| [CI](https://github.com/canonical/multipass/actions) |  [![Build Status][gha-image]][gha-url]  |
 | [Snap](https://snapcraft.io/) |  [![Build Status][snap-image]][snap-url]  |
 | [Codecov](https://codecov.io/) |  [![Codecov Status][codecov-image]][codecov-url]  |
 
