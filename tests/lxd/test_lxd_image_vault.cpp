@@ -508,12 +508,12 @@ TEST_F(LXDImageVault, has_record_for_error_logs_message_and_returns_true)
     EXPECT_TRUE(image_vault.has_record_for(instance_name));
 }
 
-TEST_F(LXDImageVault, update_image_requests_refresh_and_logs_expected_message)
+TEST_F(LXDImageVault, update_image_downloads_new_and_deletes_old_and_logs_expected_message)
 {
-    bool refresh_requested{false};
+    bool download_requested{false}, delete_requested{false};
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&refresh_requested](auto, auto request, auto) {
+        .WillByDefault([&download_requested, &delete_requested](auto, auto request, auto) {
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
@@ -521,56 +521,16 @@ TEST_F(LXDImageVault, update_image_requests_refresh_and_logs_expected_message)
             {
                 return new mpt::MockLocalSocketReply(mpt::image_info_update_source_info);
             }
-            else if (op == "POST" &&
-                     url.contains(
-                         "1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855/refresh"))
+            else if (op == "POST" && url.contains("1.0/images"))
             {
-                refresh_requested = true;
-                return new mpt::MockLocalSocketReply(mpt::image_refreshed_task_data);
+                download_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::image_download_task_data);
             }
-            else if (op == "GET" && url.contains("1.0/operations/b4d2419f-61c7-44ff-9d17-68cd13e7c6df"))
+            else if (op == "DELETE" &&
+                     url.contains("1.0/images/aedb5a84aaf2e4e443e090511156366a2800c26cec1b6a46f44d153c4bf04205"))
             {
-                return new mpt::MockLocalSocketReply(mpt::image_refreshed_task_data);
-            }
-
-            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-        });
-
-    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
-                                    base_url, cache_dir.path(),     mp::days{0}};
-
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Image update for \'bionic\' complete."))));
-
-    image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
-
-    EXPECT_TRUE(refresh_requested);
-}
-
-TEST_F(LXDImageVault, update_image_not_refreshed_logs_expected_message)
-{
-    bool refresh_requested{false};
-
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&refresh_requested](auto, auto request, auto) {
-            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-            auto url = request.url().toString();
-
-            if (op == "GET" && url.contains("1.0/images"))
-            {
-                return new mpt::MockLocalSocketReply(mpt::image_info_update_source_info);
-            }
-            else if (op == "POST" &&
-                     url.contains(
-                         "1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855/refresh"))
-            {
-                refresh_requested = true;
-                return new mpt::MockLocalSocketReply(mpt::image_not_refreshed_task_data);
-            }
-            else if (op == "GET" && url.contains("1.0/operations/b4d2419f-61c7-44ff-9d17-68cd13e7c6df"))
-            {
-                return new mpt::MockLocalSocketReply(mpt::image_not_refreshed_task_data);
+                delete_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::image_delete_task_data);
             }
 
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
@@ -581,11 +541,45 @@ TEST_F(LXDImageVault, update_image_not_refreshed_logs_expected_message)
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("No image update for \'bionic\'."))));
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Checking for images to update…"))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Updating bionic source image to latest"))));
 
     image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
 
-    EXPECT_TRUE(refresh_requested);
+    EXPECT_TRUE(download_requested);
+    EXPECT_TRUE(delete_requested);
+}
+
+TEST_F(LXDImageVault, update_image_not_downloaded_when_no_new_image)
+{
+    bool download_requested{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&download_requested](auto, auto request, auto) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/images"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::image_info_data);
+            }
+            else if (op == "POST" && url.contains("1.0/images"))
+            {
+                download_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::image_download_task_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
+
+    EXPECT_FALSE(download_requested);
 }
 
 TEST_F(LXDImageVault, update_image_no_project_does_not_throw)
@@ -603,46 +597,6 @@ TEST_F(LXDImageVault, update_image_no_project_does_not_throw)
     EXPECT_NO_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
 }
 
-TEST_F(LXDImageVault, update_image_refresh_image_fails_does_no_throw)
-{
-    bool refresh_requested{false}, operation_requested{false};
-
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&refresh_requested, &operation_requested](auto, auto request, auto) {
-            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-            auto url = request.url().toString();
-
-            if (op == "GET")
-            {
-                if (url.contains("1.0/images"))
-                {
-                    return new mpt::MockLocalSocketReply(mpt::image_info_update_source_info);
-                }
-                else if (url.contains("1.0/operations/b4d2419f-61c7-44ff-9d17-68cd13e7c6df"))
-                {
-                    // Should not be called
-                    operation_requested = true;
-                }
-            }
-            else if (op == "POST" &&
-                     url.contains(
-                         "1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855/refresh"))
-            {
-                refresh_requested = true;
-            }
-
-            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-        });
-
-    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
-                                    base_url, cache_dir.path(),     mp::days{0}};
-
-    EXPECT_NO_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
-
-    EXPECT_TRUE(refresh_requested);
-    EXPECT_FALSE(operation_requested);
-}
-
 TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
 {
     bool delete_requested{false};
@@ -657,7 +611,7 @@ TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
                 return new mpt::MockLocalSocketReply(mpt::image_info_update_source_info);
             }
             else if (op == "DELETE" &&
-                     url.contains("1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+                     url.contains("1.0/images/aedb5a84aaf2e4e443e090511156366a2800c26cec1b6a46f44d153c4bf04205"))
             {
                 delete_requested = true;
                 return new mpt::MockLocalSocketReply(mpt::image_delete_task_data);
@@ -690,6 +644,37 @@ TEST_F(LXDImageVault, image_hash_delete_requested_on_expiration)
             if (op == "GET" && url.contains("1.0/images"))
             {
                 return new mpt::MockLocalSocketReply(mpt::image_info_data);
+            }
+            else if (op == "DELETE" &&
+                     url.contains("1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+            {
+                delete_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::image_delete_task_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    image_vault.prune_expired_images();
+
+    EXPECT_TRUE(delete_requested);
+}
+
+TEST_F(LXDImageVault, prune_uses_last_update_property_on_new_unused_image)
+{
+    bool delete_requested{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&delete_requested](auto, auto request, auto) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/images"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::image_info_unused_updated_image);
             }
             else if (op == "DELETE" &&
                      url.contains("1.0/images/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
