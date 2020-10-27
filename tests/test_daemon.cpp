@@ -416,17 +416,20 @@ TEST_F(Daemon, proxy_contains_valid_info)
 
 TEST_F(Daemon, data_path_valid)
 {
-    QTemporaryDir xdg_data_dir;
+    QTemporaryDir data_dir, cache_dir;
 
-    mpt::SetEnvScope data("XDG_DATA_HOME", xdg_data_dir.filePath("data").toUtf8());
-    mpt::SetEnvScope cache("XDG_CACHE_HOME", xdg_data_dir.filePath("cache").toUtf8());
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::CacheLocation))
+        .WillOnce(Return(cache_dir.path()));
+
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppDataLocation))
+        .WillOnce(Return(data_dir.path()));
 
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    EXPECT_EQ(config->data_directory.toStdString(), xdg_data_dir.filePath("data/multipass_tests").toStdString());
-    EXPECT_EQ(config->cache_directory.toStdString(), xdg_data_dir.filePath("cache/multipass_tests").toStdString());
+    EXPECT_EQ(config->data_directory.toStdString(), data_dir.path().toStdString());
+    EXPECT_EQ(config->cache_directory.toStdString(), cache_dir.path().toStdString());
 }
 
 TEST_F(Daemon, data_path_with_storage_valid)
@@ -434,6 +437,7 @@ TEST_F(Daemon, data_path_with_storage_valid)
     QTemporaryDir storage_dir;
 
     mpt::SetEnvScope storage("MULTIPASS_STORAGE", storage_dir.path().toUtf8());
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_)).Times(0);
 
     config_builder.data_directory = "";
     config_builder.cache_directory = "";

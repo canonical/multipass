@@ -29,6 +29,9 @@ namespace
 int main_impl(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+    if (app.isSessionRestored())
+        throw std::runtime_error{"Session restoring is not supported"};
+
     app.setApplicationName("multipass-gui");
 
     mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl,

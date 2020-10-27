@@ -219,23 +219,7 @@ void mp::LXDVirtualMachine::stop()
         return;
     }
 
-    auto state_task = request_state("stop");
-
-    try
-    {
-        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
-            state_task["status_code"].toInt(-1) == 100)
-        {
-            QUrl task_url(QString("%1/operations/%2/wait")
-                              .arg(base_url.toString())
-                              .arg(state_task["metadata"].toObject()["id"].toString()));
-            lxd_request(manager, "GET", task_url);
-        }
-    }
-    catch (const LXDNotFoundException&)
-    {
-        // Implies the task doesn't exist, move on...
-    }
+    request_state("stop");
 
     state = State::stopped;
 
@@ -287,7 +271,28 @@ int mp::LXDVirtualMachine::ssh_port()
 
 void mp::LXDVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] { return current_state() != State::stopped; };
+    ensure_vm_is_running(5s);
+}
+
+void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds& timeout)
+{
+    auto is_vm_running = [this, timeout] {
+        if (current_state() != State::stopped)
+        {
+            return true;
+        }
+
+        // Sleep for 5 seconds to see if LXD is just rebooting the instance
+        std::this_thread::sleep_for(timeout);
+
+        if (current_state() != State::stopped)
+        {
+            state = State::starting;
+            return true;
+        }
+
+        return false;
+    };
 
     mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
 }
@@ -331,7 +336,7 @@ std::string mp::LXDVirtualMachine::ipv6()
 
 void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    mpu::wait_until_ssh_up(this, timeout, std::bind(&LXDVirtualMachine::ensure_vm_is_running, this));
+    mpu::wait_until_ssh_up(this, timeout, [this] { ensure_vm_is_running(); });
 }
 
 const QUrl mp::LXDVirtualMachine::url()
@@ -349,9 +354,25 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-const QJsonObject mp::LXDVirtualMachine::request_state(const QString& new_state)
+void mp::LXDVirtualMachine::request_state(const QString& new_state)
 {
     const QJsonObject state_json{{"action", new_state}};
 
-    return lxd_request(manager, "PUT", state_url(), state_json, 5000);
+    auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
+
+    try
+    {
+        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
+            state_task["status_code"].toInt(-1) == 100)
+        {
+            QUrl task_url(QString("%1/operations/%2/wait")
+                              .arg(base_url.toString())
+                              .arg(state_task["metadata"].toObject()["id"].toString()));
+            lxd_request(manager, "GET", task_url, QJsonObject(), 60000);
+        }
+    }
+    catch (const LXDNotFoundException&)
+    {
+        // Implies the task doesn't exist, move on...
+    }
 }
