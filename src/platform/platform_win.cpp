@@ -509,27 +509,24 @@ mp::NetworkInterfaceInfo get_network_interface_info_from_id(int if_id, mp::Power
     power_shell.run({"Get-NetIPConfiguration", "-InterfaceIndex", QString::number(if_id)}, ps_out);
 
     const auto pattern = QStringLiteral("^InterfaceAlias +: (?<alias>[A-Za-z0-9-_#\\+ ]+)\r$.*"
-                                        "^InterfaceDescription +: (?<description>[A-Za-z0-9-_#\\+ ]+)\r$.*"
-                                        "^IPv4Address +: (?<ip>[0-9\\.]+)\r$.*");
+                                        "^InterfaceDescription +: (?<description>[A-Za-z0-9-_#\\+ ]+)\r$.*");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
                                                         QRegularExpression::DotMatchesEverythingOption};
     const auto match = regexp.match(ps_out);
 
     std::string alias, type, description;
-    mp::optional<mp::IPAddress> ip;
 
     if (match.hasMatch())
     {
         alias = match.captured("alias").toStdString();
         type = "";
         description = match.captured("description").toStdString();
-        *ip = mp::IPAddress(match.captured("ip").toStdString());
     }
 
     mpl::log(mpl::Level::debug, "get_interfaces",
-             fmt::format("{}: \"{}\", \"{}\", \"{}\", \"{}\"", if_id, alias, type, description, ip->as_string()));
+             fmt::format("{}: \"{}\", \"{}\", \"{}\"", if_id, alias, type, description));
 
-    return mp::NetworkInterfaceInfo{alias, type, description, ip};
+    return mp::NetworkInterfaceInfo{alias, type, description};
 }
 
 // The alias given to this function can be the interface alias or the description. Both can be used by Windows to

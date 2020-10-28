@@ -280,31 +280,6 @@ std::string get_ifconfig_output(const mp::optional<std::string> iface_name)
     return ifconfig_process->read_all_standard_output().toStdString();
 }
 
-mp::optional<mp::IPAddress> get_ip_address(const std::string& iface_name)
-{
-    auto ipconfig_spec = mp::simple_process_spec("ipconfig", {"getifaddr", QString::fromStdString(iface_name)});
-    auto ipconfig_process = mp::platform::make_process(std::move(ipconfig_spec));
-    auto ipconfig_exit_state = ipconfig_process->execute();
-
-    if (!ipconfig_exit_state.completed_successfully())
-    {
-        mpl::log(mpl::Level::info, "get_ip_address",
-                 fmt::format("Failed to execute ipconfig: \"{}\"", ipconfig_process->read_all_standard_error()));
-        return mp::nullopt;
-    }
-
-    QString ipconfig_output = ipconfig_process->read_all_standard_output().trimmed();
-
-    try
-    {
-        return mp::IPAddress(ipconfig_output.toStdString());
-    }
-    catch (std::exception&)
-    {
-        return mp::nullopt;
-    }
-}
-
 QStringList get_bridged_interfaces(const std::string& if_name)
 {
     auto ifconfig_output = QString::fromStdString(get_ifconfig_output(if_name));
@@ -338,7 +313,6 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& 
     auto iface_match = regexp.match(nsetup_output);
 
     std::string iface_description, iface_type;
-    mp::optional<mp::IPAddress> iface_ip = get_ip_address(iface_name);
 
     if (iface_match.hasMatch())
     {
@@ -380,7 +354,7 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& 
         iface_description = "unknown";
     }
 
-    return mp::NetworkInterfaceInfo{iface_name, iface_type, iface_description, iface_ip};
+    return mp::NetworkInterfaceInfo{iface_name, iface_type, iface_description};
 }
 
 mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
@@ -398,7 +372,7 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
     }
     else
     {
-        return mp::NetworkInterfaceInfo{iface_name, "", "", mp::nullopt};
+        return mp::NetworkInterfaceInfo{iface_name, "", ""};
     }
 }
 

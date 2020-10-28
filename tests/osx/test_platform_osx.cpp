@@ -117,9 +117,6 @@ QByteArray networksetup_output =
                       "\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 82:15:07:f3:c5:40\n"
                       "\nVLAN Configurations\n===================\n");
 
-std::unordered_map<std::string, QByteArray> ip_assignments{{"lo0", QByteArrayLiteral("127.0.0.1")},
-                                                           {"en0", QByteArrayLiteral("10.2.0.42")}};
-
 void simulate_ifconfig(const mpt::MockProcess* process, const mp::ProcessState& exit_status)
 {
     ASSERT_EQ(process->program(), "ifconfig");
@@ -178,38 +175,6 @@ void simulate_networksetup(const mpt::MockProcess* process, const mp::ProcessSta
     }
 }
 
-void simulate_ipconfig(const mpt::MockProcess* process)
-{
-    ASSERT_EQ(process->program(), "ipconfig");
-
-    // ipconfig can only be called with arguments "getifaddr <interface_name>".
-    const auto args = process->arguments();
-    ASSERT_EQ(args.size(), 2);
-    EXPECT_EQ(args.constFirst(), "getifaddr");
-
-    mp::ProcessState exit_status;
-    QByteArray command_output;
-
-    auto ip_assignment = ip_assignments.find(args[1].toStdString());
-    if (ip_assignment == ip_assignments.end())
-    {
-        exit_status = mp::ProcessState{1, mp::nullopt};
-    }
-    else
-    {
-        exit_status = mp::ProcessState{0, mp::nullopt};
-        command_output = ip_assignment->second;
-    }
-
-    EXPECT_CALL(*process, execute).WillOnce(Return(exit_status));
-    if (exit_status.completed_successfully())
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(command_output));
-    else if (exit_status.exit_code)
-        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(command_output));
-    else
-        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(command_output));
-}
-
 void simulate_environment(const mpt::MockProcess* process, const mp::ProcessState& ifconfig_exit,
                           const mp::ProcessState& networksetup_exit)
 {
@@ -219,8 +184,6 @@ void simulate_environment(const mpt::MockProcess* process, const mp::ProcessStat
         simulate_ifconfig(process, ifconfig_exit);
     else if (program == "networksetup")
         simulate_networksetup(process, networksetup_exit);
-    else if (program == "ipconfig")
-        simulate_ipconfig(process);
     else
         throw std::runtime_error(fmt::format("Program {} not mocked.", program));
 }
@@ -329,19 +292,16 @@ TEST_P(TestNetworkInterfaces, test_network_interfaces)
     ASSERT_EQ(returned_info.id, expected_info.id);
     ASSERT_EQ(returned_info.type, expected_info.type);
     ASSERT_EQ(returned_info.description, expected_info.description);
-    if (expected_info.ip_address)
-        ASSERT_EQ(returned_info.ip_address->as_string(), expected_info.ip_address->as_string());
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformOSX, TestNetworkInterfaces,
-                         Values(mp::NetworkInterfaceInfo{"lo0", "virtual", "unknown", mp::IPAddress("127.0.0.1")},
-                                mp::NetworkInterfaceInfo{"en0", "ethernet", "Ethernet", mp::IPAddress("10.2.0.42")},
-                                mp::NetworkInterfaceInfo{"en1", "wifi", "Wi-Fi", mp::nullopt},
-                                mp::NetworkInterfaceInfo{"en2", "thunderbolt", "Thunderbolt 1", mp::nullopt},
-                                mp::NetworkInterfaceInfo{"en4", "", "", mp::nullopt},
-                                mp::NetworkInterfaceInfo{"bridge0", "bridge", "bridge containing en2, en3",
-                                                         mp::nullopt},
-                                mp::NetworkInterfaceInfo{"utun0", "virtual", "unknown", mp::nullopt}));
+                         Values(mp::NetworkInterfaceInfo{"lo0", "virtual", "unknown"},
+                                mp::NetworkInterfaceInfo{"en0", "ethernet", "Ethernet"},
+                                mp::NetworkInterfaceInfo{"en1", "wifi", "Wi-Fi"},
+                                mp::NetworkInterfaceInfo{"en2", "thunderbolt", "Thunderbolt 1"},
+                                mp::NetworkInterfaceInfo{"en4", "", ""},
+                                mp::NetworkInterfaceInfo{"bridge0", "bridge", "bridge containing en2, en3"},
+                                mp::NetworkInterfaceInfo{"utun0", "virtual", "unknown"}));
 
 TEST(PlatformOSX, test_all_network_interfaces)
 {
@@ -371,7 +331,6 @@ TEST(PlatformOSX, test_nonexisting_network_interface)
     ASSERT_EQ(returned_info.id, if_name);
     ASSERT_EQ(returned_info.type, "");
     ASSERT_EQ(returned_info.description, "");
-    ASSERT_EQ(returned_info.ip_address, mp::nullopt);
 }
 
 } // namespace

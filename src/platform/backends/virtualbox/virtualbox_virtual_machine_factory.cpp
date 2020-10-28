@@ -144,15 +144,15 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
         if (iftype == "Ethernet")
         {
             if (wireless)
-                return mp::NetworkInterfaceInfo{ifname, "wifi", "Wi-Fi device", mp::nullopt};
+                return mp::NetworkInterfaceInfo{ifname, "wifi", "Wi-Fi device"};
             else
-                return mp::NetworkInterfaceInfo{ifname, "ethernet", "Wired or virtual device", mp::nullopt};
+                return mp::NetworkInterfaceInfo{ifname, "ethernet", "Wired or virtual device"};
         }
         else
-            return mp::NetworkInterfaceInfo{ifname, wireless ? "wireless" : "wired", iftype, mp::nullopt};
+            return mp::NetworkInterfaceInfo{ifname, wireless ? "wireless" : "wired", iftype};
     }
 
-    return mp::NetworkInterfaceInfo{"", "", "", mp::nullopt};
+    return mp::NetworkInterfaceInfo{"", "", ""};
 }
 #endif
 
@@ -197,7 +197,7 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
                 if (!(if_info.type == "virtual" && if_info.description == "unknown"))
                 {
                     return mp::NetworkInterfaceInfo{if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
-                                                    if_info.description, mp::nullopt};
+                                                    if_info.description};
                 }
             }
             else
@@ -205,13 +205,12 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
                 // Get the information from the VBoxManage output.
                 iftype = wireless ? "wifi" : (ifdescription.compare(0, 11, "Thunderbolt") ? "thunderbolt" : iftype);
 
-                return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription.empty() ? "unknown" : ifdescription,
-                                                mp::nullopt};
+                return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription.empty() ? "unknown" : ifdescription};
             }
         }
     }
 
-    return mp::NetworkInterfaceInfo{"", "", "", mp::nullopt};
+    return mp::NetworkInterfaceInfo{"", "", ""};
 }
 #endif
 
@@ -265,12 +264,12 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
             if (!(if_info.type == "virtual" && if_info.description == "unknown"))
             {
                 return mp::NetworkInterfaceInfo{if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
-                                                if_info.description, mp::nullopt};
+                                                if_info.description};
             }
         }
     }
 
-    return mp::NetworkInterfaceInfo{"", "", "", mp::nullopt};
+    return mp::NetworkInterfaceInfo{"", "", ""};
 }
 #endif
 
@@ -310,17 +309,17 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 
 // The day VirtualBox corrects the bug in Windows which avoids us to use the correct interface name instead of the
 // description, we'll have to modify this function and check the VirtualBox version.
-std::string mp::VirtualBoxVirtualMachineFactory::interface_id(const std::string& user_id) const
+std::string mp::VirtualBoxVirtualMachineFactory::low_level_id(const std::string& ux_id) const
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     // Get information about all the interfaces.
-    auto if_info = mp::platform::get_network_interface_info(user_id);
+    auto if_info = mp::platform::get_network_interface_info(ux_id);
 
     if (if_info.id == "")
-        throw std::runtime_error(fmt::format("Network interface \"{}\" not found", user_id));
+        throw std::runtime_error(fmt::format("Network interface \"{}\" not found", ux_id));
     else
         return if_info.description;
 #else
-    return user_id;
+    return ux_id;
 #endif
 }
