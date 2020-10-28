@@ -455,21 +455,16 @@ TEST_P(TestNetworkInterfacesInfo, test_network_interfaces_info)
     ASSERT_EQ(output_info.id, iface_info.id);
     ASSERT_EQ(output_info.type, iface_info.type);
     ASSERT_EQ(output_info.description, iface_info.description);
-    if (iface_info.ip_address)
-    {
-        ASSERT_EQ(output_info.ip_address->as_string(), iface_info.ip_address->as_string());
-    }
 }
 
-auto make_test_input(const std::string& id, const std::string& type, const std::string& descr, const std::string& ip)
+auto make_test_input(const std::string& id, const std::string& type, const std::string& descr)
 {
-    return std::make_tuple(
-        id, mp::NetworkInterfaceInfo{id, type, descr, ip.empty() ? mp::nullopt : mp::optional<mp::IPAddress>(ip)});
+    return std::make_tuple(id, mp::NetworkInterfaceInfo{id, type, descr});
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestNetworkInterfacesInfo,
-                         Values(make_test_input("lo", "virtual", "Virtual interface", "127.0.0.1"),
-                                make_test_input("enp4s0", "hardware", "Ethernet or wifi", "")));
+                         Values(make_test_input("lo", "virtual", "Virtual interface"),
+                                make_test_input("enp4s0", "hardware", "Ethernet or wifi")));
 
 // To test virtual network interfaces, we need to mock the filesystem under /sys/devices/virtual/net/.
 void create_file_containing(const std::string& name, const std::string& contents)
