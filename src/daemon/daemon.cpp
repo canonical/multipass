@@ -24,6 +24,7 @@
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/client_logger.h>
@@ -55,6 +56,7 @@
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <stdexcept>
@@ -430,6 +432,23 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
         mp::LaunchError option_errors;
     } ret{mem_size, disk_space, instance_name, extra_interfaces, option_errors};
     return ret;
+}
+
+// Checks that all the interfaces in arg_ifaces are contained in platform_ifaces. If not, log and store the error.
+void validate_network_ids(std::vector<mp::NetworkInterface>& arg_ifaces,
+                          const std::vector<mp::NetworkInterfaceInfo>& platform_ifaces, mp::LaunchError* errors)
+{
+    for (mp::NetworkInterface& arg_iface : arg_ifaces)
+    {
+        auto pred = [arg_iface](const mp::NetworkInterfaceInfo& info) { return info.id == arg_iface.id; };
+        const auto& result = std::find_if(platform_ifaces.cbegin(), platform_ifaces.cend(), pred);
+
+        if (result == platform_ifaces.cend())
+        {
+            mpl::log(mpl::Level::debug, category, fmt::format("Invalid network id \"{}\"", arg_iface.id));
+            errors->add_error_codes(mp::LaunchError::INVALID_NETWORK);
+        }
+    }
 }
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
@@ -2039,6 +2058,22 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                            std::promise<grpc::Status>* status_promise, bool start)
 {
     auto checked_args = validate_create_arguments(request);
+
+    // Validate the names of the networks to connect to. Check here, because this function is inside the daemon,
+    // thus it can call functions from the factory.
+    if (!checked_args.extra_interfaces.empty())
+    {
+        try
+        {
+            validate_network_ids(checked_args.extra_interfaces, config->factory->list_networks(),
+                                 &checked_args.option_errors);
+        }
+        catch (const mp::NotImplementedOnThisBackendException&)
+        {
+            // If list-networks is not implemented, we should report that --network is not implemented on this backend.
+            throw mp::NotImplementedOnThisBackendException("--network");
+        }
+    }
 
     if (!checked_args.option_errors.error_codes().empty())
     {
