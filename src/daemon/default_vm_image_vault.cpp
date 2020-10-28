@@ -583,15 +583,25 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
 
 mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string& id)
 {
-    auto entry = prepared_image_records.find(id);
-    if (entry == prepared_image_records.end())
+    auto prepared_image_entry = prepared_image_records.find(id);
+    if (prepared_image_entry != prepared_image_records.end())
     {
-        throw std::runtime_error(fmt::format("Cannot find prepared image with id \'{}\'", id));
+        const auto& record = prepared_image_entry->second;
+
+        return get_image_size(record.image.image_path);
     }
 
-    const auto& record = entry->second;
+    for (const auto& instance_image_entry : instance_image_records)
+    {
+        const auto& record = instance_image_entry.second;
 
-    return get_image_size(record.image.image_path);
+        if (record.image.id == id)
+        {
+            return get_image_size(record.image.image_path);
+        }
+    }
+
+    throw std::runtime_error(fmt::format("Cannot determine minimum image size for id \'{}\'", id));
 }
 
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
