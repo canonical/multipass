@@ -524,9 +524,9 @@ TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
 
     const std::string id{"12345"};
-    MP_EXPECT_THROW_THAT(
-        vault.minimum_image_size_for(id), std::runtime_error,
-        Property(&std::runtime_error::what, StrEq(fmt::format("Cannot find prepared image with id \'{}\'", id))));
+    MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(id), std::runtime_error,
+                         Property(&std::runtime_error::what,
+                                  StrEq(fmt::format("Cannot determine minimum image size for id \'{}\'", id))));
 }
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
