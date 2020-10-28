@@ -313,6 +313,8 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         }
 
         vm_image = prepare(source_image);
+        vm_image.id = mp::vault::compute_image_hash(vm_image.image_path).toStdString();
+
         remove_source_images(source_image, vm_image);
 
         {
