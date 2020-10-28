@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
@@ -175,12 +176,10 @@ bool mp::platform::is_image_url_supported()
 
 mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
 {
-    // TODO
-    return mp::NetworkInterfaceInfo{iface_name, "", ""};
+    throw mp::NotImplementedOnThisBackendException("get_network_interface_info");
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
-    // TODO
-    return std::map<std::string, struct mp::NetworkInterfaceInfo>();
+    throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
 }
