@@ -25,6 +25,7 @@
 #include "path.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
+#include "temp_file.h"
 #include "tracking_url_downloader.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
@@ -371,6 +372,21 @@ TEST_F(ImageVault, invalid_image_dir_is_removed)
     EXPECT_FALSE(QFileInfo::exists(invalid_image_dir.absolutePath()));
 }
 
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_fetch_copies_image_and_returns_expected_info))
+{
+    mpt::TempFile file;
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = file.url().toStdString();
+    query.query_type = mp::Query::Type::LocalFile;
+
+    auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
+
+    EXPECT_TRUE(QFileInfo::exists(vm_image.image_path));
+    EXPECT_EQ(vm_image.id, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+}
+
 TEST_F(ImageVault, invalid_custom_image_file_throws)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -513,6 +529,27 @@ TEST_F(ImageVault, minimum_image_size_returns_expected_size)
 
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
+
+    const auto size = vault.minimum_image_size_for(vm_image.id);
+
+    EXPECT_EQ(image_size, size);
+}
+
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_expected_size))
+{
+    const mp::MemorySize image_size{"2097152"};
+    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const QByteArray qemuimg_output(fake_img_info(image_size));
+    auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
+
+    mpt::TempFile file;
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = file.url().toStdString();
+    query.query_type = mp::Query::Type::LocalFile;
+
+    auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
 
     const auto size = vault.minimum_image_size_for(vm_image.id);
 
