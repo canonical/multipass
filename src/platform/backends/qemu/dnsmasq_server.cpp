@@ -33,7 +33,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto immediate_wait = 25; // period to wait for immediate dnsmasq failures, in ms
+constexpr auto immediate_wait = 100; // period to wait for immediate dnsmasq failures, in ms
 
 auto make_dnsmasq_process(const mp::Path& data_dir, const QString& bridge_name, const std::string& subnet,
                           const QString& conf_file_path)
