@@ -37,6 +37,7 @@ namespace vault
 // Helper functions and classes for all image vault types
 QString filename_for(const Path& path);
 void delete_file(const Path& path);
+QString compute_image_hash(const Path& image_path);
 void verify_image_download(const Path& image_path, const QString& image_hash);
 QString extract_image(const Path& image_path, const ProgressMonitor& monitor, const bool delete_file = false);
 

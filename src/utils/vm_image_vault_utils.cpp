@@ -37,7 +37,7 @@ void mp::vault::delete_file(const mp::Path& path)
     file.remove();
 }
 
-void mp::vault::verify_image_download(const mp::Path& image_path, const QString& image_hash)
+QString mp::vault::compute_image_hash(const mp::Path& image_path)
 {
     QFile image_file(image_path);
     if (!image_file.open(QFile::ReadOnly))
@@ -51,7 +51,14 @@ void mp::vault::verify_image_download(const mp::Path& image_path, const QString&
         throw std::runtime_error("Cannot read image file to compute hash");
     }
 
-    if (hash.result().toHex() != image_hash)
+    return hash.result().toHex();
+}
+
+void mp::vault::verify_image_download(const mp::Path& image_path, const QString& image_hash)
+{
+    auto computed_hash = compute_image_hash(image_path);
+
+    if (computed_hash != image_hash)
     {
         throw std::runtime_error("Downloaded image hash does not match");
     }
