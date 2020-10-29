@@ -157,17 +157,17 @@ bool mp::platform::link(const char* target, const char* link)
 
 bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
-    auto driver = utils::get_driver_str();
-
-    // snapcraft:core{18,20} images don't work on LXD yet
-    if (driver == "lxd" && remote == "snapcraft" && (alias == "core18" || alias == "core20"))
-        return false;
-
     return true;
 }
 
 bool mp::platform::is_remote_supported(const std::string& remote)
 {
+    auto driver = utils::get_driver_str();
+
+    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
+    if (driver == "lxd" && remote == "snapcraft")
+        return false;
+
     return true;
 }
 
