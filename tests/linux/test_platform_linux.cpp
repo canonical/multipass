@@ -326,6 +326,17 @@ TEST_F(PlatformLinux, test_is_remote_supported_returns_true)
     EXPECT_TRUE(mp::platform::is_remote_supported("appliance"));
 }
 
+TEST_F(PlatformLinux, test_is_remote_supported_lxd)
+{
+    setup_driver_settings("lxd");
+
+    EXPECT_TRUE(mp::platform::is_remote_supported("release"));
+    EXPECT_TRUE(mp::platform::is_remote_supported("daily"));
+    EXPECT_TRUE(mp::platform::is_remote_supported(""));
+    EXPECT_TRUE(mp::platform::is_remote_supported("appliance"));
+    EXPECT_FALSE(mp::platform::is_remote_supported("snapcraft"));
+}
+
 TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
 {
     const QByteArray base_dir{"/tmp"};
