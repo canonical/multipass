@@ -162,6 +162,12 @@ bool mp::platform::is_alias_supported(const std::string& alias, const std::strin
 
 bool mp::platform::is_remote_supported(const std::string& remote)
 {
+    auto driver = utils::get_driver_str();
+
+    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
+    if (driver == "lxd" && remote == "snapcraft")
+        return false;
+
     return true;
 }
 
