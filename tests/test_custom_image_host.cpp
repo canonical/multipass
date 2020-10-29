@@ -113,6 +113,15 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core)
     EXPECT_FALSE(info->version.isEmpty());
 }
 
+TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    auto info = host.info_for(make_query("core16", "snapcraft"));
+
+    EXPECT_FALSE(info);
+}
+
 TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core18)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
@@ -121,7 +130,7 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core18)
 
     ASSERT_TRUE(info);
     EXPECT_THAT(info->image_location,
-                Eq(QUrl::fromLocalFile(test_path + "ubuntu-18.04-minimal-cloudimg-amd64.img").toString()));
+                Eq(QUrl::fromLocalFile(test_path + "bionic-server-cloudimg-amd64-disk.img").toString()));
     EXPECT_THAT(info->id, Eq(QString("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c")));
     EXPECT_THAT(info->release, Eq(QString("snapcraft-core18")));
     EXPECT_THAT(info->release_title, Eq(QString("Snapcraft builder for Core 18")));
@@ -136,8 +145,7 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core20)
     auto info = host.info_for(make_query("core20", "snapcraft"));
 
     ASSERT_TRUE(info);
-    EXPECT_EQ(QUrl::fromLocalFile(test_path + "ubuntu-20.04-minimal-cloudimg-amd64.img").toString(),
-              info->image_location);
+    EXPECT_EQ(QUrl::fromLocalFile(test_path + "focal-server-cloudimg-amd64-disk.img").toString(), info->image_location);
     EXPECT_EQ("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", info->id.toStdString());
     EXPECT_EQ("snapcraft-core20", info->release.toStdString());
     EXPECT_EQ("Snapcraft builder for Core 20", info->release_title.toStdString());
@@ -177,7 +185,7 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
-    auto images_info = host.all_info_for(make_query("core16", "snapcraft"));
+    auto images_info = host.all_info_for(make_query("core", "snapcraft"));
 
     const size_t expected_matches{1};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
