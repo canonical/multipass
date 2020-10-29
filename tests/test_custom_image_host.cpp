@@ -113,6 +113,15 @@ TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core)
     EXPECT_FALSE(info->version.isEmpty());
 }
 
+TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    auto info = host.info_for(make_query("core16", "snapcraft"));
+
+    EXPECT_FALSE(info);
+}
+
 TEST_F(CustomImageHost, returns_expected_data_for_snapcraft_core18)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
@@ -176,7 +185,7 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
-    auto images_info = host.all_info_for(make_query("core16", "snapcraft"));
+    auto images_info = host.all_info_for(make_query("core", "snapcraft"));
 
     const size_t expected_matches{1};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
