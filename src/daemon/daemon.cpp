@@ -156,6 +156,8 @@ auto make_cloud_init_network_config(const mp::NetworkInterface& default_interfac
             network_data["ethernets"][name]["dhcp4"] = true;
             // We make the default gateway associated with the first interface.
             network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
+            // Make the interface optional, which means that networkd will not wait for the device to be configured.
+            network_data["ethernets"][name]["optional"] = true;
         }
     }
 
