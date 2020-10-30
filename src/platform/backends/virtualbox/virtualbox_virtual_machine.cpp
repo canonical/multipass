@@ -131,23 +131,36 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
             "VBoxManage", {"createvm", "--name", name, "--groups", "/Multipass", "--ostype", "ubuntu_64", "--register"},
             "Could not create VM: {}", name);
 
-        QStringList modify_arguments({"modifyvm", name, "--cpus", QString::number(desc.num_cores), "--memory",
-                                      QString::number(desc.mem_size.in_megabytes()), "--boot1", "disk", "--boot2",
-                                      "none", "--boot3", "none", "--boot4", "none", "--acpi", "on"});
+        QStringList modify_arguments{
+            "modifyvm",
+            name,
+            "--cpus",
+            QString::number(desc.num_cores),
+            "--memory",
+            QString::number(desc.mem_size.in_megabytes()),
+            "--boot1",
+            "disk",
+            "--boot2",
+            "none",
+            "--boot3",
+            "none",
+            "--boot4",
+            "none",
+            "--acpi",
+            "on",
+            "--firmware",
+            "bios",
+            "--rtcuseutc",
+            "on",
+            "--audio",
+            "none",
+            "--uart1",
+            "0x3f8",
+            "4",
+            "--uartmode1",
+            "file",
+            QString("%1/%2.log").arg(MP_STDPATHS.writableLocation(StandardPaths::TempLocation)).arg(name)};
         modify_arguments += networking_arguments(desc);
-        modify_arguments +=
-            {"--firmware",
-             "bios",
-             "--rtcuseutc",
-             "on",
-             "--audio",
-             "none",
-             "--uart1",
-             "0x3f8",
-             "4",
-             "--uartmode1",
-             "file",
-             QString("%1/%2.log").arg(MP_STDPATHS.writableLocation(StandardPaths::TempLocation)).arg(name)};
 
         mpu::process_throw_on_error("VBoxManage", modify_arguments, "Could not modify VM: {}", name);
 
