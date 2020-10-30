@@ -153,6 +153,7 @@ jobs:
         brew install \
           cmake \
           coreutils \
+          git \
           libev \
           libffi \
           ninja \

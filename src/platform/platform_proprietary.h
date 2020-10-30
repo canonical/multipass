@@ -32,7 +32,8 @@ const std::unordered_set<std::string> supported_release_aliases{"core",   "core1
                                                                 "default", "ubuntu", "lts",
                                                                 "16.04", "x", "xenial",
                                                                 "18.04", "b", "bionic",
-                                                                "20.04", "f", "focal"};
+                                                                "20.04", "f", "focal",
+                                                                "20.10", "g", "groovy"};
 // clang-format on
 const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18"};
 const std::unordered_set<std::string> supported_snapcraft_aliases{"core", "core16", "core18", "core20"};
