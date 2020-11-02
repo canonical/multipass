@@ -18,6 +18,7 @@
 #include "virtualbox_virtual_machine_factory.h"
 #include "virtualbox_virtual_machine.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface_info.h>
@@ -118,11 +119,9 @@ void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
 {
 }
 
-#ifdef MULTIPASS_PLATFORM_LINUX
-mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
-                                           std::map<std::string, mp::NetworkInterfaceInfo>)
+mp::NetworkInterfaceInfo get_backend_only_interface_information(const QString& vbox_iface_info)
 {
-    // This pattern is intended to gather from VBoxManage output the information we need.
+    // These patterns are intended to gather from VBoxManage output the information we need.
     const auto name_pattern = QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)$.*");
     const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)$.*");
     const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)$");
@@ -154,73 +153,15 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
 
     return mp::NetworkInterfaceInfo{"", "", ""};
 }
-#endif
 
-#ifdef MULTIPASS_PLATFORM_APPLE
 mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
                                            std::map<std::string, mp::NetworkInterfaceInfo> platform_info)
 {
-    // The Mac version of VBoxManage gives us enough information about some devices, we need to get the rest from
-    // the platform.
-    // This extra information provided by the // Mac version is captured in <description>.
+    // The Mac version of VBoxManage is the only one which gives us the <description> field for some devices.
     const auto name_pattern =
         QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)(: (?<description>[A-Za-z0-9-_()\\? :]+))?\r?$.*");
     const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r?$.*");
     const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r?$");
-
-    const auto regexp_options = QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption;
-
-    const auto name_regexp = QRegularExpression{name_pattern, regexp_options};
-    const auto type_regexp = QRegularExpression{type_pattern, regexp_options};
-    const auto wireless_regexp = QRegularExpression{wireless_pattern, regexp_options};
-
-    const auto name_match = name_regexp.match(vbox_iface_info);
-
-    if (name_match.hasMatch())
-    {
-        std::string ifname = name_match.captured("name").toStdString();
-
-        auto platform_if_info = platform_info.find(ifname);
-
-        if (platform_if_info != platform_info.end())
-        {
-            std::string iftype = type_regexp.match(vbox_iface_info).captured("type").toStdString();
-            std::string ifdescription = name_match.captured("description").toStdString();
-            bool wireless = wireless_regexp.match(vbox_iface_info).captured("wireless") == "Yes";
-
-            mp::NetworkInterfaceInfo if_info = platform_if_info->second;
-
-            if (ifdescription.empty())
-            {
-                // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
-                // which cannot be bridged.
-                if (!(if_info.type == "virtual" && if_info.description == "unknown"))
-                {
-                    return mp::NetworkInterfaceInfo{if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
-                                                    if_info.description};
-                }
-            }
-            else
-            {
-                // Get the information from the VBoxManage output.
-                iftype = wireless ? "wifi" : (ifdescription.compare(0, 11, "Thunderbolt") ? "thunderbolt" : iftype);
-
-                return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription.empty() ? "unknown" : ifdescription};
-            }
-        }
-    }
-
-    return mp::NetworkInterfaceInfo{"", "", ""};
-}
-#endif
-
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
-                                           std::map<std::string, mp::NetworkInterfaceInfo> platform_info)
-{
-    const auto name_pattern = QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#\\+ ]+)\r$.*");
-    const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r$.*");
-    const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r$");
 
     const auto regexp_options = QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption;
 
@@ -251,27 +192,35 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
             }
         }
 
-        // Now we hopefully found the correct interface.
         if (platform_if_info != platform_info.end())
         {
             std::string iftype = type_regexp.match(vbox_iface_info).captured("type").toStdString();
+            std::string ifdescription = name_match.captured("description").toStdString();
             bool wireless = wireless_regexp.match(vbox_iface_info).captured("wireless") == "Yes";
 
             mp::NetworkInterfaceInfo if_info = platform_if_info->second;
 
-            // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
-            // which cannot be bridged.
-            if (!(if_info.type == "virtual" && if_info.description == "unknown"))
+            if (ifdescription.empty())
             {
-                return mp::NetworkInterfaceInfo{if_info.id, if_info.type.empty() ? "unknown" : if_info.type,
-                                                if_info.description};
+                // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
+                // which cannot be bridged.
+                if (!(if_info.type == "virtual" && if_info.description == "unknown"))
+                    return mp::NetworkInterfaceInfo{
+                        if_info.id, wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
+                        if_info.description};
+            }
+            else
+            {
+                // Get the information from the VBoxManage output.
+                iftype = wireless ? "wifi" : (ifdescription.compare(0, 11, "Thunderbolt") ? "thunderbolt" : iftype);
+
+                return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription};
             }
         }
     }
 
     return mp::NetworkInterfaceInfo{"", "", ""};
 }
-#endif
 
 auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
@@ -285,16 +234,7 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 
     mpl::log(mpl::Level::info, "list-networks", fmt::format("VirtualBox found {} interfaces", if_list.size()));
 
-    // Unfortunately, getting interface information should be done platform-dependent.
-#ifdef MULTIPASS_PLATFORM_LINUX
-    // We don't use in the Linux backend the platform information, since we don't support VirtualBox on Linux.
-    // However, we can make Multipass use the information from Linux in the future, in order to improve reporting
-    // bridges or TUN/TAP interfaces.
-    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info;
-#else
-    // Get the information about the host network interfaces.
-    auto platform_ifs_info = mp::platform::get_network_interfaces_info();
-#endif
+    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info = mp::platform::get_network_interfaces_info();
 
     for (const auto& iface : if_list)
     {
