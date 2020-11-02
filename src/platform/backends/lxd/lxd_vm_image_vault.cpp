@@ -395,8 +395,6 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
 
 mp::MemorySize mp::LXDVMImageVault::minimum_image_size_for(const std::string& id)
 {
-    MemorySize lxd_image_size{"10G"};
-
     try
     {
         auto json_reply = lxd_request(
@@ -404,17 +402,12 @@ mp::MemorySize mp::LXDVMImageVault::minimum_image_size_for(const std::string& id
         const long image_size_bytes = json_reply["metadata"].toObject()["size"].toDouble();
         const MemorySize image_size{std::to_string(image_size_bytes)};
 
-        if (image_size > lxd_image_size)
-        {
-            lxd_image_size = image_size;
-        }
+        return image_size;
     }
     catch (const std::exception& e)
     {
         throw std::runtime_error(fmt::format("Cannot retrieve info for image with id \'{}\': {}", id, e.what()));
     }
-
-    return lxd_image_size;
 }
 
 mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
