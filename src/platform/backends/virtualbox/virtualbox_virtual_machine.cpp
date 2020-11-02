@@ -95,13 +95,12 @@ auto instance_state_for(const QString& name)
 
 QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
 {
-    // Start with the default interface, which is also the first interface in the input vector.
     QStringList arguments{"--nic1", "nat", "--macaddress1",
                           QString::fromStdString(desc.default_interface.mac_address).remove(':')};
 
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
-        QString iface_index_str = QString::number(i + 2, 10);
+        QString iface_index_str = QString::number(i + 2);
         arguments.push_back("--nic" + iface_index_str);
         arguments.push_back("bridged");
         if (!desc.extra_interfaces[i].id.empty())

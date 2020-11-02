@@ -19,7 +19,6 @@
 #include "hyperkit_virtual_machine.h"
 
 #include <multipass/logging/log.h>
-#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/shared_backend_utils.h>
