@@ -887,7 +887,7 @@ TEST_F(LXDImageVault, minimum_image_size_returns_expected_size)
     const auto image_size =
         image_vault.minimum_image_size_for("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
-    EXPECT_EQ(image_size, mp::MemorySize{"10G"});
+    EXPECT_EQ(image_size, mp::MemorySize{"345572108"});
 }
 
 TEST_F(LXDImageVault, minimum_image_size_large_returns_expected_size)
