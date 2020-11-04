@@ -464,6 +464,13 @@ struct LaunchImgSizeSuite : public Daemon,
 {
 };
 
+struct LaunchWithBridges
+    : public Daemon,
+      public WithParamInterface<
+          std::pair<std::vector<std::tuple<std::string, std::string, std::string>>, std::vector<std::string>>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -534,6 +541,23 @@ MATCHER_P2(YAMLNodeContainsString, key, val, "")
         return false;
     }
     return arg[key].Scalar() == val;
+}
+
+MATCHER_P2(YAMLNodeContainsStringStartingWith, key, val, "")
+{
+    if (!arg.IsMap())
+    {
+        return false;
+    }
+    if (!arg[key])
+    {
+        return false;
+    }
+    if (!arg[key].IsScalar())
+    {
+        return false;
+    }
+    return arg[key].Scalar().find(val) == 0;
 }
 
 MATCHER_P(YAMLNodeContainsSubString, val, "")
@@ -702,6 +726,78 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
 
     send_command({GetParam()});
 }
+
+TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
+{
+    mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto test_params = GetParam();
+    const auto args = test_params.first;
+    const auto forbidden_names = test_params.second;
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
+        .WillOnce(Invoke([&args, &forbidden_names](const multipass::VMImage&,
+                                                   const mp::VirtualMachineDescription& desc) {
+            EXPECT_THAT(desc.network_data_config, YAMLNodeContainsMap("ethernets"));
+
+            EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("default"));
+            auto const& default_network_stanza = desc.network_data_config["ethernets"]["default"];
+            EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
+            EXPECT_THAT(default_network_stanza["match"], YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
+            EXPECT_THAT(default_network_stanza, YAMLNodeContainsString("dhcp4", "true"));
+
+            for (const auto& arg : args)
+            {
+                std::string name = std::get<1>(arg);
+                if (!name.empty())
+                {
+                    EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap(name));
+                    auto const& extra_stanza = desc.network_data_config["ethernets"][name];
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("match"));
+
+                    std::string mac = std::get<2>(arg);
+                    if (mac.size() == 17)
+                        EXPECT_THAT(extra_stanza["match"], YAMLNodeContainsString("macaddress", mac));
+                    else
+                        EXPECT_THAT(extra_stanza["match"], YAMLNodeContainsStringStartingWith("macaddress", mac));
+
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("dhcp4", "true"));
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("dhcp4-overrides"));
+                    EXPECT_THAT(extra_stanza["dhcp4-overrides"], YAMLNodeContainsString("route-metric", "200"));
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("optional", "true"));
+                }
+            }
+
+            for (const auto& forbidden : forbidden_names)
+            {
+                EXPECT_THAT(desc.network_data_config["ethernets"], Not(YAMLNodeContainsMap(forbidden)));
+            }
+        }));
+
+    std::vector<std::string> command(1, "launch");
+
+    for (const auto& arg : args)
+    {
+        command.push_back("--network");
+        command.push_back(std::get<0>(arg));
+    }
+
+    send_command(command);
+}
+
+typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std::string>>, std::vector<std::string>>
+    BridgeTestArgType;
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon, LaunchWithBridges,
+    Values(BridgeTestArgType({}, {"extra0"}), BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
+           BridgeTestArgType({{"id=eth0,mac=01:23:45:ab:cd:ef,mode=auto", "extra0", "01:23:45:ab:cd:ef"},
+                              {"wlan0", "extra1", "52:54:00:"}},
+                             {"extra2"}),
+           BridgeTestArgType({{"id=eth0,mode=manual", "", ""}}, {"extra0"}),
+           BridgeTestArgType({{"id=eth0,mode=manual", "", ""}, {"id=wlan1", "extra1", "52:54:00:"}},
+                             {"extra0", "extra2"})));
 
 TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
 {
