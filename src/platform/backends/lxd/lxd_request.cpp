@@ -34,6 +34,13 @@ namespace
 {
 constexpr auto request_category = "lxd request";
 
+void log_and_throw_error(const std::string& message, mpl::Level level)
+{
+    mpl::log(level, request_category, message);
+
+    throw std::runtime_error(message);
+}
+
 template <typename Callable>
 const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int timeout, Callable&& handle_request)
 {
@@ -67,8 +74,6 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
 
     QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
     QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
-        mpl::log(mpl::Level::warning, request_category,
-                 fmt::format("Request timed out: {} {}", method, url.toString()));
         download_timeout.stop();
         reply->abort();
     });
@@ -83,29 +88,34 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
         throw mp::LXDNotFoundException();
 
     if (reply->error() == QNetworkReply::OperationCanceledError)
-        throw std::runtime_error(
-            fmt::format("Timeout getting response for {} operation on {}", method, url.toString()));
+        log_and_throw_error(fmt::format("Timeout getting response for {} operation on {}", method, url.toString()),
+                            mpl::Level::warning);
 
     auto bytearray_reply = reply->readAll();
     reply->deleteLater();
 
     if (bytearray_reply.isEmpty())
-        throw std::runtime_error(fmt::format("Empty reply received for {} operation on {}", method, url.toString()));
+        log_and_throw_error(fmt::format("Empty reply received for {} operation on {}", method, url.toString()),
+                            mpl::Level::error);
 
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(bytearray_reply, &json_error);
 
     if (json_error.error != QJsonParseError::NoError)
-        throw std::runtime_error(fmt::format("{}: {}", url.toString(), json_error.errorString()));
+        log_and_throw_error(fmt::format("Error parsing JSON response for {}: {}\n{}", url.toString(),
+                                        json_error.errorString(), bytearray_reply),
+                            mpl::Level::error);
 
     if (json_reply.isNull() || !json_reply.isObject())
-        throw std::runtime_error(fmt::format("Invalid LXD response for url {}: {}", url.toString(), bytearray_reply));
+        log_and_throw_error(fmt::format("Invalid LXD response for {}: {}", url.toString(), bytearray_reply),
+                            mpl::Level::error);
 
     mpl::log(mpl::Level::trace, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
 
     if (reply->error() != QNetworkReply::NoError)
-        throw std::runtime_error(fmt::format("Network error for {}: {} - {}", url.toString(), reply->errorString(),
-                                             json_reply["error"].toString()));
+        log_and_throw_error(fmt::format("Network error for {}: {} - {}", url.toString(), reply->errorString(),
+                                        json_reply.object()["error"].toString()),
+                            mpl::Level::error);
 
     return json_reply.object();
 }
