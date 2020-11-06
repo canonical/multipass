@@ -92,6 +92,9 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     auto bytearray_reply = reply->readAll();
     reply->deleteLater();
 
+    if (bytearray_reply.isEmpty())
+        throw std::runtime_error(fmt::format("Empty reply received for {} operation on {}", method, url.toString()));
+
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(bytearray_reply, &json_error);
 
