@@ -86,9 +86,6 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
         throw std::runtime_error(
             fmt::format("Timeout getting response for {} operation on {}", method, url.toString()));
 
-    if (reply->error() != QNetworkReply::NoError)
-        throw std::runtime_error(fmt::format("{}: {}", url.toString(), reply->errorString()));
-
     auto bytearray_reply = reply->readAll();
     reply->deleteLater();
 
@@ -105,6 +102,10 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
         throw std::runtime_error(fmt::format("Invalid LXD response for url {}: {}", url.toString(), bytearray_reply));
 
     mpl::log(mpl::Level::trace, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
+
+    if (reply->error() != QNetworkReply::NoError)
+        throw std::runtime_error(fmt::format("Network error for {}: {} - {}", url.toString(), reply->errorString(),
+                                             json_reply["error"].toString()));
 
     return json_reply.object();
 }
