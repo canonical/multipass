@@ -82,6 +82,10 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     if (reply->error() == QNetworkReply::ContentNotFoundError)
         throw mp::LXDNotFoundException();
 
+    if (reply->error() == QNetworkReply::OperationCanceledError)
+        throw std::runtime_error(
+            fmt::format("Timeout getting response for {} operation on {}", method, url.toString()));
+
     if (reply->error() != QNetworkReply::NoError)
         throw std::runtime_error(fmt::format("{}: {}", url.toString(), reply->errorString()));
 
