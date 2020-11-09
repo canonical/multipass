@@ -271,7 +271,7 @@ int mp::LXDVirtualMachine::ssh_port()
 
 void mp::LXDVirtualMachine::ensure_vm_is_running()
 {
-    ensure_vm_is_running(5s);
+    ensure_vm_is_running(20s);
 }
 
 void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds& timeout)
@@ -282,7 +282,7 @@ void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds
             return true;
         }
 
-        // Sleep for 5 seconds to see if LXD is just rebooting the instance
+        // Sleep to see if LXD is just rebooting the instance
         std::this_thread::sleep_for(timeout);
 
         if (current_state() != State::stopped)
