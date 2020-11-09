@@ -153,3 +153,21 @@ const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::
 
     return lxd_request_common(method, url, timeout, handle_request);
 }
+
+const QJsonObject mp::lxd_wait(mp::NetworkAccessManager* manager, const QUrl& base_url, const QJsonObject& task_data,
+                               int timeout)
+{
+    QJsonObject task_reply;
+
+    if (task_data["metadata"].toObject()["class"] == QStringLiteral("task") &&
+        task_data["status_code"].toInt(-1) == 100)
+    {
+        QUrl task_url(QString("%1/operations/%2/wait")
+                          .arg(base_url.toString())
+                          .arg(task_data["metadata"].toObject()["id"].toString()));
+
+        task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, timeout);
+    }
+
+    return task_reply;
+}
