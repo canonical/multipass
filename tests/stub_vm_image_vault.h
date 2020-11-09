@@ -25,7 +25,7 @@ namespace multipass
 {
 namespace test
 {
-struct StubVMImageVault final : public multipass::VMImageVault
+struct StubVMImageVault : public multipass::VMImageVault
 {
     multipass::VMImage fetch_image(const multipass::FetchType&, const multipass::Query&, const PrepareAction& prepare,
                                    const multipass::ProgressMonitor&) override
