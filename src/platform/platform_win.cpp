@@ -564,25 +564,34 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
-    auto ifs_info = std::map<std::string, mp::NetworkInterfaceInfo>();
+    static constexpr auto ps_cmd =
+        "Get-NetAdapter -physical | Select-Object -Property Name,InterfaceDescription | "
+        "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1 |"
+        "foreach { $_ -replace '^\"|\"$|\"(?=,)|(?<=,)\"','' }"; /* this last bit removes surrounding quotes; may be
+                                                                    replaced with "-UseQuotes Never" in powershell 7 */
+    static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
 
-    mp::PowerShell power_shell("get_network_interfaces_info");
-    QString ps_out;
-
-    // This gives a table with some information on the interfaces; the first field is the index we want.
-    power_shell.run({"Get-NetIPInterface", "-AddressFamily", "IPv4"}, ps_out);
-
-    QStringList split_ps_out = ps_out.split("\r\n", QString::SkipEmptyParts);
-
-    for (auto line : split_ps_out.mid(2))
+    QString ps_output;
+    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))
     {
-        int if_index = line.mid(0, 7).simplified().toInt();
-        mp::NetworkInterfaceInfo if_info = get_network_interface_info_from_id(if_index, power_shell);
-        if (!if_info.id.empty())
+        std::map<std::string, mp::NetworkInterfaceInfo> ret{};
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
         {
-            ifs_info.emplace(std::make_pair(if_info.id, if_info));
+            auto terms = line.split(',', QString::KeepEmptyParts);
+            if (terms.size() != 2)
+            {
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+            }
+
+            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(), "", terms[1].toStdString()};
+            ret.emplace(iface.id, iface);
         }
+
+        return ret;
     }
 
-    return ifs_info;
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+    throw std::runtime_error{err};
 }
