@@ -167,6 +167,23 @@ const QJsonObject mp::lxd_wait(mp::NetworkAccessManager* manager, const QUrl& ba
                           .arg(task_data["metadata"].toObject()["id"].toString()));
 
         task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, timeout);
+
+        if (task_reply["error_code"].toInt() >= 400)
+        {
+            log_and_throw_error(fmt::format("Error waiting on operation: {}", task_reply["error"].toString()),
+                                mpl::Level::error);
+        }
+        else if (task_reply["status_code"].toInt() == 400)
+        {
+            log_and_throw_error(fmt::format("Failure waiting on operation: {}", task_reply["status"].toString()),
+                                mpl::Level::error);
+        }
+        else if (task_reply["metadata"].toObject()["status_code"].toInt() == 400)
+        {
+            log_and_throw_error(fmt::format("Operation completed but with error: {}",
+                                            task_reply["metadata"].toObject()["err"].toString()),
+                                mpl::Level::error);
+        }
     }
 
     return task_reply;
