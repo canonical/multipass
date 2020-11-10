@@ -261,6 +261,20 @@ void save_profiles(const QString& path, const Json::Value& json_root)
     tmp_file_removing_guard.dismiss(); // we succeeded, tmp file no longer there
 }
 
+std::string interpret_net_type(const QString& media_type, const QString& physical_media_type)
+{
+    // Note: use the following to see what types may be returned
+    // `get-netadapter | select -first 1 | get-member -name physicalmediatype | select -expandproperty definition`
+    if (physical_media_type == "802.3")
+        return "ethernet";
+    else if (physical_media_type == "Unspecified")
+        return media_type == "802.3" ? "ethernet" : "unknown"; // virtio covered here
+    else if (physical_media_type.contains("802.11"))
+        return "wifi";
+    else
+        return physical_media_type.toLower().toStdString();
+}
+
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -565,7 +579,7 @@ mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::str
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
     static constexpr auto ps_cmd =
-        "Get-NetAdapter -physical | Select-Object -Property Name,InterfaceDescription | "
+        "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription | "
         "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1 |"
         "foreach { $_ -replace '^\"|\"$|\"(?=,)|(?<=,)\"','' }"; /* this last bit removes surrounding quotes; may be
                                                                     replaced with "-UseQuotes Never" in powershell 7 */
@@ -578,13 +592,14 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
         {
             auto terms = line.split(',', QString::KeepEmptyParts);
-            if (terms.size() != 2)
+            if (terms.size() != 4)
             {
                 throw std::runtime_error{fmt::format(
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
-            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(), "", terms[1].toStdString()};
+            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(), interpret_net_type(terms[1], terms[2]),
+                                                  terms[3].toStdString()};
             ret.emplace(iface.id, iface);
         }
 
