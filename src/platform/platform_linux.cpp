@@ -174,11 +174,6 @@ bool mp::platform::is_image_url_supported()
     return true;
 }
 
-mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
-{
-    throw mp::NotImplementedOnThisBackendException("get_network_interface_info");
-}
-
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
     throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
