@@ -249,7 +249,7 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 
 // The day VirtualBox corrects the bug in Windows which avoids us to use the correct interface name instead of the
 // description, we'll have to modify this function and check the VirtualBox version.
-std::string mp::VirtualBoxVirtualMachineFactory::low_level_id(const std::string& ux_id) const
+std::string mp::VirtualBoxVirtualMachineFactory::reinterpret_interface_id(const std::string& ux_id) const
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     // Get information about all the interfaces.
