@@ -38,6 +38,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <QJsonDocument>
 #include <QString>
 #include <QUrl>
 
@@ -886,6 +887,29 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
                          std::runtime_error, Property(&std::runtime_error::what, AllOf(HasSubstr(error_string))));
 }
 
+TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
+        QByteArray data;
+        auto reply = new mpt::MockLocalSocketReply(data);
+
+        return reply;
+    });
+
+    base_url.setHost("test");
+
+    const std::string op{"GET"};
+    const std::string error_string{
+        fmt::format("Empty reply received for {} operation on {}", op, base_url.toString().toStdString())};
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr(error_string)));
+}
+
 TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
@@ -930,6 +954,209 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()),
                                                                    HasSubstr(invalid_json.toStdString()))));
+}
+
+TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
+        const QByteArray error_data{"{"
+                                    "\"type\": \"error\","
+                                    "\"error\": \"Failure\","
+                                    "\"error_code\": 400,"
+                                    "\"metadata\": {}"
+                                    "}"};
+
+        return new mpt::MockLocalSocketReply(error_data, QNetworkReply::ProtocolInvalidOperationError);
+    });
+
+    base_url.setHost("test");
+
+    auto error_matcher = AllOf(HasSubstr("Network error for"), HasSubstr(base_url.toString().toStdString()),
+                               HasSubstr(": Error - Failure"));
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
+                         Property(&std::runtime_error::what, error_matcher));
+}
+
+TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+            {
+                const QByteArray wait_reply_error{"{"
+                                                  "\"error\": \"Failure\","
+                                                  "\"error_code\": 400,"
+                                                  "\"metadata\": {"
+                                                  "  \"class\": \"task\","
+                                                  "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                                  "  \"description\": \"Stopping container\","
+                                                  "  \"err\": \"\","
+                                                  "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                                  "  \"location\": \"none\","
+                                                  "  \"may_cancel\": false,"
+                                                  "  \"metadata\": null,"
+                                                  "  \"resources\": {"
+                                                  "    \"containers\": ["
+                                                  "      \"/1.0/containers/test\""
+                                                  "    ]"
+                                                  "  },"
+                                                  "  \"status\": \"Success\","
+                                                  "  \"status_code\": 200,"
+                                                  "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                                  "},"
+                                                  "\"operation\": \"\","
+                                                  "\"status\": \"\","
+                                                  "\"status_code\": 0,"
+                                                  "\"type\": \"sync\""
+                                                  "}"};
+
+                return new mpt::MockLocalSocketReply(wait_reply_error);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    base_url.setHost("test");
+
+    QJsonParseError json_error;
+    auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
+
+    auto error_matcher = StrEq("Error waiting on operation: Failure");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+}
+
+TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+            {
+                const QByteArray wait_reply_error{"{"
+                                                  "\"error\": \"\","
+                                                  "\"error_code\": 0,"
+                                                  "\"metadata\": {"
+                                                  "  \"class\": \"task\","
+                                                  "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                                  "  \"description\": \"Stopping container\","
+                                                  "  \"err\": \"\","
+                                                  "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                                  "  \"location\": \"none\","
+                                                  "  \"may_cancel\": false,"
+                                                  "  \"metadata\": null,"
+                                                  "  \"resources\": {"
+                                                  "    \"containers\": ["
+                                                  "      \"/1.0/containers/test\""
+                                                  "    ]"
+                                                  "  },"
+                                                  "  \"status\": \"Success\","
+                                                  "  \"status_code\": 200,"
+                                                  "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                                  "},"
+                                                  "\"operation\": \"\","
+                                                  "\"status\": \"Bad status\","
+                                                  "\"status_code\": 400,"
+                                                  "\"type\": \"sync\""
+                                                  "}"};
+
+                return new mpt::MockLocalSocketReply(wait_reply_error);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    base_url.setHost("test");
+
+    QJsonParseError json_error;
+    auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
+
+    auto error_matcher = StrEq("Failure waiting on operation: Bad status");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+}
+
+TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_logs)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+            {
+                const QByteArray wait_reply_error{"{"
+                                                  "\"error\": \"\","
+                                                  "\"error_code\": 0,"
+                                                  "\"metadata\": {"
+                                                  "  \"class\": \"task\","
+                                                  "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                                  "  \"description\": \"Stopping container\","
+                                                  "  \"err\": \"Failed to stop instance\","
+                                                  "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                                  "  \"location\": \"none\","
+                                                  "  \"may_cancel\": false,"
+                                                  "  \"metadata\": null,"
+                                                  "  \"resources\": {"
+                                                  "    \"containers\": ["
+                                                  "      \"/1.0/containers/test\""
+                                                  "    ]"
+                                                  "  },"
+                                                  "  \"status\": \"Failure\","
+                                                  "  \"status_code\": 400,"
+                                                  "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                                  "},"
+                                                  "\"operation\": \"\","
+                                                  "\"status\": \"Success\","
+                                                  "\"status_code\": 0,"
+                                                  "\"type\": \"sync\""
+                                                  "}"};
+
+                return new mpt::MockLocalSocketReply(wait_reply_error);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    base_url.setHost("test");
+
+    QJsonParseError json_error;
+    auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
+
+    auto error_matcher = StrEq("Operation completed but with error: Failed to stop instance");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
 }
 
 TEST_F(LXDBackend, unsupported_suspend_throws)
