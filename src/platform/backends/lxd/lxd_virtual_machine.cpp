@@ -201,6 +201,8 @@ void mp::LXDVirtualMachine::start()
 void mp::LXDVirtualMachine::stop()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+    QJsonObject stop_options;
+
     auto present_state = current_state();
 
     if (present_state == State::suspended)
@@ -209,7 +211,12 @@ void mp::LXDVirtualMachine::stop()
         return;
     }
 
-    request_state("stop");
+    if (present_state == State::starting)
+    {
+        stop_options.insert("force", true);
+    }
+
+    request_state("stop", stop_options);
 
     state = State::stopped;
 
