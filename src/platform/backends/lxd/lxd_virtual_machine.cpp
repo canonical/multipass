@@ -344,9 +344,14 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-void mp::LXDVirtualMachine::request_state(const QString& new_state)
+void mp::LXDVirtualMachine::request_state(const QString& new_state, const QJsonObject& state_options)
 {
-    const QJsonObject state_json{{"action", new_state}};
+    QJsonObject state_json{{"action", new_state}};
+
+    for (auto option = state_options.constBegin(); option != state_options.constEnd(); ++option)
+    {
+        state_json.insert(option.key(), option.value());
+    }
 
     auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
 

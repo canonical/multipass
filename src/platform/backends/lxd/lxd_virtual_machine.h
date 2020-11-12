@@ -65,7 +65,7 @@ private:
     const QUrl url();
     const QUrl state_url();
     const QUrl network_leases_url();
-    void request_state(const QString& new_state);
+    void request_state(const QString& new_state, const QJsonObject& state_options = QJsonObject());
     const multipass::optional<multipass::IPAddress> get_ip();
 };
 } // namespace multipass
