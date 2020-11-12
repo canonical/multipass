@@ -74,6 +74,7 @@ std::function<int()> make_quit_watchdog(); // call while single-threaded; call r
 
 // Get information on the network interfaces that are seen by the platform, indexed by name
 std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info();
+std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
 
 } // namespace platform
 } // namespace multipass

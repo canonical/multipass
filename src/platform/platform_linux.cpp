@@ -178,3 +178,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
 {
     throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
 }
+
+std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
+{
+    return ux_id;
+}
