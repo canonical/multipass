@@ -273,7 +273,7 @@ void mp::LXDVirtualMachine::ensure_vm_is_running()
 
 void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds& timeout)
 {
-    auto is_vm_running = [this, timeout] {
+    auto is_vm_running = [this, timeout](auto& lock) {
         if (current_state() != State::stopped)
         {
             return true;

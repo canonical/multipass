@@ -398,7 +398,7 @@ void mp::QemuVirtualMachine::on_restart()
 
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] { return (vm_process && vm_process->running()); };
+    auto is_vm_running = [this](auto&) { return (vm_process && vm_process->running()); };
 
     mp::backend::ensure_vm_is_running_for(this, is_vm_running, saved_error_msg);
 }

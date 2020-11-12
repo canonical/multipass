@@ -66,8 +66,8 @@ std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, s
 template <typename Callable>
 void ensure_vm_is_running_for(VirtualMachine* virtual_machine, Callable&& is_vm_running, const std::string& msg)
 {
-    std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-    if (!is_vm_running())
+    std::unique_lock<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+    if (!is_vm_running(lock))
     {
         virtual_machine->shutdown_while_starting = true;
         virtual_machine->state_wait.notify_all();

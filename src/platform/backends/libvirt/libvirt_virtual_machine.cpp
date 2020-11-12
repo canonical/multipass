@@ -404,7 +404,7 @@ int mp::LibVirtVirtualMachine::ssh_port()
 
 void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] {
+    auto is_vm_running = [this](auto&) {
         auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
         return domain_is_running(domain.get(), libvirt_wrapper);
     };
