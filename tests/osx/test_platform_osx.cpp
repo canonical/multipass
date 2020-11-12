@@ -117,6 +117,24 @@ QByteArray networksetup_output =
                       "\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 82:15:07:f3:c5:40\n"
                       "\nVLAN Configurations\n===================\n");
 
+std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
+    {"lo0", {"lo0", "virtual", "unknown"}},
+    {"gif0", {"gif0", "virtual", "unknown"}},
+    {"stf0", {"stf0", "virtual", "unknown"}},
+    {"en0", {"en0", "ethernet", "Ethernet"}},
+    {"en1", {"en1", "wifi", "Wi-Fi"}},
+    {"en2", {"en2", "thunderbolt", "Thunderbolt 1"}},
+    {"en3", {"en3", "thunderbolt", "Thunderbolt 2"}},
+    {"bridge0", {"bridge0", "bridge", "bridge containing en2, en3"}},
+    {"p2p0", {"p2p0", "virtual", "unknown"}},
+    {"awdl0", {"awdl0", "virtual", "unknown"}},
+    {"llw0", {"llw0", "virtual", "unknown"}},
+    {"utun0", {"utun0", "virtual", "unknown"}},
+    {"utun1", {"utun1", "virtual", "unknown"}},
+    {"utun2", {"utun2", "virtual", "unknown"}},
+    {"utun3", {"utun3", "virtual", "unknown"}},
+    {"utun4", {"utun4", "virtual", "unknown"}}};
+
 void simulate_ifconfig(const mpt::MockProcess* process, const mp::ProcessState& exit_status)
 {
     ASSERT_EQ(process->program(), "ifconfig");
@@ -274,63 +292,24 @@ TEST(PlatformOSX, test_mixed_hotkey_interpretation)
                 UnorderedElementsAreArray(ctrl + shift + opt + tab));
 }
 
-struct TestNetworkInterfaces : public TestWithParam<mp::NetworkInterfaceInfo>
-{
-};
-
-TEST_P(TestNetworkInterfaces, test_network_interfaces)
-{
-    const auto& expected_info = GetParam();
-
-    std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
-    const mp::ProcessState success{0, mp::nullopt};
-    mock_factory_scope->register_callback(
-        [&](mpt::MockProcess* process) { simulate_environment(process, success, success); });
-
-    mp::NetworkInterfaceInfo returned_info = mp::platform::get_network_interface_info(expected_info.id);
-
-    ASSERT_EQ(returned_info.id, expected_info.id);
-    ASSERT_EQ(returned_info.type, expected_info.type);
-    ASSERT_EQ(returned_info.description, expected_info.description);
-}
-
-INSTANTIATE_TEST_SUITE_P(PlatformOSX, TestNetworkInterfaces,
-                         Values(mp::NetworkInterfaceInfo{"lo0", "virtual", "unknown"},
-                                mp::NetworkInterfaceInfo{"en0", "ethernet", "Ethernet"},
-                                mp::NetworkInterfaceInfo{"en1", "wifi", "Wi-Fi"},
-                                mp::NetworkInterfaceInfo{"en2", "thunderbolt", "Thunderbolt 1"},
-                                mp::NetworkInterfaceInfo{"en4", "", ""},
-                                mp::NetworkInterfaceInfo{"bridge0", "bridge", "bridge containing en2, en3"},
-                                mp::NetworkInterfaceInfo{"utun0", "virtual", "unknown"}));
-
-TEST(PlatformOSX, test_all_network_interfaces)
+TEST(PlatformOSX, test_network_interfaces)
 {
     std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
     const mp::ProcessState success{0, mp::nullopt};
     mock_factory_scope->register_callback(
         [&](mpt::MockProcess* process) { simulate_environment(process, success, success); });
 
-    auto all_interfaces_map = mp::platform::get_network_interfaces_info();
+    auto got_interfaces = mp::platform::get_network_interfaces_info();
 
-    ASSERT_EQ(all_interfaces_map.size(), ifconfig_output.size());
+    ASSERT_EQ(got_interfaces.size(), ifconfig_output.size());
     for (const auto& if_pair : ifconfig_output)
-        ASSERT_NE(all_interfaces_map.find(if_pair.first), all_interfaces_map.end());
-}
-
-TEST(PlatformOSX, test_nonexisting_network_interface)
-{
-    std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
-    const mp::ProcessState success{0, mp::nullopt};
-    mock_factory_scope->register_callback(
-        [&](mpt::MockProcess* process) { simulate_environment(process, success, success); });
-
-    std::string if_name("unknown0");
-
-    mp::NetworkInterfaceInfo returned_info = mp::platform::get_network_interface_info(if_name);
-
-    ASSERT_EQ(returned_info.id, if_name);
-    ASSERT_EQ(returned_info.type, "");
-    ASSERT_EQ(returned_info.description, "");
+        EXPECT_NO_THROW({
+            const auto& got = got_interfaces.at(if_pair.first);
+            const auto& expected = expect_interfaces.at(if_pair.first);
+            EXPECT_EQ(got.id, expected.id);
+            EXPECT_EQ(got.type, expected.type);
+            EXPECT_EQ(got.description, expected.description);
+        });
 }
 
 } // namespace

@@ -251,15 +251,5 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 // description, we'll have to modify this function and check the VirtualBox version.
 std::string mp::VirtualBoxVirtualMachineFactory::reinterpret_interface_id(const std::string& ux_id) const
 {
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-    // Get information about all the interfaces.
-    auto if_info = mp::platform::get_network_interface_info(ux_id);
-
-    if (if_info.id == "")
-        throw std::runtime_error(fmt::format("Network interface \"{}\" not found", ux_id));
-    else
-        return if_info.description;
-#else
-    return ux_id;
-#endif
+    return ux_id; // TODO
 }

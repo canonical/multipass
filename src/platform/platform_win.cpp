@@ -543,39 +543,6 @@ mp::NetworkInterfaceInfo get_network_interface_info_from_id(int if_id, mp::Power
     return mp::NetworkInterfaceInfo{alias, type, description};
 }
 
-// The alias given to this function can be the interface alias or the description. Both can be used by Windows to
-// identify an interface. From this alias or description, we will get the interface index, which is an integer
-// which also uniquely identifies the interface.
-mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& if_alias)
-{
-    // TODO: don't use a power shell session for getting the information of every interface; use one for all.
-    mp::PowerShell power_shell("Interface info " + if_alias);
-    // The power shell output.
-    QString ps_out;
-
-    // See if with the alias we can get the interface index. If not, that means that we need to use description.
-    power_shell.run({"Get-NetAdapter", "-InterfaceAlias", QString::fromStdString('\"' + if_alias + '\"')}, ps_out);
-
-    // If the output of is not a table whose first heading is the name, then this interface does not exist.
-    if (ps_out.left(4) != "Name")
-    {
-        return mp::NetworkInterfaceInfo();
-    }
-
-    // Gather the interface index from the power shell output.
-    QStringList split_ps_out = ps_out.split("\r\n", QString::SkipEmptyParts);
-
-    if (split_ps_out.count() != 3)
-    {
-        return mp::NetworkInterfaceInfo();
-    }
-
-    // Get the interface index from the only useful line of output.
-    int if_index = split_ps_out[2].mid(66, 7).simplified().toInt();
-
-    return get_network_interface_info_from_id(if_index, power_shell);
-}
-
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
     static constexpr auto ps_cmd =

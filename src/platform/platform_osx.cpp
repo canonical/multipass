@@ -357,25 +357,6 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& 
     return mp::NetworkInterfaceInfo{iface_name, iface_type, iface_description};
 }
 
-mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
-{
-    // Check if the interface exists.
-    auto ifconfig_output = QString::fromStdString(get_ifconfig_output(iface_name));
-
-    const auto pattern = QString::fromStdString("^" + iface_name + ": ");
-    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
-    auto iface_match = regexp.match(ifconfig_output);
-
-    if (iface_match.hasMatch())
-    {
-        return get_existing_network_interface_info(iface_name);
-    }
-    else
-    {
-        return mp::NetworkInterfaceInfo{iface_name, "", ""};
-    }
-}
-
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
     auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
