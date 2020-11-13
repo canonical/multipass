@@ -251,5 +251,5 @@ auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<N
 // description, we'll have to modify this function and check the VirtualBox version.
 std::string mp::VirtualBoxVirtualMachineFactory::reinterpret_interface_id(const std::string& ux_id) const
 {
-    return ux_id; // TODO
+    return platform::reinterpret_interface_id(ux_id);
 }
