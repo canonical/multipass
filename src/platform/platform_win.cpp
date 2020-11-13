@@ -577,3 +577,29 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
     throw std::runtime_error{err};
 }
+
+std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
+{
+    auto ps_cmd = QStringLiteral("Get-NetAdapter -Name \"%1\" | Select-Object -ExpandProperty InterfaceDescription")
+                      .arg(QString::fromStdString(ux_id))
+                      .split(' ', QString::SkipEmptyParts);
+
+    QString ps_output;
+    if (PowerShell::exec(ps_cmd, "Adapter description from name", ps_output))
+    {
+        auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts);
+        if (output_lines.size() != 1)
+        {
+            throw std::runtime_error{
+                fmt::format("Could not obtain adapter description from name \"{}\" - unexpected powershell output: {}",
+                            ux_id, ps_output)};
+        }
+
+        return output_lines.first().toStdString();
+    }
+
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format(
+        "Could not obtain adapter description from name \"{}\" - error executing powershell command.{}", ux_id, detail);
+    throw std::runtime_error{err};
+}

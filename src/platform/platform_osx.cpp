@@ -382,3 +382,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
 
     return networks;
 }
+
+std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
+{
+    return ux_id;
+}
