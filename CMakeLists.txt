@@ -200,6 +200,7 @@ include_directories(
   include
   ${MULTIPASS_GENERATED_SOURCE_DIR})
 
+add_subdirectory(completions)
 add_subdirectory(data)
 add_subdirectory(src)
 
