@@ -41,7 +41,8 @@ Answer `yes` when it asks to modify your `.bash_profile`, or otherwise ensure ``
 
 Hyperkit's QCow support is implemented in an OCaml module, which we need to fetch using the OPAM packaging system. Initialize:
 
-    opam init
+    export OPAM_COMP=4.11.1
+    opam init --comp="${OPAM_COMP}" --switch="${OPAM_COMP}"
     opam update
 
 Install the required modules:
