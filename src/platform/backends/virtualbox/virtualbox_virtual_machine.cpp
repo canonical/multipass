@@ -95,21 +95,24 @@ auto instance_state_for(const QString& name)
 
 QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
 {
-    QStringList arguments{"--nic1", "nat", "--macaddress1",
-                          QString::fromStdString(desc.default_interface.mac_address).remove(':')};
+    QStringList arguments{"--nic1",        "nat",
+                          "--nictype1",    "virtio",
+                          "--macaddress1", QString::fromStdString(desc.default_interface.mac_address).remove(':')};
 
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
         QString iface_index_str = QString::number(i + 2);
-        arguments.push_back("--nic" + iface_index_str);
-        arguments.push_back("bridged");
+
+        arguments += {
+            "--nic" + iface_index_str,        "bridged",
+            "--nictype" + iface_index_str,    "virtio",
+            "--macaddress" + iface_index_str, QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':')};
+
         if (!desc.extra_interfaces[i].id.empty())
         {
-            arguments.push_back("--bridgeadapter" + iface_index_str);
-            arguments.push_back(QString::fromStdString(desc.extra_interfaces[i].id));
+            // The id of the network the extra interfaces bridge to must be already checked.
+            arguments += {"--bridgeadapter" + iface_index_str, QString::fromStdString(desc.extra_interfaces[i].id)};
         }
-        arguments.push_back("--macaddress" + iface_index_str);
-        arguments.push_back(QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':'));
     }
 
     return arguments;
@@ -146,6 +149,10 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
       username{desc.ssh_username},
       monitor{&monitor}
 {
+    if (desc.extra_interfaces.size() > 7)
+    {
+        throw std::runtime_error("VirtualBox does not support more than 8 interfaces");
+    }
 
     if (!mpu::process_log_on_error("VBoxManage", {"showvminfo", name, "--machinereadable"},
                                    "Could not get instance info: {}", name))
