@@ -248,8 +248,9 @@ std::string get_networksetup_output()
 
     if (!nsetup_exit_state.completed_successfully())
     {
-        throw std::runtime_error(
-            fmt::format("Failed to execute networksetup: {}", nsetup_process->read_all_standard_error()));
+        throw std::runtime_error(fmt::format("networksetup failed ({}) with the following output:\n",
+                                             nsetup_exit_state.failure_message(),
+                                             nsetup_process->read_all_standard_error()));
     }
 
     return nsetup_process->read_all_standard_output().toStdString();
@@ -266,15 +267,12 @@ std::string get_ifconfig_output(const mp::optional<std::string> iface_name)
     auto ifconfig_process = mp::platform::make_process(std::move(ifconfig_spec));
     auto ifconfig_exit_state = ifconfig_process->execute();
 
-    if (ifconfig_exit_state.exit_code && *(ifconfig_exit_state.exit_code) == 1)
+    if (ifconfig_exit_state.error || !ifconfig_exit_state.exit_code ||
+        (*ifconfig_exit_state.exit_code != 0 && *ifconfig_exit_state.exit_code != 1))
     {
-        return ifconfig_process->read_all_standard_output().toStdString();
-    }
-
-    if (!ifconfig_exit_state.completed_successfully())
-    {
-        throw std::runtime_error(
-            fmt::format("Failed to execute ifconfig: {}", ifconfig_process->read_all_standard_error()));
+        throw std::runtime_error(fmt::format("ifconfig failed ({}) with the following output:\n{}",
+                                             ifconfig_exit_state.failure_message(),
+                                             ifconfig_process->read_all_standard_error()));
     }
 
     return ifconfig_process->read_all_standard_output().toStdString();
@@ -302,15 +300,14 @@ QStringList get_bridged_interfaces(const std::string& if_name)
 }
 
 // Return information about a network interface, given that it was checked to be present in the system.
-mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& iface_name)
+mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& iface_name,
+                                                             const std::string& nsetup_output)
 {
-    // If the interface is a hardware device, then networksetup must return details from it.
-    auto nsetup_output = QString::fromStdString(get_networksetup_output());
     const auto pattern =
-        QString(".*^Hardware Port: (?<type>[A-Za-z0-9 -_]+)\nDevice: " + QString::fromStdString(iface_name) + "$");
+        QString::fromStdString(fmt::format("^Hardware Port: (?<type>[\w -]+)\nDevice: {}$", iface_name));
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
                                                         QRegularExpression::DotMatchesEverythingOption};
-    auto iface_match = regexp.match(nsetup_output);
+    auto iface_match = regexp.match(QString::fromStdString(nsetup_output));
 
     std::string iface_description, iface_type;
 
@@ -369,6 +366,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
     QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);
 
+    std::string nsetup_output = get_networksetup_output();
+
     // For every gathered interface name, ask for information.
     while (match_it.hasNext())
     {
@@ -376,7 +375,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
         if (match.hasMatch())
         {
             std::string iface_name = match.captured("name").toStdString();
-            networks.emplace(std::make_pair(iface_name, get_existing_network_interface_info(iface_name)));
+            networks.emplace(iface_name, get_existing_network_interface_info(iface_name, nsetup_output));
         }
     }
 
