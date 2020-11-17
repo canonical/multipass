@@ -214,6 +214,7 @@ void mp::LXDVirtualMachine::stop()
     if (present_state == State::starting)
     {
         stop_options.insert("force", true);
+        forced_shutdown = true;
     }
 
     request_state("stop", stop_options);
@@ -222,6 +223,7 @@ void mp::LXDVirtualMachine::stop()
 
     if (present_state == State::starting)
     {
+        state_wait.notify_all();
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
@@ -280,7 +282,7 @@ void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds
         }
 
         // Sleep to see if LXD is just rebooting the instance
-        std::this_thread::sleep_for(timeout);
+        state_wait.wait_for(lock, timeout, [this] { return forced_shutdown; });
 
         if (current_state() != State::stopped)
         {
