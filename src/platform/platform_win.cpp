@@ -514,35 +514,6 @@ std::function<int()> mp::platform::make_quit_watchdog()
     };
 }
 
-// Given the unique identifier of a network interface, get its info.
-mp::NetworkInterfaceInfo get_network_interface_info_from_id(int if_id, mp::PowerShell& power_shell)
-{
-    QString ps_out;
-    // Look for the IP address, alias and description of the interface.
-    // TODO: get the hardware type from somewhere.
-    power_shell.run({"Get-NetIPConfiguration", "-InterfaceIndex", QString::number(if_id)}, ps_out);
-
-    const auto pattern = QStringLiteral("^InterfaceAlias +: (?<alias>[A-Za-z0-9-_#\\+ ]+)\r$.*"
-                                        "^InterfaceDescription +: (?<description>[A-Za-z0-9-_#\\+ ]+)\r$.*");
-    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
-                                                        QRegularExpression::DotMatchesEverythingOption};
-    const auto match = regexp.match(ps_out);
-
-    std::string alias, type, description;
-
-    if (match.hasMatch())
-    {
-        alias = match.captured("alias").toStdString();
-        type = "";
-        description = match.captured("description").toStdString();
-    }
-
-    mpl::log(mpl::Level::debug, "get_interfaces",
-             fmt::format("{}: \"{}\", \"{}\", \"{}\"", if_id, alias, type, description));
-
-    return mp::NetworkInterfaceInfo{alias, type, description};
-}
-
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
     static constexpr auto ps_cmd =
