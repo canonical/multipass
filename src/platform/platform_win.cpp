@@ -26,12 +26,12 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#include "backends/hyperv/powershell.h" // TODO: move powershell functions outside backends/hyperv/
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
 #include "platform_shared.h"
 #include "shared/sshfs_server_process_spec.h"
+#include "shared/win/powershell.h"
 #include "shared/win/process_factory.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>

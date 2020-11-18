@@ -16,7 +16,6 @@
  */
 
 #include "hyperv_virtual_machine.h"
-#include "powershell.h"
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -26,6 +25,7 @@
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/shared_backend_utils.h>
+#include <shared/win/powershell.h>
 
 #include <fmt/format.h>
 

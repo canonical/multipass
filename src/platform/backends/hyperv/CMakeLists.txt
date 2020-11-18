@@ -16,7 +16,6 @@
 add_library(hyperv_backend STATIC
   hyperv_virtual_machine.cpp
   hyperv_virtual_machine_factory.cpp
-  powershell.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
 

@@ -17,11 +17,11 @@
 
 #include "hyperv_virtual_machine_factory.h"
 #include "hyperv_virtual_machine.h"
-#include "powershell.h"
 
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/shared_backend_utils.h>
+#include <shared/win/powershell.h>
 
 #include <yaml-cpp/yaml.h>
 
