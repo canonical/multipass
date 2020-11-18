@@ -103,16 +103,14 @@ QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
     {
         QString iface_index_str = QString::number(i + 2);
 
-        arguments += {
-            "--nic" + iface_index_str,        "bridged",
-            "--nictype" + iface_index_str,    "virtio",
-            "--macaddress" + iface_index_str, QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':')};
-
-        if (!desc.extra_interfaces[i].id.empty())
-        {
-            // The id of the network the extra interfaces bridge to must be already checked.
-            arguments += {"--bridgeadapter" + iface_index_str, QString::fromStdString(desc.extra_interfaces[i].id)};
-        }
+        arguments += {"--nic" + iface_index_str,
+                      "bridged",
+                      "--nictype" + iface_index_str,
+                      "virtio",
+                      "--macaddress" + iface_index_str,
+                      QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':'),
+                      "--bridgeadapter" + iface_index_str,
+                      QString::fromStdString(desc.extra_interfaces[i].id)};
     }
 
     return arguments;
