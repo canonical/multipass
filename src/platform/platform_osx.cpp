@@ -256,19 +256,13 @@ std::string get_networksetup_output()
     return nsetup_process->read_all_standard_output().toStdString();
 }
 
-std::string get_ifconfig_output(const mp::optional<std::string> iface_name)
+std::string get_ifconfig_output()
 {
-    QStringList ifconfig_parameters;
-    if (iface_name)
-    {
-        ifconfig_parameters.push_back(QString::fromStdString(*iface_name));
-    }
-    auto ifconfig_spec = mp::simple_process_spec("ifconfig", ifconfig_parameters);
+    auto ifconfig_spec = mp::simple_process_spec("ifconfig", {});
     auto ifconfig_process = mp::platform::make_process(std::move(ifconfig_spec));
     auto ifconfig_exit_state = ifconfig_process->execute();
 
-    if (ifconfig_exit_state.error || !ifconfig_exit_state.exit_code ||
-        (*ifconfig_exit_state.exit_code != 0 && *ifconfig_exit_state.exit_code != 1))
+    if (ifconfig_exit_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("ifconfig failed ({}) with the following output:\n{}",
                                              ifconfig_exit_state.failure_message(),
@@ -278,10 +272,15 @@ std::string get_ifconfig_output(const mp::optional<std::string> iface_name)
     return ifconfig_process->read_all_standard_output().toStdString();
 }
 
-QStringList get_bridged_interfaces(const std::string& if_name)
+QStringList get_bridged_interfaces(const std::string& if_name, const std::string& full_ifconfig_output)
 {
-    auto ifconfig_output = QString::fromStdString(get_ifconfig_output(if_name));
-    const auto pattern = QStringLiteral("^[ \\t]+member: (?<member>[A-Za-z0-9-_]+) flags.*$");
+    QString full_ifconfig_output_q = QString::fromStdString(full_ifconfig_output);
+    int start = full_ifconfig_output_q.indexOf(QRegularExpression(QString::fromStdString("^" + if_name + ":")));
+    int end = full_ifconfig_output_q.indexOf(QRegularExpression("^\\w+:"));
+    QString ifconfig_output = full_ifconfig_output_q.mid(start, end - start + 1);
+    mpl::log(mpl::Level::debug, "osx platform", fmt::format("ifconfig_output = \"{}\"", ifconfig_output));
+
+    const auto pattern = QStringLiteral("^[ \\t]+member: (?<member>\\w+) flags.*$");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
     QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);
 
@@ -304,10 +303,12 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& 
                                                              const std::string& nsetup_output)
 {
     const auto pattern =
-        QString::fromStdString(fmt::format("^Hardware Port: (?<type>[\w -]+)\nDevice: {}$", iface_name));
+        QString::fromStdString(fmt::format("^Hardware Port: (?<type>[\\w -]+)\nDevice: {}$", iface_name));
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
                                                         QRegularExpression::DotMatchesEverythingOption};
     auto iface_match = regexp.match(QString::fromStdString(nsetup_output));
+
+    std::string ifconfig_output = get_ifconfig_output();
 
     std::string iface_description, iface_type;
 
@@ -329,7 +330,7 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& 
                 if (iface_description.size() >= 18 && iface_description.substr(11, 7) == " Bridge")
                 {
                     iface_type = "bridge";
-                    QStringList bridged_ifaces = get_bridged_interfaces(iface_name);
+                    QStringList bridged_ifaces = get_bridged_interfaces(iface_name, ifconfig_output);
                     iface_description = bridged_ifaces.empty()
                                             ? "bridge containing no interfaces"
                                             : "bridge containing " + bridged_ifaces.join(", ").toStdString();
@@ -359,10 +360,10 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
 
     // Get the output of 'ifconfig'.
-    auto ifconfig_output = QString::fromStdString(get_ifconfig_output(mp::nullopt));
+    auto ifconfig_output = QString::fromStdString(get_ifconfig_output());
 
     // Parse the output to get the interface names.
-    const auto pattern = QStringLiteral("^(?<name>[A-Za-z0-9-_]+): .*$");
+    const auto pattern = QStringLiteral("^(?<name>\\w+): .*$");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
     QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);
 
