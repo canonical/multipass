@@ -340,7 +340,7 @@ jobs:
       uses: jurplel/install-qt-action@v2
 
     - name: Install Dependencies from Choco
-      uses: crazy-max/ghaction-chocolatey@v1.3.0
+      uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install --yes qemu-img openssl
 
@@ -352,7 +352,7 @@ jobs:
         location: ${{ github.workspace }}/../
 
     - name: Set up MSVC
-      uses: ilammy/msvc-dev-cmd@v1.3.0
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Build
       uses: lukka/run-cmake@v2
