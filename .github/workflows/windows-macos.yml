@@ -190,6 +190,8 @@ jobs:
 
     - name: Install OPAM dependencies
       run: |
+        opam pin uri 3.1.0
+        opam pin uri-sexp 3.1.0
         opam install 3rd-party/hyperkit --deps-only
         opam list
 
