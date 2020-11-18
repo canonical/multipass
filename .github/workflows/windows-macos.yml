@@ -191,6 +191,7 @@ jobs:
     - name: Install OPAM dependencies
       run: |
         opam install 3rd-party/hyperkit --deps-only
+        opam list
 
     - name: Set up CCache
       id: setup-ccache
