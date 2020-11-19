@@ -17,6 +17,7 @@
 
 #include "ubuntu_image_host.h"
 
+#include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
@@ -69,6 +70,14 @@ auto key_from(const std::string& search_string)
         key = "default";
     return key;
 }
+
+void check_remote_is_supported(const std::string& remote_name)
+{
+    if (!mp::platform::is_remote_supported(remote_name))
+        throw std::runtime_error(fmt::format("Remote \'{}\' is not a supported remote for this platform. Please use "
+                                             "`multipass find` for supported remotes and images.",
+                                             remote_name));
+}
 } // namespace
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
@@ -79,14 +88,32 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
 
 mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
 {
+    std::vector<std::string> remotes;
+
+    if (!query.remote_name.empty())
+    {
+        check_remote_is_supported(query.remote_name);
+
+        remotes.push_back(query.remote_name);
+    }
+    else
+    {
+        for (const auto& remote_name : std::vector<std::string>{release_remote, daily_remote})
+        {
+            if (mp::platform::is_remote_supported(remote_name))
+            {
+                remotes.push_back(remote_name);
+            }
+        }
+    }
+
     auto key = key_from(query.release);
     mp::SimpleStreamsManifest* manifest;
-    const VMImageInfo* info{nullptr};
-
-    const auto remotes = query.remote_name.empty() ? supported_remotes() : std::vector<std::string>{query.remote_name};
 
     for (const auto& remote_name : remotes)
     {
+        const VMImageInfo* info{nullptr};
+
         manifest = manifest_from(remote_name);
         match_alias(key, &info, *manifest);
 
