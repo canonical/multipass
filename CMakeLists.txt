@@ -161,7 +161,7 @@ if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
 else()
-  add_compile_options(-Werror -Wall -pedantic -fPIC)
+  add_compile_options(-Werror -Wall -pedantic -fPIC -Wno-error=deprecated-declarations)
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
