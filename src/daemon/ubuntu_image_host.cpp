@@ -83,35 +83,38 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
     mp::SimpleStreamsManifest* manifest;
     const VMImageInfo* info{nullptr};
 
-    auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
+    const auto remotes = query.remote_name.empty() ? supported_remotes() : std::vector<std::string>{query.remote_name};
 
-    manifest = manifest_from(remote_name);
-    match_alias(key, &info, *manifest);
-
-    if (!info)
+    for (const auto& remote_name : remotes)
     {
-        int num_matches = 0;
+        manifest = manifest_from(remote_name);
+        match_alias(key, &info, *manifest);
 
-        auto predicate = [&](const VMImageInfo& entry) {
-            auto partial_match = false;
-            if (entry.id.startsWith(key))
-            {
-                info = &entry;
-                partial_match = true;
-            }
-            return partial_match;
-        };
-        num_matches += std::count_if(manifest->products.begin(), manifest->products.end(), predicate);
-        if (num_matches > 1)
-            throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
-    }
+        if (!info)
+        {
+            int num_matches = 0;
 
-    if (info)
-    {
-        if (!info->supported && !query.allow_unsupported)
-            throw mp::UnsupportedImageException(query.release);
+            auto predicate = [&](const VMImageInfo& entry) {
+                auto partial_match = false;
+                if (entry.id.startsWith(key))
+                {
+                    info = &entry;
+                    partial_match = true;
+                }
+                return partial_match;
+            };
+            num_matches += std::count_if(manifest->products.begin(), manifest->products.end(), predicate);
+            if (num_matches > 1)
+                throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
+        }
 
-        return with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info);
+        if (info)
+        {
+            if (!info->supported && !query.allow_unsupported)
+                throw mp::UnsupportedImageException(query.release);
+
+            return with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info);
+        }
     }
 
     return nullopt;
