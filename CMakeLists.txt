@@ -224,4 +224,4 @@ if(MULTIPASS_ENABLE_TESTS)
   add_subdirectory(tests)
 endif()
 
-include(packaging/cpack.cmake)
+include(packaging/cpack.cmake OPTIONAL)
