@@ -394,11 +394,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         {
             const auto info = info_for(query);
 
-            if (!mp::platform::is_remote_supported(query.remote_name))
-                throw std::runtime_error(
-                    fmt::format("{} is not a supported remote. Please use `multipass find` for supported images.",
-                                query.remote_name));
-
             if (!mp::platform::is_alias_supported(query.release, query.remote_name))
                 throw std::runtime_error(
                     fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
@@ -746,9 +741,14 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
 {
     if (!query.remote_name.empty())
     {
+        const std::string error_helper_msg{"Please use `multipass find` for supported remotes and images."};
+
         auto it = remote_image_host_map.find(query.remote_name);
         if (it == remote_image_host_map.end())
-            throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", query.remote_name));
+        {
+            throw std::runtime_error(
+                fmt::format("Remote \'{}\' is not found. {}", query.remote_name, error_helper_msg));
+        }
 
         auto info = it->second->info_for(query);
 
