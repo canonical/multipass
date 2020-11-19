@@ -15,6 +15,11 @@
 cmake_minimum_required(VERSION 3.13)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
+if (APPLE)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
+  set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+endif()
+
 project(Multipass)
 
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
@@ -148,18 +153,29 @@ message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
+if(MSVC)
+  add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
+  add_definitions(-DNOMINMAX) # otherwise windows defines macros which interfere with std::min, std::max
+  add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
+  add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
+  add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
+  add_definitions(-DWIN32_LEAN_AND_MEAN)
+elseif(APPLE)
+  add_compile_options(-Werror -Wall -pedantic -fPIC)
+  add_definitions(-DMULTIPASS_PLATFORM_APPLE)
+else()
+  add_compile_options(-Werror -Wall -pedantic -Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -fPIC)
 
-add_compile_options(-Werror -Wall -pedantic -Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -fPIC)
+  if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
+    add_compile_options(-Wcast-align)
+  endif()
 
-if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
-  add_compile_options(-Wcast-align)
+  CHECK_CXX_COMPILER_FLAG("-Wno-expansion-to-defined" COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
+  if(COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
+    add_compile_options(-Wno-expansion-to-defined)
+  endif()
+  add_definitions(-DMULTIPASS_PLATFORM_LINUX)
 endif()
-
-CHECK_CXX_COMPILER_FLAG("-Wno-expansion-to-defined" COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
-if(COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
-  add_compile_options(-Wno-expansion-to-defined)
-endif()
-add_definitions(-DMULTIPASS_PLATFORM_LINUX)
 
 if(cmake_build_type_lower MATCHES "coverage")
   find_program(GCOV gcov)
@@ -207,3 +223,5 @@ if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
+
+include(packaging/cpack.cmake)
