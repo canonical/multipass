@@ -115,11 +115,7 @@ void mp::LocalSocketReply::abort()
     close();
 
     setError(OperationCanceledError, "Operation canceled");
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-    emit errorOccurred(OperationCanceledError);
-#else
     emit error(OperationCanceledError);
-#endif
 
     setFinished(true);
     emit finished();
@@ -302,12 +298,7 @@ void mp::LocalSocketReply::parse_status(const QByteArray& status)
     if (!http_status_match.hasMatch())
     {
         setError(QNetworkReply::ProtocolFailure, "Malformed HTTP response from server");
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-        emit errorOccurred(QNetworkReply::ProtocolFailure);
-#else
         emit error(QNetworkReply::ProtocolFailure);
-#endif
 
         return;
     }
@@ -320,12 +311,7 @@ void mp::LocalSocketReply::parse_status(const QByteArray& status)
         auto error_code = statusCodeFromHttp(statusCode);
 
         setError(error_code, http_status_match.captured("message"));
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-        emit errorOccurred(error_code);
-#else
         emit error(error_code);
-#endif
     }
 }
 
@@ -335,11 +321,7 @@ bool mp::LocalSocketReply::local_socket_write(const QByteArray& data)
     if (bytes_written < 0)
     {
         setError(QNetworkReply::InternalServerError, local_socket->errorString());
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-        emit errorOccurred(QNetworkReply::InternalServerError);
-#else
         emit error(QNetworkReply::InternalServerError);
-#endif
 
         return false;
     }
