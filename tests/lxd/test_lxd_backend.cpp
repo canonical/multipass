@@ -884,7 +884,7 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
         fmt::format("Timeout getting response for {} operation on {}", op, base_url.toString().toStdString())};
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url, mp::nullopt, 3),
-                         std::runtime_error, Property(&std::runtime_error::what, AllOf(HasSubstr(error_string))));
+                         std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error_string)));
 }
 
 TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
