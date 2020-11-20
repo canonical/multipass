@@ -240,7 +240,7 @@ bool mp::platform::is_image_url_supported()
     return false;
 }
 
-std::string get_networksetup_output()
+QString get_networksetup_output()
 {
     auto nsetup_spec = mp::simple_process_spec("networksetup", {"-listallhardwareports"});
     auto nsetup_process = mp::platform::make_process(std::move(nsetup_spec));
@@ -253,10 +253,10 @@ std::string get_networksetup_output()
                                              nsetup_process->read_all_standard_error()));
     }
 
-    return nsetup_process->read_all_standard_output().toStdString();
+    return nsetup_process->read_all_standard_output();
 }
 
-std::string get_ifconfig_output()
+QString get_ifconfig_output()
 {
     auto ifconfig_spec = mp::simple_process_spec("ifconfig", {});
     auto ifconfig_process = mp::platform::make_process(std::move(ifconfig_spec));
@@ -269,15 +269,15 @@ std::string get_ifconfig_output()
                                              ifconfig_process->read_all_standard_error()));
     }
 
-    return ifconfig_process->read_all_standard_output().toStdString();
+    return ifconfig_process->read_all_standard_output();
 }
 
-QStringList get_bridged_interfaces(const std::string& if_name, const std::string& full_ifconfig_output)
+QStringList get_bridged_interfaces(const QString& if_name, const QString& full_ifconfig_output)
 {
     // Search the substring of the full ifconfig output containing only the interface if_name.
-    QString full_ifconfig_output_q = QString::fromStdString(full_ifconfig_output);
+    QString full_ifconfig_output_q = full_ifconfig_output;
     int start = full_ifconfig_output_q.indexOf(
-        QRegularExpression(QString::fromStdString("^" + if_name + ":"), QRegularExpression::MultilineOption));
+        QRegularExpression{QStringLiteral("^%1:").arg(if_name), QRegularExpression::MultilineOption});
     int end =
         full_ifconfig_output_q.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption), start + 1);
     QStringRef ifconfig_output = full_ifconfig_output_q.midRef(start, end - start);
@@ -302,16 +302,14 @@ QStringList get_bridged_interfaces(const std::string& if_name, const std::string
 }
 
 // Return information about a network interface, given that it was checked to be present in the system.
-mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& iface_name,
-                                                             const std::string& nsetup_output)
+mp::NetworkInterfaceInfo get_existing_network_interface_info(const QString& iface_name, const QString& nsetup_output)
 {
-    const auto pattern =
-        QString::fromStdString(fmt::format("^Hardware Port: (?<type>[\\w -]+)\nDevice: {}$", iface_name));
+    const auto pattern = QStringLiteral("^Hardware Port: (?<type>[\\w -]+)\nDevice: %1$").arg(iface_name);
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
                                                         QRegularExpression::DotMatchesEverythingOption};
-    auto iface_match = regexp.match(QString::fromStdString(nsetup_output));
+    auto iface_match = regexp.match(nsetup_output);
 
-    std::string ifconfig_output = get_ifconfig_output();
+    QString ifconfig_output = get_ifconfig_output();
 
     std::string iface_description, iface_type;
 
@@ -355,7 +353,7 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const std::string& 
         iface_description = "unknown";
     }
 
-    return mp::NetworkInterfaceInfo{iface_name, iface_type, iface_description};
+    return mp::NetworkInterfaceInfo{iface_name.toStdString(), iface_type, iface_description};
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
@@ -363,14 +361,13 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
 
     // Get the output of 'ifconfig'.
-    auto ifconfig_output = QString::fromStdString(get_ifconfig_output());
+    auto ifconfig_output = get_ifconfig_output();
+    auto nsetup_output = get_networksetup_output();
 
     // Parse the output to get the interface names.
     const auto pattern = QStringLiteral("^(?<name>\\w+): .*$");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
     QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);
-
-    std::string nsetup_output = get_networksetup_output();
 
     // For every gathered interface name, ask for information.
     while (match_it.hasNext())
@@ -378,8 +375,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
         auto match = match_it.next();
         if (match.hasMatch())
         {
-            std::string iface_name = match.captured("name").toStdString();
-            networks.emplace(iface_name, get_existing_network_interface_info(iface_name, nsetup_output));
+            auto net_info = get_existing_network_interface_info(match.captured("name"), nsetup_output);
+            networks.emplace(net_info.id, net_info);
         }
     }
 
