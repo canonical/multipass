@@ -55,6 +55,7 @@ namespace
 constexpr auto application_id = "com.canonical.multipass";
 constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
 constexpr auto autostart_link_subdir = "Library/LaunchAgents";
+constexpr auto category = "osx platform";
 
 QString interpret_macos_hotkey(QString val)
 {
@@ -368,6 +369,9 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     const auto pattern = QStringLiteral("^(?<name>\\w+): .*$");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
     QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);
+    mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
+    mpl::log(mpl::Level::trace, category,
+             fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
 
     // For every gathered interface name, ask for information.
     while (match_it.hasNext())
