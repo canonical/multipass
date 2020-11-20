@@ -988,9 +988,7 @@ TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
         auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
         auto url = request.url().toString();
 
-        if (op == "GET")
-        {
-            if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+        if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
             {
                 const QByteArray wait_reply_error{"{"
                                                   "\"error\": \"Failure\","
@@ -1021,7 +1019,6 @@ TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
 
                 return new mpt::MockLocalSocketReply(wait_reply_error);
             }
-        }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
@@ -1047,9 +1044,7 @@ TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
         auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
         auto url = request.url().toString();
 
-        if (op == "GET")
-        {
-            if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+        if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
             {
                 const QByteArray wait_reply_error{"{"
                                                   "\"error\": \"\","
@@ -1080,7 +1075,6 @@ TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
 
                 return new mpt::MockLocalSocketReply(wait_reply_error);
             }
-        }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
@@ -1106,9 +1100,7 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
         auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
         auto url = request.url().toString();
 
-        if (op == "GET")
-        {
-            if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+        if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
             {
                 const QByteArray wait_reply_error{"{"
                                                   "\"error\": \"\","
@@ -1139,7 +1131,6 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
 
                 return new mpt::MockLocalSocketReply(wait_reply_error);
             }
-        }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
