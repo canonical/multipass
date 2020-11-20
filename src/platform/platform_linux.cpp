@@ -86,6 +86,20 @@ std::string get_uevent_value(const std::string& file, const std::string& key)
     return std::string();
 }
 
+std::string get_ip_output(QStringList ip_args)
+{
+    auto ip_spec = mp::simple_process_spec("ip", ip_args);
+    auto ip_process = mp::platform::make_process(std::move(ip_spec));
+    auto ip_exit_state = ip_process->execute();
+
+    if (ip_exit_state.completed_successfully())
+        return ip_process->read_all_standard_output().toStdString();
+    else if (ip_exit_state.exit_code && *(ip_exit_state.exit_code) == 1)
+        return ip_process->read_all_standard_error().toStdString();
+    else
+        throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
+}
+
 mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name)
 {
     QString iface_name_qstr = QString::fromStdString(iface_name);
@@ -109,18 +123,20 @@ mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_na
     return mp::NetworkInterfaceInfo{iface_name, type, description};
 }
 
-std::string get_ip_output(QStringList ip_args)
+mp::NetworkInterfaceInfo get_network_interface_info(const std::string& iface_name)
 {
-    auto ip_spec = mp::simple_process_spec("ip", ip_args);
-    auto ip_process = mp::platform::make_process(std::move(ip_spec));
-    auto ip_exit_state = ip_process->execute();
+    std::string virtual_path("/sys/devices/virtual/net/" + iface_name);
 
-    if (ip_exit_state.completed_successfully())
-        return ip_process->read_all_standard_output().toStdString();
-    else if (ip_exit_state.exit_code && *(ip_exit_state.exit_code) == 1)
-        return ip_process->read_all_standard_error().toStdString();
+    // The interface can be a hardware or virtual one. To distinguish between them, we see if a folder with the
+    // interface name exists in /sys/devices/net/virtual.
+    if (QFile::exists(QString::fromStdString(virtual_path)))
+    {
+        return mp::platform::get_virtual_interface_info(iface_name, virtual_path);
+    }
     else
-        throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
+    {
+        return get_physical_interface_info(iface_name);
+    }
 }
 
 } // namespace
@@ -310,29 +326,11 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
         {
             description += "Virtual interface associated to " + associated_to;
         }
-
-        description = (vendor != "" && model != "") ? vendor + ":" + model : "unknown";
     }
 
     mp::NetworkInterfaceInfo iface_info{iface_name, type, description};
 
     return iface_info;
-}
-
-mp::NetworkInterfaceInfo mp::platform::get_network_interface_info(const std::string& iface_name)
-{
-    std::string virtual_path("/sys/devices/virtual/net/" + iface_name);
-
-    // The interface can be a hardware or virtual one. To distinguish between them, we see if a folder with the
-    // interface name exists in /sys/devices/net/virtual.
-    if (QFile::exists(QString::fromStdString(virtual_path)))
-    {
-        return get_virtual_interface_info(iface_name, virtual_path);
-    }
-    else
-    {
-        return get_physical_interface_info(iface_name);
-    }
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
