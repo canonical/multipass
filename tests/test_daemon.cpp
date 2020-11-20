@@ -879,14 +879,6 @@ INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                                  Values(std::vector<std::string>{}, std::vector<std::string>{"--disk", "4G"}),
                                  Values("1G", mp::default_disk_size, "10G")));
 
-class NotEmptyStubVMImageVault final : public mpt::StubVMImageVault
-{
-    bool has_record_for(const std::string& name) override
-    {
-        return name == "real-zebraphant";
-    }
-};
-
 std::string fake_json_contents(const std::string& default_mac, const std::vector<mp::NetworkInterface>& extra_ifaces)
 {
     QString contents("{\n"
@@ -961,7 +953,7 @@ void check_interfaces_in_json(const QString& file, const std::string& mac,
 
 TEST_F(Daemon, reads_mac_addresses_from_json)
 {
-    config_builder.vault = std::make_unique<NotEmptyStubVMImageVault>();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     std::string mac_addr("52:54:00:73:76:28");
     std::vector<mp::NetworkInterface> extra_interfaces{
