@@ -1140,7 +1140,7 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
 
-    auto error_matcher = StrEq("Operation completed but with error: Failed to stop instance");
+    auto error_matcher = StrEq("Operation completed with error: Failed to stop instance");
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
