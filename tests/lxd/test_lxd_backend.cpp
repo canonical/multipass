@@ -989,36 +989,36 @@ TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
         auto url = request.url().toString();
 
         if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
-            {
-                const QByteArray wait_reply_error{"{"
-                                                  "\"error\": \"Failure\","
-                                                  "\"error_code\": 400,"
-                                                  "\"metadata\": {"
-                                                  "  \"class\": \"task\","
-                                                  "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
-                                                  "  \"description\": \"Stopping container\","
-                                                  "  \"err\": \"\","
-                                                  "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
-                                                  "  \"location\": \"none\","
-                                                  "  \"may_cancel\": false,"
-                                                  "  \"metadata\": null,"
-                                                  "  \"resources\": {"
-                                                  "    \"containers\": ["
-                                                  "      \"/1.0/containers/test\""
-                                                  "    ]"
-                                                  "  },"
-                                                  "  \"status\": \"Success\","
-                                                  "  \"status_code\": 200,"
-                                                  "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
-                                                  "},"
-                                                  "\"operation\": \"\","
-                                                  "\"status\": \"\","
-                                                  "\"status_code\": 0,"
-                                                  "\"type\": \"sync\""
-                                                  "}"};
+        {
+            const QByteArray wait_reply_error{"{"
+                                              "\"error\": \"Failure\","
+                                              "\"error_code\": 400,"
+                                              "\"metadata\": {"
+                                              "  \"class\": \"task\","
+                                              "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                              "  \"description\": \"Stopping container\","
+                                              "  \"err\": \"\","
+                                              "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                              "  \"location\": \"none\","
+                                              "  \"may_cancel\": false,"
+                                              "  \"metadata\": null,"
+                                              "  \"resources\": {"
+                                              "    \"containers\": ["
+                                              "      \"/1.0/containers/test\""
+                                              "    ]"
+                                              "  },"
+                                              "  \"status\": \"Success\","
+                                              "  \"status_code\": 200,"
+                                              "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                              "},"
+                                              "\"operation\": \"\","
+                                              "\"status\": \"\","
+                                              "\"status_code\": 0,"
+                                              "\"type\": \"sync\""
+                                              "}"};
 
-                return new mpt::MockLocalSocketReply(wait_reply_error);
-            }
+            return new mpt::MockLocalSocketReply(wait_reply_error);
+        }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
@@ -1045,36 +1045,36 @@ TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
         auto url = request.url().toString();
 
         if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
-            {
-                const QByteArray wait_reply_error{"{"
-                                                  "\"error\": \"\","
-                                                  "\"error_code\": 0,"
-                                                  "\"metadata\": {"
-                                                  "  \"class\": \"task\","
-                                                  "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
-                                                  "  \"description\": \"Stopping container\","
-                                                  "  \"err\": \"\","
-                                                  "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
-                                                  "  \"location\": \"none\","
-                                                  "  \"may_cancel\": false,"
-                                                  "  \"metadata\": null,"
-                                                  "  \"resources\": {"
-                                                  "    \"containers\": ["
-                                                  "      \"/1.0/containers/test\""
-                                                  "    ]"
-                                                  "  },"
-                                                  "  \"status\": \"Success\","
-                                                  "  \"status_code\": 200,"
-                                                  "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
-                                                  "},"
-                                                  "\"operation\": \"\","
-                                                  "\"status\": \"Bad status\","
-                                                  "\"status_code\": 400,"
-                                                  "\"type\": \"sync\""
-                                                  "}"};
+        {
+            const QByteArray wait_reply_error{"{"
+                                              "\"error\": \"\","
+                                              "\"error_code\": 0,"
+                                              "\"metadata\": {"
+                                              "  \"class\": \"task\","
+                                              "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                              "  \"description\": \"Stopping container\","
+                                              "  \"err\": \"\","
+                                              "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                              "  \"location\": \"none\","
+                                              "  \"may_cancel\": false,"
+                                              "  \"metadata\": null,"
+                                              "  \"resources\": {"
+                                              "    \"containers\": ["
+                                              "      \"/1.0/containers/test\""
+                                              "    ]"
+                                              "  },"
+                                              "  \"status\": \"Success\","
+                                              "  \"status_code\": 200,"
+                                              "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                              "},"
+                                              "\"operation\": \"\","
+                                              "\"status\": \"Bad status\","
+                                              "\"status_code\": 400,"
+                                              "\"type\": \"sync\""
+                                              "}"};
 
-                return new mpt::MockLocalSocketReply(wait_reply_error);
-            }
+            return new mpt::MockLocalSocketReply(wait_reply_error);
+        }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });
@@ -1101,36 +1101,36 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
         auto url = request.url().toString();
 
         if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
-            {
-                const QByteArray wait_reply_error{"{"
-                                                  "\"error\": \"\","
-                                                  "\"error_code\": 0,"
-                                                  "\"metadata\": {"
-                                                  "  \"class\": \"task\","
-                                                  "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
-                                                  "  \"description\": \"Stopping container\","
-                                                  "  \"err\": \"Failed to stop instance\","
-                                                  "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
-                                                  "  \"location\": \"none\","
-                                                  "  \"may_cancel\": false,"
-                                                  "  \"metadata\": null,"
-                                                  "  \"resources\": {"
-                                                  "    \"containers\": ["
-                                                  "      \"/1.0/containers/test\""
-                                                  "    ]"
-                                                  "  },"
-                                                  "  \"status\": \"Failure\","
-                                                  "  \"status_code\": 400,"
-                                                  "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
-                                                  "},"
-                                                  "\"operation\": \"\","
-                                                  "\"status\": \"Success\","
-                                                  "\"status_code\": 0,"
-                                                  "\"type\": \"sync\""
-                                                  "}"};
+        {
+            const QByteArray wait_reply_error{"{"
+                                              "\"error\": \"\","
+                                              "\"error_code\": 0,"
+                                              "\"metadata\": {"
+                                              "  \"class\": \"task\","
+                                              "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                              "  \"description\": \"Stopping container\","
+                                              "  \"err\": \"Failed to stop instance\","
+                                              "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                              "  \"location\": \"none\","
+                                              "  \"may_cancel\": false,"
+                                              "  \"metadata\": null,"
+                                              "  \"resources\": {"
+                                              "    \"containers\": ["
+                                              "      \"/1.0/containers/test\""
+                                              "    ]"
+                                              "  },"
+                                              "  \"status\": \"Failure\","
+                                              "  \"status_code\": 400,"
+                                              "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                              "},"
+                                              "\"operation\": \"\","
+                                              "\"status\": \"Success\","
+                                              "\"status_code\": 0,"
+                                              "\"type\": \"sync\""
+                                              "}"};
 
-                return new mpt::MockLocalSocketReply(wait_reply_error);
-            }
+            return new mpt::MockLocalSocketReply(wait_reply_error);
+        }
 
         return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
     });

@@ -180,9 +180,9 @@ const QJsonObject mp::lxd_wait(mp::NetworkAccessManager* manager, const QUrl& ba
         }
         else if (task_reply["metadata"].toObject()["status_code"].toInt() == 400)
         {
-            log_and_throw_error(fmt::format("Operation completed with error: {}",
-                                            task_reply["metadata"].toObject()["err"].toString()),
-                                mpl::Level::error);
+            log_and_throw_error(
+                fmt::format("Operation completed with error: {}", task_reply["metadata"].toObject()["err"].toString()),
+                mpl::Level::error);
         }
     }
 
