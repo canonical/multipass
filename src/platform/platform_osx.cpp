@@ -262,7 +262,7 @@ std::string get_ifconfig_output()
     auto ifconfig_process = mp::platform::make_process(std::move(ifconfig_spec));
     auto ifconfig_exit_state = ifconfig_process->execute();
 
-    if (ifconfig_exit_state.completed_successfully())
+    if (!ifconfig_exit_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("ifconfig failed ({}) with the following output:\n{}",
                                              ifconfig_exit_state.failure_message(),
@@ -274,12 +274,15 @@ std::string get_ifconfig_output()
 
 QStringList get_bridged_interfaces(const std::string& if_name, const std::string& full_ifconfig_output)
 {
+    // Search the substring of the full ifconfig output containing only the interface if_name.
     QString full_ifconfig_output_q = QString::fromStdString(full_ifconfig_output);
-    int start = full_ifconfig_output_q.indexOf(QRegularExpression(QString::fromStdString("^" + if_name + ":")));
-    int end = full_ifconfig_output_q.indexOf(QRegularExpression("^\\w+:"));
-    QString ifconfig_output = full_ifconfig_output_q.mid(start, end - start + 1);
-    mpl::log(mpl::Level::debug, "osx platform", fmt::format("ifconfig_output = \"{}\"", ifconfig_output));
+    int start = full_ifconfig_output_q.indexOf(
+        QRegularExpression(QString::fromStdString("^" + if_name + ":"), QRegularExpression::MultilineOption));
+    int end =
+        full_ifconfig_output_q.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption), start + 1);
+    QStringRef ifconfig_output = full_ifconfig_output_q.midRef(start, end - start);
 
+    // Search for the bridged interfaces in the resulting string ref.
     const auto pattern = QStringLiteral("^[ \\t]+member: (?<member>\\w+) flags.*$");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
     QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);

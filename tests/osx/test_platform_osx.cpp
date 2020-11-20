@@ -141,37 +141,22 @@ void simulate_ifconfig(const mpt::MockProcess* process, const mp::ProcessState& 
 
     QByteArray output;
 
-    const auto args = process->arguments();
-    ASSERT_THAT(args.size(), Le(1));
-    if (args.size() == 0)
-    {
-        for (auto oi = ifconfig_output.begin(); oi != ifconfig_output.end(); ++oi)
-            output += oi->second;
-    }
-    else
-    {
-        auto output_pair = ifconfig_output.find(args[0].toStdString());
+    const auto& args = process->arguments();
+    ASSERT_EQ(args.size(), 0);
 
-        if (output_pair != ifconfig_output.end())
-            output = output_pair->second;
-        else
-            output = "ifconfig: interface " + args[0].toLatin1() + " does not exist";
-    }
+    for (const auto& [key, val] : ifconfig_output)
+        output += val;
 
     EXPECT_CALL(*process, execute).WillOnce(Return(exit_status));
     if (exit_status.completed_successfully())
         EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
-    else if (exit_status.exit_code)
-        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
-    else
-        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(output));
 }
 
 void simulate_networksetup(const mpt::MockProcess* process, const mp::ProcessState& exit_status)
 {
     ASSERT_EQ(process->program(), "networksetup");
 
-    const auto args = process->arguments();
+    const auto& args = process->arguments();
     ASSERT_EQ(args.size(), 1);
     EXPECT_EQ(args.constFirst(), "-listallhardwareports");
 
