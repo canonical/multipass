@@ -143,40 +143,33 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const QString& ifac
 
     QString ifconfig_output = get_ifconfig_output();
 
-    std::string iface_description, iface_type;
+    QString iface_description, iface_type;
 
     if (iface_match.hasMatch())
     {
-        iface_description = iface_match.captured("type").toStdString();
-        if (iface_description.size() >= 5 && iface_description.substr(0, 5) == "Wi-Fi")
+        iface_description = iface_match.captured("type");
+        if (iface_description.startsWith("Wi-Fi"))
         {
             iface_type = "wifi";
         }
+        else if (iface_description.startsWith("Ethernet"))
+        {
+            iface_type = "ethernet";
+        }
+        else if (iface_description.startsWith("Thunderbolt Bridge"))
+        {
+            iface_type = "bridge";
+            QStringList bridged_ifaces = get_bridged_interfaces(iface_name, ifconfig_output);
+            iface_description =
+                bridged_ifaces.empty() ? "Empty network bridge" : "Network bridge with " + bridged_ifaces.join(", ");
+        }
+        else if (iface_description.startsWith("Thunderbolt"))
+        {
+            iface_type = "thunderbolt";
+        }
         else
         {
-            if (iface_description.size() >= 8 && iface_description.substr(0, 8) == "Ethernet")
-            {
-                iface_type = "ethernet";
-            }
-            else if (iface_description.size() >= 11 && iface_description.substr(0, 11) == "Thunderbolt")
-            {
-                if (iface_description.size() >= 18 && iface_description.substr(11, 7) == " Bridge")
-                {
-                    iface_type = "bridge";
-                    QStringList bridged_ifaces = get_bridged_interfaces(iface_name, ifconfig_output);
-                    iface_description = bridged_ifaces.empty()
-                                            ? "Empty network bridge"
-                                            : "Network bridge with " + bridged_ifaces.join(", ").toStdString();
-                }
-                else
-                {
-                    iface_type = "thunderbolt";
-                }
-            }
-            else
-            {
-                iface_type = iface_description;
-            }
+            iface_type = iface_description;
         }
     }
     else
@@ -185,7 +178,8 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const QString& ifac
         iface_description = "unknown";
     }
 
-    return mp::NetworkInterfaceInfo{iface_name.toStdString(), iface_type, iface_description};
+    return mp::NetworkInterfaceInfo{iface_name.toStdString(), iface_type.toStdString(),
+                                    iface_description.toStdString()};
 }
 
 } // namespace
