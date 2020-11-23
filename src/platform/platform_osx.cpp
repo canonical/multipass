@@ -165,8 +165,8 @@ mp::NetworkInterfaceInfo get_existing_network_interface_info(const QString& ifac
                     iface_type = "bridge";
                     QStringList bridged_ifaces = get_bridged_interfaces(iface_name, ifconfig_output);
                     iface_description = bridged_ifaces.empty()
-                                            ? "bridge containing no interfaces"
-                                            : "bridge containing " + bridged_ifaces.join(", ").toStdString();
+                                            ? "Empty network bridge"
+                                            : "Network bridge with " + bridged_ifaces.join(", ").toStdString();
                 }
                 else
                 {

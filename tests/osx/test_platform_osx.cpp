@@ -125,7 +125,7 @@ std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
     {"en1", {"en1", "wifi", "Wi-Fi"}},
     {"en2", {"en2", "thunderbolt", "Thunderbolt 1"}},
     {"en3", {"en3", "thunderbolt", "Thunderbolt 2"}},
-    {"bridge0", {"bridge0", "bridge", "bridge containing en2, en3"}},
+    {"bridge0", {"bridge0", "bridge", "Network bridge with en2, en3"}}, // TODO@ricab test empty bridges too
     {"p2p0", {"p2p0", "virtual", "unknown"}},
     {"awdl0", {"awdl0", "virtual", "unknown"}},
     {"llw0", {"llw0", "virtual", "unknown"}},
