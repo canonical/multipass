@@ -104,7 +104,9 @@ QString get_ifconfig_output()
     return ifconfig_process->read_all_standard_output();
 }
 
-QStringList get_bridged_interfaces(const QString& if_name, const QString& full_ifconfig_output)
+[[maybe_unused]] // TODO@ricab
+QStringList
+get_bridged_interfaces(const QString& if_name, const QString& full_ifconfig_output)
 {
     // Search the substring of the full ifconfig output containing only the interface if_name.
     QString full_ifconfig_output_q = full_ifconfig_output;
@@ -133,55 +135,40 @@ QStringList get_bridged_interfaces(const QString& if_name, const QString& full_i
     return bridged_ifs;
 }
 
-// Return information about a network interface, given that it was checked to be present in the system.
-mp::NetworkInterfaceInfo get_existing_network_interface_info(const QString& iface_name, const QString& nsetup_output)
+std::string describe_bridge(const QString& name, const QString& ifconfig_entry)
 {
-    const auto pattern = QStringLiteral("^Hardware Port: (?<type>[\\w -]+)\nDevice: %1$").arg(iface_name);
-    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption |
-                                                        QRegularExpression::DotMatchesEverythingOption};
-    auto iface_match = regexp.match(nsetup_output);
-
-    QString ifconfig_output = get_ifconfig_output();
-
-    QString iface_description, iface_type;
-
-    if (iface_match.hasMatch())
-    {
-        iface_description = iface_match.captured("type");
-        if (iface_description.startsWith("Wi-Fi"))
-        {
-            iface_type = "wifi";
-        }
-        else if (iface_description.startsWith("Ethernet"))
-        {
-            iface_type = "ethernet";
-        }
-        else if (iface_description.startsWith("Thunderbolt Bridge"))
-        {
-            iface_type = "bridge";
-            QStringList bridged_ifaces = get_bridged_interfaces(iface_name, ifconfig_output);
-            iface_description =
-                bridged_ifaces.empty() ? "Empty network bridge" : "Network bridge with " + bridged_ifaces.join(", ");
-        }
-        else if (iface_description.startsWith("Thunderbolt"))
-        {
-            iface_type = "thunderbolt";
-        }
-        else
-        {
-            iface_type = iface_description;
-        }
-    }
-    else
-    {
-        iface_type = "virtual";
-        iface_description = "unknown";
-    }
-
-    return mp::NetworkInterfaceInfo{iface_name.toStdString(), iface_type.toStdString(),
-                                    iface_description.toStdString()};
+    return "TODO"; // TODO@ricab
 }
 
+mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
+{
+    const auto name_pattern = QStringLiteral("^Device: ([\\w -]+)$");
+    const auto desc_pattern = QStringLiteral("^Hardware Port: ([\\w -]+)$");
+    const auto name_regex = QRegularExpression{name_pattern, QRegularExpression::MultilineOption};
+    const auto desc_regex = QRegularExpression{desc_pattern, QRegularExpression::MultilineOption};
+    const auto name = name_regex.match(nsetup_entry).captured(1);
+    const auto desc = desc_regex.match(nsetup_entry).captured(1);
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Parsing networksetup chunk:\n{}", nsetup_entry));
+
+    if (!name.isEmpty() && !desc.isEmpty())
+    {
+        auto id = name.toStdString();
+
+        if (name.contains("bridge") || desc.contains("bridge", Qt::CaseInsensitive))
+            return mp::NetworkInterfaceInfo{id, "bridge", describe_bridge(name, ifconfig_output)};
+
+        auto description = desc.toStdString();
+        for (const auto& type : {"thunderbolt", "wi-fi", "ethernet", "usb"})
+            if (desc.contains(type, Qt::CaseInsensitive))
+                return mp::NetworkInterfaceInfo{id, type, description};
+
+        mpl::log(mpl::Level::warning, category, fmt::format("Unsupported device \"{}\" ({})", id, description));
+    }
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Skipping chunk"));
+    return mp::nullopt;
+}
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -359,22 +346,21 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     auto ifconfig_output = get_ifconfig_output();
     auto nsetup_output = get_networksetup_output();
 
-    // Parse the output to get the interface names.
-    const auto pattern = QStringLiteral("^(?<name>\\w+): .*$");
-    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
-    QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_output);
     mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
     mpl::log(mpl::Level::trace, category,
              fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
 
-    // For every gathered interface name, ask for information.
-    while (match_it.hasNext())
+    // split the output of networksetup in multiple entries (one per interface)
+    auto empty_line_regex = QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
+    auto nsetup_entries = nsetup_output.split(empty_line_regex, QString::SkipEmptyParts);
+
+    // Parse the output we got to obtain each interface's properties
+    for (const auto& nsetup_entry : nsetup_entries)
     {
-        auto match = match_it.next();
-        if (match.hasMatch())
+        if (auto net_info = get_net_info(nsetup_entry, ifconfig_output); net_info)
         {
-            auto net_info = get_existing_network_interface_info(match.captured("name"), nsetup_output);
-            networks.emplace(net_info.id, net_info);
+            const auto& net_id = net_info->id;
+            networks.emplace(net_id, std::move(*net_info));
         }
     }
 
