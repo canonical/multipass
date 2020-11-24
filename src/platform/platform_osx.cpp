@@ -152,13 +152,19 @@ mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry,
     {
         auto id = name.toStdString();
 
+        // bridges first, so we match on things like "thunderbolt bridge" here
         if (name.contains("bridge") || desc.contains("bridge", Qt::CaseInsensitive))
             return mp::NetworkInterfaceInfo{id, "bridge", describe_bridge(name, ifconfig_output)};
 
+        // simple cases next
         auto description = desc.toStdString();
-        for (const auto& type : {"thunderbolt", "wi-fi", "ethernet", "usb"})
+        for (const auto& type : {"thunderbolt", "ethernet", "usb"})
             if (desc.contains(type, Qt::CaseInsensitive))
                 return mp::NetworkInterfaceInfo{id, type, description};
+
+        // finally wifi, which we report without a dash in the middle
+        if (desc.contains("wi-fi", Qt::CaseInsensitive))
+            return mp::NetworkInterfaceInfo{id, "wifi", description};
 
         mpl::log(mpl::Level::warning, category, fmt::format("Unsupported device \"{}\" ({})", id, description));
     }
