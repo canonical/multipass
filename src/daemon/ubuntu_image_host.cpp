@@ -149,13 +149,24 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& query)
 {
+    std::string remote_name;
+
+    if (!query.remote_name.empty())
+    {
+        check_remote_is_supported(query.remote_name);
+
+        remote_name = query.remote_name;
+    }
+    else
+    {
+        remote_name = release_remote;
+    }
+
     std::vector<mp::VMImageInfo> images;
 
     auto key = key_from(query.release);
     mp::SimpleStreamsManifest* manifest;
     const VMImageInfo* info{nullptr};
-
-    auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
 
     manifest = manifest_from(remote_name);
     match_alias(key, &info, *manifest);
@@ -163,7 +174,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     if (info)
     {
         if (!info->supported && !query.allow_unsupported)
-            throw std::runtime_error(fmt::format("The {} release is no longer supported.", query.release));
+            throw mp::UnsupportedImageException(query.release);
 
         images.push_back(*info);
     }
