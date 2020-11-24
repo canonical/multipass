@@ -118,22 +118,12 @@ QByteArray networksetup_output =
                       "\nVLAN Configurations\n===================\n");
 
 std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
-    {"lo0", {"lo0", "virtual", "unknown"}},
-    {"gif0", {"gif0", "virtual", "unknown"}},
-    {"stf0", {"stf0", "virtual", "unknown"}},
     {"en0", {"en0", "ethernet", "Ethernet"}},
     {"en1", {"en1", "wifi", "Wi-Fi"}},
     {"en2", {"en2", "thunderbolt", "Thunderbolt 1"}},
     {"en3", {"en3", "thunderbolt", "Thunderbolt 2"}},
-    {"bridge0", {"bridge0", "bridge", "Network bridge with en2, en3"}}, // TODO@ricab test empty bridges too
-    {"p2p0", {"p2p0", "virtual", "unknown"}},
-    {"awdl0", {"awdl0", "virtual", "unknown"}},
-    {"llw0", {"llw0", "virtual", "unknown"}},
-    {"utun0", {"utun0", "virtual", "unknown"}},
-    {"utun1", {"utun1", "virtual", "unknown"}},
-    {"utun2", {"utun2", "virtual", "unknown"}},
-    {"utun3", {"utun3", "virtual", "unknown"}},
-    {"utun4", {"utun4", "virtual", "unknown"}}};
+    {"bridge0", {"bridge0", "bridge", "Network bridge with en2, en3"}}}; // TODO@ricab test empty bridges, two types of
+                                                                         // usb connections, and VLAN in the output
 
 void simulate_ifconfig(const mpt::MockProcess* process, const mp::ProcessState& exit_status)
 {
@@ -286,14 +276,15 @@ TEST(PlatformOSX, test_network_interfaces)
 
     auto got_interfaces = mp::platform::get_network_interfaces_info();
 
-    ASSERT_EQ(got_interfaces.size(), ifconfig_output.size());
-    for (const auto& if_pair : ifconfig_output)
+    ASSERT_EQ(got_interfaces.size(), expect_interfaces.size());
+    for (const auto& [got_name, got_iface] : got_interfaces)
         EXPECT_NO_THROW({
-            const auto& got = got_interfaces.at(if_pair.first);
-            const auto& expected = expect_interfaces.at(if_pair.first);
-            EXPECT_EQ(got.id, expected.id);
-            EXPECT_EQ(got.type, expected.type);
-            EXPECT_EQ(got.description, expected.description);
+            ASSERT_EQ(got_name, got_iface.id);
+
+            const auto& expected_iface = expect_interfaces.at(got_name);
+            EXPECT_EQ(got_iface.id, expected_iface.id);
+            EXPECT_EQ(got_iface.type, expected_iface.type);
+            EXPECT_EQ(got_iface.description, expected_iface.description);
         });
 }
 
