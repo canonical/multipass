@@ -65,6 +65,16 @@ std::unordered_map<std::string, QByteArray> ifconfig_output{
                               "\tether 82:15:07:f3:c5:41 \n"
                               "\tmedia: autoselect <full-duplex>\n"
                               "\tstatus: inactive\n")},
+    {"en11", QByteArrayLiteral("en11: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
+                               "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
+                               "\tether 82:f1:07:f3:c5:41 \n"
+                               "\tmedia: autoselect <full-duplex>\n"
+                               "\tstatus: inactive\n")},
+    {"en12", QByteArrayLiteral("en12: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
+                               "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
+                               "\tether 82:f1:07:f3:c1:42 \n"
+                               "\tmedia: autoselect <full-duplex>\n"
+                               "\tstatus: inactive\n")},
     {"bridge0", QByteArrayLiteral("bridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
                                   "\toptions=63<RXCSUM,TXCSUM,TSO4,TSO6>\n"
                                   "\tether 82:15:07:f3:c5:40 \n"
@@ -115,6 +125,8 @@ QByteArray networksetup_output =
                       "\nHardware Port: Thunderbolt 1\nDevice: en2\nEthernet Address: 82:15:07:f3:c5:40\n"
                       "\nHardware Port: Thunderbolt 2\nDevice: en3\nEthernet Address: 82:15:07:f3:c5:41\n"
                       "\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 82:15:07:f3:c5:40\n"
+                      "\nHardware Port: USB 10/100/1000 LAN\nDevice: en11\nEthernet Address: 9c:eb:e8:98:0e:62\n"
+                      "\nHardware Port: iPhone USB\nDevice: en12\nEthernet Address: 92:8c:43:1e:b2:1c\n"
                       "\nVLAN Configurations\n===================\n");
 
 std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
@@ -122,6 +134,8 @@ std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
     {"en1", {"en1", "wifi", "Wi-Fi"}},
     {"en2", {"en2", "thunderbolt", "Thunderbolt 1"}},
     {"en3", {"en3", "thunderbolt", "Thunderbolt 2"}},
+    {"en11", {"en11", "usb", "USB 10/100/1000 LAN"}},
+    {"en12", {"en12", "usb", "iPhone USB"}},
     {"bridge0", {"bridge0", "bridge", "Network bridge with en2, en3"}}}; // TODO@ricab test empty bridges, two types of
                                                                          // usb connections, and VLAN in the output
 
