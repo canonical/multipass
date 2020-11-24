@@ -140,7 +140,7 @@ std::string describe_bridge(const QString& name, const QString& ifconfig_output)
 mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
 {
     const auto name_pattern = QStringLiteral("^Device: ([\\w -]+)$");
-    const auto desc_pattern = QStringLiteral("^Hardware Port: ([\\w -]+)$");
+    const auto desc_pattern = QStringLiteral("^Hardware Port: (.+)$");
     const auto name_regex = QRegularExpression{name_pattern, QRegularExpression::MultilineOption};
     const auto desc_regex = QRegularExpression{desc_pattern, QRegularExpression::MultilineOption};
     const auto name = name_regex.match(nsetup_entry).captured(1);
