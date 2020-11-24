@@ -135,9 +135,10 @@ get_bridged_interfaces(const QString& if_name, const QString& full_ifconfig_outp
     return bridged_ifs;
 }
 
-std::string describe_bridge(const QString& name, const QString& ifconfig_entry)
+std::string describe_bridge(const QString& name, const QString& ifconfig_output)
 {
-    return "TODO"; // TODO@ricab
+    auto members = get_bridged_interfaces(name, ifconfig_output);
+    return members.isEmpty() ? "Empty network bridge" : fmt::format("Network bridge with {}", members.join(", "));
 }
 
 mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
