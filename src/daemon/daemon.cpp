@@ -55,6 +55,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include <cassert>
+#include <filesystem>
 #include <functional>
 #include <stdexcept>
 #include <utility>
@@ -320,7 +321,9 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     if (!disk_space_str.empty())
     {
         auto opt_disk_space = try_mem_size(disk_space_str);
-        if (opt_disk_space && *opt_disk_space >= min_disk)
+        auto available_disk_space_uint = std::filesystem::space(std::filesystem::current_path()).available;
+	auto available_disk_space = try_mem_size(std::to_string(available_disk_space_uint));
+	if (opt_disk_space && *opt_disk_space >= min_disk && available_disk_space && *opt_disk_space <=  *available_disk_space)
         {
             disk_space = opt_disk_space;
         }
