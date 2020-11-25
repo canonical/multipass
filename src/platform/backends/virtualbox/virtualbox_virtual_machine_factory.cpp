@@ -87,15 +87,10 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
 
             if (ifdescription.empty())
             {
-                // Use the OS information about the interface. But avoid adding unknown virtual interfaces,
-                // which cannot be bridged.
-                if (!(if_info.type == "virtual" && if_info.description == "unknown"))
-                    return mp::NetworkInterfaceInfo{
-                        if_info.id, wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
-                        if_info.description};
-                else
-                    throw VirtualBoxNetworkException(
-                        fmt::format("Unable to get data from virtual interface \"{}\"", ifname));
+                // Use the OS information about the interface
+                return mp::NetworkInterfaceInfo{if_info.id,
+                                                wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
+                                                if_info.description};
             }
             else
             {
