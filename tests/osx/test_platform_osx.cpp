@@ -140,7 +140,9 @@ QByteArray networksetup_output =
                       "\nHardware Port: USB 10/100/1000 LAN\nDevice: en11\nEthernet Address: 9c:eb:e8:98:0e:62\n"
                       "\nHardware Port: iPhone USB\nDevice: en12\nEthernet Address: 92:8c:43:1e:b2:1c\n"
                       "\nHardware Port: TestBridge2\nDevice: bridge2\nEthernet Address: a6:83:e7:56:07:02\n"
-                      "\nVLAN Configurations\n===================\n");
+                      "\nVLAN Configurations\n===================\n"
+                      "\nVLAN User Defined Name: TestVLAN\nParent Device: en0\nDevice (\"Hardware\" Port): vlan0"
+                      "\nTag: 1\n");
 
 std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
     {"en0", {"en0", "ethernet", "Ethernet"}},
@@ -150,7 +152,7 @@ std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
     {"en11", {"en11", "usb", "USB 10/100/1000 LAN"}},
     {"en12", {"en12", "usb", "iPhone USB"}},
     {"bridge0", {"bridge0", "bridge", "Network bridge with en2, en3"}},
-    {"bridge2", {"bridge2", "bridge", "Empty network bridge"}}}; // TODO@ricab test VLAN in the output has no effect
+    {"bridge2", {"bridge2", "bridge", "Empty network bridge"}}};
 
 void simulate_ifconfig(const mpt::MockProcess* process, const mp::ProcessState& exit_status)
 {
