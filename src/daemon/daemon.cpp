@@ -51,11 +51,12 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QStorageInfo>
+#include <QString>
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
 #include <cassert>
-#include <filesystem>
 #include <functional>
 #include <stdexcept>
 #include <utility>
@@ -321,10 +322,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     if (!disk_space_str.empty())
     {
         auto opt_disk_space = try_mem_size(disk_space_str);
-        auto available_disk_space_uint = std::filesystem::space(std::filesystem::current_path()).available;
-        auto available_disk_space = try_mem_size(std::to_string(available_disk_space_uint));
-        if (opt_disk_space && *opt_disk_space >= min_disk && available_disk_space &&
-            *opt_disk_space <= *available_disk_space)
+        if (opt_disk_space && *opt_disk_space >= min_disk)
         {
             disk_space = opt_disk_space;
         }
@@ -627,7 +625,16 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
     {
         disk_space = *command_line_value;
     }
-
+    
+    auto available_bytes = QStorageInfo::root().bytesAvailable();
+    std::string available_bytes_str = QString::number(available_bytes).toStdString();
+    auto available_disk_space = mp::MemorySize(available_bytes_str + "B");
+    
+    if (available_disk_space < disk_space)
+    {
+    	throw std::runtime_error(fmt::format("Available disk ({} bytes) below requested/default size ({} bytes)", available_disk_space.in_bytes(), disk_space.in_bytes()));
+    }
+    
     return disk_space;
 }
 
