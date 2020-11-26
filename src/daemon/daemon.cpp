@@ -625,16 +625,17 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
     {
         disk_space = *command_line_value;
     }
-    
+
     auto available_bytes = QStorageInfo::root().bytesAvailable();
     std::string available_bytes_str = QString::number(available_bytes).toStdString();
     auto available_disk_space = mp::MemorySize(available_bytes_str + "B");
-    
+
     if (available_disk_space < disk_space)
     {
-    	throw std::runtime_error(fmt::format("Available disk ({} bytes) below requested/default size ({} bytes)", available_disk_space.in_bytes(), disk_space.in_bytes()));
+        throw std::runtime_error(fmt::format("Available disk ({} bytes) below requested/default size ({} bytes)",
+                                             available_disk_space.in_bytes(), disk_space.in_bytes()));
     }
-    
+
     return disk_space;
 }
 
