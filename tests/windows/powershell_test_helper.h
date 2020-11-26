@@ -23,7 +23,7 @@
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
-#include <gtest/gtest.h>
+#include <string>
 
 using namespace testing;
 
@@ -40,18 +40,8 @@ public:
     PowerShellTestHelper& operator=(const PowerShell&) = delete;
     PowerShellTestHelper& operator=(PowerShell&&) = delete;
 
-    // notice only the last call to this function has any effect at the moment the PS process is created
-    void mock_ps_exec(const QByteArray& output, bool succeed = true)
-    {
-        setup([output, succeed](auto* process) {
-            InSequence seq;
-
-            auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
-            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
-            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
-            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
-        });
-    }
+    // only the last call to this function has any effect at the moment the PS process is created
+    void mock_ps_exec(const QByteArray& output, bool succeed = true);
 
     struct RunSpec
     {
@@ -60,83 +50,26 @@ public:
         bool will_return = true;
     };
 
-    void setup_mocked_run_sequence(std::vector<RunSpec> runs)
-    {
-        setup([this, runs_ = std::move(runs)](auto* process) {
-            InSequence seq;
-            for (const auto& run : runs_)
-                add_mocked_run(process, run);
-        });
-    }
+    // mock the specified sequence of runs
+    void setup_mocked_run_sequence(std::vector<RunSpec> runs);
 
     // setup low-level expectations on the powershell process
-    void setup(const MockProcessFactory::Callback& callback = {})
-    {
-        factory_scope->register_callback([this, callback](MockProcess* process) {
-            setup_process(process);
-            if (callback)
-                callback(process);
-        });
-    }
+    void setup(const MockProcessFactory::Callback& callback = {});
 
     // proxy to private PS::write method
-    bool ps_write(PowerShell& ps, const QByteArray& data)
-    {
-        return ps.write(data);
-    }
+    bool ps_write(PowerShell& ps, const QByteArray& data);
 
-    QByteArray get_status(bool succeed) const
-    {
-        return succeed ? " True\n" : " False\n";
-    }
-
-    QByteArray end_marker(bool succeed) const
-    {
-        return QByteArray{"\n"}.append(output_end_marker).append(get_status(succeed));
-    }
-
-    void expect_writes(MockProcess* process, QByteArray cmdlet) const
-    {
-        EXPECT_CALL(*process, write(Eq(cmdlet.append('\n'))));
-        EXPECT_CALL(*process, write(Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()))));
-    }
-
-    bool was_ps_run() const
-    {
-        return forked;
-    }
+    bool was_ps_run() const;
+    QByteArray get_status(bool succeed) const;
+    QByteArray end_marker(bool succeed) const;
+    void expect_writes(MockProcess* process, QByteArray cmdlet) const;
 
     inline static constexpr auto psexit = "Exit\n";
     inline static const QString& output_end_marker = PowerShell::output_end_marker;
 
 private:
-    void setup_process(MockProcess* process)
-    {
-        if (process->program() == psexe)
-        {
-            // succeed these by default
-            ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
-            ON_CALL(*process, write(_)).WillByDefault(Return(written));
-            EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
-
-            forked = true;
-        }
-    }
-
-    void add_mocked_run(MockProcess* process, const RunSpec& run)
-    {
-        const auto& [cmdlet, output, result] = run;
-        const auto& marker = output_end_marker;
-
-        auto cmdlet_matcher = Property(&QByteArray::toStdString, HasSubstr(cmdlet));
-        EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
-
-        auto marker_matcher = Property(&QByteArray::toStdString, HasSubstr(marker.toStdString()));
-        EXPECT_CALL(*process, write(marker_matcher)).WillOnce(Return(written));
-
-        auto ps_output = fmt::format("{}\n{} {}\n", output, marker, result ? "True" : "False");
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(ps_output)));
-    }
+    void setup_process(MockProcess* process);
+    void add_mocked_run(MockProcess* process, const RunSpec& run);
 
     bool forked = false;
     std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();

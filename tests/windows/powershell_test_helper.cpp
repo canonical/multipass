@@ -1,0 +1,108 @@
+/*
+ * Copyright (C) 2020 Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "powershell_test_helper.h"
+
+#include <multipass/format.h>
+
+#include <gtest/gtest.h>
+
+namespace mpt = multipass::test;
+
+void mpt::PowerShellTestHelper::mock_ps_exec(const QByteArray& output, bool succeed)
+{
+    setup([output, succeed](auto* process) {
+        InSequence seq;
+
+        auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
+        EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
+    });
+}
+
+void mpt::PowerShellTestHelper::setup_mocked_run_sequence(std::vector<RunSpec> runs)
+{
+    setup([this, runs_ = std::move(runs)](auto* process) {
+        InSequence seq;
+        for (const auto& run : runs_)
+            add_mocked_run(process, run);
+    });
+}
+
+void mpt::PowerShellTestHelper::setup(const MockProcessFactory::Callback& callback)
+{
+    factory_scope->register_callback([this, callback](MockProcess* process) {
+        setup_process(process);
+        if (callback)
+            callback(process);
+    });
+}
+
+bool mpt::PowerShellTestHelper::ps_write(multipass::PowerShell& ps, const QByteArray& data)
+{
+    return ps.write(data);
+}
+
+QByteArray mpt::PowerShellTestHelper::get_status(bool succeed) const
+{
+    return succeed ? " True\n" : " False\n";
+}
+
+QByteArray mpt::PowerShellTestHelper::end_marker(bool succeed) const
+{
+    return QByteArray{"\n"}.append(output_end_marker).append(get_status(succeed));
+}
+
+void mpt::PowerShellTestHelper::expect_writes(MockProcess* process, QByteArray cmdlet) const
+{
+    EXPECT_CALL(*process, write(Eq(cmdlet.append('\n'))));
+    EXPECT_CALL(*process, write(Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()))));
+}
+
+bool mpt::PowerShellTestHelper::was_ps_run() const
+{
+    return forked;
+}
+
+void mpt::PowerShellTestHelper::setup_process(MockProcess* process)
+{
+    if (process->program() == psexe)
+    {
+        // succeed these by default
+        ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
+        ON_CALL(*process, write(_)).WillByDefault(Return(written));
+        EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
+
+        forked = true;
+    }
+}
+
+void mpt::PowerShellTestHelper::add_mocked_run(MockProcess* process, const RunSpec& run)
+{
+    const auto& [cmdlet, output, result] = run;
+    const auto& marker = output_end_marker;
+
+    auto cmdlet_matcher = Property(&QByteArray::toStdString, HasSubstr(cmdlet));
+    EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
+
+    auto marker_matcher = Property(&QByteArray::toStdString, HasSubstr(marker.toStdString()));
+    EXPECT_CALL(*process, write(marker_matcher)).WillOnce(Return(written));
+
+    auto ps_output = fmt::format("{}\n{} {}\n", output, marker, result ? "True" : "False");
+    EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(ps_output)));
+}
