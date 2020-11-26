@@ -29,7 +29,7 @@
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
-#include "tests/windows/power_shell_test.h"
+#include "tests/windows/powershell_test_helper.h"
 
 #include <QRegularExpression>
 

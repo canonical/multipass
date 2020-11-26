@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_POWER_SHELL_TEST_H
-#define MULTIPASS_POWER_SHELL_TEST_H
+#ifndef MULTIPASS_POWERSHELL_TEST_HELPER_H
+#define MULTIPASS_POWERSHELL_TEST_HELPER_H
 
 #include <src/platform/backends/shared/win/powershell.h>
 
@@ -146,4 +146,4 @@ private:
 
 } // namespace multipass::test
 
-#endif // MULTIPASS_POWER_SHELL_TEST_H
+#endif // MULTIPASS_POWERSHELL_TEST_HELPER_H

@@ -18,7 +18,7 @@
 #include <multipass/format.h>
 #include <src/platform/backends/shared/win/powershell.h>
 
-#include "power_shell_test.h"
+#include "powershell_test_helper.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
