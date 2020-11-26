@@ -35,21 +35,21 @@ namespace mp = multipass;
 
 namespace
 {
-const QStringList& select_object = mp::PowerShell::Snippets::select_object;
+const QStringList& expand_property = mp::PowerShell::Snippets::expand_property;
 
 void ensure_hyperv_service_is_running(mp::PowerShell& power_shell)
 {
     QString ps_output;
     const QStringList get_vmms_service{"Get-Service", "-Name", "vmms"};
 
-    if (!power_shell.run(QStringList() << get_vmms_service << select_object << "Status", ps_output))
+    if (!power_shell.run(QStringList() << get_vmms_service << expand_property << "Status", ps_output))
     {
         throw std::runtime_error("The Hyper-V service does not exist. Ensure Hyper-V is installed correctly.");
     }
 
     if (ps_output == "Stopped")
     {
-        power_shell.run(QStringList() << get_vmms_service << select_object << "StartType", ps_output);
+        power_shell.run(QStringList() << get_vmms_service << expand_property << "StartType", ps_output);
 
         if (ps_output == "Disabled")
         {
@@ -70,7 +70,7 @@ void check_host_hyperv_support(mp::PowerShell& power_shell)
 {
     QString ps_output;
 
-    if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << select_object
+    if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << expand_property
                                       << "VirtualizationFirmwareEnabled",
                         ps_output))
     {
@@ -81,7 +81,7 @@ void check_host_hyperv_support(mp::PowerShell& power_shell)
         }
     }
 
-    if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << select_object
+    if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << expand_property
                                       << "SecondLevelAddressTranslationExtensions",
                         ps_output))
     {
@@ -98,7 +98,7 @@ void check_hyperv_feature_enabled(mp::PowerShell& power_shell)
     const QStringList optional_feature{"Get-WindowsOptionalFeature", "-Online", "-FeatureName"};
 
     // Check if Hyper-V is fully enabled
-    if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << select_object << "State",
+    if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << expand_property << "State",
                         ps_output))
     {
         if (ps_output.isEmpty())
@@ -110,7 +110,7 @@ void check_hyperv_feature_enabled(mp::PowerShell& power_shell)
         else if (ps_output == "Enabled")
         {
             power_shell.run(QStringList()
-                                << optional_feature << "Microsoft-Hyper-V-Hypervisor" << select_object << "State",
+                                << optional_feature << "Microsoft-Hyper-V-Hypervisor" << expand_property << "State",
                             ps_output);
             if (ps_output == "Enabled")
                 return;
@@ -138,12 +138,12 @@ void check_hyperv_support()
                                      "'HKLM:\\Software\\Microsoft\\Windows NT\\CurrentVersion'"};
 
     // Check for Windows 10
-    power_shell.run(QStringList() << get_reg_version_info << select_object << "CurrentMajorVersionNumber", ps_output);
+    power_shell.run(QStringList() << get_reg_version_info << expand_property << "CurrentMajorVersionNumber", ps_output);
     if (ps_output != "10")
         throw std::runtime_error("Multipass support for Hyper-V requires Windows 10");
 
     // Check if it's a version less than 1803
-    power_shell.run(QStringList() << get_reg_version_info << select_object << "ReleaseId", ps_output);
+    power_shell.run(QStringList() << get_reg_version_info << expand_property << "ReleaseId", ps_output);
     if (ps_output.toInt() < 1803)
         throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
 
@@ -151,7 +151,7 @@ void check_hyperv_support()
     //   different virtualized environment like VirtualBox or QEMU.
     // If it's running under a different virtualized environment, we can't check if nesting is
     //   available, so the user is on their own and we'll bubble up any failures at `launch`.
-    power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << select_object << "HypervisorPresent",
+    power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << expand_property << "HypervisorPresent",
                     ps_output);
 
     QString hypervisor_present{ps_output};

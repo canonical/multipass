@@ -44,7 +44,7 @@ public:
 
     struct Snippets
     {
-        static const QStringList select_object;
+        static const QStringList expand_property;
         static const QStringList to_bare_csv;
     };
 
