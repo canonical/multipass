@@ -34,25 +34,6 @@ namespace mpt = multipass::test;
 using mpt::PowerShellTest;
 using namespace testing;
 
-namespace multipass::test
-{
-struct PowerShellTestAccessor
-{
-    PowerShellTestAccessor(PowerShell& ps) : ps{ps}
-    {
-    }
-
-    bool write(const QByteArray& data)
-    {
-        return ps.write(data);
-    }
-
-    inline static const QString& output_end_marker = PowerShell::output_end_marker;
-
-    PowerShell& ps;
-};
-} // namespace multipass::test
-
 TEST_F(PowerShellTest, creates_ps_process)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::error);

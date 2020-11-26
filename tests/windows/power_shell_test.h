@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_POWER_SHELL_TEST_H
 #define MULTIPASS_POWER_SHELL_TEST_H
 
+#include <src/platform/backends/shared/win/powershell.h>
+
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
@@ -62,6 +64,22 @@ private:
 
     bool forked = false;
     inline static constexpr auto psexe = "powershell.exe";
+};
+
+struct PowerShellTestAccessor
+{
+    PowerShellTestAccessor(PowerShell& ps) : ps{ps}
+    {
+    }
+
+    bool write(const QByteArray& data)
+    {
+        return ps.write(data);
+    }
+
+    inline static const QString& output_end_marker = PowerShell::output_end_marker;
+
+    PowerShell& ps;
 };
 } // namespace multipass::test
 
