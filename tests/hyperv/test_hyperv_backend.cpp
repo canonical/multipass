@@ -27,6 +27,7 @@
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
+#include "tests/windows/power_shell_test.h"
 
 #include <gmock/gmock.h>
 
@@ -37,8 +38,6 @@ using namespace testing;
 
 namespace
 {
-constexpr auto psexe = "powershell.exe";
-
 struct HyperVBackend : public testing::Test
 {
     mpt::TempFile dummy_image;
@@ -54,7 +53,6 @@ struct HyperVBackend : public testing::Test
                                                       dummy_cloud_init_iso.name()};
     mp::HyperVVirtualMachineFactory backend;
 };
-} // namespace
 
 TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
 {
@@ -64,22 +62,17 @@ TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
-TEST_F(HyperVBackend, list_networks_requests_switches)
+struct HyperVListNetworks : public mpt::PowerShellTest
 {
-    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    mp::HyperVVirtualMachineFactory backend;
+};
+
+TEST_F(HyperVListNetworks, requests_switches)
+{
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
-    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
-
-    bool forked = false;
-    factory_scope->register_callback([&forked](auto* process) {
-        ASSERT_EQ(process->program(), psexe);
-        EXPECT_THAT(process->arguments(), Contains("Get-VMSwitch"));
-        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
-
-        forked = true;
-    });
+    setup([](auto* process) { EXPECT_THAT(process->arguments(), Contains("Get-VMSwitch")); });
 
     backend.list_networks();
-    ASSERT_TRUE(forked);
 }
+} // namespace

@@ -18,6 +18,7 @@
 #include <multipass/format.h>
 #include <src/platform/backends/shared/win/powershell.h>
 
+#include "power_shell_test.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
@@ -30,6 +31,7 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
+using mpt::PowerShellTest;
 using namespace testing;
 
 namespace multipass::test
@@ -51,45 +53,7 @@ struct PowerShellTestAccessor
 };
 } // namespace multipass::test
 
-namespace
-{
-constexpr auto psexe = "powershell.exe";
-constexpr auto psexit = "Exit\n";
-
-struct PowerShell : public Test
-{
-    void TearDown() override
-    {
-        ASSERT_TRUE(forked);
-    }
-
-    void setup(const mpt::MockProcessFactory::Callback& callback = {})
-    {
-        factory_scope->register_callback([this, callback](mpt::MockProcess* process) {
-            setup_process(process);
-            if (callback)
-                callback(process);
-        });
-    }
-
-    void setup_process(mpt::MockProcess* process)
-    {
-        ASSERT_EQ(process->program(), psexe);
-
-        // succeed these by default
-        ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
-        ON_CALL(*process, write(_)).WillByDefault(Return(1000));
-        EXPECT_CALL(*process, write(Eq(psexit))).Times(AnyNumber());
-
-        forked = true;
-    }
-
-    bool forked = false;
-    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
-};
-
-TEST_F(PowerShell, creates_ps_process)
+TEST_F(PowerShellTest, creates_ps_process)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     setup([](auto* process) { EXPECT_CALL(*process, start()).Times(1); });
@@ -97,7 +61,7 @@ TEST_F(PowerShell, creates_ps_process)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShell, exits_ps_process)
+TEST_F(PowerShellTest, exits_ps_process)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
     setup([](auto* process) {
@@ -108,7 +72,7 @@ TEST_F(PowerShell, exits_ps_process)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShell, handles_failure_to_write_on_exit)
+TEST_F(PowerShellTest, handles_failure_to_write_on_exit)
 {
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::error);
@@ -122,7 +86,7 @@ TEST_F(PowerShell, handles_failure_to_write_on_exit)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShell, handles_failure_to_finish_on_exit)
+TEST_F(PowerShellTest, handles_failure_to_finish_on_exit)
 {
     static constexpr auto err = "timeout";
     auto& logger = *logger_scope.mock_logger;
@@ -142,7 +106,7 @@ TEST_F(PowerShell, handles_failure_to_finish_on_exit)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShell, uses_name_in_logs)
+TEST_F(PowerShellTest, uses_name_in_logs)
 {
     auto& logger = *logger_scope.mock_logger;
     static constexpr auto name = "Shevek";
@@ -154,7 +118,7 @@ TEST_F(PowerShell, uses_name_in_logs)
     mp::PowerShell ps{name};
 }
 
-TEST_F(PowerShell, write_silent_on_success)
+TEST_F(PowerShellTest, write_silent_on_success)
 {
     static constexpr auto data = "Abbenay";
     setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data))); });
@@ -165,7 +129,7 @@ TEST_F(PowerShell, write_silent_on_success)
     ASSERT_TRUE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
-TEST_F(PowerShell, write_logs_on_failure)
+TEST_F(PowerShellTest, write_logs_on_failure)
 {
     static constexpr auto data = "Nio Esseia";
     setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(-1)); });
@@ -178,7 +142,7 @@ TEST_F(PowerShell, write_logs_on_failure)
     ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
-TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
+TEST_F(PowerShellTest, write_logs_writen_bytes_on_failure)
 {
     static constexpr auto data = "Anarres";
     static constexpr auto part = 3;
@@ -192,7 +156,7 @@ TEST_F(PowerShell, write_logs_writen_bytes_on_failure)
     ASSERT_FALSE(mpt::PowerShellTestAccessor{ps}.write(data));
 }
 
-TEST_F(PowerShell, run_writes_and_logs_cmd)
+TEST_F(PowerShellTest, run_writes_and_logs_cmd)
 {
     static constexpr auto cmdlet = "some cmd and args";
     auto& logger = *logger_scope.mock_logger;
@@ -208,7 +172,7 @@ TEST_F(PowerShell, run_writes_and_logs_cmd)
     ASSERT_FALSE(ps.run(QString{cmdlet}.split(' ')));
 }
 
-struct TestPSStatusAndOutput : public PowerShell, public WithParamInterface<bool>
+struct TestPSStatusAndOutput : public PowerShellTest, public WithParamInterface<bool>
 {
     QByteArray get_status()
     {
@@ -306,9 +270,9 @@ TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
     ASSERT_EQ(run(), QString{data});
 }
 
-INSTANTIATE_TEST_SUITE_P(PowerShell, TestPSStatusAndOutput, Values(true, false));
+INSTANTIATE_TEST_SUITE_P(PowerShellTest, TestPSStatusAndOutput, Values(true, false));
 
-TEST_F(PowerShell, exec_runs_given_cmd)
+TEST_F(PowerShellTest, exec_runs_given_cmd)
 {
     static constexpr auto cmdlet = "make me a sandwich";
     const auto args = QString{cmdlet}.split(' ');
@@ -322,7 +286,7 @@ TEST_F(PowerShell, exec_runs_given_cmd)
     mp::PowerShell::exec(args, "Mitis");
 }
 
-TEST_F(PowerShell, exec_succeeds_when_no_timeout_and_process_successful)
+TEST_F(PowerShellTest, exec_succeeds_when_no_timeout_and_process_successful)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     setup([](auto* process) {
@@ -335,7 +299,7 @@ TEST_F(PowerShell, exec_succeeds_when_no_timeout_and_process_successful)
     EXPECT_TRUE(mp::PowerShell::exec({}, "Efor"));
 }
 
-TEST_F(PowerShell, exec_fails_when_timeout)
+TEST_F(PowerShellTest, exec_fails_when_timeout)
 {
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::warning);
@@ -354,7 +318,7 @@ TEST_F(PowerShell, exec_fails_when_timeout)
     EXPECT_FALSE(mp::PowerShell::exec({}, "Sabul"));
 }
 
-TEST_F(PowerShell, exec_fails_when_cmd_returns_bad_exit_code)
+TEST_F(PowerShellTest, exec_fails_when_cmd_returns_bad_exit_code)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
@@ -369,7 +333,7 @@ TEST_F(PowerShell, exec_fails_when_cmd_returns_bad_exit_code)
     EXPECT_FALSE(mp::PowerShell::exec({}, "Rulag"));
 }
 
-TEST_F(PowerShell, exec_returns_cmd_output)
+TEST_F(PowerShellTest, exec_returns_cmd_output)
 {
     static constexpr auto datum1 = "bloh";
     static constexpr auto datum2 = "bluh";
@@ -392,5 +356,3 @@ TEST_F(PowerShell, exec_returns_cmd_output)
     mp::PowerShell::exec(cmdlet, "Gimar", output);
     EXPECT_EQ(output, QString{datum1} + datum2);
 }
-
-} // namespace
