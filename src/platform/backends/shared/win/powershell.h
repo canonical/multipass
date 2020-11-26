@@ -42,6 +42,12 @@ public:
 
     static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
+    struct Snippets
+    {
+        static const QStringList select_object;
+        static const QStringList to_bare_csv;
+    };
+
 private:
     friend class multipass::test::PowerShellTestHelper;
     bool write(const QByteArray& data);

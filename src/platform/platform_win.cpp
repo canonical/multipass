@@ -516,12 +516,10 @@ std::function<int()> mp::platform::make_quit_watchdog()
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
-    static constexpr auto ps_cmd =
-        "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription | "
-        "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1 |"
-        "foreach { $_ -replace '^\"|\"$|\"(?=,)|(?<=,)\"','' }"; /* this last bit removes surrounding quotes; may be
-                                                                    replaced with "-UseQuotes Never" in powershell 7 */
-    static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
+    static const auto ps_cmd_base = QStringLiteral(
+        "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription");
+    static const auto ps_args =
+        QString{ps_cmd_base}.split(' ', QString::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
     if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))

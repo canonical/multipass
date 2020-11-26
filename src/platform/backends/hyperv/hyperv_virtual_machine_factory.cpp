@@ -35,7 +35,7 @@ namespace mp = multipass;
 
 namespace
 {
-const QStringList select_object{"|", "Select-Object", "-ExpandProperty"};
+const QStringList& select_object = mp::PowerShell::Snippets::select_object;
 
 void ensure_hyperv_service_is_running(mp::PowerShell& power_shell)
 {

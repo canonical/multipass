@@ -62,7 +62,15 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
     });
 }
 
+const auto to_bare_csv_str = QStringLiteral("| ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1 "
+                                            "| foreach { $_ -replace '^\"|\"$|\"(?=,)|(?<=,)\"','' }"); /* this last bit
+                                            removes surrounding quotes; may be replaced with "-UseQuotes Never" in
+                                            powershell 7 */
+
 } // namespace
+
+const QStringList mp::PowerShell::Snippets::select_object{"|", "Select-Object", "-ExpandProperty"};
+const QStringList mp::PowerShell::Snippets::to_bare_csv = to_bare_csv_str.split(' ', QString::SkipEmptyParts);
 
 mp::PowerShell::PowerShell(const std::string& name)
     : powershell_proc{MP_PROCFACTORY.create_process(ps_cmd, default_args)}, name(name)
