@@ -256,9 +256,9 @@ TEST_F(HyperVListNetworks, returns_provided_interface_ids)
     constexpr auto id1 = "\"toto\"";
     constexpr auto id2 = " te et te";
     constexpr auto id3 = "\"ti\"-+%ti\t";
-    constexpr auto output_format = "\"{}\",\"Private\",\n"
-                                   "\"{}\",\"Internal\",\n"
-                                   "\"{}\",\"External\",\"adapter description\"\n";
+    constexpr auto output_format = "{},Private,\n"
+                                   "{},Internal,\n"
+                                   "{},External,adapter description\n";
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };

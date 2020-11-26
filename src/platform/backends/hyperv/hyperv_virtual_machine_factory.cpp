@@ -261,11 +261,9 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 
 auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    static constexpr auto ps_cmd =
-        "Get-VMSwitch | Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription | "
-        "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1";
-    static constexpr auto surrounding_quote_regexp = R"(^"|"$)";
-    static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
+    static const auto ps_cmd_base = QStringLiteral("Get-VMSwitch | Select-Object -Property Name,SwitchType,"
+                                                   "NetAdapterInterfaceDescription");
+    static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
     if (PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
@@ -280,7 +278,6 @@ auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<Netwo
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
-            terms.replaceInStrings(QRegularExpression{surrounding_quote_regexp}, QStringLiteral(""));
             ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
         }
 
