@@ -156,6 +156,18 @@ mp::ParseCode mp::ArgParser::commandParse(cmd::Command* command)
     if (!parsedOk)
     {
         cerr << qUtf8Printable(parser.errorText()) << '\n';
+
+        if (parser.errorText().contains("Unknown option"))
+        {
+            cerr << "\nYou need to separate the options to be passed to the command with \"--\", like this: \n";
+            QStringList suggestedCommand(arguments);
+            suggestedCommand.insert(3, "--");
+            foreach (auto& argument, suggestedCommand)
+            {
+                cerr << argument.toStdString() << " ";
+            }
+            cerr << '\n';
+        }
         return ParseCode::CommandLineError;
     }
 
