@@ -23,6 +23,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/settings.h>
+#include <multipass/utils.h>
 
 #include <multipass/format.h>
 
@@ -36,6 +37,7 @@
 #include <unordered_map>
 
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
@@ -46,6 +48,65 @@ const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
 const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
 const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
+
+struct NetworkDefinitionException : public std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
+
+auto checked_mode(const std::string& mode)
+{
+    if (mode == "auto")
+        return mp::LaunchRequest_NetworkOptions_Mode::LaunchRequest_NetworkOptions_Mode_AUTO;
+    if (mode == "manual")
+        return mp::LaunchRequest_NetworkOptions_Mode::LaunchRequest_NetworkOptions_Mode_MANUAL;
+    else
+        throw NetworkDefinitionException{fmt::format("Bad network mode '{}', need 'auto' or 'manual'", mode)};
+}
+
+const std::string& checked_mac(const std::string& mac)
+{
+    if (!mpu::valid_mac_address(mac))
+        throw NetworkDefinitionException(fmt::format("Invalid MAC address: {}", mac));
+
+    return mac;
+}
+
+auto net_digest(const QString& options)
+{
+    multipass::LaunchRequest_NetworkOptions net;
+    QStringList split = options.split(',', QString::SkipEmptyParts);
+    for (const auto& key_value_pair : split)
+    {
+        QStringList key_value_split = key_value_pair.split('=', QString::SkipEmptyParts);
+        if (key_value_split.size() == 2)
+        {
+
+            const auto& key = key_value_split[0].toLower();
+            const auto& val = key_value_split[1];
+            if (key == "id")
+                net.set_id(val.toStdString());
+            else if (key == "mode")
+                net.set_mode(checked_mode(val.toLower().toStdString()));
+            else if (key == "mac")
+                net.set_mac_address(checked_mac(val.toStdString()));
+            else
+                throw NetworkDefinitionException{fmt::format("Bad network field: {}", key)};
+        }
+
+        // Interpret as "id" the argument when there are no ',' and no '='.
+        else if (key_value_split.size() == 1 && split.size() == 1)
+            net.set_id(key_value_split[0].toStdString());
+
+        else
+            throw NetworkDefinitionException{fmt::format("Bad network field definition: {}", key_value_pair)};
+    }
+
+    if (net.id().empty())
+        throw NetworkDefinitionException{fmt::format("Bad network definition, need at least an ID field")};
+
+    return net;
+}
 } // namespace
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
@@ -126,7 +187,17 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption});
+    QCommandLineOption networkOption("network",
+                                     "Add a network interface to the instance, where <spec> is in the "
+                                     "\"key=value,key=value\" format, with the following keys available:\n"
+                                     "  id: the network to connect to (required), use the list-networks command for a "
+                                     "list of possible values\n"
+                                     "  mode: auto|manual (default: auto)\n"
+                                     "  mac: hardware address (default: random).\n"
+                                     "You can also use a shortcut of \"<id>\" to mean \"id=<id>\".",
+                                     "spec");
+
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});
 
     auto status = parser->commandParse(this);
 
@@ -222,6 +293,18 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
     }
 
+    try
+    {
+        if (parser->isSet(networkOption))
+            for (const auto& net : parser->values(networkOption))
+                request.mutable_network_options()->Add(net_digest(net));
+    }
+    catch (NetworkDefinitionException& e)
+    {
+        cerr << "error: " << e.what() << "\n";
+        return ParseCode::CommandLineError;
+    }
+
     request.set_verbosity_level(parser->verbosityLevel());
 
     return status;
@@ -315,6 +398,12 @@ mp::ReturnCode cmd::Launch::request_launch()
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
                 error_details = fmt::format("Invalid instance name supplied: {}", request.instance_name());
+            }
+            else if (error == LaunchError::INVALID_NETWORK)
+            {
+                // TODO: show the option which triggered the error only. This will need a refactor in the
+                // LaunchError proto.
+                error_details = "Invalid network options supplied";
             }
         }
 

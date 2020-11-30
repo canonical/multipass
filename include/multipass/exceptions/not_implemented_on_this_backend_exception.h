@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,23 @@
  *
  */
 
-#ifndef MULTIPASS_YAML_FORMATTER
-#define MULTIPASS_YAML_FORMATTER
+#ifndef MULTIPASS_NOT_IMPLEMENTED_ON_THIS_BACKEND_EXCEPTION_H
+#define MULTIPASS_NOT_IMPLEMENTED_ON_THIS_BACKEND_EXCEPTION_H
 
-#include <multipass/cli/formatter.h>
+#include <stdexcept>
+
+#include <multipass/format.h>
 
 namespace multipass
 {
-class YamlFormatter final : public Formatter
+class NotImplementedOnThisBackendException : public std::runtime_error
 {
 public:
-    std::string format(const InfoReply& info) const override;
-    std::string format(const ListReply& list) const override;
-    std::string format(const ListNetworksReply& list) const override;
-    std::string format(const FindReply& list) const override;
+    NotImplementedOnThisBackendException(const std::string& feature)
+        : runtime_error(fmt::format("The {} feature is not implemented on this backend.", feature))
+    {
+    }
 };
-}
-#endif // MULTIPASS_YAML_FORMATTER
+} // namespace multipass
+
+#endif // MULTIPASS_NOT_IMPLEMENTED_ON_THIS_BACKEND_EXCEPTION_H

@@ -30,6 +30,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QUuid>
 #include <QtGlobal>
 
@@ -187,6 +188,16 @@ std::string mp::utils::generate_mac_address()
     gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
     std::array<int, 3> octets{{dist(gen), dist(gen), dist(gen)}};
     return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
+}
+
+bool mp::utils::valid_mac_address(const std::string& mac)
+{
+    // A MAC address is a string consisting of six pairs of colon-separated hexadecimal digits.
+    const auto pattern = QStringLiteral("^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$");
+    const auto regexp = QRegularExpression{pattern};
+    const auto match = regexp.match(QString::fromStdString(mac));
+
+    return match.hasMatch();
 }
 
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
