@@ -1,4 +1,4 @@
-// Copyright © 2017-2019 Canonical Ltd.
+// Copyright © 2017-2020 Canonical Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,7 @@ service Rpc {
     rpc find (FindRequest) returns (stream FindReply);
     rpc info (InfoRequest) returns (stream InfoReply);
     rpc list (ListRequest) returns (stream ListReply);
+    rpc list_networks (ListNetworksRequest) returns (stream ListNetworksReply);
     rpc mount (MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
     rpc recover (RecoverRequest) returns (stream RecoverReply);
@@ -59,6 +60,18 @@ message LaunchRequest {
     string remote_name = 9;
     OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
+
+    message NetworkOptions {
+        enum Mode {
+            AUTO = 0;
+            MANUAL = 1;
+        }
+
+        string id = 1;
+        Mode mode = 2;
+        string mac_address = 3;
+    }
+    repeated NetworkOptions network_options = 12;
 }
 
 message LaunchError {
@@ -68,6 +81,7 @@ message LaunchError {
         INVALID_MEM_SIZE = 2;
         INVALID_DISK_SIZE = 3;
         INVALID_HOSTNAME = 4;
+        INVALID_NETWORK = 5;
     }
     repeated ErrorCodes error_codes = 1;
 }
@@ -221,6 +235,23 @@ message ListVMInstance {
 
 message ListReply {
     repeated ListVMInstance instances = 1;
+    string log_line = 2;
+    UpdateInfo update_info = 3;
+}
+
+
+message ListNetworksRequest {
+    int32 verbosity_level = 1;
+}
+
+message NetInterface {
+    string name = 1;
+    string type = 2;
+    string description = 3;
+}
+
+message ListNetworksReply {
+    repeated NetInterface interfaces = 1;
     string log_line = 2;
     UpdateInfo update_info = 3;
 }

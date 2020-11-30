@@ -87,6 +87,7 @@ bool process_log_on_error(const QString& program, const QStringList& arguments, 
 void validate_server_address(const std::string& value);
 bool valid_hostname(const std::string& name_string);
 std::string generate_mac_address();
+bool valid_mac_address(const std::string& mac);
 
 // string helpers
 bool has_only_digits(const std::string& value);
