@@ -18,6 +18,8 @@
 #include "hyperv_virtual_machine_factory.h"
 #include "hyperv_virtual_machine.h"
 
+#include <multipass/format.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/shared_backend_utils.h>
@@ -27,6 +29,7 @@
 
 #include <QFileInfo>
 #include <QProcess>
+#include <QRegularExpression>
 
 namespace mp = multipass;
 
@@ -178,6 +181,25 @@ void check_hyperv_support()
         throw std::runtime_error("The computer needs to be rebooted in order for Hyper-V to be fully available");
     }
 }
+
+std::string switch_description(const QString& switch_type, const QString& physical_adapter)
+{
+    if (switch_type.contains("external", Qt::CaseInsensitive))
+    {
+        if (physical_adapter.isEmpty())
+            throw std::runtime_error{"Missing adapter for external switch"};
+
+        return fmt::format("Virtual Switch with external networking via \"{}\"", physical_adapter);
+    }
+    else if (!physical_adapter.isEmpty())
+        throw std::runtime_error{fmt::format("Unexpected adapter for non-external switch: {}", physical_adapter)};
+    else if (switch_type.contains("private", Qt::CaseInsensitive))
+        return "Private virtual switch";
+    else if (switch_type.contains("internal", Qt::CaseInsensitive))
+        return "Virtual Switch with internal networking";
+    else
+        return fmt::format("Unknown Virtual Switch type: {}", switch_type);
+}
 } // namespace
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -235,4 +257,37 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 {
     check_hyperv_support();
+}
+
+auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
+{
+    static constexpr auto ps_cmd =
+        "Get-VMSwitch | Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription | "
+        "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1";
+    static constexpr auto surrounding_quote_regexp = R"(^"|"$)";
+    static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
+
+    QString ps_output;
+    if (PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
+    {
+        std::vector<NetworkInterfaceInfo> ret{};
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
+        {
+            auto terms = line.split(',', QString::KeepEmptyParts);
+            if (terms.size() != 3)
+            {
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+            }
+
+            terms.replaceInStrings(QRegularExpression{surrounding_quote_regexp}, QStringLiteral(""));
+            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
+        }
+
+        return ret;
+    }
+
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+    throw std::runtime_error{err};
 }
