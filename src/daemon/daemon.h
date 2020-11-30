@@ -24,6 +24,7 @@
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/memory_size.h>
 #include <multipass/metrics_provider.h>
+#include <multipass/network_interface.h>
 #include <multipass/sshfs_mount/sshfs_mounts.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
@@ -51,7 +52,8 @@ struct VMSpecs
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;
-    std::string mac_addr;
+    NetworkInterface default_interface;
+    std::vector<NetworkInterface> extra_interfaces; // We want interfaces to be ordered.
     std::string ssh_username;
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
@@ -102,6 +104,9 @@ public slots:
 
     virtual void list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
                       std::promise<grpc::Status>* status_promise);
+
+    virtual void list_networks(const ListNetworksRequest* request, grpc::ServerWriter<ListNetworksReply>* response,
+                               std::promise<grpc::Status>* status_promise);
 
     virtual void mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
                        std::promise<grpc::Status>* status_promise);

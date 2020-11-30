@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
@@ -174,4 +175,14 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 bool mp::platform::is_image_url_supported()
 {
     return true;
+}
+
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
+{
+    throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
+}
+
+std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
+{
+    return ux_id;
 }

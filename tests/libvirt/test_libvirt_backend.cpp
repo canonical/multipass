@@ -50,10 +50,12 @@ struct LibVirtBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      "",
+                                                      {"default", "", true},
+                                                      {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
+                                                      {},
                                                       {},
                                                       {},
                                                       {}};
@@ -432,4 +434,11 @@ TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
                          Property(&mp::StartException::what, StrEq("Instance failed to start")));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+}
+
+TEST_F(LibVirtBackend, lists_no_networks)
+{
+    mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
+
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
 }

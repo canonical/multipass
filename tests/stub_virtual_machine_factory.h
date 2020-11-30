@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,13 @@
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
 
-#include <multipass/virtual_machine_factory.h>
+#include <platform/backends/shared/base_virtual_machine_factory.h>
 
 namespace multipass
 {
 namespace test
 {
-struct StubVirtualMachineFactory : public multipass::VirtualMachineFactory
+struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 {
     multipass::VirtualMachine::UPtr create_virtual_machine(const multipass::VirtualMachineDescription&,
                                                            multipass::VMStatusMonitor&) override

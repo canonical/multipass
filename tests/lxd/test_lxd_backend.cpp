@@ -35,6 +35,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QString>
@@ -65,10 +66,12 @@ struct LXDBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      "00:16:3e:fe:f2:b9",
+                                                      {"default", "00:16:3e:fe:f2:b9", true},
+                                                      {},
                                                       "yoda",
                                                       {},
                                                       "",
+                                                      {},
                                                       {},
                                                       {},
                                                       {}};
@@ -1345,3 +1348,10 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
 }
 
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDInstanceStatusTestSuite, ValuesIn(lxd_instance_status_suite_inputs));
+
+TEST_F(LXDBackend, lists_no_networks)
+{
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
+}

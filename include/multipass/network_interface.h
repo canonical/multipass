@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,19 @@
  *
  */
 
-#ifndef MULTIPASS_YAML_FORMATTER
-#define MULTIPASS_YAML_FORMATTER
+#ifndef MULTIPASS_NETWORK_INTERFACE_H
+#define MULTIPASS_NETWORK_INTERFACE_H
 
-#include <multipass/cli/formatter.h>
+#include <string>
 
 namespace multipass
 {
-class YamlFormatter final : public Formatter
+struct NetworkInterface
 {
-public:
-    std::string format(const InfoReply& info) const override;
-    std::string format(const ListReply& list) const override;
-    std::string format(const ListNetworksReply& list) const override;
-    std::string format(const FindReply& list) const override;
+    std::string id;
+    std::string mac_address;
+    bool auto_mode;
 };
-}
-#endif // MULTIPASS_YAML_FORMATTER
+} // namespace multipass
+
+#endif // MULTIPASS_NETWORK_INTERFACE_H

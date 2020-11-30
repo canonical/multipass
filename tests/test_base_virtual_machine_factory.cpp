@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/base_virtual_machine_factory.h>
@@ -77,4 +78,11 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
     auto vault = factory.create_image_vault(hosts, &stub_downloader, cache_dir.path(), data_dir.path(), mp::days{0});
 
     EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
+}
+
+TEST_F(BaseFactory, list_networks_throws)
+{
+    MockBaseFactory factory;
+
+    ASSERT_THROW(factory.list_networks(), mp::NotImplementedOnThisBackendException);
 }

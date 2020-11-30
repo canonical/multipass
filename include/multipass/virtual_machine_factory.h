@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
+struct NetworkInterfaceInfo;
 
 class VirtualMachineFactory
 {
@@ -60,6 +61,12 @@ public:
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
+
+    // List all the network interfaces seen by the backend.
+    virtual std::vector<NetworkInterfaceInfo> list_networks() const = 0;
+
+    // Given the id the user sees in list_networks(), return the id of an interface which identifies it.
+    virtual std::string reinterpret_interface_id(const std::string& ux_id) const = 0;
 
 protected:
     VirtualMachineFactory() = default;

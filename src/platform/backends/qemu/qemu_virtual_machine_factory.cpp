@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/optional.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -139,7 +140,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
 
     auto vm = std::make_unique<mp::QemuVirtualMachine>(desc, tap_device_name, dnsmasq_server, monitor);
 
-    name_to_mac_map.emplace(desc.vm_name, desc.mac_addr);
+    name_to_mac_map.emplace(desc.vm_name, desc.default_interface.mac_address);
     return vm;
 }
 
