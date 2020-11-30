@@ -31,6 +31,7 @@
 #include <multipass/vm_image_host.h>
 
 #include "extra_assertions.h"
+#include "file_operations.h"
 #include "mock_environment_helpers.h"
 #include "mock_process_factory.h"
 #include "mock_standard_paths.h"
@@ -51,6 +52,8 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QNetworkProxyFactory>
 #include <QSysInfo>
 
@@ -468,6 +471,13 @@ struct LaunchImgSizeSuite : public Daemon,
 {
 };
 
+struct LaunchWithBridges
+    : public Daemon,
+      public WithParamInterface<
+          std::pair<std::vector<std::tuple<std::string, std::string, std::string>>, std::vector<std::string>>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -538,6 +548,23 @@ MATCHER_P2(YAMLNodeContainsString, key, val, "")
         return false;
     }
     return arg[key].Scalar() == val;
+}
+
+MATCHER_P2(YAMLNodeContainsStringStartingWith, key, val, "")
+{
+    if (!arg.IsMap())
+    {
+        return false;
+    }
+    if (!arg[key])
+    {
+        return false;
+    }
+    if (!arg[key].IsScalar())
+    {
+        return false;
+    }
+    return arg[key].Scalar().find(val) == 0;
 }
 
 MATCHER_P(YAMLNodeContainsSubString, val, "")
@@ -707,6 +734,78 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     send_command({GetParam()});
 }
 
+TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
+{
+    mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto test_params = GetParam();
+    const auto args = test_params.first;
+    const auto forbidden_names = test_params.second;
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
+        .WillOnce(Invoke([&args, &forbidden_names](const multipass::VMImage&,
+                                                   const mp::VirtualMachineDescription& desc) {
+            EXPECT_THAT(desc.network_data_config, YAMLNodeContainsMap("ethernets"));
+
+            EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("default"));
+            auto const& default_network_stanza = desc.network_data_config["ethernets"]["default"];
+            EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
+            EXPECT_THAT(default_network_stanza["match"], YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
+            EXPECT_THAT(default_network_stanza, YAMLNodeContainsString("dhcp4", "true"));
+
+            for (const auto& arg : args)
+            {
+                std::string name = std::get<1>(arg);
+                if (!name.empty())
+                {
+                    EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap(name));
+                    auto const& extra_stanza = desc.network_data_config["ethernets"][name];
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("match"));
+
+                    std::string mac = std::get<2>(arg);
+                    if (mac.size() == 17)
+                        EXPECT_THAT(extra_stanza["match"], YAMLNodeContainsString("macaddress", mac));
+                    else
+                        EXPECT_THAT(extra_stanza["match"], YAMLNodeContainsStringStartingWith("macaddress", mac));
+
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("dhcp4", "true"));
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("dhcp4-overrides"));
+                    EXPECT_THAT(extra_stanza["dhcp4-overrides"], YAMLNodeContainsString("route-metric", "200"));
+                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("optional", "true"));
+                }
+            }
+
+            for (const auto& forbidden : forbidden_names)
+            {
+                EXPECT_THAT(desc.network_data_config["ethernets"], Not(YAMLNodeContainsMap(forbidden)));
+            }
+        }));
+
+    std::vector<std::string> command(1, "launch");
+
+    for (const auto& arg : args)
+    {
+        command.push_back("--network");
+        command.push_back(std::get<0>(arg));
+    }
+
+    send_command(command);
+}
+
+typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std::string>>, std::vector<std::string>>
+    BridgeTestArgType;
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon, LaunchWithBridges,
+    Values(BridgeTestArgType({}, {"extra0"}), BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
+           BridgeTestArgType({{"id=eth0,mac=01:23:45:ab:cd:ef,mode=auto", "extra0", "01:23:45:ab:cd:ef"},
+                              {"wlan0", "extra1", "52:54:00:"}},
+                             {"extra2"}),
+           BridgeTestArgType({{"id=eth0,mode=manual", "", ""}}, {"extra0"}),
+           BridgeTestArgType({{"id=eth0,mode=manual", "", ""}, {"id=wlan1", "extra1", "52:54:00:"}},
+                             {"extra0", "extra2"})));
+
 TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -783,5 +882,114 @@ INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                          Combine(Values("test_create", "launch"),
                                  Values(std::vector<std::string>{}, std::vector<std::string>{"--disk", "4G"}),
                                  Values("1G", mp::default_disk_size, "10G")));
+
+std::string fake_json_contents(const std::string& default_mac, const std::vector<mp::NetworkInterface>& extra_ifaces)
+{
+    QString contents("{\n"
+                     "    \"real-zebraphant\": {\n"
+                     "        \"deleted\": false,\n"
+                     "        \"disk_space\": \"5368709120\",\n"
+                     "        \"extra_interfaces\": [\n");
+
+    QStringList extra_json;
+    for (auto extra_interface : extra_ifaces)
+    {
+        extra_json += QString::fromStdString(fmt::format("            {{\n"
+                                                         "                \"auto_mode\": {},\n"
+                                                         "                \"id\": \"{}\",\n"
+                                                         "                \"mac_address\": \"{}\"\n"
+                                                         "            }}\n",
+                                                         extra_interface.auto_mode, extra_interface.id,
+                                                         extra_interface.mac_address));
+    }
+    contents += extra_json.join(',');
+
+    contents += QString::fromStdString(fmt::format("        ],\n"
+                                                   "        \"mac_addr\": \"{}\",\n"
+                                                   "        \"mem_size\": \"1073741824\",\n"
+                                                   "        \"metadata\": {{\n"
+                                                   "            \"arguments\": [\n"
+                                                   "                \"many\",\n"
+                                                   "                \"arguments\"\n"
+                                                   "            ],\n"
+                                                   "            \"machine_type\": \"dmc-de-lorean\"\n"
+                                                   "        }},\n"
+                                                   "        \"mounts\": [\n"
+                                                   "        ],\n"
+                                                   "        \"num_cores\": 1,\n"
+                                                   "        \"ssh_username\": \"ubuntu\",\n"
+                                                   "        \"state\": 2\n"
+                                                   "    }}\n"
+                                                   "}}",
+                                                   default_mac));
+
+    return contents.toStdString();
+}
+
+void check_interfaces_in_json(const QString& file, const std::string& mac,
+                              const std::vector<mp::NetworkInterface>& extra_interfaces)
+{
+    QByteArray json = mpt::load(file);
+
+    QJsonParseError parse_error;
+    const auto doc = QJsonDocument::fromJson(json, &parse_error);
+    EXPECT_FALSE(doc.isNull());
+    EXPECT_TRUE(doc.isObject());
+
+    const auto doc_object = doc.object();
+    const auto instance_object = doc_object["real-zebraphant"].toObject();
+    const auto default_mac = instance_object["mac_addr"].toString().toStdString();
+    ASSERT_EQ(default_mac, mac);
+
+    const auto extra = instance_object["extra_interfaces"].toArray();
+    ASSERT_EQ((unsigned)extra.size(), extra_interfaces.size());
+
+    auto it = extra_interfaces.cbegin();
+    for (const auto& extra_i : extra)
+    {
+        const auto interface = extra_i.toObject();
+        ASSERT_EQ(interface["mac_address"].toString().toStdString(), it->mac_address);
+        ASSERT_EQ(interface["id"].toString().toStdString(), it->id);
+        ASSERT_EQ(interface["auto_mode"].toBool(), it->auto_mode);
+        ++it;
+    }
+}
+
+TEST_F(Daemon, reads_mac_addresses_from_json)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string mac_addr("52:54:00:73:76:28");
+    std::vector<mp::NetworkInterface> extra_interfaces{
+        mp::NetworkInterface{"wlx60e3270f55fe", "52:54:00:bd:19:41", true},
+        mp::NetworkInterface{"enp3s0", "01:23:45:67:89:ab", false}};
+
+    std::string json_contents = fake_json_contents(mac_addr, extra_interfaces);
+
+    mpt::TempDir temp_dir;
+    QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
+
+    mpt::make_file_with_content(filename, json_contents);
+
+    // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
+    config_builder.data_directory = temp_dir.path();
+    mp::Daemon daemon{config_builder.build()};
+
+    // By issuing the `list` command, we check at least that the instance was indeed read and there were no errors.
+    std::stringstream stream;
+    send_command({"list"}, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
+
+    // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
+    // make sure that the file was indeed rewritten after the next step.
+    QFile::remove(filename);
+
+    // The purge command will be apparently no-op, because there are no deleted instances. However, it will trigger
+    // a rewriting of the JSON, which will be useful for us to check if the data was correctly read.
+    send_command({"purge"});
+
+    // Finally, check the contents of the file. If they match with what we read, we are done.
+    check_interfaces_in_json(filename, mac_addr, extra_interfaces);
+}
 
 } // namespace

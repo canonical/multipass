@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H
 
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_status_monitor.h>
@@ -41,6 +42,8 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD0(get_backend_version_string, QString());
     MOCK_METHOD5(create_image_vault,
                  VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
+    MOCK_CONST_METHOD0(list_networks, std::vector<NetworkInterfaceInfo>());
+    MOCK_CONST_METHOD1(reinterpret_interface_id, std::string(const std::string&));
 };
 }
 }
