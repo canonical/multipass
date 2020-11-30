@@ -39,6 +39,8 @@ public:
     {
         return "virtualbox";
     };
+    std::vector<NetworkInterfaceInfo> list_networks() const override;
+    std::string reinterpret_interface_id(const std::string& ux_id) const override;
 };
 } // namespace multipass
 

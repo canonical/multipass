@@ -31,6 +31,7 @@
 #include "platform_proprietary.h"
 #include "platform_shared.h"
 #include "shared/sshfs_server_process_spec.h"
+#include "shared/win/powershell.h"
 #include "shared/win/process_factory.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
@@ -38,6 +39,8 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QRegularExpression>
+#include <QString>
 #include <QTemporaryFile>
 #include <QtGlobal>
 
@@ -61,6 +64,7 @@ extern "C"
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -255,6 +259,20 @@ void save_profiles(const QString& path, const Json::Value& json_root)
     }
 
     tmp_file_removing_guard.dismiss(); // we succeeded, tmp file no longer there
+}
+
+std::string interpret_net_type(const QString& media_type, const QString& physical_media_type)
+{
+    // Note: use the following to see what types may be returned
+    // `get-netadapter | select -first 1 | get-member -name physicalmediatype | select -expandproperty definition`
+    if (physical_media_type == "802.3")
+        return "ethernet";
+    else if (physical_media_type == "Unspecified")
+        return media_type == "802.3" ? "ethernet" : "unknown"; // virtio covered here
+    else if (physical_media_type.contains("802.11"))
+        return "wifi";
+    else
+        return physical_media_type.toLower().toStdString();
 }
 
 } // namespace
@@ -494,4 +512,65 @@ std::function<int()> mp::platform::make_quit_watchdog()
         WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
         return 0;
     };
+}
+
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
+{
+    static constexpr auto ps_cmd =
+        "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription | "
+        "ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1 |"
+        "foreach { $_ -replace '^\"|\"$|\"(?=,)|(?<=,)\"','' }"; /* this last bit removes surrounding quotes; may be
+                                                                    replaced with "-UseQuotes Never" in powershell 7 */
+    static const auto ps_args = QString{ps_cmd}.split(' ', QString::SkipEmptyParts);
+
+    QString ps_output;
+    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))
+    {
+        std::map<std::string, mp::NetworkInterfaceInfo> ret{};
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
+        {
+            auto terms = line.split(',', QString::KeepEmptyParts);
+            if (terms.size() != 4)
+            {
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+            }
+
+            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(), interpret_net_type(terms[1], terms[2]),
+                                                  terms[3].toStdString()};
+            ret.emplace(iface.id, iface);
+        }
+
+        return ret;
+    }
+
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+    throw std::runtime_error{err};
+}
+
+std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
+{
+    auto ps_cmd = QStringLiteral("Get-NetAdapter -Name \"%1\" | Select-Object -ExpandProperty InterfaceDescription")
+                      .arg(QString::fromStdString(ux_id))
+                      .split(' ', QString::SkipEmptyParts);
+
+    QString ps_output;
+    if (PowerShell::exec(ps_cmd, "Adapter description from name", ps_output))
+    {
+        auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts);
+        if (output_lines.size() != 1)
+        {
+            throw std::runtime_error{
+                fmt::format("Could not obtain adapter description from name \"{}\" - unexpected powershell output: {}",
+                            ux_id, ps_output)};
+        }
+
+        return output_lines.first().toStdString();
+    }
+
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format(
+        "Could not obtain adapter description from name \"{}\" - error executing powershell command.{}", ux_id, detail);
+    throw std::runtime_error{err};
 }

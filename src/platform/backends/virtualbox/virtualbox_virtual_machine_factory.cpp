@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/utils.h>
@@ -35,6 +36,78 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
+
+namespace
+{
+
+struct VirtualBoxNetworkException : public std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
+
+mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
+                                           const std::map<std::string, mp::NetworkInterfaceInfo>& platform_info)
+{
+    // The Mac version of VBoxManage is the only one which gives us the <description> field for some devices.
+    const auto name_pattern =
+        QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#+ ()]+)(: (?<description>[A-Za-z0-9-_()\\? :]+))?\r?$");
+    const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r?$");
+    const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r?$");
+
+    const auto regexp_options = QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption;
+
+    const auto name_regexp = QRegularExpression{name_pattern, regexp_options};
+    const auto type_regexp = QRegularExpression{type_pattern, regexp_options};
+    const auto wireless_regexp = QRegularExpression{wireless_pattern, regexp_options};
+
+    const auto name_match = name_regexp.match(vbox_iface_info);
+
+    // If the name does not match, we know there is something strange in the input, so we throw. If it matches, we
+    // see if the interface is useful for us and the platform recognizes it; otherwise we throw as well.
+    if (name_match.hasMatch())
+    {
+        std::string ifname = name_match.captured("name").toStdString();
+
+        auto platform_if_info = platform_info.find(ifname);
+
+        // In Windows, VirtualBox lists interfaces using their description as name.
+        if (platform_if_info == platform_info.end()) // This will be true until VirtualBox fixes the issue.
+        {
+            auto comp_fun = [&ifname](const auto& keyval) { return keyval.second.description == ifname; };
+            platform_if_info = std::find_if(platform_info.begin(), platform_info.end(), comp_fun);
+        }
+
+        if (platform_if_info != platform_info.end())
+        {
+            std::string iftype = type_regexp.match(vbox_iface_info).captured("type").toStdString();
+            std::string ifdescription = name_match.captured("description").toStdString();
+            bool wireless = wireless_regexp.match(vbox_iface_info).captured("wireless") == "Yes";
+
+            mp::NetworkInterfaceInfo if_info = platform_if_info->second;
+
+            if (ifdescription.empty())
+            {
+                // Use the OS information about the interface
+                return mp::NetworkInterfaceInfo{if_info.id,
+                                                wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
+                                                if_info.description};
+            }
+            else
+            {
+                // Get the information from the VBoxManage output.
+                iftype = wireless ? "wifi" : (ifdescription.compare(0, 11, "Thunderbolt") ? iftype : "thunderbolt");
+
+                return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription};
+            }
+        }
+
+        throw VirtualBoxNetworkException(fmt::format("Network interface \"{}\" not recognized by platform", ifname));
+    }
+
+    throw std::runtime_error(fmt::format("Unexpected data from VBoxManage: \"{}\"", vbox_iface_info));
+}
+
+} // namespace
 
 mp::VirtualMachine::UPtr
 mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -115,4 +188,44 @@ void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMIma
 
 void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
 {
+}
+
+auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
+{
+    std::string log_category("virtualbox factory");
+
+    std::vector<NetworkInterfaceInfo> networks;
+
+    // Get the list of all the interfaces which can be bridged by VirtualBox.
+    QString ifs_info = QString::fromStdString(mpu::run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
+
+    // List to store the output of the query command; each element corresponds to one interface.
+    QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), QString::SkipEmptyParts));
+
+    mpl::log(mpl::Level::info, log_category, fmt::format("VirtualBox found {} interface(s)", if_list.size()));
+
+    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info = mp::platform::get_network_interfaces_info();
+
+    for (const auto& iface : if_list)
+    {
+        try
+        {
+            auto interface_info = list_vbox_network(iface, platform_ifs_info);
+
+            networks.push_back(interface_info);
+        }
+        catch (VirtualBoxNetworkException& e)
+        {
+            mpl::log(mpl::Level::warning, log_category, e.what());
+        }
+    }
+
+    return networks;
+}
+
+// The day VirtualBox corrects the bug in Windows which avoids us to use the correct interface name instead of the
+// description, we'll have to modify this function and check the VirtualBox version.
+std::string mp::VirtualBoxVirtualMachineFactory::reinterpret_interface_id(const std::string& ux_id) const
+{
+    return platform::reinterpret_interface_id(ux_id);
 }

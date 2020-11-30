@@ -14,11 +14,13 @@
 
 set (CMAKE_AUTOMOC ON)
 add_library(shared_win STATIC
+  powershell.cpp
   process_factory.cpp)
 
 include_directories(shared_win
   ..)
 
 target_link_libraries(shared_win
+  Qt5::Core
   fmt
-  Qt5::Core)
+  logger)

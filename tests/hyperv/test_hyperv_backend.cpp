@@ -42,7 +42,8 @@ struct HyperVBackend : public testing::Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used,
                                                       "pied-piper-valley",
-                                                      "",
+                                                      {"default", "", true},
+                                                      {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
@@ -56,4 +57,11 @@ TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
+
+TEST_F(HyperVBackend, lists_no_networks)
+{
+    mp::HyperVVirtualMachineFactory backend;
+
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
 }

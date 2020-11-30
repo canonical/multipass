@@ -16,7 +16,6 @@
  */
 
 #include "hyperv_virtual_machine.h"
-#include "powershell.h"
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -26,6 +25,7 @@
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/shared_backend_utils.h>
+#include <shared/win/powershell.h>
 
 #include <fmt/format.h>
 
@@ -105,6 +105,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                           "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size});
         power_shell->run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)});
         power_shell->run({"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'});
+        power_shell->run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
+                          QString::fromStdString('"' + desc.default_interface.mac_address + '"')});
 
         state = State::off;
     }

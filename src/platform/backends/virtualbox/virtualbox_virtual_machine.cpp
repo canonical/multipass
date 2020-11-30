@@ -19,6 +19,7 @@
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface.h>
 #include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
@@ -91,6 +92,53 @@ auto instance_state_for(const QString& name)
 
     return mp::VirtualMachine::State::unknown;
 }
+
+QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
+{
+    QStringList arguments{"--nic1",        "nat",
+                          "--nictype1",    "virtio",
+                          "--macaddress1", QString::fromStdString(desc.default_interface.mac_address).remove(':')};
+
+    for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
+    {
+        QString iface_index_str = QString::number(i + 2);
+
+        arguments += {"--nic" + iface_index_str,
+                      "bridged",
+                      "--nictype" + iface_index_str,
+                      "virtio",
+                      "--macaddress" + iface_index_str,
+                      QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':'),
+                      "--bridgeadapter" + iface_index_str,
+                      QString::fromStdString(desc.extra_interfaces[i].id)};
+    }
+
+    return arguments;
+}
+
+QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const QString& vm_name)
+{
+    const QString& tmp = MP_STDPATHS.writableLocation(mp::StandardPaths::TempLocation);
+    const QString& log_file = QString("%1/%2.log").arg(tmp).arg(vm_name);
+    QStringList modify_arguments{"modifyvm",    vm_name,
+                                 "--cpus",      QString::number(desc.num_cores),
+                                 "--memory",    QString::number(desc.mem_size.in_megabytes()),
+                                 "--boot1",     "disk",
+                                 "--boot2",     "none",
+                                 "--boot3",     "none",
+                                 "--boot4",     "none",
+                                 "--acpi",      "on",
+                                 "--firmware",  "bios",
+                                 "--rtcuseutc", "on",
+                                 "--audio",     "none",
+                                 "--uart1",     "0x3f8",
+                                 "4",           "--uartmode1",
+                                 "file",        log_file};
+    modify_arguments += networking_arguments(desc);
+
+    return modify_arguments;
+}
+
 } // namespace
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
@@ -99,6 +147,10 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
       username{desc.ssh_username},
       monitor{&monitor}
 {
+    if (desc.extra_interfaces.size() > 7)
+    {
+        throw std::runtime_error("VirtualBox does not support more than 8 interfaces");
+    }
 
     if (!mpu::process_log_on_error("VBoxManage", {"showvminfo", name, "--machinereadable"},
                                    "Could not get instance info: {}", name))
@@ -107,39 +159,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
             "VBoxManage", {"createvm", "--name", name, "--groups", "/Multipass", "--ostype", "ubuntu_64", "--register"},
             "Could not create VM: {}", name);
 
-        mpu::process_throw_on_error(
-            "VBoxManage",
-            {"modifyvm",
-             name,
-             "--cpus",
-             QString::number(desc.num_cores),
-             "--memory",
-             QString::number(desc.mem_size.in_megabytes()),
-             "--boot1",
-             "disk",
-             "--boot2",
-             "none",
-             "--boot3",
-             "none",
-             "--boot4",
-             "none",
-             "--acpi",
-             "on",
-             "--nic1",
-             "nat",
-             "--firmware",
-             "bios",
-             "--rtcuseutc",
-             "on",
-             "--audio",
-             "none",
-             "--uart1",
-             "0x3f8",
-             "4",
-             "--uartmode1",
-             "file",
-             QString("%1/%2.log").arg(MP_STDPATHS.writableLocation(StandardPaths::TempLocation)).arg(name)},
-            "Could not modify VM: {}", name);
+        mpu::process_throw_on_error("VBoxManage", modifyvm_arguments(desc, name), "Could not modify VM: {}", name);
 
         mpu::process_throw_on_error("VBoxManage",
                                     {"storagectl", name, "--add", "sata", "--name", "SATA_0", "--portcount", "2"},

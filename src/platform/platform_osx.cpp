@@ -19,7 +19,9 @@
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
+#include <multipass/optional.h>
 #include <multipass/platform.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -35,6 +37,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QKeySequence>
+#include <QRegularExpression>
 #include <QString>
 #include <QtGlobal>
 
@@ -44,6 +47,7 @@
 #include <unistd.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
 namespace
@@ -51,6 +55,7 @@ namespace
 constexpr auto application_id = "com.canonical.multipass";
 constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
 constexpr auto autostart_link_subdir = "Library/LaunchAgents";
+constexpr auto category = "osx platform";
 
 QString interpret_macos_hotkey(QString val)
 {
@@ -67,6 +72,106 @@ QString interpret_macos_hotkey(QString val)
     return mp::platform::interpret_hotkey(val);
 }
 
+QString get_networksetup_output()
+{
+    auto nsetup_spec = mp::simple_process_spec("networksetup", {"-listallhardwareports"});
+    auto nsetup_process = mp::platform::make_process(std::move(nsetup_spec));
+    auto nsetup_exit_state = nsetup_process->execute();
+
+    if (!nsetup_exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("networksetup failed ({}) with the following output:\n",
+                                             nsetup_exit_state.failure_message(),
+                                             nsetup_process->read_all_standard_error()));
+    }
+
+    return nsetup_process->read_all_standard_output();
+}
+
+QString get_ifconfig_output()
+{
+    auto ifconfig_spec = mp::simple_process_spec("ifconfig", {});
+    auto ifconfig_process = mp::platform::make_process(std::move(ifconfig_spec));
+    auto ifconfig_exit_state = ifconfig_process->execute();
+
+    if (!ifconfig_exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("ifconfig failed ({}) with the following output:\n{}",
+                                             ifconfig_exit_state.failure_message(),
+                                             ifconfig_process->read_all_standard_error()));
+    }
+
+    return ifconfig_process->read_all_standard_output();
+}
+
+QStringList get_bridged_interfaces(const QString& if_name, const QString& ifconfig_output)
+{
+    // Search the substring of the full ifconfig output containing only the interface if_name.
+    int start = ifconfig_output.indexOf(
+        QRegularExpression{QStringLiteral("^%1:").arg(if_name), QRegularExpression::MultilineOption});
+    int end = ifconfig_output.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption), start + 1);
+    QStringRef ifconfig_entry = ifconfig_output.midRef(start, end - start);
+
+    // Search for the bridged interfaces in the resulting string ref.
+    const auto pattern = QStringLiteral("^[ \\t]+member: (?<member>\\w+) flags.*$");
+    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+    QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_entry);
+
+    QStringList bridged_ifs;
+
+    while (match_it.hasNext())
+    {
+        auto match = match_it.next();
+        if (match.hasMatch())
+        {
+            bridged_ifs.push_back(match.captured("member"));
+        }
+    }
+
+    return bridged_ifs;
+}
+
+std::string describe_bridge(const QString& name, const QString& ifconfig_output)
+{
+    auto members = get_bridged_interfaces(name, ifconfig_output);
+    return members.isEmpty() ? "Empty network bridge" : fmt::format("Network bridge with {}", members.join(", "));
+}
+
+mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
+{
+    const auto name_pattern = QStringLiteral("^Device: ([\\w -]+)$");
+    const auto desc_pattern = QStringLiteral("^Hardware Port: (.+)$");
+    const auto name_regex = QRegularExpression{name_pattern, QRegularExpression::MultilineOption};
+    const auto desc_regex = QRegularExpression{desc_pattern, QRegularExpression::MultilineOption};
+    const auto name = name_regex.match(nsetup_entry).captured(1);
+    const auto desc = desc_regex.match(nsetup_entry).captured(1);
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Parsing networksetup chunk:\n{}", nsetup_entry));
+
+    if (!name.isEmpty() && !desc.isEmpty())
+    {
+        auto id = name.toStdString();
+
+        // bridges first, so we match on things like "thunderbolt bridge" here
+        if (name.contains("bridge") || desc.contains("bridge", Qt::CaseInsensitive))
+            return mp::NetworkInterfaceInfo{id, "bridge", describe_bridge(name, ifconfig_output)};
+
+        // simple cases next
+        auto description = desc.toStdString();
+        for (const auto& type : {"thunderbolt", "ethernet", "usb"})
+            if (desc.contains(type, Qt::CaseInsensitive))
+                return mp::NetworkInterfaceInfo{id, type, description};
+
+        // finally wifi, which we report without a dash in the middle
+        if (desc.contains("wi-fi", Qt::CaseInsensitive))
+            return mp::NetworkInterfaceInfo{id, "wifi", description};
+
+        mpl::log(mpl::Level::warning, category, fmt::format("Unsupported device \"{}\" ({})", id, description));
+    }
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Skipping chunk"));
+    return mp::nullopt;
+}
 } // namespace
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
@@ -236,3 +341,36 @@ bool mp::platform::is_image_url_supported()
     return false;
 }
 
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
+{
+    auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
+
+    // Get the output of 'ifconfig'.
+    auto ifconfig_output = get_ifconfig_output();
+    auto nsetup_output = get_networksetup_output();
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
+    mpl::log(mpl::Level::trace, category,
+             fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
+
+    // split the output of networksetup in multiple entries (one per interface)
+    auto empty_line_regex = QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
+    auto nsetup_entries = nsetup_output.split(empty_line_regex, QString::SkipEmptyParts);
+
+    // Parse the output we got to obtain each interface's properties
+    for (const auto& nsetup_entry : nsetup_entries)
+    {
+        if (auto net_info = get_net_info(nsetup_entry, ifconfig_output); net_info)
+        {
+            const auto& net_id = net_info->id;
+            networks.emplace(net_id, std::move(*net_info));
+        }
+    }
+
+    return networks;
+}
+
+std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
+{
+    return ux_id;
+}

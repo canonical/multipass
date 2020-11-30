@@ -23,6 +23,7 @@
 #include <src/platform/backends/hyperkit/hyperkit_virtual_machine.cpp>
 #include <src/platform/backends/hyperkit/hyperkit_virtual_machine_factory.h>
 
+#include "tests/disabling_macros.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
@@ -41,7 +42,8 @@ struct HyperkitBackend : public testing::Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      "",
+                                                      {"default", "", true},
+                                                      {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
@@ -161,3 +163,10 @@ TEST_P(GetIPThrowingSuite, throws_on_bad_format)
 }
 
 INSTANTIATE_TEST_SUITE_P(Hyperkit, GetIPThrowingSuite, ValuesIn(throwing_hw_addr_inputs), print_param_name);
+
+// This test is disabled because the backend checks if it's running as root and throws if not. It doesn't run as
+// root now, so it fails. To avoid this behavior and be able to enable the test again, getuid() must be mocked.
+TEST_F(HyperkitBackend, DISABLE_ON_MACOS(lists_no_networks))
+{
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
+}

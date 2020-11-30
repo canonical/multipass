@@ -108,7 +108,7 @@ auto make_hyperkit_process(const mp::VirtualMachineDescription& desc, const QStr
          << "0:0,hostbridge" <<
         // Network (root-only)
         "-s"
-         << "2:0,virtio-net" <<
+         << "2:0,virtio-net,vmnet0,mac=" + QString::fromStdString(desc.default_interface.mac_address) <<
         // Entropy device emulation.
         "-s"
          << "5,virtio-rnd" <<
