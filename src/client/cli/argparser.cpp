@@ -156,18 +156,6 @@ mp::ParseCode mp::ArgParser::commandParse(cmd::Command* command)
     if (!parsedOk)
     {
         cerr << qUtf8Printable(parser.errorText()) << '\n';
-
-        if (parser.errorText().contains("Unknown option"))
-        {
-            cerr << "\nYou need to separate the options to be passed to the command with \"--\", like this: \n";
-            QStringList suggestedCommand(arguments);
-            suggestedCommand.insert(3, "--");
-            foreach (auto& argument, suggestedCommand)
-            {
-                cerr << argument.toStdString() << " ";
-            }
-            cerr << '\n';
-        }
         return ParseCode::CommandLineError;
     }
 
@@ -351,6 +339,11 @@ QStringList mp::ArgParser::positionalArguments() const
     return positionalArguments;
 }
 
+QStringList mp::ArgParser::unknownOptionNames() const
+{
+    return parser.unknownOptionNames();
+}
+
 void mp::ArgParser::setVerbosityLevel(int verbosity)
 {
     if (verbosity > 4 || verbosity < 0)
@@ -366,4 +359,9 @@ void mp::ArgParser::setVerbosityLevel(int verbosity)
 int mp::ArgParser::verbosityLevel() const
 {
     return verbosity_level;
+}
+
+bool mp::ArgParser::containsArgument(const QString& argument) const
+{
+    return arguments.contains(argument);
 }

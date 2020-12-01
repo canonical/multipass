@@ -95,6 +95,11 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
 
     if (status != ParseCode::Ok)
     {
+        if (!parser->unknownOptionNames().empty() && !parser->containsArgument("--"))
+        {
+            cerr << "\nOptions to the inner command should come after \"--\", like this:\nmultipass exec <instance> -- "
+                    "<command> <arguments>\n";
+        }
         return status;
     }
 
