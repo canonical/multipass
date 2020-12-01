@@ -529,7 +529,7 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::pair<std::string, std::string>>{}, "bridge", "Empty network bridge"),
            std::make_tuple("br1", std::vector<std::string>{"bridge", "brif/eth2", "brif/wifi3"},
                            std::vector<std::pair<std::string, std::string>>{}, "bridge",
-                           "Network bridge containing eth2, wifi3"),
+                           "Network bridge with eth2, wifi3"),
            std::make_tuple("virt0", std::vector<std::string>{}, std::vector<std::pair<std::string, std::string>>{},
                            "virtual", "Virtual interface"),
            std::make_tuple("virt1", std::vector<std::string>{},
@@ -537,25 +537,11 @@ INSTANTIATE_TEST_SUITE_P(
                                std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n")},
                            "virtual", "Virtual interface associated to br2")));
 
-TEST_F(PlatformLinux, test_network_interface_info_ip_fails)
+TEST_F(PlatformLinux, test_network_interfaces_info_ip_crashes)
 {
     const mp::ProcessState ip_exit_status{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
     auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status);
 
-    EXPECT_THROW(mp::platform::get_network_interface_info("enp4s0"), std::runtime_error);
-}
-
-TEST_F(PlatformLinux, test_network_interface_info_with_empty_output)
-{
-    std::string if_name("nonexisting");
-
-    const mp::ProcessState ip_exit_status{1, mp::nullopt};
-    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status);
-
-    auto if_info = mp::platform::get_network_interface_info(if_name);
-
-    ASSERT_EQ(if_info.id, if_name);
-    ASSERT_EQ(if_info.type, "");
-    ASSERT_EQ(if_info.description, "");
+    EXPECT_THROW(mp::platform::get_network_interfaces_info(), std::runtime_error);
 }
 } // namespace
