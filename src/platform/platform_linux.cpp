@@ -60,6 +60,7 @@ namespace mu = multipass::utils;
 namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
+constexpr auto category = "linux platform";
 
 // The uevent files in /sys have a set of KEY=value pairs, one per line. This function takes as arguments a file
 // with full path and a key, and returns the value associated with that key. If the specified uevent file does not
@@ -86,16 +87,16 @@ std::string get_uevent_value(const std::string& file, const std::string& key)
     return std::string();
 }
 
-std::string get_ip_output(QStringList ip_args)
+QString get_ip_output(QStringList ip_args)
 {
     auto ip_spec = mp::simple_process_spec("ip", ip_args);
     auto ip_process = mp::platform::make_process(std::move(ip_spec));
     auto ip_exit_state = ip_process->execute();
 
     if (ip_exit_state.completed_successfully())
-        return ip_process->read_all_standard_output().toStdString();
+        return ip_process->read_all_standard_output();
     else if (ip_exit_state.exit_code && *(ip_exit_state.exit_code) == 1)
-        return ip_process->read_all_standard_error().toStdString();
+        return ip_process->read_all_standard_error();
     else
         throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
 }
@@ -106,7 +107,7 @@ mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_na
     std::string type;
     std::string description;
 
-    QString ip_output = QString::fromStdString(get_ip_output({"link", "show", "dev", iface_name_qstr}));
+    QString ip_output = get_ip_output({"link", "show", "dev", iface_name_qstr});
 
     if (ip_output.contains(": " + iface_name_qstr + ": "))
     {
@@ -304,28 +305,16 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
         type = "bridge";
         QDir bridged_dir(iface_dir_name + "/brif");
         QStringList all_bridged = bridged_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
-        if (all_bridged.isEmpty())
-        {
-            description += "Empty network bridge";
-        }
-        else
-        {
-            description += "Network bridge containing " + all_bridged.join(", ").toStdString();
-        }
+
+        description += all_bridged.isEmpty() ? "Empty network bridge"
+                                             : fmt::format("Network bridge with {}", all_bridged.join(", "));
     }
     else
     {
-        std::string associated_to =
-            get_uevent_value((iface_dir_name + "/brport/bridge/uevent").toStdString(), "INTERFACE");
+        auto associated_to = get_uevent_value((iface_dir_name + "/brport/bridge/uevent").toStdString(), "INTERFACE");
         type = "virtual";
-        if (associated_to.empty())
-        {
-            description += "Virtual interface";
-        }
-        else
-        {
-            description += "Virtual interface associated to " + associated_to;
-        }
+
+        description += associated_to.empty() ? "Virtual interface" : "Virtual interface associated to " + associated_to;
     }
 
     mp::NetworkInterfaceInfo iface_info{iface_name, type, description};
@@ -338,7 +327,9 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
 
     // All interfaces will be returned by the command ip.
-    QString ip_output = QString::fromStdString(get_ip_output({"address"}));
+    auto ip_output = get_ip_output({"address"});
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ip:\n{}", ip_output));
 
     const auto pattern = QStringLiteral("^\\d+: (?<name>[A-Za-z0-9-_]+): .*$");
     const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
@@ -350,7 +341,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
         if (match.hasMatch())
         {
             std::string iface_name = match.captured("name").toStdString();
-            ifaces_info.emplace(std::make_pair(iface_name, get_network_interface_info(iface_name)));
+            ifaces_info.emplace(iface_name, get_network_interface_info(iface_name));
         }
     }
 
