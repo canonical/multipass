@@ -267,7 +267,7 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
 {
     constexpr auto msg = "an error msg";
-    setup([msg](auto* process) {
+    setup([](auto* process) {
         InSequence seq;
 
         EXPECT_CALL(*process, start()).Times(1);
