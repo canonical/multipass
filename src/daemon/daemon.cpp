@@ -1103,10 +1103,6 @@ try // clang-format on
             if (it == remote_image_host_map.end())
                 throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
 
-            if (!mp::platform::is_remote_supported(remote))
-                throw std::runtime_error(fmt::format(
-                    "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
-
             auto images_info = it->second->all_info_for(
                 {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
 
@@ -1167,10 +1163,6 @@ try // clang-format on
         auto it = remote_image_host_map.find(remote);
         if (it == remote_image_host_map.end())
             throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
-
-        if (!mp::platform::is_remote_supported(remote))
-            throw std::runtime_error(fmt::format(
-                "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
 
         auto vm_images_info = it->second->all_images_for(remote, request->allow_unsupported());
         for (const auto& info : vm_images_info)
