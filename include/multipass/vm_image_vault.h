@@ -63,6 +63,7 @@ private:
 
 class Query;
 class VMImage;
+class VMImageHost;
 class VMImageVault
 {
 public:
@@ -78,6 +79,7 @@ public:
     virtual void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                const ProgressMonitor& monitor) = 0;
     virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
+    virtual VMImageHost* image_host_for(const std::string& remote_name) = 0;
 
 protected:
     VMImageVault() = default;
