@@ -29,7 +29,7 @@
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
-#include "tests/windows/power_shell_test.h"
+#include "tests/windows/powershell_test_helper.h"
 
 #include <QRegularExpression>
 
@@ -44,64 +44,168 @@ using namespace testing;
 
 namespace
 {
-struct HyperVBackend : public testing::Test
+struct HyperVBackend : public Test
 {
+    using RunSpec = mpt::PowerShellTestHelper::RunSpec;
+
+    void SetUp() override
+    {
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    }
+
+    void TearDown() override
+    {
+        ASSERT_TRUE(ps_helper.was_ps_run());
+    }
+
+    std::vector<RunSpec> standard_ps_run_sequence(const std::vector<RunSpec>& network_runs = {default_network_run})
+    {
+        std::vector<RunSpec> ret = base_ctor_runs;
+        ret.insert(std::end(ret), std::cbegin(network_runs), std::cend(network_runs));
+
+        auto failing_run_it = std::find_if(std::cbegin(network_runs), std::cend(network_runs),
+                                           [](const auto& run) { return !run.will_return; });
+        if (failing_run_it == std::cend(network_runs)) // if the ctor succeeds
+            ret.emplace_back(min_dtor_run); // network runs are executed in the ctor, so if they fail the object is
+                                            // never constructed and no dtor is called
+
+        return ret;
+    }
+
+    inline static const std::vector<RunSpec> base_ctor_runs = {
+        {"Get-VM", "", false}, {"Get-VMSwitch"}, {"New-VM"}, {"Set-VMProcessor"}, {"Add-VMDvdDrive"}};
+    inline static const RunSpec default_network_run = {"Set-VMNetworkAdapter"};
+    inline static const RunSpec min_dtor_run = {"-ExpandProperty State", "Off"};
+
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mp::VirtualMachineDescription default_description{2,
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used,
                                                       "pied-piper-valley",
-                                                      {"default", "", true},
+                                                      {"default", "ba:ba:ca:ca:ca:ba", true},
                                                       {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    mpt::PowerShellTestHelper ps_helper;
     mp::HyperVVirtualMachineFactory backend;
+    mpt::StubVMStatusMonitor stub_monitor;
 };
 
-TEST_F(HyperVBackend, DISABLED_creates_in_off_state)
+TEST_F(HyperVBackend, creates_in_off_state)
 {
-    mpt::StubVMStatusMonitor stub_monitor;
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence());
+
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
-    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+    EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
 }
 
-struct HyperVListNetworks : public mpt::PowerShellTest
+TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
+{
+    // TODO we only honor default_interface.mac_address, the rest is ignored, so should probably receive only the mac
+    auto network_run =
+        RunSpec{fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"", default_description.vm_name,
+                            default_description.default_interface.mac_address)};
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
+
+    backend.create_virtual_machine(default_description, stub_monitor);
+}
+
+TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
+{
+    auto run = default_network_run;
+    run.will_return = false;
+
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({run}));
+
+    MP_EXPECT_THROW_THAT(backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr("default adapter")));
+}
+
+TEST_F(HyperVBackend, adds_extra_network_adapters)
+{
+    default_description.extra_interfaces = {
+        {"switchA", "55:66:44:77:33:88"}, {"switchB", "15:16:14:17:13:18"}, {"switchC", "5e:6f:4e:7f:3e:8f"}};
+
+    auto network_runs = std::vector<RunSpec>{default_network_run};
+    for (const auto& iface : default_description.extra_interfaces)
+    {
+        network_runs.push_back({fmt::format("Get-VMSwitch -Name \"{}\"", iface.id)});
+        network_runs.push_back(
+            {fmt::format("Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
+                         default_description.vm_name, iface.id, iface.mac_address)});
+    };
+
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(std::move(network_runs)));
+
+    backend.create_virtual_machine(default_description, stub_monitor);
+}
+
+TEST_F(HyperVBackend, throws_on_failure_to_detect_switch_from_extra_interface)
+{
+    auto extra_iface = mp::NetworkInterface{"MissingSwitch", "55:66:44:77:33:88"};
+    default_description.extra_interfaces.push_back(extra_iface);
+
+    auto failing_cmd = fmt::format("Get-VMSwitch -Name \"{}\"", extra_iface.id);
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({default_network_run, {failing_cmd, "", false}}));
+
+    MP_EXPECT_THROW_THAT(
+        backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+        Property(&std::runtime_error::what, AllOf(HasSubstr("Could not find"), HasSubstr(extra_iface.id))));
+}
+
+TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
+{
+    auto extra_iface = mp::NetworkInterface{"SuperPriviledgedSwitch", "55:66:44:77:33:88"};
+    default_description.extra_interfaces.push_back(extra_iface);
+
+    auto failing_cmd = fmt::format("Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
+                                   default_description.vm_name, extra_iface.id, extra_iface.mac_address);
+
+    ps_helper.setup_mocked_run_sequence(
+        standard_ps_run_sequence({default_network_run, {"Get-VMSwitch"}, {failing_cmd, "", false}}));
+
+    MP_EXPECT_THROW_THAT(
+        backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+        Property(&std::runtime_error::what, AllOf(HasSubstr("Could not setup"), HasSubstr(extra_iface.id))));
+}
+
+struct HyperVListNetworks : public Test
 {
     void SetUp() override
     {
-        mpt::PowerShellTest::SetUp(); // This isn't there ATTOW, but could come in the future, so avoid shadowing it
         logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     }
 
-    void simulate_ps_exec_output(const QByteArray& output, bool succeed = true)
+    void TearDown() override
     {
-        setup([output, succeed](auto* process) {
-            InSequence seq;
-
-            auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
-            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
-            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
-            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
-        });
+        ASSERT_TRUE(ps_helper.was_ps_run());
     }
 
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mp::HyperVVirtualMachineFactory backend;
+    mpt::PowerShellTestHelper ps_helper;
     inline static constexpr auto cmdlet = "Get-VMSwitch";
 };
 
 TEST_F(HyperVListNetworks, requests_switches)
 {
-    setup([](auto* process) { EXPECT_THAT(process->arguments(), Contains(cmdlet)); });
+    ps_helper.setup(
+        [](auto* process) {
+            EXPECT_THAT(process->arguments(), Contains(cmdlet));
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
 
     backend.list_networks();
 }
 
 TEST_F(HyperVListNetworks, returns_empty_when_no_switches_found)
 {
-    simulate_ps_exec_output("");
+    ps_helper.mock_ps_exec("");
     EXPECT_THAT(backend.list_networks(), IsEmpty());
 }
 
@@ -112,7 +216,7 @@ TEST_F(HyperVListNetworks, throws_on_failure_to_execute_cmdlet)
     logger.expect_log(mpl::Level::warning, cmdlet);
 
     constexpr auto error = "error msg";
-    simulate_ps_exec_output(error, false);
+    ps_helper.mock_ps_exec(error, false);
     MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
                          Property(&std::runtime_error::what, HasSubstr(error)));
 }
@@ -120,7 +224,7 @@ TEST_F(HyperVListNetworks, throws_on_failure_to_execute_cmdlet)
 TEST_F(HyperVListNetworks, throws_on_unexpected_cmdlet_output)
 {
     constexpr auto output = "g1bb€r1$h";
-    simulate_ps_exec_output(output);
+    ps_helper.mock_ps_exec(output);
     MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
 }
@@ -132,7 +236,7 @@ struct TestWrongFields : public HyperVListNetworks, public WithParamInterface<st
 
 TEST_P(TestWrongFields, throws_on_output_with_wrong_fields)
 {
-    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
     ASSERT_THROW(backend.list_networks(), std::runtime_error);
 }
 
@@ -143,7 +247,7 @@ INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestWrongFields,
 
 TEST_F(HyperVListNetworks, returns_as_many_items_as_lines_in_proper_output)
 {
-    simulate_ps_exec_output("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
+    ps_helper.mock_ps_exec("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
     EXPECT_THAT(backend.list_networks(), SizeIs(7));
 }
 
@@ -152,18 +256,18 @@ TEST_F(HyperVListNetworks, returns_provided_interface_ids)
     constexpr auto id1 = "\"toto\"";
     constexpr auto id2 = " te et te";
     constexpr auto id3 = "\"ti\"-+%ti\t";
-    constexpr auto output_format = "\"{}\",\"Private\",\n"
-                                   "\"{}\",\"Internal\",\n"
-                                   "\"{}\",\"External\",\"adapter description\"\n";
+    constexpr auto output_format = "{},Private,\n"
+                                   "{},Internal,\n"
+                                   "{},External,adapter description\n";
 
-    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
     EXPECT_THAT(backend.list_networks(), UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
 }
 
 TEST_F(HyperVListNetworks, returns_only_switches)
 {
-    simulate_ps_exec_output("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
+    ps_helper.mock_ps_exec("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
     EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
@@ -199,7 +303,7 @@ TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
     const auto matcher =
         adapt_to_single_description_matcher(make_required_forbidden_regex_matcher(type, "external|unknown"));
 
-    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,{},", type)));
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,{},", type)));
     EXPECT_THAT(backend.list_networks(), matcher);
 }
 
@@ -211,7 +315,7 @@ TEST_F(HyperVListNetworks, recognizes_external_switch)
     const auto matcher = adapt_to_single_description_matcher(
         AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(nic)));
 
-    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("some switch,external,{}", nic)));
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{}", nic)));
     EXPECT_THAT(backend.list_networks(), matcher);
 }
 
@@ -221,7 +325,7 @@ TEST_F(HyperVListNetworks, handles_unknown_switch_types)
     const auto matcher = adapt_to_single_description_matcher(
         AllOf(make_required_forbidden_regex_matcher("unknown", "private|internal|external"), HasSubstr(type)));
 
-    simulate_ps_exec_output(QByteArray::fromStdString(fmt::format("Custom Switch,{},", type)));
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("Custom Switch,{},", type)));
     EXPECT_THAT(backend.list_networks(), matcher);
 }
 

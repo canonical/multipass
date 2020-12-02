@@ -29,7 +29,7 @@ namespace multipass
 {
 namespace test
 {
-struct PowerShellTestAccessor; // fwd declaration, to befriend below
+class PowerShellTestHelper; // fwd declaration, to befriend below
 }
 
 class PowerShell
@@ -42,8 +42,14 @@ public:
 
     static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
+    struct Snippets
+    {
+        static const QStringList expand_property;
+        static const QStringList to_bare_csv;
+    };
+
 private:
-    friend struct multipass::test::PowerShellTestAccessor;
+    friend class multipass::test::PowerShellTestHelper;
     bool write(const QByteArray& data);
 
     std::unique_ptr<Process> powershell_proc;
