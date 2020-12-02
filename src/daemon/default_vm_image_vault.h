@@ -85,7 +85,6 @@ private:
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
     std::unordered_map<std::string, VaultRecord> instance_image_records;
-    std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
     std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
 };
 }
