@@ -40,14 +40,6 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
-#include <arpa/inet.h>
-#include <cstring>
-#include <linux/if_tun.h>
-#include <net/if.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-
 #include <QDir>
 #include <QFile>
 #include <QIODevice>
@@ -278,29 +270,8 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
 
     QString iface_dir_name = QString::fromStdString(virtual_path);
 
-    // TUN and TAP devices have a file containing flags. The only way of knowing which one of both types the
-    // interface has, is to parse the flags.
-    QFile tun_flags_file(iface_dir_name + "/tun_flags");
-    if (tun_flags_file.open(QIODevice::ReadOnly))
-    {
-        long tun_flags = tun_flags_file.readLine().trimmed().toLong(nullptr, 0);
-        tun_flags_file.close();
-        if (tun_flags & IFF_TUN)
-        {
-            description = "TUN ";
-        }
-        else
-        {
-            if (tun_flags & IFF_TAP)
-            {
-                description = "TAP ";
-            }
-        }
-    }
-
-    // A virtual interface can be bridge or bridged, but not both.
-    bool is_bridge = QFile::exists(iface_dir_name + "/bridge");
-    if (is_bridge)
+    // Only bridges contain a directory named `bridge` and one named `brif` in virtual_path.
+    if (QFile::exists(iface_dir_name + "/bridge"))
     {
         type = "bridge";
         QDir bridged_dir(iface_dir_name + "/brif");
@@ -308,18 +279,37 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
 
         description += all_bridged.isEmpty() ? "Empty network bridge"
                                              : fmt::format("Network bridge with {}", all_bridged.join(", "));
+
+        return mp::NetworkInterfaceInfo{iface_name, type, description};
+    }
+
+    // If the virtual interface is not a bridge, then it is TUN or TAP when the file `tun_flags` exists in
+    // virtual_path.
+    if (QFile::exists(iface_dir_name + "/tun_flags"))
+    {
+        // Only the TAP devices have a directory named `brport` in virtual_path.
+        if (QFile::exists(iface_dir_name + "/brport"))
+        {
+            type = "tap";
+            description = "TAP virtual interface";
+        }
+        else
+        {
+            type = "tun";
+            description = "TUN virtual interface";
+        }
     }
     else
     {
-        auto associated_to = get_uevent_value((iface_dir_name + "/brport/bridge/uevent").toStdString(), "INTERFACE");
         type = "virtual";
-
-        description += associated_to.empty() ? "Virtual interface" : "Virtual interface associated to " + associated_to;
+        description = "Virtual interface";
     }
 
-    mp::NetworkInterfaceInfo iface_info{iface_name, type, description};
+    auto associated_to = get_uevent_value((iface_dir_name + "/brport/bridge/uevent").toStdString(), "INTERFACE");
+    if (!associated_to.empty())
+        description += " associated to " + associated_to;
 
-    return iface_info;
+    return mp::NetworkInterfaceInfo{iface_name, type, description};
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
