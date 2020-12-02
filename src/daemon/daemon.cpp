@@ -949,14 +949,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     if (!invalid_specs.empty())
         persist_instances();
 
-    for (const auto& image_host : config->image_hosts)
-    {
-        for (const auto& remote : image_host->supported_remotes())
-        {
-            remote_image_host_map[remote] = image_host.get();
-        }
-    }
-
     config->vault->prune_expired_images();
 
     // Fire timer every six hours to perform maintenance on source images such as
@@ -1099,11 +1091,8 @@ try // clang-format on
 
         if (!remote.empty())
         {
-            auto it = remote_image_host_map.find(remote);
-            if (it == remote_image_host_map.end())
-                throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
-
-            auto images_info = it->second->all_info_for(
+            auto image_host = config->vault->image_host_for(remote);
+            auto images_info = image_host->all_info_for(
                 {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
 
             if (!images_info.empty())
@@ -1159,12 +1148,9 @@ try // clang-format on
     else if (!request->remote_name().empty())
     {
         const auto remote = request->remote_name();
+        auto image_host = config->vault->image_host_for(remote);
+        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 
-        auto it = remote_image_host_map.find(remote);
-        if (it == remote_image_host_map.end())
-            throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
-
-        auto vm_images_info = it->second->all_images_for(remote, request->allow_unsupported());
         for (const auto& info : vm_images_info)
         {
             if (!info.aliases.empty())
