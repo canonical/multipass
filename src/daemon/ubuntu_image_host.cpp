@@ -246,6 +246,9 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& product : manifest.second->products)
         {
+            if (!mp::platform::is_remote_supported(manifest.first))
+                continue;
+
             action(manifest.first,
                    with_location_fully_resolved(QString::fromStdString(remote_url_from(manifest.first)), product));
         }
