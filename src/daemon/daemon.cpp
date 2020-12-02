@@ -1201,9 +1201,6 @@ try // clang-format on
             const auto default_remote{"release"};
             auto action = [&response, &image_found, default_remote, request](const std::string& remote,
                                                                              const mp::VMImageInfo& info) {
-                if (!mp::platform::is_remote_supported(remote))
-                    return;
-
                 if (info.supported || request->allow_unsupported())
                 {
                     if (image_found.find(info.release_title.toStdString()) == image_found.end())
