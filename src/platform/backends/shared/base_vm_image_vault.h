@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/query.h>
+#include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
@@ -31,7 +32,8 @@ namespace multipass
 class BaseVMImageVault : public VMImageVault
 {
 public:
-    BaseVMImageVault(std::vector<VMImageHost*> image_hosts) : image_hosts{image_hosts} {};
+    BaseVMImageVault(std::vector<VMImageHost*> image_hosts)
+        : image_hosts{image_hosts}, remote_image_host_map{vault::configure_image_host_map(image_hosts)} {};
 
     VMImageHost* image_host_for(const std::string& remote_name) override
     {
