@@ -135,23 +135,13 @@ QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir
 mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                      NetworkAccessManager* manager, const QUrl& base_url, const QString& cache_dir_path,
                                      const days& days_to_expire)
-    : image_hosts{image_hosts},
+    : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
       manager{manager},
       base_url{base_url},
       template_path{QString("%1/%2-").arg(cache_dir_path).arg(QCoreApplication::applicationName())},
       days_to_expire{days_to_expire}
 {
-    for (const auto& image_host : image_hosts)
-    {
-        for (const auto& remote : image_host->supported_remotes())
-        {
-            if (mp::platform::is_remote_supported(remote))
-            {
-                remote_image_host_map[remote] = image_host;
-            }
-        }
-    }
 }
 
 mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
@@ -179,31 +169,23 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
         auto id = config["volatile.base_image"].toString();
 
-        for (const auto& image_host : image_hosts)
+        Query image_query;
+        image_query.release = config["volatile.base_image"].toString().toStdString();
+
+        const auto info = info_for(image_query);
+
+        VMImage source_image;
+
+        source_image.id = info.id.toStdString();
+        source_image.original_release = info.release_title.toStdString();
+        source_image.release_date = info.version.toStdString();
+
+        for (const auto& alias : info.aliases)
         {
-            try
-            {
-                auto info = image_host->info_for_full_hash(id.toStdString());
-
-                VMImage source_image;
-
-                source_image.id = id.toStdString();
-                source_image.original_release = info.release_title.toStdString();
-                source_image.release_date = info.version.toStdString();
-
-                for (const auto& alias : info.aliases)
-                {
-                    source_image.aliases.push_back(alias.toStdString());
-                }
-
-                return source_image;
-            }
-            // TODO: Change exception type here once implemented in the image host
-            catch (const std::exception&)
-            {
-                // Ignore
-            }
+            source_image.aliases.push_back(alias.toStdString());
         }
+
+        return source_image;
     }
     catch (const LXDNotFoundException&)
     {
@@ -415,35 +397,6 @@ mp::MemorySize mp::LXDVMImageVault::minimum_image_size_for(const std::string& id
     }
 
     return lxd_image_size;
-}
-
-mp::VMImageInfo mp::LXDVMImageVault::info_for(const mp::Query& query)
-{
-    if (!query.remote_name.empty())
-    {
-        auto it = remote_image_host_map.find(query.remote_name);
-        if (it == remote_image_host_map.end())
-            throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", query.remote_name));
-
-        auto info = it->second->info_for(query);
-
-        if (info != nullopt)
-            return *info;
-    }
-    else
-    {
-        for (const auto& image_host : image_hosts)
-        {
-            auto info = image_host->info_for(query);
-
-            if (info)
-            {
-                return *info;
-            }
-        }
-    }
-
-    throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
 }
 
 void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& stream_location, const Query& query,

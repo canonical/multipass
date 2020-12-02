@@ -20,8 +20,7 @@
 
 #include <multipass/days.h>
 #include <multipass/query.h>
-#include <multipass/vm_image_host.h>
-#include <multipass/vm_image_vault.h>
+#include <shared/base_vm_image_vault.h>
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -32,7 +31,7 @@ namespace multipass
 class NetworkAccessManager;
 class URLDownloader;
 
-class LXDVMImageVault final : public VMImageVault
+class LXDVMImageVault final : public BaseVMImageVault
 {
 public:
     using TaskCompleteAction = std::function<void(const QJsonObject&)>;
@@ -50,7 +49,6 @@ public:
     MemorySize minimum_image_size_for(const std::string& id) override;
 
 private:
-    VMImageInfo info_for(const Query& query);
     void lxd_download_image(const QString& id, const QString& stream_location, const Query& query,
                             const ProgressMonitor& monitor, const QString& last_used = QString());
     void url_download_image(const VMImageInfo& info, const QString& image_path, const ProgressMonitor& monitor);
@@ -59,7 +57,6 @@ private:
     std::string get_lxd_image_hash_for(const QString& id);
     QJsonArray retrieve_image_list();
 
-    std::vector<VMImageHost*> image_hosts;
     URLDownloader* const url_downloader;
     NetworkAccessManager* manager;
     const QUrl base_url;
