@@ -741,16 +741,8 @@ mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
 {
     if (!query.remote_name.empty())
     {
-        const std::string error_helper_msg{"Please use `multipass find` for supported remotes and images."};
-
-        auto it = remote_image_host_map.find(query.remote_name);
-        if (it == remote_image_host_map.end())
-        {
-            throw std::runtime_error(
-                fmt::format("Remote \'{}\' is not found. {}", query.remote_name, error_helper_msg));
-        }
-
-        auto info = it->second->info_for(query);
+        auto image_host = image_host_for(query.remote_name);
+        auto info = image_host->info_for(query);
 
         if (info != nullopt)
             return *info;
