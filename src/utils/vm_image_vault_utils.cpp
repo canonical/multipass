@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/xz_image_decoder.h>
 
@@ -76,4 +77,20 @@ QString mp::vault::extract_image(const mp::Path& image_path, const mp::ProgressM
     mp::vault::delete_file(image_path);
 
     return new_image_path;
+}
+
+std::unordered_map<std::string, mp::VMImageHost*>
+mp::vault::configure_image_host_map(std::vector<mp::VMImageHost*> image_hosts)
+{
+    std::unordered_map<std::string, mp::VMImageHost*> remote_image_host_map;
+
+    for (const auto& image_host : image_hosts)
+    {
+        for (const auto& remote : image_host->supported_remotes())
+        {
+            remote_image_host_map[remote] = image_host;
+        }
+    }
+
+    return remote_image_host_map;
 }
