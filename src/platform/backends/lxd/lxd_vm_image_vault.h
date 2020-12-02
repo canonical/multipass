@@ -27,8 +27,6 @@
 #include <QJsonObject>
 #include <QUrl>
 
-#include <unordered_map>
-
 namespace multipass
 {
 class NetworkAccessManager;
@@ -67,7 +65,6 @@ private:
     const QUrl base_url;
     const QString template_path;
     const days days_to_expire;
-    std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };
 } // namespace multipass
 #endif // MULTIPASS_LXD_VM_IMAGE_VAULT_H
