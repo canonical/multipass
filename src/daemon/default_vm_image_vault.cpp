@@ -244,7 +244,7 @@ mp::MemorySize get_image_size(const mp::Path& image_path)
 
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                              mp::Path cache_dir_path, mp::Path data_dir_path, mp::days days_to_expire)
-    : image_hosts{image_hosts},
+    : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
       cache_dir{QDir(cache_dir_path).filePath("vault")},
       data_dir{QDir(data_dir_path).filePath("vault")},
@@ -254,13 +254,6 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
       instance_image_records{load_db(data_dir.filePath(instance_db_name))}
 {
-    for (const auto& image_host : image_hosts)
-    {
-        for (const auto& remote : image_host->supported_remotes())
-        {
-            remote_image_host_map[remote] = image_host;
-        }
-    }
 }
 
 mp::DefaultVMImageVault::~DefaultVMImageVault()
@@ -735,32 +728,6 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
     persist_image_records();
 
     return vm_image;
-}
-
-mp::VMImageInfo mp::DefaultVMImageVault::info_for(const mp::Query& query)
-{
-    if (!query.remote_name.empty())
-    {
-        auto image_host = image_host_for(query.remote_name);
-        auto info = image_host->info_for(query);
-
-        if (info != nullopt)
-            return *info;
-    }
-    else
-    {
-        for (const auto& image_host : image_hosts)
-        {
-            auto info = image_host->info_for(query);
-
-            if (info)
-            {
-                return *info;
-            }
-        }
-    }
-
-    throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
 }
 
 mp::VMImageInfo mp::DefaultVMImageVault::get_kernel_query_info(const std::string& name)

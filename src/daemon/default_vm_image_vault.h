@@ -23,7 +23,7 @@
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
-#include <multipass/vm_image_vault.h>
+#include <shared/base_vm_image_vault.h>
 
 #include <QDir>
 #include <QFuture>
@@ -42,7 +42,7 @@ public:
     multipass::Query query;
     std::chrono::system_clock::time_point last_accessed;
 };
-class DefaultVMImageVault final : public VMImageVault
+class DefaultVMImageVault final : public BaseVMImageVault
 {
 public:
     DefaultVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, multipass::Path cache_dir_path,
@@ -69,12 +69,10 @@ private:
                                     const ProgressMonitor& monitor);
     optional<QFuture<VMImage>> get_image_future(const std::string& id);
     VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id);
-    VMImageInfo info_for(const Query& query);
     VMImageInfo get_kernel_query_info(const std::string& name);
     void persist_image_records();
     void persist_instance_records();
 
-    std::vector<VMImageHost*> image_hosts;
     URLDownloader* const url_downloader;
     const QDir cache_dir;
     const QDir data_dir;

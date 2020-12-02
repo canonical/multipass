@@ -47,6 +47,9 @@ function(add_daemon_target TARGET_NAME)
     yaml)
 endfunction()
 
+include_directories(daemon
+  ${CMAKE_SOURCE_DIR}/src/platform/backends)
+
 add_library(delayed_shutdown STATIC
   delayed_shutdown_timer.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/delayed_shutdown_timer.h)
