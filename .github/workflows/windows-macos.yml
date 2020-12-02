@@ -162,7 +162,7 @@ jobs:
           wget
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v2.10.0
       with:
         version: ${{ env.QT_VERSION }}
 
