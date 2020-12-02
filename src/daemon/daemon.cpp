@@ -607,7 +607,8 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
 // Computes the final size of an image, but also checks if the value given by the user is bigger than or equal than
 // the size of the image.
 mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
-                                        mp::optional<mp::MemorySize> command_line_value)
+                                        mp::optional<mp::MemorySize> command_line_value,
+                                        mp::Path data_directory)
 {
     mp::MemorySize disk_space{};
 
@@ -626,7 +627,12 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
         disk_space = *command_line_value;
     }
 
-    auto available_bytes = QStorageInfo::root().bytesAvailable();
+    auto available_bytes = QStorageInfo(QDir(data_directory)).bytesAvailable();
+    if (available_bytes == -1)
+    {
+        throw std::runtime_error(fmt::format("Failed to determine information about the volume containing {}", 
+                                             data_directory.toStdString()));
+    }
     std::string available_bytes_str = QString::number(available_bytes).toStdString();
     auto available_disk_space = mp::MemorySize(available_bytes_str + "B");
 
@@ -1986,7 +1992,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
                 const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
-                const auto disk_space = compute_final_image_size(image_size, checked_args.disk_space);
+                const auto disk_space = compute_final_image_size(image_size, checked_args.disk_space, config->data_directory);
 
                 reply.set_create_message("Configuring " + name);
                 server->Write(reply);
