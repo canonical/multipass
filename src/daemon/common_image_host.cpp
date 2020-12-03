@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include <multipass/logging/log.h>
 
 #include <multipass/format.h>
+#include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -86,4 +87,12 @@ void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& detail
 {
     need_extra_update = true;
     mpl::log(mpl::Level::warning, category, fmt::format("Could not update manifest: {}", details));
+}
+
+void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_name)
+{
+    if (!mp::platform::is_remote_supported(remote_name))
+        throw std::runtime_error(fmt::format("Remote \'{}\' is not a supported remote for this platform. Please use "
+                                             "`multipass find` for supported remotes and images.",
+                                             remote_name));
 }

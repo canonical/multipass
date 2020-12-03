@@ -70,14 +70,6 @@ auto key_from(const std::string& search_string)
         key = "default";
     return key;
 }
-
-void check_remote_is_supported(const std::string& remote_name)
-{
-    if (!mp::platform::is_remote_supported(remote_name))
-        throw std::runtime_error(fmt::format("Remote \'{}\' is not a supported remote for this platform. Please use "
-                                             "`multipass find` for supported remotes and images.",
-                                             remote_name));
-}
 } // namespace
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
