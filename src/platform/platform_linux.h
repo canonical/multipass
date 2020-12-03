@@ -26,6 +26,9 @@ namespace multipass::platform
 {
 multipass::NetworkInterfaceInfo get_virtual_interface_info(const std::string& iface_name,
                                                            const std::string& virtual_path);
+
+multipass::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name,
+                                                            const std::string& physical_path);
 } // namespace multipass::platform
 
 #endif // MULTIPASS_PLATFORM_LINUX_H

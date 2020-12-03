@@ -435,7 +435,9 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
                          Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
 
 // To test network interfaces, we mock the output of the command `ip`. With this, we can get information about the
-// `lo` interface (present in all systems) and about physical interfaces.
+// `lo` interface (present in all systems) and about some physical interfaces present in our `ip` mock. However,
+// the specific functions to get information from physical and virtual interfaces will be tested later more
+// thoroughly.
 struct TestNetworkInterfacesInfo : public TestWithParam<std::tuple<std::string, mp::NetworkInterfaceInfo>>
 {
 };
@@ -464,7 +466,7 @@ auto make_test_input(const std::string& id, const std::string& type, const std::
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestNetworkInterfacesInfo,
                          Values(make_test_input("lo", "virtual", "Virtual interface"),
-                                make_test_input("enp4s0", "hardware", "Ethernet or wifi")));
+                                make_test_input("enp4s0", "ethernet", "Ethernet device")));
 
 // To test virtual network interfaces, we need to mock the filesystem under /sys/devices/virtual/net/.
 void create_file_containing(const std::string& name, const std::string& contents)
@@ -479,8 +481,8 @@ void create_file_containing(const std::string& name, const std::string& contents
     fclose(tun_flags_fd);
 }
 
-// The test data for each interface will be a tuple containing name, folders which must be present in the mocked
-// filesystem, files/contents, expected type, expected description.
+// The test data for each virtual interface will be a tuple containing name, folders which must be present in the
+// mocked filesystem, files/contents, expected type, expected description.
 struct TestVirtualNetworkInterfacesInfo
     : public TestWithParam<std::tuple<std::string, std::vector<std::string>,
                                       std::vector<std::pair<std::string, std::string>>, std::string, std::string>>
@@ -541,6 +543,44 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::pair<std::string, std::string>>{
                                std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n")},
                            "virtual", "Virtual interface associated to br2")));
+
+// Testing physical interfaces require mocking the contents of /proc/net/wireless. The four test parameters are
+// thus the name of the interface, the contents of /proc/net/wireless (the path will be mocked), expected type
+// and expected description of the interface.
+struct TestPhysicalNetworkInterfacesInfo
+    : public TestWithParam<std::tuple<std::string, std::string, std::string, std::string>>
+{
+};
+
+TEST_P(TestPhysicalNetworkInterfacesInfo, test_physical_network_interfaces_info)
+{
+    const auto param = GetParam();
+    const std::string& if_name = std::get<0>(param);
+    const std::string& wireless_file_contents = std::get<1>(param);
+    const std::string& expected_type = std::get<2>(param);
+    const std::string& expected_desc = std::get<3>(param);
+
+    // The created temp folder is automagically deleted after the test ends.
+    mpt::TempDir temp_dir;
+    std::string if_dir(temp_dir.path().toStdString() + "/");
+
+    create_file_containing(if_dir + "wireless", wireless_file_contents);
+
+    auto if_info = mp::platform::get_physical_interface_info(if_name, if_dir);
+
+    ASSERT_EQ(if_info.id, if_name);
+    ASSERT_EQ(if_info.type, expected_type);
+    ASSERT_EQ(if_info.description, expected_desc);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    PlatformLinux, TestPhysicalNetworkInterfacesInfo,
+    Values(std::make_tuple("wlp4s0",
+                           "Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
+                           " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n"
+                           "wlp4s0: 0000   49.  -61.  -256        0      0      0      0    131        0\n",
+                           "wifi", "Wi-Fi device"),
+           std::make_tuple("enp3s0", "nothing interesting here\n", "ethernet", "Ethernet device")));
 
 TEST_F(PlatformLinux, test_network_interfaces_info_ip_crashes)
 {

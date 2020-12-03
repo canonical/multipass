@@ -44,6 +44,7 @@
 #include <QFile>
 #include <QIODevice>
 #include <QRegularExpression>
+#include <QTextStream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -93,32 +94,33 @@ QString get_ip_output(QStringList ip_args)
         throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
 }
 
-mp::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name)
+QSet<QString> get_wireless_devices(const std::string& physical_path)
 {
-    QString iface_name_qstr = QString::fromStdString(iface_name);
-    std::string type;
-    std::string description;
+    QSet<QString> wifi_devices;
 
-    QString ip_output = get_ip_output({"link", "show", "dev", iface_name_qstr});
+    QFile wifi_file(QString::fromStdString(physical_path + "wireless"));
+    if (!wifi_file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return wifi_devices;
 
-    if (ip_output.contains(": " + iface_name_qstr + ": "))
+    auto device_regex = QRegularExpression(QStringLiteral("^(?<name>\\w+):.*$"), QRegularExpression::MultilineOption);
+
+    QTextStream in(&wifi_file);
+    while (!in.atEnd())
     {
-        type = "hardware";
-        description = "Ethernet or wifi";
-    }
-    else
-    {
-        // TODO: throw here?
-        type = "";
-        description = "";
+        auto device_match = device_regex.match(in.readLine());
+        if (device_match.hasMatch())
+            wifi_devices << device_match.captured("name");
     }
 
-    return mp::NetworkInterfaceInfo{iface_name, type, description};
+    wifi_file.close();
+
+    return wifi_devices;
 }
 
 mp::NetworkInterfaceInfo get_network_interface_info(const std::string& iface_name)
 {
     std::string virtual_path("/sys/devices/virtual/net/" + iface_name);
+    std::string physical_path("/proc/net/");
 
     // The interface can be a hardware or virtual one. To distinguish between them, we see if a folder with the
     // interface name exists in /sys/devices/net/virtual.
@@ -128,7 +130,7 @@ mp::NetworkInterfaceInfo get_network_interface_info(const std::string& iface_nam
     }
     else
     {
-        return get_physical_interface_info(iface_name);
+        return mp::platform::get_physical_interface_info(iface_name, physical_path);
     }
 }
 
@@ -310,6 +312,15 @@ mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::str
         description += " associated to " + associated_to;
 
     return mp::NetworkInterfaceInfo{iface_name, type, description};
+}
+
+mp::NetworkInterfaceInfo mp::platform::get_physical_interface_info(const std::string& iface_name,
+                                                                   const std::string& physical_path)
+{
+    if (get_wireless_devices(physical_path).contains(QString::fromStdString(iface_name)))
+        return mp::NetworkInterfaceInfo{iface_name, "wifi", "Wi-Fi device"};
+    else
+        return mp::NetworkInterfaceInfo{iface_name, "ethernet", "Ethernet device"};
 }
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
