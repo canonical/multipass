@@ -17,6 +17,7 @@
 
 #include "custom_image_host.h"
 
+#include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 
@@ -186,6 +187,8 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono:
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
+    check_remote_is_supported(query.remote_name);
+
     auto custom_manifest = manifest_from(query.remote_name);
 
     auto it = custom_manifest->image_records.find(query.release);
@@ -198,6 +201,8 @@ mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& query)
 {
+    check_remote_is_supported(query.remote_name);
+
     std::vector<mp::VMImageInfo> images;
 
     auto image = info_for(query);
@@ -215,6 +220,8 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name,
                                                                    const bool allow_unsupported)
 {
+    check_remote_is_supported(remote_name);
+
     std::vector<mp::VMImageInfo> images;
     auto custom_manifest = manifest_from(remote_name);
 
@@ -230,6 +237,9 @@ void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
 {
     for (const auto& manifest : custom_image_info)
     {
+        if (!mp::platform::is_remote_supported(manifest.first))
+            continue;
+
         for (const auto& info : manifest.second->products)
         {
             action(manifest.first, info);
