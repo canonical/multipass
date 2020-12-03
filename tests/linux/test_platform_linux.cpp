@@ -532,11 +532,7 @@ INSTANTIATE_TEST_SUITE_P(
                                std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n")},
                            "virtual", "Virtual interface associated to br2")));
 
-// Testing physical interfaces require mocking the contents of /proc/net/wireless. The four test parameters are
-// thus the name of the interface, the contents of /proc/net/wireless (the path will be mocked), expected type
-// and expected description of the interface.
-struct TestPhysicalNetworkInterfacesInfo
-    : public TestWithParam<std::tuple<std::string, std::string, std::string, std::string>>
+struct TestPhysicalNetworkInterfacesInfo : public TestWithParam<std::tuple<std::string, std::string, std::string>>
 {
 };
 
@@ -544,31 +540,71 @@ TEST_P(TestPhysicalNetworkInterfacesInfo, test_physical_network_interfaces_info)
 {
     const auto param = GetParam();
     const std::string& if_name = std::get<0>(param);
-    const std::string& wireless_file_contents = std::get<1>(param);
-    const std::string& expected_type = std::get<2>(param);
-    const std::string& expected_desc = std::get<3>(param);
+    const std::string& expected_type = std::get<1>(param);
+    const std::string& expected_desc = std::get<2>(param);
 
-    // The created temp folder is automagically deleted after the test ends.
     mpt::TempDir temp_dir;
     std::string if_dir(temp_dir.path().toStdString() + "/");
 
-    mpt::make_file_with_content(QString::fromStdString(if_dir + "wireless"), wireless_file_contents);
+    QSet<QString> wireless_interfaces({"wlp4s0"});
 
-    auto if_info = mp::platform::get_physical_interface_info(if_name, if_dir);
+    auto if_info = mp::platform::get_physical_interface_info(if_name, wireless_interfaces);
 
     ASSERT_EQ(if_info.id, if_name);
     ASSERT_EQ(if_info.type, expected_type);
     ASSERT_EQ(if_info.description, expected_desc);
 }
 
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestPhysicalNetworkInterfacesInfo,
+                         Values(std::make_tuple("wlp4s0", "wifi", "Wi-Fi device"),
+                                std::make_tuple("enp3s0", "ethernet", "Ethernet device")));
+
+struct TestWirelessNetworkListing : public TestWithParam<std::pair<std::string, QSet<QString>>>
+{
+};
+
+TEST_P(TestWirelessNetworkListing, test_get_wireless_devices)
+{
+    const auto param = GetParam();
+    const std::string& wireless_file_contents = param.first;
+    const QSet<QString>& expected_set = param.second;
+
+    mpt::TempDir temp_dir;
+    std::string proc_net_dir(temp_dir.path().toStdString());
+
+    auto file_name = QString::fromStdString(proc_net_dir + "/wireless");
+    mpt::make_file_with_content(file_name, wireless_file_contents);
+
+    auto wireless_set = mp::platform::get_wireless_devices(proc_net_dir + "/");
+
+    ASSERT_EQ(expected_set, wireless_set);
+}
+
 INSTANTIATE_TEST_SUITE_P(
-    PlatformLinux, TestPhysicalNetworkInterfacesInfo,
-    Values(std::make_tuple("wlp4s0",
-                           "Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
-                           " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n"
-                           "wlp4s0: 0000   49.  -61.  -256        0      0      0      0    131        0\n",
-                           "wifi", "Wi-Fi device"),
-           std::make_tuple("enp3s0", "nothing interesting here\n", "ethernet", "Ethernet device")));
+    PlatformLinux, TestWirelessNetworkListing,
+    Values(std::make_pair("Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
+                          " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n"
+                          "wlp4s0: 0000   49.  -61.  -256        0      0      0      0    131        0\n",
+                          QSet<QString>({"wlp4s0"})),
+           std::make_pair("Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
+                          " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n",
+                          QSet<QString>()),
+           std::make_pair("Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
+                          " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n"
+                          "wlx60e3270f55fe: 0000  100.   63.    0.       0      0      0      0      0        0\n"
+                          "wlp4s0: 0000   49.  -61.  -256        0      0      0      0    131        0\n",
+                          QSet<QString>({"wlp4s0", "wlx60e3270f55fe"})),
+           std::make_pair("", QSet<QString>())));
+
+TEST_F(PlatformLinux, test_get_wireless_devices_no_proc_file)
+{
+    mpt::TempDir temp_dir;
+    std::string proc_net_dir(temp_dir.path().toStdString());
+
+    auto wireless_set = mp::platform::get_wireless_devices(proc_net_dir + "/");
+
+    ASSERT_EQ(wireless_set, QSet<QString>());
+}
 
 TEST_F(PlatformLinux, test_network_interfaces_info_ip_crashes)
 {

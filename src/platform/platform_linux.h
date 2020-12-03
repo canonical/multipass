@@ -22,13 +22,18 @@
 
 #include <string>
 
+#include <QSet>
+#include <QString>
+
 namespace multipass::platform
 {
 multipass::NetworkInterfaceInfo get_virtual_interface_info(const std::string& iface_name,
                                                            const std::string& virtual_path);
 
+QSet<QString> get_wireless_devices(const std::string& physical_path);
+
 multipass::NetworkInterfaceInfo get_physical_interface_info(const std::string& iface_name,
-                                                            const std::string& physical_path);
+                                                            const QSet<QString>& wl_interfaces);
 } // namespace multipass::platform
 
 #endif // MULTIPASS_PLATFORM_LINUX_H
