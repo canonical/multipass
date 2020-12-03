@@ -16,6 +16,7 @@
  */
 
 #include "tests/fake_handle.h"
+#include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
@@ -468,19 +469,6 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestNetworkInterfacesInfo,
                          Values(make_test_input("lo", "virtual", "Virtual interface"),
                                 make_test_input("enp4s0", "ethernet", "Ethernet device")));
 
-// To test virtual network interfaces, we need to mock the filesystem under /sys/devices/virtual/net/.
-void create_file_containing(const std::string& name, const std::string& contents)
-{
-    QStringList folders = QString::fromStdString(name).split('/', QString::SkipEmptyParts);
-    folders.removeLast();
-    QString path = '/' + folders.join('/');
-    QDir().mkpath(path);
-
-    FILE* tun_flags_fd = fopen(name.c_str(), "w");
-    fprintf(tun_flags_fd, "%s", contents.c_str());
-    fclose(tun_flags_fd);
-}
-
 // The test data for each virtual interface will be a tuple containing name, folders which must be present in the
 // mocked filesystem, files/contents, expected type, expected description.
 struct TestVirtualNetworkInterfacesInfo
@@ -509,7 +497,7 @@ TEST_P(TestVirtualNetworkInterfacesInfo, test_virtual_network_interfaces_info)
 
     for (const auto& file : files)
     {
-        create_file_containing(if_dir + "/" + file.first, file.second);
+        mpt::make_file_with_content(QString::fromStdString(if_dir + "/" + file.first), file.second);
     }
 
     auto if_info = mp::platform::get_virtual_interface_info(if_name, if_dir);
@@ -539,7 +527,7 @@ INSTANTIATE_TEST_SUITE_P(
                            "Network bridge with eth2, wifi3"),
            std::make_tuple("virt0", std::vector<std::string>{}, std::vector<std::pair<std::string, std::string>>{},
                            "virtual", "Virtual interface"),
-           std::make_tuple("virt1", std::vector<std::string>{},
+           std::make_tuple("virt1", std::vector<std::string>{"brport/bridge"},
                            std::vector<std::pair<std::string, std::string>>{
                                std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n")},
                            "virtual", "Virtual interface associated to br2")));
@@ -564,7 +552,7 @@ TEST_P(TestPhysicalNetworkInterfacesInfo, test_physical_network_interfaces_info)
     mpt::TempDir temp_dir;
     std::string if_dir(temp_dir.path().toStdString() + "/");
 
-    create_file_containing(if_dir + "wireless", wireless_file_contents);
+    mpt::make_file_with_content(QString::fromStdString(if_dir + "wireless"), wireless_file_contents);
 
     auto if_info = mp::platform::get_physical_interface_info(if_name, if_dir);
 
