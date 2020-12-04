@@ -830,9 +830,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        // If there are no repetitions, add the new macs to the daemon's list.
-        allocated_mac_addrs = std::move(new_macs);
-
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
@@ -862,6 +859,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             config->vault->remove(name);
             continue;
         }
+
+        allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
         // FIXME: somehow we're writing contradictory state to disk.
         if (spec.deleted && spec.state != VirtualMachine::State::stopped)
