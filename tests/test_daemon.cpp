@@ -1070,4 +1070,22 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
     send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", mac_addr)});
 }
 
+TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string mac_addr("52:54:00:73:76:28");
+
+    auto temp_dir = plant_instance_json(fake_json_contents(mac_addr, {}));
+    config_builder.data_directory = temp_dir->path();
+
+    auto mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .Times(2)                           // expect one call in the constructor and one in launch
+        .WillOnce(Throw(std::exception{})); // fail the first one
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", mac_addr)});
+}
+
 } // namespace
