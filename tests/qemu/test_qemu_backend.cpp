@@ -57,10 +57,12 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
-                                                      "",
+                                                      {"default", "", true},
+                                                      {},
                                                       "",
                                                       {dummy_image.name(), "", "", "", "", "", {}, {}},
                                                       dummy_cloud_init_iso.name(),
+                                                      {},
                                                       {},
                                                       {},
                                                       {}};
@@ -541,4 +543,11 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
     EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
+}
+
+TEST_F(QemuBackend, lists_no_networks)
+{
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
 }
