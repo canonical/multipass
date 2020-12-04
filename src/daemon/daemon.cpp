@@ -366,24 +366,40 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 }
 
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
+                                                            std::vector<mp::NetworkInterfaceInfo> factory_networks,
                                                             mp::LaunchError& option_errors)
 {
-    // The associated bool indicates whether the interface mode is 'auto', i.e., needs to be configured by cloud-init.
     std::vector<mp::NetworkInterface> interfaces;
 
     for (const auto& net : request->network_options())
     {
+        // Check that the id the user specified is valid.
+        auto pred = [net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id(); };
+        const auto& result = std::find_if(factory_networks.cbegin(), factory_networks.cend(), pred);
+
+        if (result == factory_networks.cend())
+        {
+            mpl::log(mpl::Level::debug, category, fmt::format("Invalid network id \"{}\"", net.id()));
+            option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
+        }
+
+        // Check that the MAC the user specified is not repeated.
         if (const auto& mac = QString::fromStdString(net.mac_address()).toLower().toStdString();
             mac.empty() || mpu::valid_mac_address(mac))
             interfaces.push_back(
                 mp::NetworkInterface{net.id(), mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
+        {
+            mpl::log(mpl::Level::debug, category, fmt::format("Repeated MAC address \"{}\"", mac));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
+        }
     }
+
     return interfaces;
 }
 
-auto validate_create_arguments(const mp::LaunchRequest* request)
+auto validate_create_arguments(const mp::LaunchRequest* request,
+                               const std::vector<mp::NetworkInterfaceInfo>& factory_networks)
 {
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
@@ -421,7 +437,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    auto extra_interfaces = validate_extra_interfaces(request, option_errors);
+    auto extra_interfaces = validate_extra_interfaces(request, factory_networks, option_errors);
 
     struct CheckedArguments
     {
@@ -432,23 +448,6 @@ auto validate_create_arguments(const mp::LaunchRequest* request)
         mp::LaunchError option_errors;
     } ret{mem_size, disk_space, instance_name, extra_interfaces, option_errors};
     return ret;
-}
-
-// Checks that all the interfaces in arg_ifaces are contained in platform_ifaces. If not, log and store the error.
-void validate_network_ids(std::vector<mp::NetworkInterface>& arg_ifaces,
-                          const std::vector<mp::NetworkInterfaceInfo>& platform_ifaces, mp::LaunchError* errors)
-{
-    for (mp::NetworkInterface& arg_iface : arg_ifaces)
-    {
-        auto pred = [arg_iface](const mp::NetworkInterfaceInfo& info) { return info.id == arg_iface.id; };
-        const auto& result = std::find_if(platform_ifaces.cbegin(), platform_ifaces.cend(), pred);
-
-        if (result == platform_ifaces.cend())
-        {
-            mpl::log(mpl::Level::debug, category, fmt::format("Invalid network id \"{}\"", arg_iface.id));
-            errors->add_error_codes(mp::LaunchError::INVALID_NETWORK);
-        }
-    }
 }
 
 auto grpc_status_for_mount_error(const std::string& instance_name)
@@ -2057,16 +2056,13 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
-    auto checked_args = validate_create_arguments(request);
+    std::vector<mp::NetworkInterfaceInfo> factory_networks;
 
-    // Validate the names of the networks to connect to. Check here, because this function is inside the daemon,
-    // thus it can call functions from the factory.
-    if (!checked_args.extra_interfaces.empty())
+    if (!request->network_options().empty())
     {
         try
         {
-            validate_network_ids(checked_args.extra_interfaces, config->factory->list_networks(),
-                                 &checked_args.option_errors);
+            factory_networks = config->factory->list_networks();
         }
         catch (const mp::NotImplementedOnThisBackendException&)
         {
@@ -2074,6 +2070,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             throw mp::NotImplementedOnThisBackendException("--network");
         }
     }
+
+    auto checked_args = validate_create_arguments(request, factory_networks);
 
     if (!checked_args.option_errors.error_codes().empty())
     {
