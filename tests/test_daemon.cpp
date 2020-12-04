@@ -1026,4 +1026,48 @@ TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
     EXPECT_THAT(err_stream.str(), HasSubstr("The --network feature is not implemented on this backend"));
 }
 
+TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string repeated_mac{"52:54:00:bd:19:41"};
+    std::string json_contents = fake_json_contents(repeated_mac, {});
+
+    mpt::TempDir temp_dir;
+    QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
+
+    mpt::make_file_with_content(filename, json_contents);
+    config_builder.data_directory = temp_dir.path();
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
+    send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", repeated_mac)}, std::cout, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("Repeated MAC"), HasSubstr(repeated_mac)));
+}
+
+TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string mac_addr("52:54:00:73:76:28");
+    std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"hostnet", mac_addr, true}};
+
+    std::string json_contents = fake_json_contents(mac_addr, extra_interfaces);
+
+    mpt::TempDir temp_dir;
+    QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
+
+    mpt::make_file_with_content(filename, json_contents);
+    config_builder.data_directory = temp_dir.path();
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", mac_addr)});
+}
+
 } // namespace
