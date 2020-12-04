@@ -866,7 +866,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         if (spec.deleted && spec.state != VirtualMachine::State::stopped)
         {
             mpl::log(mpl::Level::warning, category,
-                     fmt::format("{} is deleted but has incompatible state {}, reseting state to 0 (stopped)", name,
+                     fmt::format("{} is deleted but has incompatible state {}, resetting state to 0 (stopped)", name,
                                  static_cast<int>(spec.state)));
             spec.state = VirtualMachine::State::stopped;
         }
