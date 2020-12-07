@@ -20,6 +20,7 @@
 
 #include "multipass/vm_image_host.h"
 
+#include <QStringList>
 #include <QTimer>
 
 #include <chrono>
@@ -39,6 +40,8 @@ protected:
     void on_manifest_update_failure(const std::string& details);
     void on_manifest_empty(const std::string& details);
     void check_remote_is_supported(const std::string& remote_name);
+    void check_alias_is_supported(const std::string& alias, const std::string& remote_name);
+    bool check_all_aliases_are_supported(const QStringList& aliases, const std::string& remote_name);
 
     virtual void for_each_entry_do_impl(const Action& action) = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;

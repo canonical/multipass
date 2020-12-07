@@ -96,3 +96,27 @@ void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_
                                              "`multipass find` for supported remotes and images.",
                                              remote_name));
 }
+
+void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, const std::string& remote_name)
+{
+    if (!mp::platform::is_alias_supported(alias, remote_name))
+        throw std::runtime_error(fmt::format(
+            "\'{}\' is not a supported alias. Please use `multipass find` for supported image aliases.", alias));
+}
+
+bool mp::CommonVMImageHost::check_all_aliases_are_supported(const QStringList& aliases, const std::string& remote_name)
+{
+    for (const auto& alias : aliases)
+    {
+        try
+        {
+            check_alias_is_supported(alias.toStdString(), remote_name);
+        }
+        catch (const std::exception& /* e */)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
