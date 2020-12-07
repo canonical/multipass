@@ -24,6 +24,7 @@
 
 #include <QString>
 
+#include <string>
 #include <vector>
 
 namespace multipass
@@ -54,7 +55,7 @@ public:
     void update_state() override;
 
 private:
-    void setup_network_interfaces(const NetworkInterface& default_interface,
+    void setup_network_interfaces(const std::string& default_mac_address,
                                   const std::vector<NetworkInterface>& extra_interfaces);
 
     const QString name;

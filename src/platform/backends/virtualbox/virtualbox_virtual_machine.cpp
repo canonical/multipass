@@ -95,9 +95,8 @@ auto instance_state_for(const QString& name)
 
 QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
 {
-    QStringList arguments{"--nic1",        "nat",
-                          "--nictype1",    "virtio",
-                          "--macaddress1", QString::fromStdString(desc.default_interface.mac_address).remove(':')};
+    QStringList arguments{"--nic1", "nat",           "--nictype1",
+                          "virtio", "--macaddress1", QString::fromStdString(desc.default_mac_address).remove(':')};
 
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {

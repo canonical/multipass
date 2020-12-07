@@ -118,7 +118,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         checked_ps_run(*power_shell, {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
                        "Could not setup cloud-init drive");
 
-        setup_network_interfaces(desc.default_interface, desc.extra_interfaces);
+        setup_network_interfaces(desc.default_mac_address, desc.extra_interfaces);
 
         state = State::off;
     }
@@ -128,13 +128,12 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     }
 }
 
-void mp::HyperVVirtualMachine::setup_network_interfaces(const NetworkInterface& default_interface,
+void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& default_mac_address,
                                                         const std::vector<NetworkInterface>& extra_interfaces)
 {
-    // TODO we only honor default_interface.mac_address, the rest is ignored, so should probably receive only the mac
     checked_ps_run(*power_shell,
                    {"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
-                    QString::fromStdString('"' + default_interface.mac_address + '"')},
+                    QString::fromStdString('"' + default_mac_address + '"')},
                    "Could not setup default adapter");
 
     for (const auto& net : extra_interfaces)
