@@ -154,6 +154,8 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
         remote_name = release_remote;
     }
 
+    check_alias_is_supported(query.release, query.remote_name);
+
     std::vector<mp::VMImageInfo> images;
 
     auto key = key_from(query.release);
@@ -220,6 +222,11 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
     for (const auto& entry : manifest->products)
     {
+        if (!check_all_aliases_are_supported(entry.aliases, remote_name))
+        {
+            continue;
+        }
+
         if (entry.supported || allow_unsupported)
         {
             images.push_back(with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
@@ -241,6 +248,11 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
 
         for (const auto& product : manifest.second->products)
         {
+            if (!check_all_aliases_are_supported(product.aliases, manifest.first))
+            {
+                continue;
+            }
+
             action(manifest.first,
                    with_location_fully_resolved(QString::fromStdString(remote_url_from(manifest.first)), product));
         }
