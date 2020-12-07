@@ -1075,18 +1075,21 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    std::string mac_addr("52:54:00:73:76:28");
+    std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
+    std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"en0", mac2, true}};
 
-    auto temp_dir = plant_instance_json(fake_json_contents(mac_addr, {}));
+    auto temp_dir = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .Times(2)                           // expect one call in the constructor and one in launch
-        .WillOnce(Throw(std::exception{})); // fail the first one
+        .Times(3)                          // expect one call in the constructor and three in launch
+        .WillOnce(Throw(std::exception{})) // fail the first one
+        .WillRepeatedly(DoDefault());      // succeed the rest (this avoids gmock warnings)
     mp::Daemon daemon{config_builder.build()};
 
-    send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", mac_addr)});
+    for (const auto& mac : {mac1, mac2})
+        send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac)});
 }
 
 } // namespace
