@@ -394,7 +394,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
         if (result == factory_networks.cend())
         {
-            mpl::log(mpl::Level::debug, category, fmt::format("Invalid network id \"{}\"", net.id()));
+            mpl::log(mpl::Level::warning, category, fmt::format("Invalid network id \"{}\"", net.id()));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
 
@@ -405,7 +405,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
                 mp::NetworkInterface{net.id(), mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
         {
-            mpl::log(mpl::Level::debug, category, fmt::format("Repeated MAC address \"{}\"", mac));
+            mpl::log(mpl::Level::warning, category, fmt::format("Repeated MAC address \"{}\"", mac));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
     }
