@@ -1107,4 +1107,16 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
     send_command(cmd); // this one succeeds
 }
 
+TEST_F(Daemon, releases_macs_when_launch_fails)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
+
+    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=bla"};
+    send_command(cmd); // this one fails
+    send_command(cmd); // this one succeeds
+}
+
 } // namespace
