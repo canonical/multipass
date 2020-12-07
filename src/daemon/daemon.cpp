@@ -366,9 +366,24 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 }
 
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
-                                                            std::vector<mp::NetworkInterfaceInfo> factory_networks,
+                                                            const std::unique_ptr<mp::VirtualMachineFactory>& factory,
                                                             mp::LaunchError& option_errors)
 {
+    std::vector<mp::NetworkInterfaceInfo> factory_networks;
+
+    if (!request->network_options().empty())
+    {
+        try
+        {
+            factory_networks = factory->list_networks();
+        }
+        catch (const mp::NotImplementedOnThisBackendException&)
+        {
+            // If list-networks is not implemented, we should report that --network is not implemented on this backend.
+            throw mp::NotImplementedOnThisBackendException("--network");
+        }
+    }
+
     std::vector<mp::NetworkInterface> interfaces;
 
     for (const auto& net : request->network_options())
@@ -399,7 +414,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 }
 
 auto validate_create_arguments(const mp::LaunchRequest* request,
-                               const std::vector<mp::NetworkInterfaceInfo>& factory_networks)
+                               const std::unique_ptr<mp::VirtualMachineFactory>& factory)
 {
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
@@ -437,7 +452,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request,
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    auto extra_interfaces = validate_extra_interfaces(request, factory_networks, option_errors);
+    auto extra_interfaces = validate_extra_interfaces(request, factory, option_errors);
 
     struct CheckedArguments
     {
@@ -2056,22 +2071,7 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
-    std::vector<mp::NetworkInterfaceInfo> factory_networks;
-
-    if (!request->network_options().empty())
-    {
-        try
-        {
-            factory_networks = config->factory->list_networks();
-        }
-        catch (const mp::NotImplementedOnThisBackendException&)
-        {
-            // If list-networks is not implemented, we should report that --network is not implemented on this backend.
-            throw mp::NotImplementedOnThisBackendException("--network");
-        }
-    }
-
-    auto checked_args = validate_create_arguments(request, factory_networks);
+    auto checked_args = validate_create_arguments(request, config->factory);
 
     if (!checked_args.option_errors.error_codes().empty())
     {
