@@ -203,6 +203,8 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& qu
 {
     check_remote_is_supported(query.remote_name);
 
+    check_alias_is_supported(query.release, query.remote_name);
+
     std::vector<mp::VMImageInfo> images;
 
     auto image = info_for(query);
@@ -227,6 +229,11 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
 
     for (const auto& product : custom_manifest->products)
     {
+        if (!check_all_aliases_are_supported(product.aliases, remote_name))
+        {
+            continue;
+        }
+
         images.push_back(product);
     }
 
@@ -242,6 +249,11 @@ void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
 
         for (const auto& info : manifest.second->products)
         {
+            if (!check_all_aliases_are_supported(info.aliases, manifest.first))
+            {
+                continue;
+            }
+
             action(manifest.first, info);
         }
     }
