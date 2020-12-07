@@ -53,6 +53,8 @@ public:
 
     QStringList positionalArguments() const;
 
+    QStringList unknownOptionNames() const;
+
     ParseCode commandParse(cmd::Command* command);
 
     ReturnCode returnCodeFrom(ParseCode parse_code) const;
@@ -62,6 +64,8 @@ public:
 
     void setVerbosityLevel(int verbosity);
     int verbosityLevel() const;
+
+    bool containsArgument(const QString& argument) const;
 
 private:
     QString generalHelpText();

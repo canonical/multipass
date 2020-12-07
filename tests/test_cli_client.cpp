@@ -758,6 +758,38 @@ TEST_F(Client, exec_cmd_help_ok)
     EXPECT_THAT(send_command({"exec", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, exec_cmd_no_double_dash_unknown_option_fails_print_suggested_command)
+{
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"exec", "foo", "cmd", "--unknownOption"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(
+        cerr_stream.str(),
+        HasSubstr("Options to the inner command should come after \"--\", like this:\nmultipass exec <instance> -- "
+                  "<command> <arguments>\n"));
+}
+
+TEST_F(Client, exec_cmd_double_dash_unknown_option_fails_does_not_print_suggested_command)
+{
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"exec", "foo", "--unknownOption", "--", "cmd"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(
+        cerr_stream.str(),
+        Not(HasSubstr("Options to the inner command should come after \"--\", like this:\nmultipass exec <instance> -- "
+                      "<command> <arguments>\n")));
+}
+
+TEST_F(Client, exec_cmd_no_double_dash_no_unknown_option_fails_does_not_print_suggested_command)
+{
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"exec", "foo", "cmd", "--help"}, trash_stream, cerr_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(
+        cerr_stream.str(),
+        Not(HasSubstr("Options to the inner command should come after \"--\", like this:\nmultipass exec <instance> -- "
+                      "<command> <arguments>\n")));
+}
+
 // help cli tests
 TEST_F(Client, help_cmd_ok_with_valid_single_arg)
 {

@@ -339,6 +339,11 @@ QStringList mp::ArgParser::positionalArguments() const
     return positionalArguments;
 }
 
+QStringList mp::ArgParser::unknownOptionNames() const
+{
+    return parser.unknownOptionNames();
+}
+
 void mp::ArgParser::setVerbosityLevel(int verbosity)
 {
     if (verbosity > 4 || verbosity < 0)
@@ -354,4 +359,9 @@ void mp::ArgParser::setVerbosityLevel(int verbosity)
 int mp::ArgParser::verbosityLevel() const
 {
     return verbosity_level;
+}
+
+bool mp::ArgParser::containsArgument(const QString& argument) const
+{
+    return arguments.contains(argument);
 }
