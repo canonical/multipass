@@ -41,7 +41,7 @@ public:
     MemorySize mem_size;
     MemorySize disk_space;
     std::string vm_name;
-    NetworkInterface default_interface;
+    std::string default_mac_address;
     std::vector<NetworkInterface> extra_interfaces;
     std::string ssh_username;
     VMImage image;

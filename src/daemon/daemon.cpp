@@ -136,7 +136,7 @@ auto make_cloud_init_meta_config(const std::string& name)
     return meta_data;
 }
 
-auto make_cloud_init_network_config(const mp::NetworkInterface& default_interface,
+auto make_cloud_init_network_config(const std::string default_mac_addr,
                                     const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
     YAML::Node network_data, interfaces_data;
@@ -144,7 +144,7 @@ auto make_cloud_init_network_config(const mp::NetworkInterface& default_interfac
     network_data["version"] = "2";
 
     std::string name = "default";
-    network_data["ethernets"][name]["match"]["macaddress"] = default_interface.mac_address;
+    network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
     network_data["ethernets"][name]["dhcp4"] = true;
 
     for (size_t i = 0; i < extra_interfaces.size(); ++i)
@@ -195,7 +195,7 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 
 mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
                                               const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
-                                              const mp::NetworkInterface& interface,
+                                              const std::string& mac_addr,
                                               const std::vector<mp::NetworkInterface>& extra_interfaces,
                                               const std::string& ssh_username, const mp::VMImage& image,
                                               YAML::Node& meta_data_config, YAML::Node& user_data_config,
@@ -209,7 +209,7 @@ mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, 
                                                       vendor_data_config, network_data_config);
 
     return {num_cores,          mem_size,         disk_space,       name,
-            interface,          extra_interfaces, ssh_username,     image,
+            mac_addr,           extra_interfaces, ssh_username,     image,
             cloud_init_iso,     meta_data_config, user_data_config, vendor_data_config,
             network_data_config};
 }
@@ -302,7 +302,6 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         {
             throw std::runtime_error(fmt::format("Invalid MAC address {}", default_mac_address));
         }
-        auto default_interface = mp::NetworkInterface{"default", default_mac_address, true};
 
         std::unordered_map<std::string, mp::VMMount> mounts;
         std::unordered_map<int, int> uid_map;
@@ -330,7 +329,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         reconstructed_records[key] = {num_cores,
                                       mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
                                       mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
-                                      default_interface,
+                                      default_mac_address,
                                       read_extra_interfaces(record),
                                       ssh_username,
                                       static_cast<mp::VirtualMachine::State>(state),
@@ -721,7 +720,7 @@ std::unordered_set<std::string> mac_set_from(const mp::VMSpecs& spec)
 {
     std::unordered_set<std::string> macs{};
 
-    macs.insert(spec.default_interface.mac_address);
+    macs.insert(spec.default_mac_address);
 
     for (const auto& extra_iface : spec.extra_interfaces)
         macs.insert(extra_iface.mac_address);
@@ -809,7 +808,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec.mem_size,
                                               spec.disk_space,
                                               name,
-                                              spec.default_interface,
+                                              spec.default_mac_address,
                                               spec.extra_interfaces,
                                               spec.ssh_username,
                                               vm_image,
@@ -1956,7 +1955,7 @@ void mp::Daemon::persist_instances()
 
         // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
         // default network interface. Then, write all the information about the rest of the interfaces.
-        json.insert("mac_addr", QString::fromStdString(specs.default_interface.mac_address));
+        json.insert("mac_addr", QString::fromStdString(specs.default_mac_address));
         json.insert("extra_interfaces", to_json_array(specs.extra_interfaces));
 
         QJsonArray mounts;
@@ -2086,7 +2085,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
                                            vm_desc.disk_space,
-                                           vm_desc.default_interface,
+                                           vm_desc.default_mac_address,
                                            vm_desc.extra_interfaces,
                                            config->ssh_username,
                                            VirtualMachine::State::off,
@@ -2182,9 +2181,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 if (iface.mac_address.empty())
                     iface.mac_address = generate_unused_mac_address(new_macs);
 
-            // Generate a default network interface.
-            mp::NetworkInterface default_interface{"default", generate_unused_mac_address(new_macs), true};
-
+            auto default_mac_addr = generate_unused_mac_address(new_macs);
             auto vendor_data_cloud_init_config =
                 make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
                                               config->factory->get_backend_version_string().toStdString());
@@ -2192,12 +2189,12 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
             auto network_data_cloud_init_config =
-                make_cloud_init_network_config(default_interface, checked_args.extra_interfaces);
+                make_cloud_init_network_config(default_mac_addr, checked_args.extra_interfaces);
 
             // Everything went well, add the MAC addresses used in this instance.
             allocated_mac_addrs = std::move(new_macs);
 
-            auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, default_interface,
+            auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, default_mac_addr,
                                            checked_args.extra_interfaces, config->ssh_username, vm_image,
                                            meta_data_cloud_init_config, user_data_cloud_init_config,
                                            vendor_data_cloud_init_config, network_data_cloud_init_config);
