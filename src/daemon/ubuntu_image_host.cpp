@@ -81,6 +81,8 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
 
 mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
 {
+    check_alias_is_supported(query.release, query.remote_name);
+
     std::vector<std::string> remotes;
 
     if (!query.remote_name.empty())
@@ -145,6 +147,8 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& query)
 {
+    check_alias_is_supported(query.release, query.remote_name);
+
     std::string remote_name;
 
     if (!query.remote_name.empty())
@@ -155,8 +159,6 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
     {
         remote_name = release_remote;
     }
-
-    check_alias_is_supported(query.release, query.remote_name);
 
     std::vector<mp::VMImageInfo> images;
 
