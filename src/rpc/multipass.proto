@@ -23,7 +23,7 @@ service Rpc {
     rpc find (FindRequest) returns (stream FindReply);
     rpc info (InfoRequest) returns (stream InfoReply);
     rpc list (ListRequest) returns (stream ListReply);
-    rpc list_networks (ListNetworksRequest) returns (stream ListNetworksReply);
+    rpc networks (ListNetworksRequest) returns (stream ListNetworksReply);
     rpc mount (MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
     rpc recover (RecoverRequest) returns (stream RecoverReply);

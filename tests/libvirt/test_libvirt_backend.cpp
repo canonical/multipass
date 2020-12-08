@@ -440,5 +440,5 @@ TEST_F(LibVirtBackend, lists_no_networks)
 {
     mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
 
-    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
+    EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
 }

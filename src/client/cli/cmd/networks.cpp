@@ -15,7 +15,7 @@
  *
  */
 
-#include "list_networks.h"
+#include "networks.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -46,17 +46,17 @@ mp::ReturnCode cmd::ListNetworks::run(mp::ArgParser* parser)
 
     ListNetworksRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::list_networks, request, on_success, on_failure);
+    return dispatch(&RpcMethod::networks, request, on_success, on_failure);
 }
 
 std::string cmd::ListNetworks::name() const
 {
-    return "list-networks";
+    return "networks";
 }
 
 std::vector<std::string> cmd::ListNetworks::aliases() const
 {
-    return {name(), "lsn"};
+    return {name(), "nw"};
 }
 
 QString cmd::ListNetworks::short_help() const

@@ -105,8 +105,8 @@ public slots:
     virtual void list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
                       std::promise<grpc::Status>* status_promise);
 
-    virtual void list_networks(const ListNetworksRequest* request, grpc::ServerWriter<ListNetworksReply>* response,
-                               std::promise<grpc::Status>* status_promise);
+    virtual void networks(const ListNetworksRequest* request, grpc::ServerWriter<ListNetworksReply>* response,
+                          std::promise<grpc::Status>* status_promise);
 
     virtual void mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
                        std::promise<grpc::Status>* status_promise);
