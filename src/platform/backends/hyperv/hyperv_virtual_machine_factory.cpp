@@ -259,7 +259,7 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
     check_hyperv_support();
 }
 
-auto mp::HyperVVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
+auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
     static const auto ps_cmd_base = QStringLiteral("Get-VMSwitch | Select-Object -Property Name,SwitchType,"
                                                    "NetAdapterInterfaceDescription");
