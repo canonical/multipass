@@ -25,6 +25,7 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/exceptions/unsupported_remote_exception.h>
 
 #include <QUrl>
 
@@ -84,19 +85,11 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 
     if (!query.remote_name.empty())
     {
-        check_remote_is_supported(query.remote_name);
-
         remotes.push_back(query.remote_name);
     }
     else
     {
-        for (const auto& remote_name : std::vector<std::string>{release_remote, daily_remote})
-        {
-            if (mp::platform::is_remote_supported(remote_name))
-            {
-                remotes.push_back(remote_name);
-            }
-        }
+        remotes = std::vector<std::string>{release_remote, daily_remote};
     }
 
     auto key = key_from(query.release);
@@ -106,7 +99,18 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
     {
         const VMImageInfo* info{nullptr};
 
-        manifest = manifest_from(remote_name);
+        try
+        {
+            manifest = manifest_from(remote_name);
+        }
+        catch (const mp::UnsupportedRemoteException& /* e */)
+        {
+            if (query.remote_name.empty())
+                continue;
+
+            throw;
+        }
+
         match_alias(key, &info, *manifest);
 
         if (!info)
@@ -145,8 +149,6 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
 
     if (!query.remote_name.empty())
     {
-        check_remote_is_supported(query.remote_name);
-
         remote_name = query.remote_name;
     }
     else
@@ -215,8 +217,6 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name,
                                                                    const bool allow_unsupported)
 {
-    check_remote_is_supported(remote_name);
-
     std::vector<mp::VMImageInfo> images;
     auto manifest = manifest_from(remote_name);
 
@@ -243,9 +243,6 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
 {
     for (const auto& manifest : manifests)
     {
-        if (!mp::platform::is_remote_supported(manifest.first))
-            continue;
-
         for (const auto& product : manifest.second->products)
         {
             if (!check_all_aliases_are_supported(product.aliases, manifest.first))
@@ -277,6 +274,8 @@ void mp::UbuntuVMImageHost::fetch_manifests()
     {
         try
         {
+            check_remote_is_supported(remote.first);
+
             manifests.emplace_back(
                 std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
         }
@@ -292,6 +291,10 @@ void mp::UbuntuVMImageHost::fetch_manifests()
         {
             on_manifest_update_failure(e.what());
         }
+        catch (const mp::UnsupportedRemoteException& /* e */)
+        {
+            continue;
+        }
     }
 }
 
@@ -302,6 +305,8 @@ void mp::UbuntuVMImageHost::clear()
 
 mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::string& remote)
 {
+    check_remote_is_supported(remote);
+
     update_manifests();
 
     auto it = std::find_if(manifests.begin(), manifests.end(),
