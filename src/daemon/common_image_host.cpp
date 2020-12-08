@@ -22,6 +22,8 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
+#include <multipass/exceptions/unsupported_remote_exception.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -92,9 +94,10 @@ void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& detail
 void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_name)
 {
     if (!mp::platform::is_remote_supported(remote_name))
-        throw std::runtime_error(fmt::format("Remote \'{}\' is not a supported remote for this platform. Please use "
-                                             "`multipass find` for supported remotes and images.",
-                                             remote_name));
+        throw mp::UnsupportedRemoteException(
+            fmt::format("Remote \'{}\' is not a supported remote for this platform. Please use "
+                        "`multipass find` for supported remotes and images.",
+                        remote_name));
 }
 
 void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, const std::string& remote_name)
