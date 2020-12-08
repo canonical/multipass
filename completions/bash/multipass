@@ -46,7 +46,7 @@ _multipass_complete()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
-    multipass_cmds="transfer delete exec find help info launch list list-networks mount \
+    multipass_cmds="transfer delete exec find help info launch list mount networks \
                     purge recover shell start stop suspend restart umount version get set"
 
     opts="--help --verbose"
@@ -57,7 +57,7 @@ _multipass_complete()
         "list"|"ls")
             opts="${opts} --format"
         ;;
-        "list-networks"|"ln")
+        "networks"|"nw")
             opts="${opts} --format"
         ;;
         "delete")
