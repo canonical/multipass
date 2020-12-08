@@ -110,7 +110,7 @@ auto add_petenv_to_reply(mp::ListReply& reply)
 
 auto construct_one_short_line_networks_reply()
 {
-    mp::ListNetworksReply networks_reply;
+    mp::NetworksReply networks_reply;
 
     // This reply will have strings shorter than the column headers, to test formatting.
     auto networks_entry = networks_reply.add_interfaces();
@@ -123,7 +123,7 @@ auto construct_one_short_line_networks_reply()
 
 auto construct_one_long_line_networks_reply()
 {
-    mp::ListNetworksReply networks_reply;
+    mp::NetworksReply networks_reply;
 
     // This reply will have strings shorter than the column headers, to test formatting.
     auto networks_entry = networks_reply.add_interfaces();
@@ -136,7 +136,7 @@ auto construct_one_long_line_networks_reply()
 
 auto construct_multiple_lines_networks_reply()
 {
-    mp::ListNetworksReply networks_reply = construct_one_short_line_networks_reply();
+    mp::NetworksReply networks_reply = construct_one_short_line_networks_reply();
 
     // This reply will have strings shorter than the column headers, to test formatting.
     auto networks_entry = networks_reply.add_interfaces();
@@ -371,7 +371,7 @@ const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
 const auto unsorted_list_reply = construct_unsorted_list_reply();
 
-const auto empty_networks_reply = mp::ListNetworksReply();
+const auto empty_networks_reply = mp::NetworksReply();
 const auto one_short_line_networks_reply = construct_one_short_line_networks_reply();
 const auto one_long_line_networks_reply = construct_one_long_line_networks_reply();
 const auto multiple_lines_networks_reply = construct_multiple_lines_networks_reply();
@@ -1043,7 +1043,7 @@ TEST_P(FormatterSuite, properly_formats_output)
 
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
         output = formatter->format(*input);
-    else if (auto input = dynamic_cast<const mp::ListNetworksReply*>(reply))
+    else if (auto input = dynamic_cast<const mp::NetworksReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
@@ -1060,7 +1060,7 @@ INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter, FormatterSuite,
 INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter, FormatterSuite,
                          ValuesIn(non_orderable_list_info_formatter_outputs), print_param_name);
 INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_formatter_outputs), print_param_name);
-INSTANTIATE_TEST_SUITE_P(NonOrderableListNetworksOutputFormatter, FormatterSuite,
+INSTANTIATE_TEST_SUITE_P(NonOrderableNetworksOutputFormatter, FormatterSuite,
                          ValuesIn(non_orderable_networks_formatter_outputs), print_param_name);
 
 #if GTEST_HAS_POSIX_RE

@@ -25,7 +25,7 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::ListNetworks::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Networks::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -33,7 +33,7 @@ mp::ReturnCode cmd::ListNetworks::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](ListNetworksReply& reply) {
+    auto on_success = [this](NetworksReply& reply) {
         cout << chosen_formatter->format(reply);
 
         if (term->is_live() && update_available(reply.update_info()))
@@ -44,33 +44,33 @@ mp::ReturnCode cmd::ListNetworks::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
-    ListNetworksRequest request;
+    NetworksRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::networks, request, on_success, on_failure);
 }
 
-std::string cmd::ListNetworks::name() const
+std::string cmd::Networks::name() const
 {
     return "networks";
 }
 
-std::vector<std::string> cmd::ListNetworks::aliases() const
+std::vector<std::string> cmd::Networks::aliases() const
 {
     return {name(), "nw"};
 }
 
-QString cmd::ListNetworks::short_help() const
+QString cmd::Networks::short_help() const
 {
     return QStringLiteral("List available network interfaces");
 }
 
-QString cmd::ListNetworks::description() const
+QString cmd::Networks::description() const
 {
     return QStringLiteral("List host network devices (physical interfaces, virtual switches, bridges)\n"
                           "available to integrate with using the `--network` switch to the `launch`\ncommand.");
 }
 
-mp::ParseCode cmd::ListNetworks::parse_args(mp::ArgParser* parser)
+mp::ParseCode cmd::Networks::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption formatOption(
         "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",

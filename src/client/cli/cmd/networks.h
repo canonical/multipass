@@ -26,7 +26,7 @@ class Formatter;
 
 namespace cmd
 {
-class ListNetworks final : public Command
+class Networks final : public Command
 {
 public:
     using Command::Command;

@@ -1392,12 +1392,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::networks(const ListNetworksRequest* request, grpc::ServerWriter<ListNetworksReply>* server,
+void mp::Daemon::networks(const NetworksRequest* request, grpc::ServerWriter<NetworksReply>* server,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<ListNetworksReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-    ListNetworksReply response;
+    mpl::ClientLogger<NetworksReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    NetworksReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
     const auto& iface_list = config->factory->networks();

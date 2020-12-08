@@ -61,7 +61,7 @@ signals:
                  std::promise<grpc::Status>* status_promise);
     void on_list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
                  std::promise<grpc::Status>* status_promise);
-    void on_networks(const ListNetworksRequest* request, grpc::ServerWriter<ListNetworksReply>* response,
+    void on_networks(const NetworksRequest* request, grpc::ServerWriter<NetworksReply>* response,
                      std::promise<grpc::Status>* status_promise);
     void on_mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
                   std::promise<grpc::Status>* status_promise);
@@ -101,8 +101,8 @@ protected:
                       grpc::ServerWriter<InfoReply>* response) override;
     grpc::Status list(grpc::ServerContext* context, const ListRequest* request,
                       grpc::ServerWriter<ListReply>* response) override;
-    grpc::Status networks(grpc::ServerContext* context, const ListNetworksRequest* request,
-                          grpc::ServerWriter<ListNetworksReply>* response) override;
+    grpc::Status networks(grpc::ServerContext* context, const NetworksRequest* request,
+                          grpc::ServerWriter<NetworksReply>* response) override;
     grpc::Status mount(grpc::ServerContext* context, const MountRequest* request,
                        grpc::ServerWriter<MountReply>* response) override;
     grpc::Status recover(grpc::ServerContext* context, const RecoverRequest* request,

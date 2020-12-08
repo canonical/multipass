@@ -64,7 +64,7 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::CSVFormatter::format(const ListNetworksReply& reply) const
+std::string mp::CSVFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;
 

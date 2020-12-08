@@ -23,7 +23,7 @@ service Rpc {
     rpc find (FindRequest) returns (stream FindReply);
     rpc info (InfoRequest) returns (stream InfoReply);
     rpc list (ListRequest) returns (stream ListReply);
-    rpc networks (ListNetworksRequest) returns (stream ListNetworksReply);
+    rpc networks (NetworksRequest) returns (stream NetworksReply);
     rpc mount (MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
     rpc recover (RecoverRequest) returns (stream RecoverReply);
@@ -240,7 +240,7 @@ message ListReply {
 }
 
 
-message ListNetworksRequest {
+message NetworksRequest {
     int32 verbosity_level = 1;
 }
 
@@ -250,7 +250,7 @@ message NetInterface {
     string description = 3;
 }
 
-message ListNetworksReply {
+message NetworksReply {
     repeated NetInterface interfaces = 1;
     string log_line = 2;
     UpdateInfo update_info = 3;

@@ -154,7 +154,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::TableFormatter::format(const ListNetworksReply& reply) const
+std::string mp::TableFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;
 
