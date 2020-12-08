@@ -57,7 +57,7 @@ _multipass_complete()
         "list"|"ls")
             opts="${opts} --format"
         ;;
-        "networks"|"nw")
+        "networks")
             opts="${opts} --format"
         ;;
         "delete")

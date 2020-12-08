@@ -56,7 +56,7 @@ std::string cmd::Networks::name() const
 
 std::vector<std::string> cmd::Networks::aliases() const
 {
-    return {name(), "nw"};
+    return {name()};
 }
 
 QString cmd::Networks::short_help() const
