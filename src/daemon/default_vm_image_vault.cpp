@@ -387,11 +387,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         {
             const auto info = info_for(query);
 
-            if (!mp::platform::is_alias_supported(query.release, query.remote_name))
-                throw std::runtime_error(
-                    fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
-                                query.release));
-
             id = info.id.toStdString();
 
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
