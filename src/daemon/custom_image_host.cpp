@@ -22,6 +22,7 @@
 #include <multipass/url_downloader.h>
 
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/unsupported_remote_exception.h>
 
 #include <multipass/format.h>
 
@@ -187,7 +188,7 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono:
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
-    check_remote_is_supported(query.remote_name);
+    check_alias_is_supported(query.release, query.remote_name);
 
     auto custom_manifest = manifest_from(query.remote_name);
 
@@ -201,10 +202,6 @@ mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& query)
 {
-    check_remote_is_supported(query.remote_name);
-
-    check_alias_is_supported(query.release, query.remote_name);
-
     std::vector<mp::VMImageInfo> images;
 
     auto image = info_for(query);
@@ -222,8 +219,6 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name,
                                                                    const bool allow_unsupported)
 {
-    check_remote_is_supported(remote_name);
-
     std::vector<mp::VMImageInfo> images;
     auto custom_manifest = manifest_from(remote_name);
 
@@ -244,9 +239,6 @@ void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
 {
     for (const auto& manifest : custom_image_info)
     {
-        if (!mp::platform::is_remote_supported(manifest.first))
-            continue;
-
         for (const auto& info : manifest.second->products)
         {
             if (!check_all_aliases_are_supported(info.aliases, manifest.first))
@@ -271,11 +263,17 @@ void mp::CustomVMImageHost::fetch_manifests()
     {
         try
         {
+            check_remote_is_supported(spec.first);
+
             custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader, path_prefix));
         }
         catch (mp::DownloadException& e)
         {
             on_manifest_update_failure(e.what());
+        }
+        catch (const mp::UnsupportedRemoteException& /* e */)
+        {
+            continue;
         }
     }
 }
@@ -287,6 +285,8 @@ void mp::CustomVMImageHost::clear()
 
 mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
 {
+    check_remote_is_supported(remote_name);
+
     update_manifests();
 
     auto it = custom_image_info.find(remote_name);
