@@ -1103,8 +1103,8 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(1);
 
     auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=bla"};
-    send_command(cmd); // this one fails
-    send_command(cmd); // this one succeeds
+    send_command(cmd); // we cause this one to fail
+    send_command(cmd); // and confirm we can repeat the same mac
 }
 
 TEST_F(Daemon, releases_macs_when_launch_fails)
@@ -1115,8 +1115,8 @@ TEST_F(Daemon, releases_macs_when_launch_fails)
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
 
     auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=bla"};
-    send_command(cmd); // this one fails
-    send_command(cmd); // this one succeeds
+    send_command(cmd); // we cause this one to fail
+    send_command(cmd); // and confirm we can repeat the same mac
 }
 
 TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
@@ -1139,11 +1139,11 @@ TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
     send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac3), "--name", "vm3"});
 
     send_command({"delete", "vm1"});
-    send_command({"delete", "--purge", "vm3"}); // so mac3 can be reused
+    send_command({"delete", "--purge", "vm3"}); // so that mac3 can be reused
 
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac1)}); // fails
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac2)}); // fails
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac3)}); // succeeds
-} // TODO@ricab improve fail/succeed comments
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac1)}); // repeated mac is rejected
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac2)}); // idem
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac3)}); // mac is free after purge, so accepted
+}
 
 } // namespace
