@@ -215,9 +215,9 @@ TEST_F(LXDImageVault, throws_with_invalid_remote)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
-                         std::runtime_error,
-                         Property(&std::runtime_error::what, StrEq(fmt::format("Remote \"{}\" is unknown.", remote))));
+    MP_EXPECT_THROW_THAT(
+        image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error,
+        Property(&std::runtime_error::what, HasSubstr(fmt::format("Remote \'{}\' is not found.", remote))));
 }
 
 TEST_F(LXDImageVault, does_not_download_if_image_exists)
@@ -272,8 +272,15 @@ TEST_F(LXDImageVault, instance_exists_missing_image_downloads_image)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    ON_CALL(host, info_for_full_hash(_)).WillByDefault([](auto...) -> mp::VMImageInfo {
-        throw std::runtime_error("Unable to find an image matching hash");
+    ON_CALL(host, info_for(_)).WillByDefault([this](auto& query) -> mp::optional<mp::VMImageInfo> {
+        if (query.release == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        {
+            return mp::nullopt;
+        }
+        else
+        {
+            return host.mock_bionic_image_info;
+        }
     });
 
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),

@@ -48,6 +48,11 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return MemorySize{};
     }
 
+    VMImageHost* image_host_for(const std::string& remote_name) override
+    {
+        return nullptr;
+    }
+
     TempFile dummy_image;
 };
 }

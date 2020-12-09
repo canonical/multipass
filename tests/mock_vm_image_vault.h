@@ -49,6 +49,7 @@ public:
     MOCK_METHOD0(prune_expired_images, void());
     MOCK_METHOD3(update_images, void(const FetchType&, const PrepareAction&, const ProgressMonitor&));
     MOCK_METHOD1(minimum_image_size_for, MemorySize(const std::string&));
+    MOCK_METHOD1(image_host_for, VMImageHost*(const std::string&));
 
 private:
     TempFile dummy_image;
