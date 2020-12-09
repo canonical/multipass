@@ -711,20 +711,6 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
     return grpc::Status::OK;
 }
 
-QStringList filter_unsupported_aliases(const QStringList& aliases, const std::string& remote)
-{
-    QStringList supported_aliases;
-
-    for (const auto& alias : aliases)
-    {
-        if (mp::platform::is_alias_supported(alias.toStdString(), remote))
-        {
-            supported_aliases.append(alias);
-        }
-    }
-    return supported_aliases;
-}
-
 mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::State& state)
 {
     switch (state)
@@ -1118,11 +1104,6 @@ try // clang-format on
         if (vm_images_info.empty())
             throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", request->search_string()));
 
-        if (!mp::platform::is_alias_supported(request->search_string(), remote))
-            throw std::runtime_error(
-                fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
-                            request->search_string()));
-
         for (const auto& info : vm_images_info)
         {
             std::string name;
@@ -1145,74 +1126,58 @@ try // clang-format on
             alias_entry->set_alias(name);
         }
     }
-    else if (!request->remote_name().empty())
+    else
     {
-        const auto remote = request->remote_name();
-        auto image_host = config->vault->image_host_for(remote);
-        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
-
-        for (const auto& info : vm_images_info)
-        {
+        auto add_aliases = [&response](const std::string& remote_name, const mp::VMImageInfo& info,
+                                       const std::string& default_remote) {
             if (!info.aliases.empty())
             {
                 auto entry = response.add_images_info();
                 for (const auto& alias : info.aliases)
                 {
-                    if (!mp::platform::is_alias_supported(alias.toStdString(), remote))
-                        continue;
-
                     auto alias_entry = entry->add_aliases_info();
-                    alias_entry->set_remote_name(request->remote_name());
+                    if (remote_name != default_remote)
+                    {
+                        alias_entry->set_remote_name(remote_name);
+                    }
                     alias_entry->set_alias(alias.toStdString());
-                }
-
-                // If no aliases are found, then it's an invalid entry
-                if (entry->aliases_info().empty())
-                {
-                    response.mutable_images_info()->RemoveLast();
-                    continue;
                 }
 
                 entry->set_os(info.os.toStdString());
                 entry->set_release(info.release_title.toStdString());
                 entry->set_version(info.version.toStdString());
             }
-        }
-    }
-    else
-    {
-        for (const auto& image_host : config->image_hosts)
+        };
+
+        if (request->remote_name().empty())
         {
-            std::unordered_set<std::string> image_found;
-            const auto default_remote{"release"};
-            auto action = [&response, &image_found, default_remote, request](const std::string& remote,
-                                                                             const mp::VMImageInfo& info) {
-                if (info.supported || request->allow_unsupported())
-                {
-                    if (image_found.find(info.release_title.toStdString()) == image_found.end())
+            for (const auto& image_host : config->image_hosts)
+            {
+                std::unordered_set<std::string> image_found;
+                const auto default_remote{"release"};
+                auto action = [&image_found, &default_remote, request, &add_aliases](const std::string& remote,
+                                                                                     const mp::VMImageInfo& info) {
+                    if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                        image_found.find(info.release_title.toStdString()) == image_found.end())
                     {
-                        const auto supported_aliases = filter_unsupported_aliases(info.aliases, remote);
-                        if (!supported_aliases.empty())
-                        {
-                            auto entry = response.add_images_info();
-                            for (const auto& alias : supported_aliases)
-                            {
-                                auto alias_entry = entry->add_aliases_info();
-                                if (remote != default_remote)
-                                    alias_entry->set_remote_name(remote);
-                                alias_entry->set_alias(alias.toStdString());
-                            }
-
-                            image_found.insert(info.release_title.toStdString());
-                            entry->set_os(info.os.toStdString());
-                            entry->set_release(info.release_title.toStdString());
-                            entry->set_version(info.version.toStdString());
-                        }
+                        add_aliases(remote, info, default_remote);
+                        image_found.insert(info.release_title.toStdString());
                     }
-                }
-            };
+                };
 
-            image_host->for_each_entry_do(action);
+                image_host->for_each_entry_do(action);
+            }
+        }
+        else
+        {
+            const auto remote = request->remote_name();
+            auto image_host = config->vault->image_host_for(remote);
+            auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
+
+            for (const auto& info : vm_images_info)
+            {
+                add_aliases(remote, info, "");
+            }
         }
     }
     server->Write(response);
