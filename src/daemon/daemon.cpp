@@ -2041,7 +2041,15 @@ void mp::Daemon::release_resources(const std::string& instance)
 {
     config->factory->remove_resources_for(instance);
     config->vault->remove(instance);
-    vm_instance_specs.erase(instance);
+
+    auto spec_it = vm_instance_specs.find(instance);
+    if (spec_it != cend(vm_instance_specs))
+    {
+        for (const auto& mac : mac_set_from(spec_it->second))
+            allocated_mac_addrs.erase(mac);
+
+        vm_instance_specs.erase(spec_it);
+    }
 }
 
 std::string mp::Daemon::check_instance_operational(const std::string& instance_name) const
@@ -2113,7 +2121,6 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             {
                 auto vm_desc = prepare_future_watcher->future().result();
 
-                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
                                            vm_desc.disk_space,
@@ -2124,6 +2131,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                            {},
                                            false,
                                            QJsonObject()};
+                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
                 preparing_instances.erase(name);
 
                 persist_instances();
