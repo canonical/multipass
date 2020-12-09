@@ -74,11 +74,6 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     {
         return std::make_unique<StubVMImageVault>();
     }
-
-    std::vector<multipass::NetworkInterfaceInfo> list_networks() const
-    {
-        throw multipass::NotImplementedOnThisBackendException("list-networks");
-    }
 };
 }
 }

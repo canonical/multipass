@@ -266,7 +266,7 @@ struct Daemon : public Test
 
         ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
 
-        ON_CALL(*mock_factory, list_networks())
+        ON_CALL(*mock_factory_ptr, list_networks())
             .WillByDefault(Return(std::vector<mp::NetworkInterfaceInfo>{{"eth0", "ethernet", "wired adapter"},
                                                                         {"wlan0", "wi-fi", "wireless adapter"}}));
 

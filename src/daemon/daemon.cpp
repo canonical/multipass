@@ -366,7 +366,7 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 }
 
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
-                                                            const std::unique_ptr<mp::VirtualMachineFactory>& factory,
+                                                            const mp::VirtualMachineFactory& factory,
                                                             mp::LaunchError& option_errors)
 {
     std::vector<mp::NetworkInterfaceInfo> factory_networks;
@@ -375,7 +375,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
     {
         try
         {
-            factory_networks = factory->list_networks();
+            factory_networks = factory.list_networks();
         }
         catch (const mp::NotImplementedOnThisBackendException&)
         {
@@ -413,8 +413,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
     return interfaces;
 }
 
-auto validate_create_arguments(const mp::LaunchRequest* request,
-                               const std::unique_ptr<mp::VirtualMachineFactory>& factory)
+auto validate_create_arguments(const mp::LaunchRequest* request, const mp::VirtualMachineFactory& factory)
 {
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
@@ -2071,7 +2070,7 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
-    auto checked_args = validate_create_arguments(request, config->factory);
+    auto checked_args = validate_create_arguments(request, *config->factory);
 
     if (!checked_args.option_errors.error_codes().empty())
     {
