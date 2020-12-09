@@ -1049,7 +1049,7 @@ TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0); // expect *no* call
     send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", repeated_mac)}, std::cout, stream);
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("Repeated MAC"), HasSubstr(repeated_mac)));
 }
@@ -1067,7 +1067,7 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    EXPECT_CALL(*mock_factory, create_virtual_machine);
     send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", mac_addr)});
 }
 
@@ -1082,7 +1082,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
     config_builder.data_directory = temp_dir->path();
 
     auto mock_factory = use_a_mock_vm_factory();
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
         .Times(3)                          // expect one call in the constructor and three in launch
         .WillOnce(Throw(std::exception{})) // fail the first one
         .WillRepeatedly(DoDefault());      // succeed the rest (this avoids gmock warnings)
@@ -1099,8 +1099,8 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
 
     // fail the first prepare call, succeed the second one
     InSequence seq;
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _)).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(1);
+    EXPECT_CALL(*mock_factory, prepare_instance_image).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(1);
 
     auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=bla"};
     send_command(cmd); // this one fails
