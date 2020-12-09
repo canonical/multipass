@@ -1119,4 +1119,31 @@ TEST_F(Daemon, releases_macs_when_launch_fails)
     send_command(cmd); // this one succeeds
 }
 
+TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    auto mac1 = "52:54:00:73:76:28", mac2 = "52:54:00:bd:19:41", mac3 = "01:23:45:67:89:ab";
+
+    auto mac_matcher = [](const auto& mac) {
+        return Field(&mp::VirtualMachineDescription::extra_interfaces,
+                     Contains(Field(&mp::NetworkInterface::mac_address, mac)));
+    };
+    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac1), _)).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac2), _)).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac3), _)).Times(2); // this one gets reused
+
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac1), "--name", "vm1"});
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac2), "--name", "vm2"});
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac3), "--name", "vm3"});
+
+    send_command({"delete", "vm1"});
+    send_command({"delete", "--purge", "vm3"}); // so mac3 can be reused
+
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac1)}); // fails
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac2)}); // fails
+    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac3)}); // succeeds
+} // TODO@ricab improve fail/succeed comments
+
 } // namespace
