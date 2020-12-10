@@ -469,13 +469,7 @@ struct LaunchImgSizeSuite : public Daemon,
 {
 };
 
-struct DiskSpaceRequestedExceedsAvailableSuite
-    : public Daemon,
-      public WithParamInterface<std::tuple<std::string, std::vector<std::string>>>
-{
-};
-
-struct InvalidDataDirectorySuite : public Daemon, public WithParamInterface<std::string>
+struct LaunchStorageCheckSuite : public Daemon, public WithParamInterface<std::string>
 {
 };
 
@@ -879,26 +873,18 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     }
 }
 
-TEST_P(DiskSpaceRequestedExceedsAvailableSuite, launch_fails_with_not_enough_disk_space)
+TEST_P(LaunchStorageCheckSuite, launch_fails_with_not_enough_disk_space)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    const auto param = GetParam();
-    const auto& first_command_line_parameter = std::get<0>(param);
-    const auto& other_command_line_parameters = std::get<1>(param);
-
     mp::Daemon daemon{config_builder.build()};
-
-    std::vector<std::string> all_parameters{first_command_line_parameter};
-    for (const auto& p : other_command_line_parameters)
-        all_parameters.push_back(p);
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
-    send_command(all_parameters, trash_stream, stream);
+    send_command({GetParam(), "--disk", "999999999G"}, trash_stream, stream);
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("Available disk"), HasSubstr("below requested/default size")));
 }
 
-TEST_P(InvalidDataDirectorySuite, launch_fails_with_invalid_data_directory)
+TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
 {
     auto mock_factory = use_a_mock_vm_factory();
     config_builder.data_directory = QString("invalid_data_directory");
@@ -921,10 +907,7 @@ INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                          Combine(Values("test_create", "launch"),
                                  Values(std::vector<std::string>{}, std::vector<std::string>{"--disk", "4G"}),
                                  Values("1G", mp::default_disk_size, "10G")));
-INSTANTIATE_TEST_SUITE_P(Daemon, DiskSpaceRequestedExceedsAvailableSuite,
-                         Combine(Values("test_create", "launch"),
-                                 Values(std::vector<std::string>{"--disk", "999999999G"})));
-INSTANTIATE_TEST_SUITE_P(Daemon, InvalidDataDirectorySuite, Values("test_create", "launch"));
+INSTANTIATE_TEST_SUITE_P(Daemon, LaunchStorageCheckSuite, Values("test_create", "launch"));
 
 std::string fake_json_contents(const std::string& default_mac, const std::vector<mp::NetworkInterface>& extra_ifaces)
 {
