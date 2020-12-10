@@ -398,14 +398,14 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
 
-        // Check that the MAC the user specified is not repeated.
+        // In case the user specified a MAC address, check it is valid.
         if (const auto& mac = QString::fromStdString(net.mac_address()).toLower().toStdString();
             mac.empty() || mpu::valid_mac_address(mac))
             interfaces.push_back(
                 mp::NetworkInterface{net.id(), mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
         {
-            mpl::log(mpl::Level::warning, category, fmt::format("Repeated MAC address \"{}\"", mac));
+            mpl::log(mpl::Level::warning, category, fmt::format("Invalid MAC address \"{}\"", mac));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
     }
