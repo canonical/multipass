@@ -222,10 +222,3 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
 
     return networks;
 }
-
-// The day VirtualBox corrects the bug in Windows which avoids us to use the correct interface name instead of the
-// description, we'll have to modify this function and check the VirtualBox version.
-std::string mp::VirtualBoxVirtualMachineFactory::reinterpret_interface_id(const std::string& ux_id) const
-{
-    return platform::reinterpret_interface_id(ux_id);
-}
