@@ -80,8 +80,11 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
         instance_node["memory"] = memory;
 
-        if (!info.ipv4().empty())
-            instance_node["ipv4"].push_back(info.ipv4());
+        YAML::Node ipv4_all(YAML::NodeType::Sequence);
+        for (int i = 0; i < info.ipv4_size(); ++i)
+            ipv4_all.push_back(info.ipv4(i));
+
+        instance_node["ipv4"] = ipv4_all;
 
         YAML::Node mounts;
         for (const auto& mount : info.mount_info().mount_paths())

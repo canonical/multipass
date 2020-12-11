@@ -69,8 +69,8 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         instance_info.insert("memory", memory);
 
         QJsonArray ipv4_addrs;
-        if (!info.ipv4().empty())
-            ipv4_addrs.append(QString::fromStdString(info.ipv4()));
+        for (int i = 0; i < info.ipv4_size(); ++i)
+            ipv4_addrs.append(QString::fromStdString(info.ipv4(i)));
         instance_info.insert("ipv4", ipv4_addrs);
 
         QJsonObject mounts;

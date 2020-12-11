@@ -28,14 +28,14 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
     fmt::memory_buffer buf;
     fmt::format_to(
         buf, "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
-             "total,Mounts\n");
+             "total,Mounts,AllIPv4\n");
 
     for (const auto& info : format::sorted(reply.info()))
     {
         fmt::format_to(buf, "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
-                       mp::format::status_string_for(info.instance_status()), info.ipv4(), info.ipv6(),
-                       info.current_release(), info.id(), info.image_release(), info.load(), info.disk_usage(),
-                       info.disk_total(), info.memory_usage(), info.memory_total());
+                       mp::format::status_string_for(info.instance_status()), info.ipv4_size() ? info.ipv4(0) : "",
+                       info.ipv6_size() ? info.ipv6(0) : "", info.current_release(), info.id(), info.image_release(),
+                       info.load(), info.disk_usage(), info.disk_total(), info.memory_usage(), info.memory_total());
 
         auto mount_paths = info.mount_info().mount_paths();
         for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
@@ -43,7 +43,17 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
             fmt::format_to(buf, "{} => {};", mount->source_path(), mount->target_path());
         }
 
-        fmt::format_to(buf, "\n");
+        std::string all_ipv4("\"");
+
+        if (int s = info.ipv4_size())
+        {
+            all_ipv4 += info.ipv4(0);
+            for (int i = 1; i < s; ++i)
+                all_ipv4 += "," + info.ipv4(i);
+        }
+        all_ipv4 += "\"";
+
+        fmt::format_to(buf, ",{}\n", all_ipv4);
     }
     return fmt::to_string(buf);
 }
