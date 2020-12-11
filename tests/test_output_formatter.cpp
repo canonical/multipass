@@ -50,7 +50,8 @@ auto construct_single_instance_list_reply()
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
-    list_entry->set_ipv4("10.168.32.2");
+    list_entry->add_ipv4("10.168.32.2");
+    list_entry->add_ipv4("200.3.123.30");
 
     return list_reply;
 }
@@ -63,7 +64,7 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
-    list_entry->set_ipv4("10.21.124.56");
+    list_entry->add_ipv4("10.21.124.56");
 
     list_entry = list_reply.add_instances();
     list_entry->set_name("bombastic");
@@ -384,7 +385,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
     {&table_formatter, &single_instance_list_reply,
      "Name                    State             IPv4             Image\n"
-     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n",
+     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n"
+     "                                          200.3.123.30\n",
      "table_list_single"},
 
     {&table_formatter, &multiple_instances_list_reply,
@@ -440,22 +442,22 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Memory usage:   --\n",
      "table_info_multiple"},
 
-    {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release\n", "csv_list_empty"},
+    {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4\n", "csv_list_empty"},
     {&csv_formatter, &single_instance_list_reply,
-     "Name,State,IPv4,IPv6,Release\n"
-     "foo,Running,10.168.32.2,,16.04 LTS\n",
+     "Name,State,IPv4,IPv6,Release,AllIPv4\n"
+     "foo,Running,10.168.32.2,,16.04 LTS,\"10.168.32.2,200.3.123.30\"\n",
      "csv_list_single"},
     {&csv_formatter, &multiple_instances_list_reply,
-     "Name,State,IPv4,IPv6,Release\n"
-     "bogus-instance,Running,10.21.124.56,,16.04 LTS\n"
-     "bombastic,Stopped,,,18.04 LTS\n",
+     "Name,State,IPv4,IPv6,Release,AllIPv4\n"
+     "bogus-instance,Running,10.21.124.56,,16.04 LTS,\"10.21.124.56\"\n"
+     "bombastic,Stopped,,,18.04 LTS,\"\"\n",
      "csv_list_multiple"},
     {&csv_formatter, &unsorted_list_reply,
-     "Name,State,IPv4,IPv6,Release\n"
-     "trusty-190611-1529,Deleted,,,N/A\n"
-     "trusty-190611-1535,Stopped,,,N/A\n"
-     "trusty-190611-1539,Suspended,,,N/A\n"
-     "trusty-190611-1542,Running,,,N/A\n",
+     "Name,State,IPv4,IPv6,Release,AllIPv4\n"
+     "trusty-190611-1529,Deleted,,,N/A,\"\"\n"
+     "trusty-190611-1535,Stopped,,,N/A,\"\"\n"
+     "trusty-190611-1539,Suspended,,,N/A,\"\"\n"
+     "trusty-190611-1542,Running,,,N/A,\"\"\n",
      "csv_list_unsorted"},
 
     {&csv_formatter, &empty_info_reply,
@@ -484,6 +486,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Running\n"
      "    ipv4:\n"
      "      - 10.168.32.2\n"
+     "      - 200.3.123.30\n"
      "    release: 16.04 LTS\n",
      "yaml_list_single"},
     {&yaml_formatter, &multiple_instances_list_reply,
@@ -495,29 +498,29 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "bombastic:\n"
      "  - state: Stopped\n"
      "    ipv4:\n"
-     "      - \"\"\n"
+     "      []\n"
      "    release: 18.04 LTS\n",
      "yaml_list_multiple"},
     {&yaml_formatter, &unsorted_list_reply,
      "trusty-190611-1529:\n"
      "  - state: Deleted\n"
      "    ipv4:\n"
-     "      - \"\"\n"
+     "      []\n"
      "    release: N/A\n"
      "trusty-190611-1535:\n"
      "  - state: Stopped\n"
      "    ipv4:\n"
-     "      - \"\"\n"
+     "      []\n"
      "    release: N/A\n"
      "trusty-190611-1539:\n"
      "  - state: Suspended\n"
      "    ipv4:\n"
-     "      - \"\"\n"
+     "      []\n"
      "    release: N/A\n"
      "trusty-190611-1542:\n"
      "  - state: Running\n"
      "    ipv4:\n"
-     "      - \"\"\n"
+     "      []\n"
      "    release: N/A\n",
      "yaml_list_unsorted"},
     {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
@@ -612,7 +615,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "    \"list\": [\n"
      "        {\n"
      "            \"ipv4\": [\n"
-     "                \"10.168.32.2\"\n"
+     "                \"10.168.32.2\",\n"
+     "                \"200.3.123.30\"\n"
      "            ],\n"
      "            \"name\": \"foo\",\n"
      "            \"release\": \"16.04 LTS\",\n"
