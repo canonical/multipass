@@ -42,7 +42,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD0(get_backend_version_string, QString());
     MOCK_METHOD5(create_image_vault,
                  VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
-    MOCK_CONST_METHOD0(list_networks, std::vector<NetworkInterfaceInfo>());
+    MOCK_CONST_METHOD0(networks, std::vector<NetworkInterfaceInfo>());
     MOCK_CONST_METHOD1(reinterpret_interface_id, std::string(const std::string&));
 };
 }

@@ -168,5 +168,5 @@ INSTANTIATE_TEST_SUITE_P(Hyperkit, GetIPThrowingSuite, ValuesIn(throwing_hw_addr
 // root now, so it fails. To avoid this behavior and be able to enable the test again, getuid() must be mocked.
 TEST_F(HyperkitBackend, DISABLE_ON_MACOS(lists_no_networks))
 {
-    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
+    EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
 }

@@ -171,7 +171,7 @@ TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
         Property(&std::runtime_error::what, AllOf(HasSubstr("Could not setup"), HasSubstr(extra_iface.id))));
 }
 
-struct HyperVListNetworks : public Test
+struct HyperVNetworks : public Test
 {
     void SetUp() override
     {
@@ -189,7 +189,7 @@ struct HyperVListNetworks : public Test
     inline static constexpr auto cmdlet = "Get-VMSwitch";
 };
 
-TEST_F(HyperVListNetworks, requests_switches)
+TEST_F(HyperVNetworks, requests_switches)
 {
     ps_helper.setup(
         [](auto* process) {
@@ -198,16 +198,16 @@ TEST_F(HyperVListNetworks, requests_switches)
         },
         /* auto_exit = */ false);
 
-    backend.list_networks();
+    backend.networks();
 }
 
-TEST_F(HyperVListNetworks, returns_empty_when_no_switches_found)
+TEST_F(HyperVNetworks, returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
-    EXPECT_THAT(backend.list_networks(), IsEmpty());
+    EXPECT_THAT(backend.networks(), IsEmpty());
 }
 
-TEST_F(HyperVListNetworks, throws_on_failure_to_execute_cmdlet)
+TEST_F(HyperVNetworks, throws_on_failure_to_execute_cmdlet)
 {
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::warning);
@@ -215,19 +215,18 @@ TEST_F(HyperVListNetworks, throws_on_failure_to_execute_cmdlet)
 
     constexpr auto error = "error msg";
     ps_helper.mock_ps_exec(error, false);
-    MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
-                         Property(&std::runtime_error::what, HasSubstr(error)));
+    MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error)));
 }
 
-TEST_F(HyperVListNetworks, throws_on_unexpected_cmdlet_output)
+TEST_F(HyperVNetworks, throws_on_unexpected_cmdlet_output)
 {
     constexpr auto output = "g1bb€r1$h";
     ps_helper.mock_ps_exec(output);
-    MP_ASSERT_THROW_THAT(backend.list_networks(), std::runtime_error,
+    MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
 }
 
-struct TestWrongFields : public HyperVListNetworks, public WithParamInterface<std::string>
+struct TestWrongFields : public HyperVNetworks, public WithParamInterface<std::string>
 {
     inline static constexpr auto bad_line_in_output_format = "a,few,\ngood,lines,\n{}\naround,a,\nbad,one,";
 };
@@ -235,21 +234,21 @@ struct TestWrongFields : public HyperVListNetworks, public WithParamInterface<st
 TEST_P(TestWrongFields, throws_on_output_with_wrong_fields)
 {
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
-    ASSERT_THROW(backend.list_networks(), std::runtime_error);
+    ASSERT_THROW(backend.networks(), std::runtime_error);
 }
 
-INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestWrongFields,
+INSTANTIATE_TEST_SUITE_P(HyperVNetworks, TestWrongFields,
                          Values("too,many,fields,here", "insufficient,fields",
                                 "an, internal switch, shouldn't be connected to an external adapter",
                                 "nor should a, private, one", "but an, external one should,"));
 
-TEST_F(HyperVListNetworks, returns_as_many_items_as_lines_in_proper_output)
+TEST_F(HyperVNetworks, returns_as_many_items_as_lines_in_proper_output)
 {
     ps_helper.mock_ps_exec("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
-    EXPECT_THAT(backend.list_networks(), SizeIs(7));
+    EXPECT_THAT(backend.networks(), SizeIs(7));
 }
 
-TEST_F(HyperVListNetworks, returns_provided_interface_ids)
+TEST_F(HyperVNetworks, returns_provided_interface_ids)
 {
     constexpr auto id1 = "\"toto\"";
     constexpr auto id2 = " te et te";
@@ -260,13 +259,13 @@ TEST_F(HyperVListNetworks, returns_provided_interface_ids)
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
-    EXPECT_THAT(backend.list_networks(), UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
+    EXPECT_THAT(backend.networks(), UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
 }
 
-TEST_F(HyperVListNetworks, returns_only_switches)
+TEST_F(HyperVNetworks, returns_only_switches)
 {
     ps_helper.mock_ps_exec("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
-    EXPECT_THAT(backend.list_networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
+    EXPECT_THAT(backend.networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
 template <typename Str>
@@ -291,7 +290,7 @@ auto adapt_to_single_description_matcher(Matcher&& matcher)
     return ElementsAre(Field(&mp::NetworkInterfaceInfo::description, std::forward<Matcher>(matcher)));
 }
 
-struct TestNonExternalSwitchTypes : public HyperVListNetworks, public WithParamInterface<QString>
+struct TestNonExternalSwitchTypes : public HyperVNetworks, public WithParamInterface<QString>
 {
 };
 
@@ -302,29 +301,29 @@ TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
         adapt_to_single_description_matcher(make_required_forbidden_regex_matcher(type, "external|unknown"));
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,{},", type)));
-    EXPECT_THAT(backend.list_networks(), matcher);
+    EXPECT_THAT(backend.networks(), matcher);
 }
 
-INSTANTIATE_TEST_SUITE_P(HyperVListNetworks, TestNonExternalSwitchTypes, Values("Private", "Internal"));
+INSTANTIATE_TEST_SUITE_P(HyperVNetworks, TestNonExternalSwitchTypes, Values("Private", "Internal"));
 
-TEST_F(HyperVListNetworks, recognizes_external_switch)
+TEST_F(HyperVNetworks, recognizes_external_switch)
 {
     constexpr auto nic = "some NIC";
     const auto matcher = adapt_to_single_description_matcher(
         AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(nic)));
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{}", nic)));
-    EXPECT_THAT(backend.list_networks(), matcher);
+    EXPECT_THAT(backend.networks(), matcher);
 }
 
-TEST_F(HyperVListNetworks, handles_unknown_switch_types)
+TEST_F(HyperVNetworks, handles_unknown_switch_types)
 {
     constexpr auto type = "Strange";
     const auto matcher = adapt_to_single_description_matcher(
         AllOf(make_required_forbidden_regex_matcher("unknown", "private|internal|external"), HasSubstr(type)));
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("Custom Switch,{},", type)));
-    EXPECT_THAT(backend.list_networks(), matcher);
+    EXPECT_THAT(backend.networks(), matcher);
 }
 
 } // namespace

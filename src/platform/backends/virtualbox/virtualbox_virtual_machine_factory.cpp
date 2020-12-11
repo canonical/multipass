@@ -190,7 +190,7 @@ void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
 {
 }
 
-auto mp::VirtualBoxVirtualMachineFactory::list_networks() const -> std::vector<NetworkInterfaceInfo>
+auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
     std::string log_category("virtualbox factory");
 

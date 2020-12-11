@@ -549,5 +549,5 @@ TEST_F(QemuBackend, lists_no_networks)
 {
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    EXPECT_THROW(backend.list_networks(), mp::NotImplementedOnThisBackendException);
+    EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
 }
