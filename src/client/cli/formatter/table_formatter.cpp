@@ -144,11 +144,19 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
 
     for (const auto& instance : format::sorted(reply.instances()))
     {
+        int ipv4_size = instance.ipv4_size();
+
         fmt::format_to(buf, row_format, instance.name(), name_column_width,
                        mp::format::status_string_for(instance.instance_status()), state_column_width,
-                       instance.ipv4().empty() ? "--" : instance.ipv4(), ip_column_width,
+                       ipv4_size ? instance.ipv4(0) : "--", ip_column_width,
                        instance.current_release().empty() ? "Not Available"
                                                           : fmt::format("Ubuntu {}", instance.current_release()));
+
+        for (int i = 1; i < ipv4_size; ++i)
+        {
+            fmt::format_to(buf, row_format, "", name_column_width, "", state_column_width, instance.ipv4(i),
+                           instance.ipv4(i).size(), "");
+        }
     }
 
     return fmt::to_string(buf);

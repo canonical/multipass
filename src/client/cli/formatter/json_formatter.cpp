@@ -121,8 +121,8 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
         instance_obj.insert("state", QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
 
         QJsonArray ipv4_addrs;
-        if (!instance.ipv4().empty())
-            ipv4_addrs.append(QString::fromStdString(instance.ipv4()));
+        for (int i = 0; i < instance.ipv4_size(); ++i)
+            ipv4_addrs.append(QString::fromStdString(instance.ipv4(i)));
         instance_obj.insert("ipv4", ipv4_addrs);
 
         instance_obj.insert("release", QString::fromStdString(instance.current_release()));

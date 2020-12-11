@@ -120,7 +120,12 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
 
-        instance_node["ipv4"].push_back(instance.ipv4());
+        YAML::Node ipv4_all(YAML::NodeType::Sequence);
+        for (int i = 0; i < instance.ipv4_size(); ++i)
+            ipv4_all.push_back(instance.ipv4(i));
+
+        instance_node["ipv4"] = ipv4_all;
+
         instance_node["release"] = instance.current_release();
 
         list[instance.name()].push_back(instance_node);
