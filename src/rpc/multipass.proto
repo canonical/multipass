@@ -213,8 +213,8 @@ message InfoReply {
         string memory_total = 8;
         string disk_usage = 9;
         string disk_total = 10;
-        string ipv4 = 11;
-        string ipv6 = 12;
+        repeated string ipv4 = 11;
+        repeated string ipv6 = 12;
         MountInfo mount_info = 13;
     }
     repeated Info info = 1;
