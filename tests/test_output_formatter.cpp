@@ -179,7 +179,8 @@ auto construct_single_instance_info_reply()
     info_entry->set_disk_usage("1288490188");
     info_entry->set_disk_total("5153960756");
     info_entry->set_current_release("Ubuntu 16.04.3 LTS");
-    info_entry->set_ipv4("10.168.32.2");
+    info_entry->add_ipv4("10.168.32.2");
+    info_entry->add_ipv4("200.3.123.29");
 
     return info_reply;
 }
@@ -209,7 +210,7 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_disk_usage("1932735284");
     info_entry->set_disk_total("6764573492");
     info_entry->set_current_release("Ubuntu 16.04.3 LTS");
-    info_entry->set_ipv4("10.21.124.56");
+    info_entry->add_ipv4("10.21.124.56");
 
     info_entry = info_reply.add_info();
     info_entry->set_name("bombastic");
@@ -408,6 +409,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Name:           foo\n"
      "State:          Running\n"
      "IPv4:           10.168.32.2\n"
+     "                200.3.123.29\n"
      "Release:        Ubuntu 16.04.3 LTS\n"
      "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
      "Load:           0.45 0.51 0.15\n"
@@ -462,22 +464,22 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
 
     {&csv_formatter, &empty_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts\n",
+     "usage,Memory total,Mounts,AllIPv4\n",
      "csv_info_empty"},
     {&csv_formatter, &single_instance_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts\nfoo,Running,10.168.32.2,,Ubuntu 16.04.3 "
+     "usage,Memory total,Mounts,AllIPv4\nfoo,Running,10.168.32.2,,Ubuntu 16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
-     "=> test_dir;\n",
+     "=> test_dir;,\"10.168.32.2,200.3.123.29\"\n",
      "csv_info_single"},
     {&csv_formatter, &multiple_instances_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
+     "usage,Memory total,Mounts,AllIPv4\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
-     "source;\nbombastic,Stopped,,,,"
-     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,\n",
+     "source;,\"10.21.124.56\"\nbombastic,Stopped,,,,"
+     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,\"\"\n",
      "csv_info_multiple"},
 
     {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
@@ -546,6 +548,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "      total: 1503238554\n"
      "    ipv4:\n"
      "      - 10.168.32.2\n"
+     "      - 200.3.123.29\n"
      "    mounts:\n"
      "      foo:\n"
      "        uid_mappings:\n"
@@ -600,6 +603,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "    memory:\n"
      "      usage: ~\n"
      "      total: ~\n"
+     "    ipv4:\n"
+     "      []\n"
      "    mounts: ~\n",
      "yaml_info_multiple"}};
 
@@ -669,7 +674,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
      "            \"image_release\": \"16.04 LTS\",\n"
      "            \"ipv4\": [\n"
-     "                \"10.168.32.2\"\n"
+     "                \"10.168.32.2\",\n"
+     "                \"200.3.123.29\"\n"
      "            ],\n"
      "            \"load\": [\n"
      "                0.45,\n"
