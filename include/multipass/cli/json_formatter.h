@@ -27,7 +27,7 @@ class JsonFormatter final : public Formatter
 public:
     std::string format(const InfoReply& info) const override;
     std::string format(const ListReply& list) const override;
-    std::string format(const ListNetworksReply& list) const override;
+    std::string format(const NetworksReply& list) const override;
     std::string format(const FindReply& list) const override;
 };
 }

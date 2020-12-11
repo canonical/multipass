@@ -80,9 +80,9 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
     EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
 }
 
-TEST_F(BaseFactory, list_networks_throws)
+TEST_F(BaseFactory, networks_throws)
 {
     MockBaseFactory factory;
 
-    ASSERT_THROW(factory.list_networks(), mp::NotImplementedOnThisBackendException);
+    ASSERT_THROW(factory.networks(), mp::NotImplementedOnThisBackendException);
 }

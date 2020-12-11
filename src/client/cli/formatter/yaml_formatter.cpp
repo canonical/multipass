@@ -129,7 +129,7 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
     return mpu::emit_yaml(list);
 }
 
-std::string mp::YamlFormatter::format(const ListNetworksReply& reply) const
+std::string mp::YamlFormatter::format(const NetworksReply& reply) const
 {
     YAML::Node list;
 
