@@ -374,11 +374,11 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
     {
         try
         {
-            factory_networks = factory.list_networks();
+            factory_networks = factory.networks();
         }
         catch (const mp::NotImplementedOnThisBackendException&)
         {
-            // If list-networks is not implemented, we should report that --network is not implemented on this backend.
+            // If networks is not implemented, we should report that --network is not implemented on this backend.
             throw mp::NotImplementedOnThisBackendException("--network");
         }
     }
