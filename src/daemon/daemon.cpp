@@ -1384,7 +1384,7 @@ try // clang-format on
         entry->set_current_release(current_release);
 
         if (mp::utils::is_running(present_state))
-            entry->set_ipv4(vm->ipv4());
+            entry->add_ipv4(vm->ipv4());
     }
 
     for (const auto& instance : deleted_instances)

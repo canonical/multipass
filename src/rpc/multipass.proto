@@ -228,8 +228,8 @@ message ListRequest {
 message ListVMInstance {
     string name = 1;
     InstanceStatus instance_status = 2;
-    string ipv4 = 3;
-    string ipv6 = 4;
+    repeated string ipv4 = 3;
+    repeated string ipv6 = 4;
     string current_release = 5;
 }
 
