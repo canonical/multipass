@@ -52,9 +52,9 @@ public:
                                                      days_to_expire);
     };
 
-    std::vector<NetworkInterfaceInfo> list_networks() const override
+    std::vector<NetworkInterfaceInfo> networks() const override
     {
-        throw NotImplementedOnThisBackendException("list-networks");
+        throw NotImplementedOnThisBackendException("networks");
     };
 
     std::string reinterpret_interface_id(const std::string& ux_id) const override

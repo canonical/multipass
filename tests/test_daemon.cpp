@@ -266,7 +266,7 @@ struct Daemon : public Test
 
         ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
 
-        ON_CALL(*mock_factory_ptr, list_networks())
+        ON_CALL(*mock_factory_ptr, networks())
             .WillByDefault(Return(std::vector<mp::NetworkInterfaceInfo>{{"eth0", "ethernet", "wired adapter"},
                                                                         {"wlan0", "wi-fi", "wireless adapter"}}));
 
@@ -1002,7 +1002,7 @@ TEST_F(Daemon, launches_with_valid_network_interface)
 
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, list_networks());
+    EXPECT_CALL(*mock_factory, networks());
 
     ASSERT_NO_THROW(send_command({"launch", "--network", "eth0"}));
 }
@@ -1013,7 +1013,7 @@ TEST_F(Daemon, refuses_launch_with_invalid_network_interface)
 
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, list_networks());
+    EXPECT_CALL(*mock_factory, networks());
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "eth2"}, std::cout, err_stream);
@@ -1022,7 +1022,7 @@ TEST_F(Daemon, refuses_launch_with_invalid_network_interface)
 
 TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
 {
-    // Use the stub factory, which throws when list_networks() is called.
+    // Use the stub factory, which throws when networks() is called.
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream err_stream;

@@ -190,7 +190,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption networkOption("network",
                                      "Add a network interface to the instance, where <spec> is in the "
                                      "\"key=value,key=value\" format, with the following keys available:\n"
-                                     "  id: the network to connect to (required), use the list-networks command for a "
+                                     "  id: the network to connect to (required), use the networks command for a "
                                      "list of possible values\n"
                                      "  mode: auto|manual (default: auto)\n"
                                      "  mac: hardware address (default: random).\n"

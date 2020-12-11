@@ -135,7 +135,7 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
     return QString(QJsonDocument(list_json).toJson()).toStdString();
 }
 
-std::string mp::JsonFormatter::format(const ListNetworksReply& reply) const
+std::string mp::JsonFormatter::format(const NetworksReply& reply) const
 {
     QJsonObject list_json;
     QJsonArray interfaces;
