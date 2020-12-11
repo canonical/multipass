@@ -333,7 +333,7 @@ mp::ReturnCode cmd::Launch::request_launch()
                 while (true)
                 {
                     std::string answer;
-                    std::getline(std::cin, answer);
+                    std::getline(term->cin(), answer);
                     if (std::regex_match(answer, yes))
                     {
                         request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::ACCEPTED);
