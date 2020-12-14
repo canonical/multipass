@@ -801,6 +801,34 @@ std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
                     max_tries, s.size())};
 }
 
+std::string run_in_vm(mp::SSHSession& session, const std::string& cmd)
+{
+    auto proc = session.exec(cmd);
+    if (proc.exit_code() != 0)
+    {
+        auto error_msg = proc.read_std_error();
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
+        return std::string{};
+    }
+
+    auto output = proc.read_std_output();
+    if (output.empty())
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
+        return std::string{};
+    }
+
+    return mp::utils::trim_end(output);
+}
+
+QStringList get_all_ipv4(mp::SSHSession& session)
+{
+    return QString::fromStdString(
+               run_in_vm(session, "ip a | grep inet\\  | sed \'s/.*inet \\([0123456789\\.]\\+\\)\\/.*/\\1/g\'"))
+        .split('\n', Qt::SkipEmptyParts);
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1301,37 +1329,26 @@ try // clang-format on
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};
 
-            auto run_in_vm = [&session](const std::string& cmd) {
-                auto proc = session.exec(cmd);
-                if (proc.exit_code() != 0)
-                {
-                    auto error_msg = proc.read_std_error();
-                    mpl::log(
-                        mpl::Level::warning, category,
-                        fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-                    return std::string{};
-                }
-
-                auto output = proc.read_std_output();
-                if (output.empty())
-                {
-                    mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
-                    return std::string{};
-                }
-
-                return mp::utils::trim_end(output);
-            };
-
-            info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
-            info->set_memory_usage(run_in_vm("free -b | sed '1d;3d' | awk '{printf $3}'"));
-            info->set_memory_total(run_in_vm("free -b | sed '1d;3d' | awk '{printf $2}'"));
+            info->set_load(run_in_vm(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
+            info->set_memory_usage(run_in_vm(session, "free -b | sed '1d;3d' | awk '{printf $3}'"));
+            info->set_memory_total(run_in_vm(session, "free -b | sed '1d;3d' | awk '{printf $2}'"));
             info->set_disk_usage(
-                run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+                run_in_vm(session, "df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_disk_total(
-                run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
-            info->add_ipv4(vm->management_ipv4());
+                run_in_vm(session, "df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
 
-            auto current_release = run_in_vm("lsb_release -ds");
+            std::string management_ip = vm->management_ipv4();
+            auto all_ipv4 = get_all_ipv4(session);
+
+            info->add_ipv4(management_ip);
+            for (auto extra_ipv4 : all_ipv4)
+            {
+                std::string extra_ipv4_std = extra_ipv4.toStdString();
+                if (extra_ipv4_std != management_ip)
+                    info->add_ipv4(extra_ipv4_std);
+            }
+
+            auto current_release = run_in_vm(session, "lsb_release -ds");
             info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
     }
@@ -1384,7 +1401,22 @@ try // clang-format on
         entry->set_current_release(current_release);
 
         if (mp::utils::is_running(present_state))
-            entry->add_ipv4(vm->management_ipv4());
+        {
+            auto vm_specs = vm_instance_specs[name];
+            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                   *config->ssh_key_provider};
+
+            std::string management_ip = vm->management_ipv4();
+            auto all_ipv4 = get_all_ipv4(session);
+
+            entry->add_ipv4(management_ip);
+            for (auto extra_ipv4 : all_ipv4)
+            {
+                std::string extra_ipv4_std = extra_ipv4.toStdString();
+                if (extra_ipv4_std != management_ip)
+                    entry->add_ipv4(extra_ipv4_std);
+            }
+        }
     }
 
     for (const auto& instance : deleted_instances)
