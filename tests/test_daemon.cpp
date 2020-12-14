@@ -259,8 +259,9 @@ struct Daemon : public Test
 
         ON_CALL(*mock_factory_ptr, fetch_type()).WillByDefault(Return(mp::FetchType::ImageOnly));
 
-        ON_CALL(*mock_factory_ptr, create_virtual_machine(_, _))
-            .WillByDefault(Return(ByMove(std::make_unique<mpt::StubVirtualMachine>())));
+        ON_CALL(*mock_factory_ptr, create_virtual_machine).WillByDefault([](const auto&, auto&) {
+            return std::make_unique<mpt::StubVirtualMachine>();
+        });
 
         ON_CALL(*mock_factory_ptr, prepare_source_image(_)).WillByDefault(ReturnArg<0>());
 
