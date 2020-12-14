@@ -1050,7 +1050,7 @@ TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0); // expect *no* call
-    send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", repeated_mac)}, std::cout, stream);
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", repeated_mac)}, std::cout, stream);
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("Repeated MAC"), HasSubstr(repeated_mac)));
 }
 
@@ -1059,7 +1059,7 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     std::string mac_addr("52:54:00:73:76:28");
-    std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"hostnet", mac_addr, true}};
+    std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac_addr, true}};
 
     auto temp_dir = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
@@ -1068,7 +1068,7 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine);
-    send_command({"launch", "--network", fmt::format("id=enp3s0,mac={}", mac_addr)});
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac_addr)});
 }
 
 TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
@@ -1076,7 +1076,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
-    std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"en0", mac2, true}};
+    std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
     auto temp_dir = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
@@ -1089,7 +1089,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
     mp::Daemon daemon{config_builder.build()};
 
     for (const auto& mac : {mac1, mac2})
-        send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac)});
+        send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac)});
 }
 
 TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
@@ -1102,7 +1102,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
     EXPECT_CALL(*mock_factory, prepare_instance_image).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(1);
 
-    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=bla"};
+    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=wlan0"};
     send_command(cmd); // we cause this one to fail
     send_command(cmd); // and confirm we can repeat the same mac
 }
@@ -1114,7 +1114,7 @@ TEST_F(Daemon, releases_macs_when_launch_fails)
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
 
-    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=bla"};
+    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=wlan0"};
     send_command(cmd); // we cause this one to fail
     send_command(cmd); // and confirm we can repeat the same mac
 }
@@ -1134,16 +1134,16 @@ TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
     EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac2), _)).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac3), _)).Times(2); // this one gets reused
 
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac1), "--name", "vm1"});
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac2), "--name", "vm2"});
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac3), "--name", "vm3"});
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac1), "--name", "vm1"});
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac2), "--name", "vm2"});
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac3), "--name", "vm3"});
 
     send_command({"delete", "vm1"});
     send_command({"delete", "--purge", "vm3"}); // so that mac3 can be reused
 
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac1)}); // repeated mac is rejected
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac2)}); // idem
-    send_command({"launch", "--network", fmt::format("id=en0,mac={}", mac3)}); // mac is free after purge, so accepted
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac1)}); // repeated mac is rejected
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac2)}); // idem
+    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
 }
 
 } // namespace
