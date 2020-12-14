@@ -26,6 +26,7 @@ add_executable(multipass_tests
   main.cpp
   mischievous_url_downloader.cpp
   mock_logger.cpp
+  mock_platform_functions.cpp
   mock_process_factory.cpp
   mock_settings.cpp
   mock_standard_paths.cpp
@@ -104,7 +105,9 @@ target_compile_definitions(sftp_test PRIVATE
 target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(daemon_test PRIVATE
-  filesystem_bytes_available=ut_filesystem_bytes_available)
+  filesystem_bytes_available=ut_filesystem_bytes_available
+  is_remote_supported=ut_is_remote_supported
+  is_alias_supported=ut_is_alias_supported)
 
 target_link_libraries(multipass_tests
   cert
