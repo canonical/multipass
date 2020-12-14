@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,15 @@
 
 #include "src/daemon/ubuntu_image_host.h"
 
+#include "extra_assertions.h"
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
+#include "mock_platform_functions.h"
 #include "path.h"
 #include "stub_url_downloader.h"
 
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/exceptions/unsupported_remote_exception.h>
 #include <multipass/query.h>
 
 #include <QUrl>
@@ -97,6 +100,30 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
     EXPECT_THAT(ids.count("1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4"), Eq(1u));
     EXPECT_THAT(ids.count("ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c"), Eq(1u));
     EXPECT_THAT(ids.count("520224efaaf49b15a976b49c7ce7f2bd2e5b161470d684b37a838933595c0520"), Eq(1u));
+}
+
+TEST_F(UbuntuImageHost, unsupported_alias_iterates_over_expected_entries)
+{
+    using namespace multipass::platform;
+
+    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
+
+    std::unordered_set<std::string> ids;
+    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
+
+    REPLACE(is_alias_supported, [](auto& alias, auto...) {
+        if (alias == "zesty")
+        {
+            return false;
+        }
+
+        return true;
+    });
+
+    host.for_each_entry_do(action);
+
+    const size_t expected_entries{4};
+    EXPECT_THAT(ids.size(), Eq(expected_entries));
 }
 
 TEST_F(UbuntuImageHost, can_query_by_hash)
@@ -221,6 +248,32 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
+TEST_F(UbuntuImageHost, all_images_for_release_unsupported_alias_returns_three_matches)
+{
+    using namespace multipass::platform;
+
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    const std::string unsupported_alias{"zesty"};
+
+    bool zesty_seen{false};
+    REPLACE(is_alias_supported, [&](auto& alias, auto...) {
+        if (alias == unsupported_alias)
+        {
+            zesty_seen = true;
+            return false;
+        }
+
+        return true;
+    });
+
+    auto images = host.all_images_for(release_remote_spec.first, false);
+
+    const size_t expected_matches{3};
+    EXPECT_EQ(images.size(), expected_matches);
+    EXPECT_TRUE(zesty_seen);
+}
+
 TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
@@ -292,4 +345,95 @@ TEST_F(UbuntuImageHost, throws_unsupported_image_when_image_not_supported)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     EXPECT_THROW(host.info_for(make_query("artful", release_remote_spec.first)), mp::UnsupportedImageException);
+}
+
+TEST_F(UbuntuImageHost, devel_request_with_no_remote_returns_expected_info)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    QString daily_expected_location{daily_url + "newest-artful.img"};
+    QString daily_expected_id{"c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a"};
+
+    auto info = host.info_for(make_query("devel", ""));
+
+    ASSERT_TRUE(info);
+    EXPECT_EQ(info->image_location, daily_expected_location);
+    EXPECT_EQ(info->id, daily_expected_id);
+}
+
+TEST_F(UbuntuImageHost, info_for_too_many_hash_matches_throws)
+{
+    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
+
+    const std::string release{"1"};
+
+    MP_EXPECT_THROW_THAT(
+        host.info_for(make_query(release, release_remote_spec.first)), std::runtime_error,
+        Property(&std::runtime_error::what, StrEq(fmt::format("Too many images matching \"{}\"", release))));
+}
+
+TEST_F(UbuntuImageHost, all_info_for_no_remote_query_defaults_to_release)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    auto images_info = host.all_info_for(make_query("1", ""));
+
+    const size_t expected_matches{2};
+    EXPECT_EQ(images_info.size(), expected_matches);
+}
+
+TEST_F(UbuntuImageHost, all_info_for_unsupported_image_throw)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    const std::string release{"artful"};
+
+    MP_EXPECT_THROW_THAT(
+        host.all_info_for(make_query(release, release_remote_spec.first)), mp::UnsupportedImageException,
+        Property(&std::runtime_error::what, StrEq(fmt::format("The {} release is no longer supported.", release))));
+}
+
+TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
+{
+    using namespace multipass::platform;
+
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    const std::string unsupported_remote{"bar"};
+
+    REPLACE(is_remote_supported, [&unsupported_remote](auto& remote) {
+        if (remote == unsupported_remote)
+            return false;
+
+        return true;
+    });
+
+    MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
+                         Property(&std::runtime_error::what,
+                                  HasSubstr(fmt::format("Remote \'{}\' is not a supported remote for this platform.",
+                                                        unsupported_remote))));
+}
+
+TEST_F(UbuntuImageHost, info_for_no_remote_first_unsupported_returns_expected_info)
+{
+    using namespace multipass::platform;
+
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    bool release_remote_checked{false};
+    REPLACE(is_remote_supported, [&release_remote_checked](auto& remote) {
+        if (remote == "release")
+        {
+            release_remote_checked = true;
+            return false;
+        }
+
+        return true;
+    });
+
+    auto info = host.info_for(make_query("artful", ""));
+
+    EXPECT_TRUE(release_remote_checked);
+
+    EXPECT_EQ(info->id, "c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a");
 }
