@@ -784,7 +784,7 @@ TEST_F(LXDBackend, returns_expected_network_info)
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
                                   bridge_name};
 
-    EXPECT_EQ(machine.ipv4(), "10.217.27.168");
+    EXPECT_EQ(machine.management_ipv4(), "10.217.27.168");
     EXPECT_TRUE(machine.ipv6().empty());
     EXPECT_EQ(machine.ssh_username(), default_description.ssh_username);
     EXPECT_EQ(machine.ssh_port(), 22);
@@ -863,7 +863,7 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
                                   bridge_name};
 
-    EXPECT_EQ(machine.ipv4(), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
 }
 
 TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
