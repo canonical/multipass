@@ -6,6 +6,8 @@ on:
 
 jobs:
   ProcessUSNs:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
     runs-on: ubuntu-latest
 
     steps:
