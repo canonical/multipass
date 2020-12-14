@@ -73,7 +73,7 @@ public:
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
-    optional<IPAddress> ip;
+    optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
 protected:

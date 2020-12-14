@@ -426,16 +426,16 @@ std::string mp::LibVirtVirtualMachine::ssh_username()
 
 std::string mp::LibVirtVirtualMachine::management_ipv4()
 {
-    if (!ip)
+    if (!management_ip)
     {
         auto result = instance_ip_for(mac_addr, libvirt_wrapper);
         if (result)
-            ip.emplace(result.value());
+            management_ip.emplace(result.value());
         else
             return "UNKNOWN";
     }
 
-    return ip.value().as_string();
+    return management_ip.value().as_string();
 }
 
 std::string mp::LibVirtVirtualMachine::ipv6()

@@ -373,7 +373,7 @@ void mp::QemuVirtualMachine::on_shutdown()
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
-    ip = nullopt;
+    management_ip = nullopt;
     update_state();
     vm_process.reset(nullptr);
     lock.unlock();
@@ -391,7 +391,7 @@ void mp::QemuVirtualMachine::on_restart()
     state = State::restarting;
     update_state();
 
-    ip = nullopt;
+    management_ip = nullopt;
 
     monitor->on_restart(vm_name);
 }
@@ -417,16 +417,16 @@ std::string mp::QemuVirtualMachine::ssh_username()
 
 std::string mp::QemuVirtualMachine::management_ipv4()
 {
-    if (!ip)
+    if (!management_ip)
     {
         auto result = dnsmasq_server->get_ip_for(mac_addr);
         if (result)
-            ip.emplace(result.value());
+            management_ip.emplace(result.value());
         else
             return "UNKNOWN";
     }
 
-    return ip.value().as_string();
+    return management_ip.value().as_string();
 }
 
 std::string mp::QemuVirtualMachine::ipv6()

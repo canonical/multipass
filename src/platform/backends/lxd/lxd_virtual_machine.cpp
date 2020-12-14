@@ -316,17 +316,17 @@ std::string mp::LXDVirtualMachine::ssh_username()
 
 std::string mp::LXDVirtualMachine::management_ipv4()
 {
-    if (!ip)
+    if (!management_ip)
     {
-        ip = get_ip_for(mac_addr, manager, network_leases_url());
-        if (!ip)
+        management_ip = get_ip_for(mac_addr, manager, network_leases_url());
+        if (!management_ip)
         {
             mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
             return "UNKNOWN";
         }
     }
 
-    return ip.value().as_string();
+    return management_ip.value().as_string();
 }
 
 std::string mp::LXDVirtualMachine::ipv6()
