@@ -65,9 +65,6 @@ public:
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
 
-    // Given the id the user sees in networks(), return the id of an interface which identifies it.
-    virtual std::string reinterpret_interface_id(const std::string& ux_id) const = 0;
-
 protected:
     VirtualMachineFactory() = default;
     VirtualMachineFactory(const VirtualMachineFactory&) = delete;

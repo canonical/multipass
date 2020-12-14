@@ -21,6 +21,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/network_interface.h>
 #include <multipass/optional.h>
+#include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -109,7 +110,7 @@ QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
                       "--macaddress" + iface_index_str,
                       QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':'),
                       "--bridgeadapter" + iface_index_str,
-                      QString::fromStdString(desc.extra_interfaces[i].id)};
+                      QString::fromStdString(mp::platform::reinterpret_interface_id(desc.extra_interfaces[i].id))};
     }
 
     return arguments;
