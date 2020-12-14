@@ -760,17 +760,15 @@ std::unordered_set<std::string> mac_set_from(const mp::VMSpecs& spec)
     return macs;
 }
 
-// Move the contents of t to s. If both sets are disjoint, then s becomes sUt, t becomes valid but unspecified (for
-// efficiency reasons) and true is returned. If they are not disjoint, then s and t remain untouched and false is
-// returned.
-bool merge_if_disjoint(std::unordered_set<std::string>& s, std::unordered_set<std::string>& t)
+// Merge the contents of t into s, iff the sets are disjoint (i.e. make s = sUt). Return whether s and t were disjoint.
+bool merge_if_disjoint(std::unordered_set<std::string>& s, const std::unordered_set<std::string>& t)
 {
     for (const auto& elt : s)
         if (t.find(elt) != t.end())
             return false;
 
     for (auto& elt : t)
-        s.insert(std::move(elt));
+        s.insert(elt);
 
     return true;
 }
