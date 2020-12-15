@@ -15,7 +15,6 @@
 add_library(commands STATIC
   animated_spinner.cpp
   common_cli.cpp
-  launch.cpp
   delete.cpp
   exec.cpp
   find.cpp
@@ -24,8 +23,8 @@ add_library(commands STATIC
   info.cpp
   launch.cpp
   list.cpp
-  networks.cpp
   mount.cpp
+  networks.cpp
   purge.cpp
   recover.cpp
   restart.cpp
