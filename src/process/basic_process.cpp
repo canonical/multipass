@@ -44,7 +44,10 @@ void mp::BasicProcess::CustomQProcess::setupChildProcess()
 
 mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_spec{spec}, process{this}
 {
-    connect(&process, &QProcess::started, this, &mp::Process::started);
+    connect(&process, &QProcess::started, this, [this]() {
+        pid = process.processId(); // save this, so we know it even after finished
+        emit mp::Process::started();
+    });
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
             [this](int exit_code, QProcess::ExitStatus exit_status) {
                 mp::ProcessState process_state;
@@ -102,6 +105,11 @@ QString mp::BasicProcess::working_directory() const
 QProcessEnvironment mp::BasicProcess::process_environment() const
 {
     return process.processEnvironment();
+}
+
+qint64 mp::BasicProcess::process_id() const
+{
+    return pid;
 }
 
 void mp::BasicProcess::start()
