@@ -52,6 +52,8 @@ auto construct_single_instance_list_reply()
     list_entry->set_current_release("16.04 LTS");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
+    list_entry->add_ipv6("fdde:2681:7a2::4ca");
+    list_entry->add_ipv6("fe80::1c3c:b703:d561:a00");
 
     return list_reply;
 }
@@ -181,6 +183,8 @@ auto construct_single_instance_info_reply()
     info_entry->set_current_release("Ubuntu 16.04.3 LTS");
     info_entry->add_ipv4("10.168.32.2");
     info_entry->add_ipv4("200.3.123.29");
+    info_entry->add_ipv6("2001:67c:1562:8007::aac:423a");
+    info_entry->add_ipv6("fd52:2ccf:f758:0:a342:79b5:e2ba:e05e");
 
     return info_reply;
 }
@@ -410,6 +414,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "State:          Running\n"
      "IPv4:           10.168.32.2\n"
      "                200.3.123.29\n"
+     "IPv6:           2001:67c:1562:8007::aac:423a\n"
+     "                fd52:2ccf:f758:0:a342:79b5:e2ba:e05e\n"
      "Release:        Ubuntu 16.04.3 LTS\n"
      "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
      "Load:           0.45 0.51 0.15\n"
@@ -447,7 +453,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4\n", "csv_list_empty"},
     {&csv_formatter, &single_instance_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
-     "foo,Running,10.168.32.2,,16.04 LTS,\"10.168.32.2,200.3.123.30\"\n",
+     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,16.04 LTS,\"10.168.32.2,200.3.123.30\"\n",
      "csv_list_single"},
     {&csv_formatter, &multiple_instances_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
@@ -468,7 +474,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "csv_info_empty"},
     {&csv_formatter, &single_instance_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts,AllIPv4\nfoo,Running,10.168.32.2,,Ubuntu 16.04.3 "
+     "usage,Memory total,Mounts,AllIPv4\nfoo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,Ubuntu 16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
      "=> test_dir;,\"10.168.32.2,200.3.123.29\"\n",
