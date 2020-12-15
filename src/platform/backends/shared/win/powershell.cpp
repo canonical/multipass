@@ -35,17 +35,17 @@ const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
 
 void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
-    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell arguments '{}'", power_shell->arguments().join(", ")));
-    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell working dir '{}'", power_shell->working_directory()));
-    mpl::log(mpl::Level::debug, name, fmt::format("PowerShell program '{}'", power_shell->program()));
+    mpl::log(mpl::Level::trace, name, fmt::format("PowerShell arguments '{}'", power_shell->arguments().join(", ")));
+    mpl::log(mpl::Level::trace, name, fmt::format("PowerShell working dir '{}'", power_shell->working_directory()));
+    mpl::log(mpl::Level::trace, name, fmt::format("PowerShell program '{}'", power_shell->program()));
 
     power_shell->set_process_channel_mode(QProcess::MergedChannels);
 
     QObject::connect(power_shell, &mp::Process::started,
-                     [&name]() { mpl::log(mpl::Level::debug, name, "PowerShell started"); });
+                     [&name]() { mpl::log(mpl::Level::trace, name, "PowerShell started"); });
 
     QObject::connect(power_shell, &mp::Process::state_changed, [&name](QProcess::ProcessState newState) {
-        mpl::log(mpl::Level::debug, name,
+        mpl::log(mpl::Level::trace, name,
                  fmt::format("PowerShell state changed to {}", mpu::qenum_to_qstring(newState)));
     });
 
@@ -55,7 +55,7 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
 
     QObject::connect(power_shell, &mp::Process::finished, [&name](mp::ProcessState state) {
         if (state.completed_successfully())
-            mpl::log(mpl::Level::debug, name, "PowerShell finished successfully");
+            mpl::log(mpl::Level::trace, name, "PowerShell finished successfully");
         else
             mpl::log(mpl::Level::warning, name,
                      fmt::format("PowerShell finished abnormally: {}", state.failure_message()));
@@ -99,7 +99,7 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
     QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(output_end_marker);
     bool cmdlet_code{false};
 
-    mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet: '{}'", args.join(" ")));
+    mpl::log(mpl::Level::debug, name, fmt::format("Cmdlet: '{}'", args.join(" ")));
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
@@ -142,12 +142,15 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
         }
     }
 
+    mpl::log(mpl::Level::debug, name, fmt::format("Output: {}", output));
     mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet exit status is '{}'", cmdlet_code));
     return cmdlet_code;
 }
 
 bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QString& output)
 {
+    mpl::log(mpl::Level::debug, name, fmt::format("Exec: '{}'", args.join(" ")));
+
     auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
     setup_powershell(power_shell.get(), name);
 
@@ -161,7 +164,7 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
                  fmt::format("Cmdlet failed with {}: {}", power_shell->error_string(), args.join(" ")));
 
     output = output.trimmed();
-    mpl::log(mpl::Level::trace, name, fmt::format("output: {}", output));
+    mpl::log(mpl::Level::debug, name, fmt::format("Output: {}", output));
 
     return wait_result && power_shell->process_state().completed_successfully();
 }
