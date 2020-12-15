@@ -530,6 +530,37 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
     EXPECT_EQ(machine.VirtualMachine::ssh_hostname(), expected_ip);
 }
 
+TEST_F(QemuBackend, gets_management_ip)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    const std::string expected_ip{"10.10.0.35"};
+    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+
+    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
+        return mp::optional<mp::IPAddress>{expected_ip};
+    });
+
+    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    machine.start();
+    machine.state = mp::VirtualMachine::State::running;
+
+    EXPECT_EQ(machine.management_ipv4(), expected_ip);
+}
+
+TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+
+    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([](auto...) { return mp::optional<mp::IPAddress>{}; });
+
+    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    machine.start();
+    machine.state = mp::VirtualMachine::State::running;
+
+    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
+}
+
 TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
