@@ -41,22 +41,25 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
 
     power_shell->set_process_channel_mode(QProcess::MergedChannels);
 
-
-    QObject::connect(power_shell, &mp::Process::state_changed, [&name](QProcess::ProcessState newState) {
+    QObject::connect(power_shell, &mp::Process::state_changed, [&name, power_shell](QProcess::ProcessState newState) {
         mpl::log(mpl::Level::trace, name,
-                 fmt::format("PowerShell state changed to {}", mpu::qenum_to_qstring(newState)));
+                 fmt::format("[{}] PowerShell state changed to {}", power_shell->process_id(),
+                             mpu::qenum_to_qstring(newState)));
     });
 
-    QObject::connect(power_shell, &mp::Process::error_occurred, [&name](QProcess::ProcessError error) {
-        mpl::log(mpl::Level::debug, name, fmt::format("PowerShell error occurred {}", mpu::qenum_to_qstring(error)));
+    QObject::connect(power_shell, &mp::Process::error_occurred, [&name, power_shell](QProcess::ProcessError error) {
+        mpl::log(
+            mpl::Level::debug, name,
+            fmt::format("[{}] PowerShell error occurred {}", power_shell->process_id(), mpu::qenum_to_qstring(error)));
     });
 
-    QObject::connect(power_shell, &mp::Process::finished, [&name](mp::ProcessState state) {
+    QObject::connect(power_shell, &mp::Process::finished, [&name, power_shell](mp::ProcessState state) {
+        const auto pid = power_shell->process_id();
         if (state.completed_successfully())
-            mpl::log(mpl::Level::trace, name, "PowerShell finished successfully");
+            mpl::log(mpl::Level::trace, name, fmt::format("[{}] PowerShell finished successfully", pid));
         else
             mpl::log(mpl::Level::warning, name,
-                     fmt::format("PowerShell finished abnormally: {}", state.failure_message()));
+                     fmt::format("[{}] PowerShell finished abnormally: {}", pid, state.failure_message()));
     });
 }
 
@@ -83,7 +86,7 @@ mp::PowerShell::~PowerShell()
     if (!write("Exit\n") || !powershell_proc->wait_for_finished())
     {
         auto error = powershell_proc->error_string();
-        auto msg = std::string{"Failed to exit PowerShell gracefully"};
+        auto msg = fmt::format("[{}] Failed to exit PowerShell gracefully", powershell_proc->process_id());
         if (!error.isEmpty())
             msg = fmt::format("{}: {}", msg, error);
 
@@ -96,8 +99,9 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
 {
     QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(output_end_marker);
     bool cmdlet_code{false};
+    auto pid = powershell_proc->process_id();
 
-    mpl::log(mpl::Level::debug, name, fmt::format("Cmdlet: '{}'", args.join(" ")));
+    mpl::log(mpl::Level::debug, name, fmt::format("[{}] Cmdlet: '{}'", pid, args.join(" ")));
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
@@ -140,8 +144,8 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
         }
     }
 
-    mpl::log(mpl::Level::debug, name, fmt::format("Output: {}", output));
-    mpl::log(mpl::Level::trace, name, fmt::format("Cmdlet exit status is '{}'", cmdlet_code));
+    mpl::log(mpl::Level::debug, name, fmt::format("[{}] Output: {}", pid, output));
+    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Cmdlet exit status is '{}'", pid, cmdlet_code));
     return cmdlet_code;
 }
 
@@ -155,12 +159,17 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
 
     power_shell->start();
     auto wait_result = power_shell->wait_for_finished();
+    auto pid = power_shell->process_id(); // This is 0 iff the process didn't even start
+
     if (!wait_result)
-        mpl::log(mpl::Level::warning, name,
-                 fmt::format("Cmdlet failed with {}: {}", power_shell->error_string(), args.join(" ")));
+    {
+        auto msg = pid ? fmt::format("[{}] Cmdlet failed with {}: {}", pid, power_shell->error_string(), args.join(" "))
+                       : "Could not start PowerShell";
+        mpl::log(mpl::Level::warning, name, msg);
+    }
 
     output = output.trimmed();
-    mpl::log(mpl::Level::debug, name, fmt::format("Output: {}", output));
+    mpl::log(mpl::Level::debug, name, fmt::format("[{}] Output: {}", pid, output));
 
     return wait_result && power_shell->process_state().completed_successfully();
 }
@@ -169,7 +178,7 @@ bool mp::PowerShell::write(const QByteArray& data)
 {
     if (auto written = powershell_proc->write(data); written < data.size())
     {
-        auto msg = fmt::format("Failed to send input data '{}'.", data);
+        auto msg = fmt::format("[{}] Failed to send input data '{}'.", powershell_proc->process_id(), data);
         if (written > 0)
             msg = fmt::format("{}. Only the first {} bytes were written", msg, written);
 
