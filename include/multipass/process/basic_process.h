@@ -81,6 +81,7 @@ protected:
     CustomQProcess process; // ease testing
 
 private:
+    void handle_started();
     void run_and_wait_until_finished(const int timeout);
     qint64 pid = 0;
 };

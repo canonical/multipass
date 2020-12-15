@@ -44,13 +44,7 @@ void mp::BasicProcess::CustomQProcess::setupChildProcess()
 
 mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_spec{spec}, process{this}
 {
-    connect(&process, &QProcess::started, this, [this]() {
-        pid = process.processId(); // save this, so we know it even after finished
-        const auto& program = qUtf8Printable(process_spec->program());
-        mpl::log(mpl::Level::debug, program,
-                 fmt::format("[{}] started: {} {}", pid, program, qUtf8Printable(process_spec->arguments().join(' '))));
-        emit mp::Process::started();
-    });
+    connect(&process, &QProcess::started, this, &mp::BasicProcess::handle_started);
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
             [this](int exit_code, QProcess::ExitStatus exit_status) {
                 mp::ProcessState process_state;
@@ -215,4 +209,15 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
 
 void mp::BasicProcess::setup_child_process()
 {
+}
+
+void mp::BasicProcess::handle_started()
+{
+    pid = process.processId(); // save this, so we know it even after finished
+    const auto& program = qUtf8Printable(process_spec->program());
+
+    mpl::log(mpl::Level::debug, program,
+             fmt::format("[{}] started: {} {}", pid, program, qUtf8Printable(process_spec->arguments().join(' '))));
+
+    emit mp::Process::started();
 }
