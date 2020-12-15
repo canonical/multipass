@@ -169,7 +169,7 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     }
 
     output = output.trimmed();
-    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output: {}", pid, output));
+    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output:\n{}", pid, output));
 
     return wait_result && power_shell->process_state().completed_successfully();
 }
