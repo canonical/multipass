@@ -35,7 +35,7 @@ const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
 
 void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
-    mpl::log(mpl::Level::trace, name, fmt::format("PowerShell arguments '{}'", power_shell->arguments().join(", ")));
+    mpl::log(mpl::Level::trace, name, fmt::format("PowerShell arguments: {}", power_shell->arguments().join(", ")));
     mpl::log(mpl::Level::trace, name, fmt::format("PowerShell working dir '{}'", power_shell->working_directory()));
     mpl::log(mpl::Level::trace, name, fmt::format("PowerShell program '{}'", power_shell->program()));
 
