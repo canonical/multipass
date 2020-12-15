@@ -213,7 +213,7 @@ std::string mp::HyperkitVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::HyperkitVirtualMachine::ipv4()
+std::string mp::HyperkitVirtualMachine::management_ipv4()
 {
     if (ip)
         return ip->as_string();
