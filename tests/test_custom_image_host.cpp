@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,13 @@
 
 #include "src/daemon/custom_image_host.h"
 
+#include "extra_assertions.h"
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
+#include "mock_platform_functions.h"
 #include "path.h"
 
+#include <multipass/exceptions/unsupported_remote_exception.h>
 #include <multipass/query.h>
 
 #include <QUrl>
@@ -171,6 +174,55 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     EXPECT_THAT(ids.count("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), Eq(1u));
 }
 
+TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
+{
+    using namespace multipass::platform;
+
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    std::unordered_set<std::string> ids;
+    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
+
+    REPLACE(is_alias_supported, [](auto& alias, auto...) {
+        if (alias == "core18")
+        {
+            return false;
+        }
+
+        return true;
+    });
+
+    host.for_each_entry_do(action);
+
+    const size_t expected_entries{3};
+    EXPECT_EQ(ids.size(), expected_entries);
+}
+
+TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
+{
+    using namespace multipass::platform;
+
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    std::unordered_set<std::string> ids;
+    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
+
+    const std::string unsupported_remote{"snapcraft"};
+    REPLACE(is_remote_supported, [&unsupported_remote](auto& remote) {
+        if (remote == unsupported_remote)
+        {
+            return false;
+        }
+
+        return true;
+    });
+
+    host.for_each_entry_do(action);
+
+    const size_t expected_entries{2};
+    EXPECT_EQ(ids.size(), expected_entries);
+}
+
 TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
@@ -179,6 +231,30 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
 
     const size_t expected_matches{3};
     EXPECT_THAT(images.size(), Eq(expected_matches));
+}
+
+TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_matches)
+{
+    using namespace multipass::platform;
+
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+    const std::string unsupported_alias{"core18"};
+
+    bool core18_seen{false};
+    REPLACE(is_alias_supported, [&](auto& alias, auto...) {
+        if (alias == unsupported_alias)
+        {
+            core18_seen = true;
+            return false;
+        }
+
+        return true;
+    });
+
+    auto images = host.all_images_for("snapcraft", false);
+
+    const size_t expected_matches{2};
+    EXPECT_EQ(images.size(), expected_matches);
 }
 
 TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
@@ -259,4 +335,25 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
         url_downloader.mischiefs = i;
         EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
     }
+}
+
+TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
+{
+    using namespace multipass::platform;
+
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    const std::string unsupported_remote{"snapcraft"};
+
+    REPLACE(is_remote_supported, [&unsupported_remote](auto& remote) {
+        if (remote == unsupported_remote)
+            return false;
+
+        return true;
+    });
+
+    MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
+                         Property(&std::runtime_error::what,
+                                  HasSubstr(fmt::format("Remote \'{}\' is not a supported remote for this platform.",
+                                                        unsupported_remote))));
 }
