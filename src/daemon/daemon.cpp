@@ -53,6 +53,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QRegularExpression>
+#include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
@@ -822,11 +824,33 @@ std::string run_in_vm(mp::SSHSession& session, const std::string& cmd)
     return mp::utils::trim_end(output);
 }
 
-QStringList get_all_ipv4(mp::SSHSession& session)
+std::vector<std::string> get_all_ipv4(mp::SSHSession& session)
 {
-    return QString::fromStdString(
-               run_in_vm(session, "ip a | grep inet\\  | sed \'s/.*inet \\([0123456789\\.]\\+\\)\\/.*/\\1/g\'"))
-        .split('\n', Qt::SkipEmptyParts);
+    std::vector<std::string> all_ipv4;
+
+    auto ip_a_output = QString::fromStdString(run_in_vm(session, "ip a"));
+
+    QRegularExpression ipv4_re{QStringLiteral("^\\s+inet ([\\d\\.]+)/\\d+ .*scope ([a-z]+)[ \\n]"),
+                               QRegularExpression::MultilineOption};
+
+    QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
+
+    while (ip_it.hasNext())
+    {
+        auto ip_match = ip_it.next();
+        auto scope = ip_match.captured(2);
+        auto ip = ip_match.captured(1).toStdString();
+
+        if (scope == "global" || scope == "link")
+        {
+            mpl::log(mpl::Level::debug, category, fmt::format("adding ip {} with scope {}", ip, scope));
+            all_ipv4.push_back(ip);
+        }
+        else
+            mpl::log(mpl::Level::debug, category, fmt::format("not adding ip {} with scope {}", ip, scope));
+    }
+
+    return all_ipv4;
 }
 
 } // namespace
@@ -1342,11 +1366,8 @@ try // clang-format on
 
             info->add_ipv4(management_ip);
             for (auto extra_ipv4 : all_ipv4)
-            {
-                std::string extra_ipv4_std = extra_ipv4.toStdString();
-                if (extra_ipv4_std != management_ip)
-                    info->add_ipv4(extra_ipv4_std);
-            }
+                if (extra_ipv4 != management_ip)
+                    info->add_ipv4(extra_ipv4);
 
             auto current_release = run_in_vm(session, "lsb_release -ds");
             info->set_current_release(!current_release.empty() ? current_release : original_release);
@@ -1411,11 +1432,8 @@ try // clang-format on
 
             entry->add_ipv4(management_ip);
             for (auto extra_ipv4 : all_ipv4)
-            {
-                std::string extra_ipv4_std = extra_ipv4.toStdString();
-                if (extra_ipv4_std != management_ip)
-                    entry->add_ipv4(extra_ipv4_std);
-            }
+                if (extra_ipv4 != management_ip)
+                    entry->add_ipv4(extra_ipv4);
         }
     }
 
