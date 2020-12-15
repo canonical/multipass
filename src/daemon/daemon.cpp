@@ -27,6 +27,7 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -824,6 +825,20 @@ std::string run_in_vm(mp::SSHSession& session, const std::string& cmd)
     return mp::utils::trim_end(output);
 }
 
+bool is_ipv4_valid(const std::string& ipv4)
+{
+    try
+    {
+        (mp::IPAddress(ipv4));
+    }
+    catch (std::invalid_argument&)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 std::vector<std::string> get_all_ipv4(mp::SSHSession& session)
 {
     std::vector<std::string> all_ipv4;
@@ -1364,7 +1379,9 @@ try // clang-format on
             std::string management_ip = vm->management_ipv4();
             auto all_ipv4 = get_all_ipv4(session);
 
-            info->add_ipv4(management_ip);
+            if (is_ipv4_valid(management_ip))
+                info->add_ipv4(management_ip);
+
             for (auto extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
                     info->add_ipv4(extra_ipv4);
@@ -1430,7 +1447,9 @@ try // clang-format on
             std::string management_ip = vm->management_ipv4();
             auto all_ipv4 = get_all_ipv4(session);
 
-            entry->add_ipv4(management_ip);
+            if (is_ipv4_valid(management_ip))
+                entry->add_ipv4(management_ip);
+
             for (auto extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
                     entry->add_ipv4(extra_ipv4);
