@@ -56,7 +56,7 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
     QObject::connect(power_shell, &mp::Process::finished, [&name, power_shell](mp::ProcessState state) {
         const auto pid = power_shell->process_id();
         if (state.completed_successfully())
-            mpl::log(mpl::Level::trace, name, fmt::format("[{}] PowerShell finished successfully", pid));
+            mpl::log(mpl::Level::debug, name, fmt::format("[{}] PowerShell finished successfully", pid));
         else
             mpl::log(mpl::Level::warning, name,
                      fmt::format("[{}] PowerShell finished abnormally: {}", pid, state.failure_message()));
@@ -169,7 +169,7 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     }
 
     output = output.trimmed();
-    mpl::log(mpl::Level::debug, name, fmt::format("[{}] Output: {}", pid, output));
+    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output: {}", pid, output));
 
     return wait_result && power_shell->process_state().completed_successfully();
 }
