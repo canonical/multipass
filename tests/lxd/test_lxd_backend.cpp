@@ -883,6 +883,10 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
     const std::string error_string{
         fmt::format("Timeout getting response for {} operation on {}", op, base_url.toString().toStdString())};
 
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
+
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url, mp::nullopt, 3),
                          std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error_string)));
 }

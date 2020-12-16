@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_LXD_REQUEST_H
 #define MULTIPASS_LXD_REQUEST_H
 
-#include <multipass/logging/log.h>
 #include <multipass/optional.h>
 
 #include <QHttpMultiPart>
@@ -31,7 +30,6 @@ namespace multipass
 {
 const QUrl lxd_socket_url{"unix:///var/snap/lxd/common/lxd/unix.socket@1.0"};
 const QString lxd_project_name{"multipass"};
-constexpr auto request_category = "lxd request";
 
 class NetworkAccessManager;
 
@@ -46,9 +44,8 @@ public:
 class LXDRuntimeError : public std::runtime_error
 {
 public:
-    LXDRuntimeError(const std::string& message, logging::Level level) : runtime_error{message}
+    LXDRuntimeError(const std::string& message) : runtime_error{message}
     {
-        logging::log(level, request_category, message);
     }
 };
 
