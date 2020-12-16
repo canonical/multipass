@@ -467,7 +467,7 @@ struct FunctionTraits<R(*)(A...)> {
      */
     template<int N>
     struct Arg {
-        using Type = std::remove_reference_t<decltype(std::get<N>(std::tuple<A...>()))>;
+        using Type = typename std::tuple_element<N, std::tuple<A...>>::type;
     };
 };
 

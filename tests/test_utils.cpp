@@ -474,3 +474,12 @@ TEST(Utils, make_dir_with_no_new_dir)
     EXPECT_TRUE(QFile::exists(new_path));
     EXPECT_EQ(new_path, temp_dir.path());
 }
+
+TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
+{
+    mpt::TempDir temp_dir;
+
+    auto bytes_available = mp::utils::filesystem_bytes_available(temp_dir.path());
+
+    EXPECT_GE(bytes_available, 0);
+}

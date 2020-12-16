@@ -30,6 +30,8 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 
+#include "mock_utils_functions.h" // Must be included before other local headers
+
 #include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_environment_helpers.h"
@@ -69,6 +71,7 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
+using namespace multipass::utils;
 
 namespace YAML
 {
@@ -83,6 +86,8 @@ void PrintTo(const YAML::Node& node, ::std::ostream* os)
 
 namespace
 {
+const qint64 default_total_bytes{16'106'127'360}; // 16G
+
 template<typename R>
   bool is_ready(std::future<R> const& f)
   { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
@@ -855,6 +860,8 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_)).WillByDefault([&img_size_str](auto...) {
         return mp::MemorySize{img_size_str};
     });
+
+    REPLACE(filesystem_bytes_available, [](auto...) { return default_total_bytes; });
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
