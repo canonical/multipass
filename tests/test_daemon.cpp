@@ -86,7 +86,7 @@ void PrintTo(const YAML::Node& node, ::std::ostream* os)
 
 namespace
 {
-const qint64 default_total_bytes{16106127360};
+const qint64 default_total_bytes{16'106'127'360}; // 16G
 
 template<typename R>
   bool is_ready(std::future<R> const& f)
