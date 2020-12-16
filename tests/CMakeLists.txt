@@ -33,6 +33,7 @@ add_executable(multipass_tests
   mock_sftpserver.cpp
   mock_ssh.cpp
   mock_ssh_client.cpp
+  mock_utils_functions.cpp
   path.cpp
   reset_process_factory.cpp
   stub_process_factory.cpp
@@ -102,11 +103,13 @@ target_compile_definitions(sftp_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
+target_compile_definitions(daemon_test PRIVATE
+  filesystem_bytes_available=ut_filesystem_bytes_available)
 
 target_link_libraries(multipass_tests
   cert
   client
-  daemon
+  daemon_test
   delayed_shutdown
   ip_address
   iso
