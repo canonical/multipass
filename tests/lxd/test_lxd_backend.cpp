@@ -986,6 +986,33 @@ TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
                          Property(&std::runtime_error::what, error_matcher));
 }
 
+TEST_F(LXDBackend, lxd_request_multipart_bbad_request_throws_and_logs)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
+        const QByteArray error_data{"{"
+                                    "\"type\": \"error\","
+                                    "\"error\": \"Failure\","
+                                    "\"error_code\": 400,"
+                                    "\"metadata\": {}"
+                                    "}"};
+
+        return new mpt::MockLocalSocketReply(error_data, QNetworkReply::ProtocolInvalidOperationError);
+    });
+
+    base_url.setHost("test");
+
+    auto error_matcher = AllOf(HasSubstr("Network error for"), HasSubstr(base_url.toString().toStdString()),
+                               HasSubstr(": Error - Failure"));
+    QHttpMultiPart stub_multipart;
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url, stub_multipart),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+}
+
 TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
