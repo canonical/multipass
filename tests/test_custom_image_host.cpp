@@ -36,6 +36,7 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
+using namespace multipass::platform;
 using namespace testing;
 using namespace std::literals::chrono_literals;
 
@@ -43,6 +44,12 @@ namespace
 {
 struct CustomImageHost : public Test
 {
+    CustomImageHost()
+    {
+        supported_remote.returnValue(true);
+        supported_alias.returnValue(true);
+    }
+
     mp::Query make_query(std::string release, std::string remote)
     {
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
@@ -52,6 +59,9 @@ struct CustomImageHost : public Test
     mpt::MischievousURLDownloader url_downloader{timeout};
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
+
+    decltype(MOCK(is_remote_supported)) supported_remote{MOCK(is_remote_supported)};
+    decltype(MOCK(is_alias_supported)) supported_alias{MOCK(is_alias_supported)};
 };
 } // namespace
 
@@ -176,8 +186,6 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
 
 TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 {
-    using namespace multipass::platform;
-
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     std::unordered_set<std::string> ids;
@@ -200,8 +208,6 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 
 TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
 {
-    using namespace multipass::platform;
-
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     std::unordered_set<std::string> ids;
@@ -235,8 +241,6 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
 
 TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_matches)
 {
-    using namespace multipass::platform;
-
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
     const std::string unsupported_alias{"core18"};
 
@@ -339,8 +343,6 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
 
 TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
 {
-    using namespace multipass::platform;
-
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     const std::string unsupported_remote{"snapcraft"};

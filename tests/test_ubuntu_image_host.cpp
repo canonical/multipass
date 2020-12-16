@@ -38,6 +38,7 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
+using namespace multipass::platform;
 using namespace testing;
 using namespace std::literals::chrono_literals;
 
@@ -45,6 +46,12 @@ namespace
 {
 struct UbuntuImageHost : public testing::Test
 {
+    UbuntuImageHost()
+    {
+        supported_remote.returnValue(true);
+        supported_alias.returnValue(true);
+    }
+
     mp::Query make_query(std::string release, std::string remote)
     {
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
@@ -59,6 +66,9 @@ struct UbuntuImageHost : public testing::Test
     std::chrono::seconds default_ttl{1};
     QString expected_location{host_url + "newest_image.img"};
     QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
+
+    decltype(MOCK(is_remote_supported)) supported_remote{MOCK(is_remote_supported)};
+    decltype(MOCK(is_alias_supported)) supported_alias{MOCK(is_alias_supported)};
 };
 }
 
@@ -104,8 +114,6 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
 
 TEST_F(UbuntuImageHost, unsupported_alias_iterates_over_expected_entries)
 {
-    using namespace multipass::platform;
-
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader, default_ttl};
 
     std::unordered_set<std::string> ids;
@@ -250,8 +258,6 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
 
 TEST_F(UbuntuImageHost, all_images_for_release_unsupported_alias_returns_three_matches)
 {
-    using namespace multipass::platform;
-
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     const std::string unsupported_alias{"zesty"};
@@ -395,8 +401,6 @@ TEST_F(UbuntuImageHost, all_info_for_unsupported_image_throw)
 
 TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
 {
-    using namespace multipass::platform;
-
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     const std::string unsupported_remote{"bar"};
@@ -416,8 +420,6 @@ TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
 
 TEST_F(UbuntuImageHost, info_for_no_remote_first_unsupported_returns_expected_info)
 {
-    using namespace multipass::platform;
-
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     bool release_remote_checked{false};
