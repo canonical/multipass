@@ -46,6 +46,9 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_
 {
     connect(&process, &QProcess::started, this, [this]() {
         pid = process.processId(); // save this, so we know it even after finished
+        mpl::log(mpl::Level::debug, "basic_process",
+                 fmt::format("[{}] started: {} {}", pid, qUtf8Printable(process_spec->program()),
+                             qUtf8Printable(process_spec->arguments().join(' '))));
         emit mp::Process::started();
     });
     connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
@@ -114,9 +117,6 @@ qint64 mp::BasicProcess::process_id() const
 
 void mp::BasicProcess::start()
 {
-    mpl::log(mpl::Level::debug, "basic_process",
-             fmt::format("starting: {} {}", qUtf8Printable(process_spec->program()),
-                         qUtf8Printable(process_spec->arguments().join(' '))));
     process.start();
 }
 
