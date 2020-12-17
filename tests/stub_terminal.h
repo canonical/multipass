@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,12 +49,12 @@ public:
 
     bool cin_is_live() const override
     {
-        return true;
+        return false;
     }
 
     bool cout_is_live() const override
     {
-        return true;
+        return false;
     }
 private:
     std::ostream &cout_stream;

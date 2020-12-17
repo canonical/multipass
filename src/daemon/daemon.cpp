@@ -776,18 +776,13 @@ std::unordered_set<std::string> mac_set_from(const mp::VMSpecs& spec)
     return macs;
 }
 
-// Move the contents of t to s. If both sets are disjoint, then s becomes sUt, t becomes valid but unspecified (for
-// efficiency reasons) and true is returned. If they are not disjoint, then s and t remain untouched and false is
-// returned.
-bool merge_if_disjoint(std::unordered_set<std::string>& s, std::unordered_set<std::string>& t)
+// Merge the contents of t into s, iff the sets are disjoint (i.e. make s = sUt). Return whether s and t were disjoint.
+bool merge_if_disjoint(std::unordered_set<std::string>& s, const std::unordered_set<std::string>& t)
 {
-    for (const auto& elt : s)
-        if (t.find(elt) != t.end())
-            return false;
+    if (any_of(cbegin(s), cend(s), [&t](const auto& mac) { return t.find(mac) != cend(t); }))
+        return false;
 
-    for (auto& elt : t)
-        s.insert(std::move(elt));
-
+    s.insert(cbegin(t), cend(t));
     return true;
 }
 
@@ -846,9 +841,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        // If there are no repetitions, add the new macs to the daemon's list.
-        allocated_mac_addrs = std::move(new_macs);
-
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
@@ -876,13 +868,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
             invalid_specs.push_back(name);
             config->vault->remove(name);
+            continue;
         }
+
+        allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
         // FIXME: somehow we're writing contradictory state to disk.
         if (spec.deleted && spec.state != VirtualMachine::State::stopped)
         {
             mpl::log(mpl::Level::warning, category,
-                     fmt::format("{} is deleted but has incompatible state {}, reseting state to 0 (stopped)", name,
+                     fmt::format("{} is deleted but has incompatible state {}, resetting state to 0 (stopped)", name,
                                  static_cast<int>(spec.state)));
             spec.state = VirtualMachine::State::stopped;
         }
@@ -2057,7 +2052,15 @@ void mp::Daemon::release_resources(const std::string& instance)
 {
     config->factory->remove_resources_for(instance);
     config->vault->remove(instance);
-    vm_instance_specs.erase(instance);
+
+    auto spec_it = vm_instance_specs.find(instance);
+    if (spec_it != cend(vm_instance_specs))
+    {
+        for (const auto& mac : mac_set_from(spec_it->second))
+            allocated_mac_addrs.erase(mac);
+
+        vm_instance_specs.erase(spec_it);
+    }
 }
 
 std::string mp::Daemon::check_instance_operational(const std::string& instance_name) const
@@ -2129,7 +2132,6 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             {
                 auto vm_desc = prepare_future_watcher->future().result();
 
-                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
                                            vm_desc.disk_space,
@@ -2140,6 +2142,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                            {},
                                            false,
                                            QJsonObject()};
+                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
                 preparing_instances.erase(name);
 
                 persist_instances();
@@ -2237,9 +2240,6 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             auto network_data_cloud_init_config =
                 make_cloud_init_network_config(default_mac_addr, checked_args.extra_interfaces);
 
-            // Everything went well, add the MAC addresses used in this instance.
-            allocated_mac_addrs = std::move(new_macs);
-
             auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, default_mac_addr,
                                            checked_args.extra_interfaces, config->ssh_username, vm_image,
                                            meta_data_cloud_init_config, user_data_cloud_init_config,
@@ -2247,6 +2247,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
+            // Everything went well, add the MAC addresses used in this instance.
+            allocated_mac_addrs = std::move(new_macs);
             return vm_desc;
         }
         catch (const std::exception& e)
