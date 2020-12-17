@@ -360,6 +360,11 @@ TEST_F(PlatformLinux, test_not_snap_returns_expected_default_address)
     EXPECT_EQ(mp::platform::default_server_address(), fmt::format("unix:/run/multipass_socket"));
 }
 
+TEST_F(PlatformLinux, test_is_alias_supported_returns_true)
+{
+    EXPECT_TRUE(mp::platform::is_alias_supported("focal", "release"));
+}
+
 struct TestUnsupportedDrivers : public TestWithParam<QString>
 {
 };
