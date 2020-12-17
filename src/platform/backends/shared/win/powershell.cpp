@@ -144,8 +144,8 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
         }
     }
 
-    mpl::log(mpl::Level::debug, name, fmt::format("[{}] Output: {}", pid, output));
-    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Cmdlet exit status is '{}'", pid, cmdlet_code));
+    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output: {}", pid, output));
+    mpl::log(mpl::Level::debug, name, fmt::format("[{}] Cmdlet exit status is '{}'", pid, cmdlet_code));
     return cmdlet_code;
 }
 

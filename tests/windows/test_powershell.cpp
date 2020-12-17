@@ -204,7 +204,7 @@ TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
     static constexpr auto data = "here's data";
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::warning);
-    logger.expect_log(mpl::Level::trace, fmt::format("{}", GetParam()));
+    logger.expect_log(mpl::Level::debug, fmt::format("{}", GetParam()));
 
     ps_helper.setup([this](auto* process) {
         expect_writes(process);
