@@ -41,8 +41,6 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
 
     power_shell->set_process_channel_mode(QProcess::MergedChannels);
 
-    QObject::connect(power_shell, &mp::Process::started,
-                     [&name]() { mpl::log(mpl::Level::trace, name, "PowerShell started"); });
 
     QObject::connect(power_shell, &mp::Process::state_changed, [&name](QProcess::ProcessState newState) {
         mpl::log(mpl::Level::trace, name,
@@ -149,8 +147,6 @@ bool mp::PowerShell::run(const QStringList& args, QString& output)
 
 bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QString& output)
 {
-    mpl::log(mpl::Level::debug, name, fmt::format("Exec: '{}'", args.join(" ")));
-
     auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
     setup_powershell(power_shell.get(), name);
 
