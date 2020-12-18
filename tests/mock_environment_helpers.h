@@ -28,12 +28,12 @@ namespace test
 class SetEnvScope
 {
 public:
-    explicit SetEnvScope(const QByteArray& name, const QByteArray& new_value) : name(name)
+    explicit SetEnvScope(const QByteArray& name, const QByteArray& new_value)
+        : name(name), old_value{qgetenv(name.constData())}
     {
-        old_value = qgetenv(name.constData());
-
         qputenv(name.constData(), new_value);
     }
+
     ~SetEnvScope()
     {
         if (old_value.isNull())
