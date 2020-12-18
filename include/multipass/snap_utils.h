@@ -26,6 +26,7 @@ namespace utils
 {
 QByteArray snap_dir();
 QByteArray snap_common_dir();
+QByteArray snap_real_home_dir();
 } // namespace utils
 } // namespace multipass
 

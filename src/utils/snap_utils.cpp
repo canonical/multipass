@@ -33,30 +33,35 @@ void verify_snap_name()
     if (qgetenv("SNAP_NAME") != snap_name)
         throw mp::SnapEnvironmentException("SNAP_NAME", snap_name.toStdString());
 }
+
+QByteArray checked_snap_env_var(const char* var)
+{
+    verify_snap_name();
+
+    auto ret = qgetenv(var); // Inside snap, this can be trusted.
+    if (ret.isEmpty())
+        throw mp::SnapEnvironmentException(var);
+
+    return ret;
+}
+
+QByteArray checked_snap_dir(const char* dir)
+{
+    return QFileInfo(checked_snap_env_var(dir)).canonicalFilePath().toUtf8(); // To resolve any symlinks
+}
 } // namespace
 
 QByteArray mu::snap_dir()
 {
-    verify_snap_name();
-
-    auto snap_dir = qgetenv("SNAP");                         // Inside snap, this can be trusted.
-    if (snap_dir.isEmpty())
-    {
-        throw mp::SnapEnvironmentException("SNAP");
-    }
-
-    return QFileInfo(snap_dir).canonicalFilePath().toUtf8(); // To resolve any symlinks
+    return checked_snap_dir("SNAP");
 }
 
 QByteArray mu::snap_common_dir()
 {
-    verify_snap_name();
+    return checked_snap_dir("SNAP_COMMON");
+}
 
-    auto snap_common = qgetenv("SNAP_COMMON");                  // Inside snap, this can be trusted
-    if (snap_common.isEmpty())
-    {
-        throw mp::SnapEnvironmentException("SNAP_COMMON");
-    }
-
-    return QFileInfo(snap_common).canonicalFilePath().toUtf8(); // To resolve any symlinks
+QByteArray mu::snap_real_home_dir()
+{
+    return checked_snap_dir("SNAP_REAL_HOME");
 }
