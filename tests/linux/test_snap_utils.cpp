@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include <utility>
+
 #include "tests/mock_environment_helpers.h"
 
 namespace mp = multipass;
@@ -36,103 +38,71 @@ namespace
 const QByteArray snap_name{"multipass"};
 } // namespace
 
-TEST(SnapUtils, test_is_confined_when_snap_dir_set)
+struct SnapDirs : public TestWithParam<std::pair<const char*, std::function<QByteArray()>>>
 {
-    mpt::SetEnvScope env("SNAP", "/tmp");
+};
+
+TEST_P(SnapDirs, test_snap_dir_no_throw_if_set)
+{
+    const auto& [var, getter] = GetParam();
+    mpt::SetEnvScope env(var, "/tmp");
     mpt::SetEnvScope env2("SNAP_NAME", snap_name);
 
-    EXPECT_NO_THROW(mu::snap_dir());
+    EXPECT_NO_THROW(getter());
 }
 
-TEST(SnapUtils, test_is_not_confined_when_snap_dir_not_set)
+TEST_P(SnapDirs, test_snap_dir_throws_if_not_set)
 {
-    mpt::UnsetEnvScope env("SNAP");
+    const auto& [var, getter] = GetParam();
+    mpt::UnsetEnvScope env(var);
     mpt::SetEnvScope env2("SNAP_NAME", snap_name);
 
-    EXPECT_THROW(mu::snap_dir(), mp::SnapEnvironmentException);
+    EXPECT_THROW(getter(), mp::SnapEnvironmentException);
 }
 
-TEST(SnapUtils, test_is_not_confined_when_snap_name_not_set_snap_dir_set)
+TEST_P(SnapDirs, test_snap_dir_throws_when_snap_name_not_set)
 {
+    const auto& [var, getter] = GetParam();
     QTemporaryDir snap_dir;
-    mpt::SetEnvScope env("SNAP", snap_dir.path().toUtf8());
+    mpt::SetEnvScope env(var, snap_dir.path().toUtf8());
     mpt::UnsetEnvScope env2("SNAP_NAME");
 
-    EXPECT_THROW(mu::snap_dir(), mp::SnapEnvironmentException);
+    EXPECT_THROW(getter(), mp::SnapEnvironmentException);
 }
 
-TEST(SnapUtils, test_snap_dir_read_ok)
+TEST_P(SnapDirs, test_snap_dir_throws_when_snap_name_not_multipass)
 {
+    const auto& [var, getter] = GetParam();
+    QByteArray other_name{"foo"};
     QTemporaryDir snap_dir;
-    mpt::SetEnvScope env("SNAP", snap_dir.path().toUtf8());
+    mpt::SetEnvScope env(var, snap_dir.path().toUtf8());
+    mpt::SetEnvScope env2("SNAP_NAME", other_name);
+
+    EXPECT_THROW(getter(), mp::SnapEnvironmentException);
+}
+
+TEST_P(SnapDirs, test_snap_dir_read_ok)
+{
+    const auto& [var, getter] = GetParam();
+    QTemporaryDir snap_dir;
+    mpt::SetEnvScope env(var, snap_dir.path().toUtf8());
     mpt::SetEnvScope env2("SNAP_NAME", snap_name);
 
-    EXPECT_EQ(snap_dir.path(), mu::snap_dir());
+    EXPECT_EQ(snap_dir.path(), getter());
 }
 
-TEST(SnapUtils, test_snap_dir_resolves_links)
+TEST_P(SnapDirs, test_snap_dir_resolves_links)
 {
+    const auto& [var, getter] = GetParam();
     QTemporaryDir snap_dir, link_dir;
     link_dir.remove();
     QFile::link(snap_dir.path(), link_dir.path());
-    mpt::SetEnvScope env("SNAP", link_dir.path().toUtf8());
+    mpt::SetEnvScope env(var, link_dir.path().toUtf8());
     mpt::SetEnvScope env2("SNAP_NAME", snap_name);
 
-    EXPECT_EQ(snap_dir.path(), mu::snap_dir());
+    EXPECT_EQ(snap_dir.path(), getter());
 }
 
-TEST(SnapUtils, test_snap_common_dir_read_ok)
-{
-    QTemporaryDir snap_dir;
-    mpt::SetEnvScope env("SNAP_COMMON", snap_dir.path().toUtf8());
-    mpt::SetEnvScope env2("SNAP_NAME", snap_name);
-
-    EXPECT_EQ(snap_dir.path(), mu::snap_common_dir());
-}
-
-TEST(SnapUtils, test_snap_common_dir_no_throw_if_set)
-{
-    QTemporaryDir snap_dir;
-    mpt::SetEnvScope env("SNAP_COMMON", snap_dir.path().toUtf8());
-    mpt::SetEnvScope env2("SNAP_NAME", snap_name);
-
-    EXPECT_NO_THROW(mu::snap_common_dir());
-}
-
-TEST(SnapUtils, test_snap_common_dir_throws_if_not_set)
-{
-    mpt::UnsetEnvScope env("SNAP_COMMON");
-    mpt::SetEnvScope env2("SNAP_NAME", snap_name);
-
-    EXPECT_THROW(mu::snap_common_dir(), mp::SnapEnvironmentException);
-}
-
-TEST(SnapUtils, test_is_not_confined_when_snap_name_not_set_snap_common_set)
-{
-    QTemporaryDir snap_dir;
-    mpt::SetEnvScope env("SNAP_COMMON", snap_dir.path().toUtf8());
-    mpt::UnsetEnvScope env2("SNAP_NAME");
-
-    EXPECT_THROW(mu::snap_common_dir(), mp::SnapEnvironmentException);
-}
-
-TEST(SnapUtils, test_snap_common_resolves_links)
-{
-    QTemporaryDir common_dir, link_dir;
-    link_dir.remove();
-    QFile::link(common_dir.path(), link_dir.path());
-    mpt::SetEnvScope env("SNAP_COMMON", link_dir.path().toUtf8());
-    mpt::SetEnvScope env2("SNAP_NAME", snap_name);
-
-    EXPECT_EQ(common_dir.path(), mu::snap_common_dir());
-}
-
-TEST(SnapUtils, test_snap_name_not_multipass_throws)
-{
-    QByteArray snap_name{"foo"};
-    QTemporaryDir snap_dir;
-    mpt::SetEnvScope env("SNAP_COMMON", snap_dir.path().toUtf8());
-    mpt::SetEnvScope env2("SNAP_NAME", snap_name);
-
-    EXPECT_THROW(mu::snap_common_dir(), mp::SnapEnvironmentException);
-}
+INSTANTIATE_TEST_SUITE_P(SnapUtils, SnapDirs,
+                         testing::Values(std::make_pair("SNAP", &mu::snap_dir),
+                                         std::make_pair("SNAP_COMMON", &mu::snap_common_dir)));
