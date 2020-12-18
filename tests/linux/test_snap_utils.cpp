@@ -105,4 +105,5 @@ TEST_P(SnapDirs, test_snap_dir_resolves_links)
 
 INSTANTIATE_TEST_SUITE_P(SnapUtils, SnapDirs,
                          testing::Values(std::make_pair("SNAP", &mu::snap_dir),
-                                         std::make_pair("SNAP_COMMON", &mu::snap_common_dir)));
+                                         std::make_pair("SNAP_COMMON", &mu::snap_common_dir),
+                                         std::make_pair("SNAP_REAL_HOME", &mu::snap_real_home_dir)));
