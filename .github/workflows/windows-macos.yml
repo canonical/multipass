@@ -97,7 +97,7 @@ jobs:
       OPAMVERBOSE: 1
       OPAMYES: 1
       HOMEBREW_NO_AUTO_UPDATE: 1
-      QT_VERSION: "5.12.9"
+      QT_VERSION: "5.12.10"
 
     steps:
     - name: Create an App token
