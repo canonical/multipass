@@ -165,6 +165,7 @@ jobs:
       uses: jurplel/install-qt-action@v2.10.0
       with:
         version: ${{ env.QT_VERSION }}
+      timeout-minutes: 10
 
     - name: Cache OPAM
       uses: actions/cache@v2
@@ -342,6 +343,7 @@ jobs:
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
+      timeout-minutes: 10
 
     - name: Install Dependencies from Choco
       uses: crazy-max/ghaction-chocolatey@v1
