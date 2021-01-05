@@ -162,8 +162,10 @@ jobs:
           wget
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2.10.0
+      uses: jurplel/install-qt-action@v2
       with:
+        mirror: http://mirrors.ocf.berkeley.edu/qt/
+        setup-python: false
         version: ${{ env.QT_VERSION }}
       timeout-minutes: 10
 
