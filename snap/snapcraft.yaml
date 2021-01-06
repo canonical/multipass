@@ -11,7 +11,7 @@ license: GPL-3.0
 
 adopt-info: multipass
 confinement: strict
-base: core18
+base: core20
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
@@ -111,7 +111,7 @@ parts:
     - dnsmasq-base
     - dnsmasq-utils
     source: .
-    configflags:
+    cmake-parameters:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
