@@ -40,6 +40,7 @@ public:
     QStringList arguments() const override;
     QString working_directory() const override;
     QProcessEnvironment process_environment() const override;
+    virtual qint64 process_id() const override;
 
     void start() override;
     void terminate() override;
@@ -80,7 +81,9 @@ protected:
     CustomQProcess process; // ease testing
 
 private:
+    void handle_started();
     void run_and_wait_until_finished(const int timeout);
+    qint64 pid = 0;
 };
 
 } // namespace multipass

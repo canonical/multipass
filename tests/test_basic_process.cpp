@@ -226,3 +226,39 @@ TEST_F(BasicProcessTest, error_string_when_missing_command)
     EXPECT_FALSE(process.execute().completed_successfully());
     EXPECT_THAT(process.error_string().toStdString(), HasSubstr(program));
 }
+
+TEST_F(BasicProcessTest, reports_pid_0_until_started)
+{
+    const auto program = "mock_process";
+    mp::BasicProcess process{mp::simple_process_spec(program)};
+
+    ASSERT_EQ(process.process_id(), 0);
+}
+
+TEST_F(BasicProcessTest, reports_positive_pid_after_started)
+{
+    const auto program = "mock_process";
+    auto ran = false;
+    mp::BasicProcess process{mp::simple_process_spec(program)};
+    QObject::connect(&process, &mp::Process::started, [&process, &ran] {
+        EXPECT_GT(process.process_id(), 0);
+        ran = true;
+    });
+
+    process.start();
+    EXPECT_TRUE(process.wait_for_finished());
+    EXPECT_TRUE(ran);
+}
+
+TEST_F(BasicProcessTest, reports_previous_pid_after_finished)
+{
+    const auto program = "mock_process";
+    auto pid = 0ll;
+    mp::BasicProcess process{mp::simple_process_spec(program)};
+    QObject::connect(&process, &mp::Process::started, [&process, &pid] { pid = process.process_id(); });
+
+    process.start();
+    EXPECT_TRUE(process.wait_for_finished());
+    ASSERT_GT(pid, 0);
+    EXPECT_EQ(process.process_id(), pid);
+}

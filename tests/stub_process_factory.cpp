@@ -52,6 +52,11 @@ public:
         return QProcessEnvironment();
     }
 
+    qint64 process_id() const override
+    {
+        return 0;
+    }
+
     void start() override
     {
         emit started();

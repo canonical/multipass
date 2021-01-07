@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2020 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,18 +28,18 @@ namespace test
 class SetEnvScope
 {
 public:
-    explicit SetEnvScope(const QByteArray& name, const QByteArray& new_value) : name(name)
+    explicit SetEnvScope(const QByteArray& name, const QByteArray& new_value)
+        : name(name), old_value{qgetenv(name.constData())}
     {
-        old_value = qgetenv(name.constData());
-
-        qputenv(name.constData(), new_value.constData());
+        qputenv(name.constData(), new_value);
     }
+
     ~SetEnvScope()
     {
         if (old_value.isNull())
             qunsetenv(name.constData());
         else
-            qputenv(name.constData(), old_value.constData());
+            qputenv(name.constData(), old_value);
     }
 
 private:
@@ -58,7 +58,7 @@ public:
     ~UnsetEnvScope()
     {
         if (!old_value.isNull())
-            qputenv(name.constData(), old_value.constData());
+            qputenv(name.constData(), old_value);
     }
 
 private:

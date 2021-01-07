@@ -16,16 +16,17 @@
  */
 
 #include "launch.h"
+#include "animated_spinner.h"
 #include "common_cli.h"
 
-#include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
-#include <multipass/settings.h>
-#include <multipass/utils.h>
-
+#include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
+#include <multipass/settings.h>
+#include <multipass/snap_utils.h>
+#include <multipass/utils.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -122,9 +123,16 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     auto ret = request_launch();
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
-        auto snap_real_home = qgetenv("SNAP_REAL_HOME");
-        const auto mount_source = !snap_real_home.isEmpty() ? QString::fromLocal8Bit(snap_real_home)
-                                                            : QDir::toNativeSeparators(QDir::homePath());
+        QString mount_source{};
+        try
+        {
+            mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+        }
+        catch (const mp::SnapEnvironmentException&)
+        {
+            mount_source = QDir::toNativeSeparators(QDir::homePath());
+        }
+
         const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
 
         ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
