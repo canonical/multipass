@@ -103,10 +103,10 @@ jobs:
       id: coverage-setup
       if: ${{ matrix.build-type == 'Coverage' }}
       run: |
-        COVERAGE_BUILD=${HOME}/build
-        mkdir --parents ${COVERAGE_BUILD}
-        sg lxd -c "/snap/bin/lxc profile device add default build disk source=${COVERAGE_BUILD} path=/root/parts/multipass/build"
-        echo "::set-output name=build::${COVERAGE_BUILD}"
+        MULTIPASS_PART=${HOME}/multipass_part
+        mkdir --parents ${MULTIPASS_PART}
+        sg lxd -c "/snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass"
+        echo "::set-output name=build::${MULTIPASS_PART}/build"
 
     - name: Build
       run: |
