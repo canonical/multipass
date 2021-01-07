@@ -83,6 +83,7 @@ public:
     virtual QStringList arguments() const = 0;
     virtual QString working_directory() const = 0;
     virtual QProcessEnvironment process_environment() const = 0;
+    virtual qint64 process_id() const = 0;
 
     virtual void start() = 0;
     virtual void terminate() = 0;

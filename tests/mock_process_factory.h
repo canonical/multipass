@@ -79,6 +79,7 @@ public:
     MOCK_CONST_METHOD0(running, bool());
     MOCK_CONST_METHOD0(process_state, ProcessState());
     MOCK_CONST_METHOD0(error_string, QString());
+    MOCK_CONST_METHOD0(process_id, qint64());
     MOCK_METHOD1(execute, ProcessState(int));
     MOCK_METHOD1(write, qint64(const QByteArray&));
     MOCK_METHOD1(wait_for_started, bool(int msecs));
