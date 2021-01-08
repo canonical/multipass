@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 
 #include <multipass/network_access_manager.h>
 
+#include "mock_local_socket_reply.h"
+
 #include <gmock/gmock.h>
 
 using namespace testing;
@@ -30,6 +32,11 @@ namespace test
 {
 struct MockNetworkAccessManager : public NetworkAccessManager
 {
+    MockNetworkAccessManager()
+    {
+        ON_CALL(*this, createRequest).WillByDefault(Return(new MockLocalSocketReply{""}));
+    }
+
     MOCK_METHOD3(createRequest, QNetworkReply*(Operation, const QNetworkRequest&, QIODevice*));
 };
 } // namespace test
