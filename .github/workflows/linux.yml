@@ -135,6 +135,9 @@ jobs:
       timeout-minutes: 5
       run: |
         sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        timeout 10 sg lxd -c \
+          'while [ "$( /snap/bin/lxc exec snapcraft-multipass -- \
+             systemctl show --property=ActiveState snapd )" != "ActiveState=active" ]; do sleep 1; done'
         sg lxd -c \
           '/snap/bin/lxc exec snapcraft-multipass -- \
              env CTEST_OUTPUT_ON_FAILURE=1 \
