@@ -159,7 +159,7 @@ TEST_F(PowerShellTest, run_writes_and_logs_cmd)
     static constexpr auto cmdlet = "some cmd and args";
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::error);
-    logger.expect_log(mpl::Level::trace, cmdlet);
+    logger.expect_log(mpl::Level::debug, cmdlet);
 
     ps_helper.setup([](auto* process) {
         EXPECT_CALL(*process, write(Eq(QByteArray{cmdlet}.append('\n'))))
@@ -204,7 +204,7 @@ TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
     static constexpr auto data = "here's data";
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::warning);
-    logger.expect_log(mpl::Level::trace, fmt::format("{}", GetParam()));
+    logger.expect_log(mpl::Level::debug, fmt::format("{}", GetParam()));
 
     ps_helper.setup([this](auto* process) {
         expect_writes(process);
@@ -316,6 +316,7 @@ TEST_F(PowerShellTest, exec_fails_when_timeout)
 
             EXPECT_CALL(*process, start);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(false));
+            EXPECT_CALL(*process, process_id).WillOnce(Return(123));
             EXPECT_CALL(*process, error_string).WillOnce(Return(msg));
         },
         /* auto_exit = */ false);

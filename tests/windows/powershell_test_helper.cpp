@@ -31,6 +31,7 @@ void mpt::PowerShellTestHelper::mock_ps_exec(const QByteArray& output, bool succ
             EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
             EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
+            EXPECT_CALL(*process, process_id).WillOnce(Return(9999));
         },
         /* auto_exit = */ false);
 }
