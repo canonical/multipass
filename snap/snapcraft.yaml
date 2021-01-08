@@ -167,6 +167,7 @@ parts:
     override-pull: ""
     stage-packages:
     - xterm
+    - xfonts-base
     stage:
     - -usr/lib/*/libfreetype.so.6
     - -usr/share/doc/libfreetype6/FTL.TXT.gz
