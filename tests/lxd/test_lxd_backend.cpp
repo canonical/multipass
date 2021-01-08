@@ -1613,19 +1613,23 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
 
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDInstanceStatusTestSuite, ValuesIn(lxd_instance_status_suite_inputs));
 
+namespace
+{
+auto custom_request_matcher(const QString& verb, const std::string& url_sub_str)
+{
+    auto get_verb = [](const auto& request) { return request.attribute(QNetworkRequest::CustomVerbAttribute); };
+    auto get_url = [](const auto& request) { return request.url().toString().toStdString(); };
+
+    return AllOf(ResultOf(get_verb, Eq(verb)), ResultOf(get_url, HasSubstr(url_sub_str)));
+}
+} // namespace
+
 TEST_F(LXDBackend, requests_networks)
 {
-
-    EXPECT_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillOnce([](auto, const auto& request, auto) {
-            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-            auto url = request.url().toString();
-
-            EXPECT_EQ(op, "GET");
-            EXPECT_TRUE(url.contains("1.0/networks"));
-
-            return new mpt::MockLocalSocketReply(mpt::networks_empty_data);
-        });
+    EXPECT_CALL(*mock_network_access_manager.get(), // TODO@ricab why get?
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("GET", "1.0/networks?recursion=1"), _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::networks_empty_data}));
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
     EXPECT_THAT(backend.networks(), IsEmpty());
