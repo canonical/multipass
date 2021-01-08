@@ -85,6 +85,7 @@ constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
+const std::unordered_set<std::string> no_bridging_images = {"release:16.04", "release:xenial", "snapcraft:core"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -379,8 +380,11 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
     if (!request->network_options().empty())
     {
-        if (request->image() == "xenial")
-            throw std::runtime_error("--network not implemented for xenial");
+        std::string full_name =
+            (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
+
+        if (no_bridging_images.find(full_name) != no_bridging_images.end())
+            throw std::runtime_error(fmt::format("--network not implemented for {}", full_name));
 
         try
         {
