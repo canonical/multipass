@@ -142,25 +142,29 @@ auto make_cloud_init_meta_config(const std::string& name)
 auto make_cloud_init_network_config(const std::string default_mac_addr,
                                     const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
-    YAML::Node network_data, interfaces_data;
+    YAML::Node network_data;
 
-    network_data["version"] = "2";
-
-    std::string name = "default";
-    network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
-    network_data["ethernets"][name]["dhcp4"] = true;
-
-    for (size_t i = 0; i < extra_interfaces.size(); ++i)
+    // If there exists only the default interface in the instance, then we don't need cloud-init.
+    if (!extra_interfaces.empty())
     {
-        if (extra_interfaces[i].auto_mode)
+        network_data["version"] = "2";
+
+        std::string name = "default";
+        network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
+        network_data["ethernets"][name]["dhcp4"] = true;
+
+        for (size_t i = 0; i < extra_interfaces.size(); ++i)
         {
-            name = "extra" + std::to_string(i);
-            network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
-            network_data["ethernets"][name]["dhcp4"] = true;
-            // We make the default gateway associated with the first interface.
-            network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
-            // Make the interface optional, which means that networkd will not wait for the device to be configured.
-            network_data["ethernets"][name]["optional"] = true;
+            if (extra_interfaces[i].auto_mode)
+            {
+                name = "extra" + std::to_string(i);
+                network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
+                network_data["ethernets"][name]["dhcp4"] = true;
+                // We make the default gateway associated with the first interface.
+                network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
+                // Make the interface optional, which means that networkd will not wait for the device to be configured.
+                network_data["ethernets"][name]["optional"] = true;
+            }
         }
     }
 
@@ -178,8 +182,10 @@ auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YA
     mp::CloudInitIso iso;
     iso.add_file("meta-data", mpu::emit_cloud_config(meta_data_config));
     iso.add_file("vendor-data", mpu::emit_cloud_config(vendor_data_config));
-    iso.add_file("network-config", mpu::emit_cloud_config(network_data_config));
     iso.add_file("user-data", mpu::emit_cloud_config(user_data_config));
+    if (!network_data_config.IsNull())
+        iso.add_file("network-config", mpu::emit_cloud_config(network_data_config));
+
     iso.write_to(cloud_init_iso);
 
     return cloud_init_iso;
@@ -373,6 +379,9 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
     if (!request->network_options().empty())
     {
+        if (request->image() == "xenial")
+            throw std::runtime_error("--network not implemented for xenial");
+
         try
         {
             factory_networks = factory.networks();
@@ -2237,6 +2246,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
             auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+
             auto network_data_cloud_init_config =
                 make_cloud_init_network_config(default_mac_addr, checked_args.extra_interfaces);
 
