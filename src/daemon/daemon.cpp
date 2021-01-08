@@ -85,7 +85,12 @@ constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
-const std::unordered_set<std::string> no_bridging_images = {"release:16.04", "release:xenial", "snapcraft:core"};
+const std::unordered_set<std::string> no_bridging_images = {
+    "release:10.04", "release:lucid",   "release:11.10", "release:oneiric", "release:12.04", "release:precise",
+    "release:12.10", "release:quantal", "release:13.04", "release:raring",  "release:13.10", "release:saucy",
+    "release:14.04", "release:trusty",  "release:14.10", "release:utopic",  "release:15.04", "release:vivid",
+    "release:15.10", "release:wily",    "release:16.04", "release:xenial",  "release:16.10", "release:yakkety",
+    "release:17.04", "release:zesty",   "snapcraft:core"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
