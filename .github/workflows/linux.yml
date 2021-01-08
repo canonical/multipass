@@ -135,9 +135,19 @@ jobs:
       timeout-minutes: 5
       run: |
         sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+
+        # Wait for snapd to actually finish- in particular, that snaps are mounted
         timeout 10 sg lxd -c \
           'while [ "$( /snap/bin/lxc exec snapcraft-multipass -- \
              systemctl show --property=ActiveState snapd )" != "ActiveState=active" ]; do sleep 1; done'
+
+        # The following 2 commands workaround the issue in 20.04 where the default parsing of the coverage
+        # JSON file is extremely slow. This makes is use fast parsing.
+        sg lxd -c \
+          '/snap/bin/lxc exec snapcraft-multipass -- \
+             sh -c "sudo sed -i \"s/use JSON/use JSON::XS/\" \`which geninfo\`"'
+        sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- apt-get -y install libjson-xs-perl'
+
         sg lxd -c \
           '/snap/bin/lxc exec snapcraft-multipass -- \
              env CTEST_OUTPUT_ON_FAILURE=1 \
