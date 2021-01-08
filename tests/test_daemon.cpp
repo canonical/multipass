@@ -746,6 +746,19 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     send_command({GetParam()});
 }
 
+TEST_F(Daemon, no_network_cloud_init)
+{
+    mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
+        .WillOnce(Invoke([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
+            EXPECT_TRUE(desc.network_data_config.IsNull());
+        }));
+
+    send_command({"launch"});
+}
+
 TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
@@ -810,7 +823,7 @@ typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std:
 
 INSTANTIATE_TEST_SUITE_P(
     Daemon, LaunchWithBridges,
-    Values(BridgeTestArgType({}, {"extra0"}), BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
+    Values(BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
            BridgeTestArgType({{"id=eth0,mac=01:23:45:ab:cd:ef,mode=auto", "extra0", "01:23:45:ab:cd:ef"},
                               {"wlan0", "extra1", "52:54:00:"}},
                              {"extra2"}),
