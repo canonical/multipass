@@ -1280,6 +1280,61 @@ const QByteArray networks_realistic_data{R"(
         }
     ]
 })"};
+
+const QByteArray networks_faulty_data{R"(
+{
+    "status": "Success",
+    "status_code": 200,
+    "nonsense": "field",
+    "metadata": [
+        {
+            "type": "bridge",
+            "but": "noname"
+        },
+        {
+            "name": "virbr0",
+            "type": "bridge"
+        },
+        {
+            "name": "",
+            "type": "bridge",
+            "but": "empty name"
+        },
+        {
+            "name": "bla",
+            "but": "notype"
+        },
+        {
+            "name": "en0",
+            "type": "physical"
+        },
+        {
+            "name": "lxdbr0",
+            "type": "bridge"
+        },
+        {
+            "name": 123,
+            "type": "bridge"
+        },
+        {
+            "name": "eth0",
+            "type": 123
+        },
+        {
+            "name": "mpbr0",
+            "type": "bridge"
+        },
+        {
+            "name": "mpqemubr0",
+            "type": "bridge"
+        },
+        {
+            "name": "blahh",
+            "type": "unknown"
+        }
+    ]
+})"};
+
 } // namespace test
 } // namespace multipass
 
