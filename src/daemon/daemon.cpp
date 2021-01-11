@@ -150,8 +150,9 @@ auto make_cloud_init_network_config(const std::string default_mac_addr,
 {
     YAML::Node network_data;
 
-    // If there exists only the default interface in the instance, then we don't need cloud-init.
-    if (!extra_interfaces.empty())
+    // Generate the cloud-init file only if there is at least one extra interface needing auto configuration.
+    if (std::find_if(extra_interfaces.begin(), extra_interfaces.end(),
+                     [](const auto& iface) { return iface.auto_mode; }) != extra_interfaces.end())
     {
         network_data["version"] = "2";
 
@@ -388,7 +389,10 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         std::string full_name =
             (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
 
-        if (no_bridging_images.find(full_name) != no_bridging_images.end())
+        if (no_bridging_images.find(full_name) != no_bridging_images.end() &&
+            std::find_if(request->network_options().begin(), request->network_options().end(), [](const auto& net) {
+                return net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO;
+            }) != request->network_options().end())
             throw std::runtime_error(fmt::format("--network not implemented for {}", full_name));
 
         try
