@@ -1086,7 +1086,7 @@ TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "eth0"}, std::cout, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("The --network feature is not implemented on this backend"));
+    EXPECT_THAT(err_stream.str(), HasSubstr("The bridging feature is not implemented on this backend"));
 }
 
 TEST_F(Daemon, refuses_bridging_in_old_image)
@@ -1095,7 +1095,7 @@ TEST_F(Daemon, refuses_bridging_in_old_image)
 
     std::stringstream err_stream;
     send_command({"launch", "xenial", "--network", "eth0"}, std::cout, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("--network not implemented for release:xenial"));
+    EXPECT_THAT(err_stream.str(), HasSubstr("Automatic bridge configuration not implemented for release:xenial"));
 }
 
 std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents) // unique_ptr bypasses missing move ctor
