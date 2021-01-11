@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,7 +83,8 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
         throw mp::LXDNotFoundException();
 
     if (reply->error() != QNetworkReply::NoError)
-        throw std::runtime_error(fmt::format("{}: {}", url.toString(), reply->errorString()));
+        throw std::runtime_error(fmt::format("Network error when trying to communicate with LXD via URL {}: {}",
+                                             url.toString(), reply->errorString()));
 
     auto bytearray_reply = reply->readAll();
     reply->deleteLater();
@@ -92,10 +93,11 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     auto json_reply = QJsonDocument::fromJson(bytearray_reply, &json_error);
 
     if (json_error.error != QJsonParseError::NoError)
-        throw std::runtime_error(fmt::format("{}: {}", url.toString(), json_error.errorString()));
+        throw std::runtime_error(
+            fmt::format("Could not parse LXD response for URL {}: {}", url.toString(), json_error.errorString()));
 
     if (json_reply.isNull() || !json_reply.isObject())
-        throw std::runtime_error(fmt::format("Invalid LXD response for url {}: {}", url.toString(), bytearray_reply));
+        throw std::runtime_error(fmt::format("Invalid LXD response for URL {}: {}", url.toString(), bytearray_reply));
 
     mpl::log(mpl::Level::trace, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
 
