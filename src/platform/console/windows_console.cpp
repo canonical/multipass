@@ -34,7 +34,18 @@ namespace mcp = multipass::cli::platform;
 namespace
 {
 constexpr auto category = "windows console";
+constexpr auto term_type = "xterm-256color";
 constexpr auto chunk = 4096u;
+
+mp::Console::ConsoleGeometry get_console_size(HANDLE handle)
+{
+    CONSOLE_SCREEN_BUFFER_INFO sb_info;
+    GetConsoleScreenBufferInfo(handle, &sb_info);
+    SHORT columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
+    SHORT rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
+
+    return {rows, columns}; // rows come before columns in ConsoleGeometry (unlike libssh)
+}
 }
 
 mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
@@ -44,7 +55,7 @@ mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
       error_handle{term->cerr_handle()},
       channel{channel},
       session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
-      last_geometry{0, 0}
+      last_geometry{get_console_size(output_handle)}
 {
     setup_console();
 }
@@ -60,8 +71,7 @@ void mp::WindowsConsole::setup_console()
         GetConsoleMode(output_handle, &console_output_mode);
         SetConsoleMode(output_handle, console_output_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
-        ssh_channel_request_pty(channel);
-        update_ssh_pty_size();
+        ssh_channel_request_pty_size(channel, term_type, last_geometry.columns, last_geometry.rows);
     }
 }
 
@@ -169,10 +179,7 @@ void mp::WindowsConsole::restore_console()
 
 void mp::WindowsConsole::update_ssh_pty_size()
 {
-    CONSOLE_SCREEN_BUFFER_INFO sb_info;
-    GetConsoleScreenBufferInfo(output_handle, &sb_info);
-    auto columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
-    auto rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
+    auto [rows, columns] = get_console_size(output_handle);
 
     if (last_geometry.columns != columns || last_geometry.rows != rows)
     {
