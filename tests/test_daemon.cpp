@@ -490,6 +490,10 @@ struct LaunchWithBridges
 {
 };
 
+struct LaunchWithNoNetworkCloudInit : public Daemon, public WithParamInterface<std::vector<std::string>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -746,18 +750,27 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     send_command({GetParam()});
 }
 
-TEST_F(Daemon, no_network_cloud_init)
+TEST_P(LaunchWithNoNetworkCloudInit, no_network_cloud_init)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
+
+    const auto launch_args = GetParam();
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
         .WillOnce(Invoke([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
             EXPECT_TRUE(desc.network_data_config.IsNull());
         }));
 
-    send_command({"launch"});
+    send_command(launch_args);
 }
+
+INSTANTIATE_TEST_SUITE_P(Daemon, LaunchWithNoNetworkCloudInit,
+                         Values(std::vector<std::string>{"launch"}, std::vector<std::string>{"launch", "xenial"},
+                                std::vector<std::string>{"launch", "groovy"},
+                                std::vector<std::string>{"launch", "xenial", "--network", "id=eth0,mode=manual"},
+                                std::vector<std::string>{"launch", "groovy", "--network", "id=eth0,mode=manual"},
+                                std::vector<std::string>{"launch", "--network", "id=eth0,mode=manual"}));
 
 TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
 {
@@ -827,7 +840,6 @@ INSTANTIATE_TEST_SUITE_P(
            BridgeTestArgType({{"id=eth0,mac=01:23:45:ab:cd:ef,mode=auto", "extra0", "01:23:45:ab:cd:ef"},
                               {"wlan0", "extra1", "52:54:00:"}},
                              {"extra2"}),
-           BridgeTestArgType({{"id=eth0,mode=manual", "", ""}}, {"extra0"}),
            BridgeTestArgType({{"id=eth0,mode=manual", "", ""}, {"id=wlan0", "extra1", "52:54:00:"}},
                              {"extra0", "extra2"})));
 
