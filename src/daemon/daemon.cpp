@@ -393,7 +393,9 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
             std::find_if(request->network_options().begin(), request->network_options().end(), [](const auto& net) {
                 return net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO;
             }) != request->network_options().end())
-            throw std::runtime_error(fmt::format("--network not implemented for {}", full_name));
+        {
+            throw std::runtime_error(fmt::format("Automatic bridge configuration not implemented for {}", full_name));
+        }
 
         try
         {
@@ -401,8 +403,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         }
         catch (const mp::NotImplementedOnThisBackendException&)
         {
-            // If networks is not implemented, we should report that --network is not implemented on this backend.
-            throw mp::NotImplementedOnThisBackendException("--network");
+            throw mp::NotImplementedOnThisBackendException("bridging");
         }
     }
 
