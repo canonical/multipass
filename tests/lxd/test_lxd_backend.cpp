@@ -1636,27 +1636,6 @@ TEST_F(LXDBackend, requests_networks)
     EXPECT_THAT(backend.networks(), IsEmpty());
 }
 
-struct LXDNetworksOnlyBridges : LXDBackend, WithParamInterface<QByteArray>
-{
-};
-
-TEST_P(LXDNetworksOnlyBridges, reports_only_bridge_networks)
-{
-    EXPECT_CALL(*mock_network_access_manager,
-                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
-
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
-
-    auto id_matcher = [](const std::string& expect) { return Field(&mp::NetworkInterfaceInfo::id, Eq(expect)); };
-    EXPECT_THAT(backend.networks(), AllOf(Each(Field(&mp::NetworkInterfaceInfo::type, "bridge")),
-                                          UnorderedElementsAre(id_matcher("lxdbr0"), id_matcher("mpbr0"),
-                                                               id_matcher("virbr0"), id_matcher("mpqemubr0"))));
-}
-
-INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksOnlyBridges,
-                         Values(mpt::networks_realistic_data, mpt::networks_faulty_data));
-
 struct LXDNetworksBadJson : LXDBackend, WithParamInterface<QByteArray>
 {
 };
@@ -1700,3 +1679,24 @@ INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadFields,
                                 "{\"metadata\": [{\"name\": \"bla\", \"but\": \"notype\"}]}",
                                 "{\"metadata\": [{\"name\": 123, \"type\": \"bridge\"}]}",
                                 "{\"metadata\": [{\"name\": \"eth0\", \"type\": 123}]}"));
+
+struct LXDNetworksOnlyBridges : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksOnlyBridges, reports_only_bridge_networks)
+{
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    auto id_matcher = [](const std::string& expect) { return Field(&mp::NetworkInterfaceInfo::id, Eq(expect)); };
+    EXPECT_THAT(backend.networks(), AllOf(Each(Field(&mp::NetworkInterfaceInfo::type, "bridge")),
+                                          UnorderedElementsAre(id_matcher("lxdbr0"), id_matcher("mpbr0"),
+                                                               id_matcher("virbr0"), id_matcher("mpqemubr0"))));
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksOnlyBridges,
+                         Values(mpt::networks_realistic_data, mpt::networks_faulty_data));
