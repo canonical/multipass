@@ -214,7 +214,7 @@ xcrun altool --notarize-app -f "${PKGFILENAME}" \
              --primary-bundle-id "${BUNDLE_ID}" \
              --username "${NOTARIZE_ID}" \
              --password "${NOTARIZE_PASSWORD}" \
-             "${NOTARIZE_OPTS[@]}" >${_tmpout} 2>&1
+             "${NOTARIZE_OPTS[@]}" 2>&1 | tee "${_tmpout}"
 
 # check the request uuid
 _requuid=$(cat "${_tmpout}" | grep "RequestUUID" | awk '{ print $3 }')
@@ -247,7 +247,7 @@ for c in {80..0}; do
     sleep 60
     xcrun altool --notarization-info "${_requuid}" \
                  --username "${NOTARIZE_ID}" \
-                 --password "${NOTARIZE_PASSWORD}" >${_tmpout} 2>&1
+                 --password "${NOTARIZE_PASSWORD}" 2>&1 | tee ${_tmpout}
     _status=$(cat "${_tmpout}" | grep "Status:" | awk '{ print $2 }')
     if [ "${_status}" == "invalid" ]; then
         echo "Error: Got invalid notarization!"
