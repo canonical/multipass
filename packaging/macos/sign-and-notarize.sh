@@ -91,6 +91,12 @@ if [ ! -f "${PKGFILE}" ]; then
     exit 1
 fi 
 
+if [ -n "${NOTARIZE_ID+x}" ] && [ -z "${NOTARIZE_PASSWORD:-}" ]; then
+    echo -n "Apple Developer account password: "
+    read -s NOTARIZE_PASSWORD
+    echo
+fi
+
 function check_already_signed
 {
     PKG="$1"
@@ -204,13 +210,11 @@ if [ -n "${NOTARIZE_PROVIDER}" ]; then
     NOTARIZE_OPTS=( --asc-provider "${NOTARIZE_PROVIDER}" )
 fi
 
-set -x
 xcrun altool --notarize-app -f "${PKGFILENAME}" \
              --primary-bundle-id "${BUNDLE_ID}" \
              --username "${NOTARIZE_ID}" \
              --password "${NOTARIZE_PASSWORD}" \
              "${NOTARIZE_OPTS[@]}" >${_tmpout} 2>&1
-set +x
 
 # check the request uuid
 _requuid=$(cat "${_tmpout}" | grep "RequestUUID" | awk '{ print $3 }')
