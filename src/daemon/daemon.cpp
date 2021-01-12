@@ -55,7 +55,6 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QRegularExpression>
-#include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
@@ -804,9 +803,12 @@ std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
                     max_tries, s.size())};
 }
 
+// Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
+// Caveat emptor: if the command fails, an empty string is returned.
 std::string run_in_vm(mp::SSHSession& session, const std::string& cmd)
 {
-    auto proc = session.exec(cmd);
+    auto proc = exec_and_log(session, cmd);
+
     if (proc.exit_code() != 0)
     {
         auto error_msg = proc.read_std_error();
@@ -843,26 +845,18 @@ std::vector<std::string> get_all_ipv4(mp::SSHSession& session)
 {
     std::vector<std::string> all_ipv4;
 
-    auto ip_a_output = QString::fromStdString(run_in_vm(session, "ip a"));
+    auto ip_a_output = QString::fromStdString(run_in_vm(session, "ip -brief -family inet address show scope global"));
 
-    QRegularExpression ipv4_re{QStringLiteral("^\\s+inet ([\\d\\.]+)/\\d+ .*scope ([a-z]+)[ \\n]"),
-                               QRegularExpression::MultilineOption};
+    QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
 
     QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
 
     while (ip_it.hasNext())
     {
         auto ip_match = ip_it.next();
-        auto scope = ip_match.captured(2);
         auto ip = ip_match.captured(1).toStdString();
 
-        if (scope == "global" || scope == "link")
-        {
-            mpl::log(mpl::Level::debug, category, fmt::format("adding ip {} with scope {}", ip, scope));
-            all_ipv4.push_back(ip);
-        }
-        else
-            mpl::log(mpl::Level::debug, category, fmt::format("not adding ip {} with scope {}", ip, scope));
+        all_ipv4.push_back(ip);
     }
 
     return all_ipv4;
