@@ -494,6 +494,10 @@ struct LaunchWithNoNetworkCloudInit : public Daemon, public WithParamInterface<s
 {
 };
 
+struct RefuseBridging : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -765,12 +769,25 @@ TEST_P(LaunchWithNoNetworkCloudInit, no_network_cloud_init)
     send_command(launch_args);
 }
 
-INSTANTIATE_TEST_SUITE_P(Daemon, LaunchWithNoNetworkCloudInit,
-                         Values(std::vector<std::string>{"launch"}, std::vector<std::string>{"launch", "xenial"},
-                                std::vector<std::string>{"launch", "groovy"},
-                                std::vector<std::string>{"launch", "xenial", "--network", "id=eth0,mode=manual"},
-                                std::vector<std::string>{"launch", "groovy", "--network", "id=eth0,mode=manual"},
-                                std::vector<std::string>{"launch", "--network", "id=eth0,mode=manual"}));
+std::vector<std::string> make_args(const std::vector<std::string>& args)
+{
+    std::vector<std::string> all_args{"launch"};
+
+    for (const auto& a : args)
+        all_args.push_back(a);
+
+    return all_args;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon, LaunchWithNoNetworkCloudInit,
+    Values(make_args({}), make_args({"xenial"}), make_args({"xenial", "--network", "id=eth0,mode=manual"}),
+           make_args({"groovy"}), make_args({"groovy", "--network", "id=eth0,mode=manual"}),
+           make_args({"--network", "id=eth0,mode=manual"}), make_args({"devel"}),
+           make_args({"hirsute", "--network", "id=eth0,mode=manual"}), make_args({"daily:21.04"}),
+           make_args({"daily:21.04", "--network", "id=eth0,mode=manual"}),
+           make_args({"appliance:openhab", "--network", "id=eth0,mode=manual"}), make_args({"appliance:nextcloud"}),
+           make_args({"snapcraft:core18", "--network", "id=eth0,mode=manual"}), make_args({"snapcraft:core20"})));
 
 TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
 {
@@ -1089,14 +1106,25 @@ TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
     EXPECT_THAT(err_stream.str(), HasSubstr("The bridging feature is not implemented on this backend"));
 }
 
-TEST_F(Daemon, refuses_bridging_in_old_image)
+TEST_P(RefuseBridging, old_image)
 {
+    const auto [remote, image] = GetParam();
+    std::string full_image_name = remote.empty() ? image : remote + ":" + image;
+
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream err_stream;
-    send_command({"launch", "xenial", "--network", "eth0"}, std::cout, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("Automatic bridge configuration not implemented for release:xenial"));
+    send_command({"launch", full_image_name, "--network", "eth0"}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("Automatic network configuration not available for"));
 }
+
+std::vector<std::string> old_releases{"10.04",   "lucid",  "11.10",   "oneiric", "12.04", "precise", "12.10",
+                                      "quantal", "13.04",  "raring",  "13.10",   "saucy", "14.04",   "trusty",
+                                      "14.10",   "utopic", "15.04",   "vivid",   "15.10", "wily",    "16.04",
+                                      "xenial",  "16.10",  "yakkety", "17.04",   "zesty"};
+
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging, Combine(Values("release", ""), ValuesIn(old_releases)));
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
 
 std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents) // unique_ptr bypasses missing move ctor
 {
