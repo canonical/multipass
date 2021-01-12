@@ -211,6 +211,7 @@ void mp::LXDVirtualMachine::stop()
         return;
     }
 
+    // TODO: Related to #1909, use whatever method we come up with to force the shutdown
     if (present_state == State::starting)
     {
         stop_options.insert("force", true);
@@ -281,7 +282,11 @@ void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds
             return true;
         }
 
-        // Sleep to see if LXD is just rebooting the instance
+        // The following tries to solve two issues:
+        // 1. Instances reboot upon first boot with LXD, so the state changes from running->stopped->running.
+        // 2. A user may issue a shutdown while the instance is starting.
+        //
+        // This will block unless notified and forced_shutdown is set or for the duration of the timeout.
         state_wait.wait_for(lock, timeout, [this] { return forced_shutdown; });
 
         if (current_state() != State::stopped)
@@ -355,12 +360,9 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
 
 void mp::LXDVirtualMachine::request_state(const QString& new_state, const QJsonObject& state_options)
 {
-    QJsonObject state_json{{"action", new_state}};
+    QJsonObject state_json{state_options};
 
-    for (auto option = state_options.constBegin(); option != state_options.constEnd(); ++option)
-    {
-        state_json.insert(option.key(), option.value());
-    }
+    state_json.insert("action", new_state);
 
     auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
 
