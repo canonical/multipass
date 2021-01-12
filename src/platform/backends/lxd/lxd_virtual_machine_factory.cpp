@@ -146,6 +146,7 @@ mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vec
 auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
     static constexpr auto type = "bridge";
+    static constexpr auto default_description = "Network bridge";
 
     auto url = QUrl{QString{"%1/networks?recursion=1"}.arg(base_url.toString())};
     auto reply = lxd_request(manager.get(), "GET", url);
@@ -153,10 +154,14 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
     auto ret = std::vector<NetworkInterfaceInfo>{};
     auto networks = reply["metadata"].toArray();
 
+    QString description;
     for (const auto& net_value : networks)
         if (auto network = net_value.toObject(); network["type"].toString() == type) // no network filter from LXD ATTOW
             if (auto id = network["name"].toString(); !id.isEmpty())
-                ret.push_back({id.toStdString(), type, network["description"].toString().toStdString()});
+                ret.push_back({id.toStdString(), type,
+                               (description = network["description"].toString()).isEmpty()
+                                   ? default_description
+                                   : description.toStdString()});
 
     return ret;
 }
