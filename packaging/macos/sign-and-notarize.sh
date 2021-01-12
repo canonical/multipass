@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -euo pipefail
 
 # Open installer package, codesign its contents, then signs and notarizes it
 
@@ -121,23 +121,23 @@ function sign_installer {
 function codesign_binaries {
     DIR="$1"
     # sign every file in the directory
-    find "${DIR}" -type f -not -name hyperkit -exec \
+    find "${DIR}" -type f -not -name hyperkit -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
             --prefix com.canonical.multipass. \
-            --sign "${SIGN_APP}" "{}" \;
+            --sign "${SIGN_APP}"
 
     # sign every bundle in the directory
-    find "${DIR}" -type d -name '*.app' -exec \
+    find "${DIR}" -type d -name '*.app' -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict --deep \
             --prefix com.canonical.multipass. \
-            --sign "${SIGN_APP}" "{}" \;
+            --sign "${SIGN_APP}"
 
     # sign hyperkit with the entitlement file
-    find "${DIR}" -type f -name hyperkit -exec \
+    find "${DIR}" -type f -name hyperkit -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
             --entitlements "${SCRIPTDIR}/hyperkit.entitlements.plist" \
             --identifier com.canonical.multipass.hyperkit \
-            --sign "${SIGN_APP}" "{}" \;
+            --sign "${SIGN_APP}"
 }
 
 SCRIPTDIR=$( dirname $( greadlink -f $0 ))
