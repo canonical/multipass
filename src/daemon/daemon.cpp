@@ -394,7 +394,8 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
                 return net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO;
             }) != request->network_options().end())
         {
-            throw std::runtime_error(fmt::format("Automatic bridge configuration not implemented for {}", full_name));
+            throw std::runtime_error(fmt::format(
+                "Automatic network configuration not available for {}. Consider using manual mode.", full_name));
         }
 
         try
