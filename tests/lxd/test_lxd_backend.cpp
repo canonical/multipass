@@ -1700,3 +1700,29 @@ TEST_P(LXDNetworksOnlyBridges, reports_only_bridge_networks)
 
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksOnlyBridges,
                          Values(mpt::networks_realistic_data, mpt::networks_faulty_data));
+
+TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
+{
+    auto description = "Australopithecus";
+    auto data_template = QStringLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": "%1"}]})");
+    auto data = data_template.arg(description).toUtf8();
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(description))));
+}
+
+TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
+{
+    auto data = QByteArrayLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""}]})");
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge"))));
+}
