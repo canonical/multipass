@@ -43,17 +43,7 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
             fmt::format_to(buf, "{} => {};", mount->source_path(), mount->target_path());
         }
 
-        std::string all_ipv4("\"");
-
-        if (int s = info.ipv4_size())
-        {
-            all_ipv4 += info.ipv4(0);
-            for (int i = 1; i < s; ++i)
-                all_ipv4 += "," + info.ipv4(i);
-        }
-        all_ipv4 += "\"";
-
-        fmt::format_to(buf, ",{}\n", all_ipv4);
+        fmt::format_to(buf, ",\"{}\"\n", fmt::join(info.ipv4(), ","));
     }
     return fmt::to_string(buf);
 }
@@ -66,20 +56,10 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
 
     for (const auto& instance : format::sorted(reply.instances()))
     {
-        std::string all_ipv4("\"");
-
-        if (int s = instance.ipv4_size())
-        {
-            all_ipv4 += instance.ipv4(0);
-            for (int i = 1; i < s; ++i)
-                all_ipv4 += "," + instance.ipv4(i);
-        }
-        all_ipv4 += "\"";
-
-        fmt::format_to(buf, "{},{},{},{},{},{}\n", instance.name(),
+        fmt::format_to(buf, "{},{},{},{},{},\"{}\"\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()),
                        instance.ipv4_size() ? instance.ipv4(0) : "", instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release(), all_ipv4);
+                       instance.current_release(), fmt::join(instance.ipv4(), ","));
     }
 
     return fmt::to_string(buf);
