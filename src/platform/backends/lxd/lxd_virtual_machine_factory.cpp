@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/utils.h>
 
 #include <QJsonDocument>
@@ -140,4 +141,22 @@ mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vec
 {
     return std::make_unique<mp::LXDVMImageVault>(image_hosts, downloader, manager.get(), base_url, cache_dir_path,
                                                  days_to_expire);
+}
+
+auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
+{
+    static constexpr auto type = "bridge";
+
+    auto url = QUrl{QString{"%1/networks?recursion=1"}.arg(base_url.toString())};
+    auto reply = lxd_request(manager.get(), "GET", url);
+
+    auto ret = std::vector<NetworkInterfaceInfo>{};
+    auto networks = reply["metadata"].toArray();
+
+    for (const auto& net_value : networks)
+        if (auto network = net_value.toObject(); network["type"].toString() == type) // no network filter from LXD ATTOW
+            if (auto id = network["name"].toString(); !id.isEmpty())
+                ret.push_back({id.toStdString(), type, network["description"].toString().toStdString()});
+
+    return ret;
 }
