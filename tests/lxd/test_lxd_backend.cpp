@@ -1059,7 +1059,7 @@ TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
 
-    auto error_matcher = StrEq("Error waiting on operation: Failure");
+    auto error_matcher = StrEq("Error waiting on operation: (400) Failure");
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
@@ -1115,7 +1115,7 @@ TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
 
-    auto error_matcher = StrEq("Failure waiting on operation: Bad status");
+    auto error_matcher = StrEq("Failure waiting on operation: (400) Bad status");
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
@@ -1171,7 +1171,7 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
 
-    auto error_matcher = StrEq("Operation completed with error: Failed to stop instance");
+    auto error_matcher = StrEq("Operation completed with error: (400) Failed to stop instance");
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),

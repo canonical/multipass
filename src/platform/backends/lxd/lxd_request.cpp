@@ -174,16 +174,19 @@ try
 
         if (task_reply["error_code"].toInt() >= 400)
         {
-            throw mp::LXDRuntimeError(fmt::format("Error waiting on operation: {}", task_reply["error"].toString()));
+            throw mp::LXDRuntimeError(fmt::format("Error waiting on operation: ({}) {}",
+                                                  task_reply["error_code"].toInt(), task_reply["error"].toString()));
         }
-        else if (task_reply["status_code"].toInt() == 400)
+        else if (task_reply["status_code"].toInt() >= 400)
         {
-            throw mp::LXDRuntimeError(fmt::format("Failure waiting on operation: {}", task_reply["status"].toString()));
+            throw mp::LXDRuntimeError(fmt::format("Failure waiting on operation: ({}) {}",
+                                                  task_reply["status_code"].toInt(), task_reply["status"].toString()));
         }
-        else if (task_reply["metadata"].toObject()["status_code"].toInt() == 400)
+        else if (task_reply["metadata"].toObject()["status_code"].toInt() >= 400)
         {
-            throw mp::LXDRuntimeError(
-                fmt::format("Operation completed with error: {}", task_reply["metadata"].toObject()["err"].toString()));
+            throw mp::LXDRuntimeError(fmt::format("Operation completed with error: ({}) {}",
+                                                  task_reply["metadata"].toObject()["status_code"].toInt(),
+                                                  task_reply["metadata"].toObject()["err"].toString()));
         }
     }
 
