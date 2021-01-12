@@ -146,7 +146,7 @@ function codesign_binaries {
             --sign "${SIGN_APP}"
 }
 
-SCRIPTDIR=$( dirname $( greadlink -f $0 ))
+SCRIPTDIR=$(perl -MCwd=realpath -e "print realpath '$0/..'")
 
 WORKDIR=$(mktemp -d)
 function clean_workdir
