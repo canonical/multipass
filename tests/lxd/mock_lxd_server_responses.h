@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1139,6 +1139,16 @@ const QByteArray image_upload_task_complete_data{
     "\"status_code\": 200,"
     "\"type\": \"sync\""
     "}"};
+
+const QByteArray networks_empty_data{R"({
+                                         "type": "sync",
+                                         "status": "Success",
+                                         "status_code": 200,
+                                         "operation": "",
+                                         "error_code": 0,
+                                         "error": "",
+                                         "metadata": []
+                                     })"};
 } // namespace test
 } // namespace multipass
 

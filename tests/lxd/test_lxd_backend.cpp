@@ -1613,9 +1613,20 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
 
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDInstanceStatusTestSuite, ValuesIn(lxd_instance_status_suite_inputs));
 
-TEST_F(LXDBackend, lists_no_networks)
+TEST_F(LXDBackend, requests_networks)
 {
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
+    EXPECT_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillOnce([](auto, const auto& request, auto) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            EXPECT_EQ(op, "GET");
+            EXPECT_TRUE(url.contains("1.0/networks"));
+
+            return new mpt::MockLocalSocketReply(mpt::networks_empty_data);
+        });
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    EXPECT_THAT(backend.networks(), IsEmpty());
 }
