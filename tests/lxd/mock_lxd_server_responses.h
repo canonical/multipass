@@ -1140,15 +1140,146 @@ const QByteArray image_upload_task_complete_data{
     "\"type\": \"sync\""
     "}"};
 
-const QByteArray networks_empty_data{R"({
-                                         "type": "sync",
-                                         "status": "Success",
-                                         "status_code": 200,
-                                         "operation": "",
-                                         "error_code": 0,
-                                         "error": "",
-                                         "metadata": []
-                                     })"};
+const QByteArray networks_empty_data{R"(
+{
+     "type": "sync",
+     "status": "Success",
+     "status_code": 200,
+     "operation": "",
+     "error_code": 0,
+     "error": "",
+     "metadata": []
+})"};
+
+const QByteArray networks_realistic_data{R"(
+{
+    "type": "sync",
+    "status": "Success",
+    "status_code": 200,
+    "operation": "",
+    "error_code": 0,
+    "error": "",
+    "metadata": [
+        {
+            "config": {
+                "ipv4.address": "10.48.127.1/24",
+                "ipv4.nat": "true",
+                "ipv6.address": "fd42:f933:79c:618f::1/64",
+                "ipv6.nat": "true"
+            },
+            "description": "",
+            "name": "lxdbr0",
+            "type": "bridge",
+            "used_by": [
+                "/1.0/profiles/default"
+            ],
+            "managed": true,
+            "status": "Created",
+            "locations": [
+                "none"
+            ]
+        },
+        {
+            "config": {
+                "ipv4.address": "10.186.122.1/24",
+                "ipv4.nat": "true",
+                "ipv6.address": "fd42:3d5d:5553:7fc8::1/64",
+                "ipv6.nat": "true"
+            },
+            "description": "Network bridge for Multipass",
+            "name": "mpbr0",
+            "type": "bridge",
+            "used_by": [
+                "/1.0/profiles/default?project=multipass"
+            ],
+            "managed": true,
+            "status": "Created",
+            "locations": [
+                "none"
+            ]
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "lo",
+            "type": "loopback",
+            "used_by": [],
+            "managed": false,
+            "status": "",
+            "locations": null
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "wlp2s0",
+            "type": "physical",
+            "used_by": null,
+            "managed": false,
+            "status": "",
+            "locations": null
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "virbr0",
+            "type": "bridge",
+            "used_by": null,
+            "managed": false,
+            "status": "",
+            "locations": null
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "virbr0-nic",
+            "type": "unknown",
+            "used_by": null,
+            "managed": false,
+            "status": "",
+            "locations": null
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "enxe4b97a832426",
+            "type": "physical",
+            "used_by": null,
+            "managed": false,
+            "status": "",
+            "locations": null
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "mpqemubr0-dummy",
+            "type": "unknown",
+            "used_by": null,
+            "managed": false,
+            "status": "",
+            "locations": null
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "mpqemubr0",
+            "type": "bridge",
+            "used_by": null,
+            "managed": false,
+            "status": "",
+            "locations": null
+        },
+        {
+            "config": {},
+            "description": "",
+            "name": "tap-a1a0e5e916d",
+            "type": "unknown",
+            "used_by": null,
+            "managed": false,
+            "status": "",
+            "locations": null
+        }
+    ]
+})"};
 } // namespace test
 } // namespace multipass
 
