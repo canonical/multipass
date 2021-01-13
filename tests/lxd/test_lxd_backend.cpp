@@ -1622,15 +1622,37 @@ auto custom_request_matcher(const QString& verb, const std::string& url_sub_str)
 
     return AllOf(ResultOf(get_verb, Eq(verb)), ResultOf(get_url, HasSubstr(url_sub_str)));
 }
+
+const auto network_request_matcher = custom_request_matcher("GET", "1.0/networks?recursion=1");
 } // namespace
 
 TEST_F(LXDBackend, requests_networks)
 {
-    EXPECT_CALL(*mock_network_access_manager.get(), // TODO@ricab why get?
-                createRequest(QNetworkAccessManager::CustomOperation,
-                              custom_request_matcher("GET", "1.0/networks?recursion=1"), _))
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::networks_empty_data}));
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
     EXPECT_THAT(backend.networks(), IsEmpty());
 }
+
+struct LXDNetworksBadJson : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
+{
+    auto log_matcher =
+        mpt::MockLogger::make_cstring_matcher(AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply")));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), _, log_matcher)).Times(1);
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THROW(backend.networks(), std::runtime_error);
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadJson,
+                         Values("gibberish", "", "unstarted}", "{unfinished", "strange\"", "{noval}", "]["));
