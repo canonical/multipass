@@ -382,41 +382,40 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
                                                             const mp::VirtualMachineFactory& factory,
                                                             mp::LaunchError& option_errors)
 {
-    std::vector<mp::NetworkInterfaceInfo> factory_networks;
+    std::vector<mp::NetworkInterface> interfaces;
 
-    if (!request->network_options().empty())
+    mp::optional<std::vector<mp::NetworkInterfaceInfo>> factory_networks = mp::nullopt;
+
+    std::string full_name =
+        (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
+
+    bool dont_allow_auto = no_bridging_images.find(full_name) != no_bridging_images.end();
+
+    for (const auto& net : request->network_options())
     {
-        std::string full_name =
-            (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
+        if (!factory_networks)
+        {
+            try
+            {
+                factory_networks = factory.networks();
+            }
+            catch (const mp::NotImplementedOnThisBackendException&)
+            {
+                throw mp::NotImplementedOnThisBackendException("bridging");
+            }
+        }
 
-        if (no_bridging_images.find(full_name) != no_bridging_images.end() &&
-            std::find_if(request->network_options().begin(), request->network_options().end(), [](const auto& net) {
-                return net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO;
-            }) != request->network_options().end())
+        if (dont_allow_auto && net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO)
         {
             throw std::runtime_error(fmt::format(
                 "Automatic network configuration not available for {}. Consider using manual mode.", full_name));
         }
 
-        try
-        {
-            factory_networks = factory.networks();
-        }
-        catch (const mp::NotImplementedOnThisBackendException&)
-        {
-            throw mp::NotImplementedOnThisBackendException("bridging");
-        }
-    }
-
-    std::vector<mp::NetworkInterface> interfaces;
-
-    for (const auto& net : request->network_options())
-    {
         // Check that the id the user specified is valid.
         auto pred = [net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id(); };
-        const auto& result = std::find_if(factory_networks.cbegin(), factory_networks.cend(), pred);
+        const auto& result = std::find_if(factory_networks->cbegin(), factory_networks->cend(), pred);
 
-        if (result == factory_networks.cend())
+        if (result == factory_networks->cend())
         {
             mpl::log(mpl::Level::warning, category, fmt::format("Invalid network id \"{}\"", net.id()));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);

@@ -1111,7 +1111,11 @@ TEST_P(RefuseBridging, old_image)
     const auto [remote, image] = GetParam();
     std::string full_image_name = remote.empty() ? image : remote + ":" + image;
 
+    auto mock_factory = use_a_mock_vm_factory();
+
     mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, networks());
 
     std::stringstream err_stream;
     send_command({"launch", full_image_name, "--network", "eth0"}, std::cout, err_stream);
