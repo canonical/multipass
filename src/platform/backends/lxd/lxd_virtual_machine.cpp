@@ -149,18 +149,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
 
         auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
                                       virtual_machine);
-        mpl::log(mpl::Level::trace, name.toStdString(),
-                 fmt::format("Got LXD creation reply: {}", QJsonDocument(json_reply).toJson()));
 
-        if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
-            json_reply["status_code"].toInt(-1) == 100)
-        {
-            QUrl task_url(QString("%1/operations/%2/wait")
-                              .arg(base_url.toString())
-                              .arg(json_reply["metadata"].toObject()["id"].toString()));
-
-            auto task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, 300000);
-        }
+        lxd_wait(manager, base_url, json_reply, 300000);
 
         current_state();
     }
@@ -362,14 +352,7 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
 
     try
     {
-        if (state_task["metadata"].toObject()["class"] == QStringLiteral("task") &&
-            state_task["status_code"].toInt(-1) == 100)
-        {
-            QUrl task_url(QString("%1/operations/%2/wait")
-                              .arg(base_url.toString())
-                              .arg(state_task["metadata"].toObject()["id"].toString()));
-            lxd_request(manager, "GET", task_url, QJsonObject(), 60000);
-        }
+        lxd_wait(manager, base_url, state_task, 60000);
     }
     catch (const LXDNotFoundException&)
     {
