@@ -1613,9 +1613,116 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
 
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDInstanceStatusTestSuite, ValuesIn(lxd_instance_status_suite_inputs));
 
-TEST_F(LXDBackend, lists_no_networks)
+namespace
 {
+auto custom_request_matcher(const QString& verb, const std::string& url_sub_str)
+{
+    auto get_verb = [](const auto& request) { return request.attribute(QNetworkRequest::CustomVerbAttribute); };
+    auto get_url = [](const auto& request) { return request.url().toString().toStdString(); };
+
+    return AllOf(ResultOf(get_verb, Eq(verb)), ResultOf(get_url, HasSubstr(url_sub_str)));
+}
+
+const auto network_request_matcher = custom_request_matcher("GET", "1.0/networks?recursion=1");
+} // namespace
+
+TEST_F(LXDBackend, requests_networks)
+{
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::networks_empty_data}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    EXPECT_THAT(backend.networks(), IsEmpty());
+}
+
+struct LXDNetworksBadJson : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
+{
+    auto log_matcher =
+        mpt::MockLogger::make_cstring_matcher(AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply")));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), _, log_matcher)).Times(1);
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
+    EXPECT_THROW(backend.networks(), std::runtime_error);
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadJson,
+                         Values("gibberish", "", "unstarted}", "{unfinished", "strange\"", "{noval}", "]["));
+
+struct LXDNetworksBadFields : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksBadFields, ignores_network_without_expected_fields)
+{
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    EXPECT_THAT(backend.networks(), IsEmpty());
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadFields,
+                         Values("{}", "{\"other\": \"stuff\"}", "{\"metadata\": \"notarray\"}",
+                                "{\"metadata\": [\"notdict\"]}",
+                                "{\"metadata\": [{\"type\": \"bridge\", \"but\": \"noname\"}]}",
+                                "{\"metadata\": [{\"name\": \"\", \"type\": \"bridge\", \"but\": \"empty name\"}]}",
+                                "{\"metadata\": [{\"name\": \"bla\", \"but\": \"notype\"}]}",
+                                "{\"metadata\": [{\"name\": 123, \"type\": \"bridge\"}]}",
+                                "{\"metadata\": [{\"name\": \"eth0\", \"type\": 123}]}"));
+
+struct LXDNetworksOnlyBridges : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksOnlyBridges, reports_only_bridge_networks)
+{
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    auto id_matcher = [](const std::string& expect) { return Field(&mp::NetworkInterfaceInfo::id, Eq(expect)); };
+    EXPECT_THAT(backend.networks(), AllOf(Each(Field(&mp::NetworkInterfaceInfo::type, "bridge")),
+                                          UnorderedElementsAre(id_matcher("lxdbr0"), id_matcher("mpbr0"),
+                                                               id_matcher("virbr0"), id_matcher("mpqemubr0"))));
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksOnlyBridges,
+                         Values(mpt::networks_realistic_data, mpt::networks_faulty_data));
+
+TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
+{
+    auto description = "Australopithecus";
+    auto data_template = QStringLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": "%1"}]})");
+    auto data = data_template.arg(description).toUtf8();
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(description))));
+}
+
+TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
+{
+    auto data = QByteArrayLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""}]})");
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge"))));
 }
