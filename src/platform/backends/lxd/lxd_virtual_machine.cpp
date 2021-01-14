@@ -129,6 +129,9 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         if (!desc.user_data_config.IsNull())
             config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
 
+        if (!desc.network_data_config.IsNull())
+            config["user.network-config"] = QString::fromStdString(mpu::emit_cloud_config(desc.network_data_config));
+
         QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
                             {"root", QJsonObject{{"path", "/"},
                                                  {"pool", "default"},
