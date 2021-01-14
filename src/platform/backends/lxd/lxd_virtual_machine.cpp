@@ -140,6 +140,17 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
                                                  {"type", "nic"},
                                                  {"hwaddr", mac_addr}}}};
 
+        for (auto i = 0u; i < desc.extra_interfaces.size();)
+        {
+            const auto& net = desc.extra_interfaces[i];
+            auto net_name = QStringLiteral("eth%1").arg(++i);
+            devices.insert(net_name, QJsonObject{{"name", net_name},
+                                                 {"nictype", "bridged"},
+                                                 {"parent", QString::fromStdString(net.id)},
+                                                 {"type", "nic"},
+                                                 {"hwaddr", QString::fromStdString(net.mac_address)}});
+        }
+
         QJsonObject virtual_machine{
             {"name", name},
             {"config", config},
