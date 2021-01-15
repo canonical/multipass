@@ -27,6 +27,7 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -53,6 +54,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QRegularExpression>
 #include <QString>
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
@@ -824,6 +826,65 @@ std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
                     max_tries, s.size())};
 }
 
+// Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
+// Caveat emptor: if the command fails, an empty string is returned.
+std::string run_in_vm(mp::SSHSession& session, const std::string& cmd)
+{
+    auto proc = exec_and_log(session, cmd);
+
+    if (proc.exit_code() != 0)
+    {
+        auto error_msg = proc.read_std_error();
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
+        return std::string{};
+    }
+
+    auto output = proc.read_std_output();
+    if (output.empty())
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
+        return std::string{};
+    }
+
+    return mp::utils::trim_end(output);
+}
+
+bool is_ipv4_valid(const std::string& ipv4)
+{
+    try
+    {
+        (mp::IPAddress(ipv4));
+    }
+    catch (std::invalid_argument&)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+std::vector<std::string> get_all_ipv4(mp::SSHSession& session)
+{
+    std::vector<std::string> all_ipv4;
+
+    auto ip_a_output = QString::fromStdString(run_in_vm(session, "ip -brief -family inet address show scope global"));
+
+    QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
+
+    QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
+
+    while (ip_it.hasNext())
+    {
+        auto ip_match = ip_it.next();
+        auto ip = ip_match.captured(1).toStdString();
+
+        all_ipv4.push_back(ip);
+    }
+
+    return all_ipv4;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1324,37 +1385,25 @@ try // clang-format on
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};
 
-            auto run_in_vm = [&session](const std::string& cmd) {
-                auto proc = session.exec(cmd);
-                if (proc.exit_code() != 0)
-                {
-                    auto error_msg = proc.read_std_error();
-                    mpl::log(
-                        mpl::Level::warning, category,
-                        fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-                    return std::string{};
-                }
-
-                auto output = proc.read_std_output();
-                if (output.empty())
-                {
-                    mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
-                    return std::string{};
-                }
-
-                return mp::utils::trim_end(output);
-            };
-
-            info->set_load(run_in_vm("cat /proc/loadavg | cut -d ' ' -f1-3"));
-            info->set_memory_usage(run_in_vm("free -b | sed '1d;3d' | awk '{printf $3}'"));
-            info->set_memory_total(run_in_vm("free -b | sed '1d;3d' | awk '{printf $2}'"));
+            info->set_load(run_in_vm(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
+            info->set_memory_usage(run_in_vm(session, "free -b | sed '1d;3d' | awk '{printf $3}'"));
+            info->set_memory_total(run_in_vm(session, "free -b | sed '1d;3d' | awk '{printf $2}'"));
             info->set_disk_usage(
-                run_in_vm("df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+                run_in_vm(session, "df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_disk_total(
-                run_in_vm("df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
-            info->set_ipv4(vm->ipv4());
+                run_in_vm(session, "df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
 
-            auto current_release = run_in_vm("lsb_release -ds");
+            std::string management_ip = vm->management_ipv4();
+            auto all_ipv4 = get_all_ipv4(session);
+
+            if (is_ipv4_valid(management_ip))
+                info->add_ipv4(management_ip);
+
+            for (const auto& extra_ipv4 : all_ipv4)
+                if (extra_ipv4 != management_ip)
+                    info->add_ipv4(extra_ipv4);
+
+            auto current_release = run_in_vm(session, "lsb_release -ds");
             info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
     }
@@ -1407,7 +1456,21 @@ try // clang-format on
         entry->set_current_release(current_release);
 
         if (mp::utils::is_running(present_state))
-            entry->set_ipv4(vm->ipv4());
+        {
+            auto vm_specs = vm_instance_specs[name];
+            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                   *config->ssh_key_provider};
+
+            std::string management_ip = vm->management_ipv4();
+            auto all_ipv4 = get_all_ipv4(session);
+
+            if (is_ipv4_valid(management_ip))
+                entry->add_ipv4(management_ip);
+
+            for (const auto& extra_ipv4 : all_ipv4)
+                if (extra_ipv4 != management_ip)
+                    entry->add_ipv4(extra_ipv4);
+        }
     }
 
     for (const auto& instance : deleted_instances)

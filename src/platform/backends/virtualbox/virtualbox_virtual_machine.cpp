@@ -316,7 +316,7 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::VirtualBoxVirtualMachine::ipv4()
+std::string mp::VirtualBoxVirtualMachine::management_ipv4()
 {
     return "N/A";
 }
