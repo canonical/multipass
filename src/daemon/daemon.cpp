@@ -1376,7 +1376,7 @@ try // clang-format on
             if (is_ipv4_valid(management_ip))
                 info->add_ipv4(management_ip);
 
-            for (auto extra_ipv4 : all_ipv4)
+            for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
                     info->add_ipv4(extra_ipv4);
 
@@ -1444,7 +1444,7 @@ try // clang-format on
             if (is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
 
-            for (auto extra_ipv4 : all_ipv4)
+            for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
                     entry->add_ipv4(extra_ipv4);
         }
