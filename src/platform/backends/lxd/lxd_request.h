@@ -41,11 +41,23 @@ public:
     }
 };
 
-const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
-                              const optional<QJsonObject>& json_data = nullopt, int timeout = 30000);
+class LXDRuntimeError : public std::runtime_error
+{
+public:
+    LXDRuntimeError(const std::string& message) : runtime_error{message}
+    {
+    }
+};
 
 const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
-                              QHttpMultiPart& multi_part, int timeout = 30000);
+                              const optional<QJsonObject>& json_data = nullopt,
+                              int timeout = 30000 /* in milliseconds */);
+
+const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
+                              QHttpMultiPart& multi_part, int timeout = 30000 /* in milliseconds */);
+
+const QJsonObject lxd_wait(NetworkAccessManager* manager, const QUrl& base_url, const QJsonObject& task_data,
+                           int timeout /* in milliseconds */);
 } // namespace multipass
 
 #endif // MULTIPASS_LXD_REQUEST_H

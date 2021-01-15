@@ -576,19 +576,9 @@ std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& me
 
     auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), lxd_multipart);
 
-    if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
-        json_reply["status_code"].toInt(-1) == 100)
-    {
-        QUrl task_url(QString("%1/operations/%2/wait")
-                          .arg(base_url.toString())
-                          .arg(json_reply["metadata"].toObject()["id"].toString()));
+    auto task_reply = lxd_wait(manager, base_url, json_reply, 300000);
 
-        auto task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, 300000);
-
-        return task_reply["metadata"].toObject()["metadata"].toObject()["fingerprint"].toString().toStdString();
-    }
-
-    throw std::runtime_error("Unable to retrieve hash for image from LXD");
+    return task_reply["metadata"].toObject()["metadata"].toObject()["fingerprint"].toString().toStdString();
 }
 
 std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)

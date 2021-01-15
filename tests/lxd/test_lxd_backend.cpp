@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <QJsonDocument>
 #include <QString>
 #include <QUrl>
 
@@ -57,7 +58,7 @@ const QString bridge_name{"mpbr0"};
 
 struct LXDBackend : public Test
 {
-    LXDBackend() : mock_network_access_manager{std::make_unique<NiceMock<mpt::MockNetworkAccessManager>>()}
+    LXDBackend() : mock_network_access_manager{std::make_unique<StrictMock<mpt::MockNetworkAccessManager>>()}
     {
         logger_scope.mock_logger->screen_logs(mpl::Level::error);
     }
@@ -78,7 +79,7 @@ struct LXDBackend : public Test
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::TempDir data_dir;
-    std::unique_ptr<NiceMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
+    std::unique_ptr<StrictMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url{"unix:///foo@1.0"};
 };
 
@@ -102,8 +103,8 @@ TEST_F(LXDBackend, creates_project_and_network_on_healthcheck)
     bool profile_updated{false};
     bool network_created{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&project_created, &profile_updated, &network_created](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&project_created, &profile_updated, &network_created](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -171,8 +172,8 @@ TEST_F(LXDBackend, factory_creates_valid_virtual_machine_ptr)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -219,8 +220,8 @@ TEST_F(LXDBackend, creates_in_stopped_state)
 
     bool vm_created{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&vm_created](auto, auto request, auto) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&vm_created](auto, auto request, auto) {
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
@@ -259,8 +260,8 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
 
     bool start_called{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&start_called](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&start_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -309,8 +310,8 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
 
     bool vm_shutdown{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&vm_shutdown](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&vm_shutdown](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -360,8 +361,8 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
 
     bool vm_shutdown{false}, stop_requested{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&vm_shutdown, &stop_requested](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&vm_shutdown, &stop_requested](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -414,8 +415,8 @@ TEST_F(LXDBackend, does_not_call_stop_when_snap_refresh_is_detected)
 
     bool stop_requested{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&stop_requested](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&stop_requested](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -461,8 +462,8 @@ TEST_F(LXDBackend, calls_stop_when_snap_refresh_does_not_exist)
 
     bool stop_requested{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&stop_requested](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&stop_requested](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -546,8 +547,8 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
 
     bool vm_created{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&vm_created, &expected_data](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&vm_created, &expected_data](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -623,8 +624,8 @@ TEST_F(LXDBackend, returns_expected_backend_string)
                                  "  }"
                                  "}\n"};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&server_data](auto, auto request, auto) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&server_data](auto, auto request, auto) {
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
@@ -693,8 +694,8 @@ TEST_F(LXDBackend, healthcheck_throws_when_untrusted)
                                     "  }"
                                     "}\n"};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&untrusted_data](auto, auto request, auto) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&untrusted_data](auto, auto request, auto) {
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
@@ -716,8 +717,8 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
 {
     const std::string exception_message{"Connection refused"};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&exception_message](auto...) -> QNetworkReply* {
             throw mp::LocalSocketConnectionException(exception_message);
         });
 
@@ -735,8 +736,8 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
 {
     const std::string exception_message{"Unknown server"};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&exception_message](auto...) -> QNetworkReply* {
             throw mp::LocalSocketConnectionException(exception_message);
         });
 
@@ -754,8 +755,8 @@ TEST_F(LXDBackend, returns_expected_network_info)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -795,8 +796,8 @@ TEST_F(LXDBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -833,8 +834,8 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -868,7 +869,7 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
 
 TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
 {
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
         QByteArray data;
         auto reply = new mpt::MockLocalSocketReply(data);
         reply->setFinished(false);
@@ -877,15 +878,45 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
     });
 
     base_url.setHost("test");
-    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url, mp::nullopt, 3),
-                         std::runtime_error,
-                         Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()),
-                                                                   HasSubstr("Operation canceled"))));
+
+    const std::string op{"GET"};
+    const std::string error_string{
+        fmt::format("Timeout getting response for {} operation on {}", op, base_url.toString().toStdString())};
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url, mp::nullopt, 3),
+                         std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error_string)));
 }
 
-TEST_F(LXDBackend, lxd_request_invalid_json_throws)
+TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
 {
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
+        QByteArray data;
+        auto reply = new mpt::MockLocalSocketReply(data);
+
+        return reply;
+    });
+
+    base_url.setHost("test");
+
+    const std::string op{"GET"};
+    const std::string error_string{
+        fmt::format("Empty reply received for {} operation on {}", op, base_url.toString().toStdString())};
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url), std::runtime_error,
+                         Property(&std::runtime_error::what, HasSubstr(error_string)));
+}
+
+TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
+{
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto, auto request, auto) {
         auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
         auto url = request.url().toString();
         QByteArray invalid_json{"not json\r\n"};
@@ -894,17 +925,23 @@ TEST_F(LXDBackend, lxd_request_invalid_json_throws)
     });
 
     base_url.setHost("test");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value")))));
+
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
                          Property(&std::runtime_error::what,
                                   AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value"))));
 }
 
-TEST_F(LXDBackend, lxd_request_wrong_json_throws)
+TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
 {
     QByteArray invalid_json{"[]\r\n"};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&invalid_json](auto, auto request, auto) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&invalid_json](auto, auto request, auto) {
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
@@ -912,17 +949,244 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws)
         });
 
     base_url.setHost("test");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr(invalid_json.toStdString())))));
+
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()),
                                                                    HasSubstr(invalid_json.toStdString()))));
+}
+
+TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
+{
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
+        const QByteArray error_data{"{"
+                                    "\"type\": \"error\","
+                                    "\"error\": \"Failure\","
+                                    "\"error_code\": 400,"
+                                    "\"metadata\": {}"
+                                    "}"};
+
+        return new mpt::MockLocalSocketReply(error_data, QNetworkReply::ProtocolInvalidOperationError);
+    });
+
+    base_url.setHost("test");
+
+    auto error_matcher = AllOf(HasSubstr("Network error for"), HasSubstr(base_url.toString().toStdString()),
+                               HasSubstr(": Error - Failure"));
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
+                         Property(&std::runtime_error::what, error_matcher));
+}
+
+TEST_F(LXDBackend, lxd_request_multipart_bbad_request_throws_and_logs)
+{
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
+        const QByteArray error_data{"{"
+                                    "\"type\": \"error\","
+                                    "\"error\": \"Failure\","
+                                    "\"error_code\": 400,"
+                                    "\"metadata\": {}"
+                                    "}"};
+
+        return new mpt::MockLocalSocketReply(error_data, QNetworkReply::ProtocolInvalidOperationError);
+    });
+
+    base_url.setHost("test");
+
+    auto error_matcher = AllOf(HasSubstr("Network error for"), HasSubstr(base_url.toString().toStdString()),
+                               HasSubstr(": Error - Failure"));
+    QHttpMultiPart stub_multipart;
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url, stub_multipart),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+}
+
+TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
+{
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+        {
+            const QByteArray wait_reply_error{"{"
+                                              "\"error\": \"Failure\","
+                                              "\"error_code\": 400,"
+                                              "\"metadata\": {"
+                                              "  \"class\": \"task\","
+                                              "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                              "  \"description\": \"Stopping container\","
+                                              "  \"err\": \"\","
+                                              "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                              "  \"location\": \"none\","
+                                              "  \"may_cancel\": false,"
+                                              "  \"metadata\": null,"
+                                              "  \"resources\": {"
+                                              "    \"containers\": ["
+                                              "      \"/1.0/containers/test\""
+                                              "    ]"
+                                              "  },"
+                                              "  \"status\": \"Success\","
+                                              "  \"status_code\": 200,"
+                                              "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                              "},"
+                                              "\"operation\": \"\","
+                                              "\"status\": \"\","
+                                              "\"status_code\": 0,"
+                                              "\"type\": \"sync\""
+                                              "}"};
+
+            return new mpt::MockLocalSocketReply(wait_reply_error);
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    base_url.setHost("test");
+
+    QJsonParseError json_error;
+    auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
+
+    auto error_matcher = StrEq("Error waiting on operation: (400) Failure");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+}
+
+TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
+{
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+        {
+            const QByteArray wait_reply_error{"{"
+                                              "\"error\": \"\","
+                                              "\"error_code\": 0,"
+                                              "\"metadata\": {"
+                                              "  \"class\": \"task\","
+                                              "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                              "  \"description\": \"Stopping container\","
+                                              "  \"err\": \"\","
+                                              "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                              "  \"location\": \"none\","
+                                              "  \"may_cancel\": false,"
+                                              "  \"metadata\": null,"
+                                              "  \"resources\": {"
+                                              "    \"containers\": ["
+                                              "      \"/1.0/containers/test\""
+                                              "    ]"
+                                              "  },"
+                                              "  \"status\": \"Success\","
+                                              "  \"status_code\": 200,"
+                                              "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                              "},"
+                                              "\"operation\": \"\","
+                                              "\"status\": \"Bad status\","
+                                              "\"status_code\": 400,"
+                                              "\"type\": \"sync\""
+                                              "}"};
+
+            return new mpt::MockLocalSocketReply(wait_reply_error);
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    base_url.setHost("test");
+
+    QJsonParseError json_error;
+    auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
+
+    auto error_matcher = StrEq("Failure waiting on operation: (400) Bad status");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+}
+
+TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_logs)
+{
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+        {
+            const QByteArray wait_reply_error{"{"
+                                              "\"error\": \"\","
+                                              "\"error_code\": 0,"
+                                              "\"metadata\": {"
+                                              "  \"class\": \"task\","
+                                              "  \"created_at\": \"2020-11-10T11:42:58.996868033-05:00\","
+                                              "  \"description\": \"Stopping container\","
+                                              "  \"err\": \"Failed to stop instance\","
+                                              "  \"id\": \"b043d632-5c48-44b3-983c-a25660d61164\","
+                                              "  \"location\": \"none\","
+                                              "  \"may_cancel\": false,"
+                                              "  \"metadata\": null,"
+                                              "  \"resources\": {"
+                                              "    \"containers\": ["
+                                              "      \"/1.0/containers/test\""
+                                              "    ]"
+                                              "  },"
+                                              "  \"status\": \"Failure\","
+                                              "  \"status_code\": 400,"
+                                              "  \"updated_at\": \"2020-11-10T11:42:58.996868033-05:00\""
+                                              "},"
+                                              "\"operation\": \"\","
+                                              "\"status\": \"Success\","
+                                              "\"status_code\": 0,"
+                                              "\"type\": \"sync\""
+                                              "}"};
+
+            return new mpt::MockLocalSocketReply(wait_reply_error);
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    base_url.setHost("test");
+
+    QJsonParseError json_error;
+    auto json_reply = QJsonDocument::fromJson(mpt::stop_vm_data, &json_error);
+
+    auto error_matcher = StrEq("Operation completed with error: (400) Failed to stop instance");
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+
+    MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
+                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
 }
 
 TEST_F(LXDBackend, unsupported_suspend_throws)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -952,7 +1216,7 @@ TEST_F(LXDBackend, start_while_suspending_throws)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {
         auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
         auto url = request.url().toString();
 
@@ -976,8 +1240,8 @@ TEST_F(LXDBackend, start_while_frozen_unfreezes)
     mpt::StubVMStatusMonitor stub_monitor;
     bool unfreeze_called{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&unfreeze_called](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&unfreeze_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -1015,8 +1279,8 @@ TEST_F(LXDBackend, start_while_running_does_nothing)
 
     bool put_called{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&put_called](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&put_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -1057,7 +1321,7 @@ TEST_F(LXDBackend, shutdown_while_frozen_does_nothing_and_logs_info)
 {
     mpt::MockVMStatusMonitor mock_monitor;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {
         auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
         auto url = request.url().toString();
 
@@ -1090,8 +1354,8 @@ TEST_F(LXDBackend, ensure_vm_running_does_not_throw_starting)
 
     bool start_called{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&start_called](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&start_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -1138,8 +1402,8 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     bool stop_called{false}, start_called{false};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&stop_called, &start_called](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&stop_called, &start_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -1199,8 +1463,8 @@ TEST_F(LXDBackend, start_failure_while_starting_throws_and_sets_correct_state)
     bool start_called{false};
     int running_returned{0};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&start_called, &running_returned](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&start_called, &running_returned](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -1249,8 +1513,8 @@ TEST_F(LXDBackend, reboots_while_starting_does_not_throw_and_sets_correct_state)
     bool start_called{false}, reboot_simulated{false};
     int running_returned{0};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&start_called, &running_returned, &reboot_simulated](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&start_called, &running_returned, &reboot_simulated](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -1298,8 +1562,8 @@ TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_
     mpt::StubVMStatusMonitor stub_monitor;
     const std::string exception_message{"Cannot connect to socket"};
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&exception_message](auto...) -> QNetworkReply* {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&exception_message](auto...) -> QNetworkReply* {
             throw mp::LocalSocketConnectionException(exception_message);
         });
 
@@ -1320,8 +1584,8 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
     const auto status_data = GetParam().first;
     const auto expected_state = GetParam().second;
 
-    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&status_data](auto, auto request, auto outgoingData) {
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&status_data](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -1349,9 +1613,116 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
 
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDInstanceStatusTestSuite, ValuesIn(lxd_instance_status_suite_inputs));
 
-TEST_F(LXDBackend, lists_no_networks)
+namespace
 {
+auto custom_request_matcher(const QString& verb, const std::string& url_sub_str)
+{
+    auto get_verb = [](const auto& request) { return request.attribute(QNetworkRequest::CustomVerbAttribute); };
+    auto get_url = [](const auto& request) { return request.url().toString().toStdString(); };
+
+    return AllOf(ResultOf(get_verb, Eq(verb)), ResultOf(get_url, HasSubstr(url_sub_str)));
+}
+
+const auto network_request_matcher = custom_request_matcher("GET", "1.0/networks?recursion=1");
+} // namespace
+
+TEST_F(LXDBackend, requests_networks)
+{
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::networks_empty_data}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    EXPECT_THAT(backend.networks(), IsEmpty());
+}
+
+struct LXDNetworksBadJson : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
+{
+    auto log_matcher =
+        mpt::MockLogger::make_cstring_matcher(AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply")));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), _, log_matcher)).Times(1);
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
+    EXPECT_THROW(backend.networks(), std::runtime_error);
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadJson,
+                         Values("gibberish", "", "unstarted}", "{unfinished", "strange\"", "{noval}", "]["));
+
+struct LXDNetworksBadFields : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksBadFields, ignores_network_without_expected_fields)
+{
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    EXPECT_THAT(backend.networks(), IsEmpty());
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadFields,
+                         Values("{}", "{\"other\": \"stuff\"}", "{\"metadata\": \"notarray\"}",
+                                "{\"metadata\": [\"notdict\"]}",
+                                "{\"metadata\": [{\"type\": \"bridge\", \"but\": \"noname\"}]}",
+                                "{\"metadata\": [{\"name\": \"\", \"type\": \"bridge\", \"but\": \"empty name\"}]}",
+                                "{\"metadata\": [{\"name\": \"bla\", \"but\": \"notype\"}]}",
+                                "{\"metadata\": [{\"name\": 123, \"type\": \"bridge\"}]}",
+                                "{\"metadata\": [{\"name\": \"eth0\", \"type\": 123}]}"));
+
+struct LXDNetworksOnlyBridges : LXDBackend, WithParamInterface<QByteArray>
+{
+};
+
+TEST_P(LXDNetworksOnlyBridges, reports_only_bridge_networks)
+{
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    auto id_matcher = [](const std::string& expect) { return Field(&mp::NetworkInterfaceInfo::id, Eq(expect)); };
+    EXPECT_THAT(backend.networks(), AllOf(Each(Field(&mp::NetworkInterfaceInfo::type, "bridge")),
+                                          UnorderedElementsAre(id_matcher("lxdbr0"), id_matcher("mpbr0"),
+                                                               id_matcher("virbr0"), id_matcher("mpqemubr0"))));
+}
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksOnlyBridges,
+                         Values(mpt::networks_realistic_data, mpt::networks_faulty_data));
+
+TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
+{
+    auto description = "Australopithecus";
+    auto data_template = QStringLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": "%1"}]})");
+    auto data = data_template.arg(description).toUtf8();
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(description))));
+}
+
+TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
+{
+    auto data = QByteArrayLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""}]})");
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge"))));
 }
