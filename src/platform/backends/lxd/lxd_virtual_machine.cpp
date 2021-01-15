@@ -93,6 +93,55 @@ mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAcces
 
     return mp::nullopt;
 }
+
+QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& desc)
+{
+    QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
+                       {"limits.memory", QString::number(desc.mem_size.in_bytes())},
+                       {"security.secureboot", "false"}};
+
+    if (!desc.meta_data_config.IsNull())
+        config["user.meta-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.meta_data_config));
+
+    if (!desc.vendor_data_config.IsNull())
+        config["user.vendor-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.vendor_data_config));
+
+    if (!desc.user_data_config.IsNull())
+        config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
+
+    if (!desc.network_data_config.IsNull())
+        config["user.network-config"] = QString::fromStdString(mpu::emit_cloud_config(desc.network_data_config));
+
+    return config;
+}
+
+QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& desc, const QString& default_mac_addr)
+{
+    QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
+                        {"root", QJsonObject{{"path", "/"},
+                                             {"pool", "default"},
+                                             {"size", QString::number(desc.disk_space.in_bytes())},
+                                             {"type", "disk"}}},
+                        {"eth0", QJsonObject{{"name", "eth0"},
+                                             {"nictype", "bridged"},
+                                             {"parent", "mpbr0"},
+                                             {"type", "nic"},
+                                             {"hwaddr", default_mac_addr}}}};
+
+    for (auto i = 0u; i < desc.extra_interfaces.size();)
+    {
+        const auto& net = desc.extra_interfaces[i];
+        auto net_name = QStringLiteral("eth%1").arg(++i);
+        devices.insert(net_name, QJsonObject{{"name", net_name},
+                                             {"nictype", "bridged"},
+                                             {"parent", QString::fromStdString(net.id)},
+                                             {"type", "nic"},
+                                             {"hwaddr", QString::fromStdString(net.mac_address)}});
+    }
+
+    return devices;
+}
+
 } // namespace
 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
@@ -116,50 +165,11 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         mpl::log(mpl::Level::debug, name.toStdString(),
                  fmt::format("Creating instance with image id: {}", desc.image.id));
 
-        QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
-                           {"limits.memory", QString::number(desc.mem_size.in_bytes())},
-                           {"security.secureboot", "false"}};
-
-        if (!desc.meta_data_config.IsNull())
-            config["user.meta-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.meta_data_config));
-
-        if (!desc.vendor_data_config.IsNull())
-            config["user.vendor-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.vendor_data_config));
-
-        if (!desc.user_data_config.IsNull())
-            config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
-
-        if (!desc.network_data_config.IsNull())
-            config["user.network-config"] = QString::fromStdString(mpu::emit_cloud_config(desc.network_data_config));
-
-        QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
-                            {"root", QJsonObject{{"path", "/"},
-                                                 {"pool", "default"},
-                                                 {"size", QString::number(desc.disk_space.in_bytes())},
-                                                 {"type", "disk"}}},
-                            {"eth0", QJsonObject{{"name", "eth0"},
-                                                 {"nictype", "bridged"},
-                                                 {"parent", "mpbr0"},
-                                                 {"type", "nic"},
-                                                 {"hwaddr", mac_addr}}}};
-
-        for (auto i = 0u; i < desc.extra_interfaces.size();)
-        {
-            const auto& net = desc.extra_interfaces[i];
-            auto net_name = QStringLiteral("eth%1").arg(++i);
-            devices.insert(net_name, QJsonObject{{"name", net_name},
-                                                 {"nictype", "bridged"},
-                                                 {"parent", QString::fromStdString(net.id)},
-                                                 {"type", "nic"},
-                                                 {"hwaddr", QString::fromStdString(net.mac_address)}});
-        }
-
         QJsonObject virtual_machine{
             {"name", name},
-            {"config", config},
-            {"devices", devices},
-            {"source", QJsonObject{{"type", "image"},
-                                   {"fingerprint", QString::fromStdString(desc.image.id)}}}};
+            {"config", generate_base_vm_config(desc)},
+            {"devices", generate_devices_config(desc, mac_addr)},
+            {"source", QJsonObject{{"type", "image"}, {"fingerprint", QString::fromStdString(desc.image.id)}}}};
 
         auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
                                       virtual_machine);
