@@ -36,14 +36,14 @@ constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::mi
 template <typename Callable>
 std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, std::chrono::milliseconds timeout)
 {
-    if (!virtual_machine->ip)
+    if (!virtual_machine->management_ip)
     {
         auto action = [virtual_machine, get_ip] {
             virtual_machine->ensure_vm_is_running();
             auto result = get_ip();
             if (result)
             {
-                virtual_machine->ip.emplace(*result);
+                virtual_machine->management_ip.emplace(*result);
                 return utils::TimeoutAction::done;
             }
             else
@@ -60,7 +60,7 @@ std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, s
         utils::try_action_for(on_timeout, timeout, action);
     }
 
-    return virtual_machine->ip->as_string();
+    return virtual_machine->management_ip->as_string();
 }
 
 template <typename Callable>
