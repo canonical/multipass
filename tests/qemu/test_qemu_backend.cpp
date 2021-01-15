@@ -536,9 +536,7 @@ TEST_F(QemuBackend, gets_management_ip)
     const std::string expected_ip{"10.10.0.35"};
     NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
 
-    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
-        return mp::optional<mp::IPAddress>{expected_ip};
-    });
+    EXPECT_CALL(mock_dnsmasq_server, get_ip_for(_)).WillOnce(Return(expected_ip));
 
     mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
     machine.start();
@@ -552,7 +550,7 @@ TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
     mpt::StubVMStatusMonitor stub_monitor;
     NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
 
-    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([](auto...) { return mp::optional<mp::IPAddress>{}; });
+    EXPECT_CALL(mock_dnsmasq_server, get_ip_for(_)).WillOnce(Return(mp::nullopt));
 
     mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
     machine.start();
