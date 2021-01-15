@@ -63,7 +63,7 @@ public:
     };
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
-    virtual std::string ipv4() = 0;
+    virtual std::string management_ipv4() = 0;
     virtual std::string ipv6() = 0;
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void ensure_vm_is_running() = 0;
@@ -73,7 +73,7 @@ public:
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
-    optional<IPAddress> ip;
+    optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
 protected:
