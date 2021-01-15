@@ -261,7 +261,7 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::HyperVVirtualMachine::ipv4()
+std::string mp::HyperVVirtualMachine::management_ipv4()
 {
     if (!ip)
     {
