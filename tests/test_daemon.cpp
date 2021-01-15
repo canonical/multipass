@@ -494,6 +494,14 @@ struct LaunchWithBridges
 {
 };
 
+struct LaunchWithNoNetworkCloudInit : public Daemon, public WithParamInterface<std::vector<std::string>>
+{
+};
+
+struct RefuseBridging : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -750,6 +758,41 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     send_command({GetParam()});
 }
 
+TEST_P(LaunchWithNoNetworkCloudInit, no_network_cloud_init)
+{
+    mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto launch_args = GetParam();
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
+        .WillOnce(Invoke([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
+            EXPECT_TRUE(desc.network_data_config.IsNull());
+        }));
+
+    send_command(launch_args);
+}
+
+std::vector<std::string> make_args(const std::vector<std::string>& args)
+{
+    std::vector<std::string> all_args{"launch"};
+
+    for (const auto& a : args)
+        all_args.push_back(a);
+
+    return all_args;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon, LaunchWithNoNetworkCloudInit,
+    Values(make_args({}), make_args({"xenial"}), make_args({"xenial", "--network", "id=eth0,mode=manual"}),
+           make_args({"groovy"}), make_args({"groovy", "--network", "id=eth0,mode=manual"}),
+           make_args({"--network", "id=eth0,mode=manual"}), make_args({"devel"}),
+           make_args({"hirsute", "--network", "id=eth0,mode=manual"}), make_args({"daily:21.04"}),
+           make_args({"daily:21.04", "--network", "id=eth0,mode=manual"}),
+           make_args({"appliance:openhab", "--network", "id=eth0,mode=manual"}), make_args({"appliance:nextcloud"}),
+           make_args({"snapcraft:core18", "--network", "id=eth0,mode=manual"}), make_args({"snapcraft:core20"})));
+
 TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
@@ -814,11 +857,10 @@ typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std:
 
 INSTANTIATE_TEST_SUITE_P(
     Daemon, LaunchWithBridges,
-    Values(BridgeTestArgType({}, {"extra0"}), BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
+    Values(BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
            BridgeTestArgType({{"id=eth0,mac=01:23:45:ab:cd:ef,mode=auto", "extra0", "01:23:45:ab:cd:ef"},
                               {"wlan0", "extra1", "52:54:00:"}},
                              {"extra2"}),
-           BridgeTestArgType({{"id=eth0,mode=manual", "", ""}}, {"extra0"}),
            BridgeTestArgType({{"id=eth0,mode=manual", "", ""}, {"id=wlan0", "extra1", "52:54:00:"}},
                              {"extra0", "extra2"})));
 
@@ -1065,8 +1107,32 @@ TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "eth0"}, std::cout, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("The --network feature is not implemented on this backend"));
+    EXPECT_THAT(err_stream.str(), HasSubstr("The bridging feature is not implemented on this backend"));
 }
+
+TEST_P(RefuseBridging, old_image)
+{
+    const auto [remote, image] = GetParam();
+    std::string full_image_name = remote.empty() ? image : remote + ":" + image;
+
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, networks());
+
+    std::stringstream err_stream;
+    send_command({"launch", full_image_name, "--network", "eth0"}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("Automatic network configuration not available for"));
+}
+
+std::vector<std::string> old_releases{"10.04",   "lucid",  "11.10",   "oneiric", "12.04", "precise", "12.10",
+                                      "quantal", "13.04",  "raring",  "13.10",   "saucy", "14.04",   "trusty",
+                                      "14.10",   "utopic", "15.04",   "vivid",   "15.10", "wily",    "16.04",
+                                      "xenial",  "16.10",  "yakkety", "17.04",   "zesty"};
+
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging, Combine(Values("release", ""), ValuesIn(old_releases)));
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
 
 std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents) // unique_ptr bypasses missing move ctor
 {

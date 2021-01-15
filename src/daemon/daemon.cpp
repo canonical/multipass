@@ -85,6 +85,12 @@ constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
+const std::unordered_set<std::string> no_bridging_images = {
+    "release:10.04", "release:lucid",   "release:11.10", "release:oneiric", "release:12.04", "release:precise",
+    "release:12.10", "release:quantal", "release:13.04", "release:raring",  "release:13.10", "release:saucy",
+    "release:14.04", "release:trusty",  "release:14.10", "release:utopic",  "release:15.04", "release:vivid",
+    "release:15.10", "release:wily",    "release:16.04", "release:xenial",  "release:16.10", "release:yakkety",
+    "release:17.04", "release:zesty",   "snapcraft:core"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -142,25 +148,30 @@ auto make_cloud_init_meta_config(const std::string& name)
 auto make_cloud_init_network_config(const std::string default_mac_addr,
                                     const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
-    YAML::Node network_data, interfaces_data;
+    YAML::Node network_data;
 
-    network_data["version"] = "2";
-
-    std::string name = "default";
-    network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
-    network_data["ethernets"][name]["dhcp4"] = true;
-
-    for (size_t i = 0; i < extra_interfaces.size(); ++i)
+    // Generate the cloud-init file only if there is at least one extra interface needing auto configuration.
+    if (std::find_if(extra_interfaces.begin(), extra_interfaces.end(),
+                     [](const auto& iface) { return iface.auto_mode; }) != extra_interfaces.end())
     {
-        if (extra_interfaces[i].auto_mode)
+        network_data["version"] = "2";
+
+        std::string name = "default";
+        network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
+        network_data["ethernets"][name]["dhcp4"] = true;
+
+        for (size_t i = 0; i < extra_interfaces.size(); ++i)
         {
-            name = "extra" + std::to_string(i);
-            network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
-            network_data["ethernets"][name]["dhcp4"] = true;
-            // We make the default gateway associated with the first interface.
-            network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
-            // Make the interface optional, which means that networkd will not wait for the device to be configured.
-            network_data["ethernets"][name]["optional"] = true;
+            if (extra_interfaces[i].auto_mode)
+            {
+                name = "extra" + std::to_string(i);
+                network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
+                network_data["ethernets"][name]["dhcp4"] = true;
+                // We make the default gateway associated with the first interface.
+                network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
+                // Make the interface optional, which means that networkd will not wait for the device to be configured.
+                network_data["ethernets"][name]["optional"] = true;
+            }
         }
     }
 
@@ -178,8 +189,10 @@ auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YA
     mp::CloudInitIso iso;
     iso.add_file("meta-data", mpu::emit_cloud_config(meta_data_config));
     iso.add_file("vendor-data", mpu::emit_cloud_config(vendor_data_config));
-    iso.add_file("network-config", mpu::emit_cloud_config(network_data_config));
     iso.add_file("user-data", mpu::emit_cloud_config(user_data_config));
+    if (!network_data_config.IsNull())
+        iso.add_file("network-config", mpu::emit_cloud_config(network_data_config));
+
     iso.write_to(cloud_init_iso);
 
     return cloud_init_iso;
@@ -369,30 +382,40 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
                                                             const mp::VirtualMachineFactory& factory,
                                                             mp::LaunchError& option_errors)
 {
-    std::vector<mp::NetworkInterfaceInfo> factory_networks;
-
-    if (!request->network_options().empty())
-    {
-        try
-        {
-            factory_networks = factory.networks();
-        }
-        catch (const mp::NotImplementedOnThisBackendException&)
-        {
-            // If networks is not implemented, we should report that --network is not implemented on this backend.
-            throw mp::NotImplementedOnThisBackendException("--network");
-        }
-    }
-
     std::vector<mp::NetworkInterface> interfaces;
+
+    mp::optional<std::vector<mp::NetworkInterfaceInfo>> factory_networks = mp::nullopt;
+
+    std::string full_name =
+        (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
+
+    bool dont_allow_auto = no_bridging_images.find(full_name) != no_bridging_images.end();
 
     for (const auto& net : request->network_options())
     {
+        if (!factory_networks)
+        {
+            try
+            {
+                factory_networks = factory.networks();
+            }
+            catch (const mp::NotImplementedOnThisBackendException&)
+            {
+                throw mp::NotImplementedOnThisBackendException("bridging");
+            }
+        }
+
+        if (dont_allow_auto && net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO)
+        {
+            throw std::runtime_error(fmt::format(
+                "Automatic network configuration not available for {}. Consider using manual mode.", full_name));
+        }
+
         // Check that the id the user specified is valid.
         auto pred = [net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id(); };
-        const auto& result = std::find_if(factory_networks.cbegin(), factory_networks.cend(), pred);
+        const auto& result = std::find_if(factory_networks->cbegin(), factory_networks->cend(), pred);
 
-        if (result == factory_networks.cend())
+        if (result == factory_networks->cend())
         {
             mpl::log(mpl::Level::warning, category, fmt::format("Invalid network id \"{}\"", net.id()));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
@@ -2237,6 +2260,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
             auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+
             auto network_data_cloud_init_config =
                 make_cloud_init_network_config(default_mac_addr, checked_args.extra_interfaces);
 
