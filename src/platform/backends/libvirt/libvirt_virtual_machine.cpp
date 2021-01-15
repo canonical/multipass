@@ -424,18 +424,18 @@ std::string mp::LibVirtVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::LibVirtVirtualMachine::ipv4()
+std::string mp::LibVirtVirtualMachine::management_ipv4()
 {
-    if (!ip)
+    if (!management_ip)
     {
         auto result = instance_ip_for(mac_addr, libvirt_wrapper);
         if (result)
-            ip.emplace(result.value());
+            management_ip.emplace(result.value());
         else
             return "UNKNOWN";
     }
 
-    return ip.value().as_string();
+    return management_ip.value().as_string();
 }
 
 std::string mp::LibVirtVirtualMachine::ipv6()
@@ -465,7 +465,7 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
     if (mac_addr.empty())
         mac_addr = instance_mac_addr_for(domain.get(), libvirt_wrapper);
 
-    ipv4(); // To set ip
+    management_ipv4(); // To set ip
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
 
     return domain;

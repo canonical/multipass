@@ -69,8 +69,8 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         instance_info.insert("memory", memory);
 
         QJsonArray ipv4_addrs;
-        if (!info.ipv4().empty())
-            ipv4_addrs.append(QString::fromStdString(info.ipv4()));
+        for (const auto& ip : info.ipv4())
+            ipv4_addrs.append(QString::fromStdString(ip));
         instance_info.insert("ipv4", ipv4_addrs);
 
         QJsonObject mounts;
@@ -121,8 +121,8 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
         instance_obj.insert("state", QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
 
         QJsonArray ipv4_addrs;
-        if (!instance.ipv4().empty())
-            ipv4_addrs.append(QString::fromStdString(instance.ipv4()));
+        for (const auto& ip : instance.ipv4())
+            ipv4_addrs.append(QString::fromStdString(ip));
         instance_obj.insert("ipv4", ipv4_addrs);
 
         instance_obj.insert("release", QString::fromStdString(instance.current_release()));
