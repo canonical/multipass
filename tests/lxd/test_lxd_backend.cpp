@@ -1762,15 +1762,16 @@ TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
 namespace
 {
 template <typename Matcher>
-auto request_data_matcher(Matcher str_matcher)
+auto request_data_matcher(Matcher json_matcher)
 {
-    auto extract_data = [](QIODevice* device) {
+    auto extract_json = [](QIODevice* device) {
         device->open(QIODevice::ReadOnly);
-        return device->readAll().toStdString();
+        return QJsonDocument::fromJson(device->readAll()).object();
     };
 
-    return ResultOf(extract_data, str_matcher);
+    return ResultOf(extract_json, json_matcher);
 }
+
 } // namespace
 
 TEST_F(LXDBackend, posts_extra_network_devices)
@@ -1781,7 +1782,7 @@ TEST_F(LXDBackend, posts_extra_network_devices)
     default_description.extra_interfaces.push_back({"parent2", "01:23:45:ab:cd:ef", false});
     default_description.extra_interfaces.push_back({"parent3", "ba:ba:ca:ca:ca:ba", true});
 
-    auto json_matcher = HasSubstr("TODO"); // TODO@ricab derive proper matcher
+    auto json_matcher = Property(&QJsonObject::isEmpty, false); // TODO@ricab derive proper matcher
 
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation,
