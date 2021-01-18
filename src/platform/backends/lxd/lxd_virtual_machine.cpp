@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -202,6 +202,12 @@ void mp::LXDVirtualMachine::stop()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
+
+    if (present_state == State::stopped)
+    {
+        mpl::log(mpl::Level::debug, vm_name, "Ignoring stop request since instance is already stopped");
+        return;
+    }
 
     if (present_state == State::suspended)
     {
