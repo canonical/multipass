@@ -1317,6 +1317,38 @@ TEST_F(LXDBackend, start_while_running_does_nothing)
     EXPECT_FALSE(put_called);
 }
 
+TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
+{
+    mpt::MockVMStatusMonitor mock_monitor;
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+        {
+            return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVirtualMachine machine{default_description, mock_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+
+    ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(0);
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
+            mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring stop request since instance is already stopped"))));
+
+    machine.shutdown();
+
+    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
+}
+
 TEST_F(LXDBackend, shutdown_while_frozen_does_nothing_and_logs_info)
 {
     mpt::MockVMStatusMonitor mock_monitor;
