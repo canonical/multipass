@@ -950,7 +950,7 @@ TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk_space)
     REPLACE(filesystem_bytes_available, [&available_disk](auto...) { return available_disk; });
 
     logger_scope.mock_logger->expect_log(
-        mpl::Level::warning, fmt::format("Reserving more disk space than available (\"{}\" bytes)", available_disk));
+        mpl::Level::warning, fmt::format("Reserving more disk space than available ({} bytes)", available_disk));
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
 
     send_command({GetParam(), "--disk", "20G"}, trash_stream, trash_stream);
