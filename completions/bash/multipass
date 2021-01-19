@@ -40,13 +40,12 @@ _multipass_complete()
         done
     }
 
+    # Set $opts to the list of available networks.
     _multipass_networks()
     {
         local cmd="multipass networks --format=csv"
 
-        networks=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
-
-        opts="${opts} ${networks}"
+        opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
     }
 
     # Removes the comma or equals sign at the end of $cur.
@@ -62,11 +61,10 @@ _multipass_complete()
 
     # When options for --network are specified in the form var=val, this function sets $opts to the values needed
     # depending on the value of var (which is specified as the parameter $1).
-    _complete_network_vars()
+    _complete_network_var()
     {
         case "$1" in
             "id")
-                opts=""
                 _multipass_networks
             ;;
             "mac")
@@ -78,6 +76,36 @@ _multipass_complete()
         esac
     }
 
+    # Scan the command-line to find the last appearance of "--network". Then, scan from there until the end of the
+    # command-line for the names of the variables which were already specified. And fill-in $opts with the
+    # variables which were not yet specified.
+    _unspecified_network_vars()
+    {
+        local network_pos=COMP_CWORD
+
+        for ((i=COMP_CWORD; i>0; --i)); do
+            if [[ "${COMP_WORDS[$i]}" == '--network' ]]; then
+                network_pos=$i
+                break
+            fi
+        done
+
+        local id_found=0
+        local mac_found=0
+        local mode_found=0
+
+        for ((i=${network_pos}+1; i<COMP_CWORD; ++i)); do
+            if [[ "${COMP_WORDS[$i]}" == 'id' ]]; then id_found=1; fi
+            if [[ "${COMP_WORDS[$i]}" == 'mac' ]]; then mac_found=1; fi
+            if [[ "${COMP_WORDS[$i]}" == 'mode' ]]; then mode_found=1; fi
+        done
+
+        opts=""
+        if [[ ${id_found} == 0 ]]; then opts="${opts} id="; fi
+        if [[ ${mac_found} == 0 ]]; then opts="${opts} mac="; fi
+        if [[ ${mode_found} == 0 ]]; then opts="${opts} mode="; fi
+    }
+
     # Add the comma to the list of word separators, useful to separate options of the form "opt1=val1,opt2=val2".
     COMP_WORDBREAKS="${COMP_WORDBREAKS},"
 
@@ -86,8 +114,6 @@ _multipass_complete()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     prev2="${COMP_WORDS[COMP_CWORD-2]}"
-    prev3="${COMP_WORDS[COMP_CWORD-3]}"
-    prev4="${COMP_WORDS[COMP_CWORD-4]}"
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="transfer delete exec find help info launch list mount networks \
@@ -137,7 +163,6 @@ _multipass_complete()
             "--network")
                 compopt -o nospace
                 # TODO: Do use spaces after the completion of an interface name.
-                opts=""
                 _multipass_networks
                 opts="${opts} id= mode= mac="
         esac
@@ -147,24 +172,18 @@ _multipass_complete()
     elif [[ "${cur}" == '=' ]] && [[ "${prev2}" == ',' || "${prev2}" == '--network' ]] ; then
         compopt -o nospace
         _remove_trailing_char
-        _complete_network_vars "${prev}"
+        _complete_network_var "${prev}"
 
     elif [[ "${prev}" == '=' ]]; then
         compopt -o nospace
-        _complete_network_vars "${prev2}"
+        _complete_network_var "${prev2}"
 
     # Complete now in the case on which there is a comma separating var=val pairs.
-    elif [[ "${cur}" == ',' && "${prev2}" == '=' ]] || [[ "${prev}" == ',' && "${prev3}" == '=' ]] ; then
+    elif [[ "${cur}" == ',' && "${prev2}" == '=' ]] || [[ "${prev}" == ',' && "${COMP_WORDS[COMP_CWORD-3]}" == '=' ]];
+    then
         _remove_trailing_char
         compopt -o nospace
-        # TODO: Keep track of the previously used options and show only options which were not specified before.
-        if [[ "${prev3}" == 'id' || "${prev4}" == 'id' ]]; then
-            opts="mode= mac="
-        elif [[ "${prev3}" == 'mode' || "${prev4}" == 'mode' ]]; then
-            opts="mac= id="
-        elif [[ "${prev3}" == 'mac' || "${prev4}" == 'mac' ]]; then
-                opts="id= mode="
-        fi
+        _unspecified_network_vars
     fi
 
     if [[ "$prev_opts" = false ]]; then
