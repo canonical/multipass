@@ -1833,3 +1833,19 @@ TEST_F(LXDBackend, posts_extra_network_devices)
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
                                   bridge_name};
 }
+
+TEST_F(LXDBackend, posts_network_data_config_if_available)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    static constexpr auto config = "Leia: Princess";
+    default_description.network_data_config = config;
+
+    auto get_config = [](const auto& json) { return json["config"]["user.network-config"].toString().toStdString(); };
+    auto json_matcher = ResultOf(get_config, HasSubstr(config));
+
+    setup_vm_creation_expectations(*mock_network_access_manager, request_data_matcher(json_matcher));
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+}
