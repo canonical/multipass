@@ -788,8 +788,8 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
 
     if (available_disk_space < disk_space)
     {
-        throw std::runtime_error(fmt::format("Available disk ({} bytes) below requested/default size ({} bytes)",
-                                             available_disk_space.in_bytes(), disk_space.in_bytes()));
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Reserving more disk space than available ({} bytes)", available_disk_space.in_bytes()));
     }
 
     return disk_space;

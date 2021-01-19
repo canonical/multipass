@@ -25,6 +25,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
 #include <multipass/constants.h>
+#include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -35,6 +36,7 @@
 #include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_environment_helpers.h"
+#include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
@@ -69,6 +71,7 @@
 #include <string>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 using namespace multipass::utils;
@@ -935,15 +938,24 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     }
 }
 
-TEST_P(LaunchStorageCheckSuite, launch_fails_with_not_enough_disk_space)
+TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk_space)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream stream;
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
-    send_command({GetParam(), "--disk", "999999999G"}, trash_stream, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("Available disk"), HasSubstr("below requested/default size")));
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
+    auto available_disk{16'106'127'360}; // 15G
+    REPLACE(filesystem_bytes_available, [&available_disk](auto...) { return available_disk; });
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("daemon")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq(
+                        fmt::format("Reserving more disk space than available (\"{}\" bytes)", available_disk)))));
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+
+    send_command({GetParam(), "--disk", "20G"}, trash_stream, trash_stream);
 }
 
 TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
