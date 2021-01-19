@@ -1758,3 +1758,47 @@ TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
 
     EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge"))));
 }
+
+namespace
+{
+template <typename Matcher>
+auto request_data_matcher(Matcher str_matcher)
+{
+    auto extract_data = [](QIODevice* device) {
+        device->open(QIODevice::ReadOnly);
+        return device->readAll().toStdString();
+    };
+
+    return ResultOf(extract_data, str_matcher);
+}
+} // namespace
+
+TEST_F(LXDBackend, posts_extra_network_devices)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    default_description.extra_interfaces.push_back({"parent1", "ab:cd:ef:01:23:45", true});
+    default_description.extra_interfaces.push_back({"parent2", "01:23:45:ab:cd:ef", false});
+    default_description.extra_interfaces.push_back({"parent3", "ba:ba:ca:ca:ca:ba", true});
+
+    auto json_matcher = HasSubstr("TODO"); // TODO@ricab derive proper matcher
+
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("GET", "pied-piper-valley/state"), _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::not_found_data, QNetworkReply::ContentNotFoundError}))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::vm_info_data}));
+
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("POST", "virtual-machines"), request_data_matcher(json_matcher)))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_data}));
+
+    EXPECT_CALL(*mock_network_access_manager,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("GET", "operations/0020444c-2e4c-49d5-83ed-3275e3f6d005/wait"), _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_finished_data}));
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+}
