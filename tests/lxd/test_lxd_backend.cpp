@@ -1761,8 +1761,7 @@ TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
 
 namespace
 {
-template <typename Matcher>
-auto request_data_matcher(Matcher json_matcher)
+Matcher<QIODevice*> request_data_matcher(Matcher<QJsonObject> json_matcher)
 {
     auto extract_json = [](QIODevice* device) {
         device->open(QIODevice::ReadOnly);
