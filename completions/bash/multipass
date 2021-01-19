@@ -60,6 +60,24 @@ _multipass_complete()
         return 1
     }
 
+    # When options for --network are specified in the form var=val, this function sets $opts to the values needed
+    # depending on the value of var (which is specified as the parameter $1).
+    _complete_network_vars()
+    {
+        case "$1" in
+            "id")
+                opts=""
+                _multipass_networks
+            ;;
+            "mac")
+                opts=""
+            ;;
+            "mode")
+                opts="auto manual"
+            ;;
+        esac
+    }
+
     # Add the comma to the list of word separators, useful to separate options of the form "opt1=val1,opt2=val2".
     COMP_WORDBREAKS="${COMP_WORDBREAKS},"
 
@@ -121,9 +139,7 @@ _multipass_complete()
                 # TODO: Do use spaces after the completion of an interface name.
                 opts=""
                 _multipass_networks
-                for net in ${opts}; do
-                    opts="${opts} id= mode= mac="
-                done
+                opts="${opts} id= mode= mac="
         esac
 
     # We need to complete the option pairs in two steps. One, when the last input char was an equals sign. Two,
@@ -131,35 +147,17 @@ _multipass_complete()
     elif [[ "${cur}" == '=' ]] && [[ "${prev2}" == ',' || "${prev2}" == '--network' ]] ; then
         compopt -o nospace
         _remove_trailing_char
-        case "${prev}" in
-            "id")
-                opts=""
-                _multipass_networks
-            ;;
-            "mac")
-                opts=""
-            ;;
-            "mode")
-                opts="auto manual"
-            ;;
-        esac
+        _complete_network_vars "${prev}"
+
     elif [[ "${prev}" == '=' ]]; then
         compopt -o nospace
-        case "${prev2}" in
-            "id")
-                opts=""
-                _multipass_networks
-            ;;
-            "mac")
-                opts=""
-            ;;
-            "mode")
-                opts="auto manual"
-            ;;
-        esac
+        _complete_network_vars "${prev2}"
+
+    # Complete now in the case on which there is a comma separating var=val pairs.
     elif [[ "${cur}" == ',' && "${prev2}" == '=' ]] || [[ "${prev}" == ',' && "${prev3}" == '=' ]] ; then
         _remove_trailing_char
         compopt -o nospace
+        # TODO: Keep track of the previously used options and show only options which were not specified before.
         if [[ "${prev3}" == 'id' || "${prev4}" == 'id' ]]; then
             opts="mode= mac="
         elif [[ "${prev3}" == 'mode' || "${prev4}" == 'mode' ]]; then
