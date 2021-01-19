@@ -49,10 +49,11 @@ _multipass_complete()
         opts="${opts} ${networks}"
     }
 
-    _remove_trailing_sign()
+    # Removes the comma or equals sign at the end of $cur.
+    _remove_trailing_char()
     {
-        if [[ $cur == *= ]]; then
-            cur="${cur#*=}"
+        if [[ $cur =~ [,=]$ ]]; then
+            cur="${cur#*[,=]}"
             return 0
         fi
 
@@ -66,6 +67,9 @@ _multipass_complete()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
+    prev2="${COMP_WORDS[COMP_CWORD-2]}"
+    prev3="${COMP_WORDS[COMP_CWORD-3]}"
+    prev4="${COMP_WORDS[COMP_CWORD-4]}"
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="transfer delete exec find help info launch list mount networks \
@@ -124,13 +128,16 @@ _multipass_complete()
 
     # We need to complete the option pairs in two steps. One, when the last input char was an equals sign. Two,
     # when the user starts to input something, because prev changes when she starts to type a value.
-    elif [[ "${COMP_WORDS[COMP_CWORD-2]}" == '--network' && "${cur}" == '=' ]]; then
+    elif [[ "${cur}" == '=' ]] && [[ "${prev2}" == ',' || "${prev2}" == '--network' ]] ; then
         compopt -o nospace
-        _remove_trailing_sign
+        _remove_trailing_char
         case "${prev}" in
             "id")
                 opts=""
                 _multipass_networks
+            ;;
+            "mac")
+                opts=""
             ;;
             "mode")
                 opts="auto manual"
@@ -138,15 +145,28 @@ _multipass_complete()
         esac
     elif [[ "${prev}" == '=' ]]; then
         compopt -o nospace
-        case "${COMP_WORDS[COMP_CWORD-2]}" in
+        case "${prev2}" in
             "id")
                 opts=""
                 _multipass_networks
+            ;;
+            "mac")
+                opts=""
             ;;
             "mode")
                 opts="auto manual"
             ;;
         esac
+    elif [[ "${cur}" == ',' && "${prev2}" == '=' ]] || [[ "${prev}" == ',' && "${prev3}" == '=' ]] ; then
+        _remove_trailing_char
+        compopt -o nospace
+        if [[ "${prev3}" == 'id' || "${prev4}" == 'id' ]]; then
+            opts="mode= mac="
+        elif [[ "${prev3}" == 'mode' || "${prev4}" == 'mode' ]]; then
+            opts="mac= id="
+        elif [[ "${prev3}" == 'mac' || "${prev4}" == 'mac' ]]; then
+                opts="id= mode="
+        fi
     fi
 
     if [[ "$prev_opts" = false ]]; then
