@@ -1797,6 +1797,25 @@ std::vector<Matcher<QJsonObject>> device_json_matchers_from(const std::vector<mp
 
     return device_matchers;
 }
+
+void setup_vm_creation_expectations(mpt::MockNetworkAccessManager& mock_network_access_mgr,
+                                    Matcher<QIODevice*> request_contents_matcher)
+{
+    EXPECT_CALL(mock_network_access_mgr, createRequest(QNetworkAccessManager::CustomOperation,
+                                                       custom_request_matcher("GET", "pied-piper-valley/state"), _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::not_found_data, QNetworkReply::ContentNotFoundError}))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::vm_info_data}));
+
+    EXPECT_CALL(mock_network_access_mgr,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("POST", "virtual-machines"), request_contents_matcher))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_data}));
+
+    EXPECT_CALL(mock_network_access_mgr,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("GET", "operations/0020444c-2e4c-49d5-83ed-3275e3f6d005/wait"), _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_finished_data}));
+}
 } // namespace
 
 TEST_F(LXDBackend, posts_extra_network_devices)
@@ -1807,24 +1826,9 @@ TEST_F(LXDBackend, posts_extra_network_devices)
     default_description.extra_interfaces.push_back({"parent2", "01:23:45:ab:cd:ef", false});
     default_description.extra_interfaces.push_back({"parent3", "ba:ba:ca:ca:ca:ba", true});
 
-    auto json_matcher =
-        ResultOf(&extract_devices, IsSupersetOf(device_json_matchers_from(default_description.extra_interfaces)));
-
-    EXPECT_CALL(*mock_network_access_manager,
-                createRequest(QNetworkAccessManager::CustomOperation,
-                              custom_request_matcher("GET", "pied-piper-valley/state"), _))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::not_found_data, QNetworkReply::ContentNotFoundError}))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::vm_info_data}));
-
-    EXPECT_CALL(*mock_network_access_manager,
-                createRequest(QNetworkAccessManager::CustomOperation,
-                              custom_request_matcher("POST", "virtual-machines"), request_data_matcher(json_matcher)))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_data}));
-
-    EXPECT_CALL(*mock_network_access_manager,
-                createRequest(QNetworkAccessManager::CustomOperation,
-                              custom_request_matcher("GET", "operations/0020444c-2e4c-49d5-83ed-3275e3f6d005/wait"), _))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_finished_data}));
+    auto devices_matcher = IsSupersetOf(device_json_matchers_from(default_description.extra_interfaces));
+    auto json_matcher = ResultOf(&extract_devices, devices_matcher);
+    setup_vm_creation_expectations(*mock_network_access_manager, request_data_matcher(json_matcher));
 
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
                                   bridge_name};
