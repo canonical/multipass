@@ -1772,6 +1772,32 @@ auto request_data_matcher(Matcher json_matcher)
     return ResultOf(extract_json, json_matcher);
 }
 
+std::vector<QJsonObject> extract_devices(const QJsonObject& request_json)
+{
+    std::vector<QJsonObject> ret; // we need an stl collection that gmock can work with
+    for (const auto& device : request_json["devices"].toObject())
+        ret.push_back(device.toObject());
+    return ret;
+}
+
+bool device_json_matches_interface(const QJsonObject& device, const mp::NetworkInterface& interface)
+{
+    return device["type"] == "nic" && device["nictype"] == "bridged" &&
+           device["parent"].toString().toStdString() == interface.id &&
+           device["hwaddr"].toString().toStdString() == interface.mac_address;
+}
+
+std::vector<Matcher<QJsonObject>> device_json_matchers_from(const std::vector<mp::NetworkInterface>& interfaces)
+{
+    std::vector<Matcher<QJsonObject>> device_matchers;
+    for (const auto& interface : interfaces)
+    {
+        device_matchers.push_back(Truly(
+            [&interface](const QJsonObject& device) { return device_json_matches_interface(device, interface); }));
+    }
+
+    return device_matchers;
+}
 } // namespace
 
 TEST_F(LXDBackend, posts_extra_network_devices)
@@ -1782,7 +1808,8 @@ TEST_F(LXDBackend, posts_extra_network_devices)
     default_description.extra_interfaces.push_back({"parent2", "01:23:45:ab:cd:ef", false});
     default_description.extra_interfaces.push_back({"parent3", "ba:ba:ca:ca:ca:ba", true});
 
-    auto json_matcher = Property(&QJsonObject::isEmpty, false); // TODO@ricab derive proper matcher
+    auto json_matcher =
+        ResultOf(&extract_devices, IsSupersetOf(device_json_matchers_from(default_description.extra_interfaces)));
 
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation,
