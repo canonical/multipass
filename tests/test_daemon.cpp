@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,8 +86,6 @@ void PrintTo(const YAML::Node& node, ::std::ostream* os)
 
 namespace
 {
-const qint64 default_total_bytes{16'106'127'360}; // 16G
-
 template<typename R>
   bool is_ready(std::future<R> const& f)
   { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
@@ -474,8 +472,9 @@ struct MinSpaceViolatedSuite : public Daemon,
 {
 };
 
-struct LaunchImgSizeSuite : public Daemon,
-                            public WithParamInterface<std::tuple<std::string, std::vector<std::string>, std::string>>
+struct LaunchImgSizeSuite
+    : public Daemon,
+      public WithParamInterface<std::tuple<std::string, std::vector<std::string>, std::string, std::string>>
 {
 };
 
@@ -898,13 +897,15 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     const auto& other_command_line_parameters = std::get<1>(param);
     const auto& img_size_str = std::get<2>(param);
     const auto img_size = mp::MemorySize(img_size_str);
+    const auto& available_disk_str = std::get<3>(param);
+    const auto available_disk = mp::MemorySize(available_disk_str);
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_)).WillByDefault([&img_size_str](auto...) {
         return mp::MemorySize{img_size_str};
     });
 
-    REPLACE(filesystem_bytes_available, [](auto...) { return default_total_bytes; });
+    REPLACE(filesystem_bytes_available, [&available_disk](auto...) { return available_disk.in_bytes(); });
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -919,6 +920,13 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
         EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
         send_command(all_parameters, trash_stream, stream);
         EXPECT_THAT(stream.str(), AllOf(HasSubstr("Requested disk"), HasSubstr("below minimum for this image")));
+    }
+    else if (available_disk < img_size)
+    {
+        std::stringstream stream;
+        EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
+        send_command(all_parameters, trash_stream, stream);
+        EXPECT_THAT(stream.str(), AllOf(HasSubstr("Available disk"), HasSubstr("below minimum for this image")));
     }
     else
     {
@@ -960,7 +968,7 @@ INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite,
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                          Combine(Values("test_create", "launch"),
                                  Values(std::vector<std::string>{}, std::vector<std::string>{"--disk", "4G"}),
-                                 Values("1G", mp::default_disk_size, "10G")));
+                                 Values("1G", mp::default_disk_size, "10G"), Values("16G", "500MB")));
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchStorageCheckSuite, Values("test_create", "launch"));
 
 std::string fake_json_contents(const std::string& default_mac, const std::vector<mp::NetworkInterface>& extra_ifaces)
