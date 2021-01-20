@@ -949,6 +949,7 @@ TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk_space)
     auto available_disk{16'106'127'360}; // 15G
     REPLACE(filesystem_bytes_available, [&available_disk](auto...) { return available_disk; });
 
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "autostart prerequisites", AtMost(1));
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning, fmt::format("Reserving more disk space than available ({} bytes)", available_disk));
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
