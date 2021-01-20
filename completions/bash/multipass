@@ -43,7 +43,7 @@ _multipass_complete()
     # Set $opts to the list of available networks.
     _multipass_networks()
     {
-        local cmd="multipass networks --format=csv"
+        local cmd="multipass networks --format=csv 2>/dev/null"
 
         opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
     }
