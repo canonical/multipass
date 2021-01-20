@@ -944,7 +944,7 @@ TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk_space)
     mp::Daemon daemon{config_builder.build()};
 
     auto logger_scope = mpt::MockLogger::inject();
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
 
     auto available_disk{16'106'127'360}; // 15G
     REPLACE(filesystem_bytes_available, [&available_disk](auto...) { return available_disk; });
