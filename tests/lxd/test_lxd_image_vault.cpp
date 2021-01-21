@@ -914,3 +914,142 @@ TEST_F(LXDImageVault, minimum_image_size_throws_when_not_found)
                          Property(&std::runtime_error::what,
                                   AllOf(HasSubstr(fmt::format("Cannot retrieve info for image with id \'{}\'", id)))));
 }
+
+TEST_F(LXDImageVault, http_based_image_downloads_and_creates_correct_upload)
+{
+    const std::string content{"This is a fake image!"};
+    mpt::TrackingURLDownloader url_downloader{content};
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback([](mpt::MockProcess* process) {
+        if (process->program().startsWith("tar"))
+        {
+            auto tar_args = process->arguments();
+
+            EXPECT_EQ(tar_args.size(), 5);
+            QFile output_file{tar_args[1]}, input_file{tar_args[3] + "/" + tar_args[4]};
+
+            output_file.open(QIODevice::WriteOnly);
+            input_file.open(QIODevice::ReadOnly);
+
+            output_file.write(input_file.readAll());
+
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+        }
+    });
+
+    ON_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillByDefault([](auto, auto request, auto outgoingData) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "POST" && url.contains("1.0/images"))
+            {
+                auto content_header = request.header(QNetworkRequest::ContentTypeHeader).toString();
+
+                EXPECT_TRUE(content_header.contains("multipart/form-data"));
+                EXPECT_TRUE(content_header.contains("boundary"));
+
+                return new mpt::MockLocalSocketReply(mpt::image_upload_task_data);
+            }
+            else if (op == "GET" && url.contains("1.0/operations/dcce4fda-aab9-4117-89c1-9f42b8e3f4a8"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::image_upload_task_complete_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,    &url_downloader,  mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(), mp::days{0}};
+
+    auto current_time = QDateTime::currentDateTime();
+
+    const mp::Query query{"", "http://www.foo.com/images/foo.img", false, "", mp::Query::Type::HttpDownload};
+    auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
+
+    EXPECT_EQ(image.id, "bc5a973bd6f2bef30658fb51177cf5e506c1d60958a4c97813ee26416dc368da");
+
+    auto image_time = QDateTime::fromString(QString::fromStdString(image.release_date), Qt::ISODateWithMs);
+
+    EXPECT_TRUE(image_time >= current_time);
+}
+
+TEST_F(LXDImageVault, file_based_fetch_copies_image_and_returns_expected_info)
+{
+    mpt::TempFile file;
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback([](mpt::MockProcess* process) {
+        if (process->program().startsWith("tar"))
+        {
+            auto tar_args = process->arguments();
+
+            EXPECT_EQ(tar_args.size(), 5);
+            QFile output_file{tar_args[1]}, input_file{tar_args[3] + "/" + tar_args[4]};
+
+            output_file.open(QIODevice::WriteOnly);
+            input_file.open(QIODevice::ReadOnly);
+
+            output_file.write(input_file.readAll());
+
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+        }
+    });
+
+    ON_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillByDefault([](auto, auto request, auto outgoingData) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "POST" && url.contains("1.0/images"))
+            {
+                auto content_header = request.header(QNetworkRequest::ContentTypeHeader).toString();
+
+                EXPECT_TRUE(content_header.contains("multipart/form-data"));
+                EXPECT_TRUE(content_header.contains("boundary"));
+
+                return new mpt::MockLocalSocketReply(mpt::image_upload_task_data);
+            }
+            else if (op == "GET" && url.contains("1.0/operations/dcce4fda-aab9-4117-89c1-9f42b8e3f4a8"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::image_upload_task_complete_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    auto current_time = QDateTime::currentDateTime();
+    const mp::Query query{"", file.url().toStdString(), false, "", mp::Query::Type::LocalFile};
+
+    auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
+
+    EXPECT_EQ(image.id, "bc5a973bd6f2bef30658fb51177cf5e506c1d60958a4c97813ee26416dc368da");
+
+    auto image_time = QDateTime::fromString(QString::fromStdString(image.release_date), Qt::ISODateWithMs);
+
+    EXPECT_TRUE(image_time >= current_time);
+}
+
+TEST_F(LXDImageVault, invalid_local_file_image_throws)
+{
+    ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault([](auto...) {
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    const std::string missing_file{"/foo"};
+    const mp::Query query{"", fmt::format("file://{}", missing_file), false, "", mp::Query::Type::LocalFile};
+
+    MP_EXPECT_THROW_THAT(
+        image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error,
+        Property(&std::runtime_error::what, StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
+}
