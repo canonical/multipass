@@ -76,34 +76,79 @@ _multipass_complete()
         esac
     }
 
-    # Scan the command-line to find the last appearance of "--network". Then, scan from there until the end of the
-    # command-line for the names of the variables which were already specified. And fill-in $opts with the
-    # variables which were not yet specified.
-    _unspecified_network_vars()
+    # Find the position of the last appearance of a given parameter name in the command-line. Return its index, or
+    # 0 if not found.
+    _find_last_par()
     {
-        local network_pos=COMP_CWORD
+        local last_pos
 
-        for ((i=COMP_CWORD; i>0; --i)); do
-            if [[ "${COMP_WORDS[$i]}" == '--network' ]]; then
-                network_pos=$i
+        for ((last_pos=COMP_CWORD; last_pos>0; --last_pos)); do
+            if [[ "${COMP_WORDS[$last_pos]}" == "$1" ]]; then
                 break
             fi
         done
 
-        local id_found=0
-        local mac_found=0
-        local mode_found=0
+        return ${last_pos}
+    }
 
-        for ((i=${network_pos}+1; i<COMP_CWORD; ++i)); do
-            if [[ "${COMP_WORDS[$i]}" == 'id' ]]; then id_found=1; fi
-            if [[ "${COMP_WORDS[$i]}" == 'mac' ]]; then mac_found=1; fi
-            if [[ "${COMP_WORDS[$i]}" == 'mode' ]]; then mode_found=1; fi
+    # Find the position of the last appearance of parameter starting with "--" in the command-line. Return its
+    # index, or 0 if not found.
+    _find_last_dashdash()
+    {
+        local last_pos
+
+        for ((last_pos=COMP_CWORD; last_pos>0; --last_pos)); do
+            if [[ "${COMP_WORDS[$last_pos]}" =~ ^--.* ]]; then
+                break
+            fi
         done
 
+        return ${last_pos}
+    }
+
+    # Sets $1 to the name of the last argument whose name starts with "--", or the empty string if there is none.
+    _last_dashdash_name()
+    {
+        local last_pos
+
+        last_dashdash_arg=""
+        for ((last_pos=COMP_CWORD; last_pos>0; --last_pos)); do
+            if [[ "${COMP_WORDS[$last_pos]}" =~ ^--.* ]]; then
+                last_dashdash_arg=${COMP_WORDS[$last_pos]}
+                break
+            fi
+        done
+    }
+
+    # If the last argument starting with "--" is "--network", scan from there until the end of the command-line for
+    # the names of the variables which were already specified. And fill-in $opts with the variables which were not
+    # yet specified.
+    # TODO: In case of adding more parameters starting with "--", factor out this function and take as parameters
+    # an argument name and the list of possible "var=" keys. Calling this function would then look like
+    # _unspecified_vars "--network" ("id= mac= mode=")
+    _unspecified_network_vars()
+    {
+        local last_network_pos=$(_find_last_par "--network")
+
+        local last_dashdash_pos=$(_find_last_dashdash)
+
         opts=""
-        if [[ ${id_found} == 0 ]]; then opts="${opts} id="; fi
-        if [[ ${mac_found} == 0 ]]; then opts="${opts} mac="; fi
-        if [[ ${mode_found} == 0 ]]; then opts="${opts} mode="; fi
+
+        if [[ ${last_network_pos} == ${last_dashdash_pos} ]]; then
+            local id_found=0
+            local mac_found=0
+            local mode_found=0
+
+            for ((i=${last_network_pos}+1; i<COMP_CWORD; ++i)); do
+                if [[ "${COMP_WORDS[$i]}" == 'id' ]]; then id_found=1; fi
+                if [[ "${COMP_WORDS[$i]}" == 'mac' ]]; then mac_found=1; fi
+                if [[ "${COMP_WORDS[$i]}" == 'mode' ]]; then mode_found=1; fi
+            done
+
+            if [[ ${id_found} == 0 ]]; then opts="${opts} id="; fi
+            if [[ ${mac_found} == 0 ]]; then opts="${opts} mac="; fi
+            if [[ ${mode_found} == 0 ]]; then opts="${opts} mode="; fi
+        fi
     }
 
     # Add the comma to the list of word separators, useful to separate options of the form "opt1=val1,opt2=val2".
@@ -168,24 +213,30 @@ _multipass_complete()
                 # TODO: Do use spaces after the completion of an interface name.
                 compopt -o nospace
         esac
+    else
+        local last_dashdash_arg
+        _last_dashdash_name
 
-    # We need to complete the option pairs in two steps. One, when the last input char was an equals sign. Two,
-    # when the user starts to input something, because prev changes when she starts to type a value.
-    elif [[ "${cur}" == '=' ]] && [[ "${prev2}" == ',' || "${prev2}" == '--network' ]] ; then
-        compopt -o nospace
-        _remove_trailing_char
-        _complete_network_var "${prev}"
+        if [[ ${last_dashdash_arg} == "--network" ]]; then
+            # We need to complete the option pairs in two steps. One, when the last input char was an equals sign. Two,
+            # when the user starts to input something, because prev changes when she starts to type a value.
+            if [[ "${cur}" == '=' ]] && [[ "${prev2}" == ',' || "${prev2}" == '--network' ]] ; then
+                compopt -o nospace
+                _remove_trailing_char
+                _complete_network_var "${prev}"
 
-    elif [[ "${prev}" == '=' ]]; then
-        compopt -o nospace
-        _complete_network_var "${prev2}"
+            elif [[ "${prev}" == '=' ]]; then
+                compopt -o nospace
+                _complete_network_var "${prev2}"
 
-    # Complete now in the case on which there is a comma separating var=val pairs.
-    elif [[ "${cur}" == ',' && "${prev2}" == '=' ]] || [[ "${prev}" == ',' && "${COMP_WORDS[COMP_CWORD-3]}" == '=' ]];
-    then
-        _remove_trailing_char
-        compopt -o nospace
-        _unspecified_network_vars
+            # Complete now in the case on which there is a comma separating var=val pairs.
+            elif [[ "${cur}" == ',' && "${prev2}" == '=' ]] ||
+                 [[ "${prev}" == ',' && "${COMP_WORDS[COMP_CWORD-3]}" == '=' ]]; then
+                _remove_trailing_char
+                compopt -o nospace
+                _unspecified_network_vars
+            fi
+        fi
     fi
 
     if [[ "$prev_opts" = false ]]; then
