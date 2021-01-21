@@ -106,7 +106,8 @@ _multipass_complete()
         return ${last_pos}
     }
 
-    # Sets $1 to the name of the last argument whose name starts with "--", or the empty string if there is none.
+    # Set $last_dashdash to the name of the last argument whose name starts with "--", or the empty string if there
+    # is none.
     _last_dashdash_name()
     {
         local last_pos
@@ -125,7 +126,7 @@ _multipass_complete()
     # yet specified.
     # TODO: In case of adding more parameters starting with "--", factor out this function and take as parameters
     # an argument name and the list of possible "var=" keys. Calling this function would then look like
-    # _unspecified_vars "--network" ("id= mac= mode=")
+    # _unspecified_vars "--network" ("id=" "mac=" "mode=")
     _unspecified_network_vars()
     {
         local last_network_pos=$(_find_last_par "--network")
@@ -154,7 +155,7 @@ _multipass_complete()
     # Add the comma to the list of word separators, useful to separate options of the form "opt1=val1,opt2=val2".
     COMP_WORDBREAKS="${COMP_WORDBREAKS},"
 
-    local cur cmd opts prev prev_opts
+    local cur cmd opts prev prev2 prev_opts
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
