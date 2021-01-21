@@ -161,10 +161,12 @@ _multipass_complete()
                 return
             ;;
             "--network")
-                compopt -o nospace
-                # TODO: Do use spaces after the completion of an interface name.
                 _multipass_networks
-                opts="${opts} id= mode= mac="
+                if [[ "${opts}" != "" ]]; then
+                    opts="${opts} id= mode= mac="
+                fi
+                # TODO: Do use spaces after the completion of an interface name.
+                compopt -o nospace
         esac
 
     # We need to complete the option pairs in two steps. One, when the last input char was an equals sign. Two,
