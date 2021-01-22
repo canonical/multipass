@@ -125,8 +125,14 @@ _multipass_complete()
         fi
     }
 
-    # Add the comma to the list of word separators, useful to separate options of the form "opt1=val1,opt2=val2".
-    COMP_WORDBREAKS="${COMP_WORDBREAKS},"
+    # Add comma and equals sign to the list of word separators if they are not already there, useful to separate
+    # options of the form "opt1=val1,opt2=val2".
+    if [[ ! "${COMP_WORDBREAKS}" =~ "," ]]; then
+        COMP_WORDBREAKS="${COMP_WORDBREAKS},"
+    fi
+    if [[ ! "${COMP_WORDBREAKS}" =~ "=" ]]; then
+        COMP_WORDBREAKS="${COMP_WORDBREAKS}="
+    fi
 
     local cur cmd opts prev prev2 prev_opts
     COMPREPLY=()
