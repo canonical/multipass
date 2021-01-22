@@ -76,62 +76,35 @@ _multipass_complete()
         esac
     }
 
-    # Find the position of the last appearance of a given parameter name in the command-line. Return its index, or
-    # 0 if not found.
-    _find_last_par()
+    # Set $last_match to the name of the last argument whose name matches with, or the empty string if there is no
+    # match. Return its position in COMP_WORDS.
+    _find_last_match()
     {
         local last_pos
 
+        last_match=""
         for ((last_pos=COMP_CWORD; last_pos>0; --last_pos)); do
-            if [[ "${COMP_WORDS[$last_pos]}" == "$1" ]]; then
+            if [[ "${COMP_WORDS[$last_pos]}" =~ $1 ]]; then
+                last_match=${COMP_WORDS[$last_pos]}
                 break
             fi
         done
 
         return ${last_pos}
-    }
-
-    # Find the position of the last appearance of parameter starting with "--" in the command-line. Return its
-    # index, or 0 if not found.
-    _find_last_dashdash()
-    {
-        local last_pos
-
-        for ((last_pos=COMP_CWORD; last_pos>0; --last_pos)); do
-            if [[ "${COMP_WORDS[$last_pos]}" =~ ^--.* ]]; then
-                break
-            fi
-        done
-
-        return ${last_pos}
-    }
-
-    # Set $last_dashdash to the name of the last argument whose name starts with "--", or the empty string if there
-    # is none.
-    _last_dashdash_name()
-    {
-        local last_pos
-
-        last_dashdash_arg=""
-        for ((last_pos=COMP_CWORD; last_pos>0; --last_pos)); do
-            if [[ "${COMP_WORDS[$last_pos]}" =~ ^--.* ]]; then
-                last_dashdash_arg=${COMP_WORDS[$last_pos]}
-                break
-            fi
-        done
     }
 
     # If the last argument starting with "--" is "--network", scan from there until the end of the command-line for
     # the names of the variables which were already specified. And fill-in $opts with the variables which were not
     # yet specified.
-    # TODO: In case of adding more parameters starting with "--", factor out this function and take as parameters
-    # an argument name and the list of possible "var=" keys. Calling this function would then look like
+    # In case of adding more parameters starting with "--" to the completion script, this function can be factored
+    # out, taking as parameters an argument name and the list of possible "var=" keys. Calling this function
+    # would then look like:
     # _unspecified_vars "--network" ("id=" "mac=" "mode=")
     _unspecified_network_vars()
     {
-        local last_network_pos=$(_find_last_par "--network")
+        local last_network_pos=$(_find_last_match "^--network$")
 
-        local last_dashdash_pos=$(_find_last_dashdash)
+        local last_dashdash_pos=$(_find_last_match "^-.*")
 
         opts=""
 
@@ -215,10 +188,10 @@ _multipass_complete()
                 compopt -o nospace
         esac
     else
-        local last_dashdash_arg
-        _last_dashdash_name
+        local last_match
+        _find_last_match "--"
 
-        if [[ ${last_dashdash_arg} == "--network" ]]; then
+        if [[ ${last_match} == "--network" ]]; then
             # We need to complete the option pairs in two steps. One, when the last input char was an equals sign. Two,
             # when the user starts to input something, because prev changes when she starts to type a value.
             if [[ "${cur}" == '=' ]] && [[ "${prev2}" == ',' || "${prev2}" == '--network' ]] ; then
