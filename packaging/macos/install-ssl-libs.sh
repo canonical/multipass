@@ -26,7 +26,7 @@ mkdir -p "${TEMP_DIR}"
 # Determine all the rpaths
 RPATH_CHANGES=()
 for lib in ${SSL_LIBS}; do
-    lib_path="$( greadlink -f ${SSL_PATH}/lib/lib${lib}.dylib )"
+    lib_path="$(perl -MCwd=realpath -e "print realpath '${SSL_PATH}/lib/lib${lib}.dylib'")"
     lib_name="$( basename ${lib_path} )"
     RPATH_CHANGES+=("-change")
     RPATH_CHANGES+=("${lib_path}")
@@ -39,7 +39,7 @@ done
 
 # Install and modify all the libraries
 for lib in ${SSL_LIBS}; do
-    lib_path="$( greadlink -f ${SSL_PATH}/lib/lib${lib}.dylib )"
+    lib_path="$(perl -MCwd=realpath -e "print realpath '${SSL_PATH}/lib/lib${lib}.dylib'")"
     lib_name="$( basename ${lib_path} )"
     target_path="${TEMP_DIR}/${lib_name}"
     install -m 644 "${lib_path}" "${target_path}"
