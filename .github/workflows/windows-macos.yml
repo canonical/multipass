@@ -159,6 +159,7 @@ jobs:
           ninja \
           openssl@1.1 \
           pkg-config \
+          python \
           wget
 
     - name: Install Qt
