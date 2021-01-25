@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,11 +94,21 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     auto json_reply = QJsonDocument::fromJson(bytearray_reply, &json_error);
 
     if (json_error.error != QJsonParseError::NoError)
-        throw mp::LXDRuntimeError(fmt::format("Error parsing JSON response for {}: {}\n{}", url.toString(),
-                                              json_error.errorString(), bytearray_reply));
+    {
+        std::string error_string{
+            fmt::format("Error parsing JSON response for {}: {}", url.toString(), json_error.errorString())};
+
+        mpl::log(mpl::Level::debug, request_category, fmt::format("{}\n{}", error_string, bytearray_reply));
+        throw mp::LXDJsonParseError(error_string);
+    }
 
     if (json_reply.isNull() || !json_reply.isObject())
-        throw mp::LXDRuntimeError(fmt::format("Invalid LXD response for {}: {}", url.toString(), bytearray_reply));
+    {
+        std::string error_string{fmt::format("Invalid LXD response for {}", url.toString())};
+
+        mpl::log(mpl::Level::debug, request_category, fmt::format("{}\n{}", error_string, bytearray_reply));
+        throw mp::LXDJsonParseError(error_string);
+    }
 
     mpl::log(mpl::Level::trace, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
 
