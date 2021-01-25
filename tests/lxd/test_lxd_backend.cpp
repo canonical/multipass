@@ -927,7 +927,7 @@ TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
     base_url.setHost("test");
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
                     mpt::MockLogger::make_cstring_matcher(
                         AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value")))));
 
@@ -951,13 +951,12 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
     base_url.setHost("test");
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
                     mpt::MockLogger::make_cstring_matcher(
                         AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr(invalid_json.toStdString())))));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
-                         Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()),
-                                                                   HasSubstr(invalid_json.toStdString()))));
+                         Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()))));
 }
 
 TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
@@ -1676,7 +1675,7 @@ TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
 {
     auto log_matcher =
         mpt::MockLogger::make_cstring_matcher(AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply")));
-    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), _, log_matcher)).Times(1);
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::debug), _, log_matcher)).Times(1);
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
@@ -1687,7 +1686,7 @@ TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
 }
 
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadJson,
-                         Values("gibberish", "", "unstarted}", "{unfinished", "strange\"", "{noval}", "]["));
+                         Values("gibberish", "unstarted}", "{unfinished", "strange\"", "{noval}", "]["));
 
 struct LXDNetworksBadFields : LXDBackend, WithParamInterface<QByteArray>
 {
