@@ -789,7 +789,8 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
     if (available_disk_space < disk_space)
     {
         mpl::log(mpl::Level::warning, category,
-                 fmt::format("Reserving more disk space than available ({} bytes)", available_disk_space.in_bytes()));
+                 fmt::format("Reserving more disk space ({} bytes) than available ({} bytes)", disk_space.in_bytes(),
+                             available_disk_space.in_bytes()));
     }
 
     return disk_space;
