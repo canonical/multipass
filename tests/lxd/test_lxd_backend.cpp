@@ -1758,3 +1758,96 @@ TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
 
     EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge"))));
 }
+
+namespace
+{
+Matcher<QIODevice*> request_data_matcher(Matcher<QJsonObject> json_matcher)
+{
+    auto extract_json = [](QIODevice* device) {
+        device->open(QIODevice::ReadOnly);
+        return QJsonDocument::fromJson(device->readAll()).object();
+    };
+
+    return ResultOf(extract_json, json_matcher);
+}
+
+std::vector<QJsonObject> extract_devices(const QJsonObject& request_json)
+{
+    std::vector<QJsonObject> ret; // we need an stl collection that gmock can work with
+    for (const auto& device : request_json["devices"].toObject())
+        ret.push_back(device.toObject());
+    return ret;
+}
+
+bool device_json_matches_interface(const QJsonObject& device, const mp::NetworkInterface& interface)
+{
+    return device["type"] == "nic" && device["nictype"] == "bridged" &&
+           device["parent"].toString().toStdString() == interface.id &&
+           device["hwaddr"].toString().toStdString() == interface.mac_address;
+}
+
+std::vector<Matcher<QJsonObject>> device_json_matchers_from(const std::vector<mp::NetworkInterface>& interfaces)
+{
+    std::vector<Matcher<QJsonObject>> device_matchers;
+    for (const auto& interface : interfaces)
+    {
+        device_matchers.push_back(Truly(
+            [&interface](const QJsonObject& device) { return device_json_matches_interface(device, interface); }));
+    }
+
+    return device_matchers;
+}
+
+void setup_vm_creation_expectations(mpt::MockNetworkAccessManager& mock_network_access_mgr,
+                                    Matcher<QIODevice*> request_contents_matcher)
+{
+    EXPECT_CALL(mock_network_access_mgr, createRequest(QNetworkAccessManager::CustomOperation,
+                                                       custom_request_matcher("GET", "pied-piper-valley/state"), _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::not_found_data, QNetworkReply::ContentNotFoundError}))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::vm_info_data}));
+
+    EXPECT_CALL(mock_network_access_mgr,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("POST", "virtual-machines"), request_contents_matcher))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_data}));
+
+    EXPECT_CALL(mock_network_access_mgr,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("GET", "operations/0020444c-2e4c-49d5-83ed-3275e3f6d005/wait"), _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_finished_data}));
+}
+} // namespace
+
+TEST_F(LXDBackend, posts_extra_network_devices)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    default_description.extra_interfaces.push_back({"parent1", "ab:cd:ef:01:23:45", true});
+    default_description.extra_interfaces.push_back({"parent2", "01:23:45:ab:cd:ef", false});
+    default_description.extra_interfaces.push_back({"parent3", "ba:ba:ca:ca:ca:ba", true});
+
+    auto devices_matcher = IsSupersetOf(device_json_matchers_from(default_description.extra_interfaces));
+    auto json_matcher = ResultOf(&extract_devices, devices_matcher);
+    setup_vm_creation_expectations(*mock_network_access_manager, request_data_matcher(json_matcher));
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+}
+
+TEST_F(LXDBackend, posts_network_data_config_if_available)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    static constexpr auto config = "Leia: Princess";
+    default_description.network_data_config = config;
+
+    auto get_config = [](const auto& json) {
+        return json["config"].toObject()["user.network-config"].toString().toStdString();
+    };
+    auto json_matcher = ResultOf(get_config, HasSubstr(config));
+
+    setup_vm_creation_expectations(*mock_network_access_manager, request_data_matcher(json_matcher));
+
+    mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
+                                  bridge_name};
+}
