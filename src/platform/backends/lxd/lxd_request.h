@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +45,14 @@ class LXDRuntimeError : public std::runtime_error
 {
 public:
     LXDRuntimeError(const std::string& message) : runtime_error{message}
+    {
+    }
+};
+
+class LXDJsonParseError : public std::runtime_error
+{
+public:
+    LXDJsonParseError(const std::string& message) : runtime_error{message}
     {
     }
 };
