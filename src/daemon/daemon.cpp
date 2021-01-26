@@ -263,7 +263,7 @@ std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& recor
             auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
             if (!mpu::valid_mac_address(mac_address))
             {
-                throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
+                throw std::runtime_error(fmt::format("Invalid MAC address \"{}\" in bridged interface", mac_address));
             }
             auto auto_mode = entry.toObject()["auto_mode"].toBool();
             extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
@@ -314,11 +314,23 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         if (ssh_username.empty())
             ssh_username = "ubuntu";
 
+        auto extra_interfaces = read_extra_interfaces(record);
+
         // Read the default network interface, constructed from the "mac_addr" field.
         auto default_mac_address = record["mac_addr"].toString().toStdString();
-        if (!mpu::valid_mac_address(default_mac_address))
+        if (default_mac_address.empty())
         {
-            throw std::runtime_error(fmt::format("Invalid MAC address {}", default_mac_address));
+            // If the MAC address is empty, two things can happen. One, if there are no extra interfaces, it means
+            // there is not network cloud-init and we can safely generate a new MAC in the future. Two, there are
+            // extra interfaces and the emptiness of the MAC indicates some error.
+            if (!extra_interfaces.empty())
+            {
+                throw std::runtime_error(fmt::format("Default MAC address not specified for {}", key));
+            }
+        }
+        else if (!mpu::valid_mac_address(default_mac_address))
+        {
+            throw std::runtime_error(fmt::format("Invalid default MAC address \"{}\" on {}", default_mac_address, key));
         }
 
         std::unordered_map<std::string, mp::VMMount> mounts;
@@ -348,7 +360,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
                                       mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
                                       default_mac_address,
-                                      read_extra_interfaces(record),
+                                      extra_interfaces,
                                       ssh_username,
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
@@ -900,6 +912,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
+    bool empty_default_mac_address = false;
 
     for (auto& entry : vm_instance_specs)
     {
@@ -913,8 +926,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         // Check that all the interfaces in the instance have different MAC address, and that they were not used in
-        // the other instances. String validity was already checked in load_db(). Add these MAC's to the daemon's set
-        // only if this instance is not invalid.
+        // the other instances. String validity was already checked in load_db() (with the exception of the default
+        // MAC, which can be empty). Add these MAC's to the daemon's set only if this instance is not invalid.
         auto new_macs = mac_set_from(spec);
 
         if (new_macs.size() <= spec.extra_interfaces.size() || !merge_if_disjoint(new_macs, allocated_mac_addrs))
@@ -923,6 +936,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::warning, category, fmt::format("{} has repeated MAC addresses", name));
             invalid_specs.push_back(name);
             continue;
+        }
+
+        if (spec.default_mac_address.empty())
+        {
+            allocated_mac_addrs.erase("");
+            mpl::log(mpl::Level::warning, category, fmt::format("Generating default MAC address for {}", name));
+            empty_default_mac_address = true;
+            spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -983,7 +1004,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         vm_instance_specs.erase(bad_spec);
     }
 
-    if (!invalid_specs.empty())
+    if (!invalid_specs.empty() || empty_default_mac_address)
         persist_instances();
 
     for (const auto& image_host : config->image_hosts)
