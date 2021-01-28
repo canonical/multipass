@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1138,6 +1138,54 @@ std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents) /
     mpt::make_file_with_content(filename, contents);
 
     return temp_dir;
+}
+
+constexpr auto ghost_template = R"(
+"{}": {{
+    "deleted": false,
+    "disk_space": "0",
+    "mac_addr": "",
+    "mem_size": "0",
+    "metadata": {{}},
+    "mounts": [],
+    "num_cores": 0,
+    "ssh_username": "",
+    "state": 0
+}})";
+constexpr auto valid_template = R"(
+"{}": {{
+    "deleted": false,
+    "disk_space": "3232323232",
+    "mac_addr": "ab:cd:ef:12:34:{}",
+    "mem_size": "2323232323",
+    "metadata": {{}},
+    "mounts": [],
+    "num_cores": 4,
+    "ssh_username": "ubuntu",
+    "state": 1
+}})";
+
+TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometimes writen for purged instances
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    const auto id1 = "valid1";
+    const auto id2 = "valid2";
+    auto ghost1 = fmt::format(ghost_template, "ghost1");
+    auto ghost2 = fmt::format(ghost_template, "ghost2");
+    auto valid1 = fmt::format(valid_template, id1, "56");
+    auto valid2 = fmt::format(valid_template, id2, "78");
+    auto temp_dir = plant_instance_json(fmt::format("{{\n{},\n{},\n{},\n{}\n}}", std::move(ghost1), std::move(ghost2),
+                                                    std::move(valid1), std::move(valid2)));
+
+    config_builder.data_directory = temp_dir->path();
+    auto mock_factory = use_a_mock_vm_factory();
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id1), _)).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id2), _)).Times(1);
+
+    mp::Daemon daemon{config_builder.build()};
 }
 
 TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
