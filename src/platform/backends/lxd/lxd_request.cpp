@@ -130,7 +130,7 @@ try
         {
             data = QJsonDocument(*json_data).toJson(QJsonDocument::Compact);
 
-            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
             request.setHeader(QNetworkRequest::ContentLengthHeader, QByteArray::number(data.size()));
 
             mpl::log(mpl::Level::trace, request_category, fmt::format("Sending data: {}", data));

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -227,6 +227,7 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
     QByteArray expected_data{"POST /1.0 HTTP/1.1\r\n"
                              "Host: test\r\n"
                              "User-Agent: Test\r\n"
+                             "Connection: close\r\n"
                              "Content-Type: application/x-www-form-urlencoded\r\n"
                              "Content-Length: 11\r\n\r\n"
                              "Hello World\r\n"};
