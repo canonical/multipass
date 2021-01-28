@@ -314,8 +314,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         if (!num_cores && !state && !deleted && ssh_username.empty() && metadata.isEmpty() &&
             !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
         {
-            mpl::log(multipass::logging::Level::warning, category,
-                     fmt::format("Ignoring ghost instance in database: {}", key));
+            mpl::log(mpl::Level::warning, category, fmt::format("Ignoring ghost instance in database: {}", key));
             continue;
         }
 
