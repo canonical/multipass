@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -310,6 +310,14 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto state = record["state"].toInt();
         auto deleted = record["deleted"].toBool();
         auto metadata = record["metadata"].toObject();
+
+        if (!num_cores && !state && !deleted && ssh_username.empty() && metadata.isEmpty() &&
+            !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
+        {
+            mpl::log(multipass::logging::Level::warning, category,
+                     fmt::format("Ignoring ghost instance in database: {}", key));
+            continue;
+        }
 
         if (ssh_username.empty())
             ssh_username = "ubuntu";
