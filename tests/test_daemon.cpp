@@ -25,6 +25,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
 #include <multipass/constants.h>
+#include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -35,6 +36,7 @@
 #include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_environment_helpers.h"
+#include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
@@ -69,6 +71,7 @@
 #include <string>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 using namespace multipass::utils;
@@ -86,7 +89,7 @@ void PrintTo(const YAML::Node& node, ::std::ostream* os)
 
 namespace
 {
-const qint64 default_total_bytes{16'106'127'360}; // 16G
+const qint64 default_total_bytes{16'106'127'360}; // 15G
 
 template<typename R>
   bool is_ready(std::future<R> const& f)
@@ -927,15 +930,41 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     }
 }
 
-TEST_P(LaunchStorageCheckSuite, launch_fails_with_not_enough_disk_space)
+TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
+    REPLACE(filesystem_bytes_available, [](auto...) { return 0; });
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "autostart prerequisites", AtMost(1));
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         fmt::format("Reserving more disk space ({} bytes) than available (0 bytes)",
+                                                     mp::MemorySize{mp::default_disk_size}.in_bytes()));
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    send_command({GetParam()});
+}
+
+TEST_P(LaunchStorageCheckSuite, launch_fails_when_space_less_than_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_)).WillByDefault([](auto...) {
+        return mp::MemorySize{"1"};
+    });
+    config_builder.vault = std::move(mock_image_vault);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    REPLACE(filesystem_bytes_available, [](auto...) { return 0; });
+
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
-    send_command({GetParam(), "--disk", "999999999G"}, trash_stream, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("Available disk"), HasSubstr("below requested/default size")));
+    send_command({GetParam()}, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("Available disk (0 bytes) below minimum for this image (1 bytes)"));
 }
 
 TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
