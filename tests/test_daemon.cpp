@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
 #include <multipass/constants.h>
+#include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -35,6 +36,7 @@
 #include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_environment_helpers.h"
+#include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
@@ -69,6 +71,7 @@
 #include <string>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 using namespace multipass::utils;
@@ -86,7 +89,7 @@ void PrintTo(const YAML::Node& node, ::std::ostream* os)
 
 namespace
 {
-const qint64 default_total_bytes{16'106'127'360}; // 16G
+const qint64 default_total_bytes{16'106'127'360}; // 15G
 
 template<typename R>
   bool is_ready(std::future<R> const& f)
@@ -931,15 +934,41 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     }
 }
 
-TEST_P(LaunchStorageCheckSuite, launch_fails_with_not_enough_disk_space)
+TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
+    REPLACE(filesystem_bytes_available, [](auto...) { return 0; });
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "autostart prerequisites", AtMost(1));
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         fmt::format("Reserving more disk space ({} bytes) than available (0 bytes)",
+                                                     mp::MemorySize{mp::default_disk_size}.in_bytes()));
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _));
+    send_command({GetParam()});
+}
+
+TEST_P(LaunchStorageCheckSuite, launch_fails_when_space_less_than_image)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_)).WillByDefault([](auto...) {
+        return mp::MemorySize{"1"};
+    });
+    config_builder.vault = std::move(mock_image_vault);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    REPLACE(filesystem_bytes_available, [](auto...) { return 0; });
+
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
-    send_command({GetParam(), "--disk", "999999999G"}, trash_stream, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("Available disk"), HasSubstr("below requested/default size")));
+    send_command({GetParam()}, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("Available disk (0 bytes) below minimum for this image (1 bytes)"));
 }
 
 TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
@@ -1142,6 +1171,54 @@ std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents) /
     mpt::make_file_with_content(filename, contents);
 
     return temp_dir;
+}
+
+constexpr auto ghost_template = R"(
+"{}": {{
+    "deleted": false,
+    "disk_space": "0",
+    "mac_addr": "",
+    "mem_size": "0",
+    "metadata": {{}},
+    "mounts": [],
+    "num_cores": 0,
+    "ssh_username": "",
+    "state": 0
+}})";
+constexpr auto valid_template = R"(
+"{}": {{
+    "deleted": false,
+    "disk_space": "3232323232",
+    "mac_addr": "ab:cd:ef:12:34:{}",
+    "mem_size": "2323232323",
+    "metadata": {{}},
+    "mounts": [],
+    "num_cores": 4,
+    "ssh_username": "ubuntu",
+    "state": 1
+}})";
+
+TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometimes writen for purged instances
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    const auto id1 = "valid1";
+    const auto id2 = "valid2";
+    auto ghost1 = fmt::format(ghost_template, "ghost1");
+    auto ghost2 = fmt::format(ghost_template, "ghost2");
+    auto valid1 = fmt::format(valid_template, id1, "56");
+    auto valid2 = fmt::format(valid_template, id2, "78");
+    auto temp_dir = plant_instance_json(fmt::format("{{\n{},\n{},\n{},\n{}\n}}", std::move(ghost1), std::move(ghost2),
+                                                    std::move(valid1), std::move(valid2)));
+
+    config_builder.data_directory = temp_dir->path();
+    auto mock_factory = use_a_mock_vm_factory();
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id1), _)).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id2), _)).Times(1);
+
+    mp::Daemon daemon{config_builder.build()};
 }
 
 TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)

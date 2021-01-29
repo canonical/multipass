@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -310,6 +310,13 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto state = record["state"].toInt();
         auto deleted = record["deleted"].toBool();
         auto metadata = record["metadata"].toObject();
+
+        if (!num_cores && !state && !deleted && ssh_username.empty() && metadata.isEmpty() &&
+            !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
+        {
+            mpl::log(mpl::Level::warning, category, fmt::format("Ignoring ghost instance in database: {}", key));
+            continue;
+        }
 
         if (ssh_username.empty())
             ssh_username = "ubuntu";
@@ -780,10 +787,17 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
     std::string available_bytes_str = QString::number(available_bytes).toStdString();
     auto available_disk_space = mp::MemorySize(available_bytes_str + "B");
 
+    if (available_disk_space < image_size)
+    {
+        throw std::runtime_error(fmt::format("Available disk ({} bytes) below minimum for this image ({} bytes)",
+                                             available_disk_space.in_bytes(), image_size.in_bytes()));
+    }
+
     if (available_disk_space < disk_space)
     {
-        throw std::runtime_error(fmt::format("Available disk ({} bytes) below requested/default size ({} bytes)",
-                                             available_disk_space.in_bytes(), disk_space.in_bytes()));
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Reserving more disk space ({} bytes) than available ({} bytes)", disk_space.in_bytes(),
+                             available_disk_space.in_bytes()));
     }
 
     return disk_space;
