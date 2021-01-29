@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -euo pipefail
 
 # Open installer package, codesign its contents, then signs and notarizes it
 
@@ -91,6 +91,12 @@ if [ ! -f "${PKGFILE}" ]; then
     exit 1
 fi 
 
+if [ -n "${NOTARIZE_ID+x}" ] && [ -z "${NOTARIZE_PASSWORD:-}" ]; then
+    echo -n "Apple Developer account password: "
+    read -s NOTARIZE_PASSWORD
+    echo
+fi
+
 function check_already_signed
 {
     PKG="$1"
@@ -121,23 +127,23 @@ function sign_installer {
 function codesign_binaries {
     DIR="$1"
     # sign every file in the directory
-    find "${DIR}" -type f -not -name hyperkit -exec \
+    find "${DIR}" -type f -not -name hyperkit -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
             --prefix com.canonical.multipass. \
-            --sign "${SIGN_APP}" "{}" \;
+            --sign "${SIGN_APP}"
 
     # sign every bundle in the directory
-    find "${DIR}" -type d -name '*.app' -exec \
+    find "${DIR}" -type d -name '*.app' -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict --deep \
             --prefix com.canonical.multipass. \
-            --sign "${SIGN_APP}" "{}" \;
+            --sign "${SIGN_APP}"
 
     # sign hyperkit with the entitlement file
-    find "${DIR}" -type f -name hyperkit -exec \
+    find "${DIR}" -type f -name hyperkit -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
             --entitlements "${SCRIPTDIR}/hyperkit.entitlements.plist" \
             --identifier com.canonical.multipass.hyperkit \
-            --sign "${SIGN_APP}" "{}" \;
+            --sign "${SIGN_APP}"
 }
 
 SCRIPTDIR=$(perl -MCwd=realpath -e "print realpath '$0/..'")
@@ -204,13 +210,11 @@ if [ -n "${NOTARIZE_PROVIDER}" ]; then
     NOTARIZE_OPTS=( --asc-provider "${NOTARIZE_PROVIDER}" )
 fi
 
-set -x
 xcrun altool --notarize-app -f "${PKGFILENAME}" \
              --primary-bundle-id "${BUNDLE_ID}" \
              --username "${NOTARIZE_ID}" \
              --password "${NOTARIZE_PASSWORD}" \
-             "${NOTARIZE_OPTS[@]}" >${_tmpout} 2>&1
-set +x
+             "${NOTARIZE_OPTS[@]}" 2>&1 | tee "${_tmpout}"
 
 # check the request uuid
 _requuid=$(cat "${_tmpout}" | grep "RequestUUID" | awk '{ print $3 }')
@@ -243,7 +247,7 @@ for c in {80..0}; do
     sleep 60
     xcrun altool --notarization-info "${_requuid}" \
                  --username "${NOTARIZE_ID}" \
-                 --password "${NOTARIZE_PASSWORD}" >${_tmpout} 2>&1
+                 --password "${NOTARIZE_PASSWORD}" 2>&1 | tee ${_tmpout}
     _status=$(cat "${_tmpout}" | grep "Status:" | awk '{ print $2 }')
     if [ "${_status}" == "invalid" ]; then
         echo "Error: Got invalid notarization!"
