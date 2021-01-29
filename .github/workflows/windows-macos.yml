@@ -103,7 +103,7 @@ jobs:
     - name: Create an App token
       id: app-token
       if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: multipass-ci-bot/github-app-token@v1
+      uses: tibdex/github-app-token@v1
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -112,7 +112,7 @@ jobs:
     - name: Create a check on public
       id: public-check
       if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: multipass-ci-bot/checks-action@master
+      uses: LouisBrunner/checks-action@v1.1.1
       with:
         token: ${{ steps.app-token.outputs.token }}
         repo: ${{ github.event.client_payload.repository }}
@@ -264,7 +264,7 @@ jobs:
       # action itself.
       id: app-token-update
       if: ${{ always() && github.event_name == 'repository_dispatch' }}
-      uses: multipass-ci-bot/github-app-token@v1
+      uses: tibdex/github-app-token@v1
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -272,7 +272,7 @@ jobs:
 
     - name: Update the check on public
       if: ${{ always() && github.event_name == 'repository_dispatch' }}
-      uses: multipass-ci-bot/checks-action@master
+      uses: LouisBrunner/checks-action@v1.1.1
       with:
         token: ${{ steps.app-token-update.outputs.token }}
         repo: ${{ github.event.client_payload.repository }}
@@ -302,7 +302,7 @@ jobs:
     - name: Create an App token
       id: app-token
       if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: multipass-ci-bot/github-app-token@v1
+      uses: tibdex/github-app-token@v1
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -311,7 +311,7 @@ jobs:
     - name: Create a check on public
       id: public-check
       if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: multipass-ci-bot/checks-action@master
+      uses: LouisBrunner/checks-action@v1.1.1
       with:
         token: ${{ steps.app-token.outputs.token }}
         repo: ${{ github.event.client_payload.repository }}
@@ -405,7 +405,7 @@ jobs:
 
     - name: Update the check on public
       if: ${{ always() && github.event_name == 'repository_dispatch' }}
-      uses: multipass-ci-bot/checks-action@master
+      uses: LouisBrunner/checks-action@v1.1.1
       with:
         token: ${{ steps.app-token.outputs.token }}
         repo: ${{ github.event.client_payload.repository }}
