@@ -47,11 +47,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void stop() override
+    void stop(bool force = false) override
     {
     }
 
-    void shutdown() override
+    void shutdown(bool force = false) override
     {
     }
 
