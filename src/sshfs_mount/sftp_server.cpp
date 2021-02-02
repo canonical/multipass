@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -580,6 +580,11 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     }
 
     SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), file.get()), ssh_string_free};
+    if (!sftp_handle)
+    {
+        return reply_failure(msg);
+    }
+
     open_file_handles.emplace(file.get(), std::move(file));
 
     return sftp_reply_handle(msg, sftp_handle.get());
@@ -602,6 +607,11 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         std::make_unique<QFileInfoList>(dir.entryInfoList(QDir::AllEntries | QDir::System | QDir::Hidden));
 
     SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), entry_list.get()), ssh_string_free};
+    if (!sftp_handle)
+    {
+        return reply_failure(msg);
+    }
+
     open_dir_handles.emplace(entry_list.get(), std::move(entry_list));
 
     return sftp_reply_handle(msg, sftp_handle.get());
