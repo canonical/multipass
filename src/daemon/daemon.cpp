@@ -92,7 +92,7 @@ const std::unordered_set<std::string> no_bridging_images = {
     "release:12.10", "release:quantal", "release:13.04", "release:raring",  "release:13.10", "release:saucy",
     "release:14.04", "release:trusty",  "release:14.10", "release:utopic",  "release:15.04", "release:vivid",
     "release:15.10", "release:wily",    "release:16.04", "release:xenial",  "release:16.10", "release:yakkety",
-    "release:17.04", "release:zesty",   "snapcraft:core"};
+    "release:17.04", "release:zesty",   "release:core",  "release:core16",  "snapcraft:core"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
