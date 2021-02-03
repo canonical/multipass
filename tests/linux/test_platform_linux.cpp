@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +18,14 @@
 #include "tests/fake_handle.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_settings.h"
+#include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+#include <src/platform/platform_linux_detail.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
@@ -372,4 +374,25 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
                          Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
+
+TEST_F(PlatformLinux, retrieves_networks_from_the_system)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_nets = {"eth0", "foo", "kkkkk"};
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    for (const auto& net : fake_nets)
+        fake_sys_class_net.mkpath(net);
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+    ASSERT_EQ(net_map.size(), fake_nets.size());
+
+    auto expect_it = std::cbegin(fake_nets);
+    for (const auto& [key, val] : net_map)
+    {
+        ASSERT_NE(expect_it, std::cend(fake_nets));
+        EXPECT_EQ(key, *expect_it++);
+        EXPECT_EQ(val.id, key);
+    }
+}
 } // namespace
