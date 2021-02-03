@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -142,7 +142,7 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
 } // namespace
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{desc.vm_name},
+    : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor}
@@ -319,6 +319,54 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
 std::string mp::VirtualBoxVirtualMachine::management_ipv4()
 {
     return "N/A";
+}
+
+std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
+{
+    std::vector<std::string> all_ipv4;
+
+    if (state == State::running)
+    {
+        SSHSession session{ssh_hostname(std::chrono::milliseconds(1000)), ssh_port(), ssh_username(), key_provider};
+
+        auto run_in_vm = [&session](const std::string& cmd) -> std::string {
+            auto proc = session.exec(cmd);
+
+            if (proc.exit_code() != 0)
+            {
+                auto error_msg = proc.read_std_error();
+                mpl::log(mpl::Level::warning, "virtualbox vm",
+                         fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
+                return std::string{};
+            }
+
+            auto output = proc.read_std_output();
+            if (output.empty())
+            {
+                mpl::log(mpl::Level::warning, "virtualbox vm", fmt::format("no output after running '{}'", cmd));
+                return std::string{};
+            }
+
+            return mp::utils::trim_end(output);
+        };
+
+        auto ip_a_output = QString::fromStdString(run_in_vm("ip -brief -family inet address show scope global"));
+
+        QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
+
+        QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
+
+        while (ip_it.hasNext())
+        {
+            auto ip_match = ip_it.next();
+            auto ip = ip_match.captured(1).toStdString();
+
+            if (ip != "10.0.2.15")
+                all_ipv4.push_back(ip);
+        }
+    }
+
+    return all_ipv4;
 }
 
 std::string mp::VirtualBoxVirtualMachine::ipv6()
