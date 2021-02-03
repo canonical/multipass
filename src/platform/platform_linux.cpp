@@ -17,7 +17,6 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
@@ -46,11 +45,23 @@ namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
+mp::NetworkInterfaceInfo get_network(const QString& name)
+{
+    return {name.toStdString(), "", ""};
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
-    throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
+    auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
+    for (const auto& entry : QDir{QStringLiteral("/sys/class/net")}.entryList(QDir::NoDotAndDotDot | QDir::Dirs))
+    {
+        auto iface = get_network(entry);
+        auto name = iface.id; // (can't rely on param evaluation order)
+        ifaces_info.emplace(std::move(name), std::move(iface));
+    }
+
+    return ifaces_info;
 }
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
