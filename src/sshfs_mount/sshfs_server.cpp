@@ -67,7 +67,7 @@ unordered_map<int, int> deserialise_id_map(const char* in)
 
 int main(int argc, char* argv[])
 {
-    if (argc != 8)
+    if (argc != 9)
     {
         cerr << "Incorrect arguments" << endl;
         exit(2);
@@ -87,10 +87,11 @@ int main(int argc, char* argv[])
     const auto target_path = string(argv[5]);
     const unordered_map<int, int> uid_map = deserialise_id_map(argv[6]);
     const unordered_map<int, int> gid_map = deserialise_id_map(argv[7]);
+    const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
-    auto logger = mpp::make_logger(mpl::Level::error); // QUESTION - how to pass verbosity level?
+    auto logger = mpp::make_logger(log_level);
     if (!logger)
-        logger = std::make_unique<mpl::StandardLogger>(mpl::Level::error);
+        logger = std::make_unique<mpl::StandardLogger>(log_level);
 
     // Use the MultiplexingLogger as we may end up routing messages to the daemon too at some point
     auto standard_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
