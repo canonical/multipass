@@ -674,15 +674,9 @@ auto instances_running(const Instances& instances)
     return false;
 }
 
-mp::SSHProcess exec_and_log(mp::SSHSession& session, const std::string& cmd)
-{
-    mpl::log(mpl::Level::debug, category, fmt::format("Executing {}.", cmd));
-    return session.exec(cmd);
-}
-
 grpc::Status stop_accepting_ssh_connections(mp::SSHSession& session)
 {
-    auto proc = exec_and_log(session, stop_ssh_cmd);
+    auto proc = session.exec(stop_ssh_cmd);
     auto ecode = proc.exit_code();
 
     return ecode == 0 ? grpc::Status::OK
@@ -700,7 +694,7 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
     // Otherwise, there would be a race condition, and we would be unable to distinguish whether it had ever been down.
     stop_accepting_ssh_connections(session);
 
-    auto proc = exec_and_log(session, reboot_cmd);
+    auto proc = session.exec(reboot_cmd);
     try
     {
         auto ecode = proc.exit_code();
