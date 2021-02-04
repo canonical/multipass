@@ -1,0 +1,50 @@
+/*
+ * Copyright (C) 2021 Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "base_virtual_machine.h"
+
+namespace multipass
+{
+
+std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
+{
+    std::vector<std::string> all_ipv4;
+
+    if (state == State::running)
+    {
+        SSHSession session{ssh_hostname(), ssh_port(), ssh_username(), key_provider};
+
+        auto ip_a_output = QString::fromStdString(
+            mpu::run_in_ssh_session(session, "ip -brief -family inet address show scope global"));
+
+        QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
+
+        QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
+
+        while (ip_it.hasNext())
+        {
+            auto ip_match = ip_it.next();
+            auto ip = ip_match.captured(1).toStdString();
+
+            all_ipv4.push_back(ip);
+        }
+    }
+
+    return all_ipv4;
+}
+
+} // namespace multipass

@@ -147,7 +147,7 @@ QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
                                          NetworkAccessManager* manager, const QUrl& base_url,
                                          const QString& bridge_name)
-    : VirtualMachine{desc.vm_name},
+    : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor},
