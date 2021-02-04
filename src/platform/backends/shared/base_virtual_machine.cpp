@@ -28,28 +28,8 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     {
         SSHSession session{ssh_hostname(), ssh_port(), ssh_username(), key_provider};
 
-        auto run_in_vm = [&session](const std::string& cmd) -> std::string {
-            auto proc = session.exec(cmd);
-
-            if (proc.exit_code() != 0)
-            {
-                auto error_msg = proc.read_std_error();
-                mpl::log(mpl::Level::warning, "base vm",
-                         fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-                return std::string{};
-            }
-
-            auto output = proc.read_std_output();
-            if (output.empty())
-            {
-                mpl::log(mpl::Level::warning, "base vm", fmt::format("no output after running '{}'", cmd));
-                return std::string{};
-            }
-
-            return mp::utils::trim_end(output);
-        };
-
-        auto ip_a_output = QString::fromStdString(run_in_vm("ip -brief -family inet address show scope global"));
+        auto ip_a_output = QString::fromStdString(
+            mpu::run_in_ssh_session(session, "ip -brief -family inet address show scope global"));
 
         QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
 
