@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 namespace multipass
 {
@@ -64,6 +65,7 @@ public:
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
     virtual std::string management_ipv4() = 0;
+    virtual std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) = 0;
     virtual std::string ipv6() = 0;
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void ensure_vm_is_running() = 0;

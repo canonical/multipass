@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -310,6 +310,31 @@ void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& sessi
     {
         mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'sshfs' in '{}'", name));
     }
+}
+
+// Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
+// Caveat emptor: if the command fails, an empty string is returned.
+std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd)
+{
+    mpl::log(mpl::Level::debug, category, fmt::format("executing '{}'", cmd));
+    auto proc = session.exec(cmd);
+
+    if (proc.exit_code() != 0)
+    {
+        auto error_msg = proc.read_std_error();
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
+        return std::string{};
+    }
+
+    auto output = proc.read_std_output();
+    if (output.empty())
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
+        return std::string{};
+    }
+
+    return mp::utils::trim_end(output);
 }
 
 void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autostart_subdir,
