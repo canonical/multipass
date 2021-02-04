@@ -323,48 +323,10 @@ std::string mp::VirtualBoxVirtualMachine::management_ipv4()
 
 std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
-    std::vector<std::string> all_ipv4;
+    using namespace std;
 
-    if (state == State::running)
-    {
-        SSHSession session{ssh_hostname(std::chrono::milliseconds(1000)), ssh_port(), ssh_username(), key_provider};
-
-        auto run_in_vm = [&session](const std::string& cmd) -> std::string {
-            auto proc = session.exec(cmd);
-
-            if (proc.exit_code() != 0)
-            {
-                auto error_msg = proc.read_std_error();
-                mpl::log(mpl::Level::warning, "virtualbox vm",
-                         fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-                return std::string{};
-            }
-
-            auto output = proc.read_std_output();
-            if (output.empty())
-            {
-                mpl::log(mpl::Level::warning, "virtualbox vm", fmt::format("no output after running '{}'", cmd));
-                return std::string{};
-            }
-
-            return mp::utils::trim_end(output);
-        };
-
-        auto ip_a_output = QString::fromStdString(run_in_vm("ip -brief -family inet address show scope global"));
-
-        QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
-
-        QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
-
-        while (ip_it.hasNext())
-        {
-            auto ip_match = ip_it.next();
-            auto ip = ip_match.captured(1).toStdString();
-
-            if (ip != "10.0.2.15")
-                all_ipv4.push_back(ip);
-        }
-    }
+    auto all_ipv4 = BaseVirtualMachine::get_all_ipv4(key_provider);
+    all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), "10.0.2.15"), end(all_ipv4));
 
     return all_ipv4;
 }
