@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include <QString>
 #include <QUrl>
 
-#include <multipass/virtual_machine.h>
+#include <shared/base_virtual_machine.h>
 
 namespace multipass
 {
@@ -30,7 +30,7 @@ class NetworkAccessManager;
 class VirtualMachineDescription;
 class VMStatusMonitor;
 
-class LXDVirtualMachine final : public VirtualMachine
+class LXDVirtualMachine final : public BaseVirtualMachine
 {
 public:
     LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, NetworkAccessManager* manager,

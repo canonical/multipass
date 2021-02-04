@@ -878,27 +878,6 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
-std::vector<std::string> get_all_ipv4(mp::SSHSession& session)
-{
-    std::vector<std::string> all_ipv4;
-
-    auto ip_a_output = QString::fromStdString(run_in_vm(session, "ip -brief -family inet address show scope global"));
-
-    QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
-
-    QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
-
-    while (ip_it.hasNext())
-    {
-        auto ip_match = ip_it.next();
-        auto ip = ip_match.captured(1).toStdString();
-
-        all_ipv4.push_back(ip);
-    }
-
-    return all_ipv4;
-}
-
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1408,10 +1387,12 @@ try // clang-format on
                 run_in_vm(session, "df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
 
             std::string management_ip = vm->management_ipv4();
-            auto all_ipv4 = get_all_ipv4(session);
+            auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
                 info->add_ipv4(management_ip);
+            else if (all_ipv4.empty())
+                info->add_ipv4("N/A");
 
             for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
@@ -1476,10 +1457,12 @@ try // clang-format on
                                    *config->ssh_key_provider};
 
             std::string management_ip = vm->management_ipv4();
-            auto all_ipv4 = get_all_ipv4(session);
+            auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
+            else if (all_ipv4.empty())
+                entry->add_ipv4("N/A");
 
             for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
