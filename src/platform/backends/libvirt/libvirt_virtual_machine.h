@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,14 +20,15 @@
 
 #include "libvirt_wrapper.h"
 
-#include <multipass/virtual_machine.h>
+#include <shared/base_virtual_machine.h>
+
 #include <multipass/virtual_machine_description.h>
 
 namespace multipass
 {
 class VMStatusMonitor;
 
-class LibVirtVirtualMachine final : public VirtualMachine
+class LibVirtVirtualMachine final : public BaseVirtualMachine
 {
 public:
     using ConnectionUPtr = std::unique_ptr<virConnect, decltype(virConnectClose)*>;

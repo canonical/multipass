@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -142,7 +142,7 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
 } // namespace
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{desc.vm_name},
+    : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor}
@@ -319,6 +319,16 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
 std::string mp::VirtualBoxVirtualMachine::management_ipv4()
 {
     return "N/A";
+}
+
+std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
+{
+    using namespace std;
+
+    auto all_ipv4 = BaseVirtualMachine::get_all_ipv4(key_provider);
+    all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), "10.0.2.15"), end(all_ipv4));
+
+    return all_ipv4;
 }
 
 std::string mp::VirtualBoxVirtualMachine::ipv6()

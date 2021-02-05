@@ -95,7 +95,7 @@ void checked_ps_run(mp::PowerShell& ps, const QStringList& args, std::string&& e
 } // namespace
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{desc.vm_name},
+    : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       power_shell{std::make_unique<PowerShell>(vm_name)},

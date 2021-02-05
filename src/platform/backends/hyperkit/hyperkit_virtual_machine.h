@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_H
 #define MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_H
 
+#include <shared/base_virtual_machine.h>
+
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
-#include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QThread>
@@ -30,7 +31,7 @@ namespace multipass
 class VMProcess;
 class VMStatusMonitor;
 
-class HyperkitVirtualMachine final : public VirtualMachine
+class HyperkitVirtualMachine final : public BaseVirtualMachine
 {
 public:
     HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor);

@@ -90,7 +90,7 @@ mp::optional<mp::IPAddress> get_ip_for(const std::string& hw_addr, std::istream&
 } // namespace
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : VirtualMachine{State::off, desc.vm_name},
+    : BaseVirtualMachine{State::off, desc.vm_name},
       monitor{&monitor},
       username{desc.ssh_username},
       desc{desc},
