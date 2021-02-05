@@ -1,8 +1,6 @@
-diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index 0b4136fa..c0b19a66 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -103,6 +103,7 @@ parts:
+@@ -95,6 +95,7 @@ parts:
      - pkg-config
      - qtbase5-dev
      - qtbase5-dev-tools
@@ -10,10 +8,10 @@ index 0b4136fa..c0b19a66 100644
      stage-packages:
      - apparmor
      - on amd64: [libgl1]
-@@ -120,9 +121,8 @@ parts:
+@@ -113,9 +114,8 @@ parts:
      - dnsmasq-utils
      source: .
-     configflags:
+     cmake-parameters:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
 +    - -DCMAKE_BUILD_TYPE=Coverage
      - -DCMAKE_INSTALL_PREFIX=/
