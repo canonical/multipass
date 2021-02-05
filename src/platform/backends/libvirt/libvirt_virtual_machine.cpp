@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -242,7 +242,7 @@ bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& libv
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor,
                                                  const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
-    : VirtualMachine{desc.vm_name},
+    : BaseVirtualMachine{desc.vm_name},
       username{desc.ssh_username},
       desc{desc},
       monitor{&monitor},

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,9 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 
+#include <shared/base_virtual_machine.h>
+
 #include <multipass/process/process.h>
-#include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QObject>
@@ -30,7 +31,7 @@ namespace multipass
 class DNSMasqServer;
 class VMStatusMonitor;
 
-class QemuVirtualMachine final : public QObject, public VirtualMachine
+class QemuVirtualMachine final : public QObject, public BaseVirtualMachine
 {
     Q_OBJECT
 public:

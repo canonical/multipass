@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H
 #define MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H
 
+#include <shared/base_virtual_machine.h>
+
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
-#include <multipass/virtual_machine.h>
 
 #include <QString>
 
@@ -31,7 +32,7 @@ class SSHKeyProvider;
 class VirtualMachineDescription;
 class VMStatusMonitor;
 
-class VirtualBoxVirtualMachine final : public VirtualMachine
+class VirtualBoxVirtualMachine final : public BaseVirtualMachine
 {
 public:
     VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor);
@@ -45,6 +46,7 @@ public:
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
     std::string management_ipv4() override;
+    std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     std::string ipv6() override;
     void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
@@ -29,6 +30,7 @@
 #include <string>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
                            const SSHKeyProvider* key_provider, const std::chrono::milliseconds timeout)
@@ -71,6 +73,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::chrono:
 
 mp::SSHProcess mp::SSHSession::exec(const std::string& cmd)
 {
+    mpl::log(mpl::Level::debug, "ssh session", fmt::format("Executing '{}'", cmd));
     return {session.get(), cmd};
 }
 

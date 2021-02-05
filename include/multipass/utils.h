@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,6 +108,7 @@ void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseco
                          const SSHKeyProvider& key_provider);
 void install_sshfs_for(const std::string& name, SSHSession& session,
                        const std::chrono::milliseconds timeout = std::chrono::minutes(5));
+std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
 
 // yaml helpers
 std::string emit_yaml(const YAML::Node& node);
