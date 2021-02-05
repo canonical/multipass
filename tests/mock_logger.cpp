@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +22,17 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
-mpt::MockLogger::MockLogger(const PrivatePass&)
+mpt::MockLogger::MockLogger(const PrivatePass&, const mpl::Level logging_level) : Logger{logging_level}
 {
 }
 
-auto mpt::MockLogger::inject() -> Scope
+auto mpt::MockLogger::inject(const mpl::Level logging_level) -> Scope
 {
-    return Scope{};
+    return Scope{logging_level};
 }
 
-mpt::MockLogger::Scope::Scope()
+mpt::MockLogger::Scope::Scope(const mpl::Level logging_level)
+    : mock_logger{std::make_shared<testing::NiceMock<MockLogger>>(pass, logging_level)}
 {
     mpl::set_logger(mock_logger);
 }
