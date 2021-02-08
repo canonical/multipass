@@ -49,8 +49,7 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
                                            const std::map<std::string, mp::NetworkInterfaceInfo>& platform_info)
 {
     // The Mac version of VBoxManage is the only one which gives us the <description> field for some devices.
-    const auto name_pattern =
-        QStringLiteral("^Name: +(?<name>[A-Za-z0-9-_#+ ()]+)(: (?<description>[A-Za-z0-9-_()\\? :]+))?\r?$");
+    const auto name_pattern = QStringLiteral("^Name: +(?<name>.+?)(: (?<description>.+))?\r?$");
     const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r?$");
     const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r?$");
 
