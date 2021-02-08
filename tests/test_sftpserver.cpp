@@ -826,7 +826,7 @@ TEST_F(SftpServer, handles_readdir)
     void* id{nullptr};
     auto handle_alloc = [&id](sftp_session, void* info) {
         id = info;
-        return nullptr;
+        return ssh_string_new(4);
     };
 
     int eof_num_calls{0};
@@ -879,7 +879,7 @@ TEST_F(SftpServer, handles_readdir_attributes_preserved)
     void* id{nullptr};
     auto handle_alloc = [&id](sftp_session, void* info) {
         id = info;
-        return nullptr;
+        return ssh_string_new(4);
     };
 
     int eof_num_calls{0};
@@ -935,7 +935,7 @@ TEST_F(SftpServer, handles_close)
     void* id{nullptr};
     auto handle_alloc = [&id](sftp_session, void* info) {
         id = info;
-        return nullptr;
+        return ssh_string_new(4);
     };
 
     int ok_num_calls{0};
@@ -971,7 +971,7 @@ TEST_F(SftpServer, handles_fstat)
     void* id{nullptr};
     auto handle_alloc = [&id](sftp_session, void* info) {
         id = info;
-        return nullptr;
+        return ssh_string_new(4);
     };
 
     int num_calls{0};
@@ -1017,7 +1017,7 @@ TEST_F(SftpServer, handles_fsetstat)
     void* id{nullptr};
     auto handle_alloc = [&id](sftp_session, void* info) {
         id = info;
-        return nullptr;
+        return ssh_string_new(4);
     };
 
     int num_calls{0};
@@ -1117,7 +1117,7 @@ TEST_F(SftpServer, handles_writes)
     void* id{nullptr};
     auto handle_alloc = [&id](sftp_session, void* info) {
         id = info;
-        return nullptr;
+        return ssh_string_new(4);
     };
 
     int num_calls{0};
@@ -1159,7 +1159,7 @@ TEST_F(SftpServer, handles_reads)
     void* id{nullptr};
     auto handle_alloc = [&id](sftp_session, void* info) {
         id = info;
-        return nullptr;
+        return ssh_string_new(4);
     };
 
     int num_calls{0};
