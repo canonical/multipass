@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -683,8 +683,8 @@ INSTANTIATE_TEST_SUITE_P(Client, TestInvalidNetworkOptions,
                                 std::vector<std::string>{"--network"},
                                 std::vector<std::string>{"--network", "mode=manual"},
                                 std::vector<std::string>{"--network", "mode=manual=auto"},
-                                std::vector<std::string>{"--network", "id=eth0,mode=man"},
-                                std::vector<std::string>{"--network", "id=eth1,mac=0a"},
+                                std::vector<std::string>{"--network", "name=eth0,mode=man"},
+                                std::vector<std::string>{"--network", "name=eth1,mac=0a"},
                                 std::vector<std::string>{"--network", "eth2", "--network"}));
 
 struct TestValidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
@@ -703,11 +703,11 @@ TEST_P(TestValidNetworkOptions, launch_cmd_return)
 
 INSTANTIATE_TEST_SUITE_P(Client, TestValidNetworkOptions,
                          Values(std::vector<std::string>{"--network", "eth3"},
-                                std::vector<std::string>{"--network", "id=eth4", "--network", "eth5"},
-                                std::vector<std::string>{"--network", "id=eth6,mac=01:23:45:67:89:ab"},
-                                std::vector<std::string>{"--network", "id=eth7,mode=manual"},
-                                std::vector<std::string>{"--network", "id=eth8,mode=auto"},
-                                std::vector<std::string>{"--network", "id=eth9", "--network", "id=eth9"}));
+                                std::vector<std::string>{"--network", "name=eth4", "--network", "eth5"},
+                                std::vector<std::string>{"--network", "name=eth6,mac=01:23:45:67:89:ab"},
+                                std::vector<std::string>{"--network", "name=eth7,mode=manual"},
+                                std::vector<std::string>{"--network", "name=eth8,mode=auto"},
+                                std::vector<std::string>{"--network", "name=eth9", "--network", "name=eth9"}));
 
 // purge cli tests
 TEST_F(Client, purge_cmd_ok_no_args)
