@@ -382,7 +382,7 @@ TEST_F(PlatformLinux, retrieves_networks_from_the_system)
 
     QDir fake_sys_class_net{tmp_dir.path()};
     for (const auto& net : fake_nets)
-        fake_sys_class_net.mkpath(net);
+        ASSERT_TRUE(fake_sys_class_net.mkpath(net));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
     ASSERT_EQ(net_map.size(), fake_nets.size());
@@ -402,7 +402,7 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
     const auto fake_bridge = "somebridge";
 
     QDir fake_sys_class_net{tmp_dir.path()};
-    fake_sys_class_net.mkpath(QString{fake_bridge} + "/bridge");
+    ASSERT_TRUE(fake_sys_class_net.mkpath(QString{fake_bridge} + "/bridge"));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
