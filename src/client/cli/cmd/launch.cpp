@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ auto net_digest(const QString& options)
 
             const auto& key = key_value_split[0].toLower();
             const auto& val = key_value_split[1];
-            if (key == "id")
+            if (key == "name")
                 net.set_id(val.toStdString());
             else if (key == "mode")
                 net.set_mode(checked_mode(val.toLower().toStdString()));
@@ -95,7 +95,7 @@ auto net_digest(const QString& options)
                 throw NetworkDefinitionException{fmt::format("Bad network field: {}", key)};
         }
 
-        // Interpret as "id" the argument when there are no ',' and no '='.
+        // Interpret as "name" the argument when there are no ',' and no '='.
         else if (key_value_split.size() == 1 && split.size() == 1)
             net.set_id(key_value_split[0].toStdString());
 
@@ -104,7 +104,7 @@ auto net_digest(const QString& options)
     }
 
     if (net.id().empty())
-        throw NetworkDefinitionException{fmt::format("Bad network definition, need at least an ID field")};
+        throw NetworkDefinitionException{fmt::format("Bad network definition, need at least a 'name' field")};
 
     return net;
 }
@@ -198,11 +198,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption networkOption("network",
                                      "Add a network interface to the instance, where <spec> is in the "
                                      "\"key=value,key=value\" format, with the following keys available:\n"
-                                     "  id: the network to connect to (required), use the networks command for a "
+                                     "  name: the network to connect to (required), use the networks command for a "
                                      "list of possible values\n"
                                      "  mode: auto|manual (default: auto)\n"
                                      "  mac: hardware address (default: random).\n"
-                                     "You can also use a shortcut of \"<id>\" to mean \"id=<id>\".",
+                                     "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
 
     parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});

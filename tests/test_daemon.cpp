@@ -784,13 +784,13 @@ std::vector<std::string> make_args(const std::vector<std::string>& args)
 
 INSTANTIATE_TEST_SUITE_P(
     Daemon, LaunchWithNoNetworkCloudInit,
-    Values(make_args({}), make_args({"xenial"}), make_args({"xenial", "--network", "id=eth0,mode=manual"}),
-           make_args({"groovy"}), make_args({"groovy", "--network", "id=eth0,mode=manual"}),
-           make_args({"--network", "id=eth0,mode=manual"}), make_args({"devel"}),
-           make_args({"hirsute", "--network", "id=eth0,mode=manual"}), make_args({"daily:21.04"}),
-           make_args({"daily:21.04", "--network", "id=eth0,mode=manual"}),
-           make_args({"appliance:openhab", "--network", "id=eth0,mode=manual"}), make_args({"appliance:nextcloud"}),
-           make_args({"snapcraft:core18", "--network", "id=eth0,mode=manual"}), make_args({"snapcraft:core20"})));
+    Values(make_args({}), make_args({"xenial"}), make_args({"xenial", "--network", "name=eth0,mode=manual"}),
+           make_args({"groovy"}), make_args({"groovy", "--network", "name=eth0,mode=manual"}),
+           make_args({"--network", "name=eth0,mode=manual"}), make_args({"devel"}),
+           make_args({"hirsute", "--network", "name=eth0,mode=manual"}), make_args({"daily:21.04"}),
+           make_args({"daily:21.04", "--network", "name=eth0,mode=manual"}),
+           make_args({"appliance:openhab", "--network", "name=eth0,mode=manual"}), make_args({"appliance:nextcloud"}),
+           make_args({"snapcraft:core18", "--network", "name=eth0,mode=manual"}), make_args({"snapcraft:core20"})));
 
 TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
 {
@@ -857,10 +857,10 @@ typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std:
 INSTANTIATE_TEST_SUITE_P(
     Daemon, LaunchWithBridges,
     Values(BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
-           BridgeTestArgType({{"id=eth0,mac=01:23:45:ab:cd:ef,mode=auto", "extra0", "01:23:45:ab:cd:ef"},
+           BridgeTestArgType({{"name=eth0,mac=01:23:45:ab:cd:ef,mode=auto", "extra0", "01:23:45:ab:cd:ef"},
                               {"wlan0", "extra1", "52:54:00:"}},
                              {"extra2"}),
-           BridgeTestArgType({{"id=eth0,mode=manual", "", ""}, {"id=wlan0", "extra1", "52:54:00:"}},
+           BridgeTestArgType({{"name=eth0,mode=manual", "", ""}, {"name=wlan0", "extra1", "52:54:00:"}},
                              {"extra0", "extra2"})));
 
 TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
@@ -1230,7 +1230,7 @@ TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0); // expect *no* call
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", repeated_mac)}, std::cout, stream);
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", repeated_mac)}, std::cout, stream);
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("Repeated MAC"), HasSubstr(repeated_mac)));
 }
 
@@ -1248,7 +1248,7 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine);
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac_addr)});
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac_addr)});
 }
 
 TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
@@ -1269,7 +1269,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
     mp::Daemon daemon{config_builder.build()};
 
     for (const auto& mac : {mac1, mac2})
-        send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac)});
+        send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac)});
 }
 
 TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
@@ -1282,7 +1282,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
     EXPECT_CALL(*mock_factory, prepare_instance_image).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(1);
 
-    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=wlan0"};
+    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,name=wlan0"};
     send_command(cmd); // we cause this one to fail
     send_command(cmd); // and confirm we can repeat the same mac
 }
@@ -1294,7 +1294,7 @@ TEST_F(Daemon, releases_macs_when_launch_fails)
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Throw(std::exception{})).WillOnce(DoDefault());
 
-    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,id=wlan0"};
+    auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,name=wlan0"};
     send_command(cmd); // we cause this one to fail
     send_command(cmd); // and confirm we can repeat the same mac
 }
@@ -1314,16 +1314,17 @@ TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
     EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac2), _)).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac3), _)).Times(2); // this one gets reused
 
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac1), "--name", "vm1"});
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac2), "--name", "vm2"});
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac3), "--name", "vm3"});
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac1), "--name", "vm1"});
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac2), "--name", "vm2"});
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac3), "--name", "vm3"});
 
     send_command({"delete", "vm1"});
     send_command({"delete", "--purge", "vm3"}); // so that mac3 can be reused
 
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac1)}); // repeated mac is rejected
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac2)}); // idem
-    send_command({"launch", "--network", fmt::format("id=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac1)}); // repeated mac is rejected
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac2)}); // idem
+    send_command(
+        {"launch", "--network", fmt::format("name=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
 }
 
 } // namespace
