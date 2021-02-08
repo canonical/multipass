@@ -414,4 +414,42 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
                                                        Field(&Net::description, HasSubstr("Empty network bridge")))))));
 }
 
+struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
+{
+};
+
+TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_bridge = "aeiou";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    QDir interface_dir{fake_sys_class_net.filePath(fake_bridge)};
+    QDir members_dir{interface_dir.filePath("brif")};
+
+    ASSERT_TRUE(interface_dir.mkpath("bridge"));
+    ASSERT_TRUE(members_dir.mkpath("."));
+
+    std::vector<Matcher<std::string>> substrs_expectations{};
+    for (const auto& member : GetParam())
+    {
+        ASSERT_TRUE(members_dir.mkpath(QString::fromStdString(member)));
+        substrs_expectations.push_back(HasSubstr(member));
+    }
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    using value_type = decltype(net_map)::value_type;
+    using Net = mp::NetworkInterfaceInfo;
+
+    EXPECT_THAT(net_map, ElementsAre(AllOf(Field(&value_type::first, fake_bridge),
+                                           Field(&value_type::second,
+                                                 AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
+                                                       Field(&Net::description, AllOfArray(substrs_expectations)))))));
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, BridgeMemberTest,
+                         Values(std::vector<std::string>{"en0"}, std::vector<std::string>{"en0, en1"},
+                                std::vector<std::string>{"asdf", "ggi", "a1", "fu"}));
+
 } // namespace
