@@ -395,4 +395,23 @@ TEST_F(PlatformLinux, retrieves_networks_from_the_system)
         EXPECT_EQ(val.id, key);
     }
 }
+
+TEST_F(PlatformLinux, retrieves_empty_bridges)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_bridge = "somebridge";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    fake_sys_class_net.mkpath(QString{fake_bridge} + "/bridge");
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    using value_type = decltype(net_map)::value_type;
+    using Net = mp::NetworkInterfaceInfo;
+    EXPECT_THAT(net_map, ElementsAre(AllOf(Field(&value_type::first, fake_bridge),
+                                           Field(&value_type::second,
+                                                 AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
+                                                       Field(&Net::description, HasSubstr("Empty network bridge")))))));
+}
+
 } // namespace
