@@ -48,7 +48,16 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
-    return {net_dir.dirName().toStdString(), "", ""};
+    std::string type, description;
+    if (auto bridge = "bridge"; net_dir.exists(bridge))
+    {
+        type = bridge;
+        QStringList bridge_members = QDir{net_dir.filePath("brif")}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        description = bridge_members.isEmpty() ? "Empty network bridge"
+                                               : fmt::format("Network bridge with {}", bridge_members.join(", "));
+    }
+
+    return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description)};
 }
 } // namespace
 
