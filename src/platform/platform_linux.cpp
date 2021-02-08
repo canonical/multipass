@@ -46,9 +46,9 @@ namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
-mp::NetworkInterfaceInfo get_network(const QString& name)
+mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
-    return {name.toStdString(), "", ""};
+    return {net_dir.dirName().toStdString(), "", ""};
 }
 } // namespace
 
@@ -63,7 +63,7 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
     for (const auto& entry : sys_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs))
     {
-        auto iface = get_network(entry);
+        auto iface = get_network(QDir{sys_dir.filePath(entry)});
         auto name = iface.id; // (can't rely on param evaluation order)
         ifaces_info.emplace(std::move(name), std::move(iface));
     }
