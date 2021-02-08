@@ -16,14 +16,18 @@
  */
 
 #include "tests/fake_handle.h"
+#include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
+#include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+#include <src/platform/platform_linux.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
@@ -160,6 +164,64 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
+
+void simulate_ip(const mpt::MockProcess* process, const mp::ProcessState& produce_result)
+{
+    auto lo_output = QByteArrayLiteral(
+        "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n"
+        "    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n"
+        "    inet 127.0.0.1/8 scope host lo\n"
+        "       valid_lft forever preferred_lft forever\n"
+        "    inet6 ::1/128 scope host \n"
+        "       valid_lft forever preferred_lft forever\n");
+    auto enp4s0_output = QByteArrayLiteral(
+        "2: enp4s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN group default qlen 1000\n"
+        "    link/ether 20:47:47:fe:04:56 brd ff:ff:ff:ff:ff:ff\n");
+
+    ASSERT_EQ(process->program().toStdString(), "ip");
+
+    QByteArray output;
+
+    // ip can be called with arguments "link show dev <interface>" or "address".
+    const auto args = process->arguments();
+    ASSERT_THAT(args.size(), Ge(1));
+    if (args.size() == 1)
+    {
+        EXPECT_EQ(args.constFirst(), "address");
+        output = lo_output + enp4s0_output;
+    }
+    else
+    {
+        EXPECT_EQ(args.size(), 4);
+        EXPECT_EQ(args[0], "link");
+        EXPECT_EQ(args[1], "show");
+        EXPECT_EQ(args[2], "dev");
+
+        if ("lo" == args[3])
+            output = lo_output;
+        else if ("enp4s0" == args[3])
+            output = enp4s0_output;
+        else
+            output = "Device \"" + args[3].toLatin1() + "\" does not exist.";
+    }
+
+    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+    if (produce_result.completed_successfully())
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+    else if (produce_result.exit_code)
+        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
+    else
+        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(output));
+}
+
+std::unique_ptr<mp::test::MockProcessFactory::Scope> inject_fake_ip_callback(const mp::ProcessState& ip_exit_status)
+{
+    std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) { simulate_ip(process, ip_exit_status); });
+
+    return mock_factory_scope;
+}
 
 TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
 {
@@ -372,4 +434,183 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
                          Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
+
+// To test network interfaces, we mock the output of the command `ip`. With this, we can get information about the
+// `lo` interface (present in all systems) and about some physical interfaces present in our `ip` mock. However,
+// the specific functions to get information from physical and virtual interfaces will be tested later more
+// thoroughly.
+struct TestNetworkInterfacesInfo : public TestWithParam<std::tuple<std::string, mp::NetworkInterfaceInfo>>
+{
+};
+
+TEST_P(TestNetworkInterfacesInfo, test_network_interfaces_info)
+{
+    const auto param = GetParam();
+    const auto& iface_name = std::get<0>(param);
+    const auto& iface_info = std::get<1>(param);
+    const mp::ProcessState ip_exit_status{0, mp::nullopt};
+    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status);
+
+    auto interfaces_info = mp::platform::get_network_interfaces_info();
+
+    mp::NetworkInterfaceInfo output_info = interfaces_info[iface_name];
+
+    ASSERT_EQ(output_info.id, iface_info.id);
+    ASSERT_EQ(output_info.type, iface_info.type);
+    ASSERT_EQ(output_info.description, iface_info.description);
+}
+
+auto make_test_input(const std::string& id, const std::string& type, const std::string& descr)
+{
+    return std::make_tuple(id, mp::NetworkInterfaceInfo{id, type, descr});
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestNetworkInterfacesInfo,
+                         Values(make_test_input("lo", "virtual", "Virtual interface"),
+                                make_test_input("enp4s0", "ethernet", "Ethernet device")));
+
+// The test data for each virtual interface will be a tuple containing name, folders which must be present in the
+// mocked filesystem, files/contents, expected type, expected description.
+struct TestVirtualNetworkInterfacesInfo
+    : public TestWithParam<std::tuple<std::string, std::vector<std::string>,
+                                      std::vector<std::pair<std::string, std::string>>, std::string, std::string>>
+{
+};
+
+TEST_P(TestVirtualNetworkInterfacesInfo, test_virtual_network_interfaces_info)
+{
+    const auto param = GetParam();
+    const std::string& if_name = std::get<0>(param);
+    const std::vector<std::string> folders = std::get<1>(param);
+    const std::vector<std::pair<std::string, std::string>> files = std::get<2>(param);
+    const std::string& expected_type = std::get<3>(param);
+    const std::string& expected_desc = std::get<4>(param);
+
+    // The created temp folder is automagically deleted after the test ends.
+    mpt::TempDir temp_dir;
+    std::string if_dir(temp_dir.path().toStdString());
+
+    for (const auto& folder : folders)
+    {
+        QDir().mkpath(QString::fromStdString(if_dir + "/" + folder));
+    }
+
+    for (const auto& file : files)
+    {
+        mpt::make_file_with_content(QString::fromStdString(if_dir + "/" + file.first), file.second);
+    }
+
+    auto if_info = mp::platform::get_virtual_interface_info(if_name, if_dir);
+
+    ASSERT_EQ(if_info.id, if_name);
+    ASSERT_EQ(if_info.type, expected_type);
+    ASSERT_EQ(if_info.description, expected_desc);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    PlatformLinux, TestVirtualNetworkInterfacesInfo,
+    Values(std::make_tuple("tun0", std::vector<std::string>{},
+                           std::vector<std::pair<std::string, std::string>>{std::make_pair("tun_flags", "0x3001\n")},
+                           "tun", "TUN virtual interface"),
+           std::make_tuple("tap-6690bec4d37", std::vector<std::string>{"brport", "brport/bridge"},
+                           std::vector<std::pair<std::string, std::string>>{std::make_pair("tun_flags", "0x1802\n")},
+                           "tap", "TAP virtual interface"),
+           std::make_tuple("tap-6690bec4d37", std::vector<std::string>{"brport", "brport/bridge"},
+                           std::vector<std::pair<std::string, std::string>>{
+                               std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n"),
+                               std::make_pair("tun_flags", "0x1802\n")},
+                           "tap", "TAP virtual interface associated to br2"),
+           std::make_tuple("br0", std::vector<std::string>{"bridge"},
+                           std::vector<std::pair<std::string, std::string>>{}, "bridge", "Empty network bridge"),
+           std::make_tuple("br1", std::vector<std::string>{"bridge", "brif/eth2", "brif/wifi3"},
+                           std::vector<std::pair<std::string, std::string>>{}, "bridge",
+                           "Network bridge with eth2, wifi3"),
+           std::make_tuple("virt0", std::vector<std::string>{}, std::vector<std::pair<std::string, std::string>>{},
+                           "virtual", "Virtual interface"),
+           std::make_tuple("virt1", std::vector<std::string>{"brport/bridge"},
+                           std::vector<std::pair<std::string, std::string>>{
+                               std::make_pair("brport/bridge/uevent", "INTERFACE=br2\n")},
+                           "virtual", "Virtual interface associated to br2")));
+
+struct TestPhysicalNetworkInterfacesInfo : public TestWithParam<std::tuple<std::string, std::string, std::string>>
+{
+};
+
+TEST_P(TestPhysicalNetworkInterfacesInfo, test_physical_network_interfaces_info)
+{
+    const auto param = GetParam();
+    const std::string& if_name = std::get<0>(param);
+    const std::string& expected_type = std::get<1>(param);
+    const std::string& expected_desc = std::get<2>(param);
+
+    mpt::TempDir temp_dir;
+    std::string if_dir(temp_dir.path().toStdString() + "/");
+
+    QSet<QString> wireless_interfaces({"wlp4s0"});
+
+    auto if_info = mp::platform::get_physical_interface_info(if_name, wireless_interfaces);
+
+    ASSERT_EQ(if_info.id, if_name);
+    ASSERT_EQ(if_info.type, expected_type);
+    ASSERT_EQ(if_info.description, expected_desc);
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestPhysicalNetworkInterfacesInfo,
+                         Values(std::make_tuple("wlp4s0", "wifi", "Wi-Fi device"),
+                                std::make_tuple("enp3s0", "ethernet", "Ethernet device")));
+
+struct TestWirelessNetworkListing : public TestWithParam<std::pair<std::string, QSet<QString>>>
+{
+};
+
+TEST_P(TestWirelessNetworkListing, test_get_wireless_devices)
+{
+    const auto param = GetParam();
+    const std::string& wireless_file_contents = param.first;
+    const QSet<QString>& expected_set = param.second;
+
+    mpt::TempDir temp_dir;
+    std::string proc_net_dir(temp_dir.path().toStdString());
+
+    auto file_name = QString::fromStdString(proc_net_dir + "/wireless");
+    mpt::make_file_with_content(file_name, wireless_file_contents);
+
+    auto wireless_set = mp::platform::get_wireless_devices(proc_net_dir + "/");
+
+    ASSERT_EQ(expected_set, wireless_set);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    PlatformLinux, TestWirelessNetworkListing,
+    Values(std::make_pair("Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
+                          " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n"
+                          "wlp4s0: 0000   49.  -61.  -256        0      0      0      0    131        0\n",
+                          QSet<QString>({"wlp4s0"})),
+           std::make_pair("Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
+                          " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n",
+                          QSet<QString>()),
+           std::make_pair("Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE\n"
+                          " face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22\n"
+                          "wlx60e3270f55fe: 0000  100.   63.    0.       0      0      0      0      0        0\n"
+                          "wlp4s0: 0000   49.  -61.  -256        0      0      0      0    131        0\n",
+                          QSet<QString>({"wlp4s0", "wlx60e3270f55fe"})),
+           std::make_pair("", QSet<QString>())));
+
+TEST_F(PlatformLinux, test_get_wireless_devices_no_proc_file)
+{
+    mpt::TempDir temp_dir;
+    std::string proc_net_dir(temp_dir.path().toStdString());
+
+    auto wireless_set = mp::platform::get_wireless_devices(proc_net_dir + "/");
+
+    ASSERT_EQ(wireless_set, QSet<QString>());
+}
+
+TEST_F(PlatformLinux, test_network_interfaces_info_ip_crashes)
+{
+    const mp::ProcessState ip_exit_status{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+    auto mock_factory_scope = inject_fake_ip_callback(ip_exit_status);
+
+    EXPECT_THROW(mp::platform::get_network_interfaces_info(), std::runtime_error);
+}
 } // namespace

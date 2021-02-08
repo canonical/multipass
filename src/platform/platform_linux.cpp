@@ -24,6 +24,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -33,10 +34,17 @@
 #include "backends/lxd/lxd_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
+#include "platform_linux.h"
 #include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
+
+#include <QDir>
+#include <QFile>
+#include <QIODevice>
+#include <QRegularExpression>
+#include <QTextStream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -45,6 +53,62 @@ namespace mu = multipass::utils;
 namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
+constexpr auto category = "linux platform";
+
+// The uevent files in /sys have a set of KEY=value pairs, one per line. This function takes as arguments a file
+// with full path and a key, and returns the value associated with that key. If the specified uevent file does not
+// exist, or the key is not found, then the empty string is returned.
+std::string get_uevent_value(const std::string& file, const std::string& key)
+{
+    QRegularExpression pattern('^' + QString::fromStdString(key) + "=(?<value>[A-Za-z0-9-_]*)$");
+    QFile uevent_file(QString::fromStdString(file));
+
+    if (uevent_file.open(QIODevice::ReadOnly))
+    {
+        while (!uevent_file.atEnd())
+        {
+            auto key_match = pattern.match(uevent_file.readLine());
+            if (key_match.hasMatch())
+            {
+                uevent_file.close();
+                return key_match.captured("value").toStdString();
+            }
+        }
+        uevent_file.close();
+    }
+
+    return std::string();
+}
+
+QString get_ip_output(QStringList ip_args)
+{
+    auto ip_spec = mp::simple_process_spec("ip", ip_args);
+    auto ip_process = mp::platform::make_process(std::move(ip_spec));
+    auto ip_exit_state = ip_process->execute();
+
+    if (ip_exit_state.completed_successfully())
+        return ip_process->read_all_standard_output();
+    else if (ip_exit_state.exit_code && *(ip_exit_state.exit_code) == 1)
+        return ip_process->read_all_standard_error();
+    else
+        throw std::runtime_error(fmt::format("Failed to execute ip: {}", ip_process->read_all_standard_error()));
+}
+
+mp::NetworkInterfaceInfo get_network_interface_info(const std::string& iface_name, const QSet<QString>& wl_interfaces)
+{
+    std::string virtual_path("/sys/devices/virtual/net/" + iface_name);
+
+    // The interface can be a hardware or virtual one. To distinguish between them, we see if a folder with the
+    // interface name exists in /sys/devices/net/virtual.
+    if (QFile::exists(QString::fromStdString(virtual_path)))
+    {
+        return mp::platform::get_virtual_interface_info(iface_name, virtual_path);
+    }
+    else
+    {
+        return mp::platform::get_physical_interface_info(iface_name, wl_interfaces);
+    }
+}
 
 } // namespace
 
@@ -174,9 +238,117 @@ bool mp::platform::is_image_url_supported()
     return true;
 }
 
+// This function is not working under confinement. Multipass has `network-control`, which allows rw access to
+// `/sys/devices/virtual/net/*/bridge/*`.
+mp::NetworkInterfaceInfo mp::platform::get_virtual_interface_info(const std::string& iface_name,
+                                                                  const std::string& virtual_path)
+{
+    std::string type;
+    std::string description;
+
+    QString iface_dir_name = QString::fromStdString(virtual_path);
+
+    // Only bridges contain a directory named `bridge` and one named `brif` in virtual_path.
+    if (QFile::exists(iface_dir_name + "/bridge"))
+    {
+        type = "bridge";
+        QDir bridged_dir(iface_dir_name + "/brif");
+        QStringList all_bridged = bridged_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+
+        description += all_bridged.isEmpty() ? "Empty network bridge"
+                                             : fmt::format("Network bridge with {}", all_bridged.join(", "));
+
+        return mp::NetworkInterfaceInfo{iface_name, type, description};
+    }
+
+    // If the virtual interface is not a bridge, then it is TUN or TAP when the file `tun_flags` exists in
+    // virtual_path.
+    if (QFile::exists(iface_dir_name + "/tun_flags"))
+    {
+        // Only the TAP devices have a directory named `brport` in virtual_path.
+        if (QFile::exists(iface_dir_name + "/brport"))
+        {
+            type = "tap";
+            description = "TAP virtual interface";
+        }
+        else
+        {
+            type = "tun";
+            description = "TUN virtual interface";
+        }
+    }
+    else
+    {
+        type = "virtual";
+        description = "Virtual interface";
+    }
+
+    auto associated_to = get_uevent_value((iface_dir_name + "/brport/bridge/uevent").toStdString(), "INTERFACE");
+    if (!associated_to.empty())
+        description += " associated to " + associated_to;
+
+    return mp::NetworkInterfaceInfo{iface_name, type, description};
+}
+
+QSet<QString> mp::platform::get_wireless_devices(const std::string& physical_path)
+{
+    QSet<QString> wifi_devices;
+
+    QFile wifi_file(QString::fromStdString(physical_path + "wireless"));
+    if (!wifi_file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return wifi_devices;
+
+    auto device_regex = QRegularExpression(QStringLiteral("^(?<name>\\w+):.*$"), QRegularExpression::MultilineOption);
+
+    QTextStream in(&wifi_file);
+    while (!in.atEnd())
+    {
+        auto device_match = device_regex.match(in.readLine());
+        if (device_match.hasMatch())
+            wifi_devices << device_match.captured("name");
+    }
+
+    wifi_file.close();
+
+    return wifi_devices;
+}
+
+mp::NetworkInterfaceInfo mp::platform::get_physical_interface_info(const std::string& iface_name,
+                                                                   const QSet<QString>& wl_interfaces)
+{
+    if (wl_interfaces.contains(QString::fromStdString(iface_name)))
+        return mp::NetworkInterfaceInfo{iface_name, "wifi", "Wi-Fi device"};
+    else
+        return mp::NetworkInterfaceInfo{iface_name, "ethernet", "Ethernet device"};
+}
+
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
 {
-    throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
+    auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
+
+    // Determine here which interfaces are wireless, in order to read the file only once.
+    auto wireless_interfaces = get_wireless_devices("/proc/net/");
+
+    // All interfaces will be returned by the command ip.
+    auto ip_output = get_ip_output({"address"});
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ip:\n{}", ip_output));
+
+    const auto pattern = QStringLiteral("^\\d+: (?<name>[A-Za-z0-9-_]+): .*$");
+    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+    QRegularExpressionMatchIterator match_it = regexp.globalMatch(ip_output);
+
+    while (match_it.hasNext())
+    {
+        auto match = match_it.next();
+        if (match.hasMatch())
+        {
+            std::string iface_name = match.captured("name").toStdString();
+            ifaces_info.emplace(iface_name, get_network_interface_info(iface_name, wireless_interfaces));
+        }
+    }
+
+    return ifaces_info;
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
