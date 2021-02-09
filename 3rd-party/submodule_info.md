@@ -22,7 +22,7 @@ Version: 7.0.2 |
 <https://github.com/fmtlib/fmt/releases>
 
 ### QHotKey
-Version: 1.4.1 |
+Version: 1.4.2 |
 <https://github.com/Skycoder42/QHotkey.git> |
 <https://github.com/Skycoder42/QHotkey/releases>
 
