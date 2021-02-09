@@ -1,11 +1,9 @@
-diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index 0b4136fa..e74fc4fe 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -120,9 +120,8 @@ parts:
+@@ -113,9 +113,8 @@ parts:
      - dnsmasq-utils
      source: .
-     configflags:
+     cmake-parameters:
 -    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
 +    - -DCMAKE_BUILD_TYPE=Debug
      - -DCMAKE_INSTALL_PREFIX=/

@@ -426,7 +426,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
         if (result == factory_networks->cend())
         {
-            mpl::log(mpl::Level::warning, category, fmt::format("Invalid network id \"{}\"", net.id()));
+            mpl::log(mpl::Level::warning, category, fmt::format("Invalid network name \"{}\"", net.id()));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
 
