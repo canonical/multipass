@@ -53,7 +53,7 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
     const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r?$");
     const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r?$");
 
-    const auto regexp_options = QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption;
+    const auto regexp_options = QRegularExpression::MultilineOption;
 
     const auto name_regexp = QRegularExpression{name_pattern, regexp_options};
     const auto type_regexp = QRegularExpression{type_pattern, regexp_options};
