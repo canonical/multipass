@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "sftp_server_test_fixture.h"
 
 #include "file_operations.h"
+#include "mock_logger.h"
 #include "path.h"
 #include "temp_dir.h"
 #include "temp_file.h"
@@ -89,6 +90,7 @@ struct SftpServer : public mp::test::SftpServerTest
     std::queue<sftp_client_message> messages;
     std::unordered_map<int, int> default_map;
     int default_id{1000};
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
 struct MessageAndReply
@@ -105,6 +107,10 @@ struct WhenInvalidMessageReceived : public SftpServer, public ::testing::WithPar
 };
 
 struct Stat : public SftpServer, public ::testing::WithParamInterface<uint8_t>
+{
+};
+
+struct WhenInInvalidDir : public SftpServer, public ::testing::WithParamInterface<uint8_t>
 {
 };
 
@@ -142,6 +148,16 @@ std::string name_for_message(uint8_t message_type)
         return "SFTP_RENAME";
     case SFTP_EXTENDED:
         return "SFTP_EXTENDED";
+    case SFTP_MKDIR:
+        return "SFTP_MKDIR";
+    case SFTP_RMDIR:
+        return "SFTP_RMDIR";
+    case SFTP_OPEN:
+        return "SFTP_OPEN";
+    case SFTP_REALPATH:
+        return "SFTP_REALPATH";
+    case SFTP_REMOVE:
+        return "SFTP_REMOVE";
     default:
         return "Unknown";
     }
@@ -342,26 +358,6 @@ TEST_F(SftpServer, handles_realpath)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SftpServer, realpath_in_invalid_dir_fails)
-{
-    mpt::TempDir temp_dir;
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-    auto msg = make_msg(SFTP_REALPATH);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
-
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
-
-    sftp.run();
-
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
-}
-
 TEST_F(SftpServer, handles_opendir)
 {
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
@@ -383,24 +379,24 @@ TEST_F(SftpServer, handles_opendir)
     EXPECT_TRUE(reply_handle_invoked);
 }
 
-TEST_F(SftpServer, opendir_in_invalid_dir_fails)
+TEST_F(SftpServer, opendir_no_handle_allocated_fails)
 {
-    mpt::TempDir temp_dir;
+    auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     auto msg = make_msg(SFTP_OPENDIR);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
+    msg->filename = dir_name.data();
 
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    int failure_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
+    REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
     sftp.run();
 
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(failure_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_mkdir)
@@ -428,27 +424,32 @@ TEST_F(SftpServer, handles_mkdir)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, mkdir_in_invalid_dir_fails)
+TEST_F(SftpServer, mkdir_on_existing_dir_fails)
 {
     mpt::TempDir temp_dir;
+    auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
+    auto new_dir_name = name_as_char_array(new_dir);
+
+    QDir dir(new_dir_name.data());
+    ASSERT_TRUE(dir.mkdir(new_dir_name.data()));
+    ASSERT_TRUE(dir.exists());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_MKDIR);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
+    msg->filename = new_dir_name.data();
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
     msg->attr = &attr;
 
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    int failure_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
     sftp.run();
 
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(failure_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_rmdir)
@@ -476,24 +477,25 @@ TEST_F(SftpServer, handles_rmdir)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, rmdir_in_invalid_dir_fails)
+TEST_F(SftpServer, rmdir_non_existing_fails)
 {
     mpt::TempDir temp_dir;
+    auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
+    auto new_dir_name = name_as_char_array(new_dir);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_RMDIR);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
+    msg->filename = new_dir_name.data();
 
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    int failure_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
     sftp.run();
 
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(failure_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_readlink)
@@ -528,26 +530,6 @@ TEST_F(SftpServer, handles_readlink)
     sftp.run();
 
     EXPECT_THAT(num_calls, Eq(1));
-}
-
-TEST_F(SftpServer, readlink_in_invalid_dir_fails)
-{
-    mpt::TempDir temp_dir;
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-    auto msg = make_msg(SFTP_READLINK);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
-
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
-
-    sftp.run();
-
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
 }
 
 TEST_F(SftpServer, handles_symlink)
@@ -659,14 +641,19 @@ TEST_F(SftpServer, handles_rename)
     EXPECT_FALSE(QFile::exists(old_name));
 }
 
-TEST_F(SftpServer, rename_in_invalid_dir_fails)
+TEST_F(SftpServer, rename_invalid_target_fails)
 {
     mpt::TempDir temp_dir;
+    auto old_name = temp_dir.path() + "/test-file";
+    auto invalid_target = name_as_char_array("/foo/bar");
+    mpt::make_file_with_content(old_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_RENAME);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
+    auto name = name_as_char_array(old_name.toStdString());
+    msg->filename = name.data();
+
+    REPLACE(sftp_client_message_get_data, [&invalid_target](auto...) { return invalid_target.data(); });
 
     int perm_denied_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
@@ -703,24 +690,27 @@ TEST_F(SftpServer, handles_remove)
     EXPECT_FALSE(QFile::exists(file_name));
 }
 
-TEST_F(SftpServer, remove_in_invalid_dir_fails)
+TEST_F(SftpServer, remove_non_existing_fails)
 {
     mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    ASSERT_FALSE(QFile::exists(file_name));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_REMOVE);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
 
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    int failure_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
     sftp.run();
 
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(failure_num_calls, 1);
 }
 
 TEST_F(SftpServer, open_in_write_mode_creates_file)
@@ -784,24 +774,32 @@ TEST_F(SftpServer, open_in_truncate_mode_truncates_file)
     EXPECT_THAT(file.size(), Eq(0));
 }
 
-TEST_F(SftpServer, open_in_invalid_dir_fails)
+TEST_F(SftpServer, open_no_handle_allocated_fails)
 {
     mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    ASSERT_FALSE(QFile::exists(file_name));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_OPEN);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
+    msg->flags |= SSH_FXF_WRITE;
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
 
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    int failure_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
+    REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
     sftp.run();
 
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(failure_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_readdir)
@@ -1069,26 +1067,6 @@ TEST_F(SftpServer, handles_setstat)
     EXPECT_THAT(file.size(), Eq(expected_size));
 }
 
-TEST_F(SftpServer, setstat_in_invalid_dir_fails)
-{
-    mpt::TempDir temp_dir;
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-    auto msg = make_msg(SFTP_SETSTAT);
-    auto invalid_path = name_as_char_array("/foo/bar");
-    msg->filename = invalid_path.data();
-
-    int perm_denied_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
-
-    sftp.run();
-
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
-}
-
 TEST_F(SftpServer, handles_writes)
 {
     mpt::TempDir temp_dir;
@@ -1349,9 +1327,34 @@ TEST_P(Stat, handles)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
+TEST_P(WhenInInvalidDir, fails)
+{
+    auto msg_type = GetParam();
+    mpt::TempDir temp_dir;
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto msg = make_msg(msg_type);
+    auto invalid_path = name_as_char_array("/foo/bar");
+    msg->filename = invalid_path.data();
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    sftp.run();
+
+    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+}
+
 namespace
 {
 INSTANTIATE_TEST_SUITE_P(SftpServer, Stat, ::testing::Values(SFTP_LSTAT, SFTP_STAT), string_for_message);
+INSTANTIATE_TEST_SUITE_P(SftpServer, WhenInInvalidDir,
+                         ::testing::Values(SFTP_MKDIR, SFTP_RMDIR, SFTP_OPEN, SFTP_OPENDIR, SFTP_READLINK,
+                                           SFTP_REALPATH, SFTP_REMOVE, SFTP_RENAME, SFTP_SETSTAT, SFTP_STAT),
+                         string_for_message);
 
 TEST_P(WhenInvalidMessageReceived, replies_failure)
 {
