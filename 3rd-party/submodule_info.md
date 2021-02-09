@@ -12,7 +12,7 @@ Version: 1.30.2 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.
 <https://github.com/grpc/grpc/releases>
 
 ### libssh
-Version: 0.9.3 (+[our patches](https://github.com/CanonicalLtd/libssh/compare/libssh-0.9.3..2608224)) |
+Version: 0.9.5 (+[our patches](https://github.com/CanonicalLtd/libssh/compare/libssh-0.9.5..0721d20a)) |
 <https://github.com/CanonicalLtd/libssh.git> |
 <https://www.libssh.org/>
 
