@@ -43,6 +43,7 @@
 #include <QUrl>
 
 #include <gmock/gmock.h>
+#include <tests/mock_platform.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -1748,14 +1749,21 @@ TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
 
 TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
 {
-    auto data = QByteArrayLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""}]})");
+    auto data = QByteArrayLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""},
+                                                   {"type": "bridge", "name": "br1", "description": ""}]})");
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "mac", ""}}}));
+
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge"))));
+    EXPECT_THAT(backend.networks(),
+                AllOf(SizeIs(2), Each(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge")))));
 }
 
 namespace
