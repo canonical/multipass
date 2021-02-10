@@ -19,6 +19,7 @@
 
 #include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -509,7 +510,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    if (!QFile::setPermissions(filename, to_qt_permissions(msg->attr->permissions)))
+    QFile file(filename);
+    if (!MP_FILEOPS.setPermissions(file, to_qt_permissions(msg->attr->permissions)))
     {
         mpl::log(mpl::Level::error, category,
                  fmt::format("{}: set permissions failed for \'{}\'", __FUNCTION__, filename));
@@ -541,7 +543,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     }
 
     QDir dir(filename);
-    if (!dir.rmdir(filename))
+    if (!MP_FILEOPS.rmdir(dir, filename))
     {
         mpl::log(mpl::Level::error, category, fmt::format("{}: rmdir failed for \'{}\'", __FUNCTION__, filename));
         return reply_failure(msg);
@@ -590,7 +592,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     auto exists = QFileInfo(filename).isSymLink() || file->exists();
 
-    if (!file->open(mode))
+    if (!MP_FILEOPS.open(*file, mode))
     {
         mpl::log(mpl::Level::error, category, fmt::format("Cannot open \'{}\': {}", filename, file->errorString()));
         return reply_failure(msg);
@@ -598,7 +600,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     if (!exists)
     {
-        if (!file->setPermissions(to_qt_permissions(msg->attr->permissions)))
+        if (!MP_FILEOPS.setPermissions(*file, to_qt_permissions(msg->attr->permissions)))
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("Cannot set permissions for \'{}\': {}", filename, file->errorString()));
@@ -647,7 +649,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
     }
 
-    if (!dir.isReadable())
+    if (!MP_FILEOPS.isReadable(dir))
     {
         mpl::log(mpl::Level::error, category, fmt::format("Cannot read directory \'{}\': permission denied", filename));
         return reply_perm_denied(msg);
@@ -683,14 +685,14 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     std::vector<char> data;
     data.reserve(len);
 
-    if (!file->seek(msg->offset))
+    if (!MP_FILEOPS.seek(*file, msg->offset))
     {
         mpl::log(mpl::Level::error, category,
                  fmt::format("{}: cannot seek to position {} in \'{}\'", __FUNCTION__, msg->offset, file->fileName()));
         return reply_failure(msg);
     }
 
-    auto r = file->read(data.data(), len);
+    auto r = MP_FILEOPS.read(*file, data.data(), len);
     if (r < 0)
     {
         mpl::log(mpl::Level::error, category,
@@ -789,7 +791,8 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    if (!QFile::remove(filename))
+    QFile file{filename};
+    if (!MP_FILEOPS.remove(file))
     {
         mpl::log(mpl::Level::error, category, fmt::format("{}: cannot remove \'{}\'", __FUNCTION__, filename));
         return reply_failure(msg);
@@ -825,9 +828,10 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    if (QFile::exists(target))
+    QFile target_file{target};
+    if (target_file.exists())
     {
-        if (!QFile::remove(target))
+        if (!MP_FILEOPS.remove(target_file))
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("{}: cannot remove \'{}\' for renaming", __FUNCTION__, target));
@@ -835,7 +839,8 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         }
     }
 
-    if (!QFile::rename(source, target))
+    QFile source_file{source};
+    if (!MP_FILEOPS.rename(source_file, target))
     {
         mpl::log(mpl::Level::error, category,
                  fmt::format("{}: failed renaming \'{}\' to \'{}\'", __FUNCTION__, source, target));
@@ -879,9 +884,11 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
+    QFile file{filename};
+
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
-        if (!QFile::resize(filename, msg->attr->size))
+        if (!MP_FILEOPS.resize(file, msg->attr->size))
         {
             mpl::log(mpl::Level::error, category, fmt::format("{}: cannot resize \'{}\'", __FUNCTION__, filename));
             return reply_failure(msg);
@@ -890,7 +897,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
-        if (!QFile::setPermissions(filename, to_qt_permissions(msg->attr->permissions)))
+        if (!MP_FILEOPS.setPermissions(file, to_qt_permissions(msg->attr->permissions)))
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("{}: set permissions failed for \'{}\'", __FUNCTION__, filename));
@@ -1004,7 +1011,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
 
     auto len = ssh_string_len(msg->data);
     auto data_ptr = ssh_string_get_char(msg->data);
-    if (!file->seek(msg->offset))
+    if (!MP_FILEOPS.seek(*file, msg->offset))
     {
         mpl::log(mpl::Level::error, category,
                  fmt::format("{}: cannot seek to position {} in \'{}\'", __FUNCTION__, msg->offset, file->fileName()));
@@ -1013,7 +1020,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
 
     do
     {
-        auto r = file->write(data_ptr, len);
+        auto r = MP_FILEOPS.write(*file, data_ptr, len);
         if (r < 0)
         {
             mpl::log(
