@@ -44,7 +44,7 @@ std::string describe_bridge(const std::string& id, const QString& lxd_descriptio
 
     if (!lxd_description.isEmpty())
         return lxd_description.toStdString();
-    else if (auto it = platform_networks.find(id); it != platform_networks.end())
+    else if (auto it = platform_networks.find(id); it != platform_networks.end() && !it->second.description.empty())
         return it->second.description;
     else
         return default_description;
