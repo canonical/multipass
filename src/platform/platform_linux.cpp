@@ -32,6 +32,7 @@
 #include "backends/lxd/lxd_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
+#include "platform_linux_detail.h"
 #include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
@@ -53,8 +54,14 @@ mp::NetworkInterfaceInfo get_network(const QString& name)
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
+    return detail::get_network_interfaces_from(QDir{QStringLiteral("/sys/class/net")});
+}
+
+auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
+    -> std::map<std::string, NetworkInterfaceInfo>
+{
     auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
-    for (const auto& entry : QDir{QStringLiteral("/sys/class/net")}.entryList(QDir::NoDotAndDotDot | QDir::Dirs))
+    for (const auto& entry : sys_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs))
     {
         auto iface = get_network(entry);
         auto name = iface.id; // (can't rely on param evaluation order)
