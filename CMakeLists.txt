@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.13)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 if (APPLE)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14") # needs to be set before "project"
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif()
 
