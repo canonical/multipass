@@ -48,10 +48,6 @@ constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 } // namespace
 
-multipass::platform::Platform::Platform(const PrivatePass& pass) : Singleton(pass)
-{
-}
-
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
     throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");

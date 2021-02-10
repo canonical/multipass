@@ -87,4 +87,9 @@ std::string reinterpret_interface_id(const std::string& ux_id); // give platform
 
 } // namespace platform
 } // namespace multipass
+
+inline multipass::platform::Platform::Platform(const PrivatePass& pass) : Singleton(pass)
+{
+}
+
 #endif // MULTIPASS_PLATFORM_H
