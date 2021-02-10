@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -174,6 +174,35 @@ mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry,
 }
 } // namespace
 
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+{
+    auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
+
+    // Get the output of 'ifconfig'.
+    auto ifconfig_output = get_ifconfig_output();
+    auto nsetup_output = get_networksetup_output();
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
+    mpl::log(mpl::Level::trace, category,
+             fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
+
+    // split the output of networksetup in multiple entries (one per interface)
+    auto empty_line_regex = QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
+    auto nsetup_entries = nsetup_output.split(empty_line_regex, QString::SkipEmptyParts);
+
+    // Parse the output we got to obtain each interface's properties
+    for (const auto& nsetup_entry : nsetup_entries)
+    {
+        if (auto net_info = get_net_info(nsetup_entry, ifconfig_output); net_info)
+        {
+            const auto& net_id = net_info->id;
+            networks.emplace(net_id, std::move(*net_info));
+        }
+    }
+
+    return networks;
+}
+
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
     return {};
@@ -339,35 +368,6 @@ bool mp::platform::is_image_url_supported()
         return check_unlock_code();
 
     return false;
-}
-
-std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
-{
-    auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
-
-    // Get the output of 'ifconfig'.
-    auto ifconfig_output = get_ifconfig_output();
-    auto nsetup_output = get_networksetup_output();
-
-    mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
-    mpl::log(mpl::Level::trace, category,
-             fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
-
-    // split the output of networksetup in multiple entries (one per interface)
-    auto empty_line_regex = QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
-    auto nsetup_entries = nsetup_output.split(empty_line_regex, QString::SkipEmptyParts);
-
-    // Parse the output we got to obtain each interface's properties
-    for (const auto& nsetup_entry : nsetup_entries)
-    {
-        if (auto net_info = get_net_info(nsetup_entry, ifconfig_output); net_info)
-        {
-            const auto& net_id = net_info->id;
-            networks.emplace(net_id, std::move(*net_info));
-        }
-    }
-
-    return networks;
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
