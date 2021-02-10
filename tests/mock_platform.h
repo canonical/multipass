@@ -42,6 +42,7 @@ public:
 
     [[nodiscard]] static auto inject()
     {
+        platform::Platform::reset();
         platform::Platform::mock<MockPlatform>();
         return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { platform::Platform::reset(); }));
     }
