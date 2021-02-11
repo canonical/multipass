@@ -46,6 +46,7 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
 
     ListRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
+    request.set_request_ipv4(true);
     return dispatch(&RpcMethod::list, request, on_success, on_failure);
 }
 
