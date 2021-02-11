@@ -26,6 +26,24 @@
 
 #include <utility>
 
+#define MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                         \
+    static mock_class& mock_instance()                                                                                 \
+    {                                                                                                                  \
+        return dynamic_cast<mock_class&>(instance());                                                                  \
+    }
+
+#define MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)                                                             \
+    [[nodiscard]] static auto inject()                                                                                 \
+    {                                                                                                                  \
+        parent_class::reset();                                                                                         \
+        parent_class::mock<mock_class>();                                                                              \
+        return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { parent_class::reset(); }));                \
+    } // one at a time, please!
+
+#define MP_SINGLETON_MOCK_BOILERPLATE(mock_class, parent_class)                                                        \
+    MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                             \
+    MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)
+
 namespace multipass::test
 {
 class MockPlatform : public platform::Platform
@@ -34,18 +52,7 @@ public:
     using platform::Platform::Platform;
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
 
-    // only one at a time, please
-    static MockPlatform& mock_instance()
-    {
-        return dynamic_cast<MockPlatform&>(instance());
-    }
-
-    [[nodiscard]] static auto inject()
-    {
-        platform::Platform::reset();
-        platform::Platform::mock<MockPlatform>();
-        return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { platform::Platform::reset(); }));
-    }
+    MP_SINGLETON_MOCK_BOILERPLATE(MockPlatform, platform::Platform);
 };
 } // namespace multipass::test
 
