@@ -49,10 +49,10 @@ namespace multipass::test
 class MockPlatform : public platform::Platform
 {
 public:
-    using platform::Platform::Platform;
+    using Platform::Platform;
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
 
-    MP_SINGLETON_MOCK_BOILERPLATE(MockPlatform, platform::Platform);
+    MP_SINGLETON_MOCK_BOILERPLATE(MockPlatform, Platform);
 };
 } // namespace multipass::test
 
