@@ -349,6 +349,7 @@ mp::ListReply cmd::GuiCmd::retrieve_all_instances()
     };
 
     ListRequest request;
+    request.set_request_ipv4(false);
     dispatch(&RpcMethod::list, request, on_success, on_failure);
 
     return list_reply;
