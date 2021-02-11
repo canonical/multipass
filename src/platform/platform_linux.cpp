@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,6 +48,11 @@ namespace
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
 } // namespace
+
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+{
+    throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
+}
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
@@ -175,11 +180,6 @@ bool mp::platform::is_remote_supported(const std::string& remote)
 bool mp::platform::is_image_url_supported()
 {
     return true;
-}
-
-std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
-{
-    throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
