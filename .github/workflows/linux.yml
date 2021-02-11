@@ -171,7 +171,13 @@ jobs:
   # Publish the snap to the store if a channel was determined and we have access to secrets.
   Publish-Snap:
     needs: BuildAndTest
-    if: ${{ needs.BuildAndTest.outputs.channel != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    # Need to explicitly continue on Lint getting skipped.
+    if: ${{
+      !failure()
+      && needs.BuildAndTest.outputs.channel != ''
+      && (github.event_name == 'push'
+          || github.event.pull_request.head.repo.full_name == github.repository)
+      }}
 
     runs-on: ubuntu-latest
 
@@ -209,7 +215,12 @@ jobs:
     needs: BuildAndTest
 
     # Only dispatch if we have access to secrets.
-    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    # Need to explicitly continue on Lint getting skipped.
+    if: ${{
+      !failure()
+      && (github.event_name == 'push'
+          || github.event.pull_request.head.repo.full_name == github.repository)
+      }}
 
     runs-on: ubuntu-latest
 
