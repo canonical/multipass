@@ -18,31 +18,11 @@
 #ifndef MULTIPASS_MOCK_PLATFORM_H
 #define MULTIPASS_MOCK_PLATFORM_H
 
+#include "mock_singleton_helper.h"
+
 #include <multipass/platform.h>
 
-#include <scope_guard.hpp>
-
 #include <gmock/gmock.h>
-
-#include <utility>
-
-#define MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                         \
-    static mock_class& mock_instance()                                                                                 \
-    {                                                                                                                  \
-        return dynamic_cast<mock_class&>(instance());                                                                  \
-    }
-
-#define MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)                                                             \
-    [[nodiscard]] static auto inject()                                                                                 \
-    {                                                                                                                  \
-        parent_class::reset();                                                                                         \
-        parent_class::mock<mock_class>();                                                                              \
-        return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { parent_class::reset(); }));                \
-    } // one at a time, please!
-
-#define MP_SINGLETON_MOCK_BOILERPLATE(mock_class, parent_class)                                                        \
-    MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                             \
-    MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)
 
 namespace multipass::test
 {

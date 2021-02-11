@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,30 @@
 #ifndef MULTIPASS_MOCK_SINGLETON_HELPER_H
 #define MULTIPASS_MOCK_SINGLETON_HELPER_H
 
+#include <scope_guard.hpp>
+
 #include <gmock/gmock.h>
 
 #include <cassert>
+#include <utility>
+
+#define MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                         \
+    static mock_class& mock_instance()                                                                                 \
+    {                                                                                                                  \
+        return dynamic_cast<mock_class&>(instance());                                                                  \
+    }
+
+#define MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)                                                             \
+    [[nodiscard]] static auto inject()                                                                                 \
+    {                                                                                                                  \
+        parent_class::reset();                                                                                         \
+        parent_class::mock<mock_class>();                                                                              \
+        return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { parent_class::reset(); }));                \
+    } // one at a time, please!
+
+#define MP_SINGLETON_MOCK_BOILERPLATE(mock_class, parent_class)                                                        \
+    MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                             \
+    MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)
 
 namespace multipass::test
 {
