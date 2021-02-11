@@ -1420,7 +1420,7 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (mp::utils::is_running(present_state))
+        if (request->request_ipv4() && mp::utils::is_running(present_state))
         {
             auto vm_specs = vm_instance_specs[name];
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
