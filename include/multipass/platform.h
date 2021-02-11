@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/process/process.h>
 #include <multipass/process/process_spec.h>
+#include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
 #include <multipass/url_downloader.h>
@@ -38,10 +39,20 @@
 #include <string>
 #include <vector>
 
+#define MP_PLATFORM multipass::platform::Platform::instance()
+
 namespace multipass
 {
 namespace platform
 {
+class Platform : public Singleton<Platform>
+{
+public:
+    Platform(const Singleton::PrivatePass&);
+    // Get information on the network interfaces that are seen by the platform, indexed by name
+    virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
+};
+
 std::map<QString, QString> extra_settings_defaults();
 
 QString interpret_setting(const QString& key, const QString& val);
@@ -72,10 +83,13 @@ bool is_image_url_supported();
 
 std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread
 
-// Get information on the network interfaces that are seen by the platform, indexed by name
-std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info();
 std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
 
 } // namespace platform
 } // namespace multipass
+
+inline multipass::platform::Platform::Platform(const PrivatePass& pass) : Singleton(pass)
+{
+}
+
 #endif // MULTIPASS_PLATFORM_H
