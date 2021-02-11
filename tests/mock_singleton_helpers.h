@@ -25,13 +25,13 @@
 #include <cassert>
 #include <utility>
 
-#define MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                         \
+#define MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                         \
     static mock_class& mock_instance()                                                                                 \
     {                                                                                                                  \
         return dynamic_cast<mock_class&>(instance());                                                                  \
     }
 
-#define MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)                                                             \
+#define MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)                                                             \
     [[nodiscard]] static auto inject()                                                                                 \
     {                                                                                                                  \
         parent_class::reset();                                                                                         \
@@ -39,9 +39,9 @@
         return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { parent_class::reset(); }));                \
     } // one at a time, please!
 
-#define MP_SINGLETON_MOCK_BOILERPLATE(mock_class, parent_class)                                                        \
-    MP_SINGLETON_MOCK_INSTANCE(mock_class)                                                                             \
-    MP_SINGLETON_MOCK_INJECT(mock_class, parent_class)
+#define MP_MOCK_SINGLETON_BOILERPLATE(mock_class, parent_class)                                                        \
+    MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                             \
+    MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)
 
 namespace multipass::test
 {
