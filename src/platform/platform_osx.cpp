@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -362,8 +362,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interf
     {
         if (auto net_info = get_net_info(nsetup_entry, ifconfig_output); net_info)
         {
-            const auto& net_id = net_info->id;
-            networks.emplace(net_id, std::move(*net_info));
+            auto net_id = net_info->id; // can't rely on param evaluation order
+            networks.emplace(std::move(net_id), std::move(*net_info));
         }
     }
 
