@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_MOCK_PLATFORM_H
 #define MULTIPASS_MOCK_PLATFORM_H
 
-#include "mock_singleton_helper.h"
+#include "mock_singleton_helpers.h"
 
 #include <multipass/platform.h>
 

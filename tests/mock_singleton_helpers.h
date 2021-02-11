@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SINGLETON_HELPER_H
-#define MULTIPASS_MOCK_SINGLETON_HELPER_H
+#ifndef MULTIPASS_MOCK_SINGLETON_HELPERS_H
+#define MULTIPASS_MOCK_SINGLETON_HELPERS_H
 
 #include <scope_guard.hpp>
 
@@ -90,11 +90,11 @@ void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::SetUp()
 template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::TearDown()
 {
-    release_accountant();       // release this mock's test observer
-    ConcreteMock::reset();      /* Make sure this runs before gtest unwinds, so that:
-                                   - the mock doesn't leak
-                                   - expectations are checked
-                                   - it doesn't refer to stuff that was already deleted */
+    release_accountant();  // release this mock's test observer
+    ConcreteMock::reset(); /* Make sure this runs before gtest unwinds, so that:
+                              - the mock doesn't leak
+                              - expectations are checked
+                              - it doesn't refer to stuff that was already deleted */
 }
 
 template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
@@ -122,4 +122,4 @@ void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::Accounta
     ::testing::Mock::VerifyAndClearExpectations(&ConcreteMock::mock_instance());
 }
 
-#endif // MULTIPASS_MOCK_SINGLETON_HELPER_H
+#endif // MULTIPASS_MOCK_SINGLETON_HELPERS_H
