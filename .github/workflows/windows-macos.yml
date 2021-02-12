@@ -165,7 +165,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
       with:
-        mirror: http://mirrors.ocf.berkeley.edu/qt/
+        extra: -b http://mirrors.ocf.berkeley.edu/qt/
         setup-python: false
         version: ${{ env.QT_VERSION }}
       timeout-minutes: 10
@@ -346,7 +346,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
       with:
-        mirror: http://mirrors.ocf.berkeley.edu/qt/
+        extra: -b http://mirrors.ocf.berkeley.edu/qt/
       timeout-minutes: 10
 
     - name: Install Dependencies from Choco
