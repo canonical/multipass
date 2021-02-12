@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +44,7 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
-    ListRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
-    request.set_request_ipv4(true);
     return dispatch(&RpcMethod::list, request, on_success, on_failure);
 }
 
@@ -76,7 +74,10 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
         "format", "table");
 
-    parser->addOption(formatOption);
+    QCommandLineOption noIpv4Option("no-ipv4", "Do not query the instances for the IPv4's they are using");
+    noIpv4Option.setFlags(QCommandLineOption::HiddenFromHelp);
+
+    parser->addOptions({formatOption, noIpv4Option});
 
     auto status = parser->commandParse(this);
 
@@ -90,6 +91,8 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
+
+    request.set_request_ipv4(!parser->isSet(noIpv4Option));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
 
