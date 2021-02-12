@@ -520,7 +520,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 
     QFileInfo current_dir(filename);
     QFileInfo parent_dir(current_dir.path());
-    auto ret = mp::platform::chown(filename, parent_dir.ownerId(), parent_dir.groupId());
+    auto ret = MP_PLATFORM.chown(filename, parent_dir.ownerId(), parent_dir.groupId());
     if (ret < 0)
     {
         mpl::log(mpl::Level::error, category,
@@ -609,7 +609,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
-        auto ret = mp::platform::chown(filename, current_dir.ownerId(), current_dir.groupId());
+        auto ret = MP_PLATFORM.chown(filename, current_dir.ownerId(), current_dir.groupId());
         if (ret < 0)
         {
             mpl::log(mpl::Level::error, category,
@@ -907,7 +907,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
     {
-        if (mp::platform::utime(filename.toStdString().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
+        if (MP_PLATFORM.utime(filename.toStdString().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("{}: cannot set modification date for \'{}\'", __FUNCTION__, filename));
@@ -917,7 +917,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        if (mp::platform::chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
+        if (MP_PLATFORM.chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
@@ -979,7 +979,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    if (!mp::platform::symlink(old_name, new_name, QFileInfo(old_name).isDir()))
+    if (!MP_PLATFORM.symlink(old_name, new_name, QFileInfo(old_name).isDir()))
     {
         mpl::log(mpl::Level::error, category,
                  fmt::format("{}: failure creating symlink from \'{}\' to \'{}\'", __FUNCTION__, old_name, new_name));
@@ -988,7 +988,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
     QFileInfo current_file(new_name);
     QFileInfo current_dir(current_file.path());
-    auto ret = mp::platform::chown(new_name, current_dir.ownerId(), current_dir.groupId());
+    auto ret = MP_PLATFORM.chown(new_name, current_dir.ownerId(), current_dir.groupId());
     if (ret < 0)
     {
         mpl::log(mpl::Level::error, category,
@@ -1061,7 +1061,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (!mp::platform::link(old_name, new_name))
+        if (!MP_PLATFORM.link(old_name, new_name))
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("{}: failed creating link from \'{}\' to \'{}\'", __FUNCTION__, old_name, new_name));
