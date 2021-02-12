@@ -17,7 +17,6 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
@@ -34,6 +33,7 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/journald_logger.h"
+#include "platform_linux_detail.h"
 #include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
@@ -47,11 +47,38 @@ namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
+mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
+{
+    std::string type, description;
+    if (auto bridge = "bridge"; net_dir.exists(bridge))
+    {
+        type = bridge;
+        QStringList bridge_members = QDir{net_dir.filePath("brif")}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        description = bridge_members.isEmpty() ? "Empty network bridge"
+                                               : fmt::format("Network bridge with {}", bridge_members.join(", "));
+    }
+
+    return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description)};
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
-    throw mp::NotImplementedOnThisBackendException("get_network_interfaces_info");
+    return detail::get_network_interfaces_from(QDir{QStringLiteral("/sys/class/net")});
+}
+
+auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
+    -> std::map<std::string, NetworkInterfaceInfo>
+{
+    auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
+    for (const auto& entry : sys_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs))
+    {
+        auto iface = get_network(QDir{sys_dir.filePath(entry)});
+        auto name = iface.id; // (can't rely on param evaluation order)
+        ifaces_info.emplace(std::move(name), std::move(iface));
+    }
+
+    return ifaces_info;
 }
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
