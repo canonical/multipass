@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -303,7 +303,7 @@ TEST(PlatformOSX, test_network_interfaces)
     mock_factory_scope->register_callback(
         [&](mpt::MockProcess* process) { simulate_environment(process, success, success); });
 
-    auto got_interfaces = mp::platform::get_network_interfaces_info();
+    auto got_interfaces = MP_PLATFORM.get_network_interfaces_info();
 
     ASSERT_EQ(got_interfaces.size(), expect_interfaces.size());
     for (const auto& [got_name, got_iface] : got_interfaces)

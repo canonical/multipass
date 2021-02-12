@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -277,6 +277,39 @@ std::string interpret_net_type(const QString& media_type, const QString& physica
 
 } // namespace
 
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+{
+    static const auto ps_cmd_base = QStringLiteral(
+        "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription");
+    static const auto ps_args =
+        QString{ps_cmd_base}.split(' ', QString::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
+
+    QString ps_output;
+    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))
+    {
+        std::map<std::string, mp::NetworkInterfaceInfo> ret{};
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
+        {
+            auto terms = line.split(',', QString::KeepEmptyParts);
+            if (terms.size() != 4)
+            {
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+            }
+
+            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(), interpret_net_type(terms[1], terms[2]),
+                                                  terms[3].toStdString()};
+            ret.emplace(iface.id, iface);
+        }
+
+        return ret;
+    }
+
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+    throw std::runtime_error{err};
+}
+
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
     return {{mp::winterm_key, {"primary"}}};
@@ -512,39 +545,6 @@ std::function<int()> mp::platform::make_quit_watchdog()
         WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
         return 0;
     };
-}
-
-std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::get_network_interfaces_info()
-{
-    static const auto ps_cmd_base = QStringLiteral(
-        "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription");
-    static const auto ps_args =
-        QString{ps_cmd_base}.split(' ', QString::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
-
-    QString ps_output;
-    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))
-    {
-        std::map<std::string, mp::NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
-        {
-            auto terms = line.split(',', QString::KeepEmptyParts);
-            if (terms.size() != 4)
-            {
-                throw std::runtime_error{fmt::format(
-                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
-            }
-
-            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(), interpret_net_type(terms[1], terms[2]),
-                                                  terms[3].toStdString()};
-            ret.emplace(iface.id, iface);
-        }
-
-        return ret;
-    }
-
-    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
-    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
-    throw std::runtime_error{err};
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)

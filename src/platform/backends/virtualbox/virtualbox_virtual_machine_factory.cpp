@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -203,7 +203,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
 
     mpl::log(mpl::Level::info, log_category, fmt::format("VirtualBox found {} interface(s)", if_list.size()));
 
-    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info = mp::platform::get_network_interfaces_info();
+    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
 
     for (const auto& iface : if_list)
     {
