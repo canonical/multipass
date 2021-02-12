@@ -480,23 +480,23 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
-int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
+int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid)
 {
     return 0;
 }
 
-bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
+bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir)
 {
     DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     return CreateSymbolicLink(link, target, flags);
 }
 
-bool mp::platform::link(const char* target, const char* link)
+bool mp::platform::Platform::link(const char* target, const char* link)
 {
     return CreateHardLink(link, target, nullptr);
 }
 
-int mp::platform::utime(const char* path, int atime, int mtime)
+int mp::platform::Platform::utime(const char* path, int atime, int mtime)
 {
     DWORD ret = NO_ERROR;
     auto handle = CreateFile(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
