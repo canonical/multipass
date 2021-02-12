@@ -524,7 +524,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     if (ret < 0)
     {
         mpl::log(mpl::Level::error, category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}\n", filename, parent_dir.ownerId(),
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, parent_dir.ownerId(),
                              parent_dir.groupId()));
         return reply_failure(msg);
     }
@@ -613,7 +613,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         if (ret < 0)
         {
             mpl::log(mpl::Level::error, category,
-                     fmt::format("failed to chown '{}' to owner:{} and group:{}\n", filename, current_dir.ownerId(),
+                     fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, current_dir.ownerId(),
                                  current_dir.groupId()));
             return reply_failure(msg);
         }
@@ -992,7 +992,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
     if (ret < 0)
     {
         mpl::log(mpl::Level::error, category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}\n", new_name, current_dir.ownerId(),
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}", new_name, current_dir.ownerId(),
                              current_dir.groupId()));
         return reply_failure(msg);
     }
