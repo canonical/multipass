@@ -223,6 +223,7 @@ message InfoReply {
 
 message ListRequest {
     int32 verbosity_level = 1;
+    bool request_ipv4 = 2;
 }
 
 message ListVMInstance {
