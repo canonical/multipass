@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +63,16 @@ void mpl::log(Level level, CString category, CString message)
         global_logger->log(level, category, message);
     else
         fmt::print(stderr, "[{}] [{}] {}\n", as_string(level).c_str(), category.c_str(), message.c_str());
+}
+
+mpl::Level mpl::get_logging_level()
+{
+    if (global_logger)
+    {
+        return global_logger->get_logging_level();
+    }
+
+    return Level::error;
 }
 
 void mpl::set_logger(std::shared_ptr<Logger> logger)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,15 +52,16 @@ TEST_F(TestSSHFSServerProcessSpec, program_correct)
 TEST_F(TestSSHFSServerProcessSpec, arguments_correct)
 {
     mp::SSHFSServerProcessSpec spec(config);
-    ASSERT_EQ(spec.arguments().size(), 7);
+    ASSERT_EQ(spec.arguments().size(), 8);
     EXPECT_EQ(spec.arguments()[0], "host");
     EXPECT_EQ(spec.arguments()[1], "42");
     EXPECT_EQ(spec.arguments()[2], "username");
     EXPECT_EQ(spec.arguments()[3], "source_path");
     EXPECT_EQ(spec.arguments()[4], "target_path");
-    // Ordering of below options not guaranteed, hence the or-s.
+    // Ordering of the next 2 options not guaranteed, hence the or-s.
     EXPECT_TRUE(spec.arguments()[5] == "6:10,5:-1," || spec.arguments()[5] == "5:-1,6:10,");
     EXPECT_TRUE(spec.arguments()[6] == "3:4,1:2," || spec.arguments()[6] == "1:2,3:4,");
+    EXPECT_EQ(spec.arguments()[7], "0");
 }
 
 TEST_F(TestSSHFSServerProcessSpec, environment_correct)

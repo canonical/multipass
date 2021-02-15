@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ constexpr auto to_syslog_priority(const mpl::Level& level) noexcept
 }
 } // namespace
 
-mpl::JournaldLogger::JournaldLogger(mpl::Level level) : logging_level{level}
+mpl::JournaldLogger::JournaldLogger(mpl::Level level) : Logger{level}
 {
 }
 

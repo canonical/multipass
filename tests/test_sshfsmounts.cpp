@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include <multipass/sshfs_mount/sshfs_mounts.h>
 
 #include "mock_environment_helpers.h"
+#include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
@@ -31,6 +32,8 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 
 using namespace testing;
+
+const multipass::logging::Level default_log_level = multipass::logging::Level::debug;
 
 struct SSHFSMountsTest : public ::Test
 {
@@ -45,6 +48,7 @@ struct SSHFSMountsTest : public ::Test
     std::string source_path{"/my/source/path"}, target_path{"/the/target/path"};
     std::unordered_map<int, int> gid_map{{1, 2}, {3, 4}}, uid_map{{5, -1}, {6, 10}};
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
 
     mpt::MockProcessFactory::Callback sshfs_prints_connected = [](mpt::MockProcess* process) {
         if (process->program().contains("sshfs_server"))
@@ -78,15 +82,18 @@ TEST_F(SSHFSMountsTest, mount_creates_sshfs_process)
     auto sshfs_command = factory->process_list()[0];
     EXPECT_TRUE(sshfs_command.command.endsWith("sshfs_server"));
 
-    ASSERT_EQ(sshfs_command.arguments.size(), 7);
+    ASSERT_EQ(sshfs_command.arguments.size(), 8);
     EXPECT_EQ(sshfs_command.arguments[0], "localhost");
     EXPECT_EQ(sshfs_command.arguments[1], "42");
     EXPECT_EQ(sshfs_command.arguments[2], "ubuntu");
     EXPECT_EQ(sshfs_command.arguments[3], "/my/source/path");
     EXPECT_EQ(sshfs_command.arguments[4], "/the/target/path");
-    // Ordering of below options not guaranteed, hence the or-s.
+    // Ordering of the next 2 options not guaranteed, hence the or-s.
     EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," || sshfs_command.arguments[5] == "5:-1,6:10,");
     EXPECT_TRUE(sshfs_command.arguments[6] == "3:4,1:2," || sshfs_command.arguments[6] == "1:2,3:4,");
+
+    const QString log_level_as_string{QString::number(static_cast<int>(default_log_level))};
+    EXPECT_EQ(sshfs_command.arguments[7], log_level_as_string);
 }
 
 TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exception)
