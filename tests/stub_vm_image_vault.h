@@ -53,6 +53,11 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return nullptr;
     }
 
+    std::vector<VMImageInfo> all_info_for(const Query& query) const override
+    {
+        return {};
+    }
+
     TempFile dummy_image;
 };
 }
