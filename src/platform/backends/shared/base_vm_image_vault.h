@@ -32,7 +32,7 @@ namespace multipass
 class BaseVMImageVault : public VMImageVault
 {
 public:
-    BaseVMImageVault(std::vector<VMImageHost*> image_hosts)
+    explicit BaseVMImageVault(const std::vector<VMImageHost*>& image_hosts)
         : image_hosts{image_hosts}, remote_image_host_map{vault::configure_image_host_map(image_hosts)} {};
 
     VMImageHost* image_host_for(const std::string& remote_name) override

@@ -1170,7 +1170,7 @@ try // clang-format on
         }
         else
         {
-            const auto remote = request->remote_name();
+            const auto& remote = request->remote_name();
             auto image_host = config->vault->image_host_for(remote);
             auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 

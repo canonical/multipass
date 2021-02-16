@@ -27,7 +27,7 @@ namespace multipass
 class UnsupportedRemoteException : public std::runtime_error
 {
 public:
-    UnsupportedRemoteException(const std::string& message) : runtime_error(message)
+    explicit UnsupportedRemoteException(const std::string& message) : runtime_error(message)
     {
     }
 };

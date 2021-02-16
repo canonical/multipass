@@ -117,19 +117,8 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 
         if (!info)
         {
-            int num_matches = 0;
-
-            auto predicate = [&](const VMImageInfo& entry) {
-                auto partial_match = false;
-                if (entry.id.startsWith(key))
-                {
-                    info = &entry;
-                    partial_match = true;
-                }
-                return partial_match;
-            };
-            num_matches += std::count_if(manifest->products.begin(), manifest->products.end(), predicate);
-            if (num_matches > 1)
+            auto predicate = [&](const VMImageInfo& entry) { return entry.id.startsWith(key) && (info = &entry); };
+            if (std::count_if(manifest->products.begin(), manifest->products.end(), predicate) > 1)
                 throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
         }
 
@@ -148,18 +137,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& query)
 {
     check_alias_is_supported(query.release, query.remote_name);
-
-    std::string remote_name;
-
-    if (!query.remote_name.empty())
-    {
-        remote_name = query.remote_name;
-    }
-    else
-    {
-        remote_name = release_remote;
-    }
-
+    auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
     std::vector<mp::VMImageInfo> images;
 
     auto key = key_from(query.release);
@@ -224,12 +202,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
     for (const auto& entry : manifest->products)
     {
-        if (!check_all_aliases_are_supported(entry.aliases, remote_name))
-        {
-            continue;
-        }
-
-        if (entry.supported || allow_unsupported)
+        if ((entry.supported || allow_unsupported) && check_all_aliases_are_supported(entry.aliases, remote_name))
         {
             images.push_back(with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
         }

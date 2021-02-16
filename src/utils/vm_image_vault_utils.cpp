@@ -80,7 +80,7 @@ QString mp::vault::extract_image(const mp::Path& image_path, const mp::ProgressM
 }
 
 std::unordered_map<std::string, mp::VMImageHost*>
-mp::vault::configure_image_host_map(std::vector<mp::VMImageHost*> image_hosts)
+mp::vault::configure_image_host_map(const std::vector<mp::VMImageHost*>& image_hosts)
 {
     std::unordered_map<std::string, mp::VMImageHost*> remote_image_host_map;
 
