@@ -272,16 +272,9 @@ TEST_F(LXDImageVault, instance_exists_missing_image_downloads_image)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    ON_CALL(host, info_for(_)).WillByDefault([this](auto& query) -> mp::optional<mp::VMImageInfo> {
-        if (query.release == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-        {
-            return mp::nullopt;
-        }
-        else
-        {
-            return host.mock_bionic_image_info;
-        }
-    });
+    const auto missing_img_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    EXPECT_CALL(host, info_for(_)).WillRepeatedly(Return(host.mock_bionic_image_info));
+    EXPECT_CALL(host, info_for(Field(&mp::Query::release, missing_img_hash))).WillRepeatedly(Return(mp::nullopt));
 
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
