@@ -179,8 +179,8 @@ jobs:
         path: "~/.opam"
         # Use OPAM version and hyperkit sha as cache key. This ensures that when we change hyperkit,
         # any dependency changes will follow. Also start from scratch if OPAM version changes.
-        key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ steps.cache-params.outputs.hyperkit-sha }}
-        restore-keys: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-
+        key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.cache-params.outputs.hyperkit-sha }}
+        restore-keys: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
 
     - name: Set up OCaml
       uses: avsm/setup-ocaml@v1.1.7
@@ -215,9 +215,9 @@ jobs:
     - name: CCache
       uses: actions/cache@v2
       with:
-        key: ccache-${{ runner.os }}-${{ steps.setup-ccache.outputs.key }}
+        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
-          ccache-${{ runner.os }}-
+          ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
         path: "~/Library/Caches/ccache"
 
     - name: Build
