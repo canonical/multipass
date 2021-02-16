@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,8 +49,8 @@ public:
         if (level <= logging_level && server != nullptr)
         {
             T reply;
-            reply.set_log_line(fmt::format("[{}] [{}] [{}] {}\n", multipass::utils::timestamp(),
-                                           as_string(level).c_str(), category.c_str(), message.c_str()));
+            reply.set_log_line(fmt::format("[{}] [{}] [{}] {}\n", timestamp(), as_string(level).c_str(),
+                                           category.c_str(), message.c_str()));
             server->Write(reply);
         }
     }
