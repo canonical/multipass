@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-add_library(logger
+add_library(logger STATIC
   log.cpp
   multiplexing_logger.cpp
   standard_logger.cpp)
