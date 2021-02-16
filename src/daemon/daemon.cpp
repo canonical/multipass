@@ -1072,37 +1072,8 @@ try // clang-format on
 
     if (!request->search_string().empty())
     {
-        std::vector<VMImageInfo> vm_images_info;
-        auto remote{request->remote_name()};
-
-        if (!remote.empty())
-        {
-            auto image_host = config->vault->image_host_for(remote);
-            auto images_info = image_host->all_info_for(
-                {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
-
-            if (!images_info.empty())
-            {
-                vm_images_info = std::move(images_info);
-            }
-        }
-        else
-        {
-            for (const auto& image_host : config->image_hosts)
-            {
-                auto images_info = image_host->all_info_for(
-                    {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
-
-                if (!images_info.empty())
-                {
-                    vm_images_info = std::move(images_info);
-                    break;
-                }
-            }
-        }
-
-        if (vm_images_info.empty())
-            throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", request->search_string()));
+        auto vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
+                                                           Query::Type::Alias, request->allow_unsupported()});
 
         for (const auto& info : vm_images_info)
         {
@@ -1122,7 +1093,7 @@ try // clang-format on
             entry->set_release(info.release_title.toStdString());
             entry->set_version(info.version.toStdString());
             auto alias_entry = entry->add_aliases_info();
-            alias_entry->set_remote_name(remote);
+            alias_entry->set_remote_name(request->remote_name());
             alias_entry->set_alias(name);
         }
     }
