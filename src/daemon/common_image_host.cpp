@@ -91,7 +91,7 @@ void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& detail
     mpl::log(mpl::Level::warning, category, fmt::format("Could not update manifest: {}", details));
 }
 
-void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_name)
+void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_name) const
 {
     if (!mp::platform::is_remote_supported(remote_name))
         throw mp::UnsupportedRemoteException(
@@ -100,14 +100,15 @@ void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_
                         remote_name));
 }
 
-void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, const std::string& remote_name)
+void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, const std::string& remote_name) const
 {
     if (!mp::platform::is_alias_supported(alias, remote_name))
         throw std::runtime_error(fmt::format(
             "\'{}\' is not a supported alias. Please use `multipass find` for supported image aliases.", alias));
 }
 
-bool mp::CommonVMImageHost::check_all_aliases_are_supported(const QStringList& aliases, const std::string& remote_name)
+bool mp::CommonVMImageHost::check_all_aliases_are_supported(const QStringList& aliases,
+                                                            const std::string& remote_name) const
 {
     for (const auto& alias : aliases)
     {
@@ -115,7 +116,7 @@ bool mp::CommonVMImageHost::check_all_aliases_are_supported(const QStringList& a
         {
             check_alias_is_supported(alias.toStdString(), remote_name);
         }
-        catch (const std::exception& /* e */)
+        catch (const std::exception&)
         {
             return false;
         }

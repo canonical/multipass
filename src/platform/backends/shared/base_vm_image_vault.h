@@ -35,7 +35,7 @@ public:
     explicit BaseVMImageVault(const std::vector<VMImageHost*>& image_hosts)
         : image_hosts{image_hosts}, remote_image_host_map{vault::configure_image_host_map(image_hosts)} {};
 
-    VMImageHost* image_host_for(const std::string& remote_name) override
+    VMImageHost* image_host_for(const std::string& remote_name) const override
     {
         auto it = remote_image_host_map.find(remote_name);
         if (it == remote_image_host_map.end())
@@ -49,7 +49,7 @@ public:
     };
 
 protected:
-    virtual VMImageInfo info_for(const Query& query)
+    virtual VMImageInfo info_for(const Query& query) const
     {
         if (!query.remote_name.empty())
         {

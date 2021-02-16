@@ -24,6 +24,7 @@
 #include "path.h"
 
 #include <multipass/exceptions/unsupported_remote_exception.h>
+#include <multipass/format.h>
 #include <multipass/query.h>
 
 #include <QUrl>
@@ -259,6 +260,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_m
 
     const size_t expected_matches{2};
     EXPECT_EQ(images.size(), expected_matches);
+    EXPECT_TRUE(core18_seen);
 }
 
 TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)

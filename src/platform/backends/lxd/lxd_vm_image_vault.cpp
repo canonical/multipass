@@ -167,8 +167,6 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             return source_image;
         }
 
-        auto id = config["volatile.base_image"].toString();
-
         Query image_query;
         image_query.release = config["volatile.base_image"].toString().toStdString();
 

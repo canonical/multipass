@@ -83,21 +83,21 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 {
     check_alias_is_supported(query.release, query.remote_name);
 
-    std::vector<std::string> remotes;
+    std::vector<std::string> remotes_to_search;
 
     if (!query.remote_name.empty())
     {
-        remotes.push_back(query.remote_name);
+        remotes_to_search.push_back(query.remote_name);
     }
     else
     {
-        remotes = std::vector<std::string>{release_remote, daily_remote};
+        remotes_to_search = std::vector<std::string>{release_remote, daily_remote};
     }
 
     auto key = key_from(query.release);
     mp::SimpleStreamsManifest* manifest;
 
-    for (const auto& remote_name : remotes)
+    for (const auto& remote_name : remotes_to_search)
     {
         const VMImageInfo* info{nullptr};
 
@@ -105,7 +105,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
         {
             manifest = manifest_from(remote_name);
         }
-        catch (const mp::UnsupportedRemoteException& /* e */)
+        catch (const mp::UnsupportedRemoteException&)
         {
             if (query.remote_name.empty())
                 continue;
@@ -220,13 +220,11 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& product : manifest.second->products)
         {
-            if (!check_all_aliases_are_supported(product.aliases, manifest.first))
+            if (check_all_aliases_are_supported(product.aliases, manifest.first))
             {
-                continue;
+                action(manifest.first,
+                       with_location_fully_resolved(QString::fromStdString(remote_url_from(manifest.first)), product));
             }
-
-            action(manifest.first,
-                   with_location_fully_resolved(QString::fromStdString(remote_url_from(manifest.first)), product));
         }
     }
 }
@@ -266,7 +264,7 @@ void mp::UbuntuVMImageHost::fetch_manifests()
         {
             on_manifest_update_failure(e.what());
         }
-        catch (const mp::UnsupportedRemoteException& /* e */)
+        catch (const mp::UnsupportedRemoteException&)
         {
             continue;
         }

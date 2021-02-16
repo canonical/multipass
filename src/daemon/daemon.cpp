@@ -1153,15 +1153,15 @@ try // clang-format on
         {
             for (const auto& image_host : config->image_hosts)
             {
-                std::unordered_set<std::string> image_found;
+                std::unordered_set<std::string> images_found;
                 const auto default_remote{"release"};
-                auto action = [&image_found, &default_remote, request, &add_aliases](const std::string& remote,
-                                                                                     const mp::VMImageInfo& info) {
+                auto action = [&images_found, &default_remote, request, &add_aliases](const std::string& remote,
+                                                                                      const mp::VMImageInfo& info) {
                     if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                        image_found.find(info.release_title.toStdString()) == image_found.end())
+                        images_found.find(info.release_title.toStdString()) == images_found.end())
                     {
                         add_aliases(remote, info, default_remote);
-                        image_found.insert(info.release_title.toStdString());
+                        images_found.insert(info.release_title.toStdString());
                     }
                 };
 

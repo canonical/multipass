@@ -263,7 +263,7 @@ void mp::CustomVMImageHost::fetch_manifests()
         {
             on_manifest_update_failure(e.what());
         }
-        catch (const mp::UnsupportedRemoteException& /* e */)
+        catch (const mp::UnsupportedRemoteException&)
         {
             continue;
         }

@@ -20,8 +20,6 @@
 
 #include <stdexcept>
 
-#include <multipass/format.h>
-
 namespace multipass
 {
 class UnsupportedRemoteException : public std::runtime_error
