@@ -21,6 +21,8 @@
 #include <multipass/logging/cstring.h>
 #include <multipass/logging/level.h>
 
+#include <QDateTime>
+
 #include <memory>
 #include <string>
 
@@ -38,6 +40,11 @@ public:
     Level get_logging_level()
     {
         return logging_level;
+    };
+    static std::string timestamp()
+    {
+        auto time = QDateTime::currentDateTime();
+        return time.toString(Qt::ISODateWithMs).toStdString();
     };
 
 protected:
