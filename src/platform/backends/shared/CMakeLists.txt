@@ -1,4 +1,4 @@
-# Copyright © 2019-2020 Canonical Ltd.
+# Copyright © 2019-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -21,6 +21,7 @@ add_library(shared STATIC
 
 target_link_libraries(shared
   process
+  utils
   Qt5::Core)
 
 add_subdirectory(linux)

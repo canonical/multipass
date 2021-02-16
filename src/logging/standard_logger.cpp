@@ -17,8 +17,6 @@
 
 #include <multipass/logging/standard_logger.h>
 
-#include <multipass/utils.h>
-
 #include <multipass/format.h>
 
 namespace mp = multipass;
@@ -32,7 +30,7 @@ void mpl::StandardLogger::log(mpl::Level level, CString category, CString messag
 {
     if (level <= logging_level)
     {
-        fmt::print(stderr, "[{}] [{}] [{}] {}\n", mp::utils::timestamp(), as_string(level).c_str(), category.c_str(),
+        fmt::print(stderr, "[{}] [{}] [{}] {}\n", timestamp(), as_string(level).c_str(), category.c_str(),
                    message.c_str());
     }
 }

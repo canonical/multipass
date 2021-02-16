@@ -1,4 +1,4 @@
-#Copyright © 2018 Canonical Ltd.
+#Copyright © 2018-2021 Canonical Ltd.
 #
 #This program is free software : you can redistribute it and / or modify
 #it under the terms of the GNU General Public License version 3 as
@@ -19,4 +19,4 @@ pkg_check_modules(JOURNALD libsystemd REQUIRED)
 add_library(journaldlogger STATIC journald_logger.cpp)
 target_include_directories(journaldlogger PRIVATE
         ${JOURNALD_INCLUDE_DIRS})
-target_link_libraries(journaldlogger fmt ${JOURNALD_LIBRARIES})
+target_link_libraries(journaldlogger fmt Qt5::Core ${JOURNALD_LIBRARIES})
