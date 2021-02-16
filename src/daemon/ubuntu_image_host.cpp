@@ -99,8 +99,6 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 
     for (const auto& remote_name : remotes_to_search)
     {
-        const VMImageInfo* info{nullptr};
-
         try
         {
             manifest = manifest_from(remote_name);
@@ -113,7 +111,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
             throw;
         }
 
-        match_alias(key, &info, *manifest);
+        const auto* info = match_alias(key, *manifest);
 
         if (!info)
         {
@@ -142,10 +140,9 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& qu
 
     auto key = key_from(query.release);
     mp::SimpleStreamsManifest* manifest;
-    const VMImageInfo* info{nullptr};
 
     manifest = manifest_from(remote_name);
-    match_alias(key, &info, *manifest);
+    const auto* info = match_alias(key, *manifest);
 
     if (info)
     {
@@ -293,14 +290,16 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
     return it->second.get();
 }
 
-void mp::UbuntuVMImageHost::match_alias(const QString& key, const VMImageInfo** info,
-                                        const mp::SimpleStreamsManifest& manifest)
+const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(const QString& key,
+                                                          const mp::SimpleStreamsManifest& manifest) const
 {
     auto it = manifest.image_records.find(key);
     if (it != manifest.image_records.end())
     {
-        *info = it.value();
+        return it.value();
     }
+
+    return nullptr;
 }
 
 std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_name)

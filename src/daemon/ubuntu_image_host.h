@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ protected:
 
 private:
     SimpleStreamsManifest* manifest_from(const std::string& remote);
-    void match_alias(const QString& key, const VMImageInfo** info, const SimpleStreamsManifest& manifest);
+    const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, std::string>> remotes;
