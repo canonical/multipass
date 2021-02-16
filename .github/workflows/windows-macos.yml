@@ -180,7 +180,7 @@ jobs:
         restore-keys: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-
 
     - name: Set up OCaml
-      uses: avsm/setup-ocaml@v1
+      uses: avsm/setup-ocaml@v1.1.7
       with:
         ocaml-version: ${{ env.OPAM_COMP }}
 
