@@ -143,9 +143,11 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Determine cache parameters
+    - name: Set up caching
       id: cache-params
       run: |
+        # Use gnu-tar instead of the system tar
+        echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> ${GITHUB_PATH}
         echo "::set-output name=hyperkit-sha::$( git -C 3rd-party/hyperkit rev-parse HEAD )"
 
     - name: Install dependencies from brew
@@ -154,6 +156,7 @@ jobs:
           cmake \
           coreutils \
           git \
+          gnu-tar \
           libev \
           libffi \
           ninja \
