@@ -22,6 +22,6 @@ add_library(formatter STATIC
 target_link_libraries(formatter
   fmt
   rpc
-  ssh_common
   yaml
+  utils
   Qt5::Core)
