@@ -22,6 +22,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/path.h>
 #include <multipass/progress_monitor.h>
+#include <multipass/vm_image_info.h>
 
 #include <QFile>
 #include <QString>
@@ -82,6 +83,7 @@ public:
                                const ProgressMonitor& monitor) = 0;
     virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
+    virtual std::vector<VMImageInfo> all_info_for(const Query& query) const = 0;
 
 protected:
     VMImageVault() = default;

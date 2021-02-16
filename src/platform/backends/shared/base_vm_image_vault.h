@@ -48,6 +48,34 @@ public:
         return it->second;
     };
 
+    std::vector<VMImageInfo> all_info_for(const Query& query) const override
+    {
+        std::vector<VMImageInfo> images_info;
+
+        if (!query.remote_name.empty())
+        {
+            auto image_host = image_host_for(query.remote_name);
+            images_info = image_host->all_info_for(query);
+        }
+        else
+        {
+            for (const auto& image_host : image_hosts)
+            {
+                images_info = image_host->all_info_for(query);
+
+                if (!images_info.empty())
+                {
+                    break;
+                }
+            }
+        }
+
+        if (images_info.empty())
+            throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
+
+        return images_info;
+    };
+
 protected:
     virtual VMImageInfo info_for(const Query& query) const
     {
