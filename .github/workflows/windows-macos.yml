@@ -215,7 +215,7 @@ jobs:
         key: ccache-${{ runner.os }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
           ccache-${{ runner.os }}-
-        path: ~/.ccache
+        path: "~/Library/Caches/ccache"
 
     - name: Build
       uses: lukka/run-cmake@v2
