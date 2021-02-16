@@ -130,6 +130,18 @@ QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir
 
     return metadata_tarball_path;
 }
+
+std::vector<std::string> copy_aliases(const QStringList& aliases)
+{
+    std::vector<std::string> copied_aliases;
+
+    for (const auto& alias : aliases)
+    {
+        copied_aliases.push_back(alias.toStdString());
+    }
+
+    return copied_aliases;
+}
 } // namespace
 
 mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
@@ -177,11 +189,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
         source_image.id = info.id.toStdString();
         source_image.original_release = info.release_title.toStdString();
         source_image.release_date = info.version.toStdString();
-
-        for (const auto& alias : info.aliases)
-        {
-            source_image.aliases.push_back(alias.toStdString());
-        }
+        source_image.aliases = copy_aliases(info.aliases);
 
         return source_image;
     }
@@ -210,11 +218,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     source_image.id = id.toStdString();
     source_image.original_release = info.release_title.toStdString();
     source_image.release_date = info.version.toStdString();
-
-    for (const auto& alias : info.aliases)
-    {
-        source_image.aliases.push_back(alias.toStdString());
-    }
+    source_image.aliases = copy_aliases(info.aliases);
 
     try
     {
