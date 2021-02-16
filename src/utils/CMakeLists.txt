@@ -22,6 +22,7 @@ add_library(utils STATIC
 
 target_link_libraries(utils
   fmt
+  logger
   ssh_common
   ssh
   yaml
