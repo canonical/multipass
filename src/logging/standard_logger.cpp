@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mpl::StandardLogger::StandardLogger(mpl::Level level) : logging_level{level}
+mpl::StandardLogger::StandardLogger(mpl::Level level) : Logger{level}
 {
 }
 

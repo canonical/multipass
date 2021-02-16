@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "sshfs_server_process_spec.h"
 
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/logging/log.h>
 #include <multipass/snap_utils.h>
 
 #include <QCoreApplication>
@@ -62,7 +63,8 @@ QStringList mp::SSHFSServerProcessSpec::arguments() const
     return QStringList() << QString::fromStdString(config.host) << QString::number(config.port)
                          << QString::fromStdString(config.username) << QString::fromStdString(config.source_path)
                          << QString::fromStdString(config.target_path) << serialise_id_map(config.uid_map)
-                         << serialise_id_map(config.gid_map);
+                         << serialise_id_map(config.gid_map)
+                         << QString::number(static_cast<int>(mp::logging::get_logging_level()));
 }
 
 QProcessEnvironment mp::SSHFSServerProcessSpec::environment() const

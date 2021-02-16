@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "../ssh/ssh_client_key_provider.h" // FIXME
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
+#include <multipass/logging/multiplexing_logger.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
@@ -66,7 +67,7 @@ unordered_map<int, int> deserialise_id_map(const char* in)
 
 int main(int argc, char* argv[])
 {
-    if (argc != 8)
+    if (argc != 9)
     {
         cerr << "Incorrect arguments" << endl;
         exit(2);
@@ -86,9 +87,15 @@ int main(int argc, char* argv[])
     const auto target_path = string(argv[5]);
     const unordered_map<int, int> uid_map = deserialise_id_map(argv[6]);
     const unordered_map<int, int> gid_map = deserialise_id_map(argv[7]);
+    const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
-    auto logger = std::make_shared<mpl::StandardLogger>(mpl::Level::error); // QUESTION - how to pass verbosity level?
-    mpl::set_logger(logger);
+    auto logger = mpp::make_logger(log_level);
+    if (!logger)
+        logger = std::make_unique<mpl::StandardLogger>(log_level);
+
+    // Use the MultiplexingLogger as we may end up routing messages to the daemon too at some point
+    auto standard_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
+    mpl::set_logger(standard_logger);
 
     try
     {

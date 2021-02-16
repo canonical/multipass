@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 namespace mpl = multipass::logging;
 
 multipass::logging::MultiplexingLogger::MultiplexingLogger(UPtr system_logger)
-    : system_logger{std::move(system_logger)}
+    : Logger{system_logger->get_logging_level()}, system_logger{std::move(system_logger)}
 {
 }
 

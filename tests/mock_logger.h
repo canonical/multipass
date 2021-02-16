@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ namespace test
 class MockLogger : public multipass::logging::Logger, public PrivatePassProvider<MockLogger>
 {
 public:
-    MockLogger(const PrivatePass&);
+    MockLogger(const PrivatePass&, const multipass::logging::Level logging_level);
 
     MockLogger() = delete;
     MockLogger(const MockLogger&) = delete;
@@ -45,16 +45,15 @@ public:
     {
     public:
         ~Scope();
-        std::shared_ptr<testing::NiceMock<MockLogger>> mock_logger =
-            std::make_shared<testing::NiceMock<MockLogger>>(pass);
+        std::shared_ptr<testing::NiceMock<MockLogger>> mock_logger;
 
     private:
-        Scope();
+        Scope(const multipass::logging::Level logging_level);
         friend class MockLogger;
     };
 
     // only one at a time, please
-    [[nodiscard]] static Scope inject();
+    [[nodiscard]] static Scope inject(const multipass::logging::Level logging_level = multipass::logging::Level::error);
 
     template <typename Matcher>
     static auto make_cstring_matcher(const Matcher& matcher);
