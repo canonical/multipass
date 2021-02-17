@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-add_library(cert
+add_library(cert STATIC
   biomem.cpp
   client_cert_store.cpp
   ssl_cert_provider.cpp

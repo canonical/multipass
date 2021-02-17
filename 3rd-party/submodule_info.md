@@ -12,7 +12,7 @@ Version: 1.30.2 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.
 <https://github.com/grpc/grpc/releases>
 
 ### libssh
-Version: 0.9.3 (+[our patches](https://github.com/CanonicalLtd/libssh/compare/libssh-0.9.3..2608224)) |
+Version: 0.9.5 (+[our patches](https://github.com/CanonicalLtd/libssh/compare/libssh-0.9.5..0721d20a)) |
 <https://github.com/CanonicalLtd/libssh.git> |
 <https://www.libssh.org/>
 
@@ -22,7 +22,7 @@ Version: 7.0.2 |
 <https://github.com/fmtlib/fmt/releases>
 
 ### QHotKey
-Version: 1.4.1 |
+Version: 1.4.2 |
 <https://github.com/Skycoder42/QHotkey.git> |
 <https://github.com/Skycoder42/QHotkey/releases>
 
@@ -37,21 +37,21 @@ Version: 1.1.0 (+[our patches](https://github.com/CanonicalLtd/semver/compare/1.
 <https://github.com/zmarko/semver/releases>
 
 ### xz-embedded
-Version: cfc1499 |
+Version: 090e6a0 |
 <https://git.tukaani.org/xz-embedded.git> |
 <https://tukaani.org/xz/embedded.html>
 
 ### yaml-cpp
-Version: 0.6.3 |
-<https://github.com/jbeder/yaml-cpp.git> |
+Version: 0.6.3 (+[our patches](https://github.com/canonical/yaml-cpp/compare/yaml-cpp-0.6.3..a61bca0)) |
+<https://github.com/canonical/yaml-cpp.git> |
 <https://github.com/jbeder/yaml-cpp/releases>
 
 ### JsonCpp
-Version: 1.9.3 |
+Version: 1.9.4 |
 <https://github.com/open-source-parsers/jsoncpp.git> |
 <https://github.com/open-source-parsers/jsoncpp/releases>
 
 ### HyperKit
-Version: b54460a |
+Version: v0.20210107 |
 <https://github.com/moby/hyperkit.git> |
 <https://github.com/moby/hyperkit/releases>

@@ -159,6 +159,7 @@ target_include_directories(scope_guard INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/scope_guard)
 
 # semver library
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(semver EXCLUDE_FROM_ALL)
 target_include_directories(semver INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/semver/include)
