@@ -81,55 +81,15 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
 
 mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
 {
-    check_alias_is_supported(query.release, query.remote_name);
+    auto images = all_info_for(query);
 
-    std::vector<std::string> remotes_to_search;
-
-    if (!query.remote_name.empty())
-    {
-        remotes_to_search.push_back(query.remote_name);
-    }
+    if (images.size() > 1 && images.front().second.id.startsWith(key_from(query.release)))
+        throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
+    else if (images.size() != 0)
+        return with_location_fully_resolved(QString::fromStdString(remote_url_from(images.front().first)),
+                                            images.front().second);
     else
-    {
-        remotes_to_search = std::vector<std::string>{release_remote, daily_remote};
-    }
-
-    auto key = key_from(query.release);
-    mp::SimpleStreamsManifest* manifest;
-
-    for (const auto& remote_name : remotes_to_search)
-    {
-        try
-        {
-            manifest = manifest_from(remote_name);
-        }
-        catch (const mp::UnsupportedRemoteException&)
-        {
-            if (query.remote_name.empty())
-                continue;
-
-            throw;
-        }
-
-        const auto* info = match_alias(key, *manifest);
-
-        if (!info)
-        {
-            auto predicate = [&](const VMImageInfo& entry) { return entry.id.startsWith(key) && (info = &entry); };
-            if (std::count_if(manifest->products.begin(), manifest->products.end(), predicate) > 1)
-                throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
-        }
-
-        if (info)
-        {
-            if (!info->supported && !query.allow_unsupported)
-                throw mp::UnsupportedImageException(query.release);
-
-            return with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info);
-        }
-    }
-
-    return nullopt;
+        return nullopt;
 }
 
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for(const Query& query)
@@ -154,7 +114,18 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
     for (const auto& remote_name : remotes_to_search)
     {
-        manifest = manifest_from(remote_name);
+        try
+        {
+            manifest = manifest_from(remote_name);
+        }
+        catch (const mp::UnsupportedRemoteException&)
+        {
+            if (query.remote_name.empty())
+                continue;
+
+            throw;
+        }
+
         const auto* info = match_alias(key, *manifest);
 
         if (info)
@@ -181,9 +152,6 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
             }
         }
     }
-
-    if (images.empty())
-        throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
 
     return images;
 }
