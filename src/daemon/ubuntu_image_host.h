@@ -24,6 +24,7 @@
 #include <QString>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace multipass
@@ -40,7 +41,7 @@ public:
                       std::chrono::seconds manifest_time_to_live);
 
     optional<VMImageInfo> info_for(const Query& query) override;
-    std::vector<VMImageInfo> all_info_for(const Query& query) override;
+    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override;
     std::vector<std::string> supported_remotes() override;
 

@@ -200,13 +200,13 @@ mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query
     return *it->second;
 }
 
-std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& query)
+std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for(const Query& query)
 {
-    std::vector<mp::VMImageInfo> images;
+    std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
     auto image = info_for(query);
     if (image != nullopt)
-        images.push_back(*image);
+        images.push_back(std::make_pair(query.remote_name, *image));
 
     return images;
 }

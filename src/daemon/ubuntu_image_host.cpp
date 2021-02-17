@@ -132,37 +132,52 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
     return nullopt;
 }
 
-std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for(const Query& query)
+std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for(const Query& query)
 {
     check_alias_is_supported(query.release, query.remote_name);
-    auto remote_name = query.remote_name.empty() ? release_remote : query.remote_name;
-    std::vector<mp::VMImageInfo> images;
+
+    std::vector<std::string> remotes_to_search;
+
+    if (!query.remote_name.empty())
+    {
+        remotes_to_search.push_back(query.remote_name);
+    }
+    else
+    {
+        remotes_to_search = std::vector<std::string>{release_remote, daily_remote};
+    }
+
+    std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
     auto key = key_from(query.release);
     mp::SimpleStreamsManifest* manifest;
 
-    manifest = manifest_from(remote_name);
-    const auto* info = match_alias(key, *manifest);
-
-    if (info)
+    for (const auto& remote_name : remotes_to_search)
     {
-        if (!info->supported && !query.allow_unsupported)
-            throw mp::UnsupportedImageException(query.release);
+        manifest = manifest_from(remote_name);
+        const auto* info = match_alias(key, *manifest);
 
-        images.push_back(*info);
-    }
-    else
-    {
-        std::unordered_set<std::string> found_hashes;
-
-        for (const auto& entry : manifest->products)
+        if (info)
         {
-            if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
-                found_hashes.find(entry.id.toStdString()) == found_hashes.end())
+            if (!info->supported && !query.allow_unsupported)
+                throw mp::UnsupportedImageException(query.release);
+
+            images.push_back(std::make_pair(remote_name, *info));
+        }
+        else
+        {
+            std::unordered_set<std::string> found_hashes;
+
+            for (const auto& entry : manifest->products)
             {
-                images.push_back(
-                    with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
-                found_hashes.insert(entry.id.toStdString());
+                if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
+                    found_hashes.find(entry.id.toStdString()) == found_hashes.end())
+                {
+                    images.push_back(std::make_pair(
+                        remote_name,
+                        with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry)));
+                    found_hashes.insert(entry.id.toStdString());
+                }
             }
         }
     }
