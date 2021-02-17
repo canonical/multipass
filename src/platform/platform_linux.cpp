@@ -66,6 +66,22 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return detail::get_network_interfaces_from(QDir{QStringLiteral("/sys/class/net")});
 }
 
+bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
+{
+    return true;
+}
+
+bool mp::platform::Platform::is_remote_supported(const std::string& remote)
+{
+    auto driver = utils::get_driver_str();
+
+    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
+    if (driver == "lxd" && remote == "snapcraft")
+        return false;
+
+    return true;
+}
+
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {
@@ -183,22 +199,6 @@ mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 bool mp::platform::link(const char* target, const char* link)
 {
     return ::link(target, link) == 0;
-}
-
-bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
-{
-    return true;
-}
-
-bool mp::platform::is_remote_supported(const std::string& remote)
-{
-    auto driver = utils::get_driver_str();
-
-    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
-    if (driver == "lxd" && remote == "snapcraft")
-        return false;
-
-    return true;
 }
 
 bool mp::platform::is_image_url_supported()
