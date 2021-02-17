@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,14 +63,14 @@ public:
                 return mock_bionic_image_info;
             }
         });
-        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector));
+        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector_pair));
         ON_CALL(*this, info_for_full_hash(_)).WillByDefault(Return(empty_vm_image_info));
         ON_CALL(*this, all_images_for(_, _)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, supported_remotes()).WillByDefault(Return(remote));
     };
 
     MOCK_METHOD1(info_for, optional<VMImageInfo>(const Query&));
-    MOCK_METHOD1(all_info_for, std::vector<VMImageInfo>(const Query&));
+    MOCK_METHOD1(all_info_for, std::vector<std::pair<std::string, VMImageInfo>>(const Query&));
     MOCK_METHOD1(info_for_full_hash, VMImageInfo(const std::string&));
     MOCK_METHOD2(all_images_for, std::vector<VMImageInfo>(const std::string&, const bool));
     MOCK_METHOD1(for_each_entry_do, void(const Action&));
@@ -110,6 +110,7 @@ public:
                                        false};
 
 private:
+    std::vector<std::pair<std::string, VMImageInfo>> empty_image_info_vector_pair;
     std::vector<VMImageInfo> empty_image_info_vector;
     VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     std::vector<std::string> remote{{"release"}};

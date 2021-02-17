@@ -50,7 +50,7 @@ public:
     MOCK_METHOD3(update_images, void(const FetchType&, const PrepareAction&, const ProgressMonitor&));
     MOCK_METHOD1(minimum_image_size_for, MemorySize(const std::string&));
     MOCK_CONST_METHOD1(image_host_for, VMImageHost*(const std::string&));
-    MOCK_CONST_METHOD1(all_info_for, std::vector<VMImageInfo>(const Query&));
+    MOCK_CONST_METHOD1(all_info_for, std::vector<std::pair<std::string, VMImageInfo>>(const Query&));
 
 private:
     TempFile dummy_image;
