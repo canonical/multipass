@@ -31,6 +31,8 @@ class MockPlatform : public platform::Platform
 public:
     using Platform::Platform;
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
+    MOCK_METHOD1(is_remote_supported, bool(const std::string&));
+    MOCK_METHOD2(is_alias_supported, bool(const std::string&, const std::string&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };
