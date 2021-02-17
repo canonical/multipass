@@ -1069,13 +1069,14 @@ try // clang-format on
 {
     mpl::ClientLogger<FindReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
     FindReply response;
+    const auto default_remote{"release"};
 
     if (!request->search_string().empty())
     {
         auto vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
                                                            Query::Type::Alias, request->allow_unsupported()});
 
-        for (const auto& info : vm_images_info)
+        for (const auto& [remote, info] : vm_images_info)
         {
             std::string name;
             if (info.aliases.contains(QString::fromStdString(request->search_string())))
@@ -1093,7 +1094,11 @@ try // clang-format on
             entry->set_release(info.release_title.toStdString());
             entry->set_version(info.version.toStdString());
             auto alias_entry = entry->add_aliases_info();
-            alias_entry->set_remote_name(request->remote_name());
+            if (!request->remote_name().empty() ||
+                (request->remote_name().empty() && vm_images_info.size() > 1 && remote != default_remote))
+            {
+                alias_entry->set_remote_name(remote);
+            }
             alias_entry->set_alias(name);
         }
     }
@@ -1125,7 +1130,6 @@ try // clang-format on
             for (const auto& image_host : config->image_hosts)
             {
                 std::unordered_set<std::string> images_found;
-                const auto default_remote{"release"};
                 auto action = [&images_found, &default_remote, request, &add_aliases](const std::string& remote,
                                                                                       const mp::VMImageInfo& info) {
                     if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
