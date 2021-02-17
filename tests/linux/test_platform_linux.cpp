@@ -321,22 +321,22 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 
 TEST_F(PlatformLinux, test_is_remote_supported_returns_true)
 {
-    EXPECT_TRUE(mp::platform::is_remote_supported("release"));
-    EXPECT_TRUE(mp::platform::is_remote_supported("daily"));
-    EXPECT_TRUE(mp::platform::is_remote_supported(""));
-    EXPECT_TRUE(mp::platform::is_remote_supported("snapcraft"));
-    EXPECT_TRUE(mp::platform::is_remote_supported("appliance"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("release"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("daily"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported(""));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("snapcraft"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("appliance"));
 }
 
 TEST_F(PlatformLinux, test_is_remote_supported_lxd)
 {
     setup_driver_settings("lxd");
 
-    EXPECT_TRUE(mp::platform::is_remote_supported("release"));
-    EXPECT_TRUE(mp::platform::is_remote_supported("daily"));
-    EXPECT_TRUE(mp::platform::is_remote_supported(""));
-    EXPECT_TRUE(mp::platform::is_remote_supported("appliance"));
-    EXPECT_FALSE(mp::platform::is_remote_supported("snapcraft"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("release"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("daily"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported(""));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("appliance"));
+    EXPECT_FALSE(MP_PLATFORM.is_remote_supported("snapcraft"));
 }
 
 TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
@@ -362,7 +362,7 @@ TEST_F(PlatformLinux, test_not_snap_returns_expected_default_address)
 
 TEST_F(PlatformLinux, test_is_alias_supported_returns_true)
 {
-    EXPECT_TRUE(mp::platform::is_alias_supported("focal", "release"));
+    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
 }
 
 struct TestUnsupportedDrivers : public TestWithParam<QString>
