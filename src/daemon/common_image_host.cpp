@@ -93,7 +93,7 @@ void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& detail
 
 void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_name) const
 {
-    if (!mp::platform::is_remote_supported(remote_name))
+    if (!MP_PLATFORM.is_remote_supported(remote_name))
         throw mp::UnsupportedRemoteException(
             fmt::format("Remote \'{}\' is not a supported remote for this platform. Please use "
                         "`multipass find` for supported remotes and images.",
@@ -102,7 +102,7 @@ void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_
 
 void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, const std::string& remote_name) const
 {
-    if (!mp::platform::is_alias_supported(alias, remote_name))
+    if (!MP_PLATFORM.is_alias_supported(alias, remote_name))
         throw std::runtime_error(fmt::format(
             "\'{}\' is not a supported alias. Please use `multipass find` for supported image aliases.", alias));
 }
