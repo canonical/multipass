@@ -209,11 +209,13 @@ TEST_F(UbuntuImageHost, all_info_release_returns_multiple_hash_matches)
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
 }
 
-TEST_F(UbuntuImageHost, all_info_daily_no_matches_throws_error)
+TEST_F(UbuntuImageHost, all_info_daily_no_matches_returns_empty_vector)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    EXPECT_THROW(host.all_info_for(make_query("1", daily_remote_spec.first)), std::runtime_error);
+    auto images = host.all_info_for(make_query("1", daily_remote_spec.first));
+
+    EXPECT_TRUE(images.empty());
 }
 
 TEST_F(UbuntuImageHost, all_info_release_returns_one_alias_match)
