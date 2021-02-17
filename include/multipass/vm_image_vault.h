@@ -31,6 +31,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace multipass
 {
@@ -83,7 +85,7 @@ public:
                                const ProgressMonitor& monitor) = 0;
     virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
-    virtual std::vector<VMImageInfo> all_info_for(const Query& query) const = 0;
+    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const = 0;
 
 protected:
     VMImageVault() = default;

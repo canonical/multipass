@@ -25,6 +25,7 @@
 #include <multipass/vm_image_vault.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace multipass
@@ -48,9 +49,9 @@ public:
         return it->second;
     };
 
-    std::vector<VMImageInfo> all_info_for(const Query& query) const override
+    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const override
     {
-        std::vector<VMImageInfo> images_info;
+        std::vector<std::pair<std::string, VMImageInfo>> images_info;
 
         auto grab_imgs = [&images_info, &query](auto* image_host) {
             return !(images_info = image_host->all_info_for(query)).empty();
