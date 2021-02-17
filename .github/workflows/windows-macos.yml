@@ -91,7 +91,7 @@ jobs:
     runs-on: multipass-macos-10.14
 
     env:
-      BUILD_DIR: ../build
+      BUILD_DIR: build
       MACOSX_DEPLOYMENT_TARGET: "10.14"
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
@@ -172,6 +172,17 @@ jobs:
         setup-python: false
         version: ${{ env.QT_VERSION }}
       timeout-minutes: 10
+
+    - name: Cleanup
+      if: ${{ always() }}
+      uses: canonical/actions/cleanup@release
+      with:
+        # remove everything in the workspace and the dependencies
+        paths: |
+          ${{ env.Qt5_DIR }}
+          ~/.opam
+          ~/Library/Caches/ccache
+          ${{ github.workspace }}
 
     - name: Cache OPAM
       uses: actions/cache@v2
@@ -283,13 +294,6 @@ jobs:
         sha: ${{ github.event.client_payload.head_sha }}
         check_id: ${{ steps.public-check.outputs.check_id }}
         conclusion: ${{ job.status }}
-
-    - name: Cleanup
-      if: ${{ always() }}
-      run: |
-        rm -Rf $( find . -mindepth 1 -maxdepth 1 )  # to remove hidden things, too
-        rm -Rf ${{ env.BUILD_DIR }}
-        rm -Rf ${{ runner.workspace }}/Qt
 
   Windows:
     needs: [Checkout, Lint]
