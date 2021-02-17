@@ -52,23 +52,14 @@ public:
     {
         std::vector<VMImageInfo> images_info;
 
-        if (!query.remote_name.empty())
-        {
-            auto image_host = image_host_for(query.remote_name);
-            images_info = image_host->all_info_for(query);
-        }
-        else
-        {
-            for (const auto& image_host : image_hosts)
-            {
-                images_info = image_host->all_info_for(query);
+        auto grab_imgs = [&images_info, &query](auto* image_host) {
+            return !(images_info = image_host->all_info_for(query)).empty();
+        };
 
-                if (!images_info.empty())
-                {
-                    break;
-                }
-            }
-        }
+        if (!query.remote_name.empty())
+            images_info = image_host_for(query.remote_name)->all_info_for(query);
+        else
+            std::find_if(image_hosts.begin(), image_hosts.end(), grab_imgs);
 
         if (images_info.empty())
             throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));
