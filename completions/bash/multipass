@@ -76,8 +76,8 @@ _multipass_complete()
         esac
     }
 
-    # Set $last_match to the name of the last argument whose name matches with, or the empty string if there is no
-    # match. Return its position in COMP_WORDS.
+    # Set $last_match to the last argument that matches the provided regex, or the empty string if there is no
+    # match. Return its position in COMP_WORDS, or 0 when there is no match.
     _find_last_match()
     {
         local last_pos
