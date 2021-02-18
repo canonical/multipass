@@ -189,9 +189,8 @@ jobs:
       with:
         path: "~/.opam"
         # Use OPAM version and hyperkit sha as cache key. This ensures that when we change hyperkit,
-        # any dependency changes will follow. Also start from scratch if OPAM version changes.
+        # any dependency changes will follow. Also start from scratch if OPAM, macOS or hyperkit versions change.
         key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.cache-params.outputs.hyperkit-sha }}
-        restore-keys: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
 
     - name: Set up OCaml
       uses: avsm/setup-ocaml@v1.1.7
@@ -208,8 +207,6 @@ jobs:
 
     - name: Install OPAM dependencies
       run: |
-        opam pin remove uri uri-sexp
-        opam uninstall uri uri-sexp
         opam install 3rd-party/hyperkit --deps-only
         opam list
 
