@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -18,7 +18,7 @@ _multipass_complete()
     {
         local state=$1
 
-        local cmd="multipass list --format=csv"
+        local cmd="multipass list --format=csv --no-ipv4"
         [ -n "$state" ] && cmd="$cmd | \grep -E '$state'"
 
         local instances=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )

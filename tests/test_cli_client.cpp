@@ -856,7 +856,7 @@ TEST_F(Client, info_cmd_fails_with_names_and_all)
 // list cli tests
 TEST_F(Client, list_cmd_ok_no_args)
 {
-    EXPECT_CALL(mock_daemon, list(_, _, _));
+    EXPECT_CALL(mock_daemon, list(_, Property(&mp::ListRequest::request_ipv4, IsTrue()), _));
     EXPECT_THAT(send_command({"list"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -868,6 +868,12 @@ TEST_F(Client, list_cmd_fails_with_args)
 TEST_F(Client, list_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"list", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, list_cmd_no_ipv4_ok)
+{
+    EXPECT_CALL(mock_daemon, list(_, Property(&mp::ListRequest::request_ipv4, IsFalse()), _));
+    EXPECT_THAT(send_command({"list", "--no-ipv4"}), Eq(mp::ReturnCode::Ok));
 }
 
 // mount cli tests

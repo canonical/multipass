@@ -39,6 +39,7 @@
 #include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_standard_paths.h"
+#include "mock_virtual_machine.h"
 #include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "stub_cert_store.h"
@@ -502,6 +503,12 @@ struct LaunchWithNoNetworkCloudInit : public Daemon, public WithParamInterface<s
 };
 
 struct RefuseBridging : public Daemon, public WithParamInterface<std::tuple<std::string, std::string>>
+{
+};
+
+struct ListIP : public Daemon,
+                public WithParamInterface<
+                    std::tuple<mp::VirtualMachine::State, std::vector<std::string>, std::vector<std::string>>>
 {
 };
 
@@ -1220,6 +1227,43 @@ TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometim
 
     mp::Daemon daemon{config_builder.build()};
 }
+
+TEST_P(ListIP, lists_with_ip)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock");
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](const auto&, auto&) {
+        return std::move(instance_ptr);
+    });
+
+    auto [state, cmd, strs] = GetParam();
+
+    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
+    EXPECT_CALL(*instance_ptr, ensure_vm_is_running()).WillRepeatedly(Throw(std::runtime_error("Not running")));
+
+    send_command({"launch"});
+
+    std::stringstream stream;
+    send_command(cmd, stream);
+
+    for (const auto& s : strs)
+        EXPECT_THAT(stream.str(), HasSubstr(s));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon, ListIP,
+    Values(std::make_tuple(mp::VirtualMachine::State::running, std::vector<std::string>{"list"},
+                           std::vector<std::string>{"Running", "192.168.2.123"}),
+           std::make_tuple(mp::VirtualMachine::State::running, std::vector<std::string>{"list", "--no-ipv4"},
+                           std::vector<std::string>{"Running", "--"}),
+           std::make_tuple(mp::VirtualMachine::State::off, std::vector<std::string>{"list"},
+                           std::vector<std::string>{"Stopped", "--"}),
+           std::make_tuple(mp::VirtualMachine::State::off, std::vector<std::string>{"list", "--no-ipv4"},
+                           std::vector<std::string>{"Stopped", "--"})));
 
 TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
 {

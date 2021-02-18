@@ -1422,10 +1422,6 @@ try // clang-format on
 
         if (request->request_ipv4() && mp::utils::is_running(present_state))
         {
-            auto vm_specs = vm_instance_specs[name];
-            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                   *config->ssh_key_provider};
-
             std::string management_ip = vm->management_ipv4();
             auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
 
