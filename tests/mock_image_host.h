@@ -44,6 +44,10 @@ constexpr auto lxd_custom_image_id = "bc5a973bd6f2bef30658fb51177cf5e506c1d60958
 constexpr auto custom_release_info = "Custom Ubuntu for Testing";
 constexpr auto custom_image_version = "20200909";
 
+constexpr auto another_image_id = "e34a2047c6ba57722bc612115b1d44bea4a29ac2212fcc0628c49aa832dba867";
+constexpr auto another_image_version = "20200501";
+constexpr auto another_release_info = "Another Ubuntu Version";
+
 class MockImageHost : public VMImageHost
 {
 public:
@@ -108,6 +112,9 @@ public:
                                        custom_image_version,
                                        1,
                                        false};
+    VMImageInfo mock_another_image_info{
+        {"another"},  "Ubuntu",         "another", another_release_info,  true, image.url(), kernel.url(),
+        initrd.url(), another_image_id, "",        another_image_version, 1,    false};
 
 private:
     std::vector<std::pair<std::string, VMImageInfo>> empty_image_info_vector_pair;
