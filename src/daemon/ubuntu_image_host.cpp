@@ -94,7 +94,8 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for(const Query& query)
 {
-    check_alias_is_supported(query.release, query.remote_name);
+    auto key = key_from(query.release);
+    check_alias_is_supported(key.toStdString(), query.remote_name);
 
     std::vector<std::string> remotes_to_search;
 
@@ -109,7 +110,6 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
     std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
-    auto key = key_from(query.release);
     mp::SimpleStreamsManifest* manifest;
 
     for (const auto& remote_name : remotes_to_search)
