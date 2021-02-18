@@ -606,3 +606,66 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understa
     MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id), std::runtime_error,
                          Property(&std::runtime_error::what, HasSubstr("Could not obtain image's virtual size")));
 }
+
+TEST_F(ImageVault, all_info_for_no_remote_given_returns_expected_data)
+{
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+
+    const std::string remote_name{"release"};
+    EXPECT_CALL(host, all_info_for(_))
+        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
+            {remote_name, host.mock_bionic_image_info}, {remote_name, host.mock_another_image_info}}));
+
+    auto images = vault.all_info_for({"", "e3", false, "", mp::Query::Type::Alias, true});
+
+    EXPECT_EQ(images.size(), 2u);
+
+    const auto& [first_image_remote, first_image_info] = images[0];
+    EXPECT_EQ(first_image_remote, remote_name);
+    EXPECT_EQ(first_image_info.id.toStdString(), mpt::default_id);
+    EXPECT_EQ(first_image_info.version.toStdString(), mpt::default_version);
+
+    const auto& [second_image_remote, second_image_info] = images[1];
+    EXPECT_EQ(second_image_remote, remote_name);
+    EXPECT_EQ(second_image_info.id.toStdString(), mpt::another_image_id);
+    EXPECT_EQ(second_image_info.version.toStdString(), mpt::another_image_version);
+}
+
+TEST_F(ImageVault, all_info_for_remote_given_returns_expected_data)
+{
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+
+    const std::string remote_name{"release"};
+    EXPECT_CALL(host, all_info_for(_))
+        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
+            {remote_name, host.mock_bionic_image_info}, {remote_name, host.mock_another_image_info}}));
+
+    auto images = vault.all_info_for({"", "e3", false, remote_name, mp::Query::Type::Alias, true});
+
+    EXPECT_EQ(images.size(), 2u);
+
+    const auto& [first_image_remote, first_image_info] = images[0];
+    EXPECT_EQ(first_image_remote, remote_name);
+    EXPECT_EQ(first_image_info.id.toStdString(), mpt::default_id);
+    EXPECT_EQ(first_image_info.version.toStdString(), mpt::default_version);
+
+    const auto& [second_image_remote, second_image_info] = images[1];
+    EXPECT_EQ(second_image_remote, remote_name);
+    EXPECT_EQ(second_image_info.id.toStdString(), mpt::another_image_id);
+    EXPECT_EQ(second_image_info.version.toStdString(), mpt::another_image_version);
+}
+
+TEST_F(ImageVault, all_info_for_no_images_returned_throws)
+{
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+
+    const std::string name{"foo"};
+    EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
+
+    MP_EXPECT_THROW_THAT(
+        vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}), std::runtime_error,
+        Property(&std::runtime_error::what, StrEq(fmt::format("Unable to find an image matching \"{}\"", name))));
+}
