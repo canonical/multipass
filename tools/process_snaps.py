@@ -24,7 +24,7 @@ logger.setLevel(logging.INFO)
 APPLICATION = "multipass-ci"
 LAUNCHPAD = "production"
 RELEASE = "bionic"
-TEAM = "multipass-ci-bot"
+TEAM = "multipass-team"
 SOURCE_NAME = "multipass"
 SNAPS = {
     "multipass": {"candidate": {"recipe": "multipass-candidate"}},
