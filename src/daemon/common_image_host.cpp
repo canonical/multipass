@@ -22,6 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
+#include <multipass/exceptions/unsupported_alias_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
 
 namespace mp = multipass;
@@ -103,7 +104,7 @@ void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_
 void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, const std::string& remote_name) const
 {
     if (!MP_PLATFORM.is_alias_supported(alias, remote_name))
-        throw std::runtime_error(fmt::format(
+        throw mp::UnsupportedAliasException(fmt::format(
             "\'{}\' is not a supported alias. Please use `multipass find` for supported image aliases.", alias));
 }
 
@@ -116,7 +117,7 @@ bool mp::CommonVMImageHost::check_all_aliases_are_supported(const QStringList& a
         {
             check_alias_is_supported(alias.toStdString(), remote_name);
         }
-        catch (const std::exception&)
+        catch (const mp::UnsupportedAliasException&)
         {
             return false;
         }
