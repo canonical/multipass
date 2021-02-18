@@ -20,7 +20,7 @@
 #include "extra_assertions.h"
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
-#include "mock_platform_functions.h"
+#include "mock_platform.h"
 #include "path.h"
 #include "stub_url_downloader.h"
 
@@ -46,12 +46,6 @@ namespace
 {
 struct UbuntuImageHost : public testing::Test
 {
-    UbuntuImageHost()
-    {
-        supported_remote.returnValue(true);
-        supported_alias.returnValue(true);
-    }
-
     mp::Query make_query(std::string release, std::string remote)
     {
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
@@ -66,9 +60,6 @@ struct UbuntuImageHost : public testing::Test
     std::chrono::seconds default_ttl{1};
     QString expected_location{host_url + "newest_image.img"};
     QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
-
-    decltype(MOCK(is_remote_supported)) supported_remote{MOCK(is_remote_supported)};
-    decltype(MOCK(is_alias_supported)) supported_alias{MOCK(is_alias_supported)};
 };
 }
 
@@ -119,14 +110,11 @@ TEST_F(UbuntuImageHost, unsupported_alias_iterates_over_expected_entries)
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
 
-    REPLACE(is_alias_supported, [](auto& alias, auto...) {
-        if (alias == "zesty")
-        {
-            return false;
-        }
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-        return true;
-    });
+    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, is_alias_supported("zesty", _)).WillRepeatedly(Return(false));
 
     host.for_each_entry_do(action);
 
@@ -265,14 +253,13 @@ TEST_F(UbuntuImageHost, all_images_for_release_unsupported_alias_returns_three_m
     const std::string unsupported_alias{"zesty"};
 
     bool zesty_seen{false};
-    REPLACE(is_alias_supported, [&](auto& alias, auto...) {
-        if (alias == unsupported_alias)
-        {
-            zesty_seen = true;
-            return false;
-        }
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-        return true;
+    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillRepeatedly([&zesty_seen](auto...) {
+        zesty_seen = true;
+        return false;
     });
 
     auto images = host.all_images_for(release_remote_spec.first, false);
@@ -406,13 +393,11 @@ TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     const std::string unsupported_remote{"bar"};
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    REPLACE(is_remote_supported, [&unsupported_remote](auto& remote) {
-        if (remote == unsupported_remote)
-            return false;
-
-        return true;
-    });
+    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
 
     MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
                          Property(&std::runtime_error::what,
@@ -425,15 +410,14 @@ TEST_F(UbuntuImageHost, info_for_no_remote_first_unsupported_returns_expected_in
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     bool release_remote_checked{false};
-    REPLACE(is_remote_supported, [&release_remote_checked](auto& remote) {
-        if (remote == "release")
-        {
-            release_remote_checked = true;
-            return false;
-        }
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-        return true;
+    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, is_remote_supported("release")).WillRepeatedly([&release_remote_checked](auto...) {
+        release_remote_checked = true;
+        return false;
     });
+    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
 
     auto info = host.info_for(make_query("artful", ""));
 
