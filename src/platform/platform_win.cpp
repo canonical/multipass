@@ -310,6 +310,47 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     throw std::runtime_error{err};
 }
 
+bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
+{
+    // snapcraft:core image doesn't work yet
+    if (remote == "snapcraft" && alias == "core")
+        return false;
+
+    if (check_unlock_code())
+        return true;
+
+    if (remote.empty())
+    {
+        if (supported_release_aliases.find(alias) != supported_release_aliases.end())
+            return true;
+    }
+    else
+    {
+        auto it = supported_remotes_aliases_map.find(remote);
+
+        if (it != supported_remotes_aliases_map.end())
+        {
+            if (it->second.empty() || (it->second.find(alias) != it->second.end()))
+                return true;
+        }
+    }
+
+    return false;
+}
+
+bool mp::platform::Platform::is_remote_supported(const std::string& remote)
+{
+    if (remote.empty() || check_unlock_code())
+        return true;
+
+    if (supported_remotes_aliases_map.find(remote) != supported_remotes_aliases_map.end())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
     return {{mp::winterm_key, {"primary"}}};
@@ -488,47 +529,6 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     }
 
     return 0;
-}
-
-bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
-{
-    // snapcraft:core image doesn't work yet
-    if (remote == "snapcraft" && alias == "core")
-        return false;
-
-    if (check_unlock_code())
-        return true;
-
-    if (remote.empty())
-    {
-        if (supported_release_aliases.find(alias) != supported_release_aliases.end())
-            return true;
-    }
-    else
-    {
-        auto it = supported_remotes_aliases_map.find(remote);
-
-        if (it != supported_remotes_aliases_map.end())
-        {
-            if (it->second.empty() || (it->second.find(alias) != it->second.end()))
-                return true;
-        }
-    }
-
-    return false;
-}
-
-bool mp::platform::is_remote_supported(const std::string& remote)
-{
-    if (remote.empty() || check_unlock_code())
-        return true;
-
-    if (supported_remotes_aliases_map.find(remote) != supported_remotes_aliases_map.end())
-    {
-        return true;
-    }
-
-    return false;
 }
 
 bool mp::platform::is_image_url_supported()
