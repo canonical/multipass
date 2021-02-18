@@ -45,6 +45,12 @@ namespace
 {
 struct CustomImageHost : public Test
 {
+    CustomImageHost()
+    {
+        EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
+        EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
+    }
+
     mp::Query make_query(std::string release, std::string remote)
     {
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
@@ -54,6 +60,10 @@ struct CustomImageHost : public Test
     mpt::MischievousURLDownloader url_downloader{timeout};
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
+
+    decltype(mpt::MockPlatform::inject()) attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = attr.first;
+    decltype(attr.second)& guard{attr.second};
 };
 } // namespace
 
@@ -183,10 +193,6 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_platform, is_alias_supported("core18", _)).WillRepeatedly(Return(false));
 
     host.for_each_entry_do(action);
@@ -203,12 +209,7 @@ TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
 
     const std::string unsupported_remote{"snapcraft"};
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
 
     host.for_each_entry_do(action);
 
@@ -232,10 +233,6 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_m
     const std::string unsupported_alias{"core18"};
 
     bool core18_seen{false};
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillRepeatedly([&core18_seen](auto...) {
         core18_seen = true;
         return false;
@@ -333,12 +330,7 @@ TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
 
     const std::string unsupported_remote{"snapcraft"};
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
 
     MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
                          Property(&std::runtime_error::what,
