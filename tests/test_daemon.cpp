@@ -1239,9 +1239,7 @@ TEST_P(ListIP, lists_with_ip)
     auto [state, cmd, strs] = GetParam();
 
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
-    EXPECT_CALL(*instance_ptr, ensure_vm_is_running()).WillRepeatedly(Invoke([]() {
-        throw std::runtime_error("Not running");
-    }));
+    EXPECT_CALL(*instance_ptr, ensure_vm_is_running()).WillRepeatedly(Throw(std::runtime_error("Not running")));
 
     send_command({"launch"});
 
