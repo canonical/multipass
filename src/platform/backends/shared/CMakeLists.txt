@@ -16,10 +16,12 @@ set (CMAKE_AUTOMOC ON)
 
 add_library(shared STATIC
   base_virtual_machine.cpp
+  base_virtual_machine_factory.cpp
   sshfs_server_process_spec.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 
 target_link_libraries(shared
+  iso
   process
   utils
   Qt5::Core)
