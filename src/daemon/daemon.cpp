@@ -19,7 +19,6 @@
 #include "base_cloud_init_config.h"
 #include "json_writer.h"
 
-#include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
@@ -180,26 +179,6 @@ auto make_cloud_init_network_config(const std::string default_mac_addr,
     return network_data;
 }
 
-auto make_cloud_init_image(const std::string& name, const QDir& instance_dir, YAML::Node& meta_data_config,
-                           YAML::Node& user_data_config, YAML::Node& vendor_data_config,
-                           YAML::Node& network_data_config)
-{
-    const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
-    if (QFile::exists(cloud_init_iso))
-        return cloud_init_iso;
-
-    mp::CloudInitIso iso;
-    iso.add_file("meta-data", mpu::emit_cloud_config(meta_data_config));
-    iso.add_file("vendor-data", mpu::emit_cloud_config(vendor_data_config));
-    iso.add_file("user-data", mpu::emit_cloud_config(user_data_config));
-    if (!network_data_config.IsNull())
-        iso.add_file("network-config", mpu::emit_cloud_config(network_data_config));
-
-    iso.write_to(cloud_init_iso);
-
-    return cloud_init_iso;
-}
-
 void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 {
     auto users = user_data_config["users"];
@@ -209,27 +188,6 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
     auto keys = user_data_config["ssh_authorized_keys"];
     if (keys.IsSequence())
         keys.push_back(vendor_config["ssh_authorized_keys"][0]);
-}
-
-mp::VirtualMachineDescription to_machine_desc(const mp::LaunchRequest* request, const std::string& name,
-                                              const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
-                                              const std::string& mac_addr,
-                                              const std::vector<mp::NetworkInterface>& extra_interfaces,
-                                              const std::string& ssh_username, const mp::VMImage& image,
-                                              YAML::Node& meta_data_config, YAML::Node& user_data_config,
-                                              YAML::Node& vendor_data_config, YAML::Node& network_data_config)
-{
-    const auto num_cores = request->num_cores() < std::stoi(mp::min_cpu_cores)
-                               ? std::stoi(mp::default_cpu_cores)
-                               : request->num_cores();
-    const auto instance_dir = mp::utils::base_dir(image.image_path);
-    const auto cloud_init_iso = make_cloud_init_image(name, instance_dir, meta_data_config, user_data_config,
-                                                      vendor_data_config, network_data_config);
-
-    return {num_cores,          mem_size,         disk_space,       name,
-            mac_addr,           extra_interfaces, ssh_username,     image,
-            cloud_init_iso,     meta_data_config, user_data_config, vendor_data_config,
-            network_data_config};
 }
 
 template <typename T>
@@ -2203,11 +2161,23 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             auto network_data_cloud_init_config =
                 make_cloud_init_network_config(default_mac_addr, checked_args.extra_interfaces);
 
-            auto vm_desc = to_machine_desc(request, name, checked_args.mem_size, disk_space, default_mac_addr,
-                                           checked_args.extra_interfaces, config->ssh_username, vm_image,
-                                           meta_data_cloud_init_config, user_data_cloud_init_config,
-                                           vendor_data_cloud_init_config, network_data_cloud_init_config);
+            auto num_cores{request->num_cores() < std::stoi(mp::min_cpu_cores) ? std::stoi(mp::default_cpu_cores)
+                                                                               : request->num_cores()};
+            VirtualMachineDescription vm_desc{num_cores,
+                                              checked_args.mem_size,
+                                              disk_space,
+                                              name,
+                                              default_mac_addr,
+                                              checked_args.extra_interfaces,
+                                              config->ssh_username,
+                                              vm_image,
+                                              "",
+                                              meta_data_cloud_init_config,
+                                              user_data_cloud_init_config,
+                                              vendor_data_cloud_init_config,
+                                              network_data_cloud_init_config};
 
+            config->factory->configure(vm_desc);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.
