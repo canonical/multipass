@@ -834,6 +834,28 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
+void add_aliases(mp::FindReply& response, const std::string& remote_name, const mp::VMImageInfo& info,
+                 const std::string& default_remote)
+{
+    if (!info.aliases.empty())
+    {
+        auto entry = response.add_images_info();
+        for (const auto& alias : info.aliases)
+        {
+            auto alias_entry = entry->add_aliases_info();
+            if (remote_name != default_remote)
+            {
+                alias_entry->set_remote_name(remote_name);
+            }
+            alias_entry->set_alias(alias.toStdString());
+        }
+
+        entry->set_os(info.os.toStdString());
+        entry->set_release(info.release_title.toStdString());
+        entry->set_version(info.version.toStdString());
+    }
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1102,57 +1124,33 @@ try // clang-format on
             alias_entry->set_alias(name);
         }
     }
+    else if (request->remote_name().empty())
+    {
+        for (const auto& image_host : config->image_hosts)
+        {
+            std::unordered_set<std::string> images_found;
+            auto action = [&images_found, &default_remote, request, &response](const std::string& remote,
+                                                                               const mp::VMImageInfo& info) {
+                if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                    images_found.find(info.release_title.toStdString()) == images_found.end())
+                {
+                    add_aliases(response, remote, info, default_remote);
+                    images_found.insert(info.release_title.toStdString());
+                }
+            };
+
+            image_host->for_each_entry_do(action);
+        }
+    }
     else
     {
-        auto add_aliases = [&response](const std::string& remote_name, const mp::VMImageInfo& info,
-                                       const std::string& default_remote) {
-            if (!info.aliases.empty())
-            {
-                auto entry = response.add_images_info();
-                for (const auto& alias : info.aliases)
-                {
-                    auto alias_entry = entry->add_aliases_info();
-                    if (remote_name != default_remote)
-                    {
-                        alias_entry->set_remote_name(remote_name);
-                    }
-                    alias_entry->set_alias(alias.toStdString());
-                }
+        const auto& remote = request->remote_name();
+        auto image_host = config->vault->image_host_for(remote);
+        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 
-                entry->set_os(info.os.toStdString());
-                entry->set_release(info.release_title.toStdString());
-                entry->set_version(info.version.toStdString());
-            }
-        };
-
-        if (request->remote_name().empty())
+        for (const auto& info : vm_images_info)
         {
-            for (const auto& image_host : config->image_hosts)
-            {
-                std::unordered_set<std::string> images_found;
-                auto action = [&images_found, &default_remote, request, &add_aliases](const std::string& remote,
-                                                                                      const mp::VMImageInfo& info) {
-                    if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                        images_found.find(info.release_title.toStdString()) == images_found.end())
-                    {
-                        add_aliases(remote, info, default_remote);
-                        images_found.insert(info.release_title.toStdString());
-                    }
-                };
-
-                image_host->for_each_entry_do(action);
-            }
-        }
-        else
-        {
-            const auto& remote = request->remote_name();
-            auto image_host = config->vault->image_host_for(remote);
-            auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
-
-            for (const auto& info : vm_images_info)
-            {
-                add_aliases(remote, info, "");
-            }
+            add_aliases(response, remote, info, "");
         }
     }
     server->Write(response);
