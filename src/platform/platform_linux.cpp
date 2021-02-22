@@ -73,13 +73,8 @@ bool mp::platform::Platform::is_alias_supported(const std::string& alias, const 
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote)
 {
-    auto driver = utils::get_driver_str();
-
     // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
-    if (driver == "lxd" && remote == "snapcraft")
-        return false;
-
-    return true;
+    return remote != "snapcraft" || utils::get_driver_str() != "lxd";
 }
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
