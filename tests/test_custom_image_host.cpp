@@ -63,7 +63,6 @@ struct CustomImageHost : public Test
 
     decltype(mpt::MockPlatform::inject()) attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = attr.first;
-    decltype(attr.second)& guard{attr.second};
 };
 } // namespace
 
@@ -232,17 +231,12 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_m
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
     const std::string unsupported_alias{"core18"};
 
-    bool core18_seen{false};
-    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillRepeatedly([&core18_seen](auto...) {
-        core18_seen = true;
-        return false;
-    });
+    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
     auto images = host.all_images_for("snapcraft", false);
 
     const size_t expected_matches{2};
     EXPECT_EQ(images.size(), expected_matches);
-    EXPECT_TRUE(core18_seen);
 }
 
 TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)

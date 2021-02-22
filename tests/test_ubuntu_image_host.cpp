@@ -69,7 +69,6 @@ struct UbuntuImageHost : public testing::Test
 
     decltype(mpt::MockPlatform::inject()) attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = attr.first;
-    decltype(attr.second)& guard{attr.second};
 };
 }
 
@@ -258,17 +257,12 @@ TEST_F(UbuntuImageHost, all_images_for_release_unsupported_alias_returns_three_m
 
     const std::string unsupported_alias{"zesty"};
 
-    bool zesty_seen{false};
-    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillRepeatedly([&zesty_seen](auto...) {
-        zesty_seen = true;
-        return false;
-    });
+    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
     auto images = host.all_images_for(release_remote_spec.first, false);
 
     const size_t expected_matches{3};
     EXPECT_EQ(images.size(), expected_matches);
-    EXPECT_TRUE(zesty_seen);
 }
 
 TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
@@ -407,15 +401,9 @@ TEST_F(UbuntuImageHost, info_for_no_remote_first_unsupported_returns_expected_in
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    bool release_remote_checked{false};
-    EXPECT_CALL(*mock_platform, is_remote_supported("release")).WillRepeatedly([&release_remote_checked](auto...) {
-        release_remote_checked = true;
-        return false;
-    });
+    EXPECT_CALL(*mock_platform, is_remote_supported("release")).Times(AtLeast(1)).WillRepeatedly(Return(false));
 
     auto info = host.info_for(make_query("artful", ""));
-
-    EXPECT_TRUE(release_remote_checked);
 
     EXPECT_EQ(info->id, "c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a");
 }
