@@ -86,8 +86,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
     if (images.size() > 1 && images.front().second.id.startsWith(key_from(query.release)))
         throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
     else if (images.size() != 0)
-        return with_location_fully_resolved(QString::fromStdString(remote_url_from(images.front().first)),
-                                            images.front().second);
+        return images.front().second;
     else
         return nullopt;
 }
@@ -133,7 +132,9 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
 
-            images.push_back(std::make_pair(remote_name, *info));
+            images.push_back(std::make_pair(
+                remote_name,
+                with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), *info)));
         }
         else
         {
