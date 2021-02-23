@@ -2,4 +2,5 @@ status = [ "Linux", "Windows", "macOS" ]
 block-labels = [ "no-merge" ]
 timeout-sec = 12000
 delete-merged-branches = true
+update_base_for_deletes = true
 cut_body_after = "---"
