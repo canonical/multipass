@@ -111,17 +111,7 @@ void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, c
 bool mp::CommonVMImageHost::check_all_aliases_are_supported(const QStringList& aliases,
                                                             const std::string& remote_name) const
 {
-    for (const auto& alias : aliases)
-    {
-        try
-        {
-            check_alias_is_supported(alias.toStdString(), remote_name);
-        }
-        catch (const mp::UnsupportedAliasException&)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return std::all_of(aliases.cbegin(), aliases.cend(), [&remote_name](const auto& alias) {
+        return MP_PLATFORM.is_alias_supported(alias.toStdString(), remote_name);
+    });
 }
