@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace multipass
@@ -36,7 +37,7 @@ public:
 
     virtual ~VMImageHost() = default;
     virtual optional<VMImageInfo> info_for(const Query& query) = 0;
-    virtual std::vector<VMImageInfo> all_info_for(const Query& query) = 0;
+    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) = 0;
     virtual VMImageInfo info_for_full_hash(const std::string& full_hash) = 0;
     virtual std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) = 0;
     virtual void for_each_entry_do(const Action& action) = 0;

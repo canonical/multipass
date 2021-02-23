@@ -15,27 +15,19 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_PLATFORM_H
-#define MULTIPASS_MOCK_PLATFORM_H
+#ifndef MULTIPASS_UNSUPPORTED_ALIAS_EXCEPTION_H
+#define MULTIPASS_UNSUPPORTED_ALIAS_EXCEPTION_H
 
-#include "mock_singleton_helpers.h"
+#include <stdexcept>
 
-#include <multipass/platform.h>
-
-#include <gmock/gmock.h>
-
-namespace multipass::test
+namespace multipass
 {
-class MockPlatform : public platform::Platform
+class UnsupportedAliasException : public std::runtime_error
 {
 public:
-    using Platform::Platform;
-    MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
-    MOCK_METHOD1(is_remote_supported, bool(const std::string&));
-    MOCK_METHOD2(is_alias_supported, bool(const std::string&, const std::string&));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
+    explicit UnsupportedAliasException(const std::string& message) : runtime_error(message)
+    {
+    }
 };
-} // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_PLATFORM_H
+} // namespace multipass
+#endif // MULTIPASS_UNSUPPORTED_ALIAS_EXCEPTION_H

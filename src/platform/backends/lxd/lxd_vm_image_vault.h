@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,21 +20,18 @@
 
 #include <multipass/days.h>
 #include <multipass/query.h>
-#include <multipass/vm_image_host.h>
-#include <multipass/vm_image_vault.h>
+#include <shared/base_vm_image_vault.h>
 
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QUrl>
-
-#include <unordered_map>
 
 namespace multipass
 {
 class NetworkAccessManager;
 class URLDownloader;
 
-class LXDVMImageVault final : public VMImageVault
+class LXDVMImageVault final : public BaseVMImageVault
 {
 public:
     using TaskCompleteAction = std::function<void(const QJsonObject&)>;
@@ -52,7 +49,6 @@ public:
     MemorySize minimum_image_size_for(const std::string& id) override;
 
 private:
-    VMImageInfo info_for(const Query& query);
     void lxd_download_image(const QString& id, const QString& stream_location, const Query& query,
                             const ProgressMonitor& monitor, const QString& last_used = QString());
     void url_download_image(const VMImageInfo& info, const QString& image_path, const ProgressMonitor& monitor);
@@ -61,13 +57,11 @@ private:
     std::string get_lxd_image_hash_for(const QString& id);
     QJsonArray retrieve_image_list();
 
-    std::vector<VMImageHost*> image_hosts;
     URLDownloader* const url_downloader;
     NetworkAccessManager* manager;
     const QUrl base_url;
     const QString template_path;
     const days days_to_expire;
-    std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };
 } // namespace multipass
 #endif // MULTIPASS_LXD_VM_IMAGE_VAULT_H

@@ -203,6 +203,57 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return networks;
 }
 
+bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
+{
+    auto driver = utils::get_driver_str();
+
+    // Minimal image that snapcraft:core is does not work with VirtualBox
+    if (driver == "virtualbox" && remote == "snapcraft" && alias == "core")
+        return false;
+
+    // Core images don't work on hyperkit yet
+    if (driver == "hyperkit" && remote.empty() && (supported_core_aliases.find(alias) != supported_core_aliases.end()))
+        return false;
+
+    // Core-based appliance images don't work on hyperkit yet
+    if (driver == "hyperkit" && remote == "appliance")
+        return false;
+
+    if (check_unlock_code())
+        return true;
+
+    if (remote.empty())
+    {
+        if (supported_release_aliases.find(alias) != supported_release_aliases.end())
+            return true;
+    }
+    else
+    {
+        auto it = supported_remotes_aliases_map.find(remote);
+
+        if (it != supported_remotes_aliases_map.end())
+        {
+            if (it->second.empty() || (it->second.find(alias) != it->second.end()))
+                return true;
+        }
+    }
+
+    return false;
+}
+
+bool mp::platform::Platform::is_remote_supported(const std::string& remote)
+{
+    if (remote.empty() || check_unlock_code())
+        return true;
+
+    if (supported_remotes_aliases_map.find(remote) != supported_remotes_aliases_map.end())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
     return {};
@@ -307,57 +358,6 @@ bool mp::platform::link(const char* target, const char* link)
     }
 
     return ::link(target, link) == 0;
-}
-
-bool mp::platform::is_alias_supported(const std::string& alias, const std::string& remote)
-{
-    auto driver = utils::get_driver_str();
-
-    // Minimal image that snapcraft:core is does not work with VirtualBox
-    if (driver == "virtualbox" && remote == "snapcraft" && alias == "core")
-        return false;
-
-    // Core images don't work on hyperkit yet
-    if (driver == "hyperkit" && remote.empty() && (supported_core_aliases.find(alias) != supported_core_aliases.end()))
-        return false;
-
-    // Core-based appliance images don't work on hyperkit yet
-    if (driver == "hyperkit" && remote == "appliance")
-        return false;
-
-    if (check_unlock_code())
-        return true;
-
-    if (remote.empty())
-    {
-        if (supported_release_aliases.find(alias) != supported_release_aliases.end())
-            return true;
-    }
-    else
-    {
-        auto it = supported_remotes_aliases_map.find(remote);
-
-        if (it != supported_remotes_aliases_map.end())
-        {
-            if (it->second.empty() || (it->second.find(alias) != it->second.end()))
-                return true;
-        }
-    }
-
-    return false;
-}
-
-bool mp::platform::is_remote_supported(const std::string& remote)
-{
-    if (remote.empty() || check_unlock_code())
-        return true;
-
-    if (supported_remotes_aliases_map.find(remote) != supported_remotes_aliases_map.end())
-    {
-        return true;
-    }
-
-    return false;
 }
 
 bool mp::platform::is_image_url_supported()

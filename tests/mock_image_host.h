@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,10 @@ constexpr auto lxd_custom_image_id = "bc5a973bd6f2bef30658fb51177cf5e506c1d60958
 constexpr auto custom_release_info = "Custom Ubuntu for Testing";
 constexpr auto custom_image_version = "20200909";
 
+constexpr auto another_image_id = "e34a2047c6ba57722bc612115b1d44bea4a29ac2212fcc0628c49aa832dba867";
+constexpr auto another_image_version = "20200501";
+constexpr auto another_release_info = "Another Ubuntu Version";
+
 class MockImageHost : public VMImageHost
 {
 public:
@@ -63,14 +67,14 @@ public:
                 return mock_bionic_image_info;
             }
         });
-        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector));
+        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector_pair));
         ON_CALL(*this, info_for_full_hash(_)).WillByDefault(Return(empty_vm_image_info));
         ON_CALL(*this, all_images_for(_, _)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, supported_remotes()).WillByDefault(Return(remote));
     };
 
     MOCK_METHOD1(info_for, optional<VMImageInfo>(const Query&));
-    MOCK_METHOD1(all_info_for, std::vector<VMImageInfo>(const Query&));
+    MOCK_METHOD1(all_info_for, std::vector<std::pair<std::string, VMImageInfo>>(const Query&));
     MOCK_METHOD1(info_for_full_hash, VMImageInfo(const std::string&));
     MOCK_METHOD2(all_images_for, std::vector<VMImageInfo>(const std::string&, const bool));
     MOCK_METHOD1(for_each_entry_do, void(const Action&));
@@ -108,8 +112,12 @@ public:
                                        custom_image_version,
                                        1,
                                        false};
+    VMImageInfo mock_another_image_info{
+        {"another"},  "Ubuntu",         "another", another_release_info,  true, image.url(), kernel.url(),
+        initrd.url(), another_image_id, "",        another_image_version, 1,    false};
 
 private:
+    std::vector<std::pair<std::string, VMImageInfo>> empty_image_info_vector_pair;
     std::vector<VMImageInfo> empty_image_info_vector;
     VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     std::vector<std::string> remote{{"release"}};

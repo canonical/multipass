@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ struct StubVMImageHost final : public multipass::VMImageHost
             VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}}};
     };
 
-    std::vector<multipass::VMImageInfo> all_info_for(const multipass::Query& query) override
+    std::vector<std::pair<std::string, multipass::VMImageInfo>> all_info_for(const multipass::Query& query) override
     {
         return {};
     };
