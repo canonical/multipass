@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,16 @@ struct StubVMImageVault final : public multipass::VMImageVault
     MemorySize minimum_image_size_for(const std::string& image) override
     {
         return MemorySize{};
+    }
+
+    VMImageHost* image_host_for(const std::string& remote_name) const override
+    {
+        return nullptr;
+    }
+
+    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const override
+    {
+        return {};
     }
 
     TempFile dummy_image;

@@ -711,20 +711,6 @@ grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string
     return grpc::Status::OK;
 }
 
-QStringList filter_unsupported_aliases(const QStringList& aliases, const std::string& remote)
-{
-    QStringList supported_aliases;
-
-    for (const auto& alias : aliases)
-    {
-        if (mp::platform::is_alias_supported(alias.toStdString(), remote))
-        {
-            supported_aliases.append(alias);
-        }
-    }
-    return supported_aliases;
-}
-
 mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::State& state)
 {
     switch (state)
@@ -848,6 +834,28 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
+void add_aliases(mp::FindReply& response, const std::string& remote_name, const mp::VMImageInfo& info,
+                 const std::string& default_remote)
+{
+    if (!info.aliases.empty())
+    {
+        auto entry = response.add_images_info();
+        for (const auto& alias : info.aliases)
+        {
+            auto alias_entry = entry->add_aliases_info();
+            if (remote_name != default_remote)
+            {
+                alias_entry->set_remote_name(remote_name);
+            }
+            alias_entry->set_alias(alias.toStdString());
+        }
+
+        entry->set_os(info.os.toStdString());
+        entry->set_release(info.release_title.toStdString());
+        entry->set_version(info.version.toStdString());
+    }
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -948,14 +956,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     if (!invalid_specs.empty())
         persist_instances();
-
-    for (const auto& image_host : config->image_hosts)
-    {
-        for (const auto& remote : image_host->supported_remotes())
-        {
-            remote_image_host_map[remote] = image_host.get();
-        }
-    }
 
     config->vault->prune_expired_images();
 
@@ -1091,54 +1091,14 @@ try // clang-format on
 {
     mpl::ClientLogger<FindReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
     FindReply response;
+    const auto default_remote{"release"};
 
     if (!request->search_string().empty())
     {
-        std::vector<VMImageInfo> vm_images_info;
-        auto remote{request->remote_name()};
+        auto vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
+                                                           Query::Type::Alias, request->allow_unsupported()});
 
-        if (!remote.empty())
-        {
-            auto it = remote_image_host_map.find(remote);
-            if (it == remote_image_host_map.end())
-                throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
-
-            if (!mp::platform::is_remote_supported(remote))
-                throw std::runtime_error(fmt::format(
-                    "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
-
-            auto images_info = it->second->all_info_for(
-                {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
-
-            if (!images_info.empty())
-            {
-                vm_images_info = std::move(images_info);
-            }
-        }
-        else
-        {
-            for (const auto& image_host : config->image_hosts)
-            {
-                auto images_info = image_host->all_info_for(
-                    {"", request->search_string(), false, remote, Query::Type::Alias, request->allow_unsupported()});
-
-                if (!images_info.empty())
-                {
-                    vm_images_info = std::move(images_info);
-                    break;
-                }
-            }
-        }
-
-        if (vm_images_info.empty())
-            throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", request->search_string()));
-
-        if (!mp::platform::is_alias_supported(request->search_string(), remote))
-            throw std::runtime_error(
-                fmt::format("{} is not a supported alias. Please use `multipass find` for supported image aliases.",
-                            request->search_string()));
-
-        for (const auto& info : vm_images_info)
+        for (const auto& [remote, info] : vm_images_info)
         {
             std::string name;
             if (info.aliases.contains(QString::fromStdString(request->search_string())))
@@ -1156,88 +1116,41 @@ try // clang-format on
             entry->set_release(info.release_title.toStdString());
             entry->set_version(info.version.toStdString());
             auto alias_entry = entry->add_aliases_info();
-            alias_entry->set_remote_name(remote);
+            if (!request->remote_name().empty() ||
+                (request->remote_name().empty() && vm_images_info.size() > 1 && remote != default_remote))
+            {
+                alias_entry->set_remote_name(remote);
+            }
             alias_entry->set_alias(name);
         }
     }
-    else if (!request->remote_name().empty())
-    {
-        const auto remote = request->remote_name();
-
-        auto it = remote_image_host_map.find(remote);
-        if (it == remote_image_host_map.end())
-            throw std::runtime_error(fmt::format("Remote \"{}\" is unknown.", remote));
-
-        if (!mp::platform::is_remote_supported(remote))
-            throw std::runtime_error(fmt::format(
-                "{} is not a supported remote. Please use `multipass find` for list of supported images.", remote));
-
-        auto vm_images_info = it->second->all_images_for(remote, request->allow_unsupported());
-        for (const auto& info : vm_images_info)
-        {
-            if (!info.aliases.empty())
-            {
-                auto entry = response.add_images_info();
-                for (const auto& alias : info.aliases)
-                {
-                    if (!mp::platform::is_alias_supported(alias.toStdString(), remote))
-                        continue;
-
-                    auto alias_entry = entry->add_aliases_info();
-                    alias_entry->set_remote_name(request->remote_name());
-                    alias_entry->set_alias(alias.toStdString());
-                }
-
-                // If no aliases are found, then it's an invalid entry
-                if (entry->aliases_info().empty())
-                {
-                    response.mutable_images_info()->RemoveLast();
-                    continue;
-                }
-
-                entry->set_os(info.os.toStdString());
-                entry->set_release(info.release_title.toStdString());
-                entry->set_version(info.version.toStdString());
-            }
-        }
-    }
-    else
+    else if (request->remote_name().empty())
     {
         for (const auto& image_host : config->image_hosts)
         {
-            std::unordered_set<std::string> image_found;
-            const auto default_remote{"release"};
-            auto action = [&response, &image_found, default_remote, request](const std::string& remote,
-                                                                             const mp::VMImageInfo& info) {
-                if (!mp::platform::is_remote_supported(remote))
-                    return;
-
-                if (info.supported || request->allow_unsupported())
+            std::unordered_set<std::string> images_found;
+            auto action = [&images_found, &default_remote, request, &response](const std::string& remote,
+                                                                               const mp::VMImageInfo& info) {
+                if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                    images_found.find(info.release_title.toStdString()) == images_found.end())
                 {
-                    if (image_found.find(info.release_title.toStdString()) == image_found.end())
-                    {
-                        const auto supported_aliases = filter_unsupported_aliases(info.aliases, remote);
-                        if (!supported_aliases.empty())
-                        {
-                            auto entry = response.add_images_info();
-                            for (const auto& alias : supported_aliases)
-                            {
-                                auto alias_entry = entry->add_aliases_info();
-                                if (remote != default_remote)
-                                    alias_entry->set_remote_name(remote);
-                                alias_entry->set_alias(alias.toStdString());
-                            }
-
-                            image_found.insert(info.release_title.toStdString());
-                            entry->set_os(info.os.toStdString());
-                            entry->set_release(info.release_title.toStdString());
-                            entry->set_version(info.version.toStdString());
-                        }
-                    }
+                    add_aliases(response, remote, info, default_remote);
+                    images_found.insert(info.release_title.toStdString());
                 }
             };
 
             image_host->for_each_entry_do(action);
+        }
+    }
+    else
+    {
+        const auto& remote = request->remote_name();
+        auto image_host = config->vault->image_host_for(remote);
+        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
+
+        for (const auto& info : vm_images_info)
+        {
+            add_aliases(response, remote, info, "");
         }
     }
     server->Write(response);

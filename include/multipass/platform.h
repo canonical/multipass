@@ -51,6 +51,8 @@ public:
     Platform(const Singleton::PrivatePass&);
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
+    virtual bool is_alias_supported(const std::string& alias, const std::string& remote);
+    virtual bool is_remote_supported(const std::string& remote);
 };
 
 std::map<QString, QString> extra_settings_defaults();
@@ -77,8 +79,6 @@ bool symlink(const char* target, const char* link, bool is_dir);
 bool link(const char* target, const char* link);
 int utime(const char* path, int atime, int mtime);
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
-bool is_alias_supported(const std::string& alias, const std::string& remote);
-bool is_remote_supported(const std::string& remote);
 bool is_image_url_supported();
 
 std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread

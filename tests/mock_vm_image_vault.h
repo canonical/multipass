@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,8 @@ public:
     MOCK_METHOD0(prune_expired_images, void());
     MOCK_METHOD3(update_images, void(const FetchType&, const PrepareAction&, const ProgressMonitor&));
     MOCK_METHOD1(minimum_image_size_for, MemorySize(const std::string&));
+    MOCK_CONST_METHOD1(image_host_for, VMImageHost*(const std::string&));
+    MOCK_CONST_METHOD1(all_info_for, std::vector<std::pair<std::string, VMImageInfo>>(const Query&));
 
 private:
     TempFile dummy_image;

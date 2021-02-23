@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,15 @@
 
 #include "src/daemon/custom_image_host.h"
 
+#include "extra_assertions.h"
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
+#include "mock_platform.h"
 #include "path.h"
 
+#include <multipass/exceptions/unsupported_alias_exception.h>
+#include <multipass/exceptions/unsupported_remote_exception.h>
+#include <multipass/format.h>
 #include <multipass/query.h>
 
 #include <QUrl>
@@ -33,6 +38,7 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
+using namespace multipass::platform;
 using namespace testing;
 using namespace std::literals::chrono_literals;
 
@@ -40,6 +46,12 @@ namespace
 {
 struct CustomImageHost : public Test
 {
+    CustomImageHost()
+    {
+        EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
+        EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
+    }
+
     mp::Query make_query(std::string release, std::string remote)
     {
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
@@ -49,6 +61,9 @@ struct CustomImageHost : public Test
     mpt::MischievousURLDownloader url_downloader{timeout};
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
+
+    decltype(mpt::MockPlatform::inject()) attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = attr.first;
 };
 } // namespace
 
@@ -171,6 +186,37 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     EXPECT_THAT(ids.count("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), Eq(1u));
 }
 
+TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    std::unordered_set<std::string> ids;
+    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
+
+    EXPECT_CALL(*mock_platform, is_alias_supported("core18", _)).WillRepeatedly(Return(false));
+
+    host.for_each_entry_do(action);
+
+    const size_t expected_entries{3};
+    EXPECT_EQ(ids.size(), expected_entries);
+}
+
+TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    std::unordered_set<std::string> ids;
+    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
+
+    const std::string unsupported_remote{"snapcraft"};
+    EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
+
+    host.for_each_entry_do(action);
+
+    const size_t expected_entries{2};
+    EXPECT_EQ(ids.size(), expected_entries);
+}
+
 TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
@@ -181,6 +227,19 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
+TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_matches)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+    const std::string unsupported_alias{"core18"};
+
+    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
+
+    auto images = host.all_images_for("snapcraft", false);
+
+    const size_t expected_matches{2};
+    EXPECT_EQ(images.size(), expected_matches);
+}
+
 TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 {
     mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
@@ -189,6 +248,18 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 
     const size_t expected_matches{1};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
+}
+
+TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    const std::string unsupported_alias{"core"};
+    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(host.all_info_for(make_query(unsupported_alias, "snapcraft")), mp::UnsupportedAliasException,
+                         Property(&std::runtime_error::what,
+                                  HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
 }
 
 TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
@@ -259,4 +330,17 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
         url_downloader.mischiefs = i;
         EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
     }
+}
+
+TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    const std::string unsupported_remote{"snapcraft"};
+    EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
+
+    MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
+                         Property(&std::runtime_error::what,
+                                  HasSubstr(fmt::format("Remote \'{}\' is not a supported remote for this platform.",
+                                                        unsupported_remote))));
 }
