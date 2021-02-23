@@ -24,6 +24,7 @@
 #include "path.h"
 #include "stub_url_downloader.h"
 
+#include <multipass/exceptions/unsupported_alias_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
 #include <multipass/query.h>
@@ -382,6 +383,19 @@ TEST_F(UbuntuImageHost, all_info_for_unsupported_image_throw)
     MP_EXPECT_THROW_THAT(
         host.all_info_for(make_query(release, release_remote_spec.first)), mp::UnsupportedImageException,
         Property(&std::runtime_error::what, StrEq(fmt::format("The {} release is no longer supported.", release))));
+}
+
+TEST_F(UbuntuImageHost, all_info_for_unsupported_alias_throws)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    const std::string unsupported_alias{"daily"};
+    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(host.all_info_for(make_query(unsupported_alias, release_remote_spec.first)),
+                         mp::UnsupportedAliasException,
+                         Property(&std::runtime_error::what,
+                                  HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
 }
 
 TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)

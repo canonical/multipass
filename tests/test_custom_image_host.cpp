@@ -23,6 +23,7 @@
 #include "mock_platform.h"
 #include "path.h"
 
+#include <multipass/exceptions/unsupported_alias_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
 #include <multipass/format.h>
 #include <multipass/query.h>
@@ -247,6 +248,18 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 
     const size_t expected_matches{1};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
+}
+
+TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
+{
+    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+
+    const std::string unsupported_alias{"core"};
+    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(host.all_info_for(make_query(unsupported_alias, "snapcraft")), mp::UnsupportedAliasException,
+                         Property(&std::runtime_error::what,
+                                  HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
 }
 
 TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
