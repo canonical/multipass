@@ -27,6 +27,9 @@ function(add_daemon_target TARGET_NAME)
     json_writer.cpp
     ubuntu_image_host.cpp)
 
+  include_directories(${TARGET_NAME}
+    ${CMAKE_SOURCE_DIR}/src/platform/backends)
+
   target_link_libraries(${TARGET_NAME}
     cert
     delayed_shutdown

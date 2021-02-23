@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "multipass/vm_image_host.h"
 
+#include <QStringList>
 #include <QTimer>
 
 #include <chrono>
@@ -38,6 +39,9 @@ protected:
     void update_manifests();
     void on_manifest_update_failure(const std::string& details);
     void on_manifest_empty(const std::string& details);
+    void check_remote_is_supported(const std::string& remote_name) const;
+    void check_alias_is_supported(const std::string& alias, const std::string& remote_name) const;
+    bool check_all_aliases_are_supported(const QStringList& aliases, const std::string& remote_name) const;
 
     virtual void for_each_entry_do_impl(const Action& action) = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;

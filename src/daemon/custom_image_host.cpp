@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,12 @@
 
 #include "custom_image_host.h"
 
+#include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/unsupported_remote_exception.h>
 
 #include <multipass/format.h>
 
@@ -186,6 +188,8 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono:
 
 mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
+    check_alias_is_supported(query.release, query.remote_name);
+
     auto custom_manifest = manifest_from(query.remote_name);
 
     auto it = custom_manifest->image_records.find(query.release);
@@ -196,13 +200,13 @@ mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query
     return *it->second;
 }
 
-std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for(const Query& query)
+std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for(const Query& query)
 {
-    std::vector<mp::VMImageInfo> images;
+    std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
     auto image = info_for(query);
     if (image != nullopt)
-        images.push_back(*image);
+        images.push_back(std::make_pair(query.remote_name, *image));
 
     return images;
 }
@@ -218,10 +222,11 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
     std::vector<mp::VMImageInfo> images;
     auto custom_manifest = manifest_from(remote_name);
 
-    for (const auto& product : custom_manifest->products)
-    {
-        images.push_back(product);
-    }
+    auto pred = [this, &remote_name](const auto& product) {
+        return check_all_aliases_are_supported(product.aliases, remote_name);
+    };
+
+    std::copy_if(custom_manifest->products.begin(), custom_manifest->products.end(), std::back_inserter(images), pred);
 
     return images;
 }
@@ -232,7 +237,8 @@ void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& info : manifest.second->products)
         {
-            action(manifest.first, info);
+            if (check_all_aliases_are_supported(info.aliases, manifest.first))
+                action(manifest.first, info);
         }
     }
 }
@@ -249,11 +255,17 @@ void mp::CustomVMImageHost::fetch_manifests()
     {
         try
         {
+            check_remote_is_supported(spec.first);
+
             custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader, path_prefix));
         }
         catch (mp::DownloadException& e)
         {
             on_manifest_update_failure(e.what());
+        }
+        catch (const mp::UnsupportedRemoteException&)
+        {
+            continue;
         }
     }
 }
@@ -265,6 +277,8 @@ void mp::CustomVMImageHost::clear()
 
 mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
 {
+    check_remote_is_supported(remote_name);
+
     update_manifests();
 
     auto it = custom_image_info.find(remote_name);
