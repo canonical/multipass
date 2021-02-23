@@ -83,8 +83,10 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 {
     auto images = all_info_for(query);
 
+    // If more than one match and query is a hash, throw an exception
     if (images.size() > 1 && images.front().second.id.startsWith(key_from(query.release)))
         throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
+    // If query is an alias, choose the first one returned if more than one
     else if (images.size() != 0)
         return images.front().second;
     else
