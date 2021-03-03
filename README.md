@@ -195,9 +195,9 @@ Finally, use multipass's clients:
 
 See [the Multipass documentation](https://discourse.ubuntu.com/c/multipass/doc).
 
-[gha-image]: https://github.com/canonical/multipass/workflows/Linux/badge.svg?branch=master
-[gha-url]: https://github.com/canonical/multipass/actions?query=branch%3Amaster+workflow%3ALinux
+[gha-image]: https://github.com/canonical/multipass/workflows/Linux/badge.svg?branch=main
+[gha-url]: https://github.com/canonical/multipass/actions?query=branch%3Amain+workflow%3ALinux
 [snap-image]: https://snapcraft.io/multipass/badge.svg
 [snap-url]: https://snapcraft.io/multipass
-[codecov-image]: https://codecov.io/gh/canonical/multipass/branch/master/graph/badge.svg
+[codecov-image]: https://codecov.io/gh/canonical/multipass/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/canonical/multipass

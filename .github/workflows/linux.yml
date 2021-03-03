@@ -79,9 +79,9 @@ jobs:
         ccache --max-size=2G
         sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
 
-        # Find common base between master and HEAD to use as cache key.
-        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin master
-        echo "::set-output name=key::$( git merge-base origin/master ${{ github.sha }} )"
+        # Find common base between main and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
+        echo "::set-output name=key::$( git merge-base origin/main ${{ github.sha }} )"
 
     - name: CCache
       uses: actions/cache@v2
