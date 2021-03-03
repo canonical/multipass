@@ -44,7 +44,7 @@ runs:
         echo "::set-output name=channel::candidate"
 
       # All other pushes annotate with the CI run number.
-      # This includes `master` and `staging`, as `edge` will get published from automatic builds on snapcraft.io.
+      # This includes `main` and `staging`, as `edge` will get published from automatic builds on snapcraft.io.
       elif [ ${{ github.event_name }} == "push" ]; then
         echo "::set-output name=label::ci${{ github.run_number }}"
 
