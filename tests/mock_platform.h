@@ -33,6 +33,10 @@ public:
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
     MOCK_METHOD1(is_remote_supported, bool(const std::string&));
     MOCK_METHOD2(is_alias_supported, bool(const std::string&, const std::string&));
+    MOCK_METHOD3(chown, int(const char*, unsigned int, unsigned int));
+    MOCK_METHOD2(link, bool(const char*, const char*));
+    MOCK_METHOD3(symlink, bool(const char*, const char*, bool));
+    MOCK_METHOD3(utime, int(const char*, int, int));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };
