@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,17 +46,17 @@ sftp_attributes_struct stat_to_attr(const struct stat* st)
 }
 } // namespace
 
-int mp::platform::chown(const char* path, unsigned int uid, unsigned int gid)
+int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid)
 {
     return ::lchown(path, uid, gid);
 }
 
-bool mp::platform::symlink(const char* target, const char* link, bool is_dir)
+bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir)
 {
     return ::symlink(target, link) == 0;
 }
 
-int mp::platform::utime(const char* path, int atime, int mtime)
+int mp::platform::Platform::utime(const char* path, int atime, int mtime)
 {
     struct timeval tv[2];
     tv[0].tv_sec = atime;

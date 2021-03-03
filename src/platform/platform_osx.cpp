@@ -348,7 +348,7 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
-bool mp::platform::link(const char* target, const char* link)
+bool mp::platform::Platform::link(const char* target, const char* link)
 {
     QFileInfo file_info{target};
 
