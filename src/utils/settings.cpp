@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ std::map<QString, QString> make_defaults()
  *   b) write daemon config to a central location (rather than user-dependent)
  * Examples:
  *   - ${HOME}/.config/multipass/multipass.conf
- *   - /root/.config/multipass/multipassd.conf
+ *   - /root/.config/multipassd/multipassd.conf
  */
 QString file_for(const QString& key) // the key should have passed checks at this point
 {
