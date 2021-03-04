@@ -16,8 +16,6 @@ if(MSVC)
   add_library(platform STATIC
     platform_shared.cpp
     platform_win.cpp)
-  get_target_property(JSON_INC_PATH jsoncpp_static INTERFACE_INCLUDE_DIRECTORIES)
-  target_include_directories(platform PRIVATE ${JSON_INC_PATH})
   target_link_libraries(platform
     jsoncpp_static
     shared_win
