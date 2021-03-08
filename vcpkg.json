@@ -1,0 +1,11 @@
+{
+    "name": "multipass-deps",
+    "version": "1.0.0",
+    "dependencies": [
+        "protobuf"
+    ],
+    "builtin-baseline": "0dc27b9b672cb9d069cf58c48f3ae3f7395d108b",
+    "overrides": [
+        { "name": "protobuf", "version": "3.12.3" }
+    ]
+}
