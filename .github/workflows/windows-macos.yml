@@ -91,7 +91,7 @@ jobs:
     runs-on: multipass-macos-10.14
 
     env:
-      BUILD_DIR: ../build
+      BUILD_DIR: build
       MACOSX_DEPLOYMENT_TARGET: "10.14"
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
@@ -143,9 +143,11 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Determine cache parameters
+    - name: Set up caching
       id: cache-params
       run: |
+        # Use gnu-tar instead of the system tar
+        echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> ${GITHUB_PATH}
         echo "::set-output name=hyperkit-sha::$( git -C 3rd-party/hyperkit rev-parse HEAD )"
 
     - name: Install dependencies from brew
@@ -154,6 +156,7 @@ jobs:
           cmake \
           coreutils \
           git \
+          gnu-tar \
           libev \
           libffi \
           ninja \
@@ -169,14 +172,24 @@ jobs:
         version: ${{ env.QT_VERSION }}
       timeout-minutes: 10
 
+    - name: Cleanup
+      if: ${{ always() }}
+      uses: canonical/actions/cleanup@release
+      with:
+        # remove everything in the workspace and the dependencies
+        paths: |
+          ${{ env.Qt5_DIR }}
+          ~/.opam
+          ~/Library/Caches/ccache
+          ${{ github.workspace }}
+
     - name: Cache OPAM
       uses: actions/cache@v2
       with:
         path: "~/.opam"
         # Use OPAM version and hyperkit sha as cache key. This ensures that when we change hyperkit,
-        # any dependency changes will follow. Also start from scratch if OPAM version changes.
-        key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ steps.cache-params.outputs.hyperkit-sha }}
-        restore-keys: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-
+        # any dependency changes will follow. Also start from scratch if OPAM, macOS or hyperkit versions change.
+        key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.cache-params.outputs.hyperkit-sha }}
 
     - name: Set up OCaml
       uses: avsm/setup-ocaml@v1.1.7
@@ -193,8 +206,6 @@ jobs:
 
     - name: Install OPAM dependencies
       run: |
-        opam pin remove uri uri-sexp
-        opam uninstall uri uri-sexp
         opam install 3rd-party/hyperkit --deps-only
         opam list
 
@@ -202,7 +213,7 @@ jobs:
       id: setup-ccache
       run: |
         brew install ccache
-        ccache --max-size=2G
+        ccache --max-size=200M
 
         # Find common base between full and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
@@ -211,10 +222,10 @@ jobs:
     - name: CCache
       uses: actions/cache@v2
       with:
-        key: ccache-${{ runner.os }}-${{ steps.setup-ccache.outputs.key }}
+        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
-          ccache-${{ runner.os }}-
-        path: ~/.ccache
+          ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
+        path: "~/Library/Caches/ccache"
 
     - name: Build
       uses: lukka/run-cmake@v2
@@ -279,13 +290,6 @@ jobs:
         sha: ${{ github.event.client_payload.head_sha }}
         check_id: ${{ steps.public-check.outputs.check_id }}
         conclusion: ${{ job.status }}
-
-    - name: Cleanup
-      if: ${{ always() }}
-      run: |
-        rm -Rf $( find . -mindepth 1 -maxdepth 1 )  # to remove hidden things, too
-        rm -Rf ${{ env.BUILD_DIR }}
-        rm -Rf ${{ runner.workspace }}/Qt
 
   Windows:
     needs: [Checkout, Lint]
