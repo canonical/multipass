@@ -80,6 +80,14 @@ jobs:
         [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
         [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
+    - name: Set up vcpkg
+      uses: lukka/run-vcpkg@v7.1
+      with:
+        setupOnly: true
+        vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+        appendedCacheKey: ${{ hashFiles( '**/vcpkg.json' ) }}
+        additionalCachedPaths: ${{ env.buildDir }}/vcpkg_installed
+
     - name: Set up CCache
       id: setup-ccache
       run: |
