@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -19,6 +19,10 @@ if (APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif()
+
+set(VCPKG_FEATURE_FLAGS "versions")
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+  CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
 
@@ -63,6 +67,9 @@ endif()
 
 # OpenSSL config
 find_package(OpenSSL REQUIRED)
+
+# Protobuf config
+find_package(Protobuf CONFIG REQUIRED)
 
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
