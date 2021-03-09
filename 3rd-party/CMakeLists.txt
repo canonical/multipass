@@ -3,6 +3,7 @@
 include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
 
 set(gRPC_SSL_PROVIDER "package" CACHE STRING "Provider of ssl library")
+set(gRPC_PROTOBUF_PROVIDER "package" CACHE STRING "Provider of protobuf library")
 
 # Add the subdir here to avoid polluting their cmake scope
 add_subdirectory(grpc EXCLUDE_FROM_ALL)
@@ -37,9 +38,9 @@ function(generate_grpc_cpp SRCS DEST)
       "${DEST}/${FIL_WE}.grpc.pb.h"
       "${DEST}/${FIL_WE}.pb.cc"
       "${DEST}/${FIL_WE}.pb.h"
-      COMMAND $<TARGET_FILE:protoc>
+      COMMAND $<TARGET_FILE:protobuf::protoc>
       ARGS --grpc_out=${DEST} --cpp_out=${DEST} --proto_path=${FIL_DIR} --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin> ${ABS_FIL}
-      DEPENDS ${ABS_FIL} protoc grpc_cpp_plugin
+      DEPENDS ${ABS_FIL} grpc_cpp_plugin
       COMMENT "Running gRPC C++ protocol buffer compiler on ${FIL}"
       VERBATIM)
   endforeach ()
@@ -52,11 +53,11 @@ add_library(gRPC INTERFACE)
 
 target_include_directories(gRPC INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/grpc/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/grpc/third_party/protobuf/src)
+  ${Protobuf_INCLUDE_DIR})
 
 target_link_libraries(gRPC INTERFACE
   grpc++
-  libprotobuf
+  protobuf::libprotobuf
   zlibstatic)
 
 target_compile_options(gRPC INTERFACE "-Wno-unused-parameter")
