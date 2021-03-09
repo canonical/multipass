@@ -85,6 +85,7 @@ parts:
     - on arm64: [libgles2-mesa-dev]
     - on armhf: [libgles2-mesa-dev]
     - build-essential
+    - curl
     - git
     - libapparmor-dev
     - libqt5x11extras5-dev
@@ -94,6 +95,9 @@ parts:
     - pkg-config
     - qtbase5-dev
     - qtbase5-dev-tools
+    - tar
+    - unzip
+    - zip
     stage-packages:
     - apparmor
     - on amd64: [libgl1]
