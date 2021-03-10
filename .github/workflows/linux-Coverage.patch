@@ -1,14 +1,14 @@
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -95,6 +95,7 @@ parts:
-     - pkg-config
-     - qtbase5-dev
-     - qtbase5-dev-tools
+@@ -88,6 +88,7 @@ parts:
+     - ccache
+     - curl
+     - git
 +    - lcov
-     stage-packages:
-     - apparmor
-     - on amd64: [libgl1]
-@@ -113,9 +114,8 @@ parts:
+     - libapparmor-dev
+     - libqt5x11extras5-dev
+     - libsystemd-dev
+@@ -117,9 +118,8 @@ parts:
      - dnsmasq-utils
      source: .
      cmake-parameters:
