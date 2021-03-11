@@ -22,24 +22,6 @@ find "Microsoft Visual Studio Installer" and click "Modify".
 ### Git
 You need to enable symlinks in Windows Git, have a look at [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
-### Assembler
-Previously, nasm had been used to build crypto modules in the boringssl module of grpc. However, there is a CMake bug that passes compiler options to nasm and nasm is unable to handle these options and fails.
-
-yasm is another assembler that works and will only output a warning on these options and continue building. We will be using yasm from now on, so nasm will need to be removed and yasm will need to be installed.
-
-    choco uninstall nasm -y
-    C:\Program Files\NASM\Uninstall.exe
-
-The Chocolatey version of yasm is quite old and no longer able to assemble the latest updated gRPC code. If the Chocolatey version of yasm is installed, you will need to uninstall it:
-
-    choco uninstall yasm -y
-
-You will need to download the latest version of yasm from: https://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe
-
-This is a stand-alone binary, so you'll need to either copy it to a directory in your PATH or use "-DCMAKE_ASM_NASM_COMPILER=/path/to/yasm" in the cmake command. However, if you do copy it in your path, you will need to rename it to 'yasm.exe' in order for cmake to detect it. Alternatively, create a symlink with `mklink` in an administrator command prompt (e.g. `mklink yasm.exe yasm-1.3.0-win64.exe`)
-
-You may need to clean your build directory and run cmake again to pick up the yasm assembler path.
-
 ### Qt5
 Install the latest stable version of Qt5 (5.12.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
 

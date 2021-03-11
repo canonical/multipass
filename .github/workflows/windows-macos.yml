@@ -355,20 +355,11 @@ jobs:
       with:
         args: install --yes qemu-img openssl
 
-    - name: Download YASM
-      uses: carlosperate/download-file-action@v1.0.3
-      with:
-        file-url: https://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe
-        file-name: yasm.exe
-        location: ${{ github.workspace }}/../
-
     - name: Set up MSVC
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Build
       uses: lukka/run-cmake@v2
-      env:
-        ASM_NASM: "${{ github.workspace }}\\..\\yasm.exe"
       with:
         cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
         buildDirectory: ${{ env.BUILD_DIR }}
