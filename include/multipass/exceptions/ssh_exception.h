@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,20 @@
  *
  */
 
-#ifndef MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
-#define MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
+#ifndef MULTIPASS_SSH_EXCEPTION_H
+#define MULTIPASS_SSH_EXCEPTION_H
 
-#include "ssh_exception.h"
-
-#include <fmt/format.h>
-
+#include <stdexcept>
 #include <string>
 
 namespace multipass
 {
-class ExitlessSSHProcessException : public SSHException
+class SSHException : public std::runtime_error
 {
 public:
-    ExitlessSSHProcessException(const std::string& command, const std::string& cause)
-        : SSHException(fmt::format("failed to obtain exit status for remote process '{}': {}", command, cause))
+    SSHException(const std::string& what_arg) : runtime_error(what_arg)
     {
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
+#endif // MULTIPASS_SSH_EXCEPTION_H
