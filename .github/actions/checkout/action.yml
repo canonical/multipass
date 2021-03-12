@@ -10,6 +10,7 @@ runs:
       git submodule sync
       # This repository can't do depth.
       git -c protocol.version=2 submodule update --init 3rd-party/xz-decoder/xz-embedded
+      git -c protocol.version=2 submodule update --init --recursive 3rd-party/vcpkg
       git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
 
   - name: Fetch tags
