@@ -17,6 +17,7 @@
 
 #include "base_virtual_machine.h"
 
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 
 namespace mp = multipass;
@@ -52,7 +53,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
                 all_ipv4.push_back(ip);
             }
         }
-        catch (const std::exception& e)
+        catch (const SSHException& e)
         {
             mpl::log(mpl::Level::debug, "base_vm", fmt::format("Error getting extra IP addresses: {}", e.what()));
         }
