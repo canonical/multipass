@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <multipass/format.h>
 
 #include <array>
+#include <cassert>
 #include <fcntl.h>
 
 #include <QFile>
@@ -162,6 +163,7 @@ void mp::SFTPClient::stream_file(const std::string& source_path, std::ostream& c
         if (r < 0)
             SSH::throw_on_error(sftp, *ssh_session, "[sftp pull] read failed", sftp_get_error);
 
-        cout << data.data();
+        assert(r <= max_transfer);
+        cout.write(data.data(), r);
     }
 }
