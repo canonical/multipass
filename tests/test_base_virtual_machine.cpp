@@ -17,17 +17,88 @@
 
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/ssh/ssh_session.h>
+#include <shared/base_virtual_machine.h>
 
 #include <gmock/gmock.h>
 
 #include "dummy_ssh_key_provider.h"
 #include "mock_ssh.h"
-#include "stub_base_virtual_machine.h"
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
+
+namespace multipass
+{
+namespace test
+{
+struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
+{
+    StubBaseVirtualMachine() : mp::BaseVirtualMachine("stub")
+    {
+    }
+
+    void stop()
+    {
+    }
+
+    void start()
+    {
+    }
+
+    void shutdown()
+    {
+    }
+
+    void suspend()
+    {
+    }
+
+    mp::VirtualMachine::State current_state()
+    {
+        return mp::VirtualMachine::State::running;
+    }
+
+    int ssh_port()
+    {
+        return 42;
+    }
+
+    std::string ssh_hostname(std::chrono::milliseconds timeout)
+    {
+        return "localhost";
+    }
+
+    std::string ssh_username()
+    {
+        return "ubuntu";
+    }
+
+    std::string management_ipv4()
+    {
+        return "1.2.3.4";
+    }
+
+    std::string ipv6()
+    {
+        return "";
+    }
+
+    void wait_until_ssh_up(std::chrono::milliseconds timeout)
+    {
+    }
+
+    void ensure_vm_is_running()
+    {
+    }
+
+    void update_state()
+    {
+    }
+};
+} // namespace test
+} // namespace multipass
 
 namespace
 {
