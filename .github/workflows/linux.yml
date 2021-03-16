@@ -45,7 +45,7 @@ jobs:
 
     env:
       SNAPCRAFT_BUILD_INFO: 1
-      VCPKG_INSTALL_CACHE: ${HOME}/.cache/vcpkg_install
+      VCPKG_INSTALL_CACHE: ../vcpkg_install
 
     timeout-minutes: 60
     steps:
@@ -82,9 +82,14 @@ jobs:
         [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
     - name: Set up vcpkg archive cache
+      id: setup-vcpkg-cache
       run: |
         mkdir --parents ${VCPKG_INSTALL_CACHE}
-        sg lxd -c '/snap/bin/lxc profile device add default vcpkg disk source=${VCPKG_INSTALL_CACHE} path=/root/parts/multipass/build/vcpkg_installed'
+        VCPKG_INSTALL_CACHE=$( readlink -f ${VCPKG_INSTALL_CACHE} )
+        sg lxd -c "/snap/bin/lxc profile device add default vcpkg disk source=${VCPKG_INSTALL_CACHE} path=/root/parts/multipass/build/vcpkg_installed"
+
+        # Need to resolve the path for caching
+        echo "::set-output path=${VCPKG_INSTALL_CACHE}"
 
     - name: Set up vcpkg
       uses: lukka/run-vcpkg@v7.1
@@ -92,7 +97,7 @@ jobs:
         setupOnly: true
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
         appendedCacheKey: ${{ runner.os }}-${{ matrix.build-type }}-${{ hashFiles( '**/vcpkg.json' ) }}
-        additionalCachedPaths: ${{ env.VCPKG_INSTALL_CACHE }}
+        additionalCachedPaths: ${{ steps.setup-vcpkg-cache.outputs.path }}
 
     - name: Set up CCache
       id: setup-ccache
