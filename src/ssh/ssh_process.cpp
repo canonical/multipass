@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_process.h>
@@ -64,7 +65,7 @@ private:
 auto make_channel(ssh_session session, const std::string& cmd)
 {
     if (!ssh_is_connected(session))
-        throw std::runtime_error(
+        throw mp::SSHException(
             fmt::format("unable to create a channel for remote process: '{}', the SSH session is not connected", cmd));
 
     mp::SSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
@@ -143,9 +144,8 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                 return output.str();
             }
 
-            throw std::runtime_error(fmt::format("error while reading ssh channel for remote process '{}'"
-                                                 " - error: {}",
-                                                 cmd, num_bytes));
+            throw mp::SSHException(
+                fmt::format("error while reading ssh channel for remote process '{}' - error: {}", cmd, num_bytes));
         }
         output.write(buffer.data(), num_bytes);
     } while (num_bytes > 0);

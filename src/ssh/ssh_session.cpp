@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_key_provider.h>
@@ -26,7 +27,6 @@
 
 #include <QDir>
 
-#include <stdexcept>
 #include <string>
 
 namespace mp = multipass;
@@ -37,7 +37,7 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     : session{ssh_new(), ssh_free}
 {
     if (session == nullptr)
-        throw std::runtime_error("could not allocate ssh session");
+        throw mp::SSHException("could not allocate ssh session");
 
     const long timeout_secs = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
     const int nodelay{1};
@@ -146,7 +146,7 @@ void mp::SSHSession::set_option(ssh_options_e type, const void* data)
     const auto ret = ssh_options_set(session.get(), type, data);
     if (ret != SSH_OK)
     {
-        throw std::runtime_error(fmt::format("libssh failed to set {} option to '{}': '{}'", name_for(type),
-                                             as_string(type, data), ssh_get_error(session.get())));
+        throw mp::SSHException(fmt::format("libssh failed to set {} option to '{}': '{}'", name_for(type),
+                                           as_string(type, data), ssh_get_error(session.get())));
     }
 }
