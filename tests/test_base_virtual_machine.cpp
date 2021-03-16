@@ -45,7 +45,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
     EXPECT_THROW(mp::SSHSession("theanswertoeverything", 42), mp::SSHException); // Test that it indeed does.
 
     auto ipv4_count = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ipv4_count.size(), (size_t)0);
+    EXPECT_EQ(ipv4_count.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
@@ -64,5 +64,5 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     EXPECT_THROW(session.exec("dummy"), mp::SSHException);
 
     auto ipv4_count = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ipv4_count.size(), (size_t)0);
+    EXPECT_EQ(ipv4_count.size(), 0u);
 }
