@@ -20,9 +20,9 @@
 
 #include <gmock/gmock.h>
 
+#include "dummy_ssh_key_provider.h"
 #include "mock_ssh.h"
 #include "stub_base_virtual_machine.h"
-#include "stub_ssh_key_provider.h"
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -31,23 +31,9 @@ using namespace testing;
 
 namespace
 {
-class DummyKeyProvider : public mpt::StubSSHKeyProvider
-{
-public:
-    explicit DummyKeyProvider(std::string key) : key{std::move(key)}
-    {
-    }
-    std::string public_key_as_base64() const override
-    {
-        return key;
-    };
-
-private:
-    std::string key;
-};
-
 struct BaseVM : public Test
 {
+    const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
 };
 } // namespace
 
@@ -58,7 +44,6 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
     EXPECT_THROW(mp::SSHSession("theanswertoeverything", 42), mp::SSHException); // Test that it indeed does.
 
-    const auto key_provider = DummyKeyProvider("keeperofthesevenkeys");
     auto ipv4_count = base_vm.get_all_ipv4(key_provider);
     EXPECT_EQ(ipv4_count.size(), (size_t)0);
 }
@@ -78,7 +63,6 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     mp::SSHSession session{"host", 42};
     EXPECT_THROW(session.exec("dummy"), mp::SSHException);
 
-    const auto key_provider = DummyKeyProvider("keeperofthesevenkeys");
     auto ipv4_count = base_vm.get_all_ipv4(key_provider);
     EXPECT_EQ(ipv4_count.size(), (size_t)0);
 }
