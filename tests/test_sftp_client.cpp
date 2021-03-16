@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -237,4 +237,33 @@ TEST_F(SFTPClient, out_stream_throws_on_sftp_read_failed)
 
     std::ostream fake_cout{test_stream.rdbuf()};
     EXPECT_THROW(sftp.stream_file(source_path, fake_cout), std::runtime_error);
+}
+
+TEST_F(SFTPClient, out_stream_writes_data_with_nulls)
+{
+    using namespace std::string_literals;
+
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_open, [](auto...) { return nullptr; });
+
+    static const auto source_data = "a\0b\0\xab c"s;
+    static const auto data_size = source_data.size();
+    auto have_read = false;
+
+    REPLACE(sftp_read, [&have_read](sftp_file /*file*/, void* buf, size_t count) {
+        EXPECT_GE(count, data_size);
+
+        if (have_read)
+            return 0ul;
+
+        have_read = true;
+        memcpy(buf, source_data.data(), data_size);
+        return data_size;
+    });
+
+    auto sftp = make_sftp_client();
+    std::ostringstream out;
+
+    EXPECT_NO_THROW(sftp.stream_file("fake path", out));
+    EXPECT_EQ(out.str(), source_data);
 }
