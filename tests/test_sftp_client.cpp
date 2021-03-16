@@ -250,11 +250,11 @@ TEST_F(SFTPClient, out_stream_writes_data_with_nulls)
     static const auto data_size = source_data.size();
     auto have_read = false;
 
-    REPLACE(sftp_read, [&have_read](sftp_file /*file*/, void* buf, size_t count) {
+    REPLACE(sftp_read, [&have_read](sftp_file /*file*/, void* buf, size_t count) -> ssize_t {
         EXPECT_GE(count, data_size);
 
         if (have_read)
-            return 0ul;
+            return 0L;
 
         have_read = true;
         memcpy(buf, source_data.data(), data_size);
