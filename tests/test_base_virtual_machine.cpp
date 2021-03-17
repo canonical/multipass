@@ -122,6 +122,10 @@ struct BaseVM : public Test
     decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
 };
+
+struct IpExecution : public BaseVM, public WithParamInterface<std::tuple<int, std::string, std::vector<std::string>>>
+{
+};
 } // namespace
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
@@ -150,9 +154,12 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     EXPECT_EQ(ipv4_count.size(), 0u);
 }
 
-TEST_F(BaseVM, get_all_ipv4_works)
+TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 {
     mpt::StubBaseVirtualMachine base_vm;
+
+    auto [ip_exit_status, ip_output, expected_ips] = GetParam();
+    auto remaining = ip_output.size();
 
     REPLACE(ssh_channel_get_exit_status, [](auto...) { return SSH_OK; });
 
@@ -163,18 +170,12 @@ TEST_F(BaseVM, get_all_ipv4_works)
     };
     REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
 
-    int expected_status{0};
-    auto event_dopoll = [&callbacks, &expected_status](ssh_event, int timeout) {
+    auto event_dopoll = [&callbacks, &ip_exit_status](ssh_event, int timeout) {
         EXPECT_TRUE(callbacks);
-        callbacks->channel_exit_status_function(nullptr, nullptr, expected_status, callbacks->userdata);
+        callbacks->channel_exit_status_function(nullptr, nullptr, ip_exit_status, callbacks->userdata);
         return SSH_OK;
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
-
-    std::string ip_output{"wlp4s0           UP             192.168.2.168/24 \n"
-                          "virbr0           DOWN           192.168.122.1/24 \n"
-                          "tun0             UNKNOWN        10.172.66.58/18 \n"};
-    auto remaining = ip_output.size();
 
     auto channel_read = [&ip_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
@@ -186,5 +187,16 @@ TEST_F(BaseVM, get_all_ipv4_works)
     REPLACE(ssh_channel_read_timeout, channel_read);
 
     auto ip_list = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ip_list, std::vector<std::string>({"192.168.2.168", "192.168.122.1", "10.172.66.58"}));
+    EXPECT_EQ(ip_list, expected_ips);
 }
+
+INSTANTIATE_TEST_SUITE_P(BaseVM, IpExecution,
+                         Values(std::make_tuple(0, "eth0             UP             192.168.2.168/24 \n",
+                                                std::vector<std::string>{"192.168.2.168"}),
+                                std::make_tuple(0,
+                                                "wlp4s0           UP             192.168.2.8/24 \n"
+                                                "virbr0           DOWN           192.168.3.1/24 \n"
+                                                "tun0             UNKNOWN        10.172.66.5/18 \n",
+                                                std::vector<std::string>{"192.168.2.8", "192.168.3.1", "10.172.66.5"}),
+                                std::make_tuple(0, "", std::vector<std::string>{}),
+                                std::make_tuple(127, "ip: command not found\n", std::vector<std::string>{})));
