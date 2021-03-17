@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -79,6 +79,25 @@ QNetworkReply::NetworkError statusCodeFromHttp(int httpStatusCode)
     }
 
     return code;
+}
+
+QList<QByteArray> split_http_lines(const QByteArray& reply_data)
+{
+    QList<QByteArray> list;
+    int start{0};
+    int end;
+
+    // Note: If there is ever the case that "\r\n" is sent in the
+    //       chunked content data, this will break.
+    while ((end = reply_data.indexOf("\r\n", start)) != -1)
+    {
+        list.append(reply_data.mid(start, end - start));
+        start = end + 2;
+    }
+
+    list.append(reply_data.mid(start).split('\n').front());
+
+    return list;
 }
 } // namespace
 
@@ -170,6 +189,10 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         http_data += "User-Agent: " + user_agent + "\r\n";
     }
 
+    // Workaround weird issue in LXD's use of Go where Go's HTTP handler thinks there is more
+    // data and "sees" and "empty" query and reponds with an unexpected 400 error
+    http_data += "Connection: close\r\n";
+
     if (!local_socket_write(http_data))
         return;
 
@@ -253,7 +276,7 @@ void mp::LocalSocketReply::read_reply()
 
     do
     {
-        bytes_read = local_socket->read(reply_data.data(), len);
+        bytes_read = local_socket->read(data_ptr, len);
 
         data_ptr += bytes_read;
     } while (bytes_read > 0);
@@ -266,26 +289,58 @@ void mp::LocalSocketReply::read_reply()
 
 void mp::LocalSocketReply::parse_reply()
 {
-    auto reply_lines = reply_data.split('\n');
+    bool chunked_transfer_encoding{false};
+    auto reply_lines = split_http_lines(reply_data);
     auto it = reply_lines.constBegin();
 
     parse_status(*it);
 
+    qint64 data_len{0};
+
     for (++it; it != reply_lines.constEnd(); ++it)
     {
+        bool ok{false};
+
         if ((*it).contains("Transfer-Encoding") && (*it).contains("chunked"))
+        {
             chunked_transfer_encoding = true;
+        }
+        else if ((*it).contains("Content-Length"))
+        {
+            data_len = (*it).split(' ')[1].toLongLong(&ok, 16);
+        }
 
         if ((*it).isEmpty() || (*it).startsWith('\r'))
         {
-            // Advance to the body
-            // Chunked transfer encoding also includes a line with the amount of
-            // bytes (in hex) in the chunk. We just skip it for now.
-            it = chunked_transfer_encoding ? it + 2 : it + 1;
+            ++it;
 
-            content_data = (*it).trimmed();
+            if (chunked_transfer_encoding)
+            {
+                QByteArray chunked_data;
 
-            break;
+                while (true)
+                {
+                    data_len = (*it).toLongLong(&ok, 16);
+
+                    if (data_len == 0)
+                    {
+                        content_data = chunked_data;
+                        return;
+                    }
+
+                    ++it;
+
+                    chunked_data.append((*it).constData(), data_len);
+
+                    ++it;
+                }
+            }
+            else
+            {
+                // Assume the rest of the data is the content data.
+                content_data = (*it).trimmed();
+                return;
+            }
         }
     }
 }

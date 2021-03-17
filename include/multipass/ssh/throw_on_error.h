@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,8 @@
 
 #include <fmt/format.h>
 
-#include <stdexcept>
+#include <multipass/exceptions/ssh_exception.h>
+
 #include <string>
 #include <type_traits>
 
@@ -36,7 +37,7 @@ void throw_on_error(Handle&& h, ssh_session session, const char* error_msg, Call
     const auto ret = f(h.get(), std::forward<Args>(args)...);
     if (ret != SSH_OK)
     {
-        throw std::runtime_error(fmt::format("{}: '{}'", error_msg, ssh_get_error(session)));
+        throw SSHException(fmt::format("{}: '{}'", error_msg, ssh_get_error(session)));
     }
 }
 

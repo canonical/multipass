@@ -33,6 +33,7 @@
 
 #include "mock_utils_functions.h" // Must be included before other local headers
 
+#include "dummy_ssh_key_provider.h"
 #include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_environment_helpers.h"
@@ -708,26 +709,11 @@ TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
     send_command({GetParam()});
 }
 
-class DummyKeyProvider : public mpt::StubSSHKeyProvider
-{
-public:
-    explicit DummyKeyProvider(std::string key) : key{std::move(key)}
-    {
-    }
-    std::string public_key_as_base64() const override
-    {
-        return key;
-    };
-
-private:
-    std::string key;
-};
-
 TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
 {
     auto mock_factory = use_a_mock_vm_factory();
     std::string expected_key{"thisitnotansshkeyactually"};
-    config_builder.ssh_key_provider = std::make_unique<DummyKeyProvider>(expected_key);
+    config_builder.ssh_key_provider = std::make_unique<mpt::DummyKeyProvider>(expected_key);
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))

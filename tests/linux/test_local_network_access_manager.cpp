@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -160,7 +160,7 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
     http_response += "Content-Length: 5\r\n";
     http_response += "\r\n";
     http_response += reply_data;
-    http_response += "\r\n";
+    http_response += "\r\n\r\n";
 
     auto server_response = [&http_response](auto...) { return http_response; };
     test_server.local_socket_server_handler(server_response);
@@ -180,12 +180,11 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
 
     QByteArray http_response;
     http_response += "HTTP/1.1 200 OK\r\n";
-    http_response += "Content-Length: 10\r\n";
     http_response += "Transfer-Encoding: chunked\r\n";
     http_response += "\r\n";
     http_response += "a\r\n";
     http_response += reply_data;
-    http_response += "\r\n";
+    http_response += "\r\n0\r\n\r\n";
 
     auto server_response = [&http_response](auto...) { return http_response; };
     test_server.local_socket_server_handler(server_response);
@@ -199,11 +198,36 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
     EXPECT_EQ(data, reply_data);
 }
 
+TEST_F(LocalNetworkAccessManager, reads_expected_data_multi_chunked)
+{
+    QByteArray http_response;
+    http_response += "HTTP/1.1 200 OK\r\n";
+    http_response += "Transfer-Encoding: chunked\r\n";
+    http_response += "\r\n";
+    http_response += "8\r\n";
+    http_response += "This is \r\n";
+    http_response += "d\r\n";
+    http_response += "chunked data.\r\n";
+    http_response += "0\r\n\r\n";
+
+    auto server_response = [&http_response](auto...) { return http_response; };
+    test_server.local_socket_server_handler(server_response);
+
+    auto reply = handle_request(base_url, "GET");
+
+    ASSERT_EQ(reply->error(), QNetworkReply::NoError);
+
+    auto data = reply->readAll();
+
+    EXPECT_EQ(data, "This is chunked data.");
+}
+
 TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
 {
     QByteArray expected_data{"POST /1.0 HTTP/1.1\r\n"
                              "Host: test\r\n"
                              "User-Agent: Test\r\n"
+                             "Connection: close\r\n"
                              "Content-Type: application/x-www-form-urlencoded\r\n"
                              "Content-Length: 11\r\n\r\n"
                              "Hello World\r\n"};

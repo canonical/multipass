@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,26 +13,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ *
  */
 
-#ifndef MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
-#define MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
+#ifndef MULTIPASS_DUMMY_SSH_KEY_PROVIDER_H
+#define MULTIPASS_DUMMY_SSH_KEY_PROVIDER_H
 
-#include "ssh_exception.h"
-
-#include <fmt/format.h>
-
-#include <string>
+#include "stub_ssh_key_provider.h"
 
 namespace multipass
 {
-class ExitlessSSHProcessException : public SSHException
+namespace test
+{
+class DummyKeyProvider : public StubSSHKeyProvider
 {
 public:
-    ExitlessSSHProcessException(const std::string& command, const std::string& cause)
-        : SSHException(fmt::format("failed to obtain exit status for remote process '{}': {}", command, cause))
+    explicit DummyKeyProvider(std::string key) : key{std::move(key)}
     {
     }
+    std::string public_key_as_base64() const override
+    {
+        return key;
+    };
+
+private:
+    std::string key;
 };
+} // namespace test
 } // namespace multipass
-#endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
+#endif // MULTIPASS_DUMMY_SSH_KEY_PROVIDER_H
