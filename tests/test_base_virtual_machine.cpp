@@ -35,29 +35,35 @@ namespace test
 {
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine() : mp::BaseVirtualMachine("stub")
+    StubBaseVirtualMachine(const mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
+        : mp::BaseVirtualMachine("stub")
     {
+        state = s;
     }
 
     void stop()
     {
+        state = mp::VirtualMachine::State::off;
     }
 
     void start()
     {
+        state = mp::VirtualMachine::State::running;
     }
 
     void shutdown()
     {
+        state = mp::VirtualMachine::State::off;
     }
 
     void suspend()
     {
+        state = mp::VirtualMachine::State::suspended;
     }
 
     mp::VirtualMachine::State current_state()
     {
-        return mp::VirtualMachine::State::running;
+        return state;
     }
 
     int ssh_port()
@@ -130,7 +136,7 @@ struct IpExecution : public BaseVM, public WithParamInterface<std::tuple<int, st
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 {
-    mpt::StubBaseVirtualMachine base_vm;
+    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
     EXPECT_THROW(mp::SSHSession("theanswertoeverything", 42), mp::SSHException); // Test that it indeed does.
@@ -141,7 +147,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
 {
-    mpt::StubBaseVirtualMachine base_vm;
+    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     // Make SSH throw when trying to execute something.
     request_exec.returnValue(SSH_ERROR);
@@ -154,9 +160,16 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     EXPECT_EQ(ipv4_count.size(), 0u);
 }
 
+TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
+{
+    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+
+    EXPECT_EQ(base_vm.get_all_ipv4(key_provider).size(), 0u);
+}
+
 TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 {
-    mpt::StubBaseVirtualMachine base_vm;
+    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     auto [ip_exit_status, ip_output, expected_ips] = GetParam();
     auto remaining = ip_output.size();
