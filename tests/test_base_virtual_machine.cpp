@@ -139,10 +139,9 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
     mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
-    EXPECT_THROW(mp::SSHSession("theanswertoeverything", 42), mp::SSHException); // Test that it indeed does.
 
-    auto ipv4_count = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ipv4_count.size(), 0u);
+    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    EXPECT_EQ(ip_list.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
@@ -152,12 +151,8 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     // Make SSH throw when trying to execute something.
     request_exec.returnValue(SSH_ERROR);
 
-    // Check that it indeed throws at execution.
-    mp::SSHSession session{"host", 42};
-    EXPECT_THROW(session.exec("dummy"), mp::SSHException);
-
-    auto ipv4_count = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ipv4_count.size(), 0u);
+    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    EXPECT_EQ(ip_list.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
