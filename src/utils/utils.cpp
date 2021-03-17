@@ -76,6 +76,10 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 }
 } // namespace
 
+mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) : Singleton<Utils>::Singleton{pass}
+{
+}
+
 QDir mp::utils::base_dir(const QString& path)
 {
     QFileInfo info{path};

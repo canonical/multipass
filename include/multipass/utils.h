@@ -20,6 +20,7 @@
 
 #include <multipass/logging/level.h>
 #include <multipass/path.h>
+#include <multipass/singleton.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
@@ -127,6 +128,12 @@ void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds ti
                     Args&&... args);
 
 } // namespace utils
+
+class Utils : public Singleton<Utils>
+{
+public:
+    Utils(const Singleton<Utils>::PrivatePass&);
+};
 } // namespace multipass
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
