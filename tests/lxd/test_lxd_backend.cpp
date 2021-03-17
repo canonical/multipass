@@ -215,6 +215,18 @@ TEST_F(LXDBackend, factory_creates_expected_image_vault)
     EXPECT_TRUE(dynamic_cast<mp::LXDVMImageVault*>(vault.get()));
 }
 
+TEST_F(LXDBackend, factory_does_nothing_on_configure)
+{
+    mpt::TempDir data_dir;
+    mp::VirtualMachineDescription vm_desc{default_description};
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    backend.configure(vm_desc);
+
+    EXPECT_TRUE(vm_desc.cloud_init_iso.isEmpty());
+}
+
 TEST_F(LXDBackend, creates_in_stopped_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;

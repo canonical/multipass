@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,6 +61,7 @@ public:
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                                   const Path& cache_dir_path, const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
+    virtual void configure(VirtualMachineDescription& vm_desc) = 0;
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
