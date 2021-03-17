@@ -966,7 +966,8 @@ TEST_F(LXDImageVault, http_based_image_downloads_and_creates_correct_upload)
 
     auto current_time = QDateTime::currentDateTime();
 
-    const mp::Query query{"", "http://www.foo.com/images/foo.img", false, "", mp::Query::Type::HttpDownload};
+    const std::string download_url{"http://www.foo.com/images/foo.img"};
+    const mp::Query query{"", download_url, false, "", mp::Query::Type::HttpDownload};
     auto image = image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
 
     EXPECT_EQ(image.id, "bc5a973bd6f2bef30658fb51177cf5e506c1d60958a4c97813ee26416dc368da");
@@ -974,6 +975,10 @@ TEST_F(LXDImageVault, http_based_image_downloads_and_creates_correct_upload)
     auto image_time = QDateTime::fromString(QString::fromStdString(image.release_date), Qt::ISODateWithMs);
 
     EXPECT_TRUE(image_time >= current_time);
+
+    EXPECT_EQ(url_downloader.downloaded_files.size(), 1);
+    EXPECT_EQ(url_downloader.downloaded_urls.size(), 1);
+    EXPECT_EQ(url_downloader.downloaded_urls.front().toStdString(), download_url);
 }
 
 TEST_F(LXDImageVault, file_based_fetch_copies_image_and_returns_expected_info)
