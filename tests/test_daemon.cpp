@@ -31,8 +31,6 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 
-#include "mock_utils_functions.h" // Must be included before other local headers
-
 #include "dummy_ssh_key_provider.h"
 #include "extra_assertions.h"
 #include "file_operations.h"
@@ -40,6 +38,7 @@
 #include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_standard_paths.h"
+#include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
@@ -326,6 +325,9 @@ struct Daemon : public Test
     mpt::TempDir data_dir;
     mp::DaemonConfigBuilder config_builder;
     inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
+
+    decltype(mpt::MockUtils::inject()) attr{mpt::MockUtils::inject()};
+    mpt::MockUtils* mock_utils = attr.first;
 };
 
 TEST_F(Daemon, receives_commands)
@@ -900,7 +902,7 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
         return mp::MemorySize{img_size_str};
     });
 
-    REPLACE(filesystem_bytes_available, [](auto...) { return default_total_bytes; });
+    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(default_total_bytes));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -928,7 +930,7 @@ TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    REPLACE(filesystem_bytes_available, [](auto...) { return 0; });
+    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
@@ -952,7 +954,7 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_when_space_less_than_image)
 
     mp::Daemon daemon{config_builder.build()};
 
-    REPLACE(filesystem_bytes_available, [](auto...) { return 0; });
+    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
