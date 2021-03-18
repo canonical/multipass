@@ -29,9 +29,7 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
-namespace multipass
-{
-namespace test
+namespace
 {
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
@@ -103,11 +101,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 };
-} // namespace test
-} // namespace multipass
 
-namespace
-{
 struct BaseVM : public Test
 {
     BaseVM()
@@ -129,14 +123,9 @@ struct BaseVM : public Test
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
 };
 
-struct IpExecution : public BaseVM, public WithParamInterface<std::tuple<int, std::string, std::vector<std::string>>>
-{
-};
-} // namespace
-
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 {
-    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
 
@@ -146,7 +135,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
 {
-    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     // Make SSH throw when trying to execute something.
     request_exec.returnValue(SSH_ERROR);
@@ -157,17 +146,28 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
 
 TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
 {
-    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
 
     EXPECT_EQ(base_vm.get_all_ipv4(key_provider).size(), 0u);
 }
 
+struct IpTestParams
+{
+    int exit_status;
+    std::string output;
+    std::vector<std::string> expected_ips;
+};
+
+struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
+{
+};
+
 TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 {
-    mpt::StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
-    auto [ip_exit_status, ip_output, expected_ips] = GetParam();
-    auto remaining = ip_output.size();
+    auto test_params = GetParam();
+    auto remaining = test_params.output.size();
 
     REPLACE(ssh_channel_get_exit_status, [](auto...) { return SSH_OK; });
 
@@ -178,16 +178,16 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
     };
     REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
 
-    auto event_dopoll = [&callbacks, &ip_exit_status](ssh_event, int timeout) {
+    auto event_dopoll = [&callbacks, &test_params](ssh_event, int timeout) {
         EXPECT_TRUE(callbacks);
-        callbacks->channel_exit_status_function(nullptr, nullptr, ip_exit_status, callbacks->userdata);
+        callbacks->channel_exit_status_function(nullptr, nullptr, test_params.exit_status, callbacks->userdata);
         return SSH_OK;
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    auto channel_read = [&ip_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+    auto channel_read = [&test_params, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
-        const auto begin = ip_output.begin() + ip_output.size() - remaining;
+        const auto begin = test_params.output.begin() + test_params.output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
         remaining -= num_to_copy;
         return num_to_copy;
@@ -195,16 +195,17 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
     REPLACE(ssh_channel_read_timeout, channel_read);
 
     auto ip_list = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ip_list, expected_ips);
+    EXPECT_EQ(ip_list, test_params.expected_ips);
 }
 
-INSTANTIATE_TEST_SUITE_P(BaseVM, IpExecution,
-                         Values(std::make_tuple(0, "eth0             UP             192.168.2.168/24 \n",
-                                                std::vector<std::string>{"192.168.2.168"}),
-                                std::make_tuple(0,
-                                                "wlp4s0           UP             192.168.2.8/24 \n"
-                                                "virbr0           DOWN           192.168.3.1/24 \n"
-                                                "tun0             UNKNOWN        10.172.66.5/18 \n",
-                                                std::vector<std::string>{"192.168.2.8", "192.168.3.1", "10.172.66.5"}),
-                                std::make_tuple(0, "", std::vector<std::string>{}),
-                                std::make_tuple(127, "ip: command not found\n", std::vector<std::string>{})));
+INSTANTIATE_TEST_SUITE_P(
+    BaseVM, IpExecution,
+    Values(IpTestParams{0, "eth0             UP             192.168.2.168/24 \n", {"192.168.2.168"}},
+           IpTestParams{0,
+                        "wlp4s0           UP             192.168.2.8/24 \n"
+                        "virbr0           DOWN           192.168.3.1/24 \n"
+                        "tun0             UNKNOWN        10.172.66.5/18 \n",
+                        {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
+           IpTestParams{0, "", {}}, IpTestParams{127, "ip: command not found\n", {}}));
+
+} // namespace
