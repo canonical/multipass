@@ -34,7 +34,7 @@ class AliasDict
 public:
     typedef typename std::unordered_map<std::string, AliasDefinition> DictType;
 
-    AliasDict();
+    AliasDict(const mp::optional<std::string> file = mp::nullopt);
     ~AliasDict();
     void add_alias(const std::string& alias, const AliasDefinition& command);
     void remove_alias(const std::string& alias);
@@ -46,8 +46,12 @@ public:
     bool empty() const;
 
 private:
+    void load_dict();
+    void save_dict();
+
     bool modified = false;
     DictType aliases;
+    std::string aliases_file;
 }; // class AliasDict
 } // namespace multipass
 #endif // MULTIPASS_ALIAS_DICT_H

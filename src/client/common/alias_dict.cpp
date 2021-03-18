@@ -16,21 +16,39 @@
  */
 
 #include <multipass/cli/alias_dict.h>
+#include <multipass/constants.h>
+#include <multipass/standard_paths.h>
 
-#include <stdexcept>
+#include <QDir>
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 
-mp::AliasDict::AliasDict()
+mp::AliasDict::AliasDict(const mp::optional<std::string> file)
 {
-    // TODO: read from file
-    aliases.emplace("lsp", mp::AliasDefinition{"primary", "ls", {}});
-    aliases.emplace("llp", mp::AliasDefinition{"primary", "ls", {"-l", "-a"}});
+    if (file)
+    {
+        aliases_file = std::move(*file);
+    }
+    else
+    {
+        const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
+        const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+        const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
+
+        aliases_file = cli_client_dir_path.absoluteFilePath(file_name).toStdString();
+    }
+
+    load_dict();
 }
 
 mp::AliasDict::~AliasDict()
 {
     if (modified)
     {
-        // TODO: overwrite file contents with the new dictionary
+        save_dict();
     }
 }
 
@@ -85,4 +103,46 @@ mp::AliasDict::DictType::const_iterator mp::AliasDict::cend() const
 bool mp::AliasDict::empty() const
 {
     return aliases.empty();
+}
+
+void mp::AliasDict::load_dict()
+{
+    QFile db_file{QString::fromStdString(aliases_file)};
+
+    aliases.clear();
+
+    if (!db_file.open(QIODevice::ReadOnly))
+        return;
+
+    QJsonParseError parse_error;
+    QJsonDocument doc = QJsonDocument::fromJson(db_file.readAll(), &parse_error);
+    if (doc.isNull())
+        return;
+
+    QJsonObject records = doc.object();
+    if (records.isEmpty())
+        return;
+
+    for (auto it = records.constBegin(); it != records.constEnd(); ++it)
+    {
+        std::string alias = it.key().toStdString();
+        QJsonObject record = it.value().toObject();
+        if (record.isEmpty())
+            return;
+
+        std::string instance = record["instance"].toString().toStdString();
+        std::string command = record["command"].toString().toStdString();
+        QJsonArray arguments_array = record["arguments"].toArray();
+
+        std::vector<std::string> arguments;
+        for (const auto& arg : arguments_array)
+            arguments.push_back(arg.toString().toStdString());
+
+        aliases.emplace(alias, mp::AliasDefinition{instance, command, arguments});
+    }
+}
+
+void mp::AliasDict::save_dict()
+{
+    // TODO: write or overwrite aliases file contents with the new dictionary
 }
