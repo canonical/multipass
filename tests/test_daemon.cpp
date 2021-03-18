@@ -250,6 +250,10 @@ struct Daemon : public Test
         config_builder.connection_type = mp::RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<mpt::StubLogger>();
         config_builder.update_prompt = std::make_unique<mp::DisabledUpdatePrompt>();
+
+        ON_CALL(*mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
+            return mock_utils->Utils::filesystem_bytes_available(data_directory);
+        });
     }
 
     void SetUp() override
@@ -327,7 +331,7 @@ struct Daemon : public Test
     inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
 
     decltype(mpt::MockUtils::inject()) attr{mpt::MockUtils::inject()};
-    mpt::MockUtils* mock_utils = attr.first;
+    NiceMock<mpt::MockUtils>* mock_utils = attr.first;
 };
 
 TEST_F(Daemon, receives_commands)

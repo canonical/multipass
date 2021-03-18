@@ -32,7 +32,7 @@ public:
     using Utils::Utils;
     MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
 
-    MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
+    MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
 };
 } // namespace multipass::test
 #endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H
