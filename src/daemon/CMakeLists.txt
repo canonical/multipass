@@ -61,9 +61,6 @@ target_link_libraries(delayed_shutdown
 )
 
 add_daemon_target(daemon)
-if(MULTIPASS_ENABLE_TESTS)
-  add_daemon_target(daemon_test)
-endif()
 
 add_executable(multipassd daemon_main.cpp)
 
