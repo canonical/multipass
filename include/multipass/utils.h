@@ -38,6 +38,8 @@
 #include <QStringList>
 #include <QVariant>
 
+#define MP_UTILS multipass::Utils::instance()
+
 namespace multipass
 {
 
