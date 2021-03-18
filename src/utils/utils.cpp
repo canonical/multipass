@@ -80,6 +80,11 @@ mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) : Singleton<Utils>::
 {
 }
 
+qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory)
+{
+    return QStorageInfo(QDir(data_directory)).bytesAvailable();
+}
+
 QDir mp::utils::base_dir(const QString& path)
 {
     QFileInfo info{path};
@@ -99,11 +104,6 @@ bool mp::utils::invalid_target_path(const QString& target_path)
     QRegExp matcher("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*");
 
     return matcher.exactMatch(sanitized_path);
-}
-
-qint64 mp::utils::filesystem_bytes_available(const QString& data_directory)
-{
-    return QStorageInfo(QDir(data_directory)).bytesAvailable();
 }
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
