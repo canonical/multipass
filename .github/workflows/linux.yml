@@ -16,7 +16,7 @@ jobs:
   Lint:
     runs-on: ubuntu-latest
 
-    if: ${{ github.event_name == 'pull_request' || contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    if: false
 
     steps:
     - name: Check out code
@@ -30,7 +30,7 @@ jobs:
   BuildAndTest:
     needs: Lint
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !failure() }}
+    if: false
 
     outputs:
       label: ${{ steps.build-params.outputs.label }}
@@ -171,13 +171,7 @@ jobs:
   Publish-Snap:
     needs: BuildAndTest
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{
-      !failure()
-      && needs.BuildAndTest.outputs.channel != ''
-      && (github.event_name == 'push'
-          || github.event.pull_request.head.repo.full_name == github.repository)
-      }}
-
+    if: false
     runs-on: ubuntu-latest
 
     timeout-minutes: 15
@@ -198,7 +192,7 @@ jobs:
 
   # Report result to Bors on `staging` and `trying` branches.
   Linux:
-    if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    if: false
     needs:
     - BuildAndTest
 
