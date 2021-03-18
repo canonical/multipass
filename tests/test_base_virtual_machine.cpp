@@ -29,35 +29,39 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
-namespace multipass
-{
-namespace test
+namespace
 {
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine() : mp::BaseVirtualMachine("stub")
+    StubBaseVirtualMachine(const mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
+        : mp::BaseVirtualMachine("stub")
     {
+        state = s;
     }
 
     void stop()
     {
+        state = mp::VirtualMachine::State::off;
     }
 
     void start()
     {
+        state = mp::VirtualMachine::State::running;
     }
 
     void shutdown()
     {
+        state = mp::VirtualMachine::State::off;
     }
 
     void suspend()
     {
+        state = mp::VirtualMachine::State::suspended;
     }
 
     mp::VirtualMachine::State current_state()
     {
-        return mp::VirtualMachine::State::running;
+        return state;
     }
 
     int ssh_port()
@@ -97,43 +101,111 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 };
-} // namespace test
-} // namespace multipass
 
-namespace
-{
 struct BaseVM : public Test
 {
+    BaseVM()
+    {
+        connect.returnValue(SSH_OK);
+        is_connected.returnValue(true);
+        open_session.returnValue(SSH_OK);
+        request_exec.returnValue(SSH_OK);
+        userauth_publickey.returnValue(SSH_OK);
+        channel_is_closed.returnValue(0);
+    }
+
+    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
+    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
+    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
+    decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
+    decltype(MOCK(ssh_userauth_publickey)) userauth_publickey{MOCK(ssh_userauth_publickey)};
+    decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
 };
-} // namespace
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 {
-    mpt::StubBaseVirtualMachine base_vm;
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
-    EXPECT_THROW(mp::SSHSession("theanswertoeverything", 42), mp::SSHException); // Test that it indeed does.
 
-    auto ipv4_count = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ipv4_count.size(), 0u);
+    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    EXPECT_EQ(ip_list.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
 {
-    mpt::StubBaseVirtualMachine base_vm;
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     // Make SSH throw when trying to execute something.
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_is_connected, [](auto...) { return true; });
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_ERROR; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_OK; });
+    request_exec.returnValue(SSH_ERROR);
 
-    // Check that it indeed throws at execution.
-    mp::SSHSession session{"host", 42};
-    EXPECT_THROW(session.exec("dummy"), mp::SSHException);
-
-    auto ipv4_count = base_vm.get_all_ipv4(key_provider);
-    EXPECT_EQ(ipv4_count.size(), 0u);
+    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    EXPECT_EQ(ip_list.size(), 0u);
 }
+
+TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
+{
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+
+    EXPECT_EQ(base_vm.get_all_ipv4(key_provider).size(), 0u);
+}
+
+struct IpTestParams
+{
+    int exit_status;
+    std::string output;
+    std::vector<std::string> expected_ips;
+};
+
+struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
+{
+};
+
+TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
+{
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+
+    auto test_params = GetParam();
+    auto remaining = test_params.output.size();
+
+    REPLACE(ssh_channel_get_exit_status, [](auto...) { return SSH_OK; });
+
+    ssh_channel_callbacks callbacks{nullptr};
+    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+
+    auto event_dopoll = [&callbacks, &test_params](ssh_event, int timeout) {
+        EXPECT_TRUE(callbacks);
+        callbacks->channel_exit_status_function(nullptr, nullptr, test_params.exit_status, callbacks->userdata);
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
+    auto channel_read = [&test_params, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+        const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
+        const auto begin = test_params.output.begin() + test_params.output.size() - remaining;
+        std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
+        remaining -= num_to_copy;
+        return num_to_copy;
+    };
+    REPLACE(ssh_channel_read_timeout, channel_read);
+
+    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    EXPECT_EQ(ip_list, test_params.expected_ips);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    BaseVM, IpExecution,
+    Values(IpTestParams{0, "eth0             UP             192.168.2.168/24 \n", {"192.168.2.168"}},
+           IpTestParams{0,
+                        "wlp4s0           UP             192.168.2.8/24 \n"
+                        "virbr0           DOWN           192.168.3.1/24 \n"
+                        "tun0             UNKNOWN        10.172.66.5/18 \n",
+                        {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
+           IpTestParams{0, "", {}}, IpTestParams{127, "ip: command not found\n", {}}));
+
+} // namespace
