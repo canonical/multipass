@@ -20,6 +20,7 @@
 
 #include <multipass/logging/level.h>
 #include <multipass/path.h>
+#include <multipass/singleton.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
@@ -36,6 +37,8 @@
 #include <QString>
 #include <QStringList>
 #include <QVariant>
+
+#define MP_UTILS multipass::Utils::instance()
 
 namespace multipass
 {
@@ -68,7 +71,6 @@ QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string filename_for(const std::string& path);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
-qint64 filesystem_bytes_available(const QString& data_directory);
 
 // special-file helpers
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
@@ -127,6 +129,14 @@ void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds ti
                     Args&&... args);
 
 } // namespace utils
+
+class Utils : public Singleton<Utils>
+{
+public:
+    Utils(const Singleton<Utils>::PrivatePass&);
+
+    virtual qint64 filesystem_bytes_available(const QString& data_directory);
+};
 } // namespace multipass
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>

@@ -482,7 +482,7 @@ TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
 {
     mpt::TempDir temp_dir;
 
-    auto bytes_available = mp::utils::filesystem_bytes_available(temp_dir.path());
+    auto bytes_available = MP_UTILS.filesystem_bytes_available(temp_dir.path());
 
     EXPECT_GE(bytes_available, 0);
 }
