@@ -716,7 +716,7 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
         disk_space = *command_line_value;
     }
 
-    auto available_bytes = mpu::filesystem_bytes_available(data_directory);
+    auto available_bytes = MP_UTILS.filesystem_bytes_available(data_directory);
     if (available_bytes == -1)
     {
         throw std::runtime_error(fmt::format("Failed to determine information about the volume containing {}",
