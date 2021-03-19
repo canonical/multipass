@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_UTILS_FUNCTIONS_H
-#define MULTIPASS_MOCK_UTILS_FUNCTIONS_H
+#ifndef MULTIPASS_MOCK_UTILS_H
+#define MULTIPASS_MOCK_UTILS_H
 
-#include <premock.hpp>
+#include "mock_singleton_helpers.h"
 
 #include <multipass/utils.h>
 
-namespace multipass
+#include <gmock/gmock.h>
+
+namespace multipass::test
 {
-namespace utils
+class MockUtils : public Utils
 {
-DECL_MOCK(filesystem_bytes_available);
-} // namespace utils
-} // namespace multipass
+public:
+    using Utils::Utils;
+    MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
+};
+} // namespace multipass::test
 #endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H
