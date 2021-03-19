@@ -282,6 +282,10 @@ jobs:
         storage-class: ONEZONE_IA
       timeout-minutes: 5
 
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
     - name: Create an App token
       # The token in app-token expires after an hour, and a full macOS build
       # (including bors and ocaml setup) may take more than that, so need to
@@ -434,6 +438,10 @@ jobs:
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
+
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
     - name: Update the check on public
       if: ${{ github.event_name == 'repository_dispatch' }}
