@@ -107,6 +107,7 @@ target_compile_definitions(ssh_client_test PRIVATE
 target_link_libraries(multipass_tests
   cert
   client
+  daemon
   delayed_shutdown
   ip_address
   iso
