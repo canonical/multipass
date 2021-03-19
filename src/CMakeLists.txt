@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -33,4 +33,5 @@ add_subdirectory(simplestreams)
 add_subdirectory(ssh)
 add_subdirectory(sshfs_mount)
 add_subdirectory(utils)
+add_subdirectory(workflow_provider)
 add_subdirectory(xz_decoder)
