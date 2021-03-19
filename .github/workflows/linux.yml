@@ -111,7 +111,7 @@ jobs:
     - name: Build
       run: |
         # Inject the build label.
-        sed -i "/configflags:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
+        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
 
         # Build the `multipass` part.
         sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
