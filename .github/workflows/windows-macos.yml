@@ -271,6 +271,7 @@ jobs:
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
 
+    # Put the package on S3 for public consumption
     - name: Publish package on S3
       id: s3-upload
       uses: canonical/actions/s3-upload@release
@@ -282,6 +283,7 @@ jobs:
         storage-class: ONEZONE_IA
       timeout-minutes: 5
 
+    # This shows up on this run's page
     - name: Report public URL
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
@@ -299,6 +301,7 @@ jobs:
         private_key: ${{ secrets.APP_PRIVATE_KEY }}
         repository: ${{ github.event.client_payload.repository }}
 
+    # On success, link to the package on the public side
     - name: Update the check on public
       if: ${{ github.event_name == 'repository_dispatch' }}
       uses: LouisBrunner/checks-action@v1.1.1
@@ -314,6 +317,7 @@ jobs:
              "text_description": "[${{ steps.cmake-package.outputs.name }}](${{ steps.s3-upload.outputs.url }})"
           }
 
+    # On failure, just report the failure
     - name: Update the check on public
       if: ${{ !success() && github.event_name == 'repository_dispatch' }}
       uses: LouisBrunner/checks-action@v1.1.1
@@ -428,6 +432,7 @@ jobs:
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
 
+    # Put the package on S3 for public consumption
     - name: Publish package on S3
       id: s3-upload
       uses: canonical/actions/s3-upload@release
@@ -439,10 +444,12 @@ jobs:
         storage-class: ONEZONE_IA
       timeout-minutes: 5
 
+    # This shows up on this run's page
     - name: Report public URL
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
+    # On success, link to the package on the public side
     - name: Update the check on public
       if: ${{ github.event_name == 'repository_dispatch' }}
       uses: LouisBrunner/checks-action@v1.1.1
@@ -458,6 +465,7 @@ jobs:
              "text_description": "[${{ steps.cmake-package.outputs.name }}](${{ steps.s3-upload.outputs.url }})"
           }
 
+    # On failure, just report the failure
     - name: Update the check on public
       if: ${{ !success() && github.event_name == 'repository_dispatch' }}
       uses: LouisBrunner/checks-action@v1.1.1
