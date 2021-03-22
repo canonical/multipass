@@ -93,7 +93,7 @@ QList<QByteArray> split_http_lines(const QByteArray& reply_data)
         start = end + 2;
     }
 
-    list.append(reply_data.mid(start).split('\n').front());
+    list.append(reply_data.mid(start));
 
     return list;
 }
@@ -187,10 +187,6 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         http_data += "User-Agent: " + user_agent + "\r\n";
     }
 
-    // Workaround weird issue in LXD's use of Go where Go's HTTP handler thinks there is more
-    // data and "sees" and "empty" query and reponds with an unexpected 400 error
-    http_data += "Connection: close\r\n";
-
     if (!local_socket_write(http_data))
         return;
 
@@ -274,7 +270,7 @@ void mp::LocalSocketReply::read_reply()
 
     do
     {
-        bytes_read = local_socket->read(data_ptr, len);
+        bytes_read = local_socket->read(reply_data.data(), len);
 
         data_ptr += bytes_read;
     } while (bytes_read > 0);
@@ -290,6 +286,8 @@ void mp::LocalSocketReply::parse_reply()
     bool chunked_transfer_encoding{false};
     auto reply_lines = split_http_lines(reply_data);
     auto it = reply_lines.constBegin();
+
+    content_data = "\0";
 
     parse_status(*it);
 
@@ -314,28 +312,26 @@ void mp::LocalSocketReply::parse_reply()
 
             if (chunked_transfer_encoding)
             {
-                QByteArray chunked_data;
-
                 while (true)
                 {
                     data_len = (*it).toLongLong(&ok, 16);
 
                     if (data_len == 0)
                     {
-                        content_data = chunked_data;
                         return;
                     }
 
                     ++it;
 
-                    chunked_data.append((*it).constData(), data_len);
+                    content_data.append((*it).constData(), data_len);
 
                     ++it;
                 }
             }
             else
             {
-                content_data = (*it).trimmed();
+                content_data.append((*it).constData(), data_len);
+
                 return;
             }
         }
