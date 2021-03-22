@@ -57,6 +57,7 @@ private:
     LocalSocketUPtr local_socket;
     QByteArray reply_data;
     qint64 offset{0};
+    bool chunked_transfer_encoding{false};
 };
 } // namespace multipass
 
