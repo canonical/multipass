@@ -44,6 +44,7 @@ apps:
       - multipass-support
       - network-bind
       - network-control
+      - network-manager # for bridge creation
       - lxd
       - removable-media
   multipass:
