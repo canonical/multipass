@@ -170,6 +170,10 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
         http_data += "User-Agent: " + user_agent + "\r\n";
     }
 
+    // Workaround weird issue in LXD's use of Go where Go's HTTP handler thinks there is more
+    // data and "sees" and "empty" query and reponds with an unexpected 400 error
+    http_data += "Connection: close\r\n";
+
     if (!local_socket_write(http_data))
         return;
 
