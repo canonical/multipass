@@ -178,3 +178,9 @@ popd
 # remove writable permissions
 chmod -w "$LIBDIR"/*.dylib
 chmod -w "$BINDIR/qemu-img"
+
+# error out if any HOMEBREW reference remains
+echo "Checking for HOMEBREW references..."
+if otool -L "$LIBDIR"/*.dylib "$BINDIR/qemu-img" | grep HOMEBREW; then
+  exit 1
+fi
