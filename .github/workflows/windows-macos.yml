@@ -16,6 +16,9 @@ on:
 env:
   HEAD_REF: ci${{ github.run_id }}
   RUN_URL: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  S3_BUCKET: multipass-ci
 
 jobs:
   # This job is here so that the Windows and macOS builds share exactly the same
@@ -268,6 +271,23 @@ jobs:
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
 
+    # Put the package on S3 for public consumption
+    - name: Publish package on S3
+      id: s3-upload
+      uses: canonical/actions/s3-upload@release
+      with:
+        path: ${{ steps.cmake-package.outputs.path }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ steps.build-params.outputs.label }}
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    # This shows up on this run's page
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
     - name: Create an App token
       # The token in app-token expires after an hour, and a full macOS build
       # (including bors and ocaml setup) may take more than that, so need to
@@ -281,8 +301,25 @@ jobs:
         private_key: ${{ secrets.APP_PRIVATE_KEY }}
         repository: ${{ github.event.client_payload.repository }}
 
+    # On success, link to the package on the public side
     - name: Update the check on public
-      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      uses: LouisBrunner/checks-action@v1.1.1
+      with:
+        token: ${{ steps.app-token-update.outputs.token }}
+        repo: ${{ github.event.client_payload.repository }}
+        sha: ${{ github.event.client_payload.head_sha }}
+        check_id: ${{ steps.public-check.outputs.check_id }}
+        conclusion: ${{ job.status }}
+        output: |
+          {
+             "summary": "macOS build successful",
+             "text_description": "[${{ steps.cmake-package.outputs.name }}](${{ steps.s3-upload.outputs.url }})"
+          }
+
+    # On failure, just report the failure
+    - name: Update the check on public
+      if: ${{ !success() && github.event_name == 'repository_dispatch' }}
       uses: LouisBrunner/checks-action@v1.1.1
       with:
         token: ${{ steps.app-token-update.outputs.token }}
@@ -395,8 +432,42 @@ jobs:
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
 
+    # Put the package on S3 for public consumption
+    - name: Publish package on S3
+      id: s3-upload
+      uses: canonical/actions/s3-upload@release
+      with:
+        path: ${{ steps.cmake-package.outputs.path }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ steps.build-params.outputs.label }}
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    # This shows up on this run's page
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
+    # On success, link to the package on the public side
     - name: Update the check on public
-      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      if: ${{ github.event_name == 'repository_dispatch' }}
+      uses: LouisBrunner/checks-action@v1.1.1
+      with:
+        token: ${{ steps.app-token.outputs.token }}
+        repo: ${{ github.event.client_payload.repository }}
+        sha: ${{ github.event.client_payload.head_sha }}
+        check_id: ${{ steps.public-check.outputs.check_id }}
+        conclusion: ${{ job.status }}
+        output: |
+          {
+             "summary": "Windows build successful",
+             "text_description": "[${{ steps.cmake-package.outputs.name }}](${{ steps.s3-upload.outputs.url }})"
+          }
+
+    # On failure, just report the failure
+    - name: Update the check on public
+      if: ${{ !success() && github.event_name == 'repository_dispatch' }}
       uses: LouisBrunner/checks-action@v1.1.1
       with:
         token: ${{ steps.app-token.outputs.token }}
