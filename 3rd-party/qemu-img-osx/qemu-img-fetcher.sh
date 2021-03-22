@@ -139,7 +139,7 @@ install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libssh/lib/libssh.4.dylib"   
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
-install_name_tool -change "@@HOMEBREW_CELLAR@@/glib/2.62.0_1/lib/libglib-2.0.0.dylib" "@rpath/libglib-2.0.0.dylib"    "$LIBDIR/libgthread-2.0.0.dylib"
+install_name_tool -change "@@HOMEBREW_CELLAR@@/glib/2.66.7/lib/libglib-2.0.0.dylib" "@rpath/libglib-2.0.0.dylib"      "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/pcre/lib/libpcre.1.dylib"        "@rpath/libpcre.1.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libglib-2.0.0.dylib"
@@ -159,7 +159,7 @@ install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libidn2/lib/libidn2.0.dylib" 
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libhogweed.6.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gmp/lib/libgmp.10.dylib"         "@rpath/libgmp.10.dylib"          "$LIBDIR/libhogweed.6.dylib"
-install_name_tool -change "@@HOMEBREW_CELLAR@@/nettle/3.4.1/lib/libnettle.8.dylib"    "@rpath/libnettle.8.dylib"      "$LIBDIR/libhogweed.6.dylib"
+install_name_tool -change "@@HOMEBREW_CELLAR@@/nettle/3.7/lib/libnettle.8.dylib"    "@rpath/libnettle.8.dylib"        "$LIBDIR/libhogweed.6.dylib"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libp11-kit.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libffi/lib/libffi.7.dylib"       "@rpath/libffi.7.dylib"           "$LIBDIR/libp11-kit.0.dylib"
