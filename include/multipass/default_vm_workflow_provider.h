@@ -18,8 +18,10 @@
 #ifndef MULTIPASS_DEFAULT_VM_WORKFLOW_PROVIDER_H
 #define MULTIPASS_DEFAULT_VM_WORKFLOW_PROVIDER_H
 
+#include <multipass/path.h>
 #include <multipass/vm_workflow_provider.h>
 
+#include <QDir>
 #include <QUrl>
 
 namespace multipass
@@ -30,16 +32,20 @@ class VMImageVault;
 class DefaultVMWorkflowProvider final : public VMWorkflowProvider
 {
 public:
-    DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, VMImageVault* image_vault);
+    DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, VMImageVault* image_vault,
+                              const QDir& cache_dir_path);
 
     VMImageInfo fetch_workflow(const Query& query) override;
     void for_each_entry_do(const Action& action) override;
     std::vector<VMImageInfo> all_workflows() override;
 
 private:
+    void fetch_workflows_archive();
+
     const QUrl workflows_url;
     URLDownloader* const url_downloader;
     VMImageVault* const image_vault;
+    const QString archive_file_path;
 };
 } // namespace multipass
 #endif // MULTIPASS_DEFAULT_VM_WORKFLOW_PROVIDER_H
