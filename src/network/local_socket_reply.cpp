@@ -87,8 +87,6 @@ QList<QByteArray> split_http_lines(const QByteArray& reply_data)
     int start{0};
     int end;
 
-    // Note: If there is ever the case that "\r\n" is sent in the
-    //       chunked content data, this will break.
     while ((end = reply_data.indexOf("\r\n", start)) != -1)
     {
         list.append(reply_data.mid(start, end - start));
@@ -337,7 +335,6 @@ void mp::LocalSocketReply::parse_reply()
             }
             else
             {
-                // Assume the rest of the data is the content data.
                 content_data = (*it).trimmed();
                 return;
             }
