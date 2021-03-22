@@ -55,9 +55,9 @@ mkdir -p "$LIBDIR"
 mkdir -p "$DOWNLOAD_DIR"
 
 # Get qemu-img binary (with shared lib requirements)
-get_brew_and_extract qemu-5.2.0
+get_brew_and_extract qemu-4.2.0
 
-cp "$DOWNLOAD_DIR/qemu/5.2.0/bin/qemu-img" "$BINDIR/"
+cp "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/"
 
 
 
@@ -81,15 +81,15 @@ get_brew_and_extract gettext-0.21
 cp "$DOWNLOAD_DIR/gettext/0.21/lib/libintl.8.dylib" "$LIBDIR/"
 
 # nettle (no other deps)
-get_brew_and_extract nettle-3.7
+get_brew_and_extract nettle-3.4.1
 
-cp "$DOWNLOAD_DIR/nettle/3.7/lib/libnettle.8.dylib"  "$LIBDIR/"
-cp "$DOWNLOAD_DIR/nettle/3.7/lib/libhogweed.6.dylib" "$LIBDIR/"  # needed by gnutls
+cp "$DOWNLOAD_DIR/nettle/3.4.1/lib/libnettle.6.dylib"  "$LIBDIR/"
+cp "$DOWNLOAD_DIR/nettle/3.4.1/lib/libhogweed.4.dylib" "$LIBDIR/"  # needed by gnutls
 
 # gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp, libintl (above), libidn2
-get_brew_and_extract gnutls-3.6.15
+get_brew_and_extract gnutls-3.6.13
 
-cp "$DOWNLOAD_DIR/gnutls/3.6.15/lib/libgnutls.30.dylib" "$LIBDIR/"
+cp "$DOWNLOAD_DIR/gnutls/3.6.13/lib/libgnutls.30.dylib" "$LIBDIR/"
 
 # p11-kit - requires libffi
 get_brew_and_extract p11-kit-0.23.22
@@ -130,7 +130,7 @@ chmod +w "$BINDIR/qemu-img"
 install_name_tool -add_rpath "@executable_path/../lib/" "$BINDIR/qemu-img"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libgthread-2.0.0.dylib" "@rpath/libgthread-2.0.0.dylib"   "$BINDIR/qemu-img"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gnutls/lib/libgnutls.30.dylib"   "@rpath/libgnutls.30.dylib"       "$BINDIR/qemu-img"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.8.dylib"    "@rpath/libnettle.8.dylib"        "$BINDIR/qemu-img"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.6.dylib"    "@rpath/libnettle.6.dylib"        "$BINDIR/qemu-img"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$BINDIR/qemu-img"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libglib-2.0.0.dylib"    "@rpath/libglib-2.0.0.dylib"      "$BINDIR/qemu-img"
 
@@ -151,15 +151,15 @@ install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/p11-kit/lib/libp11-kit.0.dylib"  "@rpath/libp11-kit.0.dylib"         "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libunistring/lib/libunistring.2.dylib" "@rpath/libunistring.2.dylib" "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libtasn1/lib/libtasn1.6.dylib"   "@rpath/libtasn1.6.dylib"           "$LIBDIR/libgnutls.30.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.8.dylib"    "@rpath/libnettle.8.dylib"          "$LIBDIR/libgnutls.30.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libhogweed.6.dylib"   "@rpath/libhogweed.6.dylib"         "$LIBDIR/libgnutls.30.dylib"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.6.dylib"    "@rpath/libnettle.6.dylib"          "$LIBDIR/libgnutls.30.dylib"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libhogweed.4.dylib"   "@rpath/libhogweed.4.dylib"         "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gmp/lib/libgmp.10.dylib"         "@rpath/libgmp.10.dylib"            "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"            "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libidn2/lib/libidn2.0.dylib"     "@rpath/libidn2.0.dylib"            "$LIBDIR/libgnutls.30.dylib"
 
-install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libhogweed.6.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gmp/lib/libgmp.10.dylib"         "@rpath/libgmp.10.dylib"          "$LIBDIR/libhogweed.6.dylib"
-install_name_tool -change "@@HOMEBREW_CELLAR@@/nettle/3.7/lib/libnettle.8.dylib"    "@rpath/libnettle.8.dylib"        "$LIBDIR/libhogweed.6.dylib"
+install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libhogweed.4.dylib"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gmp/lib/libgmp.10.dylib"         "@rpath/libgmp.10.dylib"          "$LIBDIR/libhogweed.4.dylib"
+install_name_tool -change "@@HOMEBREW_CELLAR@@/nettle/3.4.1/lib/libnettle.6.dylib"  "@rpath/libnettle.6.dylib"        "$LIBDIR/libhogweed.4.dylib"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libp11-kit.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libffi/lib/libffi.7.dylib"       "@rpath/libffi.7.dylib"           "$LIBDIR/libp11-kit.0.dylib"
@@ -178,3 +178,9 @@ popd
 # remove writable permissions
 chmod -w "$LIBDIR"/*.dylib
 chmod -w "$BINDIR/qemu-img"
+
+# error out if any HOMEBREW reference remains
+echo "Checking for HOMEBREW references..."
+if otool -L "$LIBDIR"/*.dylib "$BINDIR/qemu-img" | grep HOMEBREW; then
+  exit 1
+fi
