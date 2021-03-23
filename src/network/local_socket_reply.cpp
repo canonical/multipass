@@ -89,6 +89,8 @@ mp::LocalSocketReply::LocalSocketReply(LocalSocketUPtr local_socket, const QNetw
     open(QIODevice::ReadOnly);
 
     QObject::connect(this->local_socket.get(), &QLocalSocket::readyRead, this, &LocalSocketReply::read_reply);
+    QObject::connect(this->local_socket.get(), &QLocalSocket::readChannelFinished, this,
+                     &LocalSocketReply::read_finish);
 
     send_request(request, outgoingData);
 }
@@ -252,17 +254,25 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
 
 void mp::LocalSocketReply::read_reply()
 {
-    auto data_ptr = reply_data.data();
+    auto data_ptr = reply_data.data() + reply_offset;
     int bytes_read{0};
 
     do
     {
-        bytes_read = local_socket->read(reply_data.data(), len);
+        bytes_read = local_socket->read(data_ptr, len);
 
+        reply_offset += bytes_read;
         data_ptr += bytes_read;
     } while (bytes_read > 0);
+}
 
-    parse_reply();
+void mp::LocalSocketReply::read_finish()
+{
+    if (local_socket->bytesAvailable())
+        read_reply();
+
+    if (reply_offset)
+        parse_reply();
 
     setFinished(true);
     emit finished();

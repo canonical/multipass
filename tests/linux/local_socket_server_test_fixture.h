@@ -47,6 +47,7 @@ public:
             auto response = response_handler(data);
 
             client_connection->write(response);
+            client_connection->close();
         });
     }
 
