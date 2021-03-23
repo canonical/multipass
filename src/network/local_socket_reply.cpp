@@ -259,6 +259,14 @@ void mp::LocalSocketReply::read_reply()
 
     do
     {
+        if (reply_offset + local_socket->bytesAvailable() > len)
+        {
+            setError(UnknownContentError, "Response buffer overflow");
+            emit error(UnknownContentError);
+            setFinished(true);
+            emit finished();
+            return;
+        }
         bytes_read = local_socket->read(data_ptr, len);
 
         reply_offset += bytes_read;

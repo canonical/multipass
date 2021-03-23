@@ -45,6 +45,7 @@ namespace
 {
 using HTTPErrorParamType = std::pair<QByteArray, QNetworkReply::NetworkError>;
 constexpr auto max_bytes{32768};
+constexpr auto max_content{65536};
 
 auto generate_random_data(int length)
 {
@@ -135,7 +136,7 @@ const std::vector<HTTPErrorParamType> http_error_suite_inputs{
     {"HTTP/1.1 500 Internal Server Error\r\n\r\n", QNetworkReply::InternalServerError},
     {"HTTP/1.1 501 Unknown Server Error\r\n\r\n", QNetworkReply::UnknownServerError},
     {"HTTP/1.1 412 Precondition Failed\r\n\r\n", QNetworkReply::UnknownContentError},
-    {{32769, "q"}, QNetworkReply::UnknownContentError}}; // Reply overflow
+    {generate_random_data(max_content + 1), QNetworkReply::UnknownContentError}}; // Reply overflow
 } // namespace
 
 TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
@@ -292,7 +293,7 @@ TEST_F(LocalNetworkAccessManager, query_in_url_is_preserved)
 
 TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
 {
-    QByteArray random_data = generate_random_data(65536);
+    QByteArray random_data = generate_random_data(max_content);
     QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
 
     auto server_response = [&http_response, &random_data](auto data) {
