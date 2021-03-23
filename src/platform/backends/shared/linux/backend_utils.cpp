@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QSysInfo>
+#include <QtDBus/QtDBus>
 
 #include <chrono>
 #include <exception>
@@ -226,4 +227,12 @@ void mp::backend::check_if_kvm_is_in_use()
                                  "starting a Multipass instance.");
 
     close(ret);
+}
+
+void mp::backend::create_bridge_with(const std::string& interface)
+{
+    // TODO
+    const auto system_bus = QDBusConnection::systemBus();
+    if (!system_bus.isConnected())
+        throw std::runtime_error{"Could not create bridge: failed to connect to D-Bus system bus"};
 }

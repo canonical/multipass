@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ Path convert_to_qcow_if_necessary(const Path& image_path);
 QString cpu_arch();
 void check_for_kvm_support();
 void check_if_kvm_is_in_use();
+void create_bridge_with(const std::string& interface);
 } // namespace backend
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H
