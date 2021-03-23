@@ -134,7 +134,8 @@ const std::vector<HTTPErrorParamType> http_error_suite_inputs{
     {"HTTP/1.1 409 Resource Conflict\r\n\r\n", QNetworkReply::ContentConflictError},
     {"HTTP/1.1 500 Internal Server Error\r\n\r\n", QNetworkReply::InternalServerError},
     {"HTTP/1.1 501 Unknown Server Error\r\n\r\n", QNetworkReply::UnknownServerError},
-    {"HTTP/1.1 412 Precondition Failed\r\n\r\n", QNetworkReply::UnknownContentError}};
+    {"HTTP/1.1 412 Precondition Failed\r\n\r\n", QNetworkReply::UnknownContentError},
+    {{32769, "q"}, QNetworkReply::UnknownContentError}}; // Reply overflow
 } // namespace
 
 TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
