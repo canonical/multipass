@@ -135,8 +135,7 @@ const std::vector<HTTPErrorParamType> http_error_suite_inputs{
     {"HTTP/1.1 409 Resource Conflict\r\n\r\n", QNetworkReply::ContentConflictError},
     {"HTTP/1.1 500 Internal Server Error\r\n\r\n", QNetworkReply::InternalServerError},
     {"HTTP/1.1 501 Unknown Server Error\r\n\r\n", QNetworkReply::UnknownServerError},
-    {"HTTP/1.1 412 Precondition Failed\r\n\r\n", QNetworkReply::UnknownContentError},
-    {generate_random_data(max_content + 1), QNetworkReply::UnknownContentError}}; // Reply overflow
+    {"HTTP/1.1 412 Precondition Failed\r\n\r\n", QNetworkReply::UnknownContentError}};
 } // namespace
 
 TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
@@ -313,6 +312,28 @@ TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
     test_server.local_socket_server_handler(server_response);
 
     handle_request(base_url, "POST", random_data);
+}
+
+TEST_F(LocalNetworkAccessManager, overflowing_response_works)
+{
+    auto reply_data = generate_random_data(max_content * 2);
+    QByteArray http_response;
+    http_response += "HTTP/1.1 200 OK\r\n";
+    http_response += "Content-Length: 131072\r\n";
+    http_response += "\r\n";
+    http_response += reply_data;
+    http_response += "\r\n";
+
+    auto server_response = [&http_response](auto...) { return http_response; };
+    test_server.local_socket_server_handler(server_response);
+
+    auto reply = handle_request(base_url, "GET");
+
+    ASSERT_EQ(reply->error(), QNetworkReply::NoError);
+
+    auto data = reply->readAll();
+
+    EXPECT_EQ(data, reply_data);
 }
 
 TEST_F(LocalNetworkAccessManager, no_host_set_throws)
