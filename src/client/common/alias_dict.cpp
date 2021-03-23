@@ -25,12 +25,15 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QTemporaryFile>
+
+#include "../../daemon/json_writer.h"
 
 mp::AliasDict::AliasDict(const mp::optional<std::string> file)
 {
     if (file)
     {
-        aliases_file = std::move(*file);
+        aliases_file = *file;
     }
     else
     {
@@ -144,5 +147,47 @@ void mp::AliasDict::load_dict()
 
 void mp::AliasDict::save_dict()
 {
-    // TODO: write or overwrite aliases file contents with the new dictionary
+    auto alias_to_json = [](const mp::AliasDefinition& alias) -> QJsonObject {
+        QJsonObject json;
+        json.insert("instance", QString::fromStdString(alias.instance));
+        json.insert("command", QString::fromStdString(alias.command));
+
+        QJsonArray arguments;
+        for (const auto& arg : alias.arguments)
+        {
+            arguments.push_back(QJsonValue(QString::fromStdString(arg)));
+        }
+
+        json.insert("arguments", arguments);
+
+        return json;
+    };
+
+    QJsonObject aliases_json;
+    for (const auto& record : aliases)
+    {
+        auto name = QString::fromStdString(record.first);
+        auto definition = alias_to_json(record.second);
+
+        aliases_json.insert(name, definition);
+    }
+
+    QTemporaryFile temp_file;
+    if (temp_file.open())
+    {
+        auto temp_file_name = temp_file.fileName();
+
+        mp::write_json(aliases_json, temp_file_name);
+
+        auto config_file_name = QString::fromStdString(aliases_file);
+
+        if (QFile::exists(config_file_name))
+        {
+            auto backup_file_name = config_file_name + ".bak";
+            QFile::remove(backup_file_name);
+            QFile::rename(config_file_name, backup_file_name);
+        }
+
+        QFile::rename(temp_file_name, config_file_name);
+    }
 }
