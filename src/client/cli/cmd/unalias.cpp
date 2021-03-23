@@ -25,8 +25,22 @@ namespace cmd = multipass::cmd;
 
 mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
 {
-    // TODO
-    return ReturnCode::Ok;
+    auto ret = parse_args(parser);
+    if (ret != ParseCode::Ok)
+    {
+        return parser->returnCodeFrom(ret);
+    }
+
+    if (aliases.remove_alias(alias_to_remove))
+    {
+        // TODO: remove symlink/script associated to this alias
+        return ReturnCode::Ok;
+    }
+    else
+    {
+        cerr << fmt::format("Alias '{}' does not exist\n", alias_to_remove);
+        return ReturnCode::CommandLineError;
+    }
 }
 
 std::string cmd::Unalias::name() const
@@ -47,6 +61,18 @@ QString cmd::Unalias::description() const
 mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "The name of the alias to remove\n");
+
+    auto status = parser->commandParse(this);
+    if (status != ParseCode::Ok)
+        return status;
+
+    if (parser->positionalArguments().count() != 1)
+    {
+        cerr << "Wrong number of arguments given\n";
+        return ParseCode::CommandLineError;
+    }
+
+    alias_to_remove = parser->positionalArguments()[0].toStdString();
 
     return ParseCode::Ok;
 }

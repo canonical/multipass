@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_UNALIAS_H
 #define MULTIPASS_UNALIAS_H
 
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
 #include <QString>
@@ -38,6 +39,9 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser) override;
+
+    AliasDict aliases;
+    std::string alias_to_remove;
 };
 } // namespace cmd
 } // namespace multipass
