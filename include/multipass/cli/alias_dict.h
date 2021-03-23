@@ -37,7 +37,7 @@ public:
     AliasDict(const mp::optional<std::string> file = mp::nullopt);
     ~AliasDict();
     void add_alias(const std::string& alias, const AliasDefinition& command);
-    void remove_alias(const std::string& alias);
+    bool remove_alias(const std::string& alias);
     mp::optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin();
     DictType::iterator end();

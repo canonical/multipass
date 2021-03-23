@@ -63,12 +63,15 @@ void mp::AliasDict::add_alias(const std::string& alias, const mp::AliasDefinitio
     }
 }
 
-void mp::AliasDict::remove_alias(const std::string& alias)
+bool mp::AliasDict::remove_alias(const std::string& alias)
 {
     if (aliases.erase(alias) > 0)
     {
         modified = true;
+        return true;
     }
+
+    return false;
 }
 
 mp::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
