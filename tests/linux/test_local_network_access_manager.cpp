@@ -45,6 +45,7 @@ namespace
 {
 using HTTPErrorParamType = std::pair<QByteArray, QNetworkReply::NetworkError>;
 constexpr auto max_bytes{32768};
+constexpr auto max_content{65536};
 
 auto generate_random_data(int length)
 {
@@ -291,7 +292,7 @@ TEST_F(LocalNetworkAccessManager, query_in_url_is_preserved)
 
 TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
 {
-    QByteArray random_data = generate_random_data(65536);
+    QByteArray random_data = generate_random_data(max_content);
     QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
 
     auto server_response = [&http_response, &random_data](auto data) {
@@ -311,6 +312,28 @@ TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
     test_server.local_socket_server_handler(server_response);
 
     handle_request(base_url, "POST", random_data);
+}
+
+TEST_F(LocalNetworkAccessManager, overflowing_response_works)
+{
+    auto reply_data = generate_random_data(max_content * 2);
+    QByteArray http_response;
+    http_response += "HTTP/1.1 200 OK\r\n";
+    http_response += "Content-Length: 131072\r\n";
+    http_response += "\r\n";
+    http_response += reply_data;
+    http_response += "\r\n";
+
+    auto server_response = [&http_response](auto...) { return http_response; };
+    test_server.local_socket_server_handler(server_response);
+
+    auto reply = handle_request(base_url, "GET");
+
+    ASSERT_EQ(reply->error(), QNetworkReply::NoError);
+
+    auto data = reply->readAll();
+
+    EXPECT_EQ(data, reply_data);
 }
 
 TEST_F(LocalNetworkAccessManager, no_host_set_throws)
