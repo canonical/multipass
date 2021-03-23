@@ -46,7 +46,11 @@ public:
 
             auto response = response_handler(data);
 
-            client_connection->write(response);
+            // Simulate data arriving in chunks
+            int left = response.length() / 2;
+            client_connection->write(response.left(left));
+            client_connection->flush();
+            client_connection->write(response.right(response.length() - left));
             client_connection->close();
         });
     }
