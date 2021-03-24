@@ -109,3 +109,20 @@ add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
 
 # qhotkey config
 add_subdirectory(qhotkey EXCLUDE_FROM_ALL)
+
+# Poco library
+option(ENABLE_NETSSL OFF)
+option(ENABLE_CRYPTO OFF)
+option(ENABLE_JWT OFF)
+option(ENABLE_ENCODINGS OFF)
+option(ENABLE_XML OFF)
+option(ENABLE_JSON OFF)
+option(ENABLE_MONGODB OFF)
+option(ENABLE_DATA_SQLITE OFF)
+option(ENABLE_REDIS OFF)
+option(ENABLE_UTIL OFF)
+option(ENABLE_NET OFF)
+option(ENABLE_PAGECOMPILER OFF)
+option(ENABLE_PAGECOMPILER_FILE2PAGE OFF)
+
+add_subdirectory(poco EXCLUDE_FROM_ALL)
