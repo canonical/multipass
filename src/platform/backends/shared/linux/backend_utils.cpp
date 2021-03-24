@@ -29,6 +29,7 @@
 #include <shared/shared_backend_utils.h>
 
 #include <QCoreApplication>
+#include <QDBusMetaType>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
@@ -229,10 +230,36 @@ void mp::backend::check_if_kvm_is_in_use()
     close(ret);
 }
 
+typedef QMap<QString, QVariantMap> VariantMapMap;
+Q_DECLARE_METATYPE(VariantMapMap)
+
 void mp::backend::create_bridge_with(const std::string& interface)
 {
-    // TODO
+    qDBusRegisterMetaType<VariantMapMap>(); // TODO move this
     const auto system_bus = QDBusConnection::systemBus();
     if (!system_bus.isConnected())
-        throw std::runtime_error{"Could not create bridge: failed to connect to D-Bus system bus"};
+        throw std::runtime_error{
+            "Could not create bridge: failed to connect to D-Bus system bus:"}; // TODO create exception digesting
+                                                                                // QDBusError
+
+    auto nm_settings = QDBusInterface{"org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager/Settings",
+                                      "org.freedesktop.NetworkManager.Settings", system_bus};
+    if (!nm_settings.isValid())
+        throw std::runtime_error{"TODO"}; // TODO
+
+    // TODO verify if suitable bridge exists
+    // TODO derive new bridge name
+
+    // Expected DBus argument type: a{sa{sv}}
+    VariantMapMap arg{{"connection", {{"type", QVariant{"bridge"}}, {"id", QVariant{"qtbr0"}}}},
+                      {"bridge", {{"interface-name", QVariant{"qtbr0"}}}}};
+    QDBusReply<QDBusObjectPath> obj =
+        nm_settings.call(QDBus::Block, QStringLiteral("AddConnection"), QVariant::fromValue(arg));
+    if (!obj.isValid())
+    {
+        throw std::runtime_error{fmt::format("Could not create bridge: {}", obj.error().message())}; // TODO
+        // TODO: the bridge could already be there (e.g. disconnect after creation), so revert
+    }
+
+    // TODO create second connection, then activate the bridge
 }
