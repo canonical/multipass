@@ -36,7 +36,7 @@ public:
     virtual ~VMWorkflowProvider() = default;
 
     virtual VMImageInfo fetch_workflow(const Query& query) = 0;
-    virtual void for_each_entry_do(const Action& action) = 0;
+    virtual VMImageInfo info_for(const std::string& name) = 0;
     virtual std::vector<VMImageInfo> all_workflows() = 0;
 
 protected:

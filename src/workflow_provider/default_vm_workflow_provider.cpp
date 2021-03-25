@@ -53,8 +53,9 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::fetch_workflow(const Query& /* qu
     return {};
 }
 
-void mp::DefaultVMWorkflowProvider::for_each_entry_do(const Action& /* action */)
+mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& /* name */)
 {
+    return {};
 }
 
 std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()

@@ -39,7 +39,7 @@ public:
                               const QDir& cache_dir_path);
 
     VMImageInfo fetch_workflow(const Query& query) override;
-    void for_each_entry_do(const Action& action) override;
+    VMImageInfo info_for(const std::string& name) override;
     std::vector<VMImageInfo> all_workflows() override;
 
 private:
