@@ -190,6 +190,14 @@ void mp::AliasDict::save_dict()
             QFile::remove(backup_file_name);
             QFile::rename(config_file_name, backup_file_name);
         }
+        else
+        {
+            QDir config_path = QFileInfo(config_file_name).absoluteDir();
+            if (!config_path.exists())
+            {
+                config_path.mkpath(config_path.absolutePath());
+            }
+        }
 
         QFile::rename(temp_file_name, config_file_name);
     }
