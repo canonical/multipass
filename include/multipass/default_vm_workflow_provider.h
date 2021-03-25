@@ -22,7 +22,10 @@
 #include <multipass/vm_workflow_provider.h>
 
 #include <QDir>
+#include <QString>
 #include <QUrl>
+
+#include <map>
 
 namespace multipass
 {
@@ -41,11 +44,13 @@ public:
 
 private:
     void fetch_workflows_archive();
+    void get_workflow_map();
 
     const QUrl workflows_url;
     URLDownloader* const url_downloader;
     VMImageVault* const image_vault;
     const QString archive_file_path;
+    std::map<std::string, std::string> workflow_map;
 };
 } // namespace multipass
 #endif // MULTIPASS_DEFAULT_VM_WORKFLOW_PROVIDER_H
