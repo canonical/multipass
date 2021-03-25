@@ -17,5 +17,6 @@ add_library(workflow_provider STATIC
 
 target_link_libraries(workflow_provider
   fmt
+  Poco::Zip
   Qt5::Core
-  Poco::Zip)
+  yaml)

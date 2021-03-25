@@ -19,6 +19,8 @@
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 
+#include <yaml-cpp/yaml.h>
+
 #include <QFile>
 #include <QFileInfo>
 
@@ -57,7 +59,20 @@ void mp::DefaultVMWorkflowProvider::for_each_entry_do(const Action& /* action */
 
 std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
 {
-    return {};
+    std::vector<VMImageInfo> workflow_info;
+
+    for (const auto& [key, config] : workflow_map)
+    {
+        auto workflow_config = YAML::Load(config);
+
+        VMImageInfo image_info;
+        image_info.aliases.append(QString::fromStdString(key));
+        image_info.release_title = QString::fromStdString(workflow_config["description"].as<std::string>());
+
+        workflow_info.push_back(image_info);
+    }
+
+    return workflow_info;
 }
 
 void mp::DefaultVMWorkflowProvider::fetch_workflows_archive()
