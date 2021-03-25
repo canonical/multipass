@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,11 @@ public:
     QString path() const
     {
         return the_path;
+    }
+
+    QString filePath(const QString& fileName)
+    {
+        return dir.filePath(fileName);
     }
 
 private:
