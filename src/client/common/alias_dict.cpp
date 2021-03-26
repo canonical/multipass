@@ -127,7 +127,7 @@ void mp::AliasDict::load_dict()
         std::string alias = it.key().toStdString();
         QJsonObject record = it.value().toObject();
         if (record.isEmpty())
-            return;
+            break;
 
         std::string instance = record["instance"].toString().toStdString();
         std::string command = record["command"].toString().toStdString();
