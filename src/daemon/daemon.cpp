@@ -1051,8 +1051,26 @@ try // clang-format on
 
     if (!request->search_string().empty())
     {
-        auto vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
-                                                           Query::Type::Alias, request->allow_unsupported()});
+        std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
+
+        try
+        {
+            vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
+                                                          Query::Type::Alias, request->allow_unsupported()});
+        }
+        catch (const std::exception&)
+        {
+            try
+            {
+                vm_images_info.push_back(
+                    std::make_pair("", config->workflow_provider->info_for(request->search_string())));
+            }
+            catch (const std::exception&)
+            {
+                throw std::runtime_error(
+                    fmt::format("Unable to find an image or workflow matching \"{}\"", request->search_string()));
+            }
+        }
 
         for (const auto& [remote, info] : vm_images_info)
         {
@@ -1096,6 +1114,13 @@ try // clang-format on
             };
 
             image_host->for_each_entry_do(action);
+        }
+
+        auto vm_workflows_info = config->workflow_provider->all_workflows();
+
+        for (const auto& info : vm_workflows_info)
+        {
+            add_aliases(response, "", info, "");
         }
     }
     else
