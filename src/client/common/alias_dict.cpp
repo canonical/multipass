@@ -29,20 +29,13 @@
 
 #include "../../daemon/json_writer.h"
 
-mp::AliasDict::AliasDict(const mp::optional<std::string> file)
+mp::AliasDict::AliasDict()
 {
-    if (file)
-    {
-        aliases_file = *file;
-    }
-    else
-    {
-        const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
-        const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
-        const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
+    const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
+    const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+    const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
 
-        aliases_file = cli_client_dir_path.absoluteFilePath(file_name).toStdString();
-    }
+    aliases_file = cli_client_dir_path.absoluteFilePath(file_name).toStdString();
 
     load_dict();
 }

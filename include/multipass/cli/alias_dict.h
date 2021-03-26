@@ -34,7 +34,7 @@ class AliasDict
 public:
     typedef typename std::unordered_map<std::string, AliasDefinition> DictType;
 
-    AliasDict(const mp::optional<std::string> file = mp::nullopt);
+    AliasDict();
     ~AliasDict();
     void add_alias(const std::string& alias, const AliasDefinition& command);
     bool remove_alias(const std::string& alias);
