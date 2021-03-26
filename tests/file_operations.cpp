@@ -55,6 +55,10 @@ qint64 mpt::make_file_with_content(const QString& file_name, const std::string& 
     if (!parent_dir.mkpath(".")) // true if directory already exists
         throw std::runtime_error(fmt::format("failed to create test dir: '{}'", parent_dir.path()));
 
+    QDir file_dir = QFileInfo(file).absoluteDir();
+    if (!file_dir.exists())
+        file_dir.mkpath(file_dir.absolutePath());
+
     if (!file.open(QFile::WriteOnly))
         throw std::runtime_error(fmt::format("failed to open test file: '{}'", file_name));
 
