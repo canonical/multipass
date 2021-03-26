@@ -53,9 +53,16 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::fetch_workflow(const Query& /* qu
     return {};
 }
 
-mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& /* name */)
+mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& name)
 {
-    return {};
+    auto& config = workflow_map.at(name);
+    auto workflow_config = YAML::Load(config);
+
+    VMImageInfo image_info;
+    image_info.aliases.append(QString::fromStdString(name));
+    image_info.release_title = QString::fromStdString(workflow_config["description"].as<std::string>());
+
+    return image_info;
 }
 
 std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
