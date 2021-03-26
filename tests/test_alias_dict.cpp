@@ -16,12 +16,13 @@
  */
 
 #include <multipass/cli/alias_dict.h>
+#include <multipass/constants.h>
 
 #include <gmock/gmock.h>
 
 #include "file_operations.h"
+#include "mock_standard_paths.h"
 #include "temp_dir.h"
-#include "temp_file.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -31,32 +32,55 @@ namespace
 {
 struct AliasDictionary : public Test
 {
+    AliasDictionary()
+    {
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
+            .WillRepeatedly(Return(temp_dir.path()));
+    }
+
+    std::string db_filename()
+    {
+        const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
+
+        return temp_dir.filePath(file_name).toStdString();
+    }
+
+    void populate_db_file(const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases)
+    {
+        mp::AliasDict writer;
+
+        auto db_qfilename = QString::fromStdString(db_filename());
+
+        for (const auto& alias : aliases)
+            writer.add_alias(alias.first, alias.second);
+    }
+
+    mpt::TempDir temp_dir;
 };
 
 TEST_F(AliasDictionary, works_with_empty_file)
 {
-    mpt::TempFile fake_db;
-    mp::AliasDict dict(fake_db.name().toStdString());
+    QFile db(QString::fromStdString(db_filename()));
+
+    db.open(QIODevice::ReadWrite); // Create the database file.
+
+    mp::AliasDict dict;
 
     ASSERT_TRUE(dict.empty());
 }
 
 TEST_F(AliasDictionary, works_with_unexisting_file)
 {
-    auto unexisting_file = mpt::TempDir().path().toStdString() + "/unexisting_file";
-    mp::AliasDict dict(unexisting_file);
+    mp::AliasDict dict;
 
     ASSERT_TRUE(dict.empty());
 }
 
 TEST_F(AliasDictionary, works_with_broken_file)
 {
-    mpt::TempDir temp_dir;
-    auto broken_db(temp_dir.path() + "/broken_config_file");
+    mpt::make_file_with_content(QString::fromStdString(db_filename()), "broken file {]");
 
-    mpt::make_file_with_content(broken_db, "broken file {]");
-
-    mp::AliasDict dict(broken_db.toStdString());
+    mp::AliasDict dict;
 
     ASSERT_TRUE(dict.empty());
 }
@@ -67,25 +91,13 @@ struct WriteReadTeststuite : public AliasDictionary, public WithParamInterface<A
 {
 };
 
-void create_alias_file(const std::string& file_name,
-                       const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases)
-{
-    mp::AliasDict writer(file_name);
-
-    for (const auto& alias : aliases)
-        writer.add_alias(alias.first, alias.second);
-}
-
 TEST_P(WriteReadTeststuite, writes_and_reads_files)
 {
     auto aliases_vector = GetParam();
 
-    mpt::TempDir temp_dir;
-    std::string fake_db_file{(temp_dir.path() + "/fake_config_file").toStdString()};
+    populate_db_file(aliases_vector);
 
-    create_alias_file(fake_db_file, aliases_vector);
-
-    mp::AliasDict reader(fake_db_file);
+    mp::AliasDict reader;
 
     for (const auto& alias : aliases_vector)
     {
