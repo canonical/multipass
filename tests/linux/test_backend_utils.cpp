@@ -16,6 +16,7 @@
  */
 
 #include <src/platform/backends/shared/linux/backend_utils.h>
+#include <src/platform/backends/shared/linux/dbus_wrappers.h>
 
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
@@ -24,6 +25,7 @@
 
 #include "tests/extra_assertions.h"
 #include "tests/mock_process_factory.h"
+#include "tests/mock_singleton_helpers.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -164,7 +166,6 @@ const std::vector<ImageConversionParamType> image_conversion_inputs{
      mp::make_optional(HasSubstr("not found"))},
     {"/fake/img/path.qcow2", "{\n    \"format\": \"raw\"\n}", success, true, failure,
      mp::make_optional(HasSubstr("qemu-img failed"))}};
-} // namespace
 
 TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
 {
@@ -222,3 +223,35 @@ TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
 }
 
 INSTANTIATE_TEST_SUITE_P(BackendUtils, ImageConversionTestSuite, ValuesIn(image_conversion_inputs));
+
+namespace mp_dbus = mp::backend::dbus;
+class MockDBusProvider : public mp_dbus::DBusProvider
+{
+public:
+    using DBusProvider::DBusProvider;
+    MOCK_CONST_METHOD0(get_system_bus, const mp_dbus::DBusConnection&());
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockDBusProvider, DBusProvider);
+};
+
+class MockDBusConnection : public mp_dbus::DBusConnection
+{
+public:
+    MockDBusConnection() : mp_dbus::DBusConnection(/* create_bus = */ false)
+    {
+    }
+
+    MOCK_CONST_METHOD0(is_connected, bool());
+};
+
+TEST(BackendUtils, bridge_creation_throws_if_bus_disconnected)
+{
+    auto [mock_dbus_provider, guard] = MockDBusProvider::inject();
+    auto mock_bus = MockDBusConnection{};
+
+    EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(false));
+    EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
+    MP_EXPECT_THROW_THAT(mp::backend::create_bridge_with("asdf"), std::runtime_error, // TODO@ricab fix exception type
+                         Property(&std::runtime_error::what, HasSubstr("failed to connect")));
+}
+} // namespace
