@@ -237,16 +237,18 @@ Q_DECLARE_METATYPE(VariantMapMap)
 
 void mp::backend::create_bridge_with(const std::string& interface)
 {
-    qDBusRegisterMetaType<VariantMapMap>(); // TODO@ricab move this
+    static const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
+    static const auto nm_obj_name = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
+    static const auto nm_ifc_name = QStringLiteral("org.freedesktop.NetworkManager.Settings");
+
+    qDBusRegisterMetaType<VariantMapMap>(); // TODO@ricab move this or run once only
     const auto& system_bus = dbus::DBusProvider::instance().get_system_bus();
     if (!system_bus.is_connected())
         throw std::runtime_error{
             "Could not create bridge: failed to connect to D-Bus system bus:"}; // TODO@ricab create exception digesting
                                                                                 // QDBusError
 
-    auto nm_settings =
-        system_bus.get_interface("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager/Settings",
-                                 "org.freedesktop.NetworkManager.Settings");
+    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_obj_name, nm_ifc_name);
 
     assert(nm_settings);
     if (!nm_settings->is_valid())
