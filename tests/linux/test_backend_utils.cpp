@@ -242,6 +242,17 @@ public:
     }
 
     MOCK_CONST_METHOD0(is_connected, bool());
+    MOCK_CONST_METHOD3(get_interface,
+                       std::unique_ptr<mp_dbus::DBusInterface>(const QString&, const QString&, const QString&));
+};
+
+class MockDBusInterface : public mp_dbus::DBusInterface
+{
+public:
+    using DBusInterface::DBusInterface;
+
+    MOCK_CONST_METHOD0(is_valid, bool());
+    MOCK_METHOD3(call, QDBusMessage(QDBus::CallMode, const QString&, const QVariant&));
 };
 
 TEST(BackendUtils, bridge_creation_throws_if_bus_disconnected)
@@ -254,4 +265,26 @@ TEST(BackendUtils, bridge_creation_throws_if_bus_disconnected)
     MP_EXPECT_THROW_THAT(mp::backend::create_bridge_with("asdf"), std::runtime_error, // TODO@ricab fix exception type
                          Property(&std::runtime_error::what, HasSubstr("failed to connect")));
 }
+
+TEST(BackendUtils, bridge_creation_creates_connections)
+{
+    auto mock_interface = std::make_unique<MockDBusInterface>();
+    EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(true));
+    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), _)) // TODO@ricab match arg
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path"}))));
+
+    auto mock_bus = MockDBusConnection{};
+    EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
+
+    EXPECT_CALL(mock_bus,
+                get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
+                              Eq("org.freedesktop.NetworkManager.Settings")))
+        .WillOnce(Return(ByMove(std::move(mock_interface))));
+
+    auto [mock_dbus_provider, guard] = MockDBusProvider::inject();
+    EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
+
+    EXPECT_NO_THROW(mp::backend::create_bridge_with("asdf"));
+}
+
 } // namespace
