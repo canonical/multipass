@@ -42,6 +42,7 @@
 #include <cassert>
 #include <chrono>
 #include <exception>
+#include <mutex>
 #include <random>
 
 #include <errno.h>
@@ -241,7 +242,9 @@ void mp::backend::create_bridge_with(const std::string& interface)
     static const auto nm_obj_name = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
     static const auto nm_ifc_name = QStringLiteral("org.freedesktop.NetworkManager.Settings");
 
-    qDBusRegisterMetaType<VariantMapMap>(); // TODO@ricab move this or run once only
+    static std::once_flag once;
+    std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
+
     const auto& system_bus = dbus::DBusProvider::instance().get_system_bus();
     if (!system_bus.is_connected())
         throw std::runtime_error{
