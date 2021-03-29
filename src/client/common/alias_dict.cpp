@@ -139,6 +139,8 @@ void mp::AliasDict::load_dict()
 
         aliases.emplace(alias, mp::AliasDefinition{instance, command, arguments});
     }
+
+    db_file.close();
 }
 
 void mp::AliasDict::save_dict()
@@ -175,13 +177,15 @@ void mp::AliasDict::save_dict()
 
         mp::write_json(aliases_json, temp_file_name);
 
+        temp_file.close();
+
         auto config_file_name = QString::fromStdString(aliases_file);
 
         if (QFile::exists(config_file_name))
         {
             auto backup_file_name = config_file_name + ".bak";
             QFile::remove(backup_file_name);
-            QFile::rename(config_file_name, backup_file_name);
+            QFile::copy(config_file_name, backup_file_name);
         }
         else
         {
@@ -192,6 +196,6 @@ void mp::AliasDict::save_dict()
             }
         }
 
-        QFile::rename(temp_file_name, config_file_name);
+        QFile::copy(temp_file_name, config_file_name);
     }
 }
