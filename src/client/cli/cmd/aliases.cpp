@@ -31,7 +31,7 @@ mp::ReturnCode cmd::Aliases::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    std::cout << formatter.format(aliases);
+    cout << formatter.format(aliases);
 
     return ReturnCode::Ok;
 }
