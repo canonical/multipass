@@ -21,7 +21,10 @@
 #include <multipass/path.h>
 
 #include <chrono>
+#include <stdexcept>
 #include <string>
+
+class QDBusError;
 
 namespace multipass
 {
@@ -38,6 +41,12 @@ QString cpu_arch();
 void check_for_kvm_support();
 void check_if_kvm_is_in_use();
 void create_bridge_with(const std::string& interface);
+
+class CreateBridgeException : public std::runtime_error
+{
+public:
+    CreateBridgeException(const std::string& detail, const QDBusError& dbus_error);
+};
 } // namespace backend
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H

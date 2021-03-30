@@ -247,9 +247,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
     const auto& system_bus = dbus::DBusProvider::instance().get_system_bus();
     if (!system_bus.is_connected())
-        throw std::runtime_error{
-            "Could not create bridge: failed to connect to D-Bus system bus:"}; // TODO@ricab create exception digesting
-                                                                                // QDBusError
+        throw CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
 
     auto nm_settings = system_bus.get_interface(nm_bus_name, nm_obj_name, nm_ifc_name);
 
@@ -271,4 +269,10 @@ void mp::backend::create_bridge_with(const std::string& interface)
     }
 
     // TODO@ricab create second connection, then activate the bridge
+}
+
+mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
+    : std::runtime_error(fmt::format("Could not create bridge. {}: {}", detail,
+                                     dbus_error.isValid() ? dbus_error.message() : "unknown error"))
+{
 }
