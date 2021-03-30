@@ -104,6 +104,11 @@ bool mp::AliasDict::empty() const
     return aliases.empty();
 }
 
+mp::AliasDict::size_type mp::AliasDict::size() const
+{
+    return aliases.size();
+}
+
 void mp::AliasDict::load_dict()
 {
     QFile db_file{QString::fromStdString(aliases_file)};

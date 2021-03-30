@@ -33,6 +33,7 @@ class AliasDict
 {
 public:
     typedef typename std::unordered_map<std::string, AliasDefinition> DictType;
+    typedef typename DictType::size_type size_type;
 
     AliasDict();
     ~AliasDict();
@@ -44,6 +45,7 @@ public:
     DictType::const_iterator cbegin() const;
     DictType::const_iterator cend() const;
     bool empty() const;
+    size_type size() const;
 
 private:
     void load_dict();
