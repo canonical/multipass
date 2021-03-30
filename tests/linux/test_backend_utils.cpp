@@ -27,6 +27,9 @@
 #include "tests/mock_process_factory.h"
 #include "tests/mock_singleton_helpers.h"
 
+#include <QMap>
+#include <QVariant>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -277,7 +280,30 @@ TEST(BackendUtils, bridge_creation_creates_connections)
 {
     auto mock_interface = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(true));
-    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), _)) // TODO@ricab match arg
+
+    auto arg_matcher = [](const QVariant& arg) {
+        if (auto outer_map = arg.value<QMap<QString, QVariantMap>>(); outer_map.size() != 2)
+            return false;
+        else if (auto outer_it = outer_map.find("connection"); outer_it == outer_map.end() || outer_it->size() != 2)
+            return false;
+        else if (auto inner_it = outer_it->find("id"); inner_it == outer_it->end())
+            return false;
+        else if (inner_it->toString() != "qtbr0")
+            return false;
+        else if (inner_it = outer_it->find("type"); inner_it == outer_it->end())
+            return false;
+        else if (inner_it->toString() != "bridge")
+            return false;
+        else if (outer_it = outer_map.find("bridge"); outer_it == outer_map.end() || outer_it->size() != 1)
+            return false;
+        else if (inner_it = outer_it->find("interface-name"); inner_it == outer_it->end())
+            return false;
+        else if (inner_it->toString() != "qtbr0")
+            return false;
+        else
+            return true;
+    };
+    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), Truly(arg_matcher)))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path"}))));
 
     auto mock_bus = MockDBusConnection{};
