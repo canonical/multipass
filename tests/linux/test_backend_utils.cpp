@@ -276,6 +276,24 @@ TEST(BackendUtils, bridge_creation_throws_if_bus_disconnected)
                        HasSubstr(msg.toStdString()))));
 }
 
+TEST(BackendUtils, bridge_creation_throws_if_interface_invalid)
+{
+    auto mock_interface = std::make_unique<MockDBusInterface>(); // TODO@ricab extract common stuff
+    EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(false));
+
+    auto [mock_dbus_provider, guard] = MockDBusProvider::inject();
+    auto mock_bus = MockDBusConnection{};
+    EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
+
+    EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
+    EXPECT_CALL(mock_bus,
+                get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
+                              Eq("org.freedesktop.NetworkManager.Settings")))
+        .WillOnce(Return(ByMove(std::move(mock_interface))));
+
+    EXPECT_THROW(mp::backend::create_bridge_with("whatever"), std::runtime_error); // TODO@ricab upd exc type
+}
+
 TEST(BackendUtils, bridge_creation_creates_connections)
 {
     auto mock_interface = std::make_unique<MockDBusInterface>();
