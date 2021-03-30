@@ -117,7 +117,7 @@ TEST_F(AliasDictionary, skips_correctly_broken_entries)
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
     mp::AliasDict dict;
-    ASSERT_EQ(std::distance(dict.cbegin(), dict.cend()), 2u);
+    ASSERT_EQ(dict.size(), 2u);
 
     auto a1 = dict.get_alias("alias1");
     ASSERT_TRUE(a1);
@@ -156,8 +156,10 @@ TEST_P(WriteReadTeststuite, writes_and_reads_files)
         ASSERT_EQ((*read_value).arguments, alias.second.arguments);
     }
 
+    // We test with this const/non-const iterators and size().
     ASSERT_EQ((size_t)std::distance(reader.cbegin(), reader.cend()), (size_t)aliases_vector.size());
     ASSERT_EQ((size_t)std::distance(reader.begin(), reader.end()), (size_t)aliases_vector.size());
+    ASSERT_EQ(reader.size(), aliases_vector.size());
 }
 
 INSTANTIATE_TEST_SUITE_P(
