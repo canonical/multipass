@@ -33,6 +33,8 @@ class AliasDict
 {
 public:
     typedef typename std::unordered_map<std::string, AliasDefinition> DictType;
+    typedef typename DictType::key_type key_type;
+    typedef typename DictType::mapped_type mapped_type;
     typedef typename DictType::size_type size_type;
 
     AliasDict();

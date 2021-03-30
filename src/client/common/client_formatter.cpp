@@ -48,6 +48,11 @@ std::string mp::ClientFormatter::format(const mp::AliasDict& aliases) const
     return formatted_output;
 }
 
+mp::ClientFormatter::sorted_map mp::ClientFormatter::sort_dict(const mp::AliasDict& aliases) const
+{
+    return sorted_map(aliases.cbegin(), aliases.cend());
+}
+
 std::vector<std::string> mp::ClientFormatter::escape_args(const std::vector<std::string>& args) const
 {
     std::vector<std::string> escaped_args;
@@ -64,10 +69,10 @@ std::string mp::ClientFormatter::format_csv(const mp::AliasDict& aliases) const
     fmt::memory_buffer buf;
     fmt::format_to(buf, "Alias,Instance,Command,Args\n");
 
-    for (auto dict_it = aliases.cbegin(); dict_it != aliases.cend(); ++dict_it)
+    for (const auto& elt : sort_dict(aliases))
     {
-        const auto& name = dict_it->first;
-        const auto& def = dict_it->second;
+        const auto& name = elt.first;
+        const auto& def = elt.second;
 
         fmt::format_to(buf, "{},{},{},", name, def.instance, def.command);
 
@@ -82,10 +87,10 @@ std::string mp::ClientFormatter::format_json(const mp::AliasDict& aliases) const
     QJsonObject aliases_json;
     QJsonArray aliases_array;
 
-    for (auto dict_it = aliases.cbegin(); dict_it != aliases.cend(); ++dict_it)
+    for (const auto& elt : sort_dict(aliases))
     {
-        const auto& name = dict_it->first;
-        const auto& def = dict_it->second;
+        const auto& name = elt.first;
+        const auto& def = elt.second;
 
         QJsonObject alias_obj;
         alias_obj.insert("name", QString::fromStdString(name));
@@ -123,11 +128,10 @@ std::string mp::ClientFormatter::format_table(const mp::AliasDict& aliases) cons
 
     fmt::format_to(buf, row_format, "Alias", alias_width, "Instance", instance_width, "Command", command_width, "Args");
 
-    // Don't use for (const auto& elem : aliases) to preserve constness.
-    for (auto dict_it = aliases.cbegin(); dict_it != aliases.cend(); ++dict_it)
+    for (const auto& elt : sort_dict(aliases))
     {
-        const auto& name = dict_it->first;
-        const auto& def = dict_it->second;
+        const auto& name = elt.first;
+        const auto& def = elt.second;
 
         fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command, command_width,
                        fmt::join(escape_args(def.arguments), " "));
@@ -140,10 +144,10 @@ std::string mp::ClientFormatter::format_yaml(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_node;
 
-    for (auto dict_it = aliases.cbegin(); dict_it != aliases.cend(); ++dict_it)
+    for (const auto& elt : sort_dict(aliases))
     {
-        const auto& name = dict_it->first;
-        const auto& def = dict_it->second;
+        const auto& name = elt.first;
+        const auto& def = elt.second;
 
         YAML::Node alias_node;
         alias_node["name"] = name;
