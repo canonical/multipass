@@ -16,13 +16,12 @@
  */
 
 #include <multipass/cli/alias_dict.h>
-#include <multipass/constants.h>
 
 #include <gmock/gmock.h>
 
+#include "fake_alias_config.h"
 #include "file_operations.h"
 #include "mock_standard_paths.h"
-#include "temp_dir.h"
 
 #include "src/client/common/client_formatter.h"
 
@@ -32,30 +31,13 @@ using namespace testing;
 
 namespace
 {
-struct AliasDictionary : public Test
+struct AliasDictionary : public FakeAliasConfig, public Test
 {
     AliasDictionary()
     {
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
-            .WillRepeatedly(Return(temp_dir.path()));
+            .WillRepeatedly(Return(fake_alias_dir.path()));
     }
-
-    std::string db_filename()
-    {
-        const auto file_name = QStringLiteral("%1/%1_aliases.json").arg(mp::client_name);
-
-        return temp_dir.filePath(file_name).toStdString();
-    }
-
-    void populate_db_file(const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases)
-    {
-        mp::AliasDict writer;
-
-        for (const auto& alias : aliases)
-            writer.add_alias(alias.first, alias.second);
-    }
-
-    mpt::TempDir temp_dir;
 };
 
 TEST_F(AliasDictionary, works_with_empty_file)
