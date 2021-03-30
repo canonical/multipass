@@ -242,6 +242,7 @@ public:
     }
 
     MOCK_CONST_METHOD0(is_connected, bool());
+    MOCK_CONST_METHOD0(last_error, QDBusError());
     MOCK_CONST_METHOD3(get_interface,
                        std::unique_ptr<mp_dbus::DBusInterface>(const QString&, const QString&, const QString&));
 };
@@ -260,10 +261,16 @@ TEST(BackendUtils, bridge_creation_throws_if_bus_disconnected)
     auto [mock_dbus_provider, guard] = MockDBusProvider::inject();
     auto mock_bus = MockDBusConnection{};
 
+    auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(false));
+    EXPECT_CALL(mock_bus, last_error).WillOnce(Return(QDBusError{QDBusError::BadAddress, msg}));
     EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
-    MP_EXPECT_THROW_THAT(mp::backend::create_bridge_with("asdf"), std::runtime_error, // TODO@ricab fix exception type
-                         Property(&std::runtime_error::what, HasSubstr("failed to connect")));
+
+    MP_EXPECT_THROW_THAT(
+        mp::backend::create_bridge_with("asdf"), mp::backend::CreateBridgeException,
+        Property(&mp::backend::CreateBridgeException::what,
+                 AllOf(HasSubstr("Could not create bridge"), HasSubstr("Failed to connect to D-Bus system bus"),
+                       HasSubstr(msg.toStdString()))));
 }
 
 TEST(BackendUtils, bridge_creation_creates_connections)

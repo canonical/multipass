@@ -75,6 +75,11 @@ public:
         return connection.value().isConnected();
     }
 
+    virtual QDBusError last_error() const
+    {
+        return connection.value().lastError();
+    }
+
     virtual std::unique_ptr<DBusInterface> get_interface(const QString& service, const QString& path,
                                                          const QString& interface) const
     {
