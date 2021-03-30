@@ -24,6 +24,8 @@
 #include "mock_standard_paths.h"
 #include "temp_dir.h"
 
+#include "src/client/common/client_formatter.h"
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -221,4 +223,45 @@ TEST_F(AliasDictionary, creates_backup_db)
     ASSERT_TRUE(QFile::exists(bak_filename));
 }
 
+struct FormatterTeststuite
+    : public AliasDictionary,
+      public WithParamInterface<std::tuple<AliasesVector, std::string, std::string, std::string, std::string>>
+{
+};
+
+TEST_P(FormatterTeststuite, table)
+{
+    auto [aliases, csv_output, json_output, table_output, yaml_output] = GetParam();
+
+    mp::AliasDict dict;
+
+    for (const auto& alias : aliases)
+        dict.add_alias(alias.first, alias.second);
+
+    ASSERT_EQ(mp::ClientFormatter("csv").format(dict), csv_output);
+    ASSERT_EQ(mp::ClientFormatter("json").format(dict), json_output);
+    ASSERT_EQ(mp::ClientFormatter().format(dict), table_output);
+    ASSERT_EQ(mp::ClientFormatter("table").format(dict), table_output);
+    ASSERT_EQ(mp::ClientFormatter("yaml").format(dict), yaml_output);
+}
+
+std::string csv_head{"Alias,Instance,Command,Args\n"};
+
+INSTANTIATE_TEST_SUITE_P(
+    AliasDictionary, FormatterTeststuite,
+    Values(
+        std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n", "No aliases defined.\n", "\n"),
+        std::make_tuple(
+            AliasesVector{{"lsp", {"primary", "ls", {}}}, {"llp", {"primary", "ls", {"-l", "-a"}}}},
+            csv_head + "llp,primary,ls,\"-l -a\"\nlsp,primary,ls,\"\"\n",
+            "{\n    \"aliases\": [\n        {\n"
+            "            \"arguments\": [\n                \"-l\",\n                \"-a\"\n            ],\n"
+            "            \"command\": \"ls\",\n            \"instance\": \"primary\",\n            \"name\": \"llp\"\n"
+            "        },\n"
+            "        {\n"
+            "            \"arguments\": [\n            ],\n            \"command\": \"ls\",\n"
+            "            \"instance\": \"primary\",\n            \"name\": \"lsp\"\n        }\n    ]\n}\n",
+            "Alias  Instance  Command  Args\nllp    primary   ls       -l -a\nlsp    primary   ls       \n",
+            "llp:\n  - name: llp\n    instance: primary\n    command: ls\n    arguments:\n      - -l\n      - -a\n"
+            "lsp:\n  - name: lsp\n    instance: primary\n    command: ls\n    arguments:\n      []\n")));
 } // namespace
