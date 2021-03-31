@@ -51,6 +51,7 @@ public:                                                                         
     } // one at a time, please!
 
 #define MP_MOCK_SINGLETON_BOILERPLATE(mock_class, parent_class)                                                        \
+public:                                                                                                                \
     MP_MOCK_SINGLETON_HELPER_TYPES(mock_class, parent_class)                                                           \
     MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                             \
     MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)
