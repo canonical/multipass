@@ -68,7 +68,7 @@ struct UbuntuImageHost : public testing::Test
     QString expected_location{host_url + "newest_image.img"};
     QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
 
-    decltype(mpt::MockPlatform::inject()) attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = attr.first;
 };
 }

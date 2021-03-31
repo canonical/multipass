@@ -62,7 +62,7 @@ struct CustomImageHost : public Test
     std::chrono::seconds default_ttl{1};
     const QString test_path{mpt::test_data_path() + "custom/"};
 
-    decltype(mpt::MockPlatform::inject()) attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = attr.first;
 };
 } // namespace
