@@ -16,6 +16,7 @@
  */
 
 #include "backend_utils.h"
+#include "dbus_wrappers.h"
 #include "process_factory.h"
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
@@ -38,6 +39,7 @@
 #include <QSysInfo>
 #include <QtDBus/QtDBus>
 
+#include <cassert>
 #include <chrono>
 #include <exception>
 #include <random>
@@ -235,31 +237,33 @@ Q_DECLARE_METATYPE(VariantMapMap)
 
 void mp::backend::create_bridge_with(const std::string& interface)
 {
-    qDBusRegisterMetaType<VariantMapMap>(); // TODO move this
-    const auto system_bus = QDBusConnection::systemBus();
-    if (!system_bus.isConnected())
+    qDBusRegisterMetaType<VariantMapMap>(); // TODO@ricab move this
+    const auto& system_bus = dbus::DBusProvider::instance().get_system_bus();
+    if (!system_bus.is_connected())
         throw std::runtime_error{
-            "Could not create bridge: failed to connect to D-Bus system bus:"}; // TODO create exception digesting
+            "Could not create bridge: failed to connect to D-Bus system bus:"}; // TODO@ricab create exception digesting
                                                                                 // QDBusError
 
-    auto nm_settings = QDBusInterface{"org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager/Settings",
-                                      "org.freedesktop.NetworkManager.Settings", system_bus};
-    if (!nm_settings.isValid())
-        throw std::runtime_error{"TODO"}; // TODO
+    auto nm_settings =
+        system_bus.get_interface("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager/Settings",
+                                 "org.freedesktop.NetworkManager.Settings");
 
-    // TODO verify if suitable bridge exists
-    // TODO derive new bridge name
+    assert(nm_settings);
+    if (!nm_settings->is_valid())
+        throw std::runtime_error{"TODO"}; // TODO@ricab
+
+    // TODO@ricab verify if suitable bridge exists
+    // TODO@ricab derive new bridge name
 
     // Expected DBus argument type: a{sa{sv}}
     VariantMapMap arg{{"connection", {{"type", QVariant{"bridge"}}, {"id", QVariant{"qtbr0"}}}},
                       {"bridge", {{"interface-name", QVariant{"qtbr0"}}}}};
-    QDBusReply<QDBusObjectPath> obj =
-        nm_settings.call(QDBus::Block, QStringLiteral("AddConnection"), QVariant::fromValue(arg));
+    QDBusReply<QDBusObjectPath> obj = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg));
     if (!obj.isValid())
     {
-        throw std::runtime_error{fmt::format("Could not create bridge: {}", obj.error().message())}; // TODO
-        // TODO: the bridge could already be there (e.g. disconnect after creation), so revert
+        throw std::runtime_error{fmt::format("Could not create bridge: {}", obj.error().message())}; // TODO@ricab
+        // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
     }
 
-    // TODO create second connection, then activate the bridge
+    // TODO@ricab create second connection, then activate the bridge
 }
