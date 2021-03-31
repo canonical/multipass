@@ -273,6 +273,6 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
     : std::runtime_error(fmt::format("Could not create bridge. {}: {}", detail,
-                                     dbus_error.isValid() ? dbus_error.message() : "unknown error"))
+                                     dbus_error.isValid() ? dbus_error.message() : "unknown cause"))
 {
 }
