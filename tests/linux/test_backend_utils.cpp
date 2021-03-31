@@ -256,6 +256,7 @@ public:
     using DBusInterface::DBusInterface;
 
     MOCK_CONST_METHOD0(is_valid, bool());
+    MOCK_CONST_METHOD0(last_error, QDBusError());
     MOCK_METHOD3(call, QDBusMessage(QDBus::CallMode, const QString&, const QVariant&));
 };
 
