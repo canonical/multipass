@@ -26,20 +26,32 @@
 #include <utility>
 
 #define MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                         \
+public:                                                                                                                \
     static mock_class& mock_instance()                                                                                 \
     {                                                                                                                  \
         return dynamic_cast<mock_class&>(instance());                                                                  \
     }
 
+#define MP_MOCK_SINGLETON_HELPER_TYPES(mock_class, parent_class)                                                       \
+private:                                                                                                               \
+    static constexpr auto academy = [] { return sg::make_scope_guard([] { parent_class::reset(); }); }; /*             \
+                                    use a lambda so that the type gets deduced before decltype below */                \
+                                                                                                                       \
+public:                                                                                                                \
+    using Guard = decltype(academy());                                                                                 \
+    using GuardedMock = std::pair<mock_class*, Guard>;
+
 #define MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)                                                             \
-    [[nodiscard]] static auto inject()                                                                                 \
+public:                                                                                                                \
+    [[nodiscard]] static GuardedMock inject()                                                                          \
     {                                                                                                                  \
         parent_class::reset();                                                                                         \
         parent_class::mock<mock_class>();                                                                              \
-        return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { parent_class::reset(); }));                \
+        return std::make_pair(&mock_instance(), academy());                                                            \
     } // one at a time, please!
 
 #define MP_MOCK_SINGLETON_BOILERPLATE(mock_class, parent_class)                                                        \
+    MP_MOCK_SINGLETON_HELPER_TYPES(mock_class, parent_class)                                                           \
     MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                             \
     MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)
 
