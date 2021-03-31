@@ -2500,4 +2500,50 @@ TEST_F(ClientAlias, execute_unexisting_alias)
     EXPECT_EQ(send_command({"other_undefined_alias"}, cout_stream), mp::ReturnCode::CommandLineError);
     EXPECT_THAT(cout_stream.str(), HasSubstr("Unknown command or alias"));
 }
+
+TEST_F(ClientAlias, unalias_removes_existing_alias)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", {}}},
+                                   {"another_alias", {"another_instance", "another_command", {}}}});
+
+    EXPECT_EQ(send_command({"unalias", "another_alias"}), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command,Args\nan_alias,an_instance,a_command,\"\"\n");
+}
+
+TEST_F(ClientAlias, unalias_does_not_remove_unexisting_alias)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", {}}},
+                                   {"another_alias", {"another_instance", "another_command", {}}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "unexisting_alias"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Alias 'unexisting_alias' does not exist\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command,Args\nan_alias,an_instance,a_command,\"\"\nanother_alias,"
+                                 "another_instance,another_command,\"\"\n");
+}
+
+TEST_F(ClientAlias, too_many_unalias_arguments)
+{
+    std::stringstream cerr_stream;
+    send_command({"unalias", "alias_name", "other_argument"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), "Wrong number of arguments given\n");
+}
+
+TEST_F(ClientAlias, unalias_help)
+{
+    std::stringstream cout_stream;
+    send_command({"help", "unalias"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Remove an alias"));
+}
 } // namespace
