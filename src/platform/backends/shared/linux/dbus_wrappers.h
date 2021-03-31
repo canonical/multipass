@@ -45,6 +45,12 @@ public:
         return iface->isValid();
     }
 
+    virtual QDBusError last_error() const
+    {
+        assert(iface);
+        return iface->lastError();
+    }
+
     virtual QDBusMessage call(QDBus::CallMode mode, const QString& method, const QVariant& arg)
     {
         assert(iface);
