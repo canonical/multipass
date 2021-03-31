@@ -253,7 +253,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
     assert(nm_settings);
     if (!nm_settings->is_valid())
-        throw std::runtime_error{"TODO"}; // TODO@ricab
+        throw CreateBridgeException{"Could not reach remote D-Bus object", nm_settings->last_error()};
 
     // TODO@ricab verify if suitable bridge exists
     // TODO@ricab derive new bridge name
