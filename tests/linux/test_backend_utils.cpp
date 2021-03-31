@@ -259,15 +259,23 @@ public:
     MOCK_METHOD3(call, QDBusMessage(QDBus::CallMode, const QString&, const QVariant&));
 };
 
-TEST(BackendUtils, bridge_creation_throws_if_bus_disconnected)
+struct CreateBridgeTest : public Test
 {
-    auto [mock_dbus_provider, guard] = MockDBusProvider::inject();
-    auto mock_bus = MockDBusConnection{};
+    void SetUp() override
+    {
+        EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
+    }
 
+    MockDBusProvider::GuardedMock mock_dbus_injection = MockDBusProvider::inject();
+    MockDBusProvider* mock_dbus_provider = mock_dbus_injection.first;
+    MockDBusConnection mock_bus{};
+};
+
+TEST_F(CreateBridgeTest, bridge_creation_throws_if_bus_disconnected)
+{
     auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(false));
     EXPECT_CALL(mock_bus, last_error).WillOnce(Return(QDBusError{QDBusError::BadAddress, msg}));
-    EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
 
     MP_EXPECT_THROW_THAT(
         mp::backend::create_bridge_with("asdf"), mp::backend::CreateBridgeException,
@@ -276,14 +284,10 @@ TEST(BackendUtils, bridge_creation_throws_if_bus_disconnected)
                        HasSubstr(msg.toStdString()))));
 }
 
-TEST(BackendUtils, bridge_creation_throws_if_interface_invalid)
+TEST_F(CreateBridgeTest, bridge_creation_throws_if_interface_invalid)
 {
-    auto mock_interface = std::make_unique<MockDBusInterface>(); // TODO@ricab extract common stuff
+    auto mock_interface = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(false));
-
-    auto [mock_dbus_provider, guard] = MockDBusProvider::inject();
-    auto mock_bus = MockDBusConnection{};
-    EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
 
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
     EXPECT_CALL(mock_bus,
@@ -294,7 +298,7 @@ TEST(BackendUtils, bridge_creation_throws_if_interface_invalid)
     EXPECT_THROW(mp::backend::create_bridge_with("whatever"), std::runtime_error); // TODO@ricab upd exc type
 }
 
-TEST(BackendUtils, bridge_creation_creates_connections)
+TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
 {
     auto mock_interface = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(true));
@@ -315,16 +319,11 @@ TEST(BackendUtils, bridge_creation_creates_connections)
     EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), arg_matcher))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path"}))));
 
-    auto mock_bus = MockDBusConnection{};
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
-
     EXPECT_CALL(mock_bus,
                 get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
                               Eq("org.freedesktop.NetworkManager.Settings")))
         .WillOnce(Return(ByMove(std::move(mock_interface))));
-
-    auto [mock_dbus_provider, guard] = MockDBusProvider::inject();
-    EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
 
     EXPECT_NO_THROW(mp::backend::create_bridge_with("asdf"));
 }
