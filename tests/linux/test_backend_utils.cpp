@@ -328,4 +328,28 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
     EXPECT_NO_THROW(mp::backend::create_bridge_with("asdf"));
 }
 
+TEST(BackendUtils, create_bridge_exception_info)
+{
+    static constexpr auto specific_info = "spefic error details";
+    EXPECT_THAT((mp::backend::CreateBridgeException{specific_info, QDBusError{}}),
+                mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr(specific_info))));
+}
+
+TEST(BackendUtils, create_bridge_exception_includes_dbus_cause_when_available)
+{
+    auto msg = QStringLiteral("DBus error msg");
+    QDBusError dbus_error = {QDBusError::Other, msg};
+    ASSERT_TRUE(dbus_error.isValid());
+    EXPECT_THAT((mp::backend::CreateBridgeException{"detail", dbus_error}),
+                mpt::match_what(HasSubstr(msg.toStdString())));
+}
+
+TEST(BackendUtils, create_bridge_exception_mentions_unknown_cause_when_unavailable)
+{
+    QDBusError dbus_error{};
+    ASSERT_FALSE(dbus_error.isValid());
+    EXPECT_THAT((mp::backend::CreateBridgeException{"detail", dbus_error}),
+                mpt::match_what(HasSubstr("unknown cause")));
+}
+
 } // namespace
