@@ -17,6 +17,8 @@
 
 #include "common.h"
 #include "disabling_macros.h"
+#include "extra_assertions.h"
+#include "fake_alias_config.h"
 #include "mock_environment_helpers.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
@@ -281,6 +283,17 @@ struct Client : public Test
                                                                               reset at the end of each test */
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
+
+struct ClientAlias : public Client, public FakeAliasConfig
+{
+    ClientAlias()
+    {
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
+            .WillRepeatedly(Return(fake_alias_dir.path()));
+    }
+};
+
+typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
 std::stringstream Client::trash_stream; // replace with inline in C++17
 
@@ -2435,4 +2448,36 @@ INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                          Values(std::vector<std::string>{"launch"},
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
                                 std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
+
+TEST_F(ClientAlias, empty_aliases)
+{
+    std::stringstream cout_stream;
+    send_command({"aliases"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "No aliases defined.\n");
+}
+
+TEST_F(ClientAlias, bad_aliases_format)
+{
+    std::stringstream cerr_stream;
+    send_command({"aliases", "--format", "wrong"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), "Invalid format type given.\n");
+}
+
+TEST_F(ClientAlias, too_many_aliases_arguments)
+{
+    std::stringstream cerr_stream;
+    send_command({"aliases", "bad_argument"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), "This command takes no arguments\n");
+}
+
+TEST_F(ClientAlias, aliases_help)
+{
+    std::stringstream cout_stream;
+    send_command({"help", "aliases"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), HasSubstr("List available aliases"));
+}
 } // namespace
