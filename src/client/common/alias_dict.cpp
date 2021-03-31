@@ -191,6 +191,7 @@ void mp::AliasDict::save_dict()
             auto backup_file_name = config_file_name + ".bak";
             QFile::remove(backup_file_name);
             QFile::copy(config_file_name, backup_file_name);
+            QFile::remove(config_file_name);
         }
         else
         {
