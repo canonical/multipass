@@ -2480,4 +2480,24 @@ TEST_F(ClientAlias, aliases_help)
 
     EXPECT_THAT(cout_stream.str(), HasSubstr("List available aliases"));
 }
+
+TEST_F(ClientAlias, execute_existing_alias)
+{
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", {}}}});
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+
+    EXPECT_EQ(send_command({"some_alias"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(ClientAlias, execute_unexisting_alias)
+{
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", {}}}});
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(0);
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"other_undefined_alias"}, cout_stream), mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Unknown command or alias"));
+}
 } // namespace
