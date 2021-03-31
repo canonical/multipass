@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -431,7 +431,7 @@ TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
-                         Property(&mp::StartException::what, StrEq("Instance failed to start")));
+                         mpt::match_what(StrEq("Instance failed to start")));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }

@@ -515,5 +515,5 @@ TEST(VaultUtils, copy_throws_when_file_does_not_exist)
     const QString file_name{"/foo/bar"};
 
     MP_EXPECT_THROW_THAT(mp::vault::copy(file_name, temp_dir.path()), std::runtime_error,
-                         Property(&std::runtime_error::what, StrEq(fmt::format("{} missing", file_name))));
+                         mpt::match_what(StrEq(fmt::format("{} missing", file_name))));
 }

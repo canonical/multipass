@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -261,7 +261,7 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
     });
 
     MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(), std::runtime_error,
-                         Property(&std::runtime_error::what, HasSubstr("failed to start")));
+                         mpt::match_what(HasSubstr("failed to start")));
 }
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
@@ -278,9 +278,8 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
         EXPECT_CALL(*process, process_state()).WillOnce(Return(state));
     });
 
-    MP_EXPECT_THROW_THAT(
-        make_default_dnsmasq_server(), std::runtime_error,
-        Property(&std::runtime_error::what, AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
+    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(), std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
 }
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_logs_error_when_it_dies)

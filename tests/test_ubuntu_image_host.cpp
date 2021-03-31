@@ -359,9 +359,8 @@ TEST_F(UbuntuImageHost, info_for_too_many_hash_matches_throws)
 
     const std::string release{"1"};
 
-    MP_EXPECT_THROW_THAT(
-        host.info_for(make_query(release, release_remote_spec.first)), std::runtime_error,
-        Property(&std::runtime_error::what, StrEq(fmt::format("Too many images matching \"{}\"", release))));
+    MP_EXPECT_THROW_THAT(host.info_for(make_query(release, release_remote_spec.first)), std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", release))));
 }
 
 TEST_F(UbuntuImageHost, all_info_for_no_remote_query_defaults_to_release)
@@ -380,9 +379,9 @@ TEST_F(UbuntuImageHost, all_info_for_unsupported_image_throw)
 
     const std::string release{"artful"};
 
-    MP_EXPECT_THROW_THAT(
-        host.all_info_for(make_query(release, release_remote_spec.first)), mp::UnsupportedImageException,
-        Property(&std::runtime_error::what, StrEq(fmt::format("The {} release is no longer supported.", release))));
+    MP_EXPECT_THROW_THAT(host.all_info_for(make_query(release, release_remote_spec.first)),
+                         mp::UnsupportedImageException,
+                         mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
 }
 
 TEST_F(UbuntuImageHost, all_info_for_unsupported_alias_throws)
@@ -392,10 +391,9 @@ TEST_F(UbuntuImageHost, all_info_for_unsupported_alias_throws)
     const std::string unsupported_alias{"daily"};
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(host.all_info_for(make_query(unsupported_alias, release_remote_spec.first)),
-                         mp::UnsupportedAliasException,
-                         Property(&std::runtime_error::what,
-                                  HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
+    MP_EXPECT_THROW_THAT(
+        host.all_info_for(make_query(unsupported_alias, release_remote_spec.first)), mp::UnsupportedAliasException,
+        mpt::match_what(HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
 }
 
 TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
@@ -406,9 +404,8 @@ TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
     EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
 
     MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
-                         Property(&std::runtime_error::what,
-                                  HasSubstr(fmt::format("Remote \'{}\' is not a supported remote for this platform.",
-                                                        unsupported_remote))));
+                         mpt::match_what(HasSubstr(fmt::format(
+                             "Remote \'{}\' is not a supported remote for this platform.", unsupported_remote))));
 }
 
 TEST_F(UbuntuImageHost, info_for_no_remote_first_unsupported_returns_expected_info)

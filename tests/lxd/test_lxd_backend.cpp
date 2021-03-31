@@ -723,7 +723,7 @@ TEST_F(LXDBackend, healthcheck_throws_when_untrusted)
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
     MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
-                         Property(&std::runtime_error::what, StrEq("Failed to authenticate to LXD.")));
+                         mpt::match_what(StrEq("Failed to authenticate to LXD.")));
 }
 
 TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_message)
@@ -739,10 +739,9 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
 
     MP_EXPECT_THROW_THAT(
         backend.hypervisor_health_check(), std::runtime_error,
-        Property(&std::runtime_error::what,
-                 StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
-                                   "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
-                                   exception_message))));
+        mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                                          "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                                          exception_message))));
 }
 
 TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message)
@@ -758,10 +757,9 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
 
     MP_EXPECT_THROW_THAT(
         backend.hypervisor_health_check(), std::runtime_error,
-        Property(&std::runtime_error::what,
-                 StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
-                                   "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
-                                   exception_message))));
+        mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
+                                          "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
+                                          exception_message))));
 }
 
 TEST_F(LXDBackend, returns_expected_network_info)
@@ -901,7 +899,7 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
                     mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url, mp::nullopt, 3),
-                         std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error_string)));
+                         std::runtime_error, mpt::match_what(HasSubstr(error_string)));
 }
 
 TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
@@ -924,7 +922,7 @@ TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
                     mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url), std::runtime_error,
-                         Property(&std::runtime_error::what, HasSubstr(error_string)));
+                         mpt::match_what(HasSubstr(error_string)));
 }
 
 TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
@@ -944,9 +942,9 @@ TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
                     mpt::MockLogger::make_cstring_matcher(
                         AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value")))));
 
-    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
-                         Property(&std::runtime_error::what,
-                                  AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value"))));
+    MP_EXPECT_THROW_THAT(
+        mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value"))));
 }
 
 TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
@@ -969,7 +967,7 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
                         AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr(invalid_json.toStdString())))));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
-                         Property(&std::runtime_error::what, AllOf(HasSubstr(base_url.toString().toStdString()))));
+                         mpt::match_what(AllOf(HasSubstr(base_url.toString().toStdString()))));
 }
 
 TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
@@ -995,7 +993,7 @@ TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
                     mpt::MockLogger::make_cstring_matcher(error_matcher)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
-                         Property(&std::runtime_error::what, error_matcher));
+                         mpt::match_what(error_matcher));
 }
 
 TEST_F(LXDBackend, lxd_request_multipart_bbad_request_throws_and_logs)
@@ -1022,7 +1020,7 @@ TEST_F(LXDBackend, lxd_request_multipart_bbad_request_throws_and_logs)
                     mpt::MockLogger::make_cstring_matcher(error_matcher)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url, stub_multipart),
-                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+                         std::runtime_error, mpt::match_what(error_matcher));
 }
 
 TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
@@ -1078,7 +1076,7 @@ TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
                     mpt::MockLogger::make_cstring_matcher(error_matcher)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
-                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+                         std::runtime_error, mpt::match_what(error_matcher));
 }
 
 TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
@@ -1134,7 +1132,7 @@ TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
                     mpt::MockLogger::make_cstring_matcher(error_matcher)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
-                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+                         std::runtime_error, mpt::match_what(error_matcher));
 }
 
 TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_logs)
@@ -1190,7 +1188,7 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
                     mpt::MockLogger::make_cstring_matcher(error_matcher)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
-                         std::runtime_error, Property(&std::runtime_error::what, error_matcher));
+                         std::runtime_error, mpt::match_what(error_matcher));
 }
 
 TEST_F(LXDBackend, unsupported_suspend_throws)
@@ -1221,7 +1219,7 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
                                   bridge_name};
 
     MP_EXPECT_THROW_THAT(machine.suspend(), std::runtime_error,
-                         Property(&std::runtime_error::what, StrEq("suspend is currently not supported")));
+                         mpt::match_what(StrEq("suspend is currently not supported")));
 }
 
 TEST_F(LXDBackend, start_while_suspending_throws)
@@ -1244,7 +1242,7 @@ TEST_F(LXDBackend, start_while_suspending_throws)
                                   bridge_name};
 
     MP_EXPECT_THROW_THAT(machine.start(), std::runtime_error,
-                         Property(&std::runtime_error::what, StrEq("cannot start the instance while suspending")));
+                         mpt::match_what(StrEq("cannot start the instance while suspending")));
 }
 
 TEST_F(LXDBackend, start_while_frozen_unfreezes)
@@ -1494,7 +1492,7 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(machine.ensure_vm_is_running(1ms), mp::StartException,
-                         Property(&mp::StartException::what, StrEq("Instance shutdown during start")));
+                         mpt::match_what(StrEq("Instance shutdown during start")));
 
     EXPECT_TRUE(start_called);
     EXPECT_TRUE(stop_called);
@@ -1546,7 +1544,7 @@ TEST_F(LXDBackend, start_failure_while_starting_throws_and_sets_correct_state)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::starting);
 
     MP_EXPECT_THROW_THAT(machine.ensure_vm_is_running(1ms), mp::StartException,
-                         Property(&mp::StartException::what, StrEq("Instance shutdown during start")));
+                         mpt::match_what(StrEq("Instance shutdown during start")));
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
