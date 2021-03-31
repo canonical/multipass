@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_EXTRA_ASSERTIONS_H
 #define MULTIPASS_EXTRA_ASSERTIONS_H
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 // Extra macros for testing exceptions.
@@ -53,5 +54,14 @@
             }                                                                                                          \
         },                                                                                                             \
         expected_exception)
+
+namespace multipass::test
+{
+template <typename MsgMatcher>
+auto match_what(MsgMatcher&& matcher)
+{
+    return testing::Property(&std::runtime_error::what, std::forward<MsgMatcher>(matcher));
+}
+} // namespace multipass::test
 
 #endif // MULTIPASS_EXTRA_ASSERTIONS_H

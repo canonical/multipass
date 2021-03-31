@@ -257,9 +257,9 @@ TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
     const std::string unsupported_alias{"core"};
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(host.all_info_for(make_query(unsupported_alias, "snapcraft")), mp::UnsupportedAliasException,
-                         Property(&std::runtime_error::what,
-                                  HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
+    MP_EXPECT_THROW_THAT(
+        host.all_info_for(make_query(unsupported_alias, "snapcraft")), mp::UnsupportedAliasException,
+        mpt::match_what(HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
 }
 
 TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
@@ -340,7 +340,6 @@ TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
     EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
 
     MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
-                         Property(&std::runtime_error::what,
-                                  HasSubstr(fmt::format("Remote \'{}\' is not a supported remote for this platform.",
-                                                        unsupported_remote))));
+                         mpt::match_what(HasSubstr(fmt::format(
+                             "Remote \'{}\' is not a supported remote for this platform.", unsupported_remote))));
 }

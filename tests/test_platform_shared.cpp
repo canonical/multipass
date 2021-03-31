@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include <multipass/exceptions/settings_exceptions.h>
 
 namespace mp = multipass;
+namespace mpt = mp::test;
 using namespace testing;
 
 namespace
@@ -42,8 +43,7 @@ TEST(PlatformShared, hotkey_interpretation_throws_on_invalid_hotkey)
     for (const auto& bad_sequence : bad_sequences)
     {
         MP_EXPECT_THROW_THAT(mp::platform::interpret_hotkey(bad_sequence), mp::InvalidSettingsException,
-                             Property(&mp::InvalidSettingsException::what,
-                                      AllOf(HasSubstr(mp::hotkey_key), HasSubstr(bad_sequence.toStdString()))));
+                             mpt::match_what(AllOf(HasSubstr(mp::hotkey_key), HasSubstr(bad_sequence.toStdString()))));
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -114,7 +114,7 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
 
     if (throw_msg_matcher)
         MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(requested_size, img), std::runtime_error,
-                             Property(&std::runtime_error::what, *throw_msg_matcher));
+                             mpt::match_what(*throw_msg_matcher));
     else
         mp::backend::resize_instance_image(requested_size, img);
 
@@ -146,7 +146,7 @@ void test_image_conversion(const char* img_path, const char* expected_img_path, 
 
     if (throw_msg_matcher)
         MP_EXPECT_THROW_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), std::runtime_error,
-                             Property(&std::runtime_error::what, *throw_msg_matcher));
+                             mpt::match_what(*throw_msg_matcher));
     else
         EXPECT_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), Eq(expected_img_path));
 
