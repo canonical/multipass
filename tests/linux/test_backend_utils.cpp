@@ -287,8 +287,10 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_bus_disconnected)
 
 TEST_F(CreateBridgeTest, bridge_creation_throws_if_interface_invalid)
 {
+    auto msg = QStringLiteral("DBus error msg");
     auto mock_interface = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(false));
+    EXPECT_CALL(*mock_interface, last_error).WillOnce(Return(QDBusError{QDBusError::InvalidInterface, msg}));
 
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
     EXPECT_CALL(mock_bus,
@@ -296,7 +298,9 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_interface_invalid)
                               Eq("org.freedesktop.NetworkManager.Settings")))
         .WillOnce(Return(ByMove(std::move(mock_interface))));
 
-    EXPECT_THROW(mp::backend::create_bridge_with("whatever"), std::runtime_error); // TODO@ricab upd exc type
+    MP_ASSERT_THROW_THAT(
+        mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
+        mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Could not reach remote D-Bus object"))));
 }
 
 TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
