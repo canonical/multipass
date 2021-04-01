@@ -261,14 +261,19 @@ void mp::backend::create_bridge_with(const std::string& interface)
     // Expected DBus argument type: a{sa{sv}}
     VariantMapMap arg{{"connection", {{"type", QVariant{"bridge"}}, {"id", QVariant{"qtbr0"}}}},
                       {"bridge", {{"interface-name", QVariant{"qtbr0"}}}}};
-    QDBusReply<QDBusObjectPath> obj = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg));
+    QDBusReply<QDBusObjectPath> obj = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg)); /*
+                                              Roughtly equivalent to `nmcli connection add type bridge ifname br0` */
+
     if (!obj.isValid())
     {
         throw std::runtime_error{fmt::format("Could not create bridge: {}", obj.error().message())}; // TODO@ricab
         // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
     }
 
-    // TODO@ricab create second connection, then activate the bridge
+    /* TODO@ricab create second connection, then activate the bridge
+       $ nmcli connection add type bridge-slave ifname eth0 master mybr0
+       $ nmcli connection up bridge-mybr0
+     */
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
