@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,8 +46,8 @@ public:
     int run(const QStringList& arguments);
 
 protected:
-    template <typename T>
-    void add_command();
+    template <typename T, typename... Ts>
+    void add_command(Ts&&... params);
     void sort_commands();
 
 private:
@@ -61,10 +61,10 @@ private:
 };
 } // namespace multipass
 
-template <typename T>
-void multipass::Client::add_command()
+template <typename T, typename... Ts>
+void multipass::Client::add_command(Ts&&... params)
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term);
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term, std::forward<Ts>(params)...);
     commands.push_back(std::move(cmd));
 }
 
