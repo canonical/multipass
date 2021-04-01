@@ -27,7 +27,12 @@ namespace cmd
 class Help final : public Command
 {
 public:
-    using Command::Command;
+    Help(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, const std::string& str1, const std::string& str2)
+        : Command(channel, stub, term)
+    {
+        term->cout() << str1 << str2;
+    }
+
     ReturnCode run(ArgParser *parser) override;
 
     std::string name() const override;

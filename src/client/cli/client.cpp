@@ -59,7 +59,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Exec>();
     add_command<cmd::Find>();
     add_command<cmd::Get>();
-    add_command<cmd::Help>();
+    add_command<cmd::Help>("LALA", "\n");
     add_command<cmd::Info>();
     add_command<cmd::List>();
     add_command<cmd::Networks>();
