@@ -38,8 +38,8 @@ public:
     DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, VMImageVault* image_vault,
                               const QDir& cache_dir_path);
 
-    VMImageInfo fetch_workflow(const Query& query) override;
-    VMImageInfo info_for(const std::string& name) override;
+    Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) override;
+    VMImageInfo info_for(const std::string& workflow_name) override;
     std::vector<VMImageInfo> all_workflows() override;
 
 private:

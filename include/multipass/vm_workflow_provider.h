@@ -18,25 +18,22 @@
 #ifndef MULTIPASS_VM_WORKFLOW_PROVIDER_H
 #define MULTIPASS_VM_WORKFLOW_PROVIDER_H
 
+#include <multipass/query.h>
+#include <multipass/virtual_machine_description.h>
 #include <multipass/vm_image_info.h>
 
-#include <functional>
 #include <string>
 #include <vector>
 
 namespace multipass
 {
-class Query;
-
 class VMWorkflowProvider
 {
 public:
-    using Action = std::function<void(const std::string&, const VMImageInfo&)>;
-
     virtual ~VMWorkflowProvider() = default;
 
-    virtual VMImageInfo fetch_workflow(const Query& query) = 0;
-    virtual VMImageInfo info_for(const std::string& name) = 0;
+    virtual Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) = 0;
+    virtual VMImageInfo info_for(const std::string& workflow_name) = 0;
     virtual std::vector<VMImageInfo> all_workflows() = 0;
 
 protected:
