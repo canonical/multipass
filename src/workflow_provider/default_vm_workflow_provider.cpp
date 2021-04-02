@@ -16,8 +16,10 @@
  */
 
 #include <multipass/default_vm_workflow_provider.h>
+#include <multipass/exceptions/workflow_minimum_exception.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -35,7 +37,6 @@ namespace mp = multipass;
 
 const QString github_workflows_archive_name{"multipass-workflows.zip"};
 const QString workflow_dir_version{"v1"};
-constexpr int len = 65536u;
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader,
                                                          VMImageVault* image_vault, const QDir& archive_dir)
@@ -48,18 +49,102 @@ mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_u
     get_workflow_map();
 }
 
-mp::VMImageInfo mp::DefaultVMWorkflowProvider::fetch_workflow(const Query& /* query */)
+mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& workflow_name,
+                                                            VirtualMachineDescription& vm_desc)
 {
-    return {};
+    Query query{"", "", false, "", Query::Type::Alias};
+    auto& config = workflow_map.at(workflow_name);
+    auto workflow_config = YAML::Load(config);
+
+    auto workflow_instance = workflow_config["instances"][workflow_name];
+
+    if (workflow_instance["image"])
+    {
+        // TODO: Support http later.
+        // This only supports the "alias" and "remote:alias" scheme at this time
+        auto image_str{workflow_config["instances"][workflow_name]["image"].as<std::string>()};
+        auto tokens = mp::utils::split(image_str, ":");
+
+        if (tokens.size() == 2)
+        {
+            query.remote_name = tokens[0];
+            query.release = tokens[1];
+        }
+        else if (tokens.size() == 1)
+        {
+            query.release = tokens[0];
+        }
+        else
+        {
+            throw std::runtime_error("Unsupported image scheme in Workflow");
+        }
+    }
+
+    if (workflow_instance["limits"]["min-cpu"])
+    {
+        auto min_cpus = workflow_instance["limits"]["min-cpu"].as<int>();
+
+        if (vm_desc.num_cores == 0)
+        {
+            vm_desc.num_cores = min_cpus;
+        }
+        else if (vm_desc.num_cores < min_cpus)
+        {
+            throw WorkflowMinimumException("Number of CPUs", std::to_string(min_cpus));
+        }
+    }
+
+    if (workflow_instance["limits"]["min-mem"])
+    {
+        auto min_mem_size_str{workflow_instance["limits"]["min-mem"].as<std::string>()};
+        MemorySize min_mem_size{min_mem_size_str};
+
+        if (vm_desc.mem_size.in_bytes() == 0)
+        {
+            vm_desc.mem_size = min_mem_size;
+        }
+        else if (vm_desc.mem_size < min_mem_size)
+        {
+            throw WorkflowMinimumException("Memory size", min_mem_size_str);
+        }
+    }
+
+    if (workflow_instance["limits"]["min-disk"])
+    {
+        auto min_disk_space_str{workflow_instance["limits"]["min-disk"].as<std::string>()};
+        MemorySize min_disk_space{min_disk_space_str};
+
+        if (vm_desc.disk_space.in_bytes() == 0)
+        {
+            vm_desc.disk_space = min_disk_space;
+        }
+        else if (vm_desc.disk_space < min_disk_space)
+        {
+            throw WorkflowMinimumException("Disk space", min_disk_space_str);
+        }
+    }
+
+    if (workflow_instance["cloud-init"])
+    {
+        for (const auto& node : workflow_instance["cloud-init"])
+        {
+            if (node.first.IsScalar())
+            {
+                vm_desc.vendor_data_config[node.first.Scalar()] = node.second;
+            }
+        }
+    }
+
+    return query;
 }
 
-mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& name)
+mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workflow_name)
 {
-    auto& config = workflow_map.at(name);
+    auto& config = workflow_map.at(workflow_name);
     auto workflow_config = YAML::Load(config);
 
     VMImageInfo image_info;
-    image_info.aliases.append(QString::fromStdString(name));
+    image_info.aliases.append(QString::fromStdString(workflow_name));
     image_info.release_title = QString::fromStdString(workflow_config["description"].as<std::string>());
 
     return image_info;
@@ -102,7 +187,6 @@ void mp::DefaultVMWorkflowProvider::get_workflow_map()
 
             if (file_info.path().contains(workflow_dir_version) && file_info.suffix() == "yaml")
             {
-
                 Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
                 std::ostringstream out(std::ios::binary);
                 Poco::StreamCopier::copyStream(zip_input_stream, out);
