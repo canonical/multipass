@@ -12,6 +12,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+env:
+  BORS_RUN: ${{ github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+
 jobs:
   Lint:
     runs-on: ubuntu-latest
