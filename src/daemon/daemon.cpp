@@ -2141,7 +2141,38 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
         try
         {
-            auto query = query_from(request, name);
+            CreateReply reply;
+            reply.set_create_message("Creating " + name);
+            server->Write(reply);
+
+            Query query;
+            VirtualMachineDescription vm_desc{
+                request->num_cores(),
+                MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
+                MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
+                name,
+                "",
+                checked_args.extra_interfaces,
+                config->ssh_username,
+                VMImage{},
+                "",
+                YAML::Node{},
+                YAML::Node{},
+                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
+                                              config->factory->get_backend_version_string().toStdString()),
+                YAML::Node{}};
+
+            try
+            {
+                query = config->workflow_provider->fetch_workflow_for(request->image(), vm_desc);
+                query.name = name;
+            }
+            catch (const std::out_of_range&)
+            {
+                // Workflow not found, move on
+                query = query_from(request, name);
+                vm_desc.mem_size = checked_args.mem_size;
+            }
 
             auto progress_monitor = [server](int progress_type, int percentage) {
                 CreateReply create_reply;
@@ -2160,14 +2191,12 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
             auto fetch_type = config->factory->fetch_type();
 
-            CreateReply reply;
-            reply.set_create_message("Creating " + name);
-            server->Write(reply);
             auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
-            const auto disk_space =
-                compute_final_image_size(image_size, checked_args.disk_space, config->data_directory);
+            vm_desc.disk_space = compute_final_image_size(
+                image_size, vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
+                config->data_directory);
 
             reply.set_create_message("Configuring " + name);
             server->Write(reply);
@@ -2185,33 +2214,18 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 if (iface.mac_address.empty())
                     iface.mac_address = generate_unused_mac_address(new_macs);
 
-            auto default_mac_addr = generate_unused_mac_address(new_macs);
-            auto vendor_data_cloud_init_config =
-                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                              config->factory->get_backend_version_string().toStdString());
-            auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
-            auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+            vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
+            vm_desc.meta_data_config = make_cloud_init_meta_config(name);
+            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
 
-            auto network_data_cloud_init_config =
-                make_cloud_init_network_config(default_mac_addr, checked_args.extra_interfaces);
+            if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
+                vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            auto num_cores{request->num_cores() < std::stoi(mp::min_cpu_cores) ? std::stoi(mp::default_cpu_cores)
-                                                                               : request->num_cores()};
-            VirtualMachineDescription vm_desc{num_cores,
-                                              checked_args.mem_size,
-                                              disk_space,
-                                              name,
-                                              default_mac_addr,
-                                              checked_args.extra_interfaces,
-                                              config->ssh_username,
-                                              vm_image,
-                                              "",
-                                              meta_data_cloud_init_config,
-                                              user_data_cloud_init_config,
-                                              vendor_data_cloud_init_config,
-                                              network_data_cloud_init_config};
+            vm_desc.network_data_config =
+                make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
 
+            vm_desc.image = vm_image;
             config->factory->configure(vm_desc);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
