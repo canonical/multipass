@@ -1,0 +1,90 @@
+name: Integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Snap channel to test
+        required: true
+
+jobs:
+  Integration:
+    runs-on: testflinger
+
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        driver: ["qemu", "lxd"]
+
+    env:
+      TESTFLINGER_FILE: testflinger-${{ matrix.driver }}.yaml
+
+    steps:
+    - name: Write the testflinger job
+      uses: DamianReeves/write-file-action@v1.0
+      with:
+        path: ${{ env.TESTFLINGER_FILE }}
+        write-mode: overwrite
+        contents: |
+          job_queue: vmware-fusion
+          provision_data:
+            vmx: /Users/michal/Virtual Machines.localized/linux.vmwarevm/linux.vmx
+            snapshot: Testflinger
+            image_url: http://cloud-images.ubuntu.com/releases/groovy/release/ubuntu-20.10-server-cloudimg-amd64.img
+            vmx_config:
+              memsize: 2048
+              vhv.enable: true
+              vpmc.enable: true
+
+          test_data:
+            test_cmds: |
+              set -xeuo pipefail
+
+              function _run() {{
+                ssh ${{ '${{SSH_OPTS}} "${{DEVICE_USER}}@${{DEVICE_IP}}" -- "${{@}}"' }}
+              }}
+
+              # Retry $1 times, with $2 seconds in between tries
+              function _retry() {{
+                  tries=$1
+                  interval=$2
+                  shift 2
+                  for try in $( seq $tries ); do
+                      RC=0
+                      ${{ '"${{@}}"' }} || RC=$?
+                      [ $RC -eq 0 -o $try -eq $tries ] && return $RC
+                      sleep $interval;
+                  done
+              }}
+
+              # Log journal entries on bad exit
+              function _exit() {{
+                [ $? -eq 0 ] || _run sudo journalctl -u snap.multipass*
+              }}
+              trap _exit EXIT
+
+              # Give snapd time to settle
+              _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.channel }}
+
+              if [ '${{ matrix.driver }}' == 'lxd' ]; then
+                _run sudo snap connect multipass:lxd lxd
+                _run sudo lxd init --auto
+                _run sudo multipass set local.driver=lxd
+              fi
+
+              # Give multipassd time to settle
+              _retry 12 5 _run multipass find
+
+              # Deal with launch timeouts
+              _retry 3 60 _run multipass start
+
+              _run multipass list
+
+              _run multipass exec primary -- uname -a
+
+    - name: Submit and poll the job
+      run: |
+        JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
+        testflinger-cli poll ${JOB_ID}
+        [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" -eq 0 ]

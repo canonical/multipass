@@ -215,7 +215,9 @@ jobs:
 
   # Dispatch to the private side
   Dispatch:
-    needs: BuildAndTest
+    needs:
+    - BuildAndTest
+    - Publish-Snap
 
     # Only dispatch if we have access to secrets.
     # Need to explicitly continue on Lint getting skipped.
@@ -238,7 +240,19 @@ jobs:
             echo "::set-output name=head_sha::${{ github.sha }}"
         fi
 
-    - uses: peter-evans/repository-dispatch@v1
+    - name: Dispatch Linux integration tests
+      if: ${{ env.BORS_RUN == 'true' }}
+      uses: benc-uk/workflow-dispatch@v1
+      with:
+        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
+        workflow: Integration
+        inputs: |
+          {
+            "channel": "${{ needs.BuildAndTest.outputs.channel }}"
+          }
+
+    - name: Dispatch macOS and Windows builds
+      uses: peter-evans/repository-dispatch@v1
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
