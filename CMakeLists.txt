@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -166,7 +166,7 @@ else()
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
   else()
-    add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds)
+    add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wnon-virtual-dtor)
 
     if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
       add_compile_options(-Wcast-align)
