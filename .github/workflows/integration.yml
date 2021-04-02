@@ -3,22 +3,47 @@ name: Integration
 on:
   workflow_dispatch:
     inputs:
+      os:
+        description: OS to test on
+        required: true
+      package:
+        description: Package to test
       channel:
         description: Snap channel to test
-        required: true
 
 jobs:
+  GetMatrix:
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - name: Determine job matrix
+      id: set-matrix
+      run: |
+        set -euo pipefail
+
+        if [ '${{ github.event.inputs.os }}' == 'Linux' ]; then
+          echo '::set-output name=matrix::{"os": ["Linux"], "driver": ["qemu", "lxd"]}'
+        elif [ '${{ github.event.inputs.os }}' == 'macOS' ]; then
+          echo '::set-output name=matrix::{"os": ["macOS"], "driver": ["hyperkit"]}'
+        elif [ '${{ github.event.inputs.os }}' == 'Windows' ]; then
+          echo '::set-output name=matrix::{"os": ["Windows"], "driver": ["hyperv"]}'
+        fi
+
   Integration:
+    needs: GetMatrix
+
     runs-on: testflinger
 
     timeout-minutes: 30
 
     strategy:
-      matrix:
-        driver: ["qemu", "lxd"]
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
 
     env:
-      TESTFLINGER_FILE: testflinger-${{ matrix.driver }}.yaml
+      TESTFLINGER_FILE: testflinger-${{ matrix.os }}-${{ matrix.driver }}.yaml
 
     steps:
     - name: Write the testflinger job
@@ -29,17 +54,24 @@ jobs:
         contents: |
           job_queue: vmware-fusion
           provision_data:
-            vmx: /Users/michal/Virtual Machines.localized/linux.vmwarevm/linux.vmx
+            ${{ matrix.os == 'Linux' && 'vmx: /Users/michal/Virtual Machines.localized/linux.vmwarevm/linux.vmx' || '' }}
+            ${{ matrix.os == 'macOS' && 'vmx: /Users/michal/Virtual Machines.localized/macos-11.vmwarevm/macos-11.vmx' || '' }}
+            ${{ matrix.os == 'Windows' && 'vmx: /Users/michal/Virtual Machines.localized/windows-10.vmwarevm/windows-10.vmx' || '' }}
             snapshot: Testflinger
-            image_url: http://cloud-images.ubuntu.com/releases/groovy/release/ubuntu-20.10-server-cloudimg-amd64.img
+            ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/groovy/release/ubuntu-20.10-server-cloudimg-amd64.img' || '' }}
             vmx_config:
+              ${{ matrix.os == 'Linux' && 'memsize: 2048' || '' }}
               memsize: 2048
               vhv.enable: true
               vpmc.enable: true
 
           test_data:
+            ${{ matrix.os == 'Windows' && 'test_username: user' || '' }}
             test_cmds: |
               set -xeuo pipefail
+
+              MP=multipass
+              [ '${{ matrix.os }}' == 'macOS' ] && MP=/usr/local/bin/multipass
 
               function _run() {{
                 ssh ${{ '${{SSH_OPTS}} "${{DEVICE_USER}}@${{DEVICE_IP}}" -- "${{@}}"' }}
@@ -60,12 +92,34 @@ jobs:
 
               # Log journal entries on bad exit
               function _exit() {{
-                [ $? -eq 0 ] || _run sudo journalctl -u snap.multipass*
+                if [ '${{ matrix.os }}' == 'Linux' ]; then
+                  [ $? -eq 0 ] || _run sudo journalctl -u snap.multipass*
+                elif [ '${{ matrix.os }}' == 'macOS' ]; then
+                  [ $? -eq 0 ] || _run sudo cat /Library/Logs/Multipass/multipassd.log
+                fi
               }}
               trap _exit EXIT
 
-              # Give snapd time to settle
-              _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.channel }}
+              function _ps() {{
+                _run powershell -noprofile -noninteractive -command ${{ '${{@}}' }}
+              }}
+
+              if [ '${{ matrix.os }}' == 'Linux' ]; then
+                # Give snapd time to settle
+                _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.channel }}
+
+              elif [ '${{ matrix.os }}' == 'macOS' ]; then
+                _run curl --location --output multipass.pkg ${{ github.event.inputs.package }}
+                _run sudo installer -dumplog -target / -pkg multipass.pkg
+
+              elif [ '${{ matrix.os }}' == 'Windows' ]; then
+                _ps "(New-Object System.Net.WebClient).DownloadFile('${{ github.event.inputs.package }}', 'multipass-installer.exe')"
+                _run .\\multipass-installer.exe /S
+
+                _ps "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
+                _ps "Restart-Computer -Force"
+                sleep 60
+              fi
 
               if [ '${{ matrix.driver }}' == 'lxd' ]; then
                 _run sudo snap connect multipass:lxd lxd
@@ -74,14 +128,15 @@ jobs:
               fi
 
               # Give multipassd time to settle
-              _retry 12 5 _run multipass find
+              _retry 12 5 _run $MP find
 
               # Deal with launch timeouts
-              _retry 3 60 _run multipass start
+              _retry 3 60 _run $MP start
 
-              _run multipass list
+              _run $MP list
 
-              _run multipass exec primary -- uname -a
+              # Deal with incorrect running state
+              _retry 10 60 _run $MP exec primary -- uname -a
 
     - name: Submit and poll the job
       run: |

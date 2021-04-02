@@ -248,6 +248,7 @@ jobs:
         workflow: Integration
         inputs: |
           {
+            "os": "Linux",
             "channel": "${{ needs.BuildAndTest.outputs.channel }}"
           }
 
