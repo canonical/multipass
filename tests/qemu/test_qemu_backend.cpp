@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -231,10 +231,10 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
     while (machine->state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);
 
-    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
-                         AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
-                               Property(&mp::StartException::what,
-                                        AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+    MP_EXPECT_THROW_THAT(
+        machine->ensure_vm_is_running(), mp::StartException,
+        AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
+              mpt::match_what(AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
 }
 
 TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)

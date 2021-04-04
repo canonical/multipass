@@ -334,7 +334,7 @@ struct Daemon : public Test
     mp::DaemonConfigBuilder config_builder;
     inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
 
-    decltype(mpt::MockUtils::inject()) attr{mpt::MockUtils::inject()};
+    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject()};
     NiceMock<mpt::MockUtils>* mock_utils = attr.first;
 };
 

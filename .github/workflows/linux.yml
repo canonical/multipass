@@ -43,14 +43,8 @@ jobs:
     - name: Install Snapcraft
       uses: samuelmeuli/action-snapcraft@v1
 
-    # Could use `use_lxd: true` above, but lxc/lxd-pkg-snap#63 makes it go stuck for 10 minutes.
     - name: Install LXD
-      run: |
-        sudo apt-get remove --purge --yes lxd lxd-client
-        sudo snap install lxd
-        sudo /snap/bin/lxd waitready
-        sudo /snap/bin/lxd init --auto
-        sudo usermod --append --groups lxd $USER
+      uses: whywaita/setup-lxd@v1
 
     - name: Check out code
       uses: actions/checkout@v2
@@ -77,7 +71,7 @@ jobs:
       run: |
         sudo apt-get install ccache
         ccache --max-size=2G
-        sg lxd -c '/snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache'
+        /snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache
 
         # Find common base between main and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
@@ -97,7 +91,7 @@ jobs:
       run: |
         MULTIPASS_PART=${HOME}/multipass_part
         mkdir --parents ${MULTIPASS_PART}
-        sg lxd -c "/snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass"
+        /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
         echo "::set-output name=build::${MULTIPASS_PART}/build"
 
     - name: Build
@@ -106,7 +100,7 @@ jobs:
         sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
 
         # Build the `multipass` part.
-        sg lxd -c '/snap/bin/snapcraft build --use-lxd multipass'
+        /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Clear CCache stats
       run: ccache --show-stats --zero-stats
@@ -115,35 +109,32 @@ jobs:
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 1
       run: |
-        sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
-        sg lxd -c \
-          '/snap/bin/lxc exec snapcraft-multipass -- \
-             env CTEST_OUTPUT_ON_FAILURE=1 \
-                 LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-                 /root/parts/multipass/build/bin/multipass_tests'
+        /snap/bin/lxc start snapcraft-multipass
+        /snap/bin/lxc exec snapcraft-multipass -- \
+           env CTEST_OUTPUT_ON_FAILURE=1 \
+               LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+               /root/parts/multipass/build/bin/multipass_tests
 
     - name: Measure coverage
       if: ${{ matrix.build-type == 'Coverage' }}
       timeout-minutes: 5
       run: |
-        sg lxd -c '/snap/bin/lxc start snapcraft-multipass'
+        /snap/bin/lxc start snapcraft-multipass
 
         # Wait for snapd to actually finish- in particular, that snaps are mounted
-        timeout 10 sg lxd -c \
+        timeout 10 sh -c \
           'while [ "$( /snap/bin/lxc exec snapcraft-multipass -- \
              systemctl show --property=ActiveState snapd )" != "ActiveState=active" ]; do sleep 1; done'
 
         # The following 2 commands workaround the issue in 20.04 where the default parsing of the coverage
         # JSON file is extremely slow. This makes is use fast parsing.
-        sg lxd -c \
-          '/snap/bin/lxc exec snapcraft-multipass -- \
-             sh -c "sudo sed -i \"s/use JSON/use JSON::XS/\" \`which geninfo\`"'
-        sg lxd -c '/snap/bin/lxc exec snapcraft-multipass -- apt-get -y install libjson-xs-perl'
+        /snap/bin/lxc exec snapcraft-multipass -- \
+           sh -c "sudo sed -i \"s/use JSON/use JSON::XS/\" \`which geninfo\`"
+        /snap/bin/lxc exec snapcraft-multipass -- apt-get -y install libjson-xs-perl
 
-        sg lxd -c \
-          '/snap/bin/lxc exec snapcraft-multipass -- \
-             env CTEST_OUTPUT_ON_FAILURE=1 \
-               cmake --build /root/parts/multipass/build --target covreport'
+        /snap/bin/lxc exec snapcraft-multipass -- \
+          env CTEST_OUTPUT_ON_FAILURE=1 \
+            cmake --build /root/parts/multipass/build --target covreport
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
     - name: Build and verify the snap
@@ -153,7 +144,7 @@ jobs:
         SNAP_ENFORCE_RESQUASHFS: 0
       run: |
         # Actually build the snap.
-        sg lxd -c '/snap/bin/snapcraft --use-lxd'
+        /snap/bin/snapcraft --use-lxd
 
         sudo snap install review-tools
         /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap

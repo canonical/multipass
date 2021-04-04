@@ -26,27 +26,40 @@
 #include <utility>
 
 #define MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                         \
+public:                                                                                                                \
     static mock_class& mock_instance()                                                                                 \
     {                                                                                                                  \
         return dynamic_cast<mock_class&>(instance());                                                                  \
     }
 
+#define MP_MOCK_SINGLETON_HELPER_TYPES(mock_class, parent_class)                                                       \
+private:                                                                                                               \
+    static constexpr auto academy = [] { return sg::make_scope_guard([] { parent_class::reset(); }); }; /*             \
+                   Produces "guards" :) Use a lambda so that the type gets deduced before decltype below */            \
+                                                                                                                       \
+public:                                                                                                                \
+    using Guard = decltype(academy());                                                                                 \
+    using GuardedMock = std::pair<mock_class*, Guard>;
+
 #define MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)                                                             \
-    [[nodiscard]] static auto inject()                                                                                 \
+public:                                                                                                                \
+    [[nodiscard]] static GuardedMock inject()                                                                          \
     {                                                                                                                  \
         parent_class::reset();                                                                                         \
         parent_class::mock<mock_class>();                                                                              \
-        return std::make_pair(&mock_instance(), sg::make_scope_guard([]() { parent_class::reset(); }));                \
+        return std::make_pair(&mock_instance(), academy());                                                            \
     } // one at a time, please!
 
 #define MP_MOCK_SINGLETON_BOILERPLATE(mock_class, parent_class)                                                        \
+public:                                                                                                                \
+    MP_MOCK_SINGLETON_HELPER_TYPES(mock_class, parent_class)                                                           \
     MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                             \
     MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)
 
 namespace multipass::test
 {
 
-template <typename ConcreteMock, template <typename MockClass> typename MockCharacter = ::testing::NaggyMock>
+template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter = ::testing::NaggyMock>
 class MockSingletonHelper : public ::testing::Environment
 {
 public:
@@ -69,14 +82,14 @@ private:
 };
 } // namespace multipass::test
 
-template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::mockit()
 {
     ::testing::AddGlobalTestEnvironment(
         new MockSingletonHelper<ConcreteMock, MockCharacter>{}); // takes pointer ownership o_O
 }
 
-template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::SetUp()
 {
     ConcreteMock::template mock<MockCharacter<ConcreteMock>>(); // Register mock as the singleton instance
@@ -87,7 +100,7 @@ void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::SetUp()
     register_accountant(); // register a test observer to verify and clear mock expectations
 }
 
-template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::TearDown()
 {
     release_accountant();  // release this mock's test observer
@@ -97,14 +110,14 @@ void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::TearDown
                               - it doesn't refer to stuff that was already deleted */
 }
 
-template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::register_accountant()
 {
     accountant = new Accountant{};
     ::testing::UnitTest::GetInstance()->listeners().Append(accountant); // takes ownership
 }
 
-template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::release_accountant()
 {
     [[maybe_unused]] auto* listener =
@@ -115,7 +128,7 @@ void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::release_
     accountant = nullptr;
 }
 
-template <typename ConcreteMock, template <typename MockClass> typename MockCharacter>
+template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter>
 void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::Accountant::OnTestEnd(
     const ::testing::TestInfo& /*unused*/)
 {

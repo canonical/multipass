@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,6 +47,7 @@ protected:
 
 private slots:
     void read_reply();
+    void read_finish();
 
 private:
     void send_request(const QNetworkRequest& request, QIODevice* outgoingData);
@@ -56,7 +57,9 @@ private:
 
     LocalSocketUPtr local_socket;
     QByteArray reply_data;
+    qint64 reply_offset{0};
     qint64 offset{0};
+    bool chunked_transfer_encoding{false};
 };
 } // namespace multipass
 

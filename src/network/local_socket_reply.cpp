@@ -80,25 +80,6 @@ QNetworkReply::NetworkError statusCodeFromHttp(int httpStatusCode)
 
     return code;
 }
-
-QList<QByteArray> split_http_lines(const QByteArray& reply_data)
-{
-    QList<QByteArray> list;
-    int start{0};
-    int end;
-
-    // Note: If there is ever the case that "\r\n" is sent in the
-    //       chunked content data, this will break.
-    while ((end = reply_data.indexOf("\r\n", start)) != -1)
-    {
-        list.append(reply_data.mid(start, end - start));
-        start = end + 2;
-    }
-
-    list.append(reply_data.mid(start).split('\n').front());
-
-    return list;
-}
 } // namespace
 
 mp::LocalSocketReply::LocalSocketReply(LocalSocketUPtr local_socket, const QNetworkRequest& request,
@@ -108,6 +89,8 @@ mp::LocalSocketReply::LocalSocketReply(LocalSocketUPtr local_socket, const QNetw
     open(QIODevice::ReadOnly);
 
     QObject::connect(this->local_socket.get(), &QLocalSocket::readyRead, this, &LocalSocketReply::read_reply);
+    QObject::connect(this->local_socket.get(), &QLocalSocket::readChannelFinished, this,
+                     &LocalSocketReply::read_finish);
 
     send_request(request, outgoingData);
 }
@@ -271,17 +254,31 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
 
 void mp::LocalSocketReply::read_reply()
 {
-    auto data_ptr = reply_data.data();
+    auto data_ptr = reply_data.data() + reply_offset;
     int bytes_read{0};
 
     do
     {
+        if (reply_offset + local_socket->bytesAvailable() > reply_data.length())
+        {
+            reply_data.append(len, '\0');
+            data_ptr = reply_data.data() + reply_offset;
+        }
+
         bytes_read = local_socket->read(data_ptr, len);
 
+        reply_offset += bytes_read;
         data_ptr += bytes_read;
     } while (bytes_read > 0);
+}
 
-    parse_reply();
+void mp::LocalSocketReply::read_finish()
+{
+    if (local_socket->bytesAvailable())
+        read_reply();
+
+    if (reply_offset)
+        parse_reply();
 
     setFinished(true);
     emit finished();
@@ -289,58 +286,26 @@ void mp::LocalSocketReply::read_reply()
 
 void mp::LocalSocketReply::parse_reply()
 {
-    bool chunked_transfer_encoding{false};
-    auto reply_lines = split_http_lines(reply_data);
+    auto reply_lines = reply_data.split('\n');
     auto it = reply_lines.constBegin();
 
     parse_status(*it);
 
-    qint64 data_len{0};
-
     for (++it; it != reply_lines.constEnd(); ++it)
     {
-        bool ok{false};
-
         if ((*it).contains("Transfer-Encoding") && (*it).contains("chunked"))
-        {
             chunked_transfer_encoding = true;
-        }
-        else if ((*it).contains("Content-Length"))
-        {
-            data_len = (*it).split(' ')[1].toLongLong(&ok, 16);
-        }
 
         if ((*it).isEmpty() || (*it).startsWith('\r'))
         {
-            ++it;
+            // Advance to the body
+            // Chunked transfer encoding also includes a line with the amount of
+            // bytes (in hex) in the chunk. We just skip it for now.
+            it = chunked_transfer_encoding ? it + 2 : it + 1;
 
-            if (chunked_transfer_encoding)
-            {
-                QByteArray chunked_data;
+            content_data = (*it).trimmed();
 
-                while (true)
-                {
-                    data_len = (*it).toLongLong(&ok, 16);
-
-                    if (data_len == 0)
-                    {
-                        content_data = chunked_data;
-                        return;
-                    }
-
-                    ++it;
-
-                    chunked_data.append((*it).constData(), data_len);
-
-                    ++it;
-                }
-            }
-            else
-            {
-                // Assume the rest of the data is the content data.
-                content_data = (*it).trimmed();
-                return;
-            }
+            break;
         }
     }
 }

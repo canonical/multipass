@@ -562,8 +562,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
 
     const std::string id{"12345"};
     MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(id), std::runtime_error,
-                         Property(&std::runtime_error::what,
-                                  StrEq(fmt::format("Cannot determine minimum image size for id \'{}\'", id))));
+                         mpt::match_what(StrEq(fmt::format("Cannot determine minimum image size for id \'{}\'", id))));
 }
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
@@ -575,9 +574,8 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
 
-    MP_EXPECT_THROW_THAT(
-        vault.minimum_image_size_for(vm_image.id), std::runtime_error,
-        Property(&std::runtime_error::what, AllOf(HasSubstr("qemu-img failed"), HasSubstr("with output"))));
+    MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id), std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("qemu-img failed"), HasSubstr("with output"))));
 }
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_image)
@@ -589,9 +587,8 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_i
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
 
-    MP_EXPECT_THROW_THAT(
-        vault.minimum_image_size_for(vm_image.id), std::runtime_error,
-        Property(&std::runtime_error::what, AllOf(HasSubstr("qemu-img failed"), HasSubstr("Could not find"))));
+    MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id), std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("qemu-img failed"), HasSubstr("Could not find"))));
 }
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understand_the_image_size)
@@ -604,7 +601,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understa
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor);
 
     MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id), std::runtime_error,
-                         Property(&std::runtime_error::what, HasSubstr("Could not obtain image's virtual size")));
+                         mpt::match_what(HasSubstr("Could not obtain image's virtual size")));
 }
 
 TEST_F(ImageVault, all_info_for_no_remote_given_returns_expected_data)
@@ -665,7 +662,6 @@ TEST_F(ImageVault, all_info_for_no_images_returned_throws)
     const std::string name{"foo"};
     EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
 
-    MP_EXPECT_THROW_THAT(
-        vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}), std::runtime_error,
-        Property(&std::runtime_error::what, StrEq(fmt::format("Unable to find an image matching \"{}\"", name))));
+    MP_EXPECT_THROW_THAT(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}), std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("Unable to find an image matching \"{}\"", name))));
 }

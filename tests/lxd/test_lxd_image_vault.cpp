@@ -182,9 +182,9 @@ TEST_F(LXDImageVault, throws_with_invalid_alias)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    MP_EXPECT_THROW_THAT(
-        image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error,
-        Property(&std::runtime_error::what, StrEq(fmt::format("Unable to find an image matching \"{}\"", alias))));
+    MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
+                         std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("Unable to find an image matching \"{}\"", alias))));
 }
 
 TEST_F(LXDImageVault, throws_with_invalid_remote)
@@ -199,9 +199,9 @@ TEST_F(LXDImageVault, throws_with_invalid_remote)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    MP_EXPECT_THROW_THAT(
-        image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error,
-        Property(&std::runtime_error::what, HasSubstr(fmt::format("Remote \'{}\' is not found.", remote))));
+    MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr(fmt::format("Remote \'{}\' is not found.", remote))));
 }
 
 TEST_F(LXDImageVault, does_not_download_if_image_exists)
@@ -910,9 +910,9 @@ TEST_F(LXDImageVault, minimum_image_size_throws_when_not_found)
                                     base_url, cache_dir.path(),     mp::days{0}};
 
     const std::string id{"12345"};
-    MP_EXPECT_THROW_THAT(image_vault.minimum_image_size_for(id), std::runtime_error,
-                         Property(&std::runtime_error::what,
-                                  AllOf(HasSubstr(fmt::format("Cannot retrieve info for image with id \'{}\'", id)))));
+    MP_EXPECT_THROW_THAT(
+        image_vault.minimum_image_size_for(id), std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(fmt::format("Cannot retrieve info for image with id \'{}\'", id)))));
 }
 
 TEST_F(LXDImageVault, http_based_image_downloads_and_creates_correct_upload)
@@ -1054,7 +1054,7 @@ TEST_F(LXDImageVault, invalid_local_file_image_throws)
     const std::string missing_file{"/foo"};
     const mp::Query query{"", fmt::format("file://{}", missing_file), false, "", mp::Query::Type::LocalFile};
 
-    MP_EXPECT_THROW_THAT(
-        image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error,
-        Property(&std::runtime_error::what, StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
+    MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
+                         std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
 }
