@@ -111,6 +111,9 @@ add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
 add_subdirectory(qhotkey EXCLUDE_FROM_ALL)
 
 # Poco library
+# Suppress CMake CMP0077 warning in Poco- see cmake --help-policy CMP0077
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(BUILD_SHARED_LIBS ON)
 option(ENABLE_NETSSL OFF)
 option(ENABLE_CRYPTO OFF)
 option(ENABLE_JWT OFF)
@@ -126,3 +129,7 @@ option(ENABLE_PAGECOMPILER OFF)
 option(ENABLE_PAGECOMPILER_FILE2PAGE OFF)
 
 add_subdirectory(poco EXCLUDE_FROM_ALL)
+
+# Undo some settings that Poco sets to avoid polluting the rest of our build
+set(CMAKE_DEBUG_POSTFIX "" CACHE STRING "Set Debug library postfix" FORCE)
+set(BUILD_SHARED_LIBS OFF)
