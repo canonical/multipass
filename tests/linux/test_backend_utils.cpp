@@ -267,6 +267,38 @@ struct CreateBridgeTest : public Test
         EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
     }
 
+    static auto make_parent_connection_matcher()
+    {
+        return Truly([](const QVariant& arg) {
+            QMap<QString, QVariantMap> outer_map;
+            QMap<QString, QVariantMap>::const_iterator outer_it;
+            QVariantMap::const_iterator inner_it;
+
+            return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 2 &&
+                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 2 &&
+                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
+                   (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "bridge" &&
+                   (outer_it = outer_map.find("bridge")) != outer_map.end() && outer_it->size() == 1 &&
+                   (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == "qtbr0";
+        });
+    }
+    static auto make_child_connection_matcher(const char* child)
+    {
+        return Truly([child](const QVariant& arg) {
+            QMap<QString, QVariantMap> outer_map;
+            QMap<QString, QVariantMap>::const_iterator outer_it;
+            QVariantMap::const_iterator inner_it;
+
+            return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
+                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 5 &&
+                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0-child" &&
+                   (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "802-3-ethernet" &&
+                   (inner_it = outer_it->find("slave-type")) != outer_it->end() && inner_it->toString() == "bridge" &&
+                   (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
+                   (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == child;
+        });
+    }
+
     MockDBusProvider::GuardedMock mock_dbus_injection = MockDBusProvider::inject();
     MockDBusProvider* mock_dbus_provider = mock_dbus_injection.first;
     MockDBusConnection mock_bus{};
@@ -309,38 +341,10 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
     auto mock_interface = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(true));
 
-    auto parent_arg_matcher = Truly([](const QVariant& arg) {
-        QMap<QString, QVariantMap> outer_map;
-        QMap<QString, QVariantMap>::const_iterator outer_it;
-        QVariantMap::const_iterator inner_it;
-
-        return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 2 &&
-               (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 2 &&
-               (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
-               (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "bridge" &&
-               (outer_it = outer_map.find("bridge")) != outer_map.end() && outer_it->size() == 1 &&
-               (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == "qtbr0";
-    });
-
-    auto child_arg_matcher = Truly([](const QVariant& arg) {
-        QMap<QString, QVariantMap> outer_map;
-        QMap<QString, QVariantMap>::const_iterator outer_it;
-        QVariantMap::const_iterator inner_it;
-
-        return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
-               (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 5 &&
-               (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0-child" &&
-               (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "802-3-ethernet" &&
-               (inner_it = outer_it->find("slave-type")) != outer_it->end() && inner_it->toString() == "bridge" &&
-               (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
-               (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == network;
-    });
-
-    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), parent_arg_matcher))
-        .WillOnce(
-            Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path/for/parent"}))));
-    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), child_arg_matcher))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path/for/child"}))));
+    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher()))
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/parent"}))));
+    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network)))
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/child"}))));
 
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
     EXPECT_CALL(mock_bus,
