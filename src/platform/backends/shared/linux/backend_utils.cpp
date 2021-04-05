@@ -258,22 +258,31 @@ void mp::backend::create_bridge_with(const std::string& interface)
     // TODO@ricab verify if suitable bridge exists
     // TODO@ricab derive new bridge name
 
-    // Expected DBus argument type: a{sa{sv}}
-    VariantMapMap arg{{"connection", {{"type", QVariant{"bridge"}}, {"id", QVariant{"qtbr0"}}}},
-                      {"bridge", {{"interface-name", QVariant{"qtbr0"}}}}};
-    QDBusReply<QDBusObjectPath> obj = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg)); /*
-                                              Roughtly equivalent to `nmcli connection add type bridge ifname br0` */
+    // AddConnection expects the following DBus argument type: a{sa{sv}}
+    // The following two DBus calls are roughly equivalent to:
+    //   `nmcli connection add type bridge ifname <br>`
+    //   `nmcli connection add type bridge-slave ifname <if> master <br>`
+    VariantMapMap arg1{{"connection", {{"type", QVariant{"bridge"}}, {"id", QVariant{"qtbr0"}}}},
+                       {"bridge", {{"interface-name", QVariant{"qtbr0"}}}}};
+    VariantMapMap arg2{{"connection",
+                        {{"id", QVariant{"qtbr0-child"}},
+                         {"type", "802-3-ethernet"},
+                         {"slave-type", QVariant{"bridge"}},
+                         {"master", QVariant{"qtbr0"}},
+                         {"interface-name", QVariant{QString::fromStdString(interface)}}}}};
 
-    if (!obj.isValid())
+    for (const auto& arg : {arg1, arg2})
     {
-        throw std::runtime_error{fmt::format("Could not create bridge: {}", obj.error().message())}; // TODO@ricab
-        // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
+        QDBusReply<QDBusObjectPath> obj = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg));
+
+        if (!obj.isValid())
+        {
+            throw std::runtime_error{fmt::format("Could not create bridge: {}", obj.error().message())}; // TODO@ricab
+            // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
+        }
     }
 
-    /* TODO@ricab create second connection, then activate the bridge
-       $ nmcli connection add type bridge-slave ifname eth0 master mybr0
-       $ nmcli connection up bridge-mybr0
-     */
+    // TODO@ricab activate the bridge: `nmcli connection up bridge-mybr0`
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
