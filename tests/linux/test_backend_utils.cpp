@@ -305,10 +305,11 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_interface_invalid)
 
 TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
 {
+    static constexpr auto network = "wlan9";
     auto mock_interface = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(true));
 
-    auto arg_matcher = Truly([](const QVariant& arg) {
+    auto parent_arg_matcher = Truly([](const QVariant& arg) {
         QMap<QString, QVariantMap> outer_map;
         QMap<QString, QVariantMap>::const_iterator outer_it;
         QVariantMap::const_iterator inner_it;
@@ -321,8 +322,25 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
                (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == "qtbr0";
     });
 
-    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), arg_matcher))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path"}))));
+    auto child_arg_matcher = Truly([](const QVariant& arg) {
+        QMap<QString, QVariantMap> outer_map;
+        QMap<QString, QVariantMap>::const_iterator outer_it;
+        QVariantMap::const_iterator inner_it;
+
+        return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
+               (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 5 &&
+               (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0-child" &&
+               (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "802-3-ethernet" &&
+               (inner_it = outer_it->find("slave-type")) != outer_it->end() && inner_it->toString() == "bridge" &&
+               (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
+               (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == network;
+    }); // TODO@ricab merge with above
+
+    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), parent_arg_matcher))
+        .WillOnce(
+            Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path/for/parent"}))));
+    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), child_arg_matcher))
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/some/obj/path/for/child"}))));
 
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
     EXPECT_CALL(mock_bus,
@@ -330,7 +348,7 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
                               Eq("org.freedesktop.NetworkManager.Settings")))
         .WillOnce(Return(ByMove(std::move(mock_interface))));
 
-    EXPECT_NO_THROW(mp::backend::create_bridge_with("asdf"));
+    EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
 }
 
 TEST(BackendUtils, create_bridge_exception_info)
