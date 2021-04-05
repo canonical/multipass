@@ -86,21 +86,40 @@ jobs:
     - name: Run clang-format through the diff
       uses: ./.github/actions/lint
 
-  macOS:
-    needs: [Checkout, Lint]
+  GetMatrix:
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - name: Determine build matrix
+      id: set-matrix
+      run: |
+        MATRIX='{"include": ['
+        [[ '${{ github.event.pull_request.draft }}' != 'true' && '${{ github.event.client_payload.draft }}' != 'true' ]] && MATRIX+='{"runs-on": "windows-latest"},'
+        MATRIX+='{"runs-on": "multipass-macos-10.14"}'
+        MATRIX+=']}'
+        echo "::set-output name=matrix::${MATRIX}"
+
+  BuildAndTest:
+    needs: [Checkout, Lint, GetMatrix]
+
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() && !cancelled() && needs.Checkout.result == 'success' }}
 
-    runs-on: multipass-macos-10.14
+    runs-on: ${{ matrix.runs-on }}
 
     env:
-      BUILD_DIR: build
+      BUILD_DIR: ../build
       MACOSX_DEPLOYMENT_TARGET: "10.14"
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
       OPAMYES: 1
       HOMEBREW_NO_AUTO_UPDATE: 1
-      QT_VERSION: "5.12.10"
 
     steps:
     - name: Create an App token
@@ -120,7 +139,7 @@ jobs:
         token: ${{ steps.app-token.outputs.token }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
-        name: ${{ github.job }}
+        name: ${{ runner.os }}
         status: in_progress
         details_url: ${{ env.RUN_URL }}
 
@@ -130,13 +149,18 @@ jobs:
         name: ${{ env.HEAD_REF }}.git
         path: .git
 
+    - name: Enable symlinks
+      run: git config --local core.symlinks true
+
     - name: Check out the code
       # This can't be easily abstracted into our `checkout` action due to a chicken'n'egg problem:
       # GitHub reads ./* actions from $PWD, so it needs to be checked out. It could be extracted
       # into an external repository, but that would bring its own set of issues.
+      # Authenticate with the new token.
       run: |
-        # Authenticate with the new token.
-        git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( echo -n x-access-token:${{ secrets.GITHUB_TOKEN }} | base64 )"
+        ${{ format('git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( {0} )"',
+                   format(runner.os != 'Windows' && 'echo -n x-access-token:{0} | base64' || '[Convert]::ToBase64String([System.Text.Encoding]::Ascii.GetBytes(''x-access-token:{0}''))', secrets.GITHUB_TOKEN ))
+        }}
         git checkout --progress --force ${{ env.HEAD_REF }}
 
     - name: Check out submodules and fetch tags
@@ -146,7 +170,14 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        setup-python: false
+      timeout-minutes: 10
+
     - name: Set up caching
+      if: ${{ runner.os == 'macOS' }}
       id: cache-params
       run: |
         # Use gnu-tar instead of the system tar
@@ -154,6 +185,7 @@ jobs:
         echo "::set-output name=hyperkit-sha::$( git -C 3rd-party/hyperkit rev-parse HEAD )"
 
     - name: Install dependencies from brew
+      if: ${{ runner.os == 'macOS' }}
       run: |
         brew install \
           cmake \
@@ -168,15 +200,8 @@ jobs:
           python \
           wget
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v2
-      with:
-        setup-python: false
-        version: ${{ env.QT_VERSION }}
-      timeout-minutes: 10
-
     - name: Cleanup
-      if: ${{ always() }}
+      if: ${{ always() && runner.os == 'macOS' }}
       uses: canonical/actions/cleanup@release
       with:
         # remove everything in the workspace and the dependencies
@@ -187,6 +212,7 @@ jobs:
           ${{ github.workspace }}
 
     - name: Cache OPAM
+      if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v2
       with:
         path: "~/.opam"
@@ -195,11 +221,13 @@ jobs:
         key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.cache-params.outputs.hyperkit-sha }}
 
     - name: Set up OCaml
+      if: ${{ runner.os == 'macOS' }}
       uses: avsm/setup-ocaml@v1.1.7
       with:
         ocaml-version: ${{ env.OPAM_COMP }}
 
     - name: Set up OPAM environment
+      if: ${{ runner.os == 'macOS' }}
       id: opam-setup
       run: |
         for var in OPAM_SWITCH_PREFIX CAML_LD_LIBRARY_PATH OCAML_TOPLEVEL_PATH; do
@@ -208,11 +236,13 @@ jobs:
         opam exec -- bash -c "echo \${OPAM_SWITCH_PREFIX}/bin" >> ${GITHUB_PATH}
 
     - name: Install OPAM dependencies
+      if: ${{ runner.os == 'macOS' }}
       run: |
         opam install 3rd-party/hyperkit --deps-only
         opam list
 
     - name: Set up CCache
+      if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
       run: |
         brew install ccache
@@ -223,12 +253,23 @@ jobs:
         echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
 
     - name: CCache
+      if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v2
       with:
         key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
         path: "~/Library/Caches/ccache"
+
+    - name: Install Dependencies from Choco
+      if: ${{ runner.os == 'Windows' }}
+      uses: crazy-max/ghaction-chocolatey@v1
+      with:
+        args: install --yes qemu-img openssl
+
+    - name: Set up MSVC
+      if: ${{ runner.os == 'Windows' }}
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Build
       uses: lukka/run-cmake@v2
@@ -238,13 +279,15 @@ jobs:
         buildDirectory: ${{ env.BUILD_DIR }}
         cmakeAppendedArgs:
           -GNinja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
           -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
           -DMULTIPASS_UPSTREAM=origin
           -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
-          -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
+          ${{ runner.os == 'macOS' && '-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache' || '' }}
 
     - name: Clear CCache stats
+      if: ${{ runner.os == 'macOS' }}
       run: ccache --show-stats --zero-stats
 
     - name: Test
@@ -257,12 +300,12 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         cmake --build . --target package
-        echo "::set-output name=name::$( basename *.pkg )"
-        echo "::set-output name=path::$( greadlink -f *.pkg )"
+        echo "::set-output name=name::$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) "
+        echo "::set-output name=path::$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )"
 
-    - name: Get CPack logs
+    - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
-      run: cat ${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/productbuild/InstallOutput.log
+      run: ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR, runner.os == 'Windows' && 'win64/NSIS/NSISOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
       uses: actions/upload-artifact@v2
@@ -313,7 +356,7 @@ jobs:
         conclusion: ${{ job.status }}
         output: |
           {
-             "summary": "macOS build successful",
+             "summary": "${{ runner.os }} build successful",
              "text_description": "[${{ steps.cmake-package.outputs.name }}](${{ steps.s3-upload.outputs.url }})"
           }
 
@@ -323,154 +366,6 @@ jobs:
       uses: LouisBrunner/checks-action@v1.1.1
       with:
         token: ${{ steps.app-token-update.outputs.token }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ steps.public-check.outputs.check_id }}
-        conclusion: ${{ job.status }}
-
-  Windows:
-    needs: [Checkout, Lint]
-    # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !github.event.pull_request.draft && github.event.client_payload.draft != 'true' && !failure() && !cancelled() && needs.Checkout.result == 'success' }}
-
-    runs-on: windows-latest
-
-    env:
-      BUILD_DIR: ../build
-
-    steps:
-    - name: Create an App token
-      id: app-token
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: tibdex/github-app-token@v1
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repository: ${{ github.event.client_payload.repository }}
-
-    - name: Create a check on public
-      id: public-check
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
-      with:
-        token: ${{ steps.app-token.outputs.token }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        name: ${{ github.job }}
-        status: in_progress
-        details_url: ${{ env.RUN_URL }}
-
-    - name: Retrieve the repository
-      uses: actions/download-artifact@v2
-      with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git
-
-    - name: Enable symlinks
-      run: git config --local core.symlinks true
-
-    - name: Check out the code
-      # See the same step in the macOS job for why this can't be abstracted into our `checkout` action.
-      run: |
-        # Authenticate with the new token.
-        git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( [Convert]::ToBase64String([System.Text.Encoding]::Ascii.GetBytes('x-access-token:${{ secrets.GITHUB_TOKEN }}')) )"
-        git checkout --progress --force ${{ env.HEAD_REF }}
-
-    - name: Check out submodules and fetch tags
-      uses: ./.github/actions/checkout
-
-    - name: Determine build parameters
-      id: build-params
-      uses: ./.github/actions/build-params
-
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v2
-      timeout-minutes: 10
-
-    - name: Install Dependencies from Choco
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install --yes qemu-img openssl
-
-    - name: Set up MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-
-    - name: Build
-      uses: lukka/run-cmake@v2
-      with:
-        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-        buildDirectory: ${{ env.BUILD_DIR }}
-        cmakeAppendedArgs:
-          -GNinja
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          -DCMAKE_C_COMPILER=cl.exe
-          -DCMAKE_CXX_COMPILER=cl.exe
-          -DMULTIPASS_UPSTREAM=origin
-          -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
-
-    - name: Test
-      working-directory: ${{ env.BUILD_DIR }}
-      run: |
-        bin/multipass_tests.exe
-
-    - name: Package
-      id: cmake-package
-      working-directory: ${{ env.BUILD_DIR }}
-      run: |
-        cmake --build . --target package
-        echo "::set-output name=name::$( ( Get-ChildItem multipass-*.exe ).Name )"
-        echo "::set-output name=path::$( ( Get-ChildItem multipass-*.exe ).FullName )"
-
-    - name: Get NSIS logs
-      if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
-      run: cat ${{ env.BUILD_DIR }}/_CPack_Packages/win64/NSIS/NSISOutput.log
-
-    - name: Upload package
-      uses: actions/upload-artifact@v2
-      with:
-        name: ${{ steps.cmake-package.outputs.name }}
-        path: ${{ steps.cmake-package.outputs.path }}
-        if-no-files-found: error
-
-    # Put the package on S3 for public consumption
-    - name: Publish package on S3
-      id: s3-upload
-      uses: canonical/actions/s3-upload@release
-      with:
-        path: ${{ steps.cmake-package.outputs.path }}
-        bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ steps.build-params.outputs.label }}
-        public: true
-        storage-class: ONEZONE_IA
-      timeout-minutes: 5
-
-    # This shows up on this run's page
-    - name: Report public URL
-      run: |
-        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
-
-    # On success, link to the package on the public side
-    - name: Update the check on public
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
-      with:
-        token: ${{ steps.app-token.outputs.token }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ steps.public-check.outputs.check_id }}
-        conclusion: ${{ job.status }}
-        output: |
-          {
-             "summary": "Windows build successful",
-             "text_description": "[${{ steps.cmake-package.outputs.name }}](${{ steps.s3-upload.outputs.url }})"
-          }
-
-    # On failure, just report the failure
-    - name: Update the check on public
-      if: ${{ !success() && github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
-      with:
-        token: ${{ steps.app-token.outputs.token }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
         check_id: ${{ steps.public-check.outputs.check_id }}

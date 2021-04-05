@@ -112,7 +112,7 @@ if (APPLE)
     TEST_COMMAND "" # make test is available, but quite heavy-weight (download a VM & needs root)
     )
 
-  install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit/build/hyperkit"
+  install(PROGRAMS "${CMAKE_BINARY_DIR}/bin/hyperkit"
     DESTINATION bin
     COMPONENT multipassd
     )
