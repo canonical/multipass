@@ -235,8 +235,10 @@ jobs:
       id: dispatch-params
       run: |
         if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "::set-output name=head_ref::${{ github.head_ref }}"
             echo "::set-output name=head_sha::${{ github.event.pull_request.head.sha }}"
         else
+            echo "::set-output name=head_ref::${{ github.ref }}"
             echo "::set-output name=head_sha::${{ github.sha }}"
         fi
 
@@ -262,10 +264,11 @@ jobs:
           {
             "repository": "${{ github.repository }}",
             "repositoryUrl": "${{ github.repositoryUrl }}",
-            "head_ref": "${{ github.head_ref }}",
+            "head_ref": "${{ steps.dispatch-params.outputs.head_ref }}",
             "head_sha": "${{ steps.dispatch-params.outputs.head_sha }}",
             "ref": "${{ github.ref }}",
             "sha": "${{ github.sha }}",
             "draft": "${{ github.event.pull_request.draft }}",
-            "label": "${{ needs.BuildAndTest.outputs.label }}"
+            "label": "${{ needs.BuildAndTest.outputs.label }}",
+            "dispatch_ci": "${{ env.BORS_RUN == 'true' }}"
           }
