@@ -334,7 +334,7 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
                (inner_it = outer_it->find("slave-type")) != outer_it->end() && inner_it->toString() == "bridge" &&
                (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
                (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == network;
-    }); // TODO@ricab merge with above
+    });
 
     EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), parent_arg_matcher))
         .WillOnce(
