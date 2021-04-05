@@ -39,10 +39,9 @@ const QString github_workflows_archive_name{"multipass-workflows.zip"};
 const QString workflow_dir_version{"v1"};
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader,
-                                                         VMImageVault* image_vault, const QDir& archive_dir)
+                                                         const QDir& archive_dir)
     : workflows_url{workflows_url},
       url_downloader{downloader},
-      image_vault{image_vault},
       archive_file_path{archive_dir.filePath(github_workflows_archive_name)}
 {
     fetch_workflows_archive();

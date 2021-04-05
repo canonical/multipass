@@ -170,7 +170,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (workflow_provider == nullptr)
         workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(
             QUrl("https://github.com/townsend2010/multipass-workflows/archive/refs/heads/main.zip"),
-            url_downloader.get(), vault.get(), cache_directory);
+            url_downloader.get(), cache_directory);
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),

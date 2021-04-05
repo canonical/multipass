@@ -30,13 +30,11 @@
 namespace multipass
 {
 class URLDownloader;
-class VMImageVault;
 
 class DefaultVMWorkflowProvider final : public VMWorkflowProvider
 {
 public:
-    DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, VMImageVault* image_vault,
-                              const QDir& cache_dir_path);
+    DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, const QDir& cache_dir_path);
 
     Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) override;
     VMImageInfo info_for(const std::string& workflow_name) override;
@@ -48,7 +46,6 @@ private:
 
     const QUrl workflows_url;
     URLDownloader* const url_downloader;
-    VMImageVault* const image_vault;
     const QString archive_file_path;
     std::map<std::string, std::string> workflow_map;
 };
