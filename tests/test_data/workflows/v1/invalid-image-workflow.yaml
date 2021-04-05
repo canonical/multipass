@@ -1,0 +1,12 @@
+description: Bad image scheme
+
+instances:
+  invalid-image-workflow:
+    image: "foo:bar:default"
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: 25G
+    cloud-init:
+      runcmd:
+      - echo "Have fun!"

@@ -1,0 +1,9 @@
+description: Another test workflow
+
+instances:
+  test-workflow2:
+    image: "daily:bionic"
+    limits:
+      min-cpu: 4
+      min-mem: 4G
+      min-disk: 50G

@@ -1,0 +1,12 @@
+description: The first test workflow
+
+instances:
+  test-workflow1:
+    image: "default"
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: 25G
+    cloud-init:
+      runcmd:
+      - echo "Have fun!"
