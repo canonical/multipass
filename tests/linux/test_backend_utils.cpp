@@ -257,7 +257,8 @@ public:
 
     MOCK_CONST_METHOD0(is_valid, bool());
     MOCK_CONST_METHOD0(last_error, QDBusError());
-    MOCK_METHOD3(call, QDBusMessage(QDBus::CallMode, const QString&, const QVariant&));
+    MOCK_METHOD5(call_impl,
+                 QDBusMessage(QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&));
 };
 
 struct CreateBridgeTest : public Test
@@ -341,9 +342,13 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
     auto mock_interface = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(true));
 
-    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher()))
+    // TODO@ricab in seq
+    auto empty = QVariant{};
+    EXPECT_CALL(*mock_interface,
+                call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/parent"}))));
-    EXPECT_CALL(*mock_interface, call(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network)))
+    EXPECT_CALL(*mock_interface,
+                call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/child"}))));
 
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
