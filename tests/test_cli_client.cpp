@@ -2287,6 +2287,29 @@ TEST_F(Client, help_returns_ok_return_code)
     EXPECT_THAT(send_command({"--help"}), Eq(mp::ReturnCode::Ok));
 }
 
+struct HelpTestsuite : public ClientAlias, public WithParamInterface<std::pair<std::string, std::string>>
+{
+};
+
+TEST_P(HelpTestsuite, answers_correctly)
+{
+    auto [command, expected_text] = GetParam();
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"help", command}, cout_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_text));
+
+    cout_stream.str(std::string());
+    EXPECT_EQ(send_command({command, "-h"}, cout_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_text));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, HelpTestsuite,
+                         Values(std::make_pair(std::string{"alias"},
+                                               "Create an alias to be executed on a given instance.\n"),
+                                std::make_pair(std::string{"aliases"}, "List available aliases\n"),
+                                std::make_pair(std::string{"unalias"}, "Remove an alias\n")));
+
 TEST_F(Client, command_help_is_different_than_general_help)
 {
     std::stringstream general_help_output;
@@ -2449,6 +2472,65 @@ INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
                                 std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
 
+TEST_F(ClientAlias, alias_creates_alias)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", {}}}});
+
+    EXPECT_EQ(send_command({"alias", "another_alias", "another_instance:another_command arg more_args"}),
+              mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command,Args\nan_alias,an_instance,a_command,\"\"\nanother_alias,"
+                                   "another_instance,another_command,\"arg more_args\"\n");
+}
+
+TEST_F(ClientAlias, alias_does_not_overwrite_alias)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", {}}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"alias", "an_alias", "another_instance:another_command"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command,Args\nan_alias,an_instance,a_command,\"\"\n");
+}
+
+struct ArgumentCheckTestsuite
+    : public ClientAlias,
+      public WithParamInterface<std::tuple<std::vector<std::string>, mp::ReturnCode, std::string, std::string>>
+{
+};
+
+TEST_P(ArgumentCheckTestsuite, answers_correctly)
+{
+    auto [arguments, expected_return_code, expected_cout, expected_cerr] = GetParam();
+
+    std::stringstream cout_stream, cerr_stream;
+    EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream), expected_return_code);
+
+    EXPECT_EQ(cout_stream.str(), expected_cout);
+    EXPECT_EQ(cerr_stream.str(), expected_cerr);
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, ArgumentCheckTestsuite,
+                         Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
+                                                "Wrong number of arguments given\n"),
+                                std::make_tuple(std::vector<std::string>{"alias", "alias_name", "instance", "command"},
+                                                mp::ReturnCode::CommandLineError, "",
+                                                "Wrong number of arguments given\n"),
+                                std::make_tuple(std::vector<std::string>{"alias", "alias_name", "instance"},
+                                                mp::ReturnCode::CommandLineError, "", "No command given\n"),
+                                std::make_tuple(std::vector<std::string>{"alias", "alias_name", "instance:command"},
+                                                mp::ReturnCode::Ok, "", ""),
+                                std::make_tuple(std::vector<std::string>{"alias", "alias_name", ":command"},
+                                                mp::ReturnCode::CommandLineError, "", "No instance name given\n")));
+
 TEST_F(ClientAlias, empty_aliases)
 {
     std::stringstream cout_stream;
@@ -2473,17 +2555,9 @@ TEST_F(ClientAlias, too_many_aliases_arguments)
     EXPECT_EQ(cerr_stream.str(), "This command takes no arguments\n");
 }
 
-TEST_F(ClientAlias, aliases_help)
-{
-    std::stringstream cout_stream;
-    send_command({"help", "aliases"}, cout_stream);
-
-    EXPECT_THAT(cout_stream.str(), HasSubstr("List available aliases"));
-}
-
 TEST_F(ClientAlias, execute_existing_alias)
 {
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", {}}}});
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", {"some_arg"}}}});
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
 
@@ -2537,13 +2611,5 @@ TEST_F(ClientAlias, too_many_unalias_arguments)
     send_command({"unalias", "alias_name", "other_argument"}, trash_stream, cerr_stream);
 
     EXPECT_EQ(cerr_stream.str(), "Wrong number of arguments given\n");
-}
-
-TEST_F(ClientAlias, unalias_help)
-{
-    std::stringstream cout_stream;
-    send_command({"help", "unalias"}, cout_stream);
-
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Remove an alias"));
 }
 } // namespace
