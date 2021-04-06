@@ -33,6 +33,7 @@
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "mock_vm_workflow_provider.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -521,6 +522,83 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
                     EXPECT_THAT(write_stanza, YAMLSequenceContainsStringMap(expected_pollinate_map));
                 }
             }));
+
+    send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+
+    const int num_cores = 4;
+    const mp::MemorySize mem_size{"4G"};
+    const mp::MemorySize disk_space{"25G"};
+    const std::string release{"focal"};
+    const std::string remote{"release"};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce([&num_cores, &mem_size, &disk_space](const mp::VirtualMachineDescription& vm_desc, auto&) {
+            EXPECT_EQ(vm_desc.num_cores, num_cores);
+            EXPECT_EQ(vm_desc.mem_size, mem_size);
+            EXPECT_EQ(vm_desc.disk_space, disk_space);
+
+            return std::make_unique<mpt::StubVirtualMachine>();
+        });
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _))
+        .WillOnce(Invoke([&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
+                                             const mp::VMImageVault::PrepareAction& prepare,
+                                             const mp::ProgressMonitor& monitor) {
+            EXPECT_EQ(query.release, release);
+            EXPECT_EQ(query.remote_name, remote);
+
+            return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
+        }));
+
+    EXPECT_CALL(*mock_workflow_provider, fetch_workflow_for(_, _))
+        .WillOnce(Invoke([&mem_size, &disk_space, &release,
+                          &remote](const auto&, mp::VirtualMachineDescription& vm_desc) -> mp::Query {
+            vm_desc.num_cores = num_cores;
+            vm_desc.mem_size = mem_size;
+            vm_desc.disk_space = disk_space;
+
+            return {"", release, false, remote, mp::Query::Type::Alias};
+        }));
+
+    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, workflow_not_found_passes_expected_data)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce([](const mp::VirtualMachineDescription& vm_desc, auto&) {
+            EXPECT_EQ(vm_desc.num_cores, 1);
+            EXPECT_EQ(vm_desc.mem_size, mp::MemorySize("1G"));
+            EXPECT_EQ(vm_desc.disk_space, mp::MemorySize("5G"));
+
+            return std::make_unique<mpt::StubVirtualMachine>();
+        });
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _))
+        .WillOnce(Invoke([](const mp::FetchType& fetch_type, const mp::Query& query,
+                            const mp::VMImageVault::PrepareAction& prepare, const mp::ProgressMonitor& monitor) {
+            EXPECT_EQ(query.release, "default");
+            EXPECT_TRUE(query.remote_name.empty());
+
+            return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
+        }));
+
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
 
     send_command({GetParam()});
 }
