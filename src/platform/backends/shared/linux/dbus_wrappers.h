@@ -51,14 +51,21 @@ public:
         return iface->lastError();
     }
 
-    virtual QDBusMessage call(QDBus::CallMode mode, const QString& method, const QVariant& arg)
+    QDBusMessage call(QDBus::CallMode mode, const QString& method, const QVariant& arg1 = {}, const QVariant& arg2 = {},
+                      const QVariant& arg3 = {}) // three args should be enough for the DBus methods we need
     {
-        assert(iface);
-        return iface->call(mode, method, arg);
+        return call_impl(mode, method, arg1, arg2, arg3); // indirection avoids default args in virtual method
     }
 
 protected:
     DBusInterface() = default; // for mocks
+
+    virtual QDBusMessage call_impl(QDBus::CallMode mode, const QString& method, const QVariant& arg1,
+                                   const QVariant& arg2, const QVariant& arg3)
+    {
+        assert(iface);
+        return iface->call(mode, method, arg1, arg2, arg3);
+    }
 
 private:
     friend class DBusConnection;
