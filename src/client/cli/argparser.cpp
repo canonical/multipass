@@ -157,7 +157,8 @@ mp::ParseCode mp::ArgParser::parse(const multipass::optional<multipass::AliasDic
     }
 
     // Fall through
-    cout << "Error: Unknown command or alias '" << qUtf8Printable(requested_command) << "' (try \"multipass help\")\n";
+    cout << "Error: Unknown command or alias '" << qUtf8Printable(requested_command)
+         << "' (try \"multipass help\" or \"multipass aliases\")\n";
     return ParseCode::CommandLineError;
 }
 
