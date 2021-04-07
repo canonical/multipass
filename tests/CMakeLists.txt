@@ -48,6 +48,7 @@ add_executable(multipass_tests
   test_constants.cpp
   test_custom_image_host.cpp
   test_daemon.cpp
+  test_daemon_find.cpp
   test_delayed_shutdown.cpp
   test_format_utils.cpp
   test_output_formatter.cpp
