@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
  *
  */
 
-#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/format.h>
 
@@ -94,7 +93,7 @@ mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Co
 {
 }
 
-mp::ParseCode mp::ArgParser::parse()
+mp::ParseCode mp::ArgParser::parse(const multipass::optional<multipass::AliasDict>& aliases)
 {
     QCommandLineOption help_option = parser.addHelpOption();
     QCommandLineOption verbose_option({"v", "verbose"},
@@ -145,15 +144,16 @@ mp::ParseCode mp::ArgParser::parse()
     }
 
     // The given argument is not a command name. Before failing, see if it is an alias.
-    AliasDict aliases; // Load the alias definitions.
-
-    execute_alias = aliases.get_alias(requested_command.toStdString());
-
-    if (execute_alias)
+    if (aliases)
     {
-        chosen_command = findCommand("exec");
+        execute_alias = aliases->get_alias(requested_command.toStdString());
 
-        return ParseCode::Ok;
+        if (execute_alias)
+        {
+            chosen_command = findCommand("exec");
+
+            return ParseCode::Ok;
+        }
     }
 
     // Fall through

@@ -55,13 +55,14 @@ mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
       rpc_channel{mp::client::make_channel(config.server_address, config.conn_type, *cert_provider)},
       stub{mp::Rpc::NewStub(rpc_channel)},
-      term{config.term}
+      term{config.term},
+      aliases{}
 {
-    add_command<cmd::Alias>();
-    add_command<cmd::Aliases>();
+    add_command<cmd::Alias>(aliases);
+    add_command<cmd::Aliases>(aliases);
     add_command<cmd::Launch>();
     add_command<cmd::Purge>();
-    add_command<cmd::Exec>();
+    add_command<cmd::Exec>(aliases);
     add_command<cmd::Find>();
     add_command<cmd::Get>();
     add_command<cmd::Help>();
@@ -76,7 +77,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Stop>();
     add_command<cmd::Suspend>();
     add_command<cmd::Transfer>();
-    add_command<cmd::Unalias>();
+    add_command<cmd::Unalias>(aliases);
     add_command<cmd::Restart>();
     add_command<cmd::Delete>();
     add_command<cmd::Umount>();
@@ -100,7 +101,7 @@ int mp::Client::run(const QStringList& arguments)
     ArgParser parser(arguments, commands, term->cout(), term->cerr());
     parser.setApplicationDescription(description);
 
-    ParseCode parse_status = parser.parse();
+    ParseCode parse_status = parser.parse(aliases);
 
     if (!mpl::get_logger())
         mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...

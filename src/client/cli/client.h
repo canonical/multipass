@@ -19,10 +19,11 @@
 #define MULTIPASS_CLIENT_H
 
 #include <multipass/cert_provider.h>
-#include <multipass/terminal.h>
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
+#include <multipass/terminal.h>
 
 #include <map>
 #include <memory>
@@ -58,6 +59,7 @@ private:
     std::vector<cmd::Command::UPtr> commands;
 
     Terminal* term;
+    AliasDict aliases;
 };
 } // namespace multipass
 
