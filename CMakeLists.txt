@@ -166,7 +166,7 @@ else()
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
   else()
-    add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds)
+    add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wnon-virtual-dtor)
 
     if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
       add_compile_options(-Wcast-align)
