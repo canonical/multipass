@@ -226,6 +226,19 @@ struct DaemonTestFixture : public ::Test
         loop.exec();
     }
 
+    int total_lines_of_output(std::stringstream& output)
+    {
+        int count{0};
+        std::string line;
+
+        while (std::getline(output, line))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     std::string server_address{"localhost:50051"};
 #else
