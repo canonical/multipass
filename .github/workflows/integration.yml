@@ -17,6 +17,7 @@ jobs:
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      bors-matrix: ${{ steps.set-matrix.outputs.bors-matrix }}
 
     steps:
     - name: Determine job matrix
@@ -26,10 +27,13 @@ jobs:
 
         if [ '${{ github.event.inputs.os }}' == 'Linux' ]; then
           echo '::set-output name=matrix::{"os": ["Linux"], "driver": ["qemu", "lxd"]}'
+          echo '::set-output name=bors-matrix::{"os": ["Linux"]}'
         elif [ '${{ github.event.inputs.os }}' == 'macOS' ]; then
           echo '::set-output name=matrix::{"os": ["macOS"], "driver": ["hyperkit"]}'
+          echo '::set-output name=bors-matrix::{"os": ["macOS"]}'
         elif [ '${{ github.event.inputs.os }}' == 'Windows' ]; then
           echo '::set-output name=matrix::{"os": ["Windows"], "driver": ["hyperv"]}'
+          echo '::set-output name=bors-matrix::{"os": ["Windows"]}'
         fi
 
   Integration:
@@ -143,3 +147,19 @@ jobs:
         JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
         testflinger-cli poll ${JOB_ID}
         [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" -eq 0 ]
+
+  # Report result to Bors
+  CI:
+    needs:
+    - GetMatrix
+    - Integration
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.bors-matrix) }}
+
+    steps:
+    - name: Report CI failure
+      if: ${{ needs.Integration.result != 'success' }}
+      run: exit 1
