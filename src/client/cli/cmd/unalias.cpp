@@ -33,7 +33,7 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
 
     if (aliases.remove_alias(alias_to_remove))
     {
-        // TODO: remove symlink/script associated to this alias
+        // TODO: remove symlink/script associated with this alias
         return ReturnCode::Ok;
     }
     else
