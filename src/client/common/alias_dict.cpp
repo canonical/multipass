@@ -175,33 +175,31 @@ void mp::AliasDict::save_dict()
         aliases_json.insert(name, definition);
     }
 
-    QTemporaryFile temp_file;
+    auto config_file_name = QString::fromStdString(aliases_file);
+
+    QDir config_path = QFileInfo(config_file_name).absoluteDir();
+    if (!config_path.exists())
+        config_path.mkpath(config_path.absolutePath());
+
+    QTemporaryFile temp_file(config_file_name);
+
     if (temp_file.open())
     {
+        temp_file.setAutoRemove(false);
+
         auto temp_file_name = temp_file.fileName();
 
         mp::write_json(aliases_json, temp_file_name);
 
         temp_file.close();
 
-        auto config_file_name = QString::fromStdString(aliases_file);
-
         if (QFile::exists(config_file_name))
         {
             auto backup_file_name = config_file_name + ".bak";
             QFile::remove(backup_file_name);
-            QFile::copy(config_file_name, backup_file_name);
-            QFile::remove(config_file_name);
-        }
-        else
-        {
-            QDir config_path = QFileInfo(config_file_name).absoluteDir();
-            if (!config_path.exists())
-            {
-                config_path.mkpath(config_path.absolutePath());
-            }
+            QFile::rename(config_file_name, backup_file_name);
         }
 
-        QFile::copy(temp_file_name, config_file_name);
+        QFile::rename(temp_file_name, config_file_name);
     }
 }
