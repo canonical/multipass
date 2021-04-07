@@ -257,21 +257,19 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
     // TODO@ricab verify if suitable bridge exists
     // TODO@ricab derive new bridge name
-    // TODO@ricab get rid of superflus QVariant{}s
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
     // The following two DBus calls are roughly equivalent to:
-    VariantMapMap arg1{
-        {"connection", {{"type", QVariant{"bridge"}}, {"id", QVariant{"qtbr0"}}, {"autoconnect-slaves", 1}}},
-        {"bridge", {{"interface-name", QVariant{"qtbr0"}}}}};
     //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
     //   `nmcli connection add type bridge-slave ifname <if> master <br> connection.autoconnect-priority 10`
+    VariantMapMap arg1{{"connection", {{"type", "bridge"}, {"id", "qtbr0"}, {"autoconnect-slaves", 1}}},
+                       {"bridge", {{"interface-name", "qtbr0"}}}};
     VariantMapMap arg2{{"connection",
-                        {{"id", QVariant{"qtbr0-child"}},
+                        {{"id", "qtbr0-child"},
                          {"type", "802-3-ethernet"},
-                         {"slave-type", QVariant{"bridge"}},
-                         {"master", QVariant{"qtbr0"}},
-                         {"interface-name", QVariant{QString::fromStdString(interface)}},
+                         {"slave-type", "bridge"},
+                         {"master", "qtbr0"},
+                         {"interface-name", QString::fromStdString(interface)},
                          {"autoconnect-priority", 10}}}};
 
     for (const auto& arg : {arg1, arg2})
