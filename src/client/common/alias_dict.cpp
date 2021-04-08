@@ -179,7 +179,9 @@ void mp::AliasDict::save_dict()
 
     QDir config_path = QFileInfo(config_file_name).absoluteDir();
     if (!config_path.exists())
+    {
         config_path.mkpath(config_path.absolutePath());
+    }
 
     QTemporaryFile temp_file(config_file_name);
 
@@ -187,9 +189,7 @@ void mp::AliasDict::save_dict()
     {
         temp_file.setAutoRemove(false);
 
-        auto temp_file_name = temp_file.fileName();
-
-        mp::write_json(aliases_json, temp_file_name);
+        mp::write_json(aliases_json, temp_file.fileName());
 
         temp_file.close();
 
@@ -200,6 +200,6 @@ void mp::AliasDict::save_dict()
             QFile::rename(config_file_name, backup_file_name);
         }
 
-        QFile::rename(temp_file_name, config_file_name);
+        temp_file.rename(config_file_name);
     }
 }
