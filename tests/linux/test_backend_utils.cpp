@@ -276,9 +276,10 @@ struct CreateBridgeTest : public Test
             QVariantMap::const_iterator inner_it;
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 2 &&
-                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 2 &&
+                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 3 &&
                    (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
                    (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "bridge" &&
+                   (inner_it = outer_it->find("autoconnect-slaves")) != outer_it->end() && inner_it->toInt() == 1 &&
                    (outer_it = outer_map.find("bridge")) != outer_map.end() && outer_it->size() == 1 &&
                    (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == "qtbr0";
         });
@@ -291,12 +292,13 @@ struct CreateBridgeTest : public Test
             QVariantMap::const_iterator inner_it;
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
-                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 5 &&
+                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 6 &&
                    (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0-child" &&
                    (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "802-3-ethernet" &&
                    (inner_it = outer_it->find("slave-type")) != outer_it->end() && inner_it->toString() == "bridge" &&
                    (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
-                   (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == child;
+                   (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == child &&
+                   (inner_it = outer_it->find("autoconnect-priority")) != outer_it->end() && inner_it->toInt() > 0;
         });
     }
 
