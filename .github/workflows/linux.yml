@@ -30,7 +30,7 @@ jobs:
   BuildAndTest:
     needs: Lint
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !failure() }}
+    if: ${{ !failure() && !cancelled() }}
 
     outputs:
       label: ${{ steps.build-params.outputs.label }}
@@ -173,6 +173,7 @@ jobs:
     # Need to explicitly continue on Lint getting skipped.
     if: ${{
       !failure()
+      && !cancelled()
       && needs.BuildAndTest.outputs.channel != ''
       && (github.event_name == 'push'
           || github.event.pull_request.head.repo.full_name == github.repository)
@@ -217,6 +218,7 @@ jobs:
     # Need to explicitly continue on Lint getting skipped.
     if: ${{
       !failure()
+      && !cancelled()
       && (github.event_name == 'push'
           || github.event.pull_request.head.repo.full_name == github.repository)
       }}
