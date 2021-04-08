@@ -15,7 +15,7 @@
 add_library(workflow_provider STATIC
   default_vm_workflow_provider.cpp)
 
-target_link_libraries(workflow_provider
+target_link_libraries(workflow_provider PRIVATE
   Poco::Zip
   Qt5::Core
   utils
