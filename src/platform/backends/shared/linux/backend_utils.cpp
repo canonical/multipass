@@ -286,9 +286,8 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
         if (!obj.isValid())
         {
-            throw CreateBridgeException{
-                fmt::format("Failed to add connection with id {}", arg["connection"]["id"].toString().toStdString()),
-                obj.error()};
+            throw CreateBridgeException{fmt::format("Failed to add connection {}", arg["connection"]["id"].toString()),
+                                        obj.error()};
             // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
         }
 
