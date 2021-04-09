@@ -391,7 +391,7 @@ INSTANTIATE_TEST_SUITE_P(CreateBridgeInvalidInterfaceTest, CreateBridgeInvalidIn
 TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_first_connection)
 {
     auto msg = QStringLiteral("Nope");
-    EXPECT_CALL(*mock_nm_settings, call_impl(QDBus::Block, Eq("AddConnection"), _, _, _))
+    EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::AccessDenied, msg)));
 
     inject_dbus_interfaces();
@@ -402,7 +402,7 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_first_conne
 TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_second_connection)
 {
     auto msg = QStringLiteral("Still not");
-    EXPECT_CALL(*mock_nm_settings, call_impl(QDBus::Block, Eq("AddConnection"), _, _, _))
+    EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::UnknownMethod, msg)));
 
