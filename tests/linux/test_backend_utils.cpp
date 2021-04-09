@@ -337,9 +337,8 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_bus_disconnected)
 
     MP_EXPECT_THROW_THAT(
         mp::backend::create_bridge_with("asdf"), mp::backend::CreateBridgeException,
-        Property(&mp::backend::CreateBridgeException::what,
-                 AllOf(HasSubstr("Could not create bridge"), HasSubstr("Failed to connect to D-Bus system bus"),
-                       HasSubstr(msg.toStdString()))));
+        mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Failed to connect to D-Bus system bus"),
+                              HasSubstr(msg.toStdString()))));
 }
 
 struct CreateBridgeInvalidInterfaceTest : public CreateBridgeTest, WithParamInterface<bool>
