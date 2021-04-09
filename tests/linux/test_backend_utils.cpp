@@ -265,7 +265,7 @@ struct CreateBridgeTest : public Test
 {
     void SetUp() override
     {
-        EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
+        EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillRepeatedly(ReturnRef(mock_bus));
         EXPECT_CALL(*mock_nm_root, is_valid).WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_nm_settings, is_valid).WillRepeatedly(Return(true));
     }
@@ -413,14 +413,14 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
     EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
 }
 
-TEST(BackendUtils, create_bridge_exception_info)
+TEST_F(CreateBridgeTest, create_bridge_exception_info)
 {
     static constexpr auto specific_info = "spefic error details";
     EXPECT_THAT((mp::backend::CreateBridgeException{specific_info, QDBusError{}}),
                 mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr(specific_info))));
 }
 
-TEST(BackendUtils, create_bridge_exception_includes_dbus_cause_when_available)
+TEST_F(CreateBridgeTest, create_bridge_exception_includes_dbus_cause_when_available)
 {
     auto msg = QStringLiteral("DBus error msg");
     QDBusError dbus_error = {QDBusError::Other, msg};
@@ -429,7 +429,7 @@ TEST(BackendUtils, create_bridge_exception_includes_dbus_cause_when_available)
                 mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
-TEST(BackendUtils, create_bridge_exception_mentions_unknown_cause_when_unavailable)
+TEST_F(CreateBridgeTest, create_bridge_exception_mentions_unknown_cause_when_unavailable)
 {
     QDBusError dbus_error{};
     ASSERT_FALSE(dbus_error.isValid());
