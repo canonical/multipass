@@ -268,6 +268,18 @@ struct CreateBridgeTest : public Test
         EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillOnce(ReturnRef(mock_bus));
     }
 
+    void inject_dbus_interfaces() // this moves the DBus interface mocks, so expectations must be set before calling
+    {
+        EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
+        EXPECT_CALL(mock_bus,
+                    get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
+                                  Eq("org.freedesktop.NetworkManager.Settings")))
+            .WillOnce(Return(ByMove(std::move(mock_nm_settings))));
+        EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager"),
+                                            Eq("org.freedesktop.NetworkManager")))
+            .WillOnce(Return(ByMove(std::move(mock_nm_root))));
+    }
+
     static auto make_parent_connection_matcher()
     {
         return Truly([](const QVariant& arg) {
@@ -311,6 +323,8 @@ struct CreateBridgeTest : public Test
     MockDBusProvider::GuardedMock mock_dbus_injection = MockDBusProvider::inject();
     MockDBusProvider* mock_dbus_provider = mock_dbus_injection.first;
     MockDBusConnection mock_bus{};
+    std::unique_ptr<MockDBusInterface> mock_nm_settings = std::make_unique<MockDBusInterface>();
+    std::unique_ptr<MockDBusInterface> mock_nm_root = std::make_unique<MockDBusInterface>();
 };
 
 TEST_F(CreateBridgeTest, bridge_creation_throws_if_bus_disconnected)
@@ -329,19 +343,9 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_bus_disconnected)
 TEST_F(CreateBridgeTest, bridge_creation_throws_if_interface_invalid)
 {
     auto msg = QStringLiteral("DBus error msg");
-    auto mock_nm_settings = std::make_unique<MockDBusInterface>();
-    auto mock_nm_root = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_nm_settings, is_valid).WillOnce(Return(false));
     EXPECT_CALL(*mock_nm_settings, last_error).WillOnce(Return(QDBusError{QDBusError::InvalidInterface, msg}));
-
-    EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
-    EXPECT_CALL(mock_bus,
-                get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
-                              Eq("org.freedesktop.NetworkManager.Settings")))
-        .WillOnce(Return(ByMove(std::move(mock_nm_settings))));
-    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager"),
-                                        Eq("org.freedesktop.NetworkManager")))
-        .WillOnce(Return(ByMove(std::move(mock_nm_root))));
+    inject_dbus_interfaces();
 
     MP_ASSERT_THROW_THAT(
         mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
@@ -353,8 +357,6 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
     static constexpr auto network = "wlan9";
     static constexpr auto child_obj_path = "/an/obj/path/for/child";
     static constexpr auto null_obj_path = "/";
-    auto mock_nm_settings = std::make_unique<MockDBusInterface>();
-    auto mock_nm_root = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_nm_settings, is_valid).WillOnce(Return(true));
     EXPECT_CALL(*mock_nm_root, is_valid).WillOnce(Return(true));
 
@@ -374,14 +376,7 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
                                          null_obj_matcher))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/active/obj/path"}))));
 
-    EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
-    EXPECT_CALL(mock_bus,
-                get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
-                              Eq("org.freedesktop.NetworkManager.Settings")))
-        .WillOnce(Return(ByMove(std::move(mock_nm_settings))));
-    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager"),
-                                        Eq("org.freedesktop.NetworkManager")))
-        .WillOnce(Return(ByMove(std::move(mock_nm_root))));
+    inject_dbus_interfaces();
 
     EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
 }
