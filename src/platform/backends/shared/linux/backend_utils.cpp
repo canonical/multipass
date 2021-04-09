@@ -282,16 +282,16 @@ void mp::backend::create_bridge_with(const std::string& interface)
     QDBusObjectPath connection_to_activate;
     for (const auto& arg : {arg1, arg2})
     {
-        QDBusReply<QDBusObjectPath> obj = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg));
+        QDBusReply<QDBusObjectPath> reply = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg));
 
-        if (!obj.isValid())
+        if (!reply.isValid())
         {
             throw CreateBridgeException{fmt::format("Failed to add connection {}", arg["connection"]["id"].toString()),
-                                        obj.error()};
+                                        reply.error()};
             // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
         }
 
-        connection_to_activate = obj; // we want to activate the last one (the child)
+        connection_to_activate = reply; // we want to activate the last one (the child)
     }
 
     QDBusReply<QDBusObjectPath> reply =
