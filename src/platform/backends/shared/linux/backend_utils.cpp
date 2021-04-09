@@ -120,6 +120,21 @@ auto get_nm_interfaces()
     return std::pair{std::move(nm_root), std::move(nm_settings)};
 }
 
+template <typename T, typename... Ts>
+T checked_dbus_call(mp::backend::dbus::DBusInterface& interface, const QString& method_name, Ts&&... params)
+{
+    static constexpr auto error_template = "DBus call to NetworkManager failed. Interface: {}; Method: {}";
+
+    auto reply_msg = interface.call(QDBus::Block, method_name, QVariant::fromValue(std::forward<Ts>(params))...);
+    QDBusReply<T> reply = reply_msg;
+
+    if (!reply.isValid())
+        throw mp::backend::CreateBridgeException{fmt::format(error_template, reply_msg.interface(), method_name),
+                                                 reply.error()};
+
+    return reply.value();
+}
+
 } // namespace
 
 std::string mp::backend::generate_random_subnet()
@@ -263,7 +278,7 @@ Q_DECLARE_METATYPE(VariantMapMap)
 
 void mp::backend::create_bridge_with(const std::string& interface)
 {
-    static const auto nm_default_obj = QDBusObjectPath{"/"};
+    static const auto root_path = QDBusObjectPath{"/"};
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
@@ -287,31 +302,12 @@ void mp::backend::create_bridge_with(const std::string& interface)
                          {"interface-name", QString::fromStdString(interface)},
                          {"autoconnect-priority", 10}}}};
 
-    QDBusObjectPath connection_to_activate;
-    for (const auto& arg : {arg1, arg2})
-    {
-        QDBusReply<QDBusObjectPath> reply = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg));
+    checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
+    QDBusObjectPath child = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
+    checked_dbus_call<QDBusObjectPath>(*nm_root, "ActivateConnection", child, root_path, root_path); /* Inspiration
+    for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
 
-        if (!reply.isValid())
-        {
-            throw CreateBridgeException{fmt::format("Failed to add connection {}", arg["connection"]["id"].toString()),
-                                        reply.error()};
-            // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
-        }
-
-        connection_to_activate = reply; // we want to activate the last one (the child)
-    }
-
-    QDBusReply<QDBusObjectPath> reply =
-        nm_root->call(QDBus::Block, "ActivateConnection", QVariant::fromValue(connection_to_activate),
-                      QVariant::fromValue(nm_default_obj), QVariant::fromValue(nm_default_obj)); /*
-                      Inspiration for '/' to signal null `device` and `specific-object` derived from nmcli and libnm.
-                      See https://bit.ly/3dMA3QB */
-
-    if (!reply.isValid())
-        throw CreateBridgeException{
-            fmt::format("Failed to activate connection {}", arg2["connection"]["id"].toString()),
-            reply.error()}; // TODO@ricab need to revert
+    // TODO@ricab need to revert
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
