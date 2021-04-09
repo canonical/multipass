@@ -80,19 +80,12 @@ TEST_F(AliasDictionary, skips_correctly_broken_entries)
 {
     std::string file_contents{"{\n"
                               "    \"alias1\": {\n"
-                              "        \"arguments\": [\n"
-                              "            \"-a\",\n"
-                              "            \"-b\",\n"
-                              "            \"-c\"\n"
-                              "        ],\n"
                               "        \"command\": \"first_command\",\n"
                               "        \"instance\": \"first_instance\"\n"
                               "    },\n"
                               "    \"empty_entry\": {\n"
                               "    },\n"
                               "    \"alias2\": {\n"
-                              "        \"arguments\": [\n"
-                              "        ],\n"
                               "        \"command\": \"second_command\",\n"
                               "        \"instance\": \"second_instance\"\n"
                               "    }\n"
@@ -107,14 +100,11 @@ TEST_F(AliasDictionary, skips_correctly_broken_entries)
     ASSERT_TRUE(a1);
     ASSERT_EQ(a1->instance, "first_instance");
     ASSERT_EQ(a1->command, "first_command");
-    std::vector<std::string> first_arguments{"-a", "-b", "-c"};
-    ASSERT_EQ(a1->arguments, first_arguments);
 
     auto a2 = dict.get_alias("alias2");
     ASSERT_TRUE(a2);
     ASSERT_EQ(a2->instance, "second_instance");
     ASSERT_EQ(a2->command, "second_command");
-    ASSERT_TRUE(a2->arguments.empty());
 }
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
@@ -137,7 +127,6 @@ TEST_P(WriteReadTeststuite, writes_and_reads_files)
         ASSERT_TRUE(read_value);
         ASSERT_EQ((*read_value).instance, alias.second.instance);
         ASSERT_EQ((*read_value).command, alias.second.command);
-        ASSERT_EQ((*read_value).arguments, alias.second.arguments);
     }
 
     // We test with this const/non-const iterators and size().
@@ -146,16 +135,16 @@ TEST_P(WriteReadTeststuite, writes_and_reads_files)
     ASSERT_EQ(reader.size(), aliases_vector.size());
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    AliasDictionary, WriteReadTeststuite,
-    Values(AliasesVector{}, AliasesVector{{"w", {"fake", "w", {}}}}, AliasesVector{{"ipf", {"instance", "ip", {"a"}}}},
-           AliasesVector{{"lsp", {"primary", "ls", {}}}, {"llp", {"primary", "ls", {"-l", "-a"}}}}));
+INSTANTIATE_TEST_SUITE_P(AliasDictionary, WriteReadTeststuite,
+                         Values(AliasesVector{}, AliasesVector{{"w", {"fake", "w"}}},
+                                AliasesVector{{"ipf", {"instance", "ip"}}},
+                                AliasesVector{{"lsp", {"primary", "ls"}}, {"llp", {"primary", "ls"}}}));
 
 TEST_F(AliasDictionary, correctly_removes_alias)
 {
     mp::AliasDict dict;
 
-    dict.add_alias("alias", mp::AliasDefinition{"instance", "command", {"arg0", "arg1"}});
+    dict.add_alias("alias", mp::AliasDefinition{"instance", "command"});
     ASSERT_FALSE(dict.empty());
 
     ASSERT_TRUE(dict.remove_alias("alias"));
@@ -166,7 +155,7 @@ TEST_F(AliasDictionary, works_when_removing_unexisting_alias)
 {
     mp::AliasDict dict;
 
-    dict.add_alias("alias", mp::AliasDefinition{"instance", "command", {"arg0", "arg1"}});
+    dict.add_alias("alias", mp::AliasDefinition{"instance", "command"});
     ASSERT_FALSE(dict.empty());
 
     ASSERT_FALSE(dict.remove_alias("unexisting"));
@@ -177,7 +166,7 @@ TEST_F(AliasDictionary, correctly_gets_alias)
 {
     mp::AliasDict dict;
     std::string alias_name{"alias"};
-    mp::AliasDefinition alias_def{"instance", "command", {"arg0", "arg1"}};
+    mp::AliasDefinition alias_def{"instance", "command"};
 
     dict.add_alias(alias_name, alias_def);
     ASSERT_FALSE(dict.empty());
@@ -196,12 +185,12 @@ TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
 
 TEST_F(AliasDictionary, creates_backup_db)
 {
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", {}}}});
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
 
     QString bak_filename = QString::fromStdString(db_filename() + ".bak");
     ASSERT_FALSE(QFile::exists(bak_filename));
 
-    populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command", {}}}});
+    populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command"}}});
     ASSERT_TRUE(QFile::exists(bak_filename));
 }
 
@@ -227,23 +216,22 @@ TEST_P(FormatterTeststuite, table)
     ASSERT_EQ(mp::ClientFormatter("yaml").format(dict), yaml_output);
 }
 
-std::string csv_head{"Alias,Instance,Command,Args\n"};
+std::string csv_head{"Alias,Instance,Command\n"};
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary, FormatterTeststuite,
     Values(
         std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n", "No aliases defined.\n", "\n"),
         std::make_tuple(
-            AliasesVector{{"lsp", {"primary", "ls", {}}}, {"llp", {"primary", "ls", {"-l", "-a"}}}},
-            csv_head + "llp,primary,ls,\"-l -a\"\nlsp,primary,ls,\"\"\n",
+            AliasesVector{{"lsp", {"primary", "ls"}}, {"llp", {"primary", "ls"}}},
+            csv_head + "llp,primary,ls\nlsp,primary,ls\n",
             "{\n    \"aliases\": [\n        {\n"
-            "            \"arguments\": [\n                \"-l\",\n                \"-a\"\n            ],\n"
             "            \"command\": \"ls\",\n            \"instance\": \"primary\",\n            \"name\": \"llp\"\n"
             "        },\n"
             "        {\n"
-            "            \"arguments\": [\n            ],\n            \"command\": \"ls\",\n"
+            "            \"command\": \"ls\",\n"
             "            \"instance\": \"primary\",\n            \"name\": \"lsp\"\n        }\n    ]\n}\n",
-            "Alias  Instance  Command  Args\nllp    primary   ls       -l -a\nlsp    primary   ls       \n",
-            "llp:\n  - name: llp\n    instance: primary\n    command: ls\n    arguments:\n      - -l\n      - -a\n"
-            "lsp:\n  - name: lsp\n    instance: primary\n    command: ls\n    arguments:\n      []\n")));
+            "Alias  Instance  Command\nllp    primary   ls\nlsp    primary   ls\n",
+            "llp:\n  - name: llp\n    instance: primary\n    command: ls\n"
+            "lsp:\n  - name: lsp\n    instance: primary\n    command: ls\n")));
 } // namespace
