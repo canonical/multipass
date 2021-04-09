@@ -345,8 +345,8 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_nm_root_interface_invalid)
     auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(*mock_nm_root, is_valid).WillOnce(Return(false));
     EXPECT_CALL(*mock_nm_root, last_error).WillOnce(Return(QDBusError{QDBusError::InvalidInterface, msg}));
-    inject_dbus_interfaces();
 
+    inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(
         mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
         mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Could not reach remote D-Bus object"))));
@@ -358,8 +358,8 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_nm_settings_interface_invalid
     EXPECT_CALL(*mock_nm_root, is_valid).WillOnce(Return(true));
     EXPECT_CALL(*mock_nm_settings, is_valid).WillOnce(Return(false));
     EXPECT_CALL(*mock_nm_settings, last_error).WillOnce(Return(QDBusError{QDBusError::InvalidInterface, msg}));
-    inject_dbus_interfaces();
 
+    inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(
         mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
         mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Could not reach remote D-Bus object"))));
@@ -393,7 +393,6 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
     }
 
     inject_dbus_interfaces();
-
     EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
 }
 
