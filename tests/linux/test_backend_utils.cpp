@@ -329,7 +329,7 @@ struct CreateBridgeTest : public Test
     std::unique_ptr<MockDBusInterface> mock_nm_root = std::make_unique<MockDBusInterface>();
 };
 
-TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections) // success case
+TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
 {
     static constexpr auto network = "wlan9";
     static constexpr auto child_obj_path = "/an/obj/path/for/child";
@@ -357,7 +357,7 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections) // s
     EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
 }
 
-TEST_F(CreateBridgeTest, bridge_creation_throws_if_bus_disconnected)
+TEST_F(CreateBridgeTest, throws_if_bus_disconnected)
 {
     auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(false));
@@ -373,7 +373,7 @@ struct CreateBridgeInvalidInterfaceTest : public CreateBridgeTest, WithParamInte
 {
 };
 
-TEST_P(CreateBridgeInvalidInterfaceTest, bridge_creation_throws_if_interface_invalid)
+TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
 {
     auto& mock_nm_interface = GetParam() ? mock_nm_root : mock_nm_settings;
     auto msg = QStringLiteral("DBus error msg");
@@ -388,7 +388,7 @@ TEST_P(CreateBridgeInvalidInterfaceTest, bridge_creation_throws_if_interface_inv
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeInvalidInterfaceTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
 
-TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_first_connection)
+TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
 {
     auto msg = QStringLiteral("Nope");
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
@@ -399,7 +399,7 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_first_conne
                          mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
-TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_second_connection)
+TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
 {
     auto msg = QStringLiteral("Still not");
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
@@ -411,7 +411,7 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_second_conn
                          mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
-TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_activate_second_connection)
+TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
 {
     auto msg = QStringLiteral("Refusing");
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
