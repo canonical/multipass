@@ -40,7 +40,6 @@ private:
     typedef std::map<AliasDict::key_type, AliasDict::mapped_type> sorted_map;
 
     sorted_map sort_dict(const mp::AliasDict& aliases) const;
-    std::vector<std::string> escape_args(const std::vector<std::string>& args) const;
     std::string format_csv(const mp::AliasDict& aliases) const;
     std::string format_json(const mp::AliasDict& aliases) const;
     std::string format_table(const mp::AliasDict& aliases) const;

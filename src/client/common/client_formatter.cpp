@@ -53,30 +53,17 @@ mp::ClientFormatter::sorted_map mp::ClientFormatter::sort_dict(const mp::AliasDi
     return sorted_map(aliases.cbegin(), aliases.cend());
 }
 
-std::vector<std::string> mp::ClientFormatter::escape_args(const std::vector<std::string>& args) const
-{
-    std::vector<std::string> escaped_args;
-
-    auto replace = [](const std::string& s) { return QString::fromStdString(s).replace(" ", "\\ ").toStdString(); };
-
-    std::transform(args.cbegin(), args.cend(), std::back_inserter<std::vector<std::string>>(escaped_args), replace);
-
-    return escaped_args;
-}
-
 std::string mp::ClientFormatter::format_csv(const mp::AliasDict& aliases) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(buf, "Alias,Instance,Command,Args\n");
+    fmt::format_to(buf, "Alias,Instance,Command\n");
 
     for (const auto& elt : sort_dict(aliases))
     {
         const auto& name = elt.first;
         const auto& def = elt.second;
 
-        fmt::format_to(buf, "{},{},{},", name, def.instance, def.command);
-
-        fmt::format_to(buf, "\"{}\"\n", fmt::join(escape_args(def.arguments), " "));
+        fmt::format_to(buf, "{},{},{}\n", name, def.instance, def.command);
     }
 
     return fmt::to_string(buf);
@@ -97,11 +84,6 @@ std::string mp::ClientFormatter::format_json(const mp::AliasDict& aliases) const
         alias_obj.insert("instance", QString::fromStdString(def.instance));
         alias_obj.insert("command", QString::fromStdString(def.command));
 
-        QJsonArray args;
-        for (const auto& arg : def.arguments)
-            args.append(QString::fromStdString(arg));
-        alias_obj.insert("arguments", args);
-
         aliases_array.append(alias_obj);
     }
 
@@ -121,20 +103,17 @@ std::string mp::ClientFormatter::format_table(const mp::AliasDict& aliases) cons
         aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.first.length(); }, 7);
     const auto instance_width = mp::format::column_width(
         aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.second.instance.length(); }, 10);
-    const auto command_width = mp::format::column_width(
-        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.second.command.length(); }, 9);
 
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    const auto row_format = "{:<{}}{:<{}}{:<}\n";
 
-    fmt::format_to(buf, row_format, "Alias", alias_width, "Instance", instance_width, "Command", command_width, "Args");
+    fmt::format_to(buf, row_format, "Alias", alias_width, "Instance", instance_width, "Command");
 
     for (const auto& elt : sort_dict(aliases))
     {
         const auto& name = elt.first;
         const auto& def = elt.second;
 
-        fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command, command_width,
-                       fmt::join(escape_args(def.arguments), " "));
+        fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command);
     }
 
     return fmt::to_string(buf);
@@ -153,10 +132,6 @@ std::string mp::ClientFormatter::format_yaml(const mp::AliasDict& aliases) const
         alias_node["name"] = name;
         alias_node["instance"] = def.instance;
         alias_node["command"] = def.command;
-
-        alias_node["arguments"] = YAML::Node(YAML::NodeType::Sequence);
-        for (auto arg = def.arguments.cbegin(); arg != def.arguments.cend(); arg++)
-            alias_node["arguments"].push_back(*arg);
 
         aliases_node[name].push_back(alias_node);
     }

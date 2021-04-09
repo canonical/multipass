@@ -40,9 +40,6 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     if (execute_alias)
     {
         args.push_back(execute_alias->command);
-
-        for (const auto& arg : execute_alias->arguments)
-            args.push_back(arg);
     }
     else
     {

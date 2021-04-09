@@ -27,12 +27,11 @@ struct AliasDefinition
 {
     std::string instance;
     std::string command;
-    std::vector<std::string> arguments;
 };
 
 inline bool operator==(const AliasDefinition& a, const AliasDefinition& b)
 {
-    return (a.instance == b.instance && a.command == b.command && a.arguments == b.arguments);
+    return (a.instance == b.instance && a.command == b.command);
 }
 } // namespace multipass
 #endif // MULTIPASS_ALIAS_DEFINITION_H

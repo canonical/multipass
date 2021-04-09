@@ -55,15 +55,14 @@ QString cmd::Alias::description() const
 
 mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Name given to the alias being defined", "<name>");
-    parser->addPositionalArgument("definition", "Alias definition in the form <instance>:'<command> [<args>]'",
-                                  "<definition>");
+    parser->addPositionalArgument("definition", "Alias definition in the form <instance>:<command>", "<definition>");
+    parser->addPositionalArgument("name", "Name given to the alias being defined, defaults to <command>", "[<name>]");
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    if (parser->positionalArguments().count() != 2)
+    if (parser->positionalArguments().count() != 1 && parser->positionalArguments().count() != 2)
     {
         cerr << "Wrong number of arguments given\n";
         return ParseCode::CommandLineError;
@@ -71,7 +70,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 
     QStringList cl_definition = parser->positionalArguments();
 
-    QString definition = cl_definition[1];
+    QString definition = cl_definition[0];
 
     auto colon_pos = definition.indexOf(':');
 
@@ -86,7 +85,10 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    alias_name = cl_definition[0].toStdString();
+    std::string instance = definition.left(colon_pos).toStdString();
+    std::string command = definition.right(definition.size() - colon_pos - 1).toStdString();
+
+    alias_name = parser->positionalArguments().count() == 1 ? command : cl_definition[1].toStdString();
 
     if (aliases.get_alias(alias_name))
     {
@@ -94,18 +96,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    std::string instance = definition.left(colon_pos).toStdString();
-    QString full_command = definition.right(definition.size() - colon_pos - 1);
-    QStringList full_command_split = full_command.split(' ', QString::SkipEmptyParts);
-
-    std::string command = full_command_split[0].toStdString();
-    full_command_split.removeFirst();
-
-    std::vector<std::string> arguments;
-    for (const auto& arg : full_command_split)
-        arguments.push_back(arg.toStdString());
-
-    alias_definition = AliasDefinition{instance, command, arguments};
+    alias_definition = AliasDefinition{instance, command};
 
     return ParseCode::Ok;
 }

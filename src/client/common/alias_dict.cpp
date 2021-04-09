@@ -136,13 +136,8 @@ void mp::AliasDict::load_dict()
 
         std::string instance = record["instance"].toString().toStdString();
         std::string command = record["command"].toString().toStdString();
-        QJsonArray arguments_array = record["arguments"].toArray();
 
-        std::vector<std::string> arguments;
-        for (const auto& arg : arguments_array)
-            arguments.push_back(arg.toString().toStdString());
-
-        aliases.emplace(alias, mp::AliasDefinition{instance, command, arguments});
+        aliases.emplace(alias, mp::AliasDefinition{instance, command});
     }
 
     db_file.close();
@@ -154,14 +149,6 @@ void mp::AliasDict::save_dict()
         QJsonObject json;
         json.insert("instance", QString::fromStdString(alias.instance));
         json.insert("command", QString::fromStdString(alias.command));
-
-        QJsonArray arguments;
-        for (const auto& arg : alias.arguments)
-        {
-            arguments.push_back(QJsonValue(QString::fromStdString(arg)));
-        }
-
-        json.insert("arguments", arguments);
 
         return json;
     };
