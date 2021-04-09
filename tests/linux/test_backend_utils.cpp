@@ -355,8 +355,7 @@ TEST_P(CreateBridgeInvalidInterfaceTest, bridge_creation_throws_if_interface_inv
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(
         mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
-        mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Could not reach remote D-Bus object"),
-                              HasSubstr(msg.toStdString()))));
+        mpt::match_what(AllOf(HasSubstr("Could not reach remote D-Bus object"), HasSubstr(msg.toStdString()))));
 }
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeInvalidInterfaceTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
@@ -369,7 +368,7 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_first_conne
 
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("umdolita"), mp::backend::CreateBridgeException,
-                         mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr(msg.toStdString()))));
+                         mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
 TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_second_connection)
@@ -381,7 +380,7 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_second_conn
 
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("abc"), mp::backend::CreateBridgeException,
-                         mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr(msg.toStdString()))));
+                         mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
 TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
