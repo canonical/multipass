@@ -48,6 +48,11 @@ mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_u
     get_workflow_map();
 }
 
+mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir)
+    : DefaultVMWorkflowProvider(default_workflow_url, downloader, archive_dir)
+{
+}
+
 mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& workflow_name,
                                                             VirtualMachineDescription& vm_desc)
 {

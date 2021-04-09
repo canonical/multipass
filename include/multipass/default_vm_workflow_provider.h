@@ -29,12 +29,16 @@
 
 namespace multipass
 {
+// TODO: Change to correct Workflows URL once the official repo is set up
+const QString default_workflow_url{"https://codeload.github.com/townsend2010/multipass-workflows/zip/refs/heads/main"};
+
 class URLDownloader;
 
 class DefaultVMWorkflowProvider final : public VMWorkflowProvider
 {
 public:
     DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, const QDir& cache_dir_path);
+    DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& cache_dir_path);
 
     Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) override;
     VMImageInfo info_for(const std::string& workflow_name) override;
