@@ -171,12 +171,11 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     {
         auto workflow_provider_url = QString::fromUtf8(qgetenv("MULTIPASS_WORKFLOWS_URL"));
 
-        if (workflow_provider_url.isEmpty())
-            workflow_provider_url = "https://github.com/townsend2010/multipass-workflows/archive/refs/heads/main.zip";
-
-        workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(
-            QUrl(workflow_provider_url),
-            url_downloader.get(), cache_directory);
+        if (!workflow_provider_url.isEmpty())
+            workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(QUrl(workflow_provider_url),
+                                                                            url_downloader.get(), cache_directory);
+        else
+            workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(url_downloader.get(), cache_directory);
     }
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
