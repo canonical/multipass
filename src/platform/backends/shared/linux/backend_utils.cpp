@@ -95,6 +95,30 @@ auto virtual_switch_subnet(const QString& bridge_name)
     return subnet.toStdString();
 }
 
+auto get_nm_interfaces()
+{
+    static const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
+    static const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
+    static const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
+    static const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
+    static const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
+
+    const auto& system_bus = mp::backend::dbus::DBusProvider::instance().get_system_bus();
+    if (!system_bus.is_connected())
+        throw mp::backend::CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
+
+    auto nm_root = system_bus.get_interface(nm_bus_name, nm_root_obj, nm_root_ifc);
+    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_settings_obj, nm_settings_ifc);
+
+    assert(nm_root && nm_settings);
+    if (!nm_root->is_valid())
+        throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", nm_root->last_error()};
+    if (!nm_settings->is_valid()) // TODO@ricab merge all this
+        throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", nm_settings->last_error()};
+
+    return std::pair{std::move(nm_root), std::move(nm_settings)};
+}
+
 } // namespace
 
 std::string mp::backend::generate_random_subnet()
@@ -238,29 +262,12 @@ Q_DECLARE_METATYPE(VariantMapMap)
 
 void mp::backend::create_bridge_with(const std::string& interface)
 {
-    static const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
-    static const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
-    static const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
-    static const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
-    static const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
     static const auto nm_default_obj = QDBusObjectPath{"/"};
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
 
-    const auto& system_bus = dbus::DBusProvider::instance().get_system_bus();
-    if (!system_bus.is_connected())
-        throw CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
-
-    auto nm_root = system_bus.get_interface(nm_bus_name, nm_root_obj, nm_root_ifc);
-    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_settings_obj, nm_settings_ifc);
-
-    assert(nm_root && nm_settings);
-    if (!nm_root->is_valid())
-        throw CreateBridgeException{"Could not reach remote D-Bus object", nm_root->last_error()};
-    if (!nm_settings->is_valid()) // TODO@ricab merge all this
-        throw CreateBridgeException{"Could not reach remote D-Bus object", nm_settings->last_error()};
-
+    auto [nm_root, nm_settings] = get_nm_interfaces();
     // TODO@ricab verify if suitable bridge exists
     // TODO@ricab derive new bridge name
 
