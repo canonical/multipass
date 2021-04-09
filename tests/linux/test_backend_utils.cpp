@@ -403,8 +403,7 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
         auto empty = QVariant{};
         EXPECT_CALL(*mock_nm_settings,
                     call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
-            .WillOnce(
-                Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/parent"}))));
+            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
 
         EXPECT_CALL(*mock_nm_settings,
                     call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
