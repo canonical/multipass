@@ -46,8 +46,8 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
     auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
 
-    constexpr auto workflow1_name = "foo";
-    constexpr auto workflow2_name = "bar";
+    static constexpr auto workflow1_name = "foo";
+    static constexpr auto workflow2_name = "bar";
 
     EXPECT_CALL(*mock_workflow_provider, all_workflows()).WillOnce(Invoke([]() {
         std::vector<mp::VMImageInfo> workflow_info;
@@ -112,7 +112,7 @@ TEST_F(DaemonFind, queryForWorkflowReturnsExpectedData)
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
 
-    constexpr auto workflow_name = "foo";
+    static constexpr auto workflow_name = "foo";
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
 

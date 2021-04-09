@@ -532,14 +532,14 @@ TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
 
-    const int num_cores = 4;
+    static constexpr int num_cores = 4;
     const mp::MemorySize mem_size{"4G"};
     const mp::MemorySize disk_space{"25G"};
     const std::string release{"focal"};
     const std::string remote{"release"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce([&num_cores, &mem_size, &disk_space](const mp::VirtualMachineDescription& vm_desc, auto&) {
+        .WillOnce([&mem_size, &disk_space](const mp::VirtualMachineDescription& vm_desc, auto&) {
             EXPECT_EQ(vm_desc.num_cores, num_cores);
             EXPECT_EQ(vm_desc.mem_size, mem_size);
             EXPECT_EQ(vm_desc.disk_space, disk_space);
