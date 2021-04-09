@@ -383,6 +383,19 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_second_conn
                          mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
+TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_activate_second_connection)
+{
+    auto msg = QStringLiteral("Refusing");
+    EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
+        .WillRepeatedly(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
+    EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _))
+        .WillOnce(Return(QDBusMessage::createError(QDBusError::InvalidArgs, msg)));
+
+    inject_dbus_interfaces();
+    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("kaka"), mp::backend::CreateBridgeException,
+                         mpt::match_what(HasSubstr(msg.toStdString())));
+}
+
 TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
 {
     static constexpr auto network = "wlan9";
