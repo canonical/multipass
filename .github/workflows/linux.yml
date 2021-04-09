@@ -12,6 +12,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+env:
+  BORS_RUN: ${{ github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+
 jobs:
   Lint:
     runs-on: ubuntu-latest
@@ -212,7 +215,9 @@ jobs:
 
   # Dispatch to the private side
   Dispatch:
-    needs: BuildAndTest
+    needs:
+    - BuildAndTest
+    - Publish-Snap
 
     # Only dispatch if we have access to secrets.
     # Need to explicitly continue on Lint getting skipped.
@@ -230,12 +235,27 @@ jobs:
       id: dispatch-params
       run: |
         if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "::set-output name=head_ref::${{ github.head_ref }}"
             echo "::set-output name=head_sha::${{ github.event.pull_request.head.sha }}"
         else
+            echo "::set-output name=head_ref::${{ github.ref }}"
             echo "::set-output name=head_sha::${{ github.sha }}"
         fi
 
-    - uses: peter-evans/repository-dispatch@v1
+    - name: Dispatch Linux integration tests
+      if: ${{ env.BORS_RUN == 'true' }}
+      uses: benc-uk/workflow-dispatch@v1
+      with:
+        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
+        workflow: Integration
+        inputs: |
+          {
+            "os": "Linux",
+            "channel": "${{ needs.BuildAndTest.outputs.channel }}"
+          }
+
+    - name: Dispatch macOS and Windows builds
+      uses: peter-evans/repository-dispatch@v1
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
@@ -244,10 +264,11 @@ jobs:
           {
             "repository": "${{ github.repository }}",
             "repositoryUrl": "${{ github.repositoryUrl }}",
-            "head_ref": "${{ github.head_ref }}",
+            "head_ref": "${{ steps.dispatch-params.outputs.head_ref }}",
             "head_sha": "${{ steps.dispatch-params.outputs.head_sha }}",
             "ref": "${{ github.ref }}",
             "sha": "${{ github.sha }}",
             "draft": "${{ github.event.pull_request.draft }}",
-            "label": "${{ needs.BuildAndTest.outputs.label }}"
+            "label": "${{ needs.BuildAndTest.outputs.label }}",
+            "dispatch_ci": "${{ env.BORS_RUN == 'true' }}"
           }
