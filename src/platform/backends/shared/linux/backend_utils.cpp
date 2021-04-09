@@ -123,14 +123,15 @@ auto get_nm_interfaces()
 template <typename T, typename... Ts>
 T checked_dbus_call(mp::backend::dbus::DBusInterface& interface, const QString& method_name, Ts&&... params)
 {
-    static constexpr auto error_template = "DBus call to NetworkManager failed. Interface: {}; Method: {}";
+    static constexpr auto error_template = "Failed DBus call. (Service: {}; Object: {}; Interface: {}; Method: {})";
 
     auto reply_msg = interface.call(QDBus::Block, method_name, QVariant::fromValue(std::forward<Ts>(params))...);
     QDBusReply<T> reply = reply_msg;
 
     if (!reply.isValid())
-        throw mp::backend::CreateBridgeException{fmt::format(error_template, reply_msg.interface(), method_name),
-                                                 reply.error()};
+        throw mp::backend::CreateBridgeException{
+            fmt::format(error_template, interface.service(), interface.path(), interface.interface(), method_name),
+            reply.error()};
 
     return reply.value();
 }
