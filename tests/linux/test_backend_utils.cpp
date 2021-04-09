@@ -356,7 +356,8 @@ TEST_P(CreateBridgeInvalidInterfaceTest, bridge_creation_throws_if_interface_inv
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(
         mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
-        mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Could not reach remote D-Bus object"))));
+        mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Could not reach remote D-Bus object"),
+                              HasSubstr(msg.toStdString()))));
 }
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeInvalidInterfaceTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
