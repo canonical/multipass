@@ -70,12 +70,19 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
+        QStringList retry_args{};
+
         if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name.toStdString())
-            return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr);
+            retry_args.append({"multipass", "launch", "--name", petenv_name});
         else if (status.error_code() == grpc::StatusCode::ABORTED)
-            return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)}, parser, cout, cerr);
+            retry_args.append({"multipass", "start", QString::fromStdString(instance_name)});
         else
             return standard_failure_handler_for(name(), cerr, status);
+
+        if (parser->isSet("timeout"))
+            retry_args.append({"--timeout", parser->value("timeout")});
+
+        return run_cmd_and_retry(retry_args, parser, cout, cerr);
     };
 
     request.set_verbosity_level(parser->verbosityLevel());

@@ -214,6 +214,12 @@ struct Client : public Test
         return Property(&RequestType::verbosity_level, Eq(verbosity));
     }
 
+    template <typename RequestType>
+    auto make_request_timeout_matcher(decltype(std::declval<RequestType>().timeout()) timeout)
+    {
+        return Property(&RequestType::timeout, Eq(timeout));
+    }
+
     void aux_set_cmd_rejects_bad_val(const char* key, const char* val)
     {
         const auto default_val = get_setting(key);
@@ -435,6 +441,20 @@ TEST_F(Client, shell_cmd_forwards_verbosity_to_subcommands)
     EXPECT_CALL(mock_daemon, ssh_info(_, make_request_verbosity_matcher<mp::SSHInfoRequest>(verbosity), _))
         .WillOnce(Return(ok));
     EXPECT_THAT(send_command({"shell", "-vvv"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_forwards_timeout_to_subcommands)
+{
+    const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+    const auto timeout = 123;
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, make_request_timeout_matcher<mp::LaunchRequest>(timeout), _))
+        .WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"shell", "--timeout", std::to_string(timeout)}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, shell_cmd_fails_when_automounting_in_petenv_fails)
@@ -1108,6 +1128,21 @@ TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)
     EXPECT_CALL(mock_daemon, start(_, make_request_verbosity_matcher<mp::StartRequest>(verbosity), _))
         .WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", "-vv"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_forwards_timeout_to_subcommands)
+{
+    const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
+    const auto timeout = 123;
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, make_request_timeout_matcher<mp::StartRequest>(timeout), _))
+        .WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, make_request_timeout_matcher<mp::LaunchRequest>(timeout), _))
+        .WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, start(_, make_request_timeout_matcher<mp::StartRequest>(timeout), _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"start", "--timeout", std::to_string(timeout)}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, start_cmd_fails_when_automounting_in_petenv_fails)

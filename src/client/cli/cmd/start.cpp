@@ -87,8 +87,13 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
             {
                 assert(start_error.instance_errors_size() == 1 &&
                        std::cbegin(start_error.instance_errors())->first == petenv_name.toStdString());
-                return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr); /*
-                                    TODO replace with create, so that all instances are started in a single go */
+
+                QStringList launch_args{"multipass", "launch", "--name", petenv_name};
+                if (parser->isSet("timeout"))
+                    launch_args.append({"--timeout", parser->value("timeout")});
+
+                return run_cmd_and_retry(launch_args, parser, cout, cerr); /*
+                             TODO replace with create, so that all instances are started in a single go */
             }
         }
 
