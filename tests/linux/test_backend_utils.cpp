@@ -302,6 +302,12 @@ struct CreateBridgeTest : public Test
         });
     }
 
+    static auto make_object_path_matcher(const char* path)
+    {
+        return Property(&QVariant::value<QDBusObjectPath>,
+                        Property(&QDBusObjectPath::path, Property(&QString::toStdString, Eq(path))));
+    }
+
     MockDBusProvider::GuardedMock mock_dbus_injection = MockDBusProvider::inject();
     MockDBusProvider* mock_dbus_provider = mock_dbus_injection.first;
     MockDBusConnection mock_bus{};
@@ -338,26 +344,40 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_if_interface_invalid)
         mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Could not reach remote D-Bus object"))));
 }
 
-TEST_F(CreateBridgeTest, bridge_creation_creates_connections)
+TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
 {
     static constexpr auto network = "wlan9";
-    auto mock_interface = std::make_unique<MockDBusInterface>();
-    EXPECT_CALL(*mock_interface, is_valid).WillOnce(Return(true));
+    static constexpr auto child_obj_path = "/an/obj/path/for/child";
+    static constexpr auto null_obj_path = "/";
+    auto mock_nm_settings = std::make_unique<MockDBusInterface>();
+    auto mock_nm_root = std::make_unique<MockDBusInterface>();
+    EXPECT_CALL(*mock_nm_settings, is_valid).WillOnce(Return(true));
+    EXPECT_CALL(*mock_nm_root, is_valid).WillOnce(Return(true));
 
     // TODO@ricab in seq
     auto empty = QVariant{};
-    EXPECT_CALL(*mock_interface,
+    EXPECT_CALL(*mock_nm_settings,
                 call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/parent"}))));
-    EXPECT_CALL(*mock_interface,
+
+    EXPECT_CALL(*mock_nm_settings,
                 call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/child"}))));
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{child_obj_path}))));
+
+    auto null_obj_matcher = make_object_path_matcher(null_obj_path);
+    auto child_obj_matcher = make_object_path_matcher(child_obj_path);
+    EXPECT_CALL(*mock_nm_root, call_impl(QDBus::Block, Eq("ActivateConnection"), child_obj_matcher, null_obj_matcher,
+                                         null_obj_matcher))
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/active/obj/path"}))));
 
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
     EXPECT_CALL(mock_bus,
                 get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
                               Eq("org.freedesktop.NetworkManager.Settings")))
-        .WillOnce(Return(ByMove(std::move(mock_interface))));
+        .WillOnce(Return(ByMove(std::move(mock_nm_settings))));
+    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager"),
+                                        Eq("org.freedesktop.NetworkManager")))
+        .WillOnce(Return(ByMove(std::move(mock_nm_root))));
 
     EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
 }
