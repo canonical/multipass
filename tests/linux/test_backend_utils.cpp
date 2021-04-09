@@ -329,6 +329,34 @@ struct CreateBridgeTest : public Test
     std::unique_ptr<MockDBusInterface> mock_nm_root = std::make_unique<MockDBusInterface>();
 };
 
+TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections) // success case
+{
+    static constexpr auto network = "wlan9";
+    static constexpr auto child_obj_path = "/an/obj/path/for/child";
+    static constexpr auto null_obj_path = "/";
+
+    {
+        InSequence seq{};
+        auto empty = QVariant{};
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
+            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
+
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
+            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{child_obj_path}))));
+
+        auto null_obj_matcher = make_object_path_matcher(null_obj_path);
+        auto child_obj_matcher = make_object_path_matcher(child_obj_path);
+        EXPECT_CALL(*mock_nm_root, call_impl(QDBus::Block, Eq("ActivateConnection"), child_obj_matcher,
+                                             null_obj_matcher, null_obj_matcher))
+            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/active/obj/path"}))));
+    }
+
+    inject_dbus_interfaces();
+    EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
+}
+
 TEST_F(CreateBridgeTest, bridge_creation_throws_if_bus_disconnected)
 {
     auto msg = QStringLiteral("DBus error msg");
@@ -394,34 +422,6 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_activate_second_co
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("kaka"), mp::backend::CreateBridgeException,
                          mpt::match_what(HasSubstr(msg.toStdString())));
-}
-
-TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
-{
-    static constexpr auto network = "wlan9";
-    static constexpr auto child_obj_path = "/an/obj/path/for/child";
-    static constexpr auto null_obj_path = "/";
-
-    {
-        InSequence seq{};
-        auto empty = QVariant{};
-        EXPECT_CALL(*mock_nm_settings,
-                    call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
-            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
-
-        EXPECT_CALL(*mock_nm_settings,
-                    call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
-            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{child_obj_path}))));
-
-        auto null_obj_matcher = make_object_path_matcher(null_obj_path);
-        auto child_obj_matcher = make_object_path_matcher(child_obj_path);
-        EXPECT_CALL(*mock_nm_root, call_impl(QDBus::Block, Eq("ActivateConnection"), child_obj_matcher,
-                                             null_obj_matcher, null_obj_matcher))
-            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/active/obj/path"}))));
-    }
-
-    inject_dbus_interfaces();
-    EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
 }
 
 TEST_F(CreateBridgeTest, create_bridge_exception_info)
