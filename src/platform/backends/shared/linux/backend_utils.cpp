@@ -110,11 +110,12 @@ auto get_nm_interfaces()
     auto nm_root = system_bus.get_interface(nm_bus_name, nm_root_obj, nm_root_ifc);
     auto nm_settings = system_bus.get_interface(nm_bus_name, nm_settings_obj, nm_settings_ifc);
 
-    assert(nm_root && nm_settings);
-    if (!nm_root->is_valid())
-        throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", nm_root->last_error()};
-    if (!nm_settings->is_valid()) // TODO@ricab merge all this
-        throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", nm_settings->last_error()};
+    for (const auto* nm_interface : {nm_root.get(), nm_settings.get()})
+    {
+        assert(nm_interface);
+        if (!nm_interface->is_valid())
+            throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", nm_interface->last_error()};
+    }
 
     return std::pair{std::move(nm_root), std::move(nm_settings)};
 }
