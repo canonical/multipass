@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/default_vm_workflow_provider.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
@@ -34,6 +35,8 @@
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 #include "mock_vm_workflow_provider.h"
+#include "path.h"
+#include "tracking_url_downloader.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -237,6 +240,41 @@ TEST_F(Daemon, data_path_with_storage_valid)
 
     EXPECT_EQ(config->data_directory.toStdString(), storage_dir.filePath("data").toStdString());
     EXPECT_EQ(config->cache_directory.toStdString(), storage_dir.filePath("cache").toStdString());
+}
+
+TEST_F(Daemon, workflowsDownloadsFromCorrectURL)
+{
+    mpt::TempDir cache_dir;
+    auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
+
+    config_builder.cache_directory = cache_dir.path();
+    config_builder.url_downloader = std::move(url_downloader);
+    config_builder.workflow_provider.reset();
+
+    auto config = config_builder.build();
+
+    mpt::TrackingURLDownloader* downloader = static_cast<mpt::TrackingURLDownloader*>(config->url_downloader.get());
+    EXPECT_EQ(downloader->downloaded_urls.size(), 1);
+    EXPECT_EQ(downloader->downloaded_urls.front(), mp::default_workflow_url);
+}
+
+TEST_F(Daemon, workflowsURLOverrideEnvVarIsCorrect)
+{
+    mpt::TempDir cache_dir;
+    auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
+    const QString test_workflows_zip{mpt::test_data_path() + "test-workflows.zip"};
+
+    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", QUrl::fromLocalFile(test_workflows_zip).toEncoded());
+
+    config_builder.cache_directory = cache_dir.path();
+    config_builder.url_downloader = std::move(url_downloader);
+    config_builder.workflow_provider.reset();
+
+    auto config = config_builder.build();
+
+    mpt::TrackingURLDownloader* downloader = static_cast<mpt::TrackingURLDownloader*>(config->url_downloader.get());
+    EXPECT_EQ(downloader->downloaded_urls.size(), 1);
+    EXPECT_EQ(downloader->downloaded_urls.front(), QUrl::fromLocalFile(test_workflows_zip).toString());
 }
 
 namespace
