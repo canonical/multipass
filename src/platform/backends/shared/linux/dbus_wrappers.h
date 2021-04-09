@@ -51,6 +51,24 @@ public:
         return iface->lastError();
     }
 
+    virtual QString interface() const
+    {
+        assert(iface);
+        return iface->interface();
+    }
+
+    virtual QString path() const
+    {
+        assert(iface);
+        return iface->path();
+    }
+
+    virtual QString service() const
+    {
+        assert(iface);
+        return iface->service();
+    }
+
     QDBusMessage call(QDBus::CallMode mode, const QString& method, const QVariant& arg1 = {}, const QVariant& arg2 = {},
                       const QVariant& arg3 = {}) // three args should be enough for the DBus methods we need
     {
