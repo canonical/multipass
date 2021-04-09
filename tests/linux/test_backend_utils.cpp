@@ -371,15 +371,29 @@ TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_first_conne
     EXPECT_CALL(*mock_nm_settings, is_valid).WillOnce(Return(true));
 
     auto msg = QStringLiteral("Nope");
-    auto empty = QVariant{};
-    EXPECT_CALL(*mock_nm_settings,
-                call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
+    EXPECT_CALL(*mock_nm_settings, call_impl(QDBus::Block, Eq("AddConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::AccessDenied, msg)));
 
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("umdolita"), mp::backend::CreateBridgeException,
                          mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr(msg.toStdString()))));
 }
+
+TEST_F(CreateBridgeTest, bridge_creation_throws_on_failure_to_create_second_connection)
+{
+    EXPECT_CALL(*mock_nm_root, is_valid).WillOnce(Return(true));
+    EXPECT_CALL(*mock_nm_settings, is_valid).WillOnce(Return(true));
+
+    auto msg = QStringLiteral("Still not");
+    EXPECT_CALL(*mock_nm_settings, call_impl(QDBus::Block, Eq("AddConnection"), _, _, _))
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))))
+        .WillOnce(Return(QDBusMessage::createError(QDBusError::UnknownMethod, msg)));
+
+    inject_dbus_interfaces();
+    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("abc"), mp::backend::CreateBridgeException,
+                         mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr(msg.toStdString()))));
+}
+
 TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
 {
     static constexpr auto network = "wlan9";
