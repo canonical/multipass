@@ -252,14 +252,14 @@ void mp::backend::create_bridge_with(const std::string& interface)
     if (!system_bus.is_connected())
         throw CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
 
-    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_settings_obj, nm_settings_ifc);
     auto nm_root = system_bus.get_interface(nm_bus_name, nm_root_obj, nm_root_ifc);
+    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_settings_obj, nm_settings_ifc);
 
-    assert(nm_settings && nm_root);
-    if (!nm_settings->is_valid()) // TODO@ricab merge all this
-        throw CreateBridgeException{"Could not reach remote D-Bus object", nm_settings->last_error()};
+    assert(nm_root && nm_settings);
     if (!nm_root->is_valid())
         throw CreateBridgeException{"Could not reach remote D-Bus object", nm_root->last_error()};
+    if (!nm_settings->is_valid()) // TODO@ricab merge all this
+        throw CreateBridgeException{"Could not reach remote D-Bus object", nm_settings->last_error()};
 
     // TODO@ricab verify if suitable bridge exists
     // TODO@ricab derive new bridge name
