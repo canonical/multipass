@@ -239,8 +239,11 @@ Q_DECLARE_METATYPE(VariantMapMap)
 void mp::backend::create_bridge_with(const std::string& interface)
 {
     static const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
-    static const auto nm_obj_name = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
-    static const auto nm_ifc_name = QStringLiteral("org.freedesktop.NetworkManager.Settings");
+    static const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
+    static const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
+    static const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
+    static const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
+    static const auto nm_default_obj = QDBusObjectPath{"/"};
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
@@ -249,11 +252,14 @@ void mp::backend::create_bridge_with(const std::string& interface)
     if (!system_bus.is_connected())
         throw CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
 
-    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_obj_name, nm_ifc_name);
+    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_settings_obj, nm_settings_ifc);
+    auto nm_root = system_bus.get_interface(nm_bus_name, nm_root_obj, nm_root_ifc);
 
-    assert(nm_settings);
-    if (!nm_settings->is_valid())
+    assert(nm_settings && nm_root);
+    if (!nm_settings->is_valid()) // TODO@ricab merge all this
         throw CreateBridgeException{"Could not reach remote D-Bus object", nm_settings->last_error()};
+    if (!nm_root->is_valid())
+        throw CreateBridgeException{"Could not reach remote D-Bus object", nm_root->last_error()};
 
     // TODO@ricab verify if suitable bridge exists
     // TODO@ricab derive new bridge name
@@ -262,6 +268,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
     // The following two DBus calls are roughly equivalent to:
     //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
     //   `nmcli connection add type bridge-slave ifname <if> master <br> connection.autoconnect-priority 10`
+    //   `nmcli connection up <br>-slave-<if>`
     VariantMapMap arg1{{"connection", {{"type", "bridge"}, {"id", "qtbr0"}, {"autoconnect-slaves", 1}}},
                        {"bridge", {{"interface-name", "qtbr0"}}}};
     VariantMapMap arg2{{"connection",
@@ -272,6 +279,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
                          {"interface-name", QString::fromStdString(interface)},
                          {"autoconnect-priority", 10}}}};
 
+    QDBusObjectPath connection_to_activate;
     for (const auto& arg : {arg1, arg2})
     {
         QDBusReply<QDBusObjectPath> obj = nm_settings->call(QDBus::Block, "AddConnection", QVariant::fromValue(arg));
@@ -281,7 +289,13 @@ void mp::backend::create_bridge_with(const std::string& interface)
             throw std::runtime_error{fmt::format("Could not create bridge: {}", obj.error().message())}; // TODO@ricab
             // TODO@ricab: the bridge could already be there (e.g. disconnect after creation), so revert
         }
+
+        connection_to_activate = obj; // we want to activate the last one (the child)
     }
+
+    nm_root->call(QDBus::Block, "ActivateConnection", QVariant::fromValue(connection_to_activate),
+                  QVariant::fromValue(nm_default_obj), QVariant::fromValue(nm_default_obj)); /* Inspiration for '/' to
+                  signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
