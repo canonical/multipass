@@ -257,6 +257,9 @@ public:
 
     MOCK_CONST_METHOD0(is_valid, bool());
     MOCK_CONST_METHOD0(last_error, QDBusError());
+    MOCK_CONST_METHOD0(interface, QString());
+    MOCK_CONST_METHOD0(path, QString());
+    MOCK_CONST_METHOD0(service, QString());
     MOCK_METHOD5(call_impl,
                  QDBusMessage(QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&));
 };
