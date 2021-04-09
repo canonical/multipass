@@ -295,9 +295,16 @@ void mp::backend::create_bridge_with(const std::string& interface)
         connection_to_activate = obj; // we want to activate the last one (the child)
     }
 
-    nm_root->call(QDBus::Block, "ActivateConnection", QVariant::fromValue(connection_to_activate),
-                  QVariant::fromValue(nm_default_obj), QVariant::fromValue(nm_default_obj)); /* Inspiration for '/' to
-                  signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
+    QDBusReply<QDBusObjectPath> reply =
+        nm_root->call(QDBus::Block, "ActivateConnection", QVariant::fromValue(connection_to_activate),
+                      QVariant::fromValue(nm_default_obj), QVariant::fromValue(nm_default_obj)); /*
+                      Inspiration for '/' to signal null `device` and `specific-object` derived from nmcli and libnm.
+                      See https://bit.ly/3dMA3QB */
+
+    if (!reply.isValid())
+        throw CreateBridgeException{
+            fmt::format("Failed to activate connection {}", arg2["connection"]["id"].toString()),
+            reply.error()}; // TODO@ricab need to revert
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
