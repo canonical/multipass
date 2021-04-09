@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/settings.h>
 #include <multipass/ssh/ssh_client.h>
 
@@ -112,7 +113,19 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
             .arg(petenv_name),
         "[<name>]");
 
+    mp::cmd::add_timeout(parser);
+
     auto status = parser->commandParse(this);
+
+    try
+    {
+        mp::cmd::parse_timeout(parser);
+    }
+    catch (const mp::ValidationException& e)
+    {
+        cerr << e.what() << std::endl;
+        return ParseCode::CommandLineError;
+    }
 
     if (status != ParseCode::Ok)
     {

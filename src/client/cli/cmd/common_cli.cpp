@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,13 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/constants.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings.h>
+
+#include <QCommandLineOption>
+#include <QString>
 
 #include <fmt/ostream.h>
 #include <sstream>
@@ -159,4 +164,27 @@ QString multipass::cmd::describe_settings_keys()
     const auto keys = MP_SETTINGS.keys();
     return std::accumulate(cbegin(keys), cend(keys), QStringLiteral("Keys:"),
                            [](const auto& a, const auto& b) { return a + "\n  " + b; });
+}
+
+void multipass::cmd::add_timeout(multipass::ArgParser* parser)
+{
+    QCommandLineOption timeout_option("timeout",
+                                      QString("Maximum time, in seconds, to wait for either the instance starting"
+                                              " or initialization to complete.\nDefault: %1")
+                                          .arg(std::chrono::seconds(multipass::default_timeout).count()),
+                                      "timeout");
+    parser->addOption(timeout_option);
+}
+
+int multipass::cmd::parse_timeout(const multipass::ArgParser* parser)
+{
+    if (parser->isSet("timeout"))
+    {
+        bool ok;
+        const auto timeout = parser->value("timeout").toInt(&ok);
+        if (!ok || timeout <= 0)
+            throw mp::ValidationException("error: --timeout value has to greater than 0");
+        return timeout;
+    }
+    return -1;
 }

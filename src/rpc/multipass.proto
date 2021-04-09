@@ -72,6 +72,7 @@ message LaunchRequest {
         string mac_address = 3;
     }
     repeated NetworkOptions network_options = 12;
+    int32 timeout = 13;
 }
 
 message LaunchError {
@@ -319,6 +320,7 @@ message StartError {
 message StartRequest {
     InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
+    int32 timeout = 3;
 }
 
 message StartReply {
@@ -350,6 +352,7 @@ message SuspendReply {
 message RestartRequest {
     InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
+    int32 timeout = 3;
 }
 
 message RestartReply {

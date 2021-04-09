@@ -22,6 +22,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/settings.h>
@@ -207,6 +208,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});
 
+    mp::cmd::add_timeout(parser);
+
     auto status = parser->commandParse(this);
 
     if (status != ParseCode::Ok)
@@ -314,6 +317,16 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     }
 
     request.set_verbosity_level(parser->verbosityLevel());
+
+    try
+    {
+        request.set_timeout(mp::cmd::parse_timeout(parser));
+    }
+    catch (const mp::ValidationException& e)
+    {
+        cerr << e.what() << std::endl;
+        return ParseCode::CommandLineError;
+    }
 
     return status;
 }
