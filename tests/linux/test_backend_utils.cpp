@@ -391,40 +391,66 @@ TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeInvalidInterfaceTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
 
+// TODO@ricab below this point, need to check that connections are reverted
 TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
 {
     auto msg = QStringLiteral("Nope");
+    auto ifc = QStringLiteral("An interface");
+    auto obj = QStringLiteral("An object");
+    auto svc = QStringLiteral("A service");
+
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::AccessDenied, msg)));
+    EXPECT_CALL(*mock_nm_settings, interface).WillOnce(Return(ifc));
+    EXPECT_CALL(*mock_nm_settings, path).WillOnce(Return(obj));
+    EXPECT_CALL(*mock_nm_settings, service).WillOnce(Return(svc));
 
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("umdolita"), mp::backend::CreateBridgeException,
-                         mpt::match_what(HasSubstr(msg.toStdString())));
+                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
+                                               HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
 
 TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
 {
     auto msg = QStringLiteral("Still not");
+    auto ifc = QStringLiteral("the interface");
+    auto obj = QStringLiteral("the object");
+    auto svc = QStringLiteral("the service");
+
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::UnknownMethod, msg)));
+    EXPECT_CALL(*mock_nm_settings, interface).WillOnce(Return(ifc));
+    EXPECT_CALL(*mock_nm_settings, path).WillOnce(Return(obj));
+    EXPECT_CALL(*mock_nm_settings, service).WillOnce(Return(svc));
 
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("abc"), mp::backend::CreateBridgeException,
-                         mpt::match_what(HasSubstr(msg.toStdString())));
+                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
+                                               HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
 
 TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
 {
     auto msg = QStringLiteral("Refusing");
+    auto ifc = QStringLiteral("interface");
+    auto obj = QStringLiteral("object");
+    auto svc = QStringLiteral("service");
+
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
         .WillRepeatedly(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
+
     EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::InvalidArgs, msg)));
+    EXPECT_CALL(*mock_nm_root, interface).WillOnce(Return(ifc));
+    EXPECT_CALL(*mock_nm_root, path).WillOnce(Return(obj));
+    EXPECT_CALL(*mock_nm_root, service).WillOnce(Return(svc));
 
     inject_dbus_interfaces();
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("kaka"), mp::backend::CreateBridgeException,
-                         mpt::match_what(HasSubstr(msg.toStdString())));
+                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
+                                               HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
 
 TEST_F(CreateBridgeTest, create_bridge_exception_info)
