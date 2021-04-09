@@ -360,21 +360,24 @@ TEST_F(CreateBridgeTest, bridge_creation_creates_and_activates_connections)
     EXPECT_CALL(*mock_nm_settings, is_valid).WillOnce(Return(true));
     EXPECT_CALL(*mock_nm_root, is_valid).WillOnce(Return(true));
 
-    // TODO@ricab in seq
-    auto empty = QVariant{};
-    EXPECT_CALL(*mock_nm_settings,
-                call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/parent"}))));
+    {
+        InSequence seq{};
+        auto empty = QVariant{};
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
+            .WillOnce(
+                Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/an/obj/path/for/parent"}))));
 
-    EXPECT_CALL(*mock_nm_settings,
-                call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{child_obj_path}))));
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
+            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{child_obj_path}))));
 
-    auto null_obj_matcher = make_object_path_matcher(null_obj_path);
-    auto child_obj_matcher = make_object_path_matcher(child_obj_path);
-    EXPECT_CALL(*mock_nm_root, call_impl(QDBus::Block, Eq("ActivateConnection"), child_obj_matcher, null_obj_matcher,
-                                         null_obj_matcher))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/active/obj/path"}))));
+        auto null_obj_matcher = make_object_path_matcher(null_obj_path);
+        auto child_obj_matcher = make_object_path_matcher(child_obj_path);
+        EXPECT_CALL(*mock_nm_root, call_impl(QDBus::Block, Eq("ActivateConnection"), child_obj_matcher,
+                                             null_obj_matcher, null_obj_matcher))
+            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/active/obj/path"}))));
+    }
 
     inject_dbus_interfaces();
 
