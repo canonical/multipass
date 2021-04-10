@@ -33,6 +33,12 @@ runs:
       elif [ ${{ github.event_name }} == "pull_request" ]; then
         echo "::set-output name=label::pr${{ github.event.number }}"
         echo "::set-output name=channel::edge/pr${{ github.event.number }}"
+
+      # If it's the `staging` branch, annotate with `ci#` and publish to `edge/ci#`.
+      elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/staging" ]]; then
+        echo "::set-output name=label::ci${{ github.run_number }}"
+        echo "::set-output name=channel::edge/ci${{ github.run_number}}"
+
       # If it's the `trying` branch, get the PR number from HEAD's Subject
       elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/trying" && "$( git log -1 --pretty=%s )" =~ ^Try\ #([0-9]+): ]]; then
         echo "::set-output name=label::pr${BASH_REMATCH[1]}"
@@ -44,7 +50,7 @@ runs:
         echo "::set-output name=channel::candidate"
 
       # All other pushes annotate with the CI run number.
-      # This includes `main` and `staging`, as `edge` will get published from automatic builds on snapcraft.io.
+      # This includes `main`, as `edge` will get published from automatic builds on snapcraft.io.
       elif [[ ${{ github.event_name }} == "push" || ${{ github.event_name }} == "workflow_dispatch" ]]; then
         echo "::set-output name=label::ci${{ github.run_number }}"
 
