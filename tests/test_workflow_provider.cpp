@@ -22,6 +22,7 @@
 #include <multipass/utils.h>
 
 #include "extra_assertions.h"
+#include "mock_url_downloader.h"
 #include "path.h"
 #include "temp_dir.h"
 
@@ -178,4 +179,39 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
                     return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "test-workflow2") &&
                             (workflow_info.release_title == "Another test workflow"));
                 }) != workflows.cend());
+}
+
+TEST_F(VMWorkflowProvider, doesNotUpdateWorkflowsWhenNotNeeded)
+{
+    mpt::MockURLDownloader mock_url_downloader;
+
+    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _))
+        .Times(1)
+        .WillRepeatedly([](auto, const QString& file_name, auto...) {
+            QFile file(file_name);
+            file.open(QFile::WriteOnly);
+        });
+
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &mock_url_downloader, cache_dir.path(),
+                                                    default_ttl};
+
+    workflow_provider.all_workflows();
+}
+
+TEST_F(VMWorkflowProvider, updatesWorkflowsWhenNeeded)
+{
+    mpt::MockURLDownloader mock_url_downloader;
+    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _))
+        .Times(2)
+        .WillRepeatedly([](auto, const QString& file_name, auto...) {
+            QFile file(file_name);
+
+            if (!file.exists())
+                file.open(QFile::WriteOnly);
+        });
+
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &mock_url_downloader, cache_dir.path(),
+                                                    std::chrono::milliseconds(0)};
+
+    workflow_provider.all_workflows();
 }
