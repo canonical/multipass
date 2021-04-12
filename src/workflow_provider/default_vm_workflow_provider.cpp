@@ -16,6 +16,7 @@
  */
 
 #include <multipass/default_vm_workflow_provider.h>
+#include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -124,51 +125,74 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         }
         else
         {
-            throw std::runtime_error("Unsupported image scheme in Workflow");
+            throw InvalidWorkflowException("Unsupported image scheme in Workflow");
         }
     }
 
     if (workflow_instance["limits"]["min-cpu"])
     {
-        auto min_cpus = workflow_instance["limits"]["min-cpu"].as<int>();
+        try
+        {
+            auto min_cpus = workflow_instance["limits"]["min-cpu"].as<int>();
 
-        if (vm_desc.num_cores == 0)
-        {
-            vm_desc.num_cores = min_cpus;
+            if (vm_desc.num_cores == 0)
+            {
+                vm_desc.num_cores = min_cpus;
+            }
+            else if (vm_desc.num_cores < min_cpus)
+            {
+                throw WorkflowMinimumException("Number of CPUs", std::to_string(min_cpus));
+            }
         }
-        else if (vm_desc.num_cores < min_cpus)
+        catch (const YAML::BadConversion&)
         {
-            throw WorkflowMinimumException("Number of CPUs", std::to_string(min_cpus));
+            throw InvalidWorkflowException(fmt::format("Minimum CPU value in workflow is invalid"));
         }
     }
 
     if (workflow_instance["limits"]["min-mem"])
     {
         auto min_mem_size_str{workflow_instance["limits"]["min-mem"].as<std::string>()};
-        MemorySize min_mem_size{min_mem_size_str};
 
-        if (vm_desc.mem_size.in_bytes() == 0)
+        try
         {
-            vm_desc.mem_size = min_mem_size;
+            MemorySize min_mem_size{min_mem_size_str};
+
+            if (vm_desc.mem_size.in_bytes() == 0)
+            {
+                vm_desc.mem_size = min_mem_size;
+            }
+            else if (vm_desc.mem_size < min_mem_size)
+            {
+                throw WorkflowMinimumException("Memory size", min_mem_size_str);
+            }
         }
-        else if (vm_desc.mem_size < min_mem_size)
+        catch (const InvalidMemorySizeException&)
         {
-            throw WorkflowMinimumException("Memory size", min_mem_size_str);
+            throw InvalidWorkflowException(fmt::format("Minimum memory size value in workflow is invalid"));
         }
     }
 
     if (workflow_instance["limits"]["min-disk"])
     {
         auto min_disk_space_str{workflow_instance["limits"]["min-disk"].as<std::string>()};
-        MemorySize min_disk_space{min_disk_space_str};
 
-        if (vm_desc.disk_space.in_bytes() == 0)
+        try
         {
-            vm_desc.disk_space = min_disk_space;
+            MemorySize min_disk_space{min_disk_space_str};
+
+            if (vm_desc.disk_space.in_bytes() == 0)
+            {
+                vm_desc.disk_space = min_disk_space;
+            }
+            else if (vm_desc.disk_space < min_disk_space)
+            {
+                throw WorkflowMinimumException("Disk space", min_disk_space_str);
+            }
         }
-        else if (vm_desc.disk_space < min_disk_space)
+        catch (const InvalidMemorySizeException&)
         {
-            throw WorkflowMinimumException("Disk space", min_disk_space_str);
+            throw InvalidWorkflowException(fmt::format("Minimum disk space value in workflow is invalid"));
         }
     }
 
