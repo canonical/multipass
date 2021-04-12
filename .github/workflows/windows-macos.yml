@@ -209,6 +209,7 @@ jobs:
           ${{ env.Qt5_DIR }}
           ~/.opam
           ~/Library/Caches/ccache
+          ${{ env.BUILD_DIR }}
           ${{ github.workspace }}
 
     - name: Cache OPAM
