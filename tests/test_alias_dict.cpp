@@ -234,4 +234,35 @@ INSTANTIATE_TEST_SUITE_P(
             "Alias  Instance  Command\nllp    primary   ls\nlsp    primary   ls\n",
             "llp:\n  - name: llp\n    instance: primary\n    command: ls\n"
             "lsp:\n  - name: lsp\n    instance: primary\n    command: ls\n")));
+
+struct RemoveInstanceTestsuite : public AliasDictionary,
+                                 public WithParamInterface<std::pair<AliasesVector, std::vector<std::string>>>
+{
+};
+
+TEST_P(RemoveInstanceTestsuite, removes_instance_aliases)
+{
+    auto [original_aliases, remaining_aliases] = GetParam();
+
+    populate_db_file(original_aliases);
+
+    mp::AliasDict dict;
+
+    ASSERT_EQ(dict.remove_aliases_for_instance("instance_to_remove"), dict.size() - remaining_aliases.size());
+
+    ASSERT_EQ(dict.size(), remaining_aliases.size());
+
+    for (auto remaining_alias : remaining_aliases)
+        ASSERT_TRUE(dict.get_alias(remaining_alias));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    AliasDictionary, RemoveInstanceTestsuite,
+    Values(std::make_pair(AliasesVector{{"some_alias", {"instance_to_remove", "some_command"}},
+                                        {"other_alias", {"other_instance", "other_command"}},
+                                        {"another_alias", {"instance_to_remove", "another_command"}},
+                                        {"yet_another_alias", {"yet_another_instance", "yet_another_command"}}},
+                          std::vector<std::string>{"other_alias", "yet_another_alias"}),
+           std::make_pair(AliasesVector{{"alias", {"instance", "command"}}}, std::vector<std::string>{"alias"}),
+           std::make_pair(AliasesVector{{"alias", {"instance_to_remove", "command"}}}, std::vector<std::string>{})));
 } // namespace
