@@ -58,6 +58,11 @@ namespace
 {
 std::default_random_engine gen;
 std::uniform_int_distribution<int> dist{0, 255};
+const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
+const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
+const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
+const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
+const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
 
 bool subnet_used_locally(const std::string& subnet)
 {
@@ -97,12 +102,6 @@ auto virtual_switch_subnet(const QString& bridge_name)
 
 auto get_nm_interfaces()
 {
-    static const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
-    static const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
-    static const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
-    static const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
-    static const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
-
     const auto& system_bus = mp::backend::dbus::DBusProvider::instance().get_system_bus();
     if (!system_bus.is_connected())
         throw mp::backend::CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
