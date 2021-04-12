@@ -17,6 +17,8 @@
 
 #include <multipass/default_vm_workflow_provider.h>
 #include <multipass/exceptions/workflow_minimum_exception.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
@@ -34,12 +36,14 @@
 #include <sstream>
 
 namespace mp = multipass;
-
-const QString github_workflows_archive_name{"multipass-workflows.zip"};
-const QString workflow_dir_version{"v1"};
+namespace mpl = multipass::logging;
 
 namespace
 {
+const QString github_workflows_archive_name{"multipass-workflows.zip"};
+const QString workflow_dir_version{"v1"};
+constexpr auto category = "workflow provider";
+
 auto workflows_map_for(const std::string& archive_file_path)
 {
     std::map<std::string, std::string> workflows_map;
@@ -75,7 +79,14 @@ mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_u
       archive_file_path{archive_dir.filePath(github_workflows_archive_name)},
       workflows_ttl{workflows_ttl}
 {
-    update_workflows();
+    try
+    {
+        update_workflows();
+    }
+    catch (std::exception& e)
+    {
+        mpl::log(mpl::Level::error, category, fmt::format("Cannot get workflows on start up: {}", e.what()));
+    }
 }
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir,
