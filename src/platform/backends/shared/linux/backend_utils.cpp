@@ -109,19 +109,17 @@ const mp::backend::dbus::DBusConnection& checked_system_bus()
     return system_bus;
 }
 
-auto get_nm_interfaces(const mp::backend::dbus::DBusConnection& system_bus)
+std::unique_ptr<mp::backend::dbus::DBusInterface> get_checked_interface(const mp::backend::dbus::DBusConnection& bus,
+                                                                        const QString& service, const QString& path,
+                                                                        const QString& interface)
 {
-    auto nm_root = system_bus.get_interface(nm_bus_name, nm_root_obj, nm_root_ifc);
-    auto nm_settings = system_bus.get_interface(nm_bus_name, nm_settings_obj, nm_settings_ifc);
+    auto ret = bus.get_interface(service, path, interface);
 
-    for (const auto* nm_interface : {nm_root.get(), nm_settings.get()})
-    {
-        assert(nm_interface);
-        if (!nm_interface->is_valid())
-            throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", nm_interface->last_error()};
-    }
+    assert(ret);
+    if (!ret->is_valid())
+        throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", ret->last_error()};
 
-    return std::pair{std::move(nm_root), std::move(nm_settings)};
+    return ret;
 }
 
 template <typename T, typename... Ts>
@@ -290,7 +288,8 @@ void mp::backend::create_bridge_with(const std::string& interface)
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
 
     const auto& system_bus = checked_system_bus();
-    auto [nm_root, nm_settings] = get_nm_interfaces(system_bus);
+    auto nm_root = get_checked_interface(system_bus, nm_bus_name, nm_root_obj, nm_root_ifc);
+    auto nm_settings = get_checked_interface(system_bus, nm_bus_name, nm_settings_obj, nm_settings_ifc);
     auto parent_name = base_name + interface.c_str();
     auto child_name = parent_name + "-child";
 
