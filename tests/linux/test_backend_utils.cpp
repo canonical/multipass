@@ -285,20 +285,22 @@ struct CreateBridgeTest : public Test
             .WillOnce(Return(ByMove(std::move(mock_nm_root))));
     }
 
-    static auto make_parent_connection_matcher()
+    static auto make_parent_connection_matcher(const char* child)
     {
-        return Truly([](const QVariant& arg) {
+        return Truly([child](const QVariant& arg) {
             QMap<QString, QVariantMap> outer_map;
             QMap<QString, QVariantMap>::const_iterator outer_it;
             QVariantMap::const_iterator inner_it;
+            QString parent_name = get_bridge_name(child);
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 2 &&
                    (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 3 &&
-                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
+                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == parent_name &&
                    (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "bridge" &&
                    (inner_it = outer_it->find("autoconnect-slaves")) != outer_it->end() && inner_it->toInt() == 1 &&
                    (outer_it = outer_map.find("bridge")) != outer_map.end() && outer_it->size() == 1 &&
-                   (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == "qtbr0";
+                   (inner_it = outer_it->find("interface-name")) != outer_it->end() &&
+                   inner_it->toString() == parent_name;
         });
     }
     static auto make_child_connection_matcher(const char* child)
@@ -307,13 +309,15 @@ struct CreateBridgeTest : public Test
             QMap<QString, QVariantMap> outer_map;
             QMap<QString, QVariantMap>::const_iterator outer_it;
             QVariantMap::const_iterator inner_it;
+            QString parent_name = get_bridge_name(child);
+            QString child_name = parent_name + "-child";
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
                    (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 6 &&
-                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == "qtbr0-child" &&
+                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == child_name &&
                    (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "802-3-ethernet" &&
                    (inner_it = outer_it->find("slave-type")) != outer_it->end() && inner_it->toString() == "bridge" &&
-                   (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == "qtbr0" &&
+                   (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == parent_name &&
                    (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == child &&
                    (inner_it = outer_it->find("autoconnect-priority")) != outer_it->end() && inner_it->toInt() > 0;
         });
@@ -330,6 +334,12 @@ struct CreateBridgeTest : public Test
     MockDBusConnection mock_bus{};
     std::unique_ptr<MockDBusInterface> mock_nm_settings = std::make_unique<MockDBusInterface>();
     std::unique_ptr<MockDBusInterface> mock_nm_root = std::make_unique<MockDBusInterface>();
+
+private:
+    static QString get_bridge_name(const char* child)
+    {
+        return QString{"mpbr-"} + child;
+    }
 };
 
 TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
@@ -342,7 +352,7 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
         InSequence seq{};
         auto empty = QVariant{};
         EXPECT_CALL(*mock_nm_settings,
-                    call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(), empty, empty))
+                    call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(network), empty, empty))
             .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
 
         EXPECT_CALL(*mock_nm_settings,
