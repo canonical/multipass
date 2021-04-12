@@ -280,26 +280,29 @@ Q_DECLARE_METATYPE(VariantMapMap)
 void mp::backend::create_bridge_with(const std::string& interface)
 {
     static const auto root_path = QDBusObjectPath{"/"};
+    static const auto base_name = QStringLiteral("mpbr-");
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
 
     auto [nm_root, nm_settings] = get_nm_interfaces();
+    auto parent_name = base_name + interface.c_str();
+    auto child_name = parent_name + "-child";
+
     // TODO@ricab verify if suitable bridge exists
-    // TODO@ricab derive new bridge name
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
     // The following two DBus calls are roughly equivalent to:
     //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
     //   `nmcli connection add type bridge-slave ifname <if> master <br> connection.autoconnect-priority 10`
     //   `nmcli connection up <br>-slave-<if>`
-    VariantMapMap arg1{{"connection", {{"type", "bridge"}, {"id", "qtbr0"}, {"autoconnect-slaves", 1}}},
-                       {"bridge", {{"interface-name", "qtbr0"}}}};
+    VariantMapMap arg1{{"connection", {{"type", "bridge"}, {"id", parent_name}, {"autoconnect-slaves", 1}}},
+                       {"bridge", {{"interface-name", parent_name}}}};
     VariantMapMap arg2{{"connection",
-                        {{"id", "qtbr0-child"},
+                        {{"id", child_name},
                          {"type", "802-3-ethernet"},
                          {"slave-type", "bridge"},
-                         {"master", "qtbr0"},
+                         {"master", parent_name},
                          {"interface-name", QString::fromStdString(interface)},
                          {"autoconnect-priority", 10}}}};
 
