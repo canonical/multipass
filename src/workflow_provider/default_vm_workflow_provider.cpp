@@ -38,14 +38,42 @@ namespace mp = multipass;
 const QString github_workflows_archive_name{"multipass-workflows.zip"};
 const QString workflow_dir_version{"v1"};
 
+namespace
+{
+auto workflows_map_for(const std::string& archive_file_path)
+{
+    std::map<std::string, std::string> workflows_map;
+    std::ifstream zip_stream{archive_file_path, std::ios::binary};
+    Poco::Zip::ZipArchive zip_archive{zip_stream};
+
+    for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
+    {
+        if (it->second.isFile())
+        {
+            auto file_name = it->second.getFileName();
+            QFileInfo file_info{QString::fromStdString(file_name)};
+
+            if (file_info.path().contains(workflow_dir_version) && file_info.suffix() == "yaml")
+            {
+                Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
+                std::ostringstream out(std::ios::binary);
+                Poco::StreamCopier::copyStream(zip_input_stream, out);
+                workflows_map[file_info.baseName().toStdString()] = out.str();
+            }
+        }
+    }
+
+    return workflows_map;
+}
+} // namespace
+
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader,
                                                          const QDir& archive_dir)
     : workflows_url{workflows_url},
       url_downloader{downloader},
       archive_file_path{archive_dir.filePath(github_workflows_archive_name)}
 {
-    fetch_workflows_archive();
-    get_workflow_map();
+    fetch_workflows();
 }
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir)
@@ -172,30 +200,9 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
     return workflow_info;
 }
 
-void mp::DefaultVMWorkflowProvider::fetch_workflows_archive()
+void mp::DefaultVMWorkflowProvider::fetch_workflows()
 {
     url_downloader->download_to(workflows_url, archive_file_path, -1, -1, [](auto...) { return true; });
-}
 
-void mp::DefaultVMWorkflowProvider::get_workflow_map()
-{
-    std::ifstream zip_stream{archive_file_path.toStdString()};
-    Poco::Zip::ZipArchive zip_archive{zip_stream};
-
-    for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
-    {
-        if (it->second.isFile())
-        {
-            auto file_name = it->second.getFileName();
-            QFileInfo file_info{QString::fromStdString(file_name)};
-
-            if (file_info.path().contains(workflow_dir_version) && file_info.suffix() == "yaml")
-            {
-                Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
-                std::ostringstream out(std::ios::binary);
-                Poco::StreamCopier::copyStream(zip_input_stream, out);
-                workflow_map[file_info.baseName().toStdString()] = out.str();
-            }
-        }
-    }
+    workflow_map = workflows_map_for(archive_file_path.toStdString());
 }

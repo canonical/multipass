@@ -45,8 +45,7 @@ public:
     std::vector<VMImageInfo> all_workflows() override;
 
 private:
-    void fetch_workflows_archive();
-    void get_workflow_map();
+    void fetch_workflows();
 
     const QUrl workflows_url;
     URLDownloader* const url_downloader;
