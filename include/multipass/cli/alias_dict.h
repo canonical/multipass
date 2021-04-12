@@ -41,6 +41,7 @@ public:
     ~AliasDict();
     void add_alias(const std::string& alias, const AliasDefinition& command);
     bool remove_alias(const std::string& alias);
+    size_type remove_aliases_for_instance(const std::string& instance);
     mp::optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin();
     DictType::iterator end();
