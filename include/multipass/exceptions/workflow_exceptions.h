@@ -15,10 +15,10 @@
  *
  */
 
-#ifndef MULTIPASS_WORKFLOW_MINIMUM_EXCEPTION_H
-#define MULTIPASS_WORKFLOW_MINIMUM_EXCEPTION_H
+#ifndef MULTIPASS_WORKFLOW_EXCEPTIONS_H
+#define MULTIPASS_WORKFLOW_EXCEPTIONS_H
 
-#include <fmt/format.h>
+#include <multipass/format.h>
 
 #include <stdexcept>
 #include <string>
@@ -34,4 +34,4 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_WORKFLOW_MINIMUM_EXCEPTION_H
+#endif // MULTIPASS_WORKFLOW_EXCEPTIONS_H

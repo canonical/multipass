@@ -16,7 +16,7 @@
  */
 
 #include <multipass/default_vm_workflow_provider.h>
-#include <multipass/exceptions/workflow_minimum_exception.h>
+#include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/query.h>

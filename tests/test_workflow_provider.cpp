@@ -16,7 +16,7 @@
  */
 
 #include <multipass/default_vm_workflow_provider.h>
-#include <multipass/exceptions/workflow_minimum_exception.h>
+#include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/memory_size.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
