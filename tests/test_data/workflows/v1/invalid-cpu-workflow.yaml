@@ -1,0 +1,12 @@
+description: Bad CPU
+
+instances:
+  invalid-cpu-workflow:
+    image: "default"
+    limits:
+      min-cpu: The most
+      min-mem: 2G
+      min-disk: 25G
+    cloud-init:
+      runcmd:
+      - echo "Have fun!"

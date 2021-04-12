@@ -1,0 +1,12 @@
+description: Bad Disk Space
+
+instances:
+  invalid-disk-space-workflow:
+    image: "default"
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: A bunch of space
+    cloud-init:
+      runcmd:
+      - echo "Have fun!"

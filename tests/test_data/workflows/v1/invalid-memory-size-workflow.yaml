@@ -1,0 +1,12 @@
+description: Bad Memory Size
+
+instances:
+  invalid-memory-size-workflow:
+    image: "default"
+    limits:
+      min-cpu: 2
+      min-mem: Just a little
+      min-disk: 25G
+    cloud-init:
+      runcmd:
+      - echo "Have fun!"

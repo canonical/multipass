@@ -66,6 +66,22 @@ TEST_F(VMWorkflowProvider, downloadsZipToExpectedLocation)
     EXPECT_EQ(downloaded_zip.size(), original_zip.size());
 }
 
+TEST_F(VMWorkflowProvider, fetchWorkflowForUnknownWorkflowThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    EXPECT_THROW(workflow_provider.fetch_workflow_for("phony", vm_desc), std::out_of_range);
+}
+
+TEST_F(VMWorkflowProvider, infoForUnknownWorkflowThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    EXPECT_THROW(workflow_provider.info_for("phony"), std::out_of_range);
+}
+
 TEST_F(VMWorkflowProvider, invalidImageSchemeThrows)
 {
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
@@ -74,6 +90,39 @@ TEST_F(VMWorkflowProvider, invalidImageSchemeThrows)
 
     MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-image-workflow", vm_desc), std::runtime_error,
                          mpt::match_what(StrEq("Unsupported image scheme in Workflow")));
+}
+
+TEST_F(VMWorkflowProvider, invalidMinCoresThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-cpu-workflow", vm_desc),
+                         mp::InvalidWorkflowException,
+                         mpt::match_what(StrEq("Minimum CPU value in workflow is invalid")));
+}
+
+TEST_F(VMWorkflowProvider, invalidMinMemorySizeThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-memory-size-workflow", vm_desc),
+                         mp::InvalidWorkflowException,
+                         mpt::match_what(StrEq("Minimum memory size value in workflow is invalid")));
+}
+
+TEST_F(VMWorkflowProvider, invalidMinDiskSpaceThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-disk-space-workflow", vm_desc),
+                         mp::InvalidWorkflowException,
+                         mpt::match_what(StrEq("Minimum disk space value in workflow is invalid")));
 }
 
 TEST_F(VMWorkflowProvider, fetchTestWorkflow1ReturnsExpectedInfo)
@@ -170,7 +219,7 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 
     auto workflows = workflow_provider.all_workflows();
 
-    EXPECT_EQ(workflows.size(), 3ul);
+    EXPECT_EQ(workflows.size(), 6ul);
 
     EXPECT_TRUE(std::find_if(workflows.cbegin(), workflows.cend(), [](const mp::VMImageInfo& workflow_info) {
                     return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "test-workflow1") &&
