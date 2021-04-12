@@ -53,6 +53,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpdbus = multipass::backend::dbus;
 
 namespace
 {
@@ -100,18 +101,17 @@ auto virtual_switch_subnet(const QString& bridge_name)
     return subnet.toStdString();
 }
 
-const mp::backend::dbus::DBusConnection& checked_system_bus()
+const mpdbus::DBusConnection& checked_system_bus() // TODO@ricab rename uniformly
 {
-    const auto& system_bus = mp::backend::dbus::DBusProvider::instance().get_system_bus();
+    const auto& system_bus = mpdbus::DBusProvider::instance().get_system_bus();
     if (!system_bus.is_connected())
         throw mp::backend::CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
 
     return system_bus;
 }
 
-std::unique_ptr<mp::backend::dbus::DBusInterface> get_checked_interface(const mp::backend::dbus::DBusConnection& bus,
-                                                                        const QString& service, const QString& path,
-                                                                        const QString& interface)
+std::unique_ptr<mpdbus::DBusInterface> get_checked_interface(const mpdbus::DBusConnection& bus, const QString& service,
+                                                             const QString& path, const QString& interface)
 {
     auto ret = bus.get_interface(service, path, interface);
 
@@ -123,7 +123,7 @@ std::unique_ptr<mp::backend::dbus::DBusInterface> get_checked_interface(const mp
 }
 
 template <typename T, typename... Ts>
-T checked_dbus_call(mp::backend::dbus::DBusInterface& interface, const QString& method_name, Ts&&... params)
+T checked_dbus_call(mpdbus::DBusInterface& interface, const QString& method_name, Ts&&... params)
 {
     static constexpr auto error_template = "Failed DBus call. (Service: {}; Object: {}; Interface: {}; Method: {})";
 
