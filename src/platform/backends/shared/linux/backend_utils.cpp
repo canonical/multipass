@@ -100,7 +100,7 @@ auto virtual_switch_subnet(const QString& bridge_name)
     return subnet.toStdString();
 }
 
-mp::backend::dbus::DBusConnection checked_system_bus()
+const mp::backend::dbus::DBusConnection& checked_system_bus()
 {
     const auto& system_bus = mp::backend::dbus::DBusProvider::instance().get_system_bus();
     if (!system_bus.is_connected())
@@ -289,7 +289,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
 
-    auto system_bus = checked_system_bus();
+    const auto& system_bus = checked_system_bus();
     auto [nm_root, nm_settings] = get_nm_interfaces(system_bus);
     auto parent_name = base_name + interface.c_str();
     auto child_name = parent_name + "-child";

@@ -100,6 +100,8 @@ class DBusConnection
 {
 public:
     virtual ~DBusConnection() = default;
+    DBusConnection(const DBusConnection&) = delete;
+    DBusConnection& operator=(const DBusConnection&) = delete;
 
     virtual bool is_connected() const
     {
