@@ -35,6 +35,7 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
+using namespace std::chrono_literals;
 using namespace testing;
 
 namespace
@@ -47,12 +48,13 @@ struct VMWorkflowProvider : public Test
     QString workflows_zip_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + test_workflows_zip};
     mp::URLDownloader url_downloader{std::chrono::seconds(10)};
     mpt::TempDir cache_dir;
+    std::chrono::seconds default_ttl{1s};
 };
 } // namespace
 
 TEST_F(VMWorkflowProvider, downloadsZipToExpectedLocation)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     const QFileInfo original_zip{mpt::test_data_path() + test_workflows_zip};
     const QFileInfo downloaded_zip{cache_dir.path() + multipass_workflows_zip};
@@ -63,7 +65,7 @@ TEST_F(VMWorkflowProvider, downloadsZipToExpectedLocation)
 
 TEST_F(VMWorkflowProvider, invalidImageSchemeThrows)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
@@ -73,7 +75,7 @@ TEST_F(VMWorkflowProvider, invalidImageSchemeThrows)
 
 TEST_F(VMWorkflowProvider, fetchTestWorkflow1ReturnsExpectedInfo)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
@@ -90,7 +92,7 @@ TEST_F(VMWorkflowProvider, fetchTestWorkflow1ReturnsExpectedInfo)
 
 TEST_F(VMWorkflowProvider, fetchTestWorkflow2ReturnsExpectedInfo)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
@@ -106,7 +108,7 @@ TEST_F(VMWorkflowProvider, fetchTestWorkflow2ReturnsExpectedInfo)
 
 TEST_F(VMWorkflowProvider, givenCoresLessThanMinimumThrows)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     mp::VirtualMachineDescription vm_desc{1, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
@@ -116,7 +118,7 @@ TEST_F(VMWorkflowProvider, givenCoresLessThanMinimumThrows)
 
 TEST_F(VMWorkflowProvider, givenMemLessThanMinimumThrows)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     mp::VirtualMachineDescription vm_desc{0, mp::MemorySize{"1G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
@@ -126,7 +128,7 @@ TEST_F(VMWorkflowProvider, givenMemLessThanMinimumThrows)
 
 TEST_F(VMWorkflowProvider, givenDiskSpaceLessThanMinimumThrows)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     mp::VirtualMachineDescription vm_desc{0, {}, mp::MemorySize{"20G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
@@ -136,7 +138,7 @@ TEST_F(VMWorkflowProvider, givenDiskSpaceLessThanMinimumThrows)
 
 TEST_F(VMWorkflowProvider, higherOptionsIsNotOverriden)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     mp::VirtualMachineDescription vm_desc{
         4, mp::MemorySize{"4G"}, mp::MemorySize{"50G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
@@ -150,7 +152,7 @@ TEST_F(VMWorkflowProvider, higherOptionsIsNotOverriden)
 
 TEST_F(VMWorkflowProvider, infoForReturnsExpectedInfo)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     auto workflow = workflow_provider.info_for("test-workflow2");
 
@@ -161,7 +163,7 @@ TEST_F(VMWorkflowProvider, infoForReturnsExpectedInfo)
 
 TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path()};
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     auto workflows = workflow_provider.all_workflows();
 

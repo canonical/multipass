@@ -68,22 +68,27 @@ auto workflows_map_for(const std::string& archive_file_path)
 } // namespace
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader,
-                                                         const QDir& archive_dir)
+                                                         const QDir& archive_dir,
+                                                         const std::chrono::milliseconds& workflows_ttl)
     : workflows_url{workflows_url},
       url_downloader{downloader},
-      archive_file_path{archive_dir.filePath(github_workflows_archive_name)}
+      archive_file_path{archive_dir.filePath(github_workflows_archive_name)},
+      workflows_ttl{workflows_ttl}
 {
-    fetch_workflows();
+    update_workflows();
 }
 
-mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir)
-    : DefaultVMWorkflowProvider(default_workflow_url, downloader, archive_dir)
+mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir,
+                                                         const std::chrono::milliseconds& workflows_ttl)
+    : DefaultVMWorkflowProvider(default_workflow_url, downloader, archive_dir, workflows_ttl)
 {
 }
 
 mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& workflow_name,
                                                             VirtualMachineDescription& vm_desc)
 {
+    update_workflows();
+
     Query query{"", "", false, "", Query::Type::Alias};
     auto& config = workflow_map.at(workflow_name);
     auto workflow_config = YAML::Load(config);
@@ -172,6 +177,8 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
 
 mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workflow_name)
 {
+    update_workflows();
+
     auto& config = workflow_map.at(workflow_name);
     auto workflow_config = YAML::Load(config);
 
@@ -184,6 +191,8 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
 
 std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
 {
+    update_workflows();
+
     std::vector<VMImageInfo> workflow_info;
 
     for (const auto& [key, config] : workflow_map)
@@ -205,4 +214,14 @@ void mp::DefaultVMWorkflowProvider::fetch_workflows()
     url_downloader->download_to(workflows_url, archive_file_path, -1, -1, [](auto...) { return true; });
 
     workflow_map = workflows_map_for(archive_file_path.toStdString());
+}
+
+void mp::DefaultVMWorkflowProvider::update_workflows()
+{
+    const auto now = std::chrono::steady_clock::now();
+    if ((now - last_update) > workflows_ttl)
+    {
+        fetch_workflows();
+        last_update = now;
+    }
 }

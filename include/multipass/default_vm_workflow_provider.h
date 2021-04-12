@@ -25,6 +25,7 @@
 #include <QString>
 #include <QUrl>
 
+#include <chrono>
 #include <map>
 
 namespace multipass
@@ -37,8 +38,10 @@ class URLDownloader;
 class DefaultVMWorkflowProvider final : public VMWorkflowProvider
 {
 public:
-    DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, const QDir& cache_dir_path);
-    DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& cache_dir_path);
+    DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, const QDir& cache_dir_path,
+                              const std::chrono::milliseconds& workflows_ttl);
+    DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& cache_dir_path,
+                              const std::chrono::milliseconds& workflows_ttl);
 
     Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) override;
     VMImageInfo info_for(const std::string& workflow_name) override;
@@ -46,10 +49,13 @@ public:
 
 private:
     void fetch_workflows();
+    void update_workflows();
 
     const QUrl workflows_url;
     URLDownloader* const url_downloader;
     const QString archive_file_path;
+    const std::chrono::milliseconds workflows_ttl;
+    std::chrono::steady_clock::time_point last_update;
     std::map<std::string, std::string> workflow_map;
 };
 } // namespace multipass

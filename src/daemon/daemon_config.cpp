@@ -172,10 +172,11 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         auto workflow_provider_url = QString::fromUtf8(qgetenv("MULTIPASS_WORKFLOWS_URL"));
 
         if (!workflow_provider_url.isEmpty())
-            workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(QUrl(workflow_provider_url),
-                                                                            url_downloader.get(), cache_directory);
+            workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(
+                QUrl(workflow_provider_url), url_downloader.get(), cache_directory, manifest_ttl);
         else
-            workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(url_downloader.get(), cache_directory);
+            workflow_provider =
+                std::make_unique<DefaultVMWorkflowProvider>(url_downloader.get(), cache_directory, manifest_ttl);
     }
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
