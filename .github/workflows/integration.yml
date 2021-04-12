@@ -62,6 +62,7 @@ jobs:
         write-mode: overwrite
         contents: |
           job_queue: vmware-fusion
+          output_timeout: 2400
           provision_data:
             ${{ matrix.os == 'Linux' && 'vmx: /Users/michal/Virtual Machines.localized/linux.vmwarevm/linux.vmx' || '' }}
             ${{ matrix.os == 'macOS' && 'vmx: /Users/michal/Virtual Machines.localized/macos-11.vmwarevm/macos-11.vmx' || '' }}
@@ -94,6 +95,20 @@ jobs:
                   for try in $( seq $tries ); do
                       RC=0
                       ${{ '"${{@}}"' }} || RC=$?
+                      [ $RC -eq 0 -o $try -eq $tries ] && return $RC
+                      sleep $interval;
+                  done
+              }}
+
+              # Retry $1 times, with $2 seconds in between tries, until $3 greps
+              function _retry_grep() {{
+                  tries=$1
+                  interval=$2
+                  pattern=$3
+                  shift 3
+                  for try in $( seq $tries ); do
+                      RC=0
+                      ${{ '"${{@}}"' }} | grep --quiet -e "$pattern" || RC=$?
                       [ $RC -eq 0 -o $try -eq $tries ] && return $RC
                       sleep $interval;
                   done
@@ -137,16 +152,15 @@ jobs:
                 _run sudo multipass set local.driver=lxd
               fi
 
-              # Give multipassd time to settle
-              _retry 12 5 _run $MP find
+              # Give multipassd time to settle (#1995)
+              _retry_grep 12 5 "\w,lts\W" _run $MP find
+              sleep 10
 
-              # Deal with launch timeouts
-              _retry 3 60 _run $MP start
+              _run $MP start --timeout 600
 
               _run $MP list
 
-              # Deal with incorrect running state
-              _retry 10 60 _run $MP exec primary -- uname -a
+              _run $MP exec primary -- uname -a
 
     - name: Submit the job
       id: submit
