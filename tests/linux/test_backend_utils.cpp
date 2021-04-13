@@ -268,6 +268,7 @@ struct CreateBridgeTest : public Test
 {
     void SetUp() override
     {
+        // These will accept any number of calls (0..N) but they can still be shadowed
         EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillRepeatedly(ReturnRef(mock_bus));
         EXPECT_CALL(*mock_nm_root, is_valid).WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_nm_settings, is_valid).WillRepeatedly(Return(true));
@@ -399,7 +400,7 @@ TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
         mpt::match_what(AllOf(HasSubstr("Could not reach remote D-Bus object"), HasSubstr(msg.toStdString()))));
 }
 
-INSTANTIATE_TEST_SUITE_P(CreateBridgeInvalidInterfaceTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
+INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
 
 // TODO@ricab below this point, need to check that connections are reverted
 TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
