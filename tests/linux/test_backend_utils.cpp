@@ -438,10 +438,10 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
 
 TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
 {
-    auto msg = QStringLiteral("Still not");
-    auto ifc = QStringLiteral("the interface");
-    auto obj = QStringLiteral("the object");
-    auto svc = QStringLiteral("the service");
+    const auto msg = QStringLiteral("Still not");
+    const auto ifc = QStringLiteral("the interface");
+    const auto obj = QStringLiteral("the object");
+    const auto svc = QStringLiteral("the service");
     const auto new_connection_path = QStringLiteral("/a/b/c");
 
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
@@ -466,10 +466,10 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
 
 TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
 {
-    auto msg = QStringLiteral("Refusing");
-    auto ifc = QStringLiteral("interface");
-    auto obj = QStringLiteral("object");
-    auto svc = QStringLiteral("service");
+    const auto msg = QStringLiteral("Refusing");
+    const auto ifc = QStringLiteral("interface");
+    const auto obj = QStringLiteral("object");
+    const auto svc = QStringLiteral("service");
     const auto new_connection_path1 = QStringLiteral("/foo");
     const auto new_connection_path2 = QStringLiteral("/bar");
 
@@ -500,6 +500,8 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
                          mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
+
+// TODO@ricab check different exceptions within rollback
 
 struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<bool>
 {
