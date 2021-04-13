@@ -29,6 +29,8 @@
 
 #include <shared/shared_backend_utils.h>
 
+#include <scope_guard.hpp>
+
 #include <QCoreApplication>
 #include <QDBusMetaType>
 #include <QJsonDocument>
@@ -64,6 +66,7 @@ const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
 const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
 const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
 const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
+const auto nm_connection_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings.Connection");
 constexpr auto max_bridge_name_len = 15; // maximum number of characters in a bridge name
 
 bool subnet_used_locally(const std::string& subnet)
@@ -282,6 +285,7 @@ Q_DECLARE_METATYPE(VariantMapMap)
 
 void mp::backend::create_bridge_with(const std::string& interface)
 {
+    static constexpr auto log_category = "create bridge";
     static const auto root_path = QDBusObjectPath{"/"};
     static const auto base_name = QStringLiteral("br-");
 
@@ -312,12 +316,38 @@ void mp::backend::create_bridge_with(const std::string& interface)
                          {"interface-name", QString::fromStdString(interface)},
                          {"autoconnect-priority", 10}}}};
 
-    checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
-    QDBusObjectPath child = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
-    checked_dbus_call<QDBusObjectPath>(*nm_root, "ActivateConnection", child, root_path, root_path); /* Inspiration
+    QDBusObjectPath parent_path{}, child_path{};
+    auto rollback_guard = sg::make_scope_guard( // rollback unless we succeed
+        [&system_bus, &parent_path, &child_path]() noexcept {
+            try
+            {
+                for (auto& obj_path : {child_path, parent_path})
+                {
+                    if (auto path = obj_path.path(); !path.isNull())
+                    {
+                        auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
+                        connection->call(QDBus::Block, "Delete");
+                    }
+                }
+            }
+            catch (const std::exception& e)
+            {
+                // TODO@ricab add a couple logs outside
+                mpl::log(mpl::Level::warning, log_category,
+                         fmt::format("Exception caught when trying to rollback bridge. {}", e.what()));
+            }
+            catch (...)
+            {
+                mpl::log(mpl::Level::warning, log_category, "Unknown exception caught when trying to rollback bridge");
+            }
+        });
+
+    parent_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
+    child_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
+    checked_dbus_call<QDBusObjectPath>(*nm_root, "ActivateConnection", child_path, root_path, root_path); /* Inspiration
     for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
 
-    // TODO@ricab need to revert
+    rollback_guard.dismiss(); // we succeeded!
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)

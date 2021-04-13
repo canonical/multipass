@@ -26,6 +26,7 @@ function(add_target TARGET_NAME)
   target_link_libraries(${TARGET_NAME}
     apparmor
     fmt
+    scope_guard
     shared
     utils
     Qt5::Core
