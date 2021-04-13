@@ -142,6 +142,7 @@ message PurgeRequest {
 
 message PurgeReply {
     string log_line = 1;
+    repeated string purged_instances = 2;
 }
 
 message FindRequest {
