@@ -478,28 +478,35 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
 
-TEST_F(CreateBridgeTest, create_bridge_exception_info)
+struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<bool>
 {
+};
+
+TEST_P(CreateBridgeExceptionTest, create_bridge_exception_info)
+{
+    auto rollback = GetParam();
     static constexpr auto specific_info = "spefic error details";
-    EXPECT_THAT((mp::backend::CreateBridgeException{specific_info, QDBusError{}}),
-                mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr(specific_info))));
+    auto generic_msg = fmt::format("Could not {} bridge", rollback ? "rollback" : "create");
+    EXPECT_THAT((mp::backend::CreateBridgeException{specific_info, QDBusError{}, rollback}),
+                mpt::match_what(AllOf(HasSubstr(generic_msg), HasSubstr(specific_info))));
 }
 
-TEST_F(CreateBridgeTest, create_bridge_exception_includes_dbus_cause_when_available)
+TEST_P(CreateBridgeExceptionTest, create_bridge_exception_includes_dbus_cause_when_available)
 {
     auto msg = QStringLiteral("DBus error msg");
     QDBusError dbus_error = {QDBusError::Other, msg};
     ASSERT_TRUE(dbus_error.isValid());
-    EXPECT_THAT((mp::backend::CreateBridgeException{"detail", dbus_error}),
+    EXPECT_THAT((mp::backend::CreateBridgeException{"detail", dbus_error, GetParam()}),
                 mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
-TEST_F(CreateBridgeTest, create_bridge_exception_mentions_unknown_cause_when_unavailable)
+TEST_P(CreateBridgeExceptionTest, create_bridge_exception_mentions_unknown_cause_when_unavailable)
 {
     QDBusError dbus_error{};
     ASSERT_FALSE(dbus_error.isValid());
-    EXPECT_THAT((mp::backend::CreateBridgeException{"detail", dbus_error}),
+    EXPECT_THAT((mp::backend::CreateBridgeException{"detail", dbus_error, GetParam()}),
                 mpt::match_what(HasSubstr("unknown cause")));
 }
 
+INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeExceptionTest, Values(true, false));
 } // namespace
