@@ -32,7 +32,13 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::PurgeReply& reply) { return mp::ReturnCode::Ok; };
+    auto on_success = [this](mp::PurgeReply& reply) {
+        auto size = reply.purged_instances_size();
+        for (auto i = 0; i < size; ++i)
+            aliases.remove_aliases_for_instance(reply.purged_instances(i));
+
+        return mp::ReturnCode::Ok;
+    };
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
