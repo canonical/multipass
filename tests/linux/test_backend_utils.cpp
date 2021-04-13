@@ -272,18 +272,28 @@ struct CreateBridgeTest : public Test
         EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillRepeatedly(ReturnRef(mock_bus));
         EXPECT_CALL(*mock_nm_root, is_valid).WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_nm_settings, is_valid).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_bus, is_connected).WillRepeatedly(Return(true));
     }
 
     void inject_dbus_interfaces() // this moves the DBus interface mocks, so expectations must be set before calling
     {
-        EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(true));
+        inject_root_interface();
+        inject_settings_interface();
+    }
+
+    void inject_root_interface() // moves mock, so expectations first please
+    {
+        EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager"),
+                                            Eq("org.freedesktop.NetworkManager")))
+            .WillOnce(Return(ByMove(std::move(mock_nm_root))));
+    }
+
+    void inject_settings_interface() // moves mock, so expectations first please
+    {
         EXPECT_CALL(mock_bus,
                     get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
                                   Eq("org.freedesktop.NetworkManager.Settings")))
             .WillOnce(Return(ByMove(std::move(mock_nm_settings))));
-        EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager"),
-                                            Eq("org.freedesktop.NetworkManager")))
-            .WillOnce(Return(ByMove(std::move(mock_nm_root))));
     }
 
     static auto make_parent_connection_matcher(const char* child)
@@ -389,12 +399,16 @@ struct CreateBridgeInvalidInterfaceTest : public CreateBridgeTest, WithParamInte
 
 TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
 {
-    auto& mock_nm_interface = GetParam() ? mock_nm_root : mock_nm_settings;
+    bool invalid_root_interface = GetParam(); // otherwise, invalid settings interface
+    auto& mock_nm_interface = invalid_root_interface ? mock_nm_root : mock_nm_settings;
     auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(*mock_nm_interface, is_valid).WillOnce(Return(false));
     EXPECT_CALL(*mock_nm_interface, last_error).WillOnce(Return(QDBusError{QDBusError::InvalidInterface, msg}));
 
-    inject_dbus_interfaces();
+    inject_root_interface();
+    if (!invalid_root_interface)
+        inject_settings_interface();
+
     MP_ASSERT_THROW_THAT(
         mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
         mpt::match_what(AllOf(HasSubstr("Could not reach remote D-Bus object"), HasSubstr(msg.toStdString()))));
