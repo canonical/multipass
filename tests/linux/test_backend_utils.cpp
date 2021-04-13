@@ -268,6 +268,7 @@ struct CreateBridgeTest : public Test
 {
     void SetUp() override
     {
+        // TODO@ricab mock logger
         // These will accept any number of calls (0..N) but they can still be shadowed
         EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillRepeatedly(ReturnRef(mock_bus));
         EXPECT_CALL(*mock_nm_root, is_valid).WillRepeatedly(Return(true));
@@ -345,6 +346,7 @@ struct CreateBridgeTest : public Test
     MockDBusConnection mock_bus{};
     std::unique_ptr<MockDBusInterface> mock_nm_settings = std::make_unique<MockDBusInterface>();
     std::unique_ptr<MockDBusInterface> mock_nm_root = std::make_unique<MockDBusInterface>();
+    const QVariant empty{};
 
 private:
     static QString get_bridge_name(const char* child)
@@ -361,7 +363,6 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
 
     {
         InSequence seq{};
-        auto empty = QVariant{};
         EXPECT_CALL(*mock_nm_settings,
                     call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(network), empty, empty))
             .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
@@ -416,7 +417,6 @@ TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
 
-// TODO@ricab below this point, need to check that connections are reverted
 TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
 {
     auto msg = QStringLiteral("Nope");
@@ -442,15 +442,23 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
     auto ifc = QStringLiteral("the interface");
     auto obj = QStringLiteral("the object");
     auto svc = QStringLiteral("the service");
+    const auto new_connection_path = QStringLiteral("/a/b/c");
 
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))))
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{new_connection_path}))))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::UnknownMethod, msg)));
     EXPECT_CALL(*mock_nm_settings, interface).WillOnce(Return(ifc));
     EXPECT_CALL(*mock_nm_settings, path).WillOnce(Return(obj));
     EXPECT_CALL(*mock_nm_settings, service).WillOnce(Return(svc));
 
     inject_dbus_interfaces();
+
+    std::unique_ptr<MockDBusInterface> mock_nm_connection = std::make_unique<MockDBusInterface>();
+    EXPECT_CALL(*mock_nm_connection, call_impl(_, Eq("Delete"), empty, empty, empty));
+    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(new_connection_path),
+                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+        .WillOnce(Return(ByMove(std::move(mock_nm_connection))));
+
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("abc"), mp::backend::CreateBridgeException,
                          mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
@@ -462,9 +470,12 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
     auto ifc = QStringLiteral("interface");
     auto obj = QStringLiteral("object");
     auto svc = QStringLiteral("service");
+    const auto new_connection_path1 = QStringLiteral("/foo");
+    const auto new_connection_path2 = QStringLiteral("/bar");
 
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
-        .WillRepeatedly(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{new_connection_path1}))))
+        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{new_connection_path2}))));
 
     EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::InvalidArgs, msg)));
@@ -473,6 +484,18 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
     EXPECT_CALL(*mock_nm_root, service).WillOnce(Return(svc));
 
     inject_dbus_interfaces();
+
+    std::unique_ptr<MockDBusInterface> mock_nm_connection1 = std::make_unique<MockDBusInterface>();
+    std::unique_ptr<MockDBusInterface> mock_nm_connection2 = std::make_unique<MockDBusInterface>();
+    EXPECT_CALL(*mock_nm_connection1, call_impl(_, Eq("Delete"), empty, empty, empty));
+    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(new_connection_path1),
+                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+        .WillOnce(Return(ByMove(std::move(mock_nm_connection1))));
+    EXPECT_CALL(*mock_nm_connection2, call_impl(_, Eq("Delete"), empty, empty, empty));
+    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(new_connection_path2),
+                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+        .WillOnce(Return(ByMove(std::move(mock_nm_connection2))));
+
     MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("kaka"), mp::backend::CreateBridgeException,
                          mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
