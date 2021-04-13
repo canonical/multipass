@@ -157,11 +157,17 @@ jobs:
               _retry_grep 12 5 "\w,lts\W" _run $MP find
               sleep 10
 
-              _run $MP start --timeout 1200
+              for image in core core18 core20; do
+                      [[ 'qemu hyperkit' == *${{ matrix.driver }}* || "${image}" != 'core' ]] || continue
 
-              _run $MP list
+                      _run $MP launch snapcraft:${image} --name ${image} --timeout 1200
 
-              _run $MP exec primary -- uname -a
+                      _run $MP list
+
+                      _run $MP exec ${image} -- uname -a
+
+                      _run $MP delete --purge ${image}
+              done
 
     - name: Submit the job
       id: submit
