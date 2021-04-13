@@ -301,6 +301,8 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
     // TODO@ricab verify if suitable bridge exists
 
+    mpl::log(mpl::Level::debug, log_category, fmt::format("Creating bridge: {}", parent_name));
+
     // AddConnection expects the following DBus argument type: a{sa{sv}}
     // The following two DBus calls are roughly equivalent to:
     //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
@@ -332,7 +334,6 @@ void mp::backend::create_bridge_with(const std::string& interface)
             }
             catch (const std::exception& e)
             {
-                // TODO@ricab add a couple logs outside
                 mpl::log(mpl::Level::warning, log_category,
                          fmt::format("Exception caught when trying to rollback bridge. {}", e.what()));
             }
@@ -348,6 +349,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
     for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
 
     rollback_guard.dismiss(); // we succeeded!
+    mpl::log(mpl::Level::info, log_category, fmt::format("Created bridge: {}", parent_name));
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
