@@ -327,6 +327,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
                 {
                     if (auto path = obj_path.path(); !path.isNull())
                     {
+                        // TODO@ricab use checked version
                         auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
                         connection->call(QDBus::Block, "Delete");
                     }
