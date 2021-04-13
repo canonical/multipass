@@ -302,7 +302,7 @@ struct CreateBridgeTest : public Test
             QMap<QString, QVariantMap> outer_map;
             QMap<QString, QVariantMap>::const_iterator outer_it;
             QVariantMap::const_iterator inner_it;
-            QString parent_name = get_bridge_name(child);
+            QString parent_name = get_bridge_name(child).left(15);
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 2 &&
                    (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 3 &&
@@ -320,7 +320,7 @@ struct CreateBridgeTest : public Test
             QMap<QString, QVariantMap> outer_map;
             QMap<QString, QVariantMap>::const_iterator outer_it;
             QVariantMap::const_iterator inner_it;
-            QString parent_name = get_bridge_name(child);
+            QString parent_name = get_bridge_name(child).left(15);
             QString child_name = parent_name + "-child";
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
@@ -349,13 +349,13 @@ struct CreateBridgeTest : public Test
 private:
     static QString get_bridge_name(const char* child)
     {
-        return QString{"mpbr-"} + child;
+        return QString{"br-"} + child;
     }
 };
 
 TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
 {
-    static constexpr auto network = "wlan9";
+    static constexpr auto network = "wlan1234567890a";
     static constexpr auto child_obj_path = "/an/obj/path/for/child";
     static constexpr auto null_obj_path = "/";
 

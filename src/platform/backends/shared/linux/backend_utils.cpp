@@ -64,6 +64,7 @@ const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
 const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
 const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Settings");
 const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
+constexpr auto max_bridge_name_len = 15; // maximum number of characters in a bridge name
 
 bool subnet_used_locally(const std::string& subnet)
 {
@@ -282,7 +283,7 @@ Q_DECLARE_METATYPE(VariantMapMap)
 void mp::backend::create_bridge_with(const std::string& interface)
 {
     static const auto root_path = QDBusObjectPath{"/"};
-    static const auto base_name = QStringLiteral("mpbr-");
+    static const auto base_name = QStringLiteral("br-");
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
@@ -290,7 +291,8 @@ void mp::backend::create_bridge_with(const std::string& interface)
     const auto& system_bus = get_checked_system_bus();
     auto nm_root = get_checked_interface(system_bus, nm_bus_name, nm_root_obj, nm_root_ifc);
     auto nm_settings = get_checked_interface(system_bus, nm_bus_name, nm_settings_obj, nm_settings_ifc);
-    auto parent_name = base_name + interface.c_str();
+
+    auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
     auto child_name = parent_name + "-child";
 
     // TODO@ricab verify if suitable bridge exists
