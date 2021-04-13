@@ -114,7 +114,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     env:
-      BUILD_DIR: ../build
+      BUILD_DIR: build
       MACOSX_DEPLOYMENT_TARGET: "10.14"
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
