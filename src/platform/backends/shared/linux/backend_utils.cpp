@@ -352,8 +352,9 @@ void mp::backend::create_bridge_with(const std::string& interface)
     mpl::log(mpl::Level::info, log_category, fmt::format("Created bridge: {}", parent_name));
 }
 
-mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error)
-    : std::runtime_error(fmt::format("Could not create bridge. {}: {}", detail,
-                                     dbus_error.isValid() ? dbus_error.message() : "unknown cause"))
+mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,
+                                                          bool rollback)
+    : std::runtime_error(fmt::format("{}. {}: {}", rollback ? "Could not rollback bridge" : "Could not create bridge",
+                                     detail, dbus_error.isValid() ? dbus_error.message() : "unknown cause"))
 {
 }
