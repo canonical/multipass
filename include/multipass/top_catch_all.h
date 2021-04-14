@@ -34,13 +34,15 @@ namespace multipass
  * @param f The int-returning function to protect with a catch-all
  * @param args The arguments to pass to the function f
  * @return The result of f when no exception is thrown, EXIT_FAILURE (from cstdlib) otherwise
+ * TODO@ricab fix doc
  */
-template <typename F, typename... Args>                                         // F needs to return int
-int top_catch_all(const logging::CString& log_category, F&& f, Args&&... args); // not noexcept because logging isn't
+template <typename T, typename F, typename... Args> // F needs to return int
+T top_catch_all(const logging::CString& log_category, T&& fallback_return, F&& f,
+                Args&&... args); // not noexcept because logging isn't
 }
 
-template <typename F, typename... Args>
-inline int multipass::top_catch_all(const logging::CString& log_category, F&& f, Args&&... args)
+template <typename T, typename F, typename... Args>
+inline T multipass::top_catch_all(const logging::CString& log_category, T&& fallback_return, F&& f, Args&&... args)
 {
     namespace mpl = multipass::logging;
     try
@@ -50,12 +52,12 @@ inline int multipass::top_catch_all(const logging::CString& log_category, F&& f,
     catch (const std::exception& e)
     {
         mpl::log(mpl::Level::error, log_category, fmt::format("Caught an unhandled exception: {}", e.what()));
-        return EXIT_FAILURE;
+        return std::forward<decltype(fallback_return)>(fallback_return);
     }
     catch (...)
     {
         mpl::log(mpl::Level::error, log_category, "Caught an unknown exception");
-        return EXIT_FAILURE;
+        return std::forward<decltype(fallback_return)>(fallback_return);
     }
 }
 
