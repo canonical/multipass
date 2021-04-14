@@ -133,3 +133,17 @@ TEST_F(TopCatchAll, uses_fallback_object_of_other_types_on_exception)
     EXPECT_NO_THROW(got = mp::top_catch_all(category, fallback, []() -> std::string { throw 31; }));
     EXPECT_EQ(got, fallback);
 }
+
+TEST_F(TopCatchAll, calls_void_callable)
+{
+    auto ran = false;
+    EXPECT_NO_THROW(mp::top_catch_all("", [&ran] { ran = true; }));
+    EXPECT_TRUE(ran);
+}
+
+TEST_F(TopCatchAll, handles_exception_in_void_callable)
+{
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                               mpt::MockLogger::make_cstring_matcher(HasSubstr("unknown"))));
+    EXPECT_NO_THROW(mp::top_catch_all(category, [] { throw 123; }));
+}
