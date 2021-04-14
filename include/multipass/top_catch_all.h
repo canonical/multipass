@@ -33,21 +33,31 @@ void error(const multipass::logging::CString& log_category); // not noexcept bec
 } // namespace detail
 
 /**
- * Call f within a try-catch, catching and logging anything that it throws.
+ * Call a non-void function within a try-catch, catching and logging anything that it throws.
  *
- * @tparam Fun The type of the callable f. It must be callable and return int.
+ * @tparam T The type of the value that is used to initialize the return value when an exception is caught
+ * @tparam Fun The type of the callable f. It must be callable and return non-void.
  * @tparam Args The types of f's arguments
  * @param log_category The category to use when logging exceptions
- * @param f The int-returning function to protect with a catch-all
+ * @param fallback_return The value that is used to initialize the return value when an exception is caught
+ * @param f The non-void function to protect with a catch-all
  * @param args The arguments to pass to the function f
- * @return The result of f when no exception is thrown, EXIT_FAILURE (from cstdlib) otherwise
- * TODO@ricab fix doc
+ * @return The result of f when no exception is thrown, fallback_return otherwise
  */
-template <typename T, typename Fun, typename... Args> // Fun needs to return int
+template <typename T, typename Fun, typename... Args> // Fun needs to return non-void
 auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f,
                    Args&&... args); // not noexcept because logging isn't
 
-template <typename Fun, typename... Args>
+/**
+ * Call a void function within a try-catch, catching and logging anything that it throws.
+ *
+ * @tparam Fun The type of the callable f. It must be callable and return void.
+ * @tparam Args The types of f's arguments
+ * @param log_category The category to use when logging exceptions
+ * @param f The non-void function to protect with a catch-all
+ * @param args The arguments to pass to the function f
+ */
+template <typename Fun, typename... Args> // Fun needs to return void
 void top_catch_all(const logging::CString& log_category, Fun&& f,
                    Args&&... args); // not noexcept because logging isn't
 } // namespace multipass
