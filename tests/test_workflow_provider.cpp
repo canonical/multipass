@@ -16,6 +16,7 @@
  */
 
 #include <multipass/default_vm_workflow_provider.h>
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/memory_size.h>
 #include <multipass/url_downloader.h>
@@ -88,8 +89,8 @@ TEST_F(VMWorkflowProvider, invalidImageSchemeThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-image-workflow", vm_desc), std::runtime_error,
-                         mpt::match_what(StrEq("Unsupported image scheme in Workflow")));
+    MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-image-workflow", vm_desc),
+                         mp::InvalidWorkflowException, mpt::match_what(StrEq("Unsupported image scheme in Workflow")));
 }
 
 TEST_F(VMWorkflowProvider, invalidMinCoresThrows)
@@ -270,21 +271,23 @@ TEST_F(VMWorkflowProvider, updatesWorkflowsWhenNeeded)
 TEST_F(VMWorkflowProvider, downloadFailureOnStartupLogsErrorAndDoesNotThrow)
 {
     const std::string error_msg{"There is a problem, Houston."};
+    const std::string url{"https://fake.url"};
     mpt::MockURLDownloader mock_url_downloader;
-    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _)).WillOnce(Throw(std::runtime_error(error_msg)));
+    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _)).WillOnce(Throw(mp::DownloadException(url, error_msg)));
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    logger_scope.mock_logger->expect_log(mpl::Level::error,
-                                         fmt::format("Cannot get workflows on start up: {}", error_msg));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, fmt::format("Error fetching workflows: failed to download from '{}': {}", url, error_msg));
 
     EXPECT_NO_THROW(
         mp::DefaultVMWorkflowProvider(workflows_zip_url, &mock_url_downloader, cache_dir.path(), default_ttl));
 }
 
-TEST_F(VMWorkflowProvider, downloadFailureDuringUpdateThrows)
+TEST_F(VMWorkflowProvider, downloadFailureDuringUpdateLogsErrorAndDoesNotThrow)
 {
     const std::string error_msg{"There is a problem, Houston."};
+    const std::string url{"https://fake.url"};
     mpt::MockURLDownloader mock_url_downloader;
     EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _))
         .Times(2)
@@ -292,10 +295,15 @@ TEST_F(VMWorkflowProvider, downloadFailureDuringUpdateThrows)
             QFile file(file_name);
             file.open(QFile::WriteOnly);
         })
-        .WillRepeatedly(Throw(std::runtime_error(error_msg)));
+        .WillRepeatedly(Throw(mp::DownloadException(url, error_msg)));
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, fmt::format("Error fetching workflows: failed to download from '{}': {}", url, error_msg));
 
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &mock_url_downloader, cache_dir.path(),
                                                     std::chrono::milliseconds(0)};
 
-    MP_EXPECT_THROW_THAT(workflow_provider.all_workflows(), std::runtime_error, mpt::match_what(StrEq(error_msg)));
+    EXPECT_NO_THROW(workflow_provider.all_workflows());
 }

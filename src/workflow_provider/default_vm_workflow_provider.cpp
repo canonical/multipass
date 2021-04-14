@@ -16,6 +16,7 @@
  */
 
 #include <multipass/default_vm_workflow_provider.h>
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/format.h>
@@ -80,14 +81,7 @@ mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_u
       archive_file_path{archive_dir.filePath(github_workflows_archive_name)},
       workflows_ttl{workflows_ttl}
 {
-    try
-    {
-        update_workflows();
-    }
-    catch (std::exception& e)
-    {
-        mpl::log(mpl::Level::error, category, fmt::format("Cannot get workflows on start up: {}", e.what()));
-    }
+    update_workflows();
 }
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir,
@@ -256,7 +250,14 @@ void mp::DefaultVMWorkflowProvider::update_workflows()
     const auto now = std::chrono::steady_clock::now();
     if ((now - last_update) > workflows_ttl)
     {
-        fetch_workflows();
-        last_update = now;
+        try
+        {
+            fetch_workflows();
+            last_update = now;
+        }
+        catch (const DownloadException& e)
+        {
+            mpl::log(mpl::Level::error, category, fmt::format("Error fetching workflows: {}", e.what()));
+        }
     }
 }
