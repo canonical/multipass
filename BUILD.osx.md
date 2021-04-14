@@ -12,13 +12,13 @@ Ensure you have development Frameworks for at least OS X 10.8 installed, with th
 
 ### Qt5
 #### Option 1: Using Qt official sources
-Install the latest stable version of Qt5.11 (5.12.9 at the moment): <http://www.qt.io/download-open-source/>.
+Install the latest stable version of Qt5 LTS (5.15.3 at the moment): <http://www.qt.io/download-open-source/>.
 
 If it tells you that XCode 5.0.0 needs to be installed, go to XCode > Preferences > Locations and make a selection in the _Command Line Tools_ box.
 
 Add Qt5 to your PATH environment variable, adding to your `.bash_profile` file the following line:
 
-    export PATH=$PATH:~/Qt/5.12.9/clang_64/bin
+    export PATH=$PATH:~/Qt/5.15.3/clang_64/bin
 
 Adjust accordingly if you customized the Qt install directory.
 
