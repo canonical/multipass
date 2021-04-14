@@ -35,17 +35,17 @@ namespace multipass
  * @param args The arguments to pass to the function f
  * @return The result of f when no exception is thrown, EXIT_FAILURE (from cstdlib) otherwise
  */
-template <typename F, typename... Args>                                      // F needs to return int
-int top_catch_all(const logging::CString log_category, F f, Args&&... args); // not noexcept because logging isn't
+template <typename F, typename... Args>                                        // F needs to return int
+int top_catch_all(const logging::CString log_category, F&& f, Args&&... args); // not noexcept because logging isn't
 }
 
 template <typename F, typename... Args>
-inline int multipass::top_catch_all(const logging::CString log_category, F f, Args&&... args)
+inline int multipass::top_catch_all(const logging::CString log_category, F&& f, Args&&... args)
 {
     namespace mpl = multipass::logging;
     try
     {
-        return std::invoke(f, std::forward<Args>(args)...);
+        return std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
     }
     catch (const std::exception& e)
     {
