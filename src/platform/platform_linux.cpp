@@ -244,13 +244,13 @@ QString mp::platform::Platform::get_workflows_url_override() const
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
-    return true;
+    // snapcraft:core don't work on LXD yet
+    return !(utils::get_driver_str() == "lxd" && remote == "snapcraft" && (alias == "core" || alias == "16.04"));
 }
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
-    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
-    return remote != "snapcraft" || utils::get_driver_str() != "lxd";
+    return true;
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
