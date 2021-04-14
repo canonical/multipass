@@ -46,6 +46,7 @@
 #include <exception>
 #include <mutex>
 #include <random>
+#include <type_traits>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -126,7 +127,7 @@ std::unique_ptr<mpdbus::DBusInterface> get_checked_interface(const mpdbus::DBusC
     return ret;
 }
 
-template <typename T, typename... Ts>
+template <typename T, bool RollingBack = false, typename... Ts>
 T checked_dbus_call(mpdbus::DBusInterface& interface, const QString& method_name, Ts&&... params)
 {
     static constexpr auto error_template = "Failed DBus call. (Service: {}; Object: {}; Interface: {}; Method: {})";
@@ -137,9 +138,10 @@ T checked_dbus_call(mpdbus::DBusInterface& interface, const QString& method_name
     if (!reply.isValid())
         throw mp::backend::CreateBridgeException{
             fmt::format(error_template, interface.service(), interface.path(), interface.interface(), method_name),
-            reply.error()};
+            reply.error(), RollingBack};
 
-    return reply.value();
+    if constexpr (!std::is_void_v<T>)
+        return reply.value();
 }
 
 } // namespace
@@ -327,9 +329,8 @@ void mp::backend::create_bridge_with(const std::string& interface)
                 {
                     if (auto path = obj_path.path(); !path.isNull())
                     {
-                        // TODO@ricab use checked version
                         auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
-                        connection->call(QDBus::Block, "Delete");
+                        checked_dbus_call<void, /* RollingBack = */ true>(*connection, "Delete");
                     }
                 }
             }
