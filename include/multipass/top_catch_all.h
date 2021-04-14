@@ -28,7 +28,7 @@ namespace multipass
 /**
  * Call f within a try-catch, catching and logging anything that it throws.
  *
- * @tparam F The type of the callable f. It must be callable and return int.
+ * @tparam Fun The type of the callable f. It must be callable and return int.
  * @tparam Args The types of f's arguments
  * @param log_category The category to use when logging exceptions
  * @param f The int-returning function to protect with a catch-all
@@ -36,18 +36,19 @@ namespace multipass
  * @return The result of f when no exception is thrown, EXIT_FAILURE (from cstdlib) otherwise
  * TODO@ricab fix doc
  */
-template <typename T, typename F, typename... Args> // F needs to return int
-T top_catch_all(const logging::CString& log_category, T&& fallback_return, F&& f,
-                Args&&... args); // not noexcept because logging isn't
+template <typename Ret, typename Fun, typename... Args> // Fun needs to return int
+Ret top_catch_all(const logging::CString& log_category, Ret&& fallback_return, Fun&& f,
+                  Args&&... args); // not noexcept because logging isn't
 }
 
-template <typename T, typename F, typename... Args>
-inline T multipass::top_catch_all(const logging::CString& log_category, T&& fallback_return, F&& f, Args&&... args)
+template <typename Ret, typename Fun, typename... Args>
+inline Ret multipass::top_catch_all(const logging::CString& log_category, Ret&& fallback_return, Fun&& f,
+                                    Args&&... args)
 {
     namespace mpl = multipass::logging;
     try
     {
-        return std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
+        return std::invoke(std::forward<Fun>(f), std::forward<Args>(args)...);
     }
     catch (const std::exception& e)
     {
