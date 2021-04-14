@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,7 +70,14 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    auto streaming_callback = [&spinner](mp::MountReply& reply) {
+    auto streaming_callback = [this, &spinner](mp::MountReply& reply) {
+        if (!reply.log_line().empty())
+        {
+            spinner.stop();
+            cerr << reply.log_line() << "\n";
+            spinner.start();
+        }
+
         spinner.stop();
         spinner.start(reply.mount_message());
     };

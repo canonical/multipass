@@ -126,7 +126,12 @@ protected:
     {
         using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = typename std::remove_reference<Arg0Type>::type;
-        return dispatch(rpc_func, request, on_success, on_failure, [](ReplyType&) {});
+        return dispatch(rpc_func, request, on_success, on_failure, [this](ReplyType& reply) {
+            if (!reply.log_line().empty())
+            {
+                cerr << reply.log_line();
+            }
+        });
     }
 
     Command(const Command&) = delete;
