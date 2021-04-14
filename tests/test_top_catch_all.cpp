@@ -125,3 +125,11 @@ TEST_F(TopCatchAll, handles_custom_exception)
                     }));
     EXPECT_EQ(got, EXIT_FAILURE);
 }
+
+TEST_F(TopCatchAll, uses_fallback_object_of_other_types_on_exception)
+{
+    std::string fallback{"default"}, got;
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), _, _)).Times(1);
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, fallback, []() -> std::string { throw 31; }));
+    EXPECT_EQ(got, fallback);
+}
