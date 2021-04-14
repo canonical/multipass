@@ -36,14 +36,13 @@ namespace multipass
  * @return The result of f when no exception is thrown, EXIT_FAILURE (from cstdlib) otherwise
  * TODO@ricab fix doc
  */
-template <typename Ret, typename Fun, typename... Args> // Fun needs to return int
-Ret top_catch_all(const logging::CString& log_category, Ret&& fallback_return, Fun&& f,
-                  Args&&... args); // not noexcept because logging isn't
+template <typename T, typename Fun, typename... Args> // Fun needs to return int
+auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f,
+                   Args&&... args); // not noexcept because logging isn't
 }
 
-template <typename Ret, typename Fun, typename... Args>
-inline Ret multipass::top_catch_all(const logging::CString& log_category, Ret&& fallback_return, Fun&& f,
-                                    Args&&... args)
+template <typename T, typename Fun, typename... Args>
+inline auto multipass::top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f, Args&&... args)
 {
     namespace mpl = multipass::logging;
     try
@@ -59,7 +58,7 @@ inline Ret multipass::top_catch_all(const logging::CString& log_category, Ret&& 
         mpl::log(mpl::Level::error, log_category, "Caught an unknown exception");
     }
 
-    return std::forward<decltype(fallback_return)>(fallback_return);
+    return std::invoke_result_t<Fun, Args...>{std::forward<decltype(fallback_return)>(fallback_return)};
 }
 
 #endif // MULTIPASS_TOP_CATCH_ALL_H
