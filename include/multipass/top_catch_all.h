@@ -53,13 +53,13 @@ inline Ret multipass::top_catch_all(const logging::CString& log_category, Ret&& 
     catch (const std::exception& e)
     {
         mpl::log(mpl::Level::error, log_category, fmt::format("Caught an unhandled exception: {}", e.what()));
-        return std::forward<decltype(fallback_return)>(fallback_return);
     }
     catch (...)
     {
         mpl::log(mpl::Level::error, log_category, "Caught an unknown exception");
-        return std::forward<decltype(fallback_return)>(fallback_return);
     }
+
+    return std::forward<decltype(fallback_return)>(fallback_return);
 }
 
 #endif // MULTIPASS_TOP_CATCH_ALL_H
