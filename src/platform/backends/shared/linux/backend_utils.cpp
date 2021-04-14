@@ -18,14 +18,14 @@
 #include "backend_utils.h"
 #include "dbus_wrappers.h"
 #include "process_factory.h"
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/process/process.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
-
-#include <multipass/format.h>
 
 #include <shared/shared_backend_utils.h>
 
@@ -321,29 +321,17 @@ void mp::backend::create_bridge_with(const std::string& interface)
                          {"autoconnect-priority", 10}}}};
 
     QDBusObjectPath parent_path{}, child_path{};
-    auto rollback_guard = sg::make_scope_guard( // rollback unless we succeed
-        [&system_bus, &parent_path, &child_path]() noexcept {
-            try
+    auto rollback = [&system_bus, &parent_path, &child_path] {
+        for (auto& obj_path : {child_path, parent_path})
+        {
+            if (auto path = obj_path.path(); !path.isNull())
             {
-                for (auto& obj_path : {child_path, parent_path})
-                {
-                    if (auto path = obj_path.path(); !path.isNull())
-                    {
-                        auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
-                        checked_dbus_call<void, /* RollingBack = */ true>(*connection, "Delete");
-                    }
-                }
+                auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
+                checked_dbus_call<void, /* RollingBack = */ true>(*connection, "Delete");
             }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::warning, log_category,
-                         fmt::format("Exception caught when trying to rollback bridge. {}", e.what()));
-            }
-            catch (...)
-            {
-                mpl::log(mpl::Level::warning, log_category, "Unknown exception caught when trying to rollback bridge");
-            }
-        });
+        }
+    };
+    auto rollback_guard = sg::make_scope_guard([&rollback]() noexcept { mp::top_catch_all(log_category, rollback); });
 
     parent_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
     child_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
