@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,8 +80,6 @@ protected:
 
         while (reader->Read(&reply))
         {
-            if (!reply.log_line().empty())
-                cerr << reply.log_line() << "\n";
             streaming_callback(reply);
         }
 
