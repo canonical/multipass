@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,9 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_ANIMATED_SPINNER_H
@@ -33,6 +30,7 @@ public:
     ~AnimatedSpinner();
 
     void start(const std::string& message);
+    void start();
     void stop();
 
 private:
@@ -40,6 +38,7 @@ private:
     const std::vector<char> spinner;
     std::ostream& cout;
     bool running;
+    std::string current_message;
     std::mutex mutex;
     std::condition_variable cv;
     std::thread t;

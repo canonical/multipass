@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,9 +12,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #include "animated_spinner.h"
@@ -47,11 +44,18 @@ void mp::AnimatedSpinner::start(const std::string& start_message)
     std::unique_lock<decltype(mutex)> lock{mutex};
     if (!running)
     {
+        current_message = start_message;
         running = true;
         clear_line(cout);
         cout << start_message << "  " << std::flush;
         t = std::thread(&AnimatedSpinner::draw, this);
     }
+}
+
+void mp::AnimatedSpinner::start()
+{
+    if (!current_message.empty())
+        start(current_message);
 }
 
 void mp::AnimatedSpinner::stop()
