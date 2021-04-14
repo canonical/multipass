@@ -679,6 +679,26 @@ TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
     EXPECT_THAT(send_command({"launch"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, launch_cmd_prints_out_log_message_when_received)
+{
+    const std::string log_message{"This is a fake log message"};
+
+    EXPECT_CALL(mock_daemon, launch(_, _, _))
+        .WillOnce(Invoke([&log_message](Unused, Unused, grpc::ServerWriter<mp::LaunchReply>* response) {
+            mp::LaunchReply reply;
+            reply.set_log_line(log_message);
+
+            response->Write(reply);
+            return grpc::Status{};
+        }));
+
+    std::stringstream cerr_stream;
+
+    send_command({"launch"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), log_message + "\n");
+}
+
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
 {
 };
@@ -963,6 +983,26 @@ TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_map)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, mount_cmd_prints_out_log_message_when_received)
+{
+    const std::string log_message{"This is a fake log message"};
+
+    EXPECT_CALL(mock_daemon, mount(_, _, _))
+        .WillOnce(Invoke([&log_message](Unused, Unused, grpc::ServerWriter<mp::MountReply>* response) {
+            mp::MountReply reply;
+            reply.set_log_line(log_message);
+
+            response->Write(reply);
+            return grpc::Status{};
+        }));
+
+    std::stringstream cerr_stream;
+
+    send_command({"mount", "..", "test-vm:test"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), log_message + "\n");
+}
+
 // recover cli tests
 TEST_F(Client, recover_cmd_fails_no_args)
 {
@@ -1061,6 +1101,26 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     EXPECT_THAT(send_command({"start", "foo", petenv_name()}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", petenv_name(), "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", petenv_name(), "bar", "baz"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_prints_out_log_message_when_received)
+{
+    const std::string log_message{"This is a fake log message"};
+
+    EXPECT_CALL(mock_daemon, start(_, _, _))
+        .WillOnce(Invoke([&log_message](Unused, Unused, grpc::ServerWriter<mp::StartReply>* response) {
+            mp::StartReply reply;
+            reply.set_log_line(log_message);
+
+            response->Write(reply);
+            return grpc::Status{};
+        }));
+
+    std::stringstream cerr_stream;
+
+    send_command({"start"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), log_message + "\n");
 }
 
 namespace
@@ -2037,4 +2097,24 @@ TEST_P(TimeoutSuite, command_completes_without_timeout)
 
 INSTANTIATE_TEST_SUITE_P(Client, TimeoutSuite, ValuesIn(timeout_commands));
 
+// general version tests
+TEST_F(Client, version_cmd_prints_out_log_message_when_received)
+{
+    const std::string log_message{"This is a fake log message"};
+
+    EXPECT_CALL(mock_daemon, version(_, _, _))
+        .WillOnce(Invoke([&log_message](Unused, Unused, grpc::ServerWriter<mp::VersionReply>* response) {
+            mp::VersionReply reply;
+            reply.set_log_line(log_message);
+
+            response->Write(reply);
+            return grpc::Status{};
+        }));
+
+    std::stringstream cerr_stream;
+
+    send_command({"version"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), log_message + "\n");
+}
 } // namespace
