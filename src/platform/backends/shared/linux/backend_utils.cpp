@@ -58,6 +58,9 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpdbus = multipass::backend::dbus;
 
+typedef QMap<QString, QVariantMap> VariantMapMap;
+Q_DECLARE_METATYPE(VariantMapMap) // for DBus
+
 namespace
 {
 std::default_random_engine gen;
@@ -142,6 +145,21 @@ T checked_dbus_call(mpdbus::DBusInterface& interface, const QString& method_name
 
     if constexpr (!std::is_void_v<T>)
         return reply.value();
+}
+
+auto make_connection_settings(const QString& parent_name, const QString& child_name, const QString& interface_name)
+{
+    VariantMapMap arg1{{"connection", {{"type", "bridge"}, {"id", parent_name}, {"autoconnect-slaves", 1}}},
+                       {"bridge", {{"interface-name", parent_name}}}};
+    VariantMapMap arg2{{"connection",
+                        {{"id", child_name},
+                         {"type", "802-3-ethernet"},
+                         {"slave-type", "bridge"},
+                         {"master", parent_name},
+                         {"interface-name", interface_name},
+                         {"autoconnect-priority", 10}}}};
+
+    return std::make_pair(arg1, arg2);
 }
 
 auto make_bridge_rollback_guard(const mpl::CString& log_category, const mpdbus::DBusConnection& system_bus,
@@ -299,9 +317,6 @@ void mp::backend::check_if_kvm_is_in_use()
     close(ret);
 }
 
-typedef QMap<QString, QVariantMap> VariantMapMap;
-Q_DECLARE_METATYPE(VariantMapMap)
-
 void mp::backend::create_bridge_with(const std::string& interface)
 {
     static constexpr auto log_category = "create bridge";
@@ -323,24 +338,18 @@ void mp::backend::create_bridge_with(const std::string& interface)
     mpl::log(mpl::Level::debug, log_category, fmt::format("Creating bridge: {}", parent_name));
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
-    // The following two DBus calls are roughly equivalent to:
-    //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
-    //   `nmcli connection add type bridge-slave ifname <if> master <br> connection.autoconnect-priority 10`
-    //   `nmcli connection up <br>-slave-<if>`
-    VariantMapMap arg1{{"connection", {{"type", "bridge"}, {"id", parent_name}, {"autoconnect-slaves", 1}}},
-                       {"bridge", {{"interface-name", parent_name}}}};
-    VariantMapMap arg2{{"connection",
-                        {{"id", child_name},
-                         {"type", "802-3-ethernet"},
-                         {"slave-type", "bridge"},
-                         {"master", parent_name},
-                         {"interface-name", QString::fromStdString(interface)},
-                         {"autoconnect-priority", 10}}}};
+    const auto& [arg1, arg2] = make_connection_settings(parent_name, child_name, QString::fromStdString(interface));
 
+    // The rollbacks could be achieved with
+    //   `nmcli connection delete <parent_connection> <child_connection>
     QDBusObjectPath parent_path{}, child_path{};
     auto rollback_guard = make_bridge_rollback_guard(log_category, system_bus, parent_path, child_path); /*
                                                                                rollback unless we succeed */
 
+    // The following DBus calls are roughly equivalent to:
+    //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
+    //   `nmcli connection add type bridge-slave ifname <if> master <br> connection.autoconnect-priority 10`
+    //   `nmcli connection up <child_connection>`
     parent_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
     child_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
     checked_dbus_call<QDBusObjectPath>(*nm_root, "ActivateConnection", child_path, root_path, root_path); /* Inspiration
