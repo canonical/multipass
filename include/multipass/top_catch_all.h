@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+
+#include <functional>
 
 namespace multipass
 {
@@ -43,7 +45,7 @@ inline int multipass::top_catch_all(const logging::CString log_category, F f, Ar
     namespace mpl = multipass::logging;
     try
     {
-        return f(std::forward<Args>(args)...);
+        return std::invoke(f, std::forward<Args>(args)...);
     }
     catch (const std::exception& e)
     {
