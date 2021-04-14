@@ -144,6 +144,23 @@ T checked_dbus_call(mpdbus::DBusInterface& interface, const QString& method_name
         return reply.value();
 }
 
+auto make_bridge_rollback_guard(const mpl::CString& log_category, const mpdbus::DBusConnection& system_bus,
+                                const QDBusObjectPath& parent_path, const QDBusObjectPath& child_path)
+{
+    auto rollback = [&system_bus, &parent_path, &child_path] {
+        for (auto& obj_path : {child_path, parent_path})
+        {
+            if (auto path = obj_path.path(); !path.isNull())
+            {
+                auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
+                checked_dbus_call<void, /* RollingBack = */ true>(*connection, "Delete");
+            }
+        }
+    };
+
+    return sg::make_scope_guard([rollback, log_category]() noexcept { mp::top_catch_all(log_category, rollback); });
+}
+
 } // namespace
 
 std::string mp::backend::generate_random_subnet()
@@ -321,17 +338,8 @@ void mp::backend::create_bridge_with(const std::string& interface)
                          {"autoconnect-priority", 10}}}};
 
     QDBusObjectPath parent_path{}, child_path{};
-    auto rollback = [&system_bus, &parent_path, &child_path] {
-        for (auto& obj_path : {child_path, parent_path})
-        {
-            if (auto path = obj_path.path(); !path.isNull())
-            {
-                auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
-                checked_dbus_call<void, /* RollingBack = */ true>(*connection, "Delete");
-            }
-        }
-    };
-    auto rollback_guard = sg::make_scope_guard([&rollback]() noexcept { mp::top_catch_all(log_category, rollback); });
+    auto rollback_guard = make_bridge_rollback_guard(log_category, system_bus, parent_path, child_path); /*
+                                                                               rollback unless we succeed */
 
     parent_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
     child_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
