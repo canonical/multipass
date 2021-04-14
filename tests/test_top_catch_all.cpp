@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <string>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -66,6 +67,13 @@ TEST_F(TopCatchAll, calls_function_with_no_args)
 {
     int ret = 123, got = 0;
     EXPECT_NO_THROW(got = mp::top_catch_all("", EXIT_FAILURE, [ret] { return ret; }););
+    EXPECT_EQ(got, ret);
+}
+
+TEST_F(TopCatchAll, calls_function_with_other_return)
+{
+    std::string ret{"abc"}, got;
+    EXPECT_NO_THROW(got = mp::top_catch_all("", "unused", [&ret] { return ret; }););
     EXPECT_EQ(got, ret);
 }
 
