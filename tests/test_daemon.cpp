@@ -15,15 +15,6 @@
  *
  */
 
-#include <src/client/cli/client.h>
-#include <src/daemon/daemon.h>
-#include <src/daemon/daemon_config.h>
-#include <src/daemon/daemon_rpc.h>
-#include <src/platform/update/disabled_update_prompt.h>
-
-#include <multipass/auto_join_thread.h>
-#include <multipass/cli/argparser.h>
-#include <multipass/cli/command.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -31,26 +22,17 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 
+#include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
 #include "extra_assertions.h"
 #include "file_operations.h"
+#include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_logger.h"
 #include "mock_process_factory.h"
-#include "mock_standard_paths.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
-#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
-#include "stub_cert_store.h"
-#include "stub_certprovider.h"
-#include "stub_image_host.h"
-#include "stub_logger.h"
-#include "stub_ssh_key_provider.h"
-#include "stub_terminal.h"
-#include "stub_virtual_machine_factory.h"
-#include "stub_vm_image_vault.h"
-#include "temp_dir.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -96,47 +78,6 @@ template<typename R>
   bool is_ready(std::future<R> const& f)
   { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
 
-struct MockDaemon : public mp::Daemon
-{
-    using mp::Daemon::Daemon;
-
-    MOCK_METHOD3(create,
-                 void(const mp::CreateRequest*, grpc::ServerWriter<mp::CreateReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(launch,
-                 void(const mp::LaunchRequest*, grpc::ServerWriter<mp::LaunchReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(purge,
-                 void(const mp::PurgeRequest*, grpc::ServerWriter<mp::PurgeReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(find,
-                 void(const mp::FindRequest* request, grpc::ServerWriter<mp::FindReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(info, void(const mp::InfoRequest*, grpc::ServerWriter<mp::InfoReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(list, void(const mp::ListRequest*, grpc::ServerWriter<mp::ListReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(mount, void(const mp::MountRequest* request, grpc::ServerWriter<mp::MountReply>*,
-                             std::promise<grpc::Status>*));
-    MOCK_METHOD3(recover,
-                 void(const mp::RecoverRequest*, grpc::ServerWriter<mp::RecoverReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(ssh_info,
-                 void(const mp::SSHInfoRequest*, grpc::ServerWriter<mp::SSHInfoReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(start,
-                 void(const mp::StartRequest*, grpc::ServerWriter<mp::StartReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(stop, void(const mp::StopRequest*, grpc::ServerWriter<mp::StopReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(suspend,
-                 void(const mp::SuspendRequest*, grpc::ServerWriter<mp::SuspendReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(restart,
-                 void(const mp::RestartRequest*, grpc::ServerWriter<mp::RestartReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(delet,
-                 void(const mp::DeleteRequest*, grpc::ServerWriter<mp::DeleteReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(umount,
-                 void(const mp::UmountRequest*, grpc::ServerWriter<mp::UmountReply>*, std::promise<grpc::Status>*));
-    MOCK_METHOD3(version,
-                 void(const mp::VersionRequest*, grpc::ServerWriter<mp::VersionReply>*, std::promise<grpc::Status>*));
-
-    template <typename Request, typename Reply>
-    void set_promise_value(const Request*, grpc::ServerWriter<Reply>*, std::promise<grpc::Status>* status_promise)
-    {
-        status_promise->set_value(grpc::Status::OK);
-    }
-};
-
 struct StubNameGenerator : public mp::NameGenerator
 {
     explicit StubNameGenerator(std::string name) : name{std::move(name)}
@@ -148,191 +89,16 @@ struct StubNameGenerator : public mp::NameGenerator
     }
     std::string name;
 };
-
-class TestCreate final : public mp::cmd::Command
-{
-public:
-    using Command::Command;
-    mp::ReturnCode run(mp::ArgParser* parser) override
-    {
-        auto on_success = [](mp::CreateReply& /*reply*/) { return mp::ReturnCode::Ok; };
-        auto on_failure = [this](grpc::Status& status) {
-            mp::CreateError create_error;
-            create_error.ParseFromString(status.error_details());
-            const auto errors = create_error.error_codes();
-
-            cerr << "failed: " << status.error_message();
-            if (errors.size() == 1)
-            {
-                const auto& error = errors[0];
-                if (error == mp::CreateError::INVALID_DISK_SIZE)
-                    cerr << "disk";
-                else if (error == mp::CreateError::INVALID_MEM_SIZE)
-                    cerr << "memory";
-                else
-                    cerr << "?";
-            }
-
-            return mp::ReturnCode::CommandFail;
-        };
-
-        auto streaming_callback = [this](mp::CreateReply& reply) { cout << reply.create_message() << std::endl; };
-
-        auto ret = parse_args(parser);
-        return ret == mp::ParseCode::Ok
-                   ? dispatch(&mp::Rpc::Stub::create, request, on_success, on_failure, streaming_callback)
-                   : parser->returnCodeFrom(ret);
-    }
-
-    std::string name() const override
-    {
-        return "test_create";
-    }
-
-    QString short_help() const override
-    {
-        return {};
-    }
-
-    QString description() const override
-    {
-        return {};
-    }
-
-private:
-    mp::ParseCode parse_args(mp::ArgParser* parser) override
-    {
-        QCommandLineOption diskOption("disk", "", "disk", "");
-        QCommandLineOption memOption("mem", "", "mem", "");
-        parser->addOptions({diskOption, memOption});
-
-        auto status = parser->commandParse(this);
-        if (status == mp::ParseCode::Ok)
-        {
-            if (parser->isSet(memOption))
-                request.set_mem_size(parser->value(memOption).toStdString());
-
-            if (parser->isSet(diskOption))
-                request.set_disk_space(parser->value(diskOption).toStdString());
-        }
-
-        return status;
-    }
-
-    mp::CreateRequest request;
-};
-
-class TestClient : public mp::Client
-{
-public:
-    explicit TestClient(mp::ClientConfig& context) : mp::Client{context}
-    {
-        add_command<TestCreate>();
-        sort_commands();
-    }
-};
-
 } // namespace
 
-struct Daemon : public Test
+struct Daemon : public mpt::DaemonTestFixture
 {
     Daemon()
     {
-        config_builder.server_address = server_address;
-        config_builder.cache_directory = cache_dir.path();
-        config_builder.data_directory = data_dir.path();
-        config_builder.vault = std::make_unique<mpt::StubVMImageVault>();
-        config_builder.factory = std::make_unique<mpt::StubVirtualMachineFactory>();
-        config_builder.image_hosts.push_back(std::make_unique<mpt::StubVMImageHost>());
-        config_builder.ssh_key_provider = std::make_unique<mpt::StubSSHKeyProvider>();
-        config_builder.cert_provider = std::make_unique<mpt::StubCertProvider>();
-        config_builder.client_cert_store = std::make_unique<mpt::StubCertStore>();
-        config_builder.connection_type = mp::RpcConnectionType::insecure;
-        config_builder.logger = std::make_unique<mpt::StubLogger>();
-        config_builder.update_prompt = std::make_unique<mp::DisabledUpdatePrompt>();
-
         ON_CALL(*mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
             return mock_utils->Utils::filesystem_bytes_available(data_directory);
         });
     }
-
-    void SetUp() override
-    {
-        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
-            .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
-        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
-                    locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
-            .Times(AnyNumber())
-            .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
-                                            it gets reset at the end of each test (by VerifyAndClearExpectations) */
-    }
-
-    mpt::MockVirtualMachineFactory* use_a_mock_vm_factory()
-    {
-        auto mock_factory = std::make_unique<NiceMock<mpt::MockVirtualMachineFactory>>();
-        auto mock_factory_ptr = mock_factory.get();
-
-        ON_CALL(*mock_factory_ptr, fetch_type()).WillByDefault(Return(mp::FetchType::ImageOnly));
-
-        ON_CALL(*mock_factory_ptr, create_virtual_machine).WillByDefault([](const auto&, auto&) {
-            return std::make_unique<mpt::StubVirtualMachine>();
-        });
-
-        ON_CALL(*mock_factory_ptr, prepare_source_image(_)).WillByDefault(ReturnArg<0>());
-
-        ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
-
-        ON_CALL(*mock_factory_ptr, networks())
-            .WillByDefault(Return(std::vector<mp::NetworkInterfaceInfo>{{"eth0", "ethernet", "wired adapter"},
-                                                                        {"wlan0", "wi-fi", "wireless adapter"}}));
-
-        config_builder.factory = std::move(mock_factory);
-        return mock_factory_ptr;
-    }
-
-    void send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
-                      std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
-    {
-        send_commands({command}, cout, cerr, cin);
-    }
-
-    // "commands" is a vector of commands that includes necessary positional arguments, ie,
-    // "start foo"
-    void send_commands(std::vector<std::vector<std::string>> commands, std::ostream& cout = trash_stream,
-                       std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
-    {
-        // Commands need to be sent from a thread different from that the QEventLoop is on.
-        // Event loop is started/stopped to ensure all signals are delivered
-        mp::AutoJoinThread t([this, &commands, &cout, &cerr, &cin] {
-            mpt::StubTerminal term(cout, cerr, cin);
-            mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                           std::make_unique<mpt::StubCertProvider>(), &term};
-            TestClient client{client_config};
-            for (const auto& command : commands)
-            {
-                QStringList args = QStringList() << "multipass_test";
-
-                for (const auto& arg : command)
-                {
-                    args << QString::fromStdString(arg);
-                }
-                client.run(args);
-            }
-            loop.quit();
-        });
-        loop.exec();
-    }
-
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-    std::string server_address{"localhost:50051"};
-#else
-    std::string server_address{"unix:/tmp/test-multipassd.socket"};
-#endif
-    QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
-    mpt::TempDir cache_dir;
-    mpt::TempDir data_dir;
-    mp::DaemonConfigBuilder config_builder;
-    inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
 
     mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject()};
     NiceMock<mpt::MockUtils>* mock_utils = attr.first;
@@ -340,40 +106,40 @@ struct Daemon : public Test
 
 TEST_F(Daemon, receives_commands)
 {
-    MockDaemon daemon{config_builder.build()};
+    mpt::MockDaemon daemon{config_builder.build()};
 
     EXPECT_CALL(daemon, create(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
     EXPECT_CALL(daemon, launch(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::LaunchRequest, mp::LaunchReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::LaunchRequest, mp::LaunchReply>));
     EXPECT_CALL(daemon, purge(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::PurgeRequest, mp::PurgeReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::PurgeRequest, mp::PurgeReply>));
     EXPECT_CALL(daemon, find(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
     EXPECT_CALL(daemon, ssh_info(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::SSHInfoRequest, mp::SSHInfoReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SSHInfoRequest, mp::SSHInfoReply>));
     EXPECT_CALL(daemon, info(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
     EXPECT_CALL(daemon, list(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::ListRequest, mp::ListReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ListRequest, mp::ListReply>));
     EXPECT_CALL(daemon, recover(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
     EXPECT_CALL(daemon, start(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::StartRequest, mp::StartReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::StartRequest, mp::StartReply>));
     EXPECT_CALL(daemon, stop(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::StopRequest, mp::StopReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::StopRequest, mp::StopReply>));
     EXPECT_CALL(daemon, suspend(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::SuspendRequest, mp::SuspendReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SuspendRequest, mp::SuspendReply>));
     EXPECT_CALL(daemon, restart(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::RestartRequest, mp::RestartReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RestartRequest, mp::RestartReply>));
     EXPECT_CALL(daemon, delet(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::DeleteRequest, mp::DeleteReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::DeleteRequest, mp::DeleteReply>));
     EXPECT_CALL(daemon, version(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::VersionRequest, mp::VersionReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::VersionRequest, mp::VersionReply>));
     EXPECT_CALL(daemon, mount(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::MountRequest, mp::MountReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::MountRequest, mp::MountReply>));
     EXPECT_CALL(daemon, umount(_, _, _))
-        .WillOnce(Invoke(&daemon, &MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
 
     send_commands({{"test_create", "foo"},
                    {"launch", "foo"},
