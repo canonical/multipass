@@ -247,7 +247,7 @@ jobs:
       id: setup-ccache
       run: |
         brew install ccache
-        ccache --max-size=200M
+        ccache --max-size=400M
 
         # Find common base between full and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
