@@ -320,6 +320,8 @@ void mp::backend::check_if_kvm_is_in_use()
     close(ret);
 }
 
+// @precondition no bridge exists for this interface
+// @precondition interface identifies an ethernet device
 void mp::backend::create_bridge_with(const std::string& interface)
 {
     static constexpr auto log_category_create = "create bridge";
@@ -336,9 +338,6 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
     auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
     auto child_name = parent_name + "-child";
-
-    // TODO@ricab verify if suitable bridge exists
-
     mpl::log(mpl::Level::debug, log_category_create, fmt::format("Creating bridge: {}", parent_name));
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
