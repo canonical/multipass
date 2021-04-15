@@ -22,6 +22,7 @@
 #include <multipass/logging/log.h>
 
 #include <functional>
+#include <type_traits>
 
 namespace multipass
 {
@@ -39,14 +40,14 @@ void error(const multipass::logging::CString& log_category); // not noexcept bec
  * @tparam Fun The type of the callable f. It must be callable and return non-void.
  * @tparam Args The types of f's arguments
  * @param log_category The category to use when logging exceptions
- * @param fallback_return The value that is used to initialize the return value when an exception is caught
+ * @param fallback_return The value to return value when an exception is caught
  * @param f The non-void function to protect with a catch-all
  * @param args The arguments to pass to the function f
  * @return The result of f when no exception is thrown, fallback_return otherwise
  */
 template <typename T, typename Fun, typename... Args> // Fun needs to return non-void
-auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f,
-                   Args&&... args) noexcept; // logging can throw, but we want to std::terminate in that case
+auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f, Args&&... args) noexcept
+    -> std::invoke_result_t<Fun, Args...>; // logging can throw, but we want to std::terminate in that case
 
 /**
  * Call a void function within a try-catch, catching and logging anything that it throws.
@@ -76,7 +77,7 @@ inline void multipass::detail::error(const multipass::logging::CString& log_cate
 
 template <typename T, typename Fun, typename... Args>
 inline auto multipass::top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f,
-                                     Args&&... args) noexcept
+                                     Args&&... args) noexcept -> std::invoke_result_t<Fun, Args...>
 {
     try
     {
@@ -91,7 +92,7 @@ inline auto multipass::top_catch_all(const logging::CString& log_category, T&& f
         detail::error(log_category);
     }
 
-    return std::invoke_result_t<Fun, Args...>{std::forward<decltype(fallback_return)>(fallback_return)};
+    return std::forward<decltype(fallback_return)>(fallback_return);
 }
 
 template <typename Fun, typename... Args>
