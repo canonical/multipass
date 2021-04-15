@@ -46,7 +46,7 @@ void error(const multipass::logging::CString& log_category); // not noexcept bec
  */
 template <typename T, typename Fun, typename... Args> // Fun needs to return non-void
 auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f,
-                   Args&&... args); // not noexcept because logging isn't
+                   Args&&... args) noexcept; // logging can throw, but we want to std::terminate in that case
 
 /**
  * Call a void function within a try-catch, catching and logging anything that it throws.
@@ -59,7 +59,7 @@ auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fu
  */
 template <typename Fun, typename... Args> // Fun needs to return void
 void top_catch_all(const logging::CString& log_category, Fun&& f,
-                   Args&&... args); // not noexcept because logging isn't
+                   Args&&... args) noexcept; // logging can throw, but we want to std::terminate in that case
 } // namespace multipass
 
 inline void multipass::detail::error(const multipass::logging::CString& log_category, const std::exception& e)
@@ -75,7 +75,8 @@ inline void multipass::detail::error(const multipass::logging::CString& log_cate
 }
 
 template <typename T, typename Fun, typename... Args>
-inline auto multipass::top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f, Args&&... args)
+inline auto multipass::top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f,
+                                     Args&&... args) noexcept
 {
     try
     {
@@ -95,7 +96,7 @@ inline auto multipass::top_catch_all(const logging::CString& log_category, T&& f
 
 template <typename Fun, typename... Args>
 inline void multipass::top_catch_all(const logging::CString& log_category, Fun&& f,
-                                     Args&&... args) // not noexcept because logging isn't
+                                     Args&&... args) noexcept // not noexcept because logging isn't
 {
     try
     {
