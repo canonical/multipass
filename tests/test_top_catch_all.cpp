@@ -141,9 +141,16 @@ TEST_F(TopCatchAll, calls_void_callable)
     EXPECT_TRUE(ran);
 }
 
-TEST_F(TopCatchAll, handles_exception_in_void_callable)
+TEST_F(TopCatchAll, handles_unknown_error_in_void_callable)
 {
     EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
                                                mpt::MockLogger::make_cstring_matcher(HasSubstr("unknown"))));
     EXPECT_NO_THROW(mp::top_catch_all(category, [] { throw 123; }));
+}
+
+TEST_F(TopCatchAll, handles_exception_in_void_callable)
+{
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                               mpt::MockLogger::make_cstring_matcher(HasSubstr("exception"))));
+    EXPECT_NO_THROW(mp::top_catch_all(category, [] { throw std::exception{}; }));
 }
