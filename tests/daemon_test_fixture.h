@@ -224,7 +224,11 @@ struct DaemonTestFixture : public ::Test
         loop.exec();
     }
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    std::string server_address{"localhost:50051"};
+#else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
+#endif
     QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
     TempDir cache_dir;
     TempDir data_dir;
