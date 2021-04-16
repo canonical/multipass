@@ -236,15 +236,18 @@ jobs:
 
     - name: Dispatch Linux integration tests
       if: ${{ env.BORS_RUN == 'true' }}
-      uses: benc-uk/workflow-dispatch@v1
+      uses: Saviq/workflow-dispatch@dist
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         workflow: Integration
+        ref: ${{ steps.dispatch-params.outputs.ref }}
+        sha: ${{ steps.dispatch-params.outputs.sha }}
         inputs: |
           {
-            "os": "Linux",
-            "channel": "${{ needs.BuildAndTest.outputs.channel }}"
+            "snap-channel": "${{ needs.BuildAndTest.outputs.channel }}"
           }
+      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
+      continue-on-error: true
 
     - name: Dispatch macOS and Windows builds
       uses: peter-evans/repository-dispatch@v1

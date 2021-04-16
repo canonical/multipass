@@ -3,13 +3,12 @@ name: Integration
 on:
   workflow_dispatch:
     inputs:
-      os:
-        description: OS to test on
-        required: true
-      package:
-        description: Package to test
-      channel:
-        description: Snap channel to test
+      snap-channel:
+        description: Snap Store channel
+      mac-package:
+        description: macOS package URL
+      win-package:
+        description: Windows package URL
 
 jobs:
   GetMatrix:
@@ -25,18 +24,24 @@ jobs:
       run: |
         set -euo pipefail
 
-        if [ '${{ github.event.inputs.os }}' == 'Linux' ]; then
-          echo '::set-output name=matrix::{"os": ["Linux"], "driver": ["qemu", "lxd"]}'
-          echo '::set-output name=bors-matrix::{"os": ["Linux"]}'
-        elif [ '${{ github.event.inputs.os }}' == 'macOS' ]; then
-          echo '::set-output name=matrix::{"os": ["macOS"], "driver": ["hyperkit"]}'
-          echo '::set-output name=bors-matrix::{"os": ["macOS"]}'
-        elif [ '${{ github.event.inputs.os }}' == 'Windows' ]; then
-          echo '::set-output name=matrix::{"os": ["Windows"], "driver": ["hyperv"]}'
-          echo '::set-output name=bors-matrix::{"os": ["Windows"]}'
+        MATRIX=""
+
+        if [ -n '${{ github.event.inputs.snap-channel }}' ]; then
+          MATRIX+='{"os": "Linux", "driver": "qemu"}'
+          MATRIX+='{"os": "Linux", "driver": "lxd"}'
         fi
 
-  Integration:
+        if [ -n '${{ github.event.inputs.mac-package }}' ]; then
+          MATRIX+='{"os": "macOS", "driver": "hyperkit"}'
+        fi
+
+        if [ -n '${{ github.event.inputs.win-package }}' ]; then
+          MATRIX+='{"os": "Windows", "driver": "hyperv"}'
+        fi
+
+        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
+
+  CI:
     needs: GetMatrix
 
     runs-on: testflinger
@@ -143,24 +148,18 @@ jobs:
               # Deal with incorrect running state
               _retry 10 60 _run $MP exec primary -- uname -a
 
-    - name: Submit and poll the job
+    - name: Submit the job
+      id: submit
       run: |
         JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
+        echo "::set-output name=job-id::${JOB_ID}"
+
+    - name: Poll the job and get the result
+      run: |
         testflinger-cli poll ${JOB_ID}
-        [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" -eq 0 ]
+        [ "$( testflinger-cli results ${{ steps.submit.outputs.job-id}} | jq -r .test_status )" -eq 0 ]
 
-  # Report result to Bors
-  CI:
-    needs:
-    - GetMatrix
-    - Integration
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix: ${{ fromJSON(needs.GetMatrix.outputs.bors-matrix) }}
-
-    steps:
-    - name: Report CI failure
-      if: ${{ needs.Integration.result != 'success' }}
-      run: exit 1
+    - name: Cancel the job
+      if: ${{ cancelled() }}
+      run: |
+       testflinger-cli cancel "${{ steps.submit.outputs.job-id }}"
