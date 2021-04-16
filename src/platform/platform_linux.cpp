@@ -138,6 +138,11 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return detail::get_network_interfaces_from(sysfs);
 }
 
+QString mp::platform::Platform::get_workflows_url_override()
+{
+    return QString::fromUtf8(qgetenv("MULTIPASS_WORKFLOWS_URL"));
+}
+
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
     return true;
