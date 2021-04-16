@@ -176,7 +176,10 @@ auto make_bridge_rollback_guard(const mpl::CString& log_category, const mpdbus::
         }
     };
 
-    return sg::make_scope_guard([rollback, log_category]() noexcept { mp::top_catch_all(log_category, rollback); });
+    return sg::make_scope_guard([rollback, log_category]() noexcept {
+        mpl::log(mpl::Level::info, log_category, "Rolling back bridge");
+        mp::top_catch_all(log_category, rollback);
+    });
 }
 
 } // namespace
@@ -319,7 +322,8 @@ void mp::backend::check_if_kvm_is_in_use()
 
 void mp::backend::create_bridge_with(const std::string& interface)
 {
-    static constexpr auto log_category = "create bridge";
+    static constexpr auto log_category_create = "create bridge";
+    static constexpr auto log_category_rollback = "rollback bridge";
     static const auto root_path = QDBusObjectPath{"/"};
     static const auto base_name = QStringLiteral("br-");
 
@@ -335,7 +339,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
 
     // TODO@ricab verify if suitable bridge exists
 
-    mpl::log(mpl::Level::debug, log_category, fmt::format("Creating bridge: {}", parent_name));
+    mpl::log(mpl::Level::debug, log_category_create, fmt::format("Creating bridge: {}", parent_name));
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
     const auto& [arg1, arg2] = make_connection_settings(parent_name, child_name, QString::fromStdString(interface));
@@ -343,8 +347,8 @@ void mp::backend::create_bridge_with(const std::string& interface)
     // The rollbacks could be achieved with
     //   `nmcli connection delete <parent_connection> <child_connection>
     QDBusObjectPath parent_path{}, child_path{};
-    auto rollback_guard = make_bridge_rollback_guard(log_category, system_bus, parent_path, child_path); /*
-                                                                               rollback unless we succeed */
+    auto rollback_guard = // rollback unless we succeed
+        make_bridge_rollback_guard(log_category_rollback, system_bus, parent_path, child_path);
 
     // The following DBus calls are roughly equivalent to:
     //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
@@ -356,7 +360,7 @@ void mp::backend::create_bridge_with(const std::string& interface)
     for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
 
     rollback_guard.dismiss(); // we succeeded!
-    mpl::log(mpl::Level::info, log_category, fmt::format("Created bridge: {}", parent_name));
+    mpl::log(mpl::Level::info, log_category_create, fmt::format("Created bridge: {}", parent_name));
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,
