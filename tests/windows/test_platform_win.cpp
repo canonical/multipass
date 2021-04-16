@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  */
 
 #include "tests/extra_assertions.h"
+#include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_settings.h"
 #include "tests/mock_standard_paths.h"
@@ -23,6 +24,8 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
+
+#include <src/platform/platform_proprietary.h>
 
 #include <QDateTime>
 #include <QDir>
@@ -152,6 +155,28 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
             mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingsException,
             Property(&mp::InvalidSettingsException::what,
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
+}
+
+TEST(PlatformWin, workflowsURLOverrideSetUnlockSetReturnsExpectedData)
+{
+    const QString fake_url{"https://a.fake.url"};
+    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", fake_url.toUtf8());
+    mpt::SetEnvScope unlock{"MULTIPASS_UNLOCK", mp::platform::unlock_code};
+
+    EXPECT_EQ(MP_PLATFORM.get_workflows_url_override(), fake_url);
+}
+
+TEST(PlatformWin, workflowsURLOverrideSetUnlockiNotSetReturnsEmptyString)
+{
+    const QString fake_url{"https://a.fake.url"};
+    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", fake_url.toUtf8());
+
+    EXPECT_TRUE(MP_PLATFORM.get_workflows_url_override().isEmpty());
+}
+
+TEST(PlatformWin, workflowsURLOverrideNotSetReturnsEmptyString)
+{
+    EXPECT_TRUE(MP_PLATFORM.get_workflows_url_override().isEmpty());
 }
 
 struct TestWinTermSyncLesserLogging : public TestWithParam<std::pair<QString, mpl::Level>>
