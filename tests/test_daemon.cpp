@@ -30,6 +30,7 @@
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_logger.h"
+#include "mock_platform.h"
 #include "mock_process_factory.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
@@ -102,10 +103,15 @@ struct Daemon : public mpt::DaemonTestFixture
         ON_CALL(*mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
             return mock_utils->Utils::filesystem_bytes_available(data_directory);
         });
+
+        EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
     }
 
     mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject()};
     NiceMock<mpt::MockUtils>* mock_utils = attr.first;
+
+    mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = platform_attr.first;
 };
 
 TEST_F(Daemon, receives_commands)
@@ -258,13 +264,15 @@ TEST_F(Daemon, workflowsDownloadsFromCorrectURL)
     EXPECT_EQ(downloader->downloaded_urls.front(), mp::default_workflow_url);
 }
 
-TEST_F(Daemon, workflowsURLOverrideEnvVarIsCorrect)
+TEST_F(Daemon, workflowsURLOverrideIsCorrect)
 {
     mpt::TempDir cache_dir;
     auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
     const QString test_workflows_zip{mpt::test_data_path() + "test-workflows.zip"};
 
-    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", QUrl::fromLocalFile(test_workflows_zip).toEncoded());
+    EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillOnce([&test_workflows_zip] {
+        return QUrl::fromLocalFile(test_workflows_zip).toEncoded();
+    });
 
     config_builder.cache_directory = cache_dir.path();
     config_builder.url_downloader = std::move(url_downloader);
