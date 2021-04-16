@@ -1,4 +1,4 @@
-status = [ "Linux", "CI (Linux)", "Windows", "CI (Windows)", "macOS", "CI (macOS)" ]
+status = [ "Linux", "CI (Linux, lxd)", "CI (Linux, qemu)", "macOS", "CI (macOS, hyperkit)", "Windows", "CI (Windows, hyperv)" ]
 block-labels = [ "no-merge" ]
 timeout-sec = 12000
 delete-merged-branches = true

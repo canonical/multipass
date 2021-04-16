@@ -250,8 +250,7 @@ jobs:
         workflow: Integration
         inputs: |
           {
-            "os": "Linux",
-            "channel": "${{ needs.BuildAndTest.outputs.channel }}"
+            "snap-channel": "${{ needs.BuildAndTest.outputs.channel }}"
           }
 
     - name: Dispatch macOS and Windows builds
