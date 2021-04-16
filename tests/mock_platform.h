@@ -31,6 +31,7 @@ class MockPlatform : public platform::Platform
 public:
     using Platform::Platform;
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
+    MOCK_METHOD0(get_workflows_url_override, QString());
     MOCK_METHOD1(is_remote_supported, bool(const std::string&));
     MOCK_METHOD2(is_alias_supported, bool(const std::string&, const std::string&));
     MOCK_METHOD3(chown, int(const char*, unsigned int, unsigned int));
