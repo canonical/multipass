@@ -506,7 +506,28 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
 
-// TODO@ricab check different exceptions within rollback
+TEST_F(CreateBridgeTest, logs_on_failure_to_rollback)
+{
+    const auto child_path = QStringLiteral("/child");
+    const auto error = 255;
+
+    EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
+        .WillOnce(Return(make_obj_path_reply("/asdf")))
+        .WillOnce(Return(make_obj_path_reply(child_path)));
+    EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _)).WillOnce(Throw(error));
+
+    inject_dbus_interfaces();
+
+    std::unique_ptr<MockDBusInterface> mock_nm_connection1 = std::make_unique<MockDBusInterface>();
+    EXPECT_CALL(*mock_nm_connection1, call_impl(_, Eq("Delete"), empty, empty, empty))
+        .WillOnce(Throw(std::runtime_error{"fail"}));
+    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(child_path),
+                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+        .WillOnce(Return(ByMove(std::move(mock_nm_connection1))));
+
+    // TODO@ricab verify error is logged
+    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("gigi"), int, Eq(error));
+}
 
 struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<bool>
 {
