@@ -24,6 +24,7 @@ add_executable(multipass_tests
   common.cpp
   file_operations.cpp
   image_host_remote_count.cpp
+  json_utils.cpp
   main.cpp
   mischievous_url_downloader.cpp
   mock_logger.cpp
