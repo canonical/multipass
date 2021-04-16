@@ -148,8 +148,18 @@ jobs:
               # Deal with incorrect running state
               _retry 10 60 _run $MP exec primary -- uname -a
 
-    - name: Submit and poll the job
+    - name: Submit the job
+      id: submit
       run: |
         JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
+        echo "::set-output name=job-id::${JOB_ID}"
+
+    - name: Poll the job and get the result
+      run: |
         testflinger-cli poll ${JOB_ID}
-        [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" -eq 0 ]
+        [ "$( testflinger-cli results ${{ steps.submit.outputs.job-id}} | jq -r .test_status )" -eq 0 ]
+
+    - name: Cancel the job
+      if: ${{ cancelled() }}
+      run: |
+       testflinger-cli cancel "${{ steps.submit.outputs.job-id }}"
