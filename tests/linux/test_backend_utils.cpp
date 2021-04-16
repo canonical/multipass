@@ -297,6 +297,11 @@ struct CreateBridgeTest : public Test
             .WillOnce(Return(ByMove(std::move(mock_nm_settings))));
     }
 
+    static auto make_obj_path_reply(const QString& obj_path)
+    {
+        return QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{obj_path}));
+    }
+
     static auto make_parent_connection_matcher(const char* child)
     {
         return Truly([child](const QVariant& arg) {
@@ -365,17 +370,17 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
         InSequence seq{};
         EXPECT_CALL(*mock_nm_settings,
                     call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(network), empty, empty))
-            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/a/b/c"}))));
+            .WillOnce(Return(make_obj_path_reply("/a/b/c")));
 
         EXPECT_CALL(*mock_nm_settings,
                     call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
-            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{child_obj_path}))));
+            .WillOnce(Return(make_obj_path_reply(child_obj_path)));
 
         auto null_obj_matcher = make_object_path_matcher(null_obj_path);
         auto child_obj_matcher = make_object_path_matcher(child_obj_path);
         EXPECT_CALL(*mock_nm_root, call_impl(QDBus::Block, Eq("ActivateConnection"), child_obj_matcher,
                                              null_obj_matcher, null_obj_matcher))
-            .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{"/active/obj/path"}))));
+            .WillOnce(Return(make_obj_path_reply("/active/obj/path")));
     }
 
     inject_dbus_interfaces();
@@ -445,7 +450,7 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
     const auto new_connection_path = QStringLiteral("/a/b/c");
 
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{new_connection_path}))))
+        .WillOnce(Return(make_obj_path_reply(new_connection_path)))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::UnknownMethod, msg)));
     EXPECT_CALL(*mock_nm_settings, interface).WillOnce(Return(ifc));
     EXPECT_CALL(*mock_nm_settings, path).WillOnce(Return(obj));
@@ -474,8 +479,8 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
     const auto new_connection_path2 = QStringLiteral("/bar");
 
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{new_connection_path1}))))
-        .WillOnce(Return(QDBusMessage{}.createReply(QVariant::fromValue(QDBusObjectPath{new_connection_path2}))));
+        .WillOnce(Return(make_obj_path_reply(new_connection_path1)))
+        .WillOnce(Return(make_obj_path_reply(new_connection_path2)));
 
     EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _))
         .WillOnce(Return(QDBusMessage::createError(QDBusError::InvalidArgs, msg)));
