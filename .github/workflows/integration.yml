@@ -116,14 +116,14 @@ jobs:
 
               if [ '${{ matrix.os }}' == 'Linux' ]; then
                 # Give snapd time to settle
-                _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.channel }}
+                _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.snap-channel }}
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
-                _run curl --location --output multipass.pkg ${{ github.event.inputs.package }}
+                _run curl --location --output multipass.pkg ${{ github.event.inputs.mac-package }}
                 _run sudo installer -dumplog -target / -pkg multipass.pkg
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
-                _ps "(New-Object System.Net.WebClient).DownloadFile('${{ github.event.inputs.package }}', 'multipass-installer.exe')"
+                _ps "(New-Object System.Net.WebClient).DownloadFile('${{ github.event.inputs.win-package }}', 'multipass-installer.exe')"
                 _run .\\multipass-installer.exe /S
 
                 _ps "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
@@ -148,8 +148,18 @@ jobs:
               # Deal with incorrect running state
               _retry 10 60 _run $MP exec primary -- uname -a
 
-    - name: Submit and poll the job
+    - name: Submit the job
+      id: submit
       run: |
         JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
-        testflinger-cli poll ${JOB_ID}
-        [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" -eq 0 ]
+        echo "::set-output name=job-id::${JOB_ID}"
+
+    - name: Poll the job and get the result
+      run: |
+        testflinger-cli poll "${{ steps.submit.outputs.job-id }}"
+        [ "$( testflinger-cli results ${{ steps.submit.outputs.job-id}} | jq -r .test_status )" -eq 0 ]
+
+    - name: Cancel the job
+      if: ${{ cancelled() && steps.submit.outputs.job-id != '' }}
+      run: |
+       testflinger-cli cancel "${{ steps.submit.outputs.job-id }}"
