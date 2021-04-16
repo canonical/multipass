@@ -19,11 +19,14 @@
 
 #include <gmock/gmock.h>
 
+#include "daemon_test_fixture.h"
 #include "fake_alias_config.h"
 #include "file_operations.h"
-#include "mock_standard_paths.h"
+#include "json_utils.h"
+#include "mock_vm_image_vault.h"
 
 #include "src/client/common/client_formatter.h"
+#include "src/daemon/daemon.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -33,11 +36,6 @@ namespace
 {
 struct AliasDictionary : public FakeAliasConfig, public Test
 {
-    AliasDictionary()
-    {
-        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
-            .WillRepeatedly(Return(fake_alias_dir.path()));
-    }
 };
 
 TEST_F(AliasDictionary, works_with_empty_file)
@@ -265,4 +263,38 @@ INSTANTIATE_TEST_SUITE_P(
                           std::vector<std::string>{"other_alias", "yet_another_alias"}),
            std::make_pair(AliasesVector{{"alias", {"instance", "command"}}}, std::vector<std::string>{"alias"}),
            std::make_pair(AliasesVector{{"alias", {"instance_to_remove", "command"}}}, std::vector<std::string>{})));
+
+struct DaemonAlias : public mpt::DaemonTestFixture, public FakeAliasConfig
+{
+};
+
+TEST_F(DaemonAlias, purge_removes_purged_instance_aliases)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string json_contents = make_instance_json();
+
+    populate_db_file(AliasesVector{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}});
+
+    mpt::TempDir temp_dir;
+    QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
+
+    mpt::make_file_with_content(filename, json_contents);
+
+    // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
+    config_builder.data_directory = temp_dir.path();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"aliases", "--format", "csv"}, stream);
+    EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\nlsz,real-zebraphant,ls\n");
+
+    send_command({"delete", "real-zebraphant"});
+    send_command({"purge"});
+
+    stream.str({});
+    send_command({"aliases", "--format", "csv"}, stream);
+    EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\n");
+}
+
 } // namespace

@@ -21,17 +21,28 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
 
+#include "mock_standard_paths.h"
 #include "temp_dir.h"
+
+#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+using namespace testing;
 
 namespace
 {
 struct FakeAliasConfig
 {
+    FakeAliasConfig()
+    {
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
+            .WillRepeatedly(Return(fake_alias_dir.path()));
+    }
+
     std::string db_filename()
     {
+
         const auto file_name = QStringLiteral("%1/%1_aliases.json").arg(mp::client_name);
 
         return fake_alias_dir.filePath(file_name).toStdString();
