@@ -169,7 +169,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     if (workflow_provider == nullptr)
     {
-        auto workflow_provider_url = QString::fromUtf8(qgetenv("MULTIPASS_WORKFLOWS_URL"));
+        auto workflow_provider_url = MP_PLATFORM.get_workflows_url_override();
 
         if (!workflow_provider_url.isEmpty())
             workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(
