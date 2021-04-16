@@ -374,14 +374,16 @@ jobs:
 
     - name: Dispatch integration tests
       if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
-      uses: benc-uk/workflow-dispatch@v1
+      uses: Saviq/workflow-dispatch@dist
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         repo: ${{ github.event.client_payload.repository }}
         ref: ${{ github.event.client_payload.ref }}
+        sha: ${{ github.event.client_payload.sha }}
         workflow: Integration
         inputs: |
           {
-            "os": "${{ runner.os }}",
-            "package": "${{ steps.s3-upload.outputs.url }}"
+            "${{ runner.os == 'macOS' && 'mac-' || 'win-' }}package": "${{ steps.s3-upload.outputs.url }}"
           }
+      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
+      continue-on-failure: true
