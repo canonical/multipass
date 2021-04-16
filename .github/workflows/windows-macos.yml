@@ -386,4 +386,4 @@ jobs:
             "${{ runner.os == 'macOS' && 'mac-' || 'win-' }}package": "${{ steps.s3-upload.outputs.url }}"
           }
       # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
-      continue-on-failure: true
+      continue-on-error: true
