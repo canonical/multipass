@@ -46,7 +46,8 @@ jobs:
 
     runs-on: testflinger
 
-    timeout-minutes: 30
+    # Windows is pretty slow unfortunately.
+    timeout-minutes: 40
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
@@ -156,7 +157,7 @@ jobs:
               _retry_grep 12 5 "\w,lts\W" _run $MP find
               sleep 10
 
-              _run $MP start --timeout 600
+              _run $MP start --timeout 1200
 
               _run $MP list
 
