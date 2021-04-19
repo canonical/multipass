@@ -19,16 +19,13 @@
 #define MULTIPASS_CMD_EXCEPTIONS_H
 
 #include <stdexcept>
-#include <string>
 
 namespace multipass
 {
 class ValidationException : public std::runtime_error
 {
 public:
-    ValidationException(const std::string& msg) : runtime_error{msg}
-    {
-    }
+    using std::runtime_error::runtime_error;
 };
 
 } // namespace multipass

@@ -168,11 +168,12 @@ QString multipass::cmd::describe_settings_keys()
 
 void multipass::cmd::add_timeout(multipass::ArgParser* parser)
 {
-    QCommandLineOption timeout_option("timeout",
-                                      QString("Maximum time, in seconds, to wait for either the instance starting"
-                                              " or initialization to complete.\nDefault: %1")
-                                          .arg(std::chrono::seconds(multipass::default_timeout).count()),
-                                      "timeout");
+    QCommandLineOption timeout_option(
+        "timeout",
+        QString("Maximum time, in seconds, to wait for either the instance starting"
+                " or initialization to complete.\nDefault: %1")
+            .arg(std::chrono::duration_cast<std::chrono::seconds>(multipass::default_timeout).count()),
+        "timeout");
     parser->addOption(timeout_option);
 }
 
@@ -183,7 +184,7 @@ int multipass::cmd::parse_timeout(const multipass::ArgParser* parser)
         bool ok;
         const auto timeout = parser->value("timeout").toInt(&ok);
         if (!ok || timeout <= 0)
-            throw mp::ValidationException("error: --timeout value has to greater than 0");
+            throw mp::ValidationException("--timeout value has to be a positive integer");
         return timeout;
     }
     return -1;

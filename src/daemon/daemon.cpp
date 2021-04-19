@@ -1565,12 +1565,7 @@ try // clang-format on
 {
     mpl::ClientLogger<StartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    std::chrono::seconds timeout(mp::default_timeout);
-
-    if (request->timeout() > 0)
-    {
-        timeout = std::chrono::seconds(request->timeout());
-    }
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
     if (!instances_running(vm_instances))
         config->factory->hypervisor_health_check();
@@ -1704,12 +1699,7 @@ try // clang-format on
 {
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    std::chrono::seconds timeout(mp::default_timeout);
-
-    if (request->timeout() > 0)
-    {
-        timeout = std::chrono::seconds(request->timeout());
-    }
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
     auto [instances, status] =
         find_requested_instances(request->instance_names().instance_name(), vm_instances,
@@ -2022,12 +2012,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 {
     auto checked_args = validate_create_arguments(request, *config->factory);
 
-    std::chrono::seconds timeout(mp::default_timeout);
-
-    if (request->timeout() > 0)
-    {
-        timeout = std::chrono::seconds(request->timeout());
-    }
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
     if (!checked_args.option_errors.error_codes().empty())
     {

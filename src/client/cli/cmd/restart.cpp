@@ -81,18 +81,18 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 
     auto status = parser->commandParse(this);
 
+    if (status != ParseCode::Ok)
+        return status;
+
     try
     {
         request.set_timeout(mp::cmd::parse_timeout(parser));
     }
     catch (const mp::ValidationException& e)
     {
-        cerr << e.what() << std::endl;
+        cerr << "error: " << e.what() << std::endl;
         return ParseCode::CommandLineError;
     }
-
-    if (status != ParseCode::Ok)
-        return status;
 
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
     if (parse_code != ParseCode::Ok)

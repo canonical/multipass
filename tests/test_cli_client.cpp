@@ -1941,7 +1941,7 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
 const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell"};
 const std::vector<std::string> valid_timeouts{"120", "1234567"};
-const std::vector<std::string> invalid_timeouts{"-1", "0", "a", ""};
+const std::vector<std::string> invalid_timeouts{"-1", "0", "a", "3min", ""};
 
 struct TimeoutCorrectSuite : Client, WithParamInterface<std::tuple<std::string, std::string>>
 {
@@ -1983,7 +1983,7 @@ TEST_P(TimeoutInvalidSuite, cmds_with_invalid_timeout_bad)
     EXPECT_THAT(send_command({command, "--timeout", timeout}, trash_stream, cerr_stream),
                 Eq(mp::ReturnCode::CommandLineError));
 
-    EXPECT_EQ(cerr_stream.str(), "error: --timeout value has to greater than 0\n");
+    EXPECT_EQ(cerr_stream.str(), "error: --timeout value has to be a positive integer\n");
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, TimeoutInvalidSuite, Combine(ValuesIn(timeout_commands), ValuesIn(invalid_timeouts)));

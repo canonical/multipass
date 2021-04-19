@@ -124,19 +124,19 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 
     auto status = parser->commandParse(this);
 
+    if (status != ParseCode::Ok)
+    {
+        return status;
+    }
+
     try
     {
         mp::cmd::parse_timeout(parser);
     }
     catch (const mp::ValidationException& e)
     {
-        cerr << e.what() << std::endl;
+        cerr << "error: " << e.what() << std::endl;
         return ParseCode::CommandLineError;
-    }
-
-    if (status != ParseCode::Ok)
-    {
-        return status;
     }
 
     const auto pos_args = parser->positionalArguments();
