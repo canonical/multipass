@@ -185,9 +185,8 @@ TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
 
 TEST_F(Daemon, proxy_contains_valid_info)
 {
-    auto guard = sg::make_scope_guard([] {
-        // Resets proxy back to what the system is configured for
-        QNetworkProxyFactory::setUseSystemConfiguration(true);
+    auto guard = sg::make_scope_guard([]() noexcept {          // std::terminate ok if this throws
+        QNetworkProxyFactory::setUseSystemConfiguration(true); // Resets proxy back to what the system is configured for
     });
 
     QString username{"username"};

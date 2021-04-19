@@ -61,7 +61,10 @@ void setup_driver_settings(const QString& driver)
 // hold on to return until the change is to be discarded
 auto temporarily_change_env(const char* var_name, QByteArray var_value)
 {
-    auto guard = sg::make_scope_guard([var_name, var_save = qgetenv(var_name)]() { qputenv(var_name, var_save); });
+    auto guard = sg::make_scope_guard([var_name, var_save = qgetenv(var_name)]() noexcept { // terminate ok if it throws
+        qputenv(var_name, var_save);
+    });
+
     qputenv(var_name, var_value);
 
     return guard;
@@ -99,7 +102,7 @@ auto setup_autostart_desktop_file_test()
 
     // Now mock filesystem tree and environment, reverting when done
 
-    auto guard_fs = sg::make_scope_guard([test_dir]() mutable {
+    auto guard_fs = sg::make_scope_guard([test_dir]() mutable noexcept { // std::terminate ok if this throws
         test_dir.removeRecursively(); // succeeds if not there
     });
 
