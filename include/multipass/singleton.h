@@ -35,9 +35,9 @@ public:
     using Base = PrivatePassProvider<Singleton<T>>;
     using PrivatePass = typename Base::PrivatePass;
 
-    constexpr Singleton(const PrivatePass&);
+    constexpr Singleton(const PrivatePass&) noexcept;
     virtual ~Singleton() = default;
-    static T& instance();
+    static T& instance() noexcept(noexcept(T(Base::pass)));
 
     // non-copyable
     Singleton(const Singleton&) = delete;
@@ -47,12 +47,12 @@ public:
 
 protected:
     template <typename U, typename = std::enable_if_t<std::is_base_of<T, U>::value>>
-    static void mock();  // only works if instance not called yet, or after reset
+    static void mock() noexcept(noexcept(U(Base::pass))); // only works if instance not called yet, or after reset
     static void reset() noexcept; // not thread-safe, make sure no other threads using this singleton anymore!
 
 private:
     template <typename U>
-    static void init();
+    static void init() noexcept(noexcept(U(Base::pass)));
 
     static std::unique_ptr<std::once_flag> once;
     static std::unique_ptr<T> single;
@@ -61,7 +61,7 @@ private:
 } // namespace multipass
 
 template <typename T>
-inline constexpr multipass::Singleton<T>::Singleton(const multipass::Singleton<T>::PrivatePass&)
+inline constexpr multipass::Singleton<T>::Singleton(const multipass::Singleton<T>::PrivatePass&) noexcept
 {
 }
 
@@ -73,13 +73,13 @@ std::unique_ptr<T> multipass::Singleton<T>::single = nullptr;
 
 template <typename T>
 template <typename U, typename>
-inline void multipass::Singleton<T>::mock()
+inline void multipass::Singleton<T>::mock() noexcept(noexcept(U(Base::pass)))
 {
     init<U>();
 }
 
 template <typename T>
-inline T& multipass::Singleton<T>::instance()
+inline T& multipass::Singleton<T>::instance() noexcept(noexcept(T(Base::pass)))
 {
     init<T>();
     return *single;
@@ -94,7 +94,7 @@ inline void multipass::Singleton<T>::reset() noexcept
 
 template <typename T>
 template <typename U>
-inline void multipass::Singleton<T>::init()
+inline void multipass::Singleton<T>::init() noexcept(noexcept(U(Base::pass)))
 {
     std::call_once(*once, [] { single = std::make_unique<U>(Base::pass); });
 }
