@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 namespace mp = multipass;
 
-mp::StandardPaths::StandardPaths(const Singleton<StandardPaths>::PrivatePass& pass)
+mp::StandardPaths::StandardPaths(const Singleton<StandardPaths>::PrivatePass& pass) noexcept
     : Singleton<StandardPaths>::Singleton{pass}
 {
 }

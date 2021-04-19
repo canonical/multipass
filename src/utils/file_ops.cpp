@@ -19,7 +19,7 @@
 
 namespace mp = multipass;
 
-mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) : Singleton<FileOps>::Singleton{pass}
+mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Singleton<FileOps>::Singleton{pass}
 {
 }
 
