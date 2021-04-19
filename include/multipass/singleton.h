@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ public:
 protected:
     template <typename U, typename = std::enable_if_t<std::is_base_of<T, U>::value>>
     static void mock();  // only works if instance not called yet, or after reset
-    static void reset(); // not thread-safe, make sure no other threads using this singleton anymore!
+    static void reset() noexcept; // not thread-safe, make sure no other threads using this singleton anymore!
 
 private:
     template <typename U>
@@ -86,7 +86,7 @@ inline T& multipass::Singleton<T>::instance()
 }
 
 template <typename T>
-inline void multipass::Singleton<T>::reset()
+inline void multipass::Singleton<T>::reset() noexcept
 {
     once = std::make_unique<std::once_flag>(); // flag itself not assignable, so we use a ptr
     single.reset(nullptr);
