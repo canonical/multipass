@@ -63,6 +63,7 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_
             [this](QProcess::ProcessError error) { emit mp::Process::error_occurred(error, error_string()); });
     connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
     connect(&process, &QProcess::readyReadStandardError, this, &mp::Process::ready_read_standard_error);
+    connect(&process, &QProcess::stateChanged, this, &mp::Process::state_changed);
 
     process.setProgram(process_spec->program());
     process.setArguments(process_spec->arguments());
