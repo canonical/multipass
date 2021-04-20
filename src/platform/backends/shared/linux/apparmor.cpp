@@ -125,7 +125,6 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
 void mp::AppArmor::next_exec_under_policy(const QByteArray& aa_policy_name) const
 {
     int ret = aa_change_onexec(aa_policy_name.constData());
-    mpl::log(mpl::Level::debug, "daemon", fmt::format("Applying AppArmor policy: {}", aa_policy_name));
 
     if (ret < 0)
     {
