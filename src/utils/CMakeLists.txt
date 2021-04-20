@@ -18,6 +18,7 @@ add_library(utils STATIC
   settings.cpp
   snap_utils.cpp
   standard_paths.cpp
+  timer.cpp
   utils.cpp
   vm_image_vault_utils.cpp)
 
