@@ -38,6 +38,10 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
+#include <QDir>
+#include <QFile>
+#include <QString>
+#include <QTextStream>
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
@@ -46,6 +50,22 @@ namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 
+// Fetch the ARP protocol HARDWARE identifier.
+int get_net_type(const QDir& net_dir) // types defined in if_arp.h
+{
+    static constexpr auto default_ret = -1;
+    static const auto type_filename = QStringLiteral("type");
+
+    QFile type_file{net_dir.filePath(type_filename)};
+    if (type_file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        bool ok;
+        auto got = QTextStream{&type_file}.read(6).toInt(&ok); // 6 chars enough for up to 0xFFFF; 0 returned on failure
+        return ok ? got : default_ret;
+    }
+
+    return default_ret;
+}
 mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
     std::string type, description;
