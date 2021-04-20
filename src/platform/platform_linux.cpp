@@ -40,6 +40,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QRegularExpression>
 #include <QString>
 #include <QTextStream>
 namespace mp = multipass;
@@ -65,6 +66,22 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
     }
 
     return default_ret;
+}
+
+// device types found in Linux source (in drivers/net/): PHY, bareudp, bond, geneve, gtp, macsec, ppp, vxlan, wlan, wwan
+// should be empty for ethernet
+QString get_net_devtype(const QDir& net_dir)
+{
+    // TODO@ricab extract constants
+    QFile uevent_file{net_dir.filePath("uevent")};
+    if (uevent_file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        QRegularExpression devtype_regex{"^DEVTYPE=(?<type>.*)$"};
+        auto contents = QTextStream{&uevent_file}.read(5000);
+        return devtype_regex.match(contents).captured("type");
+    }
+
+    return {};
 }
 mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
