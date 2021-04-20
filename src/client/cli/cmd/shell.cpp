@@ -24,6 +24,10 @@
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/settings.h>
 #include <multipass/ssh/ssh_client.h>
+#include <multipass/timer.h>
+
+#include <chrono>
+#include <csignal>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -38,11 +42,25 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
+    std::unique_ptr<mp::utils::Timer> timer;
+
+    if (parser->isSet("timeout"))
+    {
+        timer = std::make_unique<mp::utils::Timer>(std::chrono::seconds(parser->value("timeout").toInt()), []() {
+            std::cerr << "Timed out waiting for instance to start." << std::endl;
+            std::raise(SIGINT);
+        });
+        timer->start();
+    }
+
     // We can assume the first array entry since `shell` only uses one instance
     // at a time
     auto instance_name = request.instance_name()[0];
 
-    auto on_success = [this](mp::SSHInfoReply& reply) {
+    auto on_success = [this, &timer](mp::SSHInfoReply& reply) {
+        if (timer)
+            timer->stop();
+
         // TODO: mainly for testing - need a better way to test parsing
         if (reply.ssh_info().empty())
             return ReturnCode::Ok;

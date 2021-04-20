@@ -35,6 +35,7 @@
 #include <QFileInfo>
 #include <QTimeZone>
 
+#include <csignal>
 #include <regex>
 #include <unordered_map>
 
@@ -108,6 +109,7 @@ auto net_digest(const QString& options)
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
+    arg_parser = parser;
     petenv_name = MP_SETTINGS.get(petenv_key);
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
     {
@@ -322,6 +324,17 @@ mp::ReturnCode cmd::Launch::request_launch()
 {
     mp::AnimatedSpinner spinner{cout};
 
+    if (arg_parser->isSet("timeout") && !timer)
+    {
+        timer = std::make_unique<multipass::utils::Timer>(
+            std::chrono::seconds(arg_parser->value("timeout").toInt()), [&spinner]() {
+                spinner.stop();
+                std::cerr << "Timed out waiting for instance launch." << std::endl;
+                std::raise(SIGINT);
+            });
+        timer->start();
+    }
+
     auto on_success = [this, &spinner](mp::LaunchReply& reply) {
         spinner.stop();
 
@@ -329,6 +342,9 @@ mp::ReturnCode cmd::Launch::request_launch()
         {
             if (term->is_live())
             {
+                if (timer)
+                    timer->pause();
+
                 cout << "One quick question before we launch … Would you like to help\n"
                      << "the Multipass developers, by sending anonymous usage data?\n"
                      << "This includes your operating system, which images you use,\n"
@@ -371,6 +387,8 @@ mp::ReturnCode cmd::Launch::request_launch()
                     }
                 }
             }
+            if (timer)
+                timer->resume();
             return request_launch();
         }
 

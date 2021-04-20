@@ -24,6 +24,10 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/settings.h>
+#include <multipass/timer.h>
+
+#include <chrono>
+#include <csignal>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -45,6 +49,20 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
 
     spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
     request.set_verbosity_level(parser->verbosityLevel());
+
+    std::unique_ptr<multipass::utils::Timer> timer;
+
+    if (parser->isSet("timeout"))
+    {
+        timer = std::make_unique<multipass::utils::Timer>(
+            std::chrono::seconds(parser->value("timeout").toInt()), [&spinner]() {
+                spinner.stop();
+                std::cerr << "Timed out waiting for instance to restart." << std::endl;
+                std::raise(SIGINT);
+            });
+        timer->start();
+    }
+
     return dispatch(&RpcMethod::restart, request, on_success, on_failure);
 }
 

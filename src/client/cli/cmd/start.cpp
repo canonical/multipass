@@ -23,14 +23,19 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/settings.h>
+#include <multipass/timer.h>
 
 #include <fmt/ostream.h>
 
 #include <cassert>
+#include <chrono>
+#include <csignal>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
+
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -106,6 +111,19 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
+
+    std::unique_ptr<multipass::utils::Timer> timer;
+
+    if (parser->isSet("timeout"))
+    {
+        timer = std::make_unique<multipass::utils::Timer>(
+            std::chrono::seconds(parser->value("timeout").toInt()), [&spinner]() {
+                spinner.stop();
+                std::cerr << "Timed out waiting for instance to start." << std::endl;
+                std::raise(SIGINT);
+            });
+        timer->start();
+    }
 
     ReturnCode return_code;
     do
