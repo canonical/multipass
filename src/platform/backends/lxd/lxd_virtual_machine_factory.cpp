@@ -174,6 +174,8 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
                                                                      : lxd_description.toStdString();
 
                         ret.push_back({std::move(id), std::move(type), std::move(description)});
+
+                        platform_networks.erase(platform_it); // prevent matching with this network again
                     }
                 }
             }
