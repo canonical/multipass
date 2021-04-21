@@ -43,6 +43,9 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QTextStream>
+
+#include <linux/if_arp.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
@@ -105,6 +108,12 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
         QStringList bridge_members = QDir{net_dir.filePath("brif")}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
         description = bridge_members.isEmpty() ? "Empty network bridge"
                                                : fmt::format("Network bridge with {}", bridge_members.join(", "));
+    }
+    else if (!is_virtual_net(net_dir) && !net_dir.exists("wireless") && get_net_type(net_dir) == ARPHRD_ETHER &&
+             get_net_devtype(net_dir).isEmpty())
+    {
+        type = "ethernet";
+        description = "Ethernet device";
     }
 
     return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description)};
