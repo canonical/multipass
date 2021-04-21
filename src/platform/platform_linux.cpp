@@ -77,13 +77,15 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
 // should be empty for ethernet
 QString get_net_devtype(const QDir& net_dir)
 {
-    // TODO@ricab extract constants
-    QFile uevent_file{net_dir.filePath("uevent")};
+    static constexpr auto max_read = 5000;
+    static const auto uevent_filename = QStringLiteral("uevent");
+    static const auto devtype_regex = QRegularExpression{QStringLiteral("^DEVTYPE=(.*)$")};
+
+    QFile uevent_file{net_dir.filePath(uevent_filename)};
     if (uevent_file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        QRegularExpression devtype_regex{"^DEVTYPE=(?<type>.*)$"};
-        auto contents = QTextStream{&uevent_file}.read(5000);
-        return devtype_regex.match(contents).captured("type");
+        auto contents = QTextStream{&uevent_file}.read(max_read);
+        return devtype_regex.match(contents).captured(1);
     }
 
     mpl::log(mpl::Level::debug, category, fmt::format("Could not read {}", uevent_file.fileName()));
@@ -108,12 +110,13 @@ bool is_ether_net(const QDir& net_dir)
 
 mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
-    // TODO@ricab extract constants
+    static const auto bridge_fname = QStringLiteral("brif");
+
     std::string type, description;
     if (auto bridge = "bridge"; net_dir.exists(bridge))
     {
         type = bridge;
-        QStringList bridge_members = QDir{net_dir.filePath("brif")}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
         description = bridge_members.isEmpty() ? "Empty network bridge"
                                                : fmt::format("Network bridge with {}", bridge_members.join(", "));
     }
@@ -129,7 +132,8 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
-    return detail::get_network_interfaces_from(QDir{QStringLiteral("/sys/class/net")});
+    static const auto sysfs = QDir{QStringLiteral("/sys/class/net")};
+    return detail::get_network_interfaces_from(sysfs);
 }
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
