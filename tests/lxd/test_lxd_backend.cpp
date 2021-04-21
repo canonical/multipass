@@ -1778,7 +1778,7 @@ TEST_F(LXDBackend, falls_back_to_bridge_description_from_platform)
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "mac", fallback_desc}}}));
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "bridge", fallback_desc}}}));
 
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
