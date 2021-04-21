@@ -50,6 +50,7 @@ namespace mu = multipass::utils;
 namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
+constexpr auto category = "Linux platform";
 
 // Fetch the ARP protocol HARDWARE identifier.
 int get_net_type(const QDir& net_dir) // types defined in if_arp.h
@@ -65,6 +66,7 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
         return ok ? got : default_ret;
     }
 
+    mpl::log(mpl::Level::debug, category, fmt::format("Could not read {}", type_file.fileName()));
     return default_ret;
 }
 
@@ -81,6 +83,7 @@ QString get_net_devtype(const QDir& net_dir)
         return devtype_regex.match(contents).captured("type");
     }
 
+    mpl::log(mpl::Level::debug, category, fmt::format("Could not read {}", uevent_file.fileName()));
     return {};
 }
 
