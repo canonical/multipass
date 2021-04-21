@@ -158,7 +158,7 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
     if (!networks.isEmpty())
     {
         auto platform_networks = MP_PLATFORM.get_network_interfaces_info();
-        for (const auto& net_value : networks)
+        for (const QJsonValueRef net_value : networks)
         {
             auto network = net_value.toObject();
             if (auto qid = network["name"].toString(); !qid.isEmpty())
