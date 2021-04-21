@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <string>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -65,14 +66,21 @@ public:
 TEST_F(TopCatchAll, calls_function_with_no_args)
 {
     int ret = 123, got = 0;
-    EXPECT_NO_THROW(got = mp::top_catch_all("", [ret] { return ret; }););
+    EXPECT_NO_THROW(got = mp::top_catch_all("", EXIT_FAILURE, [ret] { return ret; }););
+    EXPECT_EQ(got, ret);
+}
+
+TEST_F(TopCatchAll, calls_function_with_other_return)
+{
+    std::string ret{"abc"}, got;
+    EXPECT_NO_THROW(got = mp::top_catch_all("", "unused", [&ret] { return ret; }););
     EXPECT_EQ(got, ret);
 }
 
 TEST_F(TopCatchAll, calls_function_with_args)
 {
     int a = 5, b = 7, got = 0;
-    EXPECT_NO_THROW(got = mp::top_catch_all("", std::plus<int>{}, a, b););
+    EXPECT_NO_THROW(got = mp::top_catch_all("", EXIT_FAILURE, std::plus<int>{}, a, b););
     EXPECT_EQ(got, a + b);
 }
 
@@ -82,7 +90,7 @@ TEST_F(TopCatchAll, handles_unknown_error)
 
     EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
                                                mpt::MockLogger::make_cstring_matcher(HasSubstr("unknown"))));
-    EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, EXIT_FAILURE, [] {
                         throw 123;
                         return 0;
                     }););
@@ -97,7 +105,7 @@ TEST_F(TopCatchAll, handles_standard_exception)
 
     EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
                                                mpt::MockLogger::make_cstring_matcher(msg_matcher)));
-    EXPECT_NO_THROW(got = mp::top_catch_all(category, [&emsg] {
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, EXIT_FAILURE, [&emsg] {
                         throw std::runtime_error{emsg};
                         return 0;
                     }););
@@ -111,9 +119,38 @@ TEST_F(TopCatchAll, handles_custom_exception)
 
     EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
                                                mpt::MockLogger::make_cstring_matcher(msg_matcher)));
-    EXPECT_NO_THROW(got = mp::top_catch_all(category, [] {
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, EXIT_FAILURE, [] {
                         throw CustomExceptionForTesting{};
                         return 42;
                     }));
     EXPECT_EQ(got, EXIT_FAILURE);
+}
+
+TEST_F(TopCatchAll, uses_fallback_object_of_other_types_on_exception)
+{
+    std::string fallback{"default"}, got;
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), _, _)).Times(1);
+    EXPECT_NO_THROW(got = mp::top_catch_all(category, fallback, []() -> std::string { throw 31; }));
+    EXPECT_EQ(got, fallback);
+}
+
+TEST_F(TopCatchAll, calls_void_callable)
+{
+    auto ran = false;
+    EXPECT_NO_THROW(mp::top_catch_all("", [&ran] { ran = true; }));
+    EXPECT_TRUE(ran);
+}
+
+TEST_F(TopCatchAll, handles_unknown_error_in_void_callable)
+{
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                               mpt::MockLogger::make_cstring_matcher(HasSubstr("unknown"))));
+    EXPECT_NO_THROW(mp::top_catch_all(category, [] { throw 123; }));
+}
+
+TEST_F(TopCatchAll, handles_exception_in_void_callable)
+{
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(),
+                                               mpt::MockLogger::make_cstring_matcher(HasSubstr("exception"))));
+    EXPECT_NO_THROW(mp::top_catch_all(category, [] { throw std::exception{}; }));
 }

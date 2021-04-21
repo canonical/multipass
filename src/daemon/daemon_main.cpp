@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -133,5 +133,5 @@ int main_impl(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    return mp::top_catch_all("daemon", main_impl, argc, argv);
+    return mp::top_catch_all("daemon", /* fallback_return = */ EXIT_FAILURE, main_impl, argc, argv);
 }
