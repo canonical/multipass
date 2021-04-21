@@ -98,6 +98,14 @@ bool is_virtual_net(const QDir& net_dir)
     return net_dir.canonicalPath().contains(virtual_dir, Qt::CaseInsensitive);
 }
 
+bool is_ether_net(const QDir& net_dir)
+{
+    static const auto wireless = QStringLiteral("wireless");
+
+    return !is_virtual_net(net_dir) && !net_dir.exists(wireless) && get_net_type(net_dir) == ARPHRD_ETHER &&
+           get_net_devtype(net_dir).isEmpty();
+}
+
 mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
     // TODO@ricab extract constants
@@ -109,8 +117,7 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
         description = bridge_members.isEmpty() ? "Empty network bridge"
                                                : fmt::format("Network bridge with {}", bridge_members.join(", "));
     }
-    else if (!is_virtual_net(net_dir) && !net_dir.exists("wireless") && get_net_type(net_dir) == ARPHRD_ETHER &&
-             get_net_devtype(net_dir).isEmpty())
+    else if (is_ether_net(net_dir))
     {
         type = "ethernet";
         description = "Ethernet device";
