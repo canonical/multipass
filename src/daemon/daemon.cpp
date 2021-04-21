@@ -215,7 +215,7 @@ std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& recor
 
     if (record.contains("extra_interfaces"))
     {
-        for (const auto& entry : record["extra_interfaces"].toArray())
+        for (QJsonValueRef entry : record["extra_interfaces"].toArray())
         {
             auto id = entry.toObject()["id"].toString().toStdString();
             auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
