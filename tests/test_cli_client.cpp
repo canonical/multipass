@@ -40,8 +40,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <csignal>
 #include <initializer_list>
 #include <sstream>
+#include <thread>
 #include <utility>
 
 namespace mp = multipass;
@@ -1987,5 +1990,67 @@ TEST_P(TimeoutInvalidSuite, cmds_with_invalid_timeout_bad)
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, TimeoutInvalidSuite, Combine(ValuesIn(timeout_commands), ValuesIn(invalid_timeouts)));
+
+static volatile std::sig_atomic_t signalStatus;
+
+struct InterruptedTimeoutSuite : Client, WithParamInterface<std::string>
+{
+    void SetUp() override
+    {
+        Client::SetUp();
+
+        ON_CALL(mock_daemon, launch).WillByDefault(request_sleeper<mp::LaunchRequest, mp::LaunchReply>);
+        ON_CALL(mock_daemon, start).WillByDefault(request_sleeper<mp::StartRequest, mp::StartReply>);
+        ON_CALL(mock_daemon, restart).WillByDefault(request_sleeper<mp::RestartRequest, mp::RestartReply>);
+        ON_CALL(mock_daemon, ssh_info).WillByDefault(request_sleeper<mp::SSHInfoRequest, mp::SSHInfoReply>);
+
+        signalStatus = 0;
+        std::signal(SIGINT, signal_handler);
+    }
+
+    void TearDown() override
+    {
+        std::signal(SIGINT, SIG_DFL);
+        Client::TearDown();
+    }
+
+    static void signal_handler(int signal)
+    {
+        std::signal(signal, SIG_DFL);
+        signalStatus = signal;
+    }
+
+    template <typename RequestType, typename ReplyType>
+    static grpc::Status request_sleeper(grpc::ServerContext* context, const RequestType* request,
+                                        grpc::ServerWriter<ReplyType>* response)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        return grpc::Status::OK;
+    }
+};
+
+TEST_P(InterruptedTimeoutSuite, command_sigints_on_timeout)
+{
+    EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
+    ASSERT_THAT(send_command({GetParam(), "--timeout", "1"}), Eq(mp::ReturnCode::Ok));
+
+    EXPECT_EQ(signalStatus, SIGINT);
+}
+
+TEST_P(InterruptedTimeoutSuite, command_completes_without_timeout)
+{
+    EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
+    ASSERT_THAT(send_command({GetParam(), "--timeout", "5"}), Eq(mp::ReturnCode::Ok));
+
+    EXPECT_EQ(signalStatus, 0);
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, InterruptedTimeoutSuite, ValuesIn(timeout_commands));
 
 } // namespace
