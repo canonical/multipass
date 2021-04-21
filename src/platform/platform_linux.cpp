@@ -83,8 +83,18 @@ QString get_net_devtype(const QDir& net_dir)
 
     return {};
 }
+
+bool is_virtual_net(const QDir& net_dir)
+{
+    static const auto virtual_dir = QStringLiteral("virtual");
+
+    auto fixme = net_dir.canonicalPath();
+    return net_dir.canonicalPath().contains(virtual_dir, Qt::CaseInsensitive);
+}
+
 mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
+    // TODO@ricab extract constants
     std::string type, description;
     if (auto bridge = "bridge"; net_dir.exists(bridge))
     {
