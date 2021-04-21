@@ -170,9 +170,11 @@ void multipass::cmd::add_timeout(multipass::ArgParser* parser)
 {
     QCommandLineOption timeout_option(
         "timeout",
-        QString("Maximum time, in seconds, to wait for either the instance starting"
-                " or initialization to complete.\nDefault: %1")
-            .arg(std::chrono::duration_cast<std::chrono::seconds>(multipass::default_timeout).count()),
+        QString("Maximum time, in seconds, to wait for the command to complete. "
+                "Note that some background operations may continue beyond that. "
+                "By default, instance startup and initialization is limited to "
+                "%1 minutes each.")
+            .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout).count()),
         "timeout");
     parser->addOption(timeout_option);
 }
