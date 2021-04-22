@@ -79,7 +79,8 @@ QString get_net_devtype(const QDir& net_dir)
 {
     static constexpr auto max_read = 5000;
     static const auto uevent_filename = QStringLiteral("uevent");
-    static const auto devtype_regex = QRegularExpression{QStringLiteral("^DEVTYPE=(.*)$")};
+    static const auto devtype_regex =
+        QRegularExpression{QStringLiteral("^DEVTYPE=(.*)$"), QRegularExpression::MultilineOption};
 
     QFile uevent_file{net_dir.filePath(uevent_filename)};
     if (uevent_file.open(QIODevice::ReadOnly | QIODevice::Text))
