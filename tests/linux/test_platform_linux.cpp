@@ -468,6 +468,46 @@ TEST_F(PlatformLinux, does_not_identify_other_virtual)
     EXPECT_TRUE(it->second.type.empty());
     EXPECT_TRUE(it->second.description.empty());
 }
+
+TEST_F(PlatformLinux, does_not_identify_wireless)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_wifi = "somewifi";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    QDir wifi_dir{fake_sys_class_net.filePath(fake_wifi)};
+    ASSERT_TRUE(write_arphrd_type(wifi_dir, "1"));
+    ASSERT_TRUE(wifi_dir.mkpath("wireless"));
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_wifi);
+    EXPECT_EQ(it->second.id, fake_wifi);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
+}
+
+TEST_F(PlatformLinux, does_not_identify_protocols)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_net = "somenet";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    ASSERT_TRUE(write_arphrd_type(fake_sys_class_net.filePath(fake_net), "32"));
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_net);
+    EXPECT_EQ(it->second.id, fake_net);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
+}
 struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
 {
 };
