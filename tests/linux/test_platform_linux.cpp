@@ -422,6 +422,32 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
                                                        Field(&Net::description, HasSubstr("Empty network bridge")))))));
 }
 
+TEST_F(PlatformLinux, retrieves_ethernet_devices)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_eth = "someth";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    QDir fake_eth_dir = fake_sys_class_net.filePath(fake_eth);
+    ASSERT_TRUE(fake_eth_dir.mkpath("."));
+
+    {
+        QFile type_file = fake_eth_dir.filePath("type");
+        ASSERT_TRUE(type_file.open(QIODevice::WriteOnly));
+        ASSERT_EQ(type_file.write("1"), 1);
+    }
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_eth);
+    EXPECT_EQ(it->second.id, fake_eth);
+    EXPECT_EQ(it->second.type, "ethernet");
+    EXPECT_EQ(it->second.description, "Ethernet device");
+}
+
 struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
 {
 };
