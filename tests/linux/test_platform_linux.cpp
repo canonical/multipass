@@ -422,20 +422,20 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
                                                        Field(&Net::description, HasSubstr("Empty network bridge")))))));
 }
 
+bool write_arphrd_type(const QDir& net_dir, const char* arphrd_type)
+{
+    QFile type_file = net_dir.filePath("type");
+    return net_dir.mkpath(".") && type_file.open(QIODevice::WriteOnly) &&
+           static_cast<qint64>(strlen(arphrd_type)) == type_file.write(arphrd_type);
+}
+
 TEST_F(PlatformLinux, retrieves_ethernet_devices)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_eth = "someth";
 
     QDir fake_sys_class_net{tmp_dir.path()};
-    QDir fake_eth_dir = fake_sys_class_net.filePath(fake_eth);
-    ASSERT_TRUE(fake_eth_dir.mkpath("."));
-
-    {
-        QFile type_file = fake_eth_dir.filePath("type");
-        ASSERT_TRUE(type_file.open(QIODevice::WriteOnly));
-        ASSERT_EQ(type_file.write("1"), 1);
-    }
+    ASSERT_TRUE(write_arphrd_type(fake_sys_class_net.filePath(fake_eth), "1"));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
