@@ -1722,11 +1722,11 @@ INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadFields,
                                 "{\"metadata\": [{\"name\": 123, \"type\": \"bridge\"}]}",
                                 "{\"metadata\": [{\"name\": \"eth0\", \"type\": 123}]}"));
 
-struct LXDNetworksOnlyBridges : LXDBackend, WithParamInterface<QByteArray>
+struct LXDNetworksOnlySupportedTypes : LXDBackend, WithParamInterface<QByteArray>
 {
 };
 
-TEST_P(LXDNetworksOnlyBridges, reports_only_bridge_networks)
+TEST_P(LXDNetworksOnlySupportedTypes, reports_only_bridge_and_ethernet_networks)
 {
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
@@ -1734,13 +1734,23 @@ TEST_P(LXDNetworksOnlyBridges, reports_only_bridge_networks)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{
+            {"lxdbr0", {"lxdbr0", "bridge", "gobbledygook"}},
+            {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
+            {"virbr0", {"virbr0", "bridge", "gobbledygook"}},
+            {"mpqemubr0", {"mpqemubr0", "bridge", "gobbledygook"}},
+            {"enxe4b97a832426", {"enxe4b97a832426", "ethernet", "gobbledygook"}}}));
+
     auto id_matcher = [](const std::string& expect) { return Field(&mp::NetworkInterfaceInfo::id, Eq(expect)); };
-    EXPECT_THAT(backend.networks(), AllOf(Each(Field(&mp::NetworkInterfaceInfo::type, "bridge")),
-                                          UnorderedElementsAre(id_matcher("lxdbr0"), id_matcher("mpbr0"),
-                                                               id_matcher("virbr0"), id_matcher("mpqemubr0"))));
+    EXPECT_THAT(backend.networks(),
+                AllOf(Each(Field(&mp::NetworkInterfaceInfo::type, MatchesRegex("bridge|ethernet"))),
+                      UnorderedElementsAre(id_matcher("enxe4b97a832426"), id_matcher("lxdbr0"), id_matcher("mpbr0"),
+                                           id_matcher("virbr0"), id_matcher("mpqemubr0"))));
 }
 
-INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksOnlyBridges,
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksOnlySupportedTypes,
                          Values(mpt::networks_realistic_data, mpt::networks_faulty_data));
 
 TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
@@ -1752,19 +1762,23 @@ TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
 
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "bridge", "gibberish"}}}));
+
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
     EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(description))));
 }
 
-TEST_F(LXDBackend, falls_back_to_bridge_description_from_platform_when_available)
+TEST_F(LXDBackend, falls_back_to_bridge_description_from_platform)
 {
     auto data = QByteArrayLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""}]})");
     auto fallback_desc = "fallback";
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "mac", fallback_desc}}}));
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "bridge", fallback_desc}}}));
 
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
@@ -1773,25 +1787,6 @@ TEST_F(LXDBackend, falls_back_to_bridge_description_from_platform_when_available
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
     EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(fallback_desc))));
-}
-
-TEST_F(LXDBackend, defaults_to_sensible_bridge_description)
-{
-    auto data = QByteArrayLiteral(R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""},
-                                                   {"type": "bridge", "name": "br1", "description": ""}]})");
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "mac", ""}}}));
-
-    EXPECT_CALL(*mock_network_access_manager,
-                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
-
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
-
-    EXPECT_THAT(backend.networks(),
-                AllOf(SizeIs(2), Each(Field(&mp::NetworkInterfaceInfo::description, Eq("Network bridge")))));
 }
 
 TEST_F(LXDBackend, skips_platform_network_inspection_when_lxd_reports_no_networks)
