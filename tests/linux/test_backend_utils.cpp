@@ -19,11 +19,13 @@
 #include <src/platform/backends/shared/linux/dbus_wrappers.h>
 
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 
 #include <shared/shared_backend_utils.h>
 
 #include "tests/extra_assertions.h"
+#include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_singleton_helpers.h"
 
@@ -34,6 +36,7 @@
 #include <gtest/gtest.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -268,7 +271,8 @@ struct CreateBridgeTest : public Test
 {
     void SetUp() override
     {
-        // TODO@ricab mock logger
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
         // These will accept any number of calls (0..N) but they can still be shadowed
         EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillRepeatedly(ReturnRef(mock_bus));
         EXPECT_CALL(*mock_nm_root, is_valid).WillRepeatedly(Return(true));
@@ -351,6 +355,8 @@ struct CreateBridgeTest : public Test
     MockDBusConnection mock_bus{};
     std::unique_ptr<MockDBusInterface> mock_nm_settings = std::make_unique<MockDBusInterface>();
     std::unique_ptr<MockDBusInterface> mock_nm_root = std::make_unique<MockDBusInterface>();
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+
     const QVariant empty{};
 
 private:
@@ -509,24 +515,25 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
 TEST_F(CreateBridgeTest, logs_on_failure_to_rollback)
 {
     const auto child_path = QStringLiteral("/child");
-    const auto error = 255;
+    const auto original_error = 255;
+    const auto rollback_error = "fail";
 
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
         .WillOnce(Return(make_obj_path_reply("/asdf")))
         .WillOnce(Return(make_obj_path_reply(child_path)));
-    EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _)).WillOnce(Throw(error));
+    EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _)).WillOnce(Throw(original_error));
 
     inject_dbus_interfaces();
 
     std::unique_ptr<MockDBusInterface> mock_nm_connection1 = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_nm_connection1, call_impl(_, Eq("Delete"), empty, empty, empty))
-        .WillOnce(Throw(std::runtime_error{"fail"}));
+        .WillOnce(Throw(std::runtime_error{rollback_error}));
     EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(child_path),
                                         Eq("org.freedesktop.NetworkManager.Settings.Connection")))
         .WillOnce(Return(ByMove(std::move(mock_nm_connection1))));
 
-    // TODO@ricab verify error is logged
-    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("gigi"), int, Eq(error));
+    logger_scope.mock_logger->expect_log(mpl::Level::error, rollback_error);
+    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("gigi"), int, Eq(original_error));
 }
 
 struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<bool>
