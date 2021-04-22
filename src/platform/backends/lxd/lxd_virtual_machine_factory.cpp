@@ -18,6 +18,7 @@
 #include "lxd_virtual_machine_factory.h"
 #include "lxd_virtual_machine.h"
 #include "lxd_vm_image_vault.h"
+#include <shared/linux/backend_utils.h>
 
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
@@ -25,6 +26,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
+#include <multipass/virtual_machine_description.h> // FIXME
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -67,6 +69,12 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                               VMStatusMonitor& monitor)
 {
+    if (desc.vm_name == "fixme" && !desc.extra_interfaces.empty()) // FIXME
+    {
+        mp::backend::create_bridge_with(desc.extra_interfaces[0].id); // FIXME
+        throw std::runtime_error("Fail on purpose");
+    }
+
     return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name);
 }
 
