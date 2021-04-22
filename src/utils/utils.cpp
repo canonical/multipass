@@ -76,7 +76,7 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 }
 } // namespace
 
-mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) : Singleton<Utils>::Singleton{pass}
+mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
 {
 }
 

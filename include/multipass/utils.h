@@ -133,7 +133,7 @@ void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds ti
 class Utils : public Singleton<Utils>
 {
 public:
-    Utils(const Singleton<Utils>::PrivatePass&);
+    Utils(const Singleton<Utils>::PrivatePass&) noexcept;
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory);
 };

@@ -48,7 +48,7 @@ namespace platform
 class Platform : public Singleton<Platform>
 {
 public:
-    Platform(const Singleton::PrivatePass&);
+    Platform(const Singleton::PrivatePass&) noexcept;
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
     virtual bool is_alias_supported(const std::string& alias, const std::string& remote);
@@ -88,7 +88,7 @@ std::string reinterpret_interface_id(const std::string& ux_id); // give platform
 } // namespace platform
 } // namespace multipass
 
-inline multipass::platform::Platform::Platform(const PrivatePass& pass) : Singleton(pass)
+inline multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
 {
 }
 
