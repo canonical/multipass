@@ -404,13 +404,22 @@ TEST_F(PlatformLinux, retrieves_networks_from_the_system)
     }
 }
 
+bool write_arphrd_type(const QDir& net_dir, const char* arphrd_type)
+{
+    QFile type_file = net_dir.filePath("type");
+    return net_dir.mkpath(".") && type_file.open(QIODevice::WriteOnly) &&
+           static_cast<qint64>(strlen(arphrd_type)) == type_file.write(arphrd_type);
+}
+
 TEST_F(PlatformLinux, retrieves_empty_bridges)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_bridge = "somebridge";
 
     QDir fake_sys_class_net{tmp_dir.path()};
-    ASSERT_TRUE(fake_sys_class_net.mkpath(QString{fake_bridge} + "/bridge"));
+    QDir bridge_dir{fake_sys_class_net.filePath(fake_bridge)};
+    ASSERT_TRUE(write_arphrd_type(bridge_dir, "1"));
+    ASSERT_TRUE(bridge_dir.mkpath("bridge"));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
@@ -420,13 +429,6 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
                                            Field(&value_type::second,
                                                  AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
                                                        Field(&Net::description, HasSubstr("Empty network bridge")))))));
-}
-
-bool write_arphrd_type(const QDir& net_dir, const char* arphrd_type)
-{
-    QFile type_file = net_dir.filePath("type");
-    return net_dir.mkpath(".") && type_file.open(QIODevice::WriteOnly) &&
-           static_cast<qint64>(strlen(arphrd_type)) == type_file.write(arphrd_type);
 }
 
 TEST_F(PlatformLinux, retrieves_ethernet_devices)
@@ -454,7 +456,7 @@ TEST_F(PlatformLinux, does_not_identify_other_virtual)
     const auto fake_virt = "somevirt";
 
     QDir fake_sys_class_net{tmp_dir.path() + "/virtual"};
-    ASSERT_TRUE(fake_sys_class_net.mkpath(fake_virt));
+    ASSERT_TRUE(write_arphrd_type(fake_sys_class_net.filePath(fake_virt), "1"));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
@@ -479,6 +481,7 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     QDir interface_dir{fake_sys_class_net.filePath(fake_bridge)};
     QDir members_dir{interface_dir.filePath("brif")};
 
+    ASSERT_TRUE(write_arphrd_type(interface_dir, "1"));
     ASSERT_TRUE(interface_dir.mkpath("bridge"));
     ASSERT_TRUE(members_dir.mkpath("."));
 
