@@ -29,7 +29,7 @@ class WorkflowMinimumException : public std::runtime_error
 {
 public:
     WorkflowMinimumException(const std::string& type, const std::string& min_val)
-        : runtime_error(fmt::format("{} requested is less than Workflow minimum of {}", type, min_val))
+        : runtime_error(fmt::format("Requested {} is less than workflow minimum of {}", type, min_val))
     {
     }
 };
