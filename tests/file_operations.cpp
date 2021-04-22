@@ -49,14 +49,14 @@ qint64 mpt::make_file_with_content(const QString& file_name, const std::string& 
 {
     QFile file(file_name);
     if (file.exists())
-        throw std::runtime_error("test file already exists");
+        throw std::runtime_error(fmt::format("test file already exists: '{}'", file_name));
 
     QDir parent_dir{QFileInfo{file}.absoluteDir()};
     if (!parent_dir.mkpath(".")) // true if directory already exists
         throw std::runtime_error(fmt::format("failed to create test dir: '{}'", parent_dir.path()));
 
     if (!file.open(QFile::WriteOnly))
-        throw std::runtime_error("failed to open test file");
+        throw std::runtime_error(fmt::format("failed to open test file: '{}'", file_name));
 
     file.write(content.data(), content.size());
     return file.size();
