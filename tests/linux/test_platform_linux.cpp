@@ -16,6 +16,7 @@
  */
 
 #include "tests/fake_handle.h"
+#include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_settings.h"
 #include "tests/temp_dir.h"
@@ -404,13 +405,6 @@ TEST_F(PlatformLinux, retrieves_networks_from_the_system)
     }
 }
 
-bool write_arphrd_type(const QDir& net_dir, const char* arphrd_type)
-{
-    QFile type_file = net_dir.filePath("type");
-    return net_dir.mkpath(".") && type_file.open(QIODevice::WriteOnly) &&
-           static_cast<qint64>(strlen(arphrd_type)) == type_file.write(arphrd_type);
-}
-
 TEST_F(PlatformLinux, retrieves_empty_bridges)
 {
     const mpt::TempDir tmp_dir;
@@ -418,7 +412,7 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
 
     QDir fake_sys_class_net{tmp_dir.path()};
     QDir bridge_dir{fake_sys_class_net.filePath(fake_bridge)};
-    ASSERT_TRUE(write_arphrd_type(bridge_dir, "1"));
+    ASSERT_EQ(mpt::make_file_with_content(bridge_dir.filePath("type"), "1"), 1);
     ASSERT_TRUE(bridge_dir.mkpath("bridge"));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
@@ -437,7 +431,7 @@ TEST_F(PlatformLinux, retrieves_ethernet_devices)
     const auto fake_eth = "someth";
 
     QDir fake_sys_class_net{tmp_dir.path()};
-    ASSERT_TRUE(write_arphrd_type(fake_sys_class_net.filePath(fake_eth), "1"));
+    ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_eth) + "/type", "1"), 1);
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
@@ -456,7 +450,7 @@ TEST_F(PlatformLinux, does_not_identify_other_virtual)
     const auto fake_virt = "somevirt";
 
     QDir fake_sys_class_net{tmp_dir.path() + "/virtual"};
-    ASSERT_TRUE(write_arphrd_type(fake_sys_class_net.filePath(fake_virt), "1"));
+    ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_virt) + "/type", "1"), 1);
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
@@ -476,7 +470,7 @@ TEST_F(PlatformLinux, does_not_identify_wireless)
 
     QDir fake_sys_class_net{tmp_dir.path()};
     QDir wifi_dir{fake_sys_class_net.filePath(fake_wifi)};
-    ASSERT_TRUE(write_arphrd_type(wifi_dir, "1"));
+    ASSERT_EQ(mpt::make_file_with_content(wifi_dir.filePath("type"), "1"), 1);
     ASSERT_TRUE(wifi_dir.mkpath("wireless"));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
@@ -496,7 +490,7 @@ TEST_F(PlatformLinux, does_not_identify_protocols)
     const auto fake_net = "somenet";
 
     QDir fake_sys_class_net{tmp_dir.path()};
-    ASSERT_TRUE(write_arphrd_type(fake_sys_class_net.filePath(fake_net), "32"));
+    ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_net) + "/type", "32"), 2);
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
@@ -521,7 +515,7 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     QDir interface_dir{fake_sys_class_net.filePath(fake_bridge)};
     QDir members_dir{interface_dir.filePath("brif")};
 
-    ASSERT_TRUE(write_arphrd_type(interface_dir, "1"));
+    ASSERT_EQ(mpt::make_file_with_content(interface_dir.filePath("type"), "1"), 1);
     ASSERT_TRUE(interface_dir.mkpath("bridge"));
     ASSERT_TRUE(members_dir.mkpath("."));
 
