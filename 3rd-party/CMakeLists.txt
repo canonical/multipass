@@ -110,8 +110,8 @@ add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
 # qhotkey config
 add_subdirectory(qhotkey EXCLUDE_FROM_ALL)
 
-# Poco library
-# Suppress CMake CMP0077 warning in Poco- see cmake --help-policy CMP0077
+# POCO library
+# Suppress CMake CMP0077 warning in POCO - see `cmake --help-policy CMP0077`
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(BUILD_SHARED_LIBS ON)
 option(ENABLE_NETSSL OFF)
@@ -132,6 +132,6 @@ add_subdirectory(poco EXCLUDE_FROM_ALL)
 
 install(TARGETS Foundation Util XML Zip LIBRARY COMPONENT multipassd)
 
-# Undo some settings that Poco sets to avoid polluting the rest of our build
+# Undo some settings that POCO sets to avoid polluting the rest of our build
 set(CMAKE_DEBUG_POSTFIX "" CACHE STRING "Set Debug library postfix" FORCE)
 set(BUILD_SHARED_LIBS OFF)
