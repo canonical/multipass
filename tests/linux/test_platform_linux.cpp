@@ -448,6 +448,24 @@ TEST_F(PlatformLinux, retrieves_ethernet_devices)
     EXPECT_EQ(it->second.description, "Ethernet device");
 }
 
+TEST_F(PlatformLinux, does_not_identify_other_virtual)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_virt = "somevirt";
+
+    QDir fake_sys_class_net{tmp_dir.path() + "/virtual"};
+    ASSERT_TRUE(fake_sys_class_net.mkpath(fake_virt));
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_virt);
+    EXPECT_EQ(it->second.id, fake_virt);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
+}
 struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
 {
 };
