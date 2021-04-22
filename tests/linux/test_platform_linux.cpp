@@ -502,6 +502,30 @@ TEST_F(PlatformLinux, does_not_identify_protocols)
     EXPECT_TRUE(it->second.type.empty());
     EXPECT_TRUE(it->second.description.empty());
 }
+
+TEST_F(PlatformLinux, does_not_identify_other_specified_device_types)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_net = "somenet";
+    const auto uevent_contents = std::string{"asdf\nDEVTYPE=crazytype\nfdsa"};
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    QDir net_dir{fake_sys_class_net.filePath(fake_net)};
+    ASSERT_EQ(mpt::make_file_with_content(net_dir.filePath("type"), "1"), 1);
+    ASSERT_EQ(mpt::make_file_with_content(net_dir.filePath("uevent"), uevent_contents),
+              static_cast<int64_t>(uevent_contents.size()));
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_net);
+    EXPECT_EQ(it->second.id, fake_net);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
+}
+
 struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
 {
 };
