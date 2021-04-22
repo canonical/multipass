@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,11 +39,6 @@ QByteArray mpt::load_test_file(const char* file_name)
 {
     auto file_path = multipass::test::test_data_path_for(file_name);
     return multipass::test::load(file_path);
-}
-
-qint64 mpt::make_file_with_content(const QString& file_name)
-{
-    return make_file_with_content(file_name, "this is a test file");
 }
 
 qint64 mpt::make_file_with_content(const QString& file_name, const std::string& content)
