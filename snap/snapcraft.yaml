@@ -45,6 +45,7 @@ apps:
       - network-bind
       - network-control
       - network-manager # for bridge creation
+      - network-observe # for network listing (to read `/sys/devices/**/net/*`)
       - lxd
       - removable-media
   multipass:
