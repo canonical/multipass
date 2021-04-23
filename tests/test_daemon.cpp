@@ -594,24 +594,24 @@ TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
         });
 
     EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _))
-        .WillOnce(Invoke([&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
-                                             const mp::VMImageVault::PrepareAction& prepare,
-                                             const mp::ProgressMonitor& monitor) {
+        .WillOnce([&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
+                                      const mp::VMImageVault::PrepareAction& prepare,
+                                      const mp::ProgressMonitor& monitor) {
             EXPECT_EQ(query.release, release);
             EXPECT_EQ(query.remote_name, remote);
 
             return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
-        }));
+        });
 
     EXPECT_CALL(*mock_workflow_provider, fetch_workflow_for(_, _))
-        .WillOnce(Invoke([&mem_size, &disk_space, &release,
-                          &remote](const auto&, mp::VirtualMachineDescription& vm_desc) -> mp::Query {
+        .WillOnce([&mem_size, &disk_space, &release, &remote](const auto&,
+                                                              mp::VirtualMachineDescription& vm_desc) -> mp::Query {
             vm_desc.num_cores = num_cores;
             vm_desc.mem_size = mem_size;
             vm_desc.disk_space = disk_space;
 
             return {"", release, false, remote, mp::Query::Type::Alias};
-        }));
+        });
 
     config_builder.workflow_provider = std::move(mock_workflow_provider);
     config_builder.vault = std::move(mock_image_vault);
@@ -635,13 +635,13 @@ TEST_P(DaemonCreateLaunchTestSuite, workflow_not_found_passes_expected_data)
         });
 
     EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _))
-        .WillOnce(Invoke([](const mp::FetchType& fetch_type, const mp::Query& query,
-                            const mp::VMImageVault::PrepareAction& prepare, const mp::ProgressMonitor& monitor) {
+        .WillOnce([](const mp::FetchType& fetch_type, const mp::Query& query,
+                     const mp::VMImageVault::PrepareAction& prepare, const mp::ProgressMonitor& monitor) {
             EXPECT_EQ(query.release, "default");
             EXPECT_TRUE(query.remote_name.empty());
 
             return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
-        }));
+        });
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};

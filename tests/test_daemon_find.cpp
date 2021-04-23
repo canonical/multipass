@@ -49,7 +49,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
     static constexpr auto workflow1_name = "foo";
     static constexpr auto workflow2_name = "bar";
 
-    EXPECT_CALL(*mock_workflow_provider, all_workflows()).WillOnce(Invoke([]() {
+    EXPECT_CALL(*mock_workflow_provider, all_workflows()).WillOnce([] {
         std::vector<mp::VMImageInfo> workflow_info;
         mp::VMImageInfo info1, info2;
 
@@ -62,7 +62,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
         workflow_info.push_back(info2);
 
         return workflow_info;
-    }));
+    });
 
     config_builder.image_hosts.clear();
     config_builder.image_hosts.push_back(std::move(mock_image_host));
@@ -88,13 +88,13 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Invoke([](const mp::Query& query) {
+    EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce([](const mp::Query& query) {
         mpt::MockImageHost mock_image_host;
         std::vector<std::pair<std::string, mp::VMImageInfo>> info;
         info.push_back(std::make_pair(mpt::release_remote, mock_image_host.mock_bionic_image_info));
 
         return info;
-    }));
+    });
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -116,14 +116,14 @@ TEST_F(DaemonFind, queryForWorkflowReturnsExpectedData)
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
 
-    EXPECT_CALL(*mock_workflow_provider, info_for(_)).WillOnce(Invoke([](auto...) {
+    EXPECT_CALL(*mock_workflow_provider, info_for(_)).WillOnce([](auto...) {
         mp::VMImageInfo info;
 
         info.aliases.append(workflow_name);
         info.release_title = QString::fromStdString(workflow_description_for(workflow_name));
 
         return info;
-    }));
+    });
 
     config_builder.vault = std::move(mock_image_vault);
     config_builder.workflow_provider = std::move(mock_workflow_provider);
@@ -163,18 +163,18 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
     NiceMock<mpt::MockImageHost> mock_image_host;
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).WillOnce(Invoke([&mock_image_host](auto...) {
+    EXPECT_CALL(*mock_image_vault, image_host_for(_)).WillOnce([&mock_image_host](auto...) {
         return &mock_image_host;
-    }));
+    });
 
-    EXPECT_CALL(mock_image_host, all_images_for(_, _)).WillOnce(Invoke([&mock_image_host](auto...) {
+    EXPECT_CALL(mock_image_host, all_images_for(_, _)).WillOnce([&mock_image_host](auto...) {
         std::vector<mp::VMImageInfo> images_info;
 
         images_info.push_back(mock_image_host.mock_bionic_image_info);
         images_info.push_back(mock_image_host.mock_another_image_info);
 
         return images_info;
-    }));
+    });
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
