@@ -55,3 +55,8 @@ Version: 1.9.4 |
 Version: v0.20210107 |
 <https://github.com/moby/hyperkit.git> |
 <https://github.com/moby/hyperkit/releases>
+
+### POCO
+Version: 1.10.1 |
+<https://github.com/pocoproject/poco.git> |
+<https://github.com/pocoproject/poco/releases>
