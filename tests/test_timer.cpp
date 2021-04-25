@@ -43,7 +43,7 @@ TEST_F(Timer, times_out)
     t.start();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
 
-    std::this_thread::sleep_for(3s); // Windows CI needs longer...
+    std::this_thread::sleep_for(5s); // Windows CI needs longer...
     ASSERT_TRUE(timedout.load()) << "Should have timed out";
 }
 
