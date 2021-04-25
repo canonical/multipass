@@ -1945,7 +1945,7 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
 const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell"};
 const std::vector<std::string> valid_timeouts{"120", "1234567"};
-const std::vector<std::string> invalid_timeouts{"-1", "0", "a", "3min", ""};
+const std::vector<std::string> invalid_timeouts{"-1", "0", "a", "3min", "15.51", ""};
 
 struct TimeoutCorrectSuite : Client, WithParamInterface<std::tuple<std::string, std::string>>
 {
