@@ -47,6 +47,8 @@ constexpr auto autostart_key = "client.gui.autostart"; // idem
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
 constexpr auto hotkey_key = "client.gui.hotkey";                      // idem
 constexpr auto hotkey_default = "Ctrl+Alt+U";                         // idem; translates to Cmd+Opt+U on macOS
+
+constexpr auto timeout_exit_code = 5;
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

@@ -35,7 +35,7 @@
 #include <QFileInfo>
 #include <QTimeZone>
 
-#include <csignal>
+#include <cstdlib>
 #include <regex>
 #include <unordered_map>
 
@@ -329,7 +329,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             std::chrono::seconds(parser->value("timeout").toInt()), [&spinner, this]() {
                 spinner.stop();
                 cerr << "Timed out waiting for instance launch." << std::endl;
-                std::raise(SIGINT);
+                MP_UTILS.exit(mp::timeout_exit_code);
             });
         timer->start();
     }

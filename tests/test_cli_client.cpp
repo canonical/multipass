@@ -20,6 +20,7 @@
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
+#include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
 #include "stub_certprovider.h"
@@ -1991,9 +1992,7 @@ TEST_P(TimeoutInvalidSuite, cmds_with_invalid_timeout_bad)
 
 INSTANTIATE_TEST_SUITE_P(Client, TimeoutInvalidSuite, Combine(ValuesIn(timeout_commands), ValuesIn(invalid_timeouts)));
 
-static volatile std::sig_atomic_t signalStatus;
-
-struct InterruptedTimeoutSuite : Client, WithParamInterface<std::string>
+struct TimeoutSuite : Client, WithParamInterface<std::string>
 {
     void SetUp() override
     {
@@ -2003,21 +2002,6 @@ struct InterruptedTimeoutSuite : Client, WithParamInterface<std::string>
         ON_CALL(mock_daemon, start).WillByDefault(request_sleeper<mp::StartRequest, mp::StartReply>);
         ON_CALL(mock_daemon, restart).WillByDefault(request_sleeper<mp::RestartRequest, mp::RestartReply>);
         ON_CALL(mock_daemon, ssh_info).WillByDefault(request_sleeper<mp::SSHInfoRequest, mp::SSHInfoReply>);
-
-        signalStatus = 0;
-        std::signal(SIGINT, signal_handler);
-    }
-
-    void TearDown() override
-    {
-        std::signal(SIGINT, SIG_DFL);
-        Client::TearDown();
-    }
-
-    static void signal_handler(int signal)
-    {
-        std::signal(signal, SIG_DFL);
-        signalStatus = signal;
     }
 
     template <typename RequestType, typename ReplyType>
@@ -2029,28 +2013,29 @@ struct InterruptedTimeoutSuite : Client, WithParamInterface<std::string>
     }
 };
 
-TEST_P(InterruptedTimeoutSuite, command_sigints_on_timeout)
+TEST_P(TimeoutSuite, command_exits_on_timeout)
+{
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
+    EXPECT_CALL(*mock_utils, exit(mp::timeout_exit_code));
+
+    send_command({GetParam(), "--timeout", "1"});
+}
+
+TEST_P(TimeoutSuite, command_completes_without_timeout)
 {
     EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
-    ASSERT_THAT(send_command({GetParam(), "--timeout", "1"}), Eq(mp::ReturnCode::Ok));
 
-    EXPECT_EQ(signalStatus, SIGINT);
+    EXPECT_EQ(send_command({GetParam(), "--timeout", "5"}), mp::ReturnCode::Ok);
 }
 
-TEST_P(InterruptedTimeoutSuite, command_completes_without_timeout)
-{
-    EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
-    EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
-    EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
-    EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
-    ASSERT_THAT(send_command({GetParam(), "--timeout", "5"}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_EQ(signalStatus, 0);
-}
-
-INSTANTIATE_TEST_SUITE_P(Client, InterruptedTimeoutSuite, ValuesIn(timeout_commands));
+INSTANTIATE_TEST_SUITE_P(Client, TimeoutSuite, ValuesIn(timeout_commands));
 
 } // namespace
