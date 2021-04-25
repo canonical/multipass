@@ -16,10 +16,7 @@
  */
 
 #include <multipass/timer.h>
-
 #include <multipass/top_catch_all.h>
-
-using namespace std::chrono_literals;
 
 namespace multipass
 {
@@ -35,7 +32,6 @@ Timer::~Timer()
 {
     multipass::top_catch_all("timer", [this]() {
         stop();
-        return 0;
     });
     if (t.joinable())
         t.join();
