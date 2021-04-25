@@ -43,7 +43,7 @@ TEST_F(Timer, times_out)
     t.start();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
 
-    std::this_thread::sleep_for(3s); // Windows CI needs longer...
+    std::this_thread::sleep_for(5s); // Windows CI needs longer...
     ASSERT_TRUE(timedout.load()) << "Should have timed out";
 }
 
@@ -133,7 +133,7 @@ TEST_F(Timer, restarts)
         ASSERT_EQ(count, 0) << "Should not have timed out yet";
     }
 
-    std::this_thread::sleep_for(2s);
+    std::this_thread::sleep_for(5s); // Windows CI needs longer...
     {
         std::lock_guard<std::mutex> lk{count_m};
         ASSERT_EQ(count, 1) << "Should have timed out once now";
