@@ -109,7 +109,6 @@ auto net_digest(const QString& options)
 
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
-    arg_parser = parser;
     petenv_name = MP_SETTINGS.get(petenv_key);
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
     {
@@ -118,7 +117,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
 
-    auto ret = request_launch();
+    auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
         QString mount_source{};
@@ -320,14 +319,14 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     return status;
 }
 
-mp::ReturnCode cmd::Launch::request_launch()
+mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 {
     mp::AnimatedSpinner spinner{cout};
 
-    if (arg_parser->isSet("timeout") && !timer)
+    if (parser->isSet("timeout") && !timer)
     {
         timer = std::make_unique<multipass::utils::Timer>(
-            std::chrono::seconds(arg_parser->value("timeout").toInt()), [&spinner, this]() {
+            std::chrono::seconds(parser->value("timeout").toInt()), [&spinner, this]() {
                 spinner.stop();
                 cerr << "Timed out waiting for instance launch." << std::endl;
                 std::raise(SIGINT);
@@ -335,7 +334,7 @@ mp::ReturnCode cmd::Launch::request_launch()
         timer->start();
     }
 
-    auto on_success = [this, &spinner](mp::LaunchReply& reply) {
+    auto on_success = [this, &spinner, &parser](mp::LaunchReply& reply) {
         spinner.stop();
 
         if (reply.metrics_pending())
@@ -389,7 +388,7 @@ mp::ReturnCode cmd::Launch::request_launch()
             }
             if (timer)
                 timer->resume();
-            return request_launch();
+            return request_launch(parser);
         }
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";

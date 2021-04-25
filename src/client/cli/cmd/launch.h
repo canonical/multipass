@@ -39,11 +39,10 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser) override;
-    ReturnCode request_launch();
+    ReturnCode request_launch(const ArgParser* parser);
 
     LaunchRequest request;
     QString petenv_name;
-    ArgParser* arg_parser;
     std::unique_ptr<multipass::utils::Timer> timer;
 };
 } // namespace cmd
