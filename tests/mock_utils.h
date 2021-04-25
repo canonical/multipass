@@ -31,6 +31,7 @@ class MockUtils : public Utils
 public:
     using Utils::Utils;
     MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
+    MOCK_METHOD1(exit, void(int));
 
     MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
 };

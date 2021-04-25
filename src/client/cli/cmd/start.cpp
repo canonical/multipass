@@ -29,7 +29,7 @@
 
 #include <cassert>
 #include <chrono>
-#include <csignal>
+#include <cstdlib>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -120,7 +120,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
             std::chrono::seconds(parser->value("timeout").toInt()), [&spinner, this]() {
                 spinner.stop();
                 cerr << "Timed out waiting for instance to start." << std::endl;
-                std::raise(SIGINT);
+                MP_UTILS.exit(mp::timeout_exit_code);
             });
         timer->start();
     }

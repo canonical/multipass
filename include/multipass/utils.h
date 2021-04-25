@@ -136,6 +136,7 @@ public:
     Utils(const Singleton<Utils>::PrivatePass&) noexcept;
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory);
+    virtual void exit(int code);
 };
 } // namespace multipass
 
