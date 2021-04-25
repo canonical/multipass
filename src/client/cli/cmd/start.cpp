@@ -117,9 +117,9 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     if (parser->isSet("timeout"))
     {
         timer = std::make_unique<multipass::utils::Timer>(
-            std::chrono::seconds(parser->value("timeout").toInt()), [&spinner]() {
+            std::chrono::seconds(parser->value("timeout").toInt()), [&spinner, this]() {
                 spinner.stop();
-                std::cerr << "Timed out waiting for instance to start." << std::endl;
+                cerr << "Timed out waiting for instance to start." << std::endl;
                 std::raise(SIGINT);
             });
         timer->start();

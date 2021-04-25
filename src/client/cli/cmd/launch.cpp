@@ -327,9 +327,9 @@ mp::ReturnCode cmd::Launch::request_launch()
     if (arg_parser->isSet("timeout") && !timer)
     {
         timer = std::make_unique<multipass::utils::Timer>(
-            std::chrono::seconds(arg_parser->value("timeout").toInt()), [&spinner]() {
+            std::chrono::seconds(arg_parser->value("timeout").toInt()), [&spinner, this]() {
                 spinner.stop();
-                std::cerr << "Timed out waiting for instance launch." << std::endl;
+                cerr << "Timed out waiting for instance launch." << std::endl;
                 std::raise(SIGINT);
             });
         timer->start();
