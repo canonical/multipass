@@ -29,6 +29,13 @@ namespace multipass
 namespace utils
 {
 
+enum class TimerState : int
+{
+    Stopped,
+    Running,
+    Paused
+};
+
 class Timer
 {
 public:
@@ -47,8 +54,7 @@ private:
     void main();
     const std::chrono::seconds timeout;
     const std::function<void()> callback;
-    volatile std::atomic_bool finished;
-    volatile std::atomic_bool paused;
+    multipass::utils::TimerState state;
     std::thread t;
     std::condition_variable cv;
     std::mutex cv_m;

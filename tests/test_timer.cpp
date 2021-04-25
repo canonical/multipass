@@ -88,6 +88,19 @@ TEST_F(Timer, resumes)
     ASSERT_TRUE(timedout.load()) << "Should have timed out now";
 }
 
+TEST_F(Timer, stops_paused)
+{
+    mpu::Timer t{1s, [this]() { timedout.store(true); }};
+    t.start();
+    ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
+
+    t.pause();
+    t.stop();
+
+    std::this_thread::sleep_for(2s);
+    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
+}
+
 TEST_F(Timer, cancels)
 {
     {
@@ -98,4 +111,31 @@ TEST_F(Timer, cancels)
 
     std::this_thread::sleep_for(2s);
     ASSERT_FALSE(timedout.load()) << "Should not have timed out still";
+}
+
+TEST_F(Timer, restarts)
+{
+    int count = 0;
+    std::mutex count_m;
+
+    mpu::Timer t{2s, [&count, &count_m]() {
+                     std::lock_guard<std::mutex> lk{count_m};
+                     count += 1;
+                 }};
+
+    t.start();
+    std::this_thread::sleep_for(1s);
+
+    t.start();
+    std::this_thread::sleep_for(1s);
+    {
+        std::lock_guard<std::mutex> lk{count_m};
+        ASSERT_EQ(count, 0) << "Should not have timed out yet";
+    }
+
+    std::this_thread::sleep_for(2s);
+    {
+        std::lock_guard<std::mutex> lk{count_m};
+        ASSERT_EQ(count, 1) << "Should have timed out once now";
+    }
 }
