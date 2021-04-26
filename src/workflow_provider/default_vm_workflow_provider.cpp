@@ -223,6 +223,7 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
     image_info.aliases.append(QString::fromStdString(workflow_name));
 
     image_info.release_title = QString::fromStdString(workflow_config["description"].as<std::string>());
+    image_info.version = QString::fromStdString(workflow_config["version"].as<std::string>());
 
     return image_info;
 }
