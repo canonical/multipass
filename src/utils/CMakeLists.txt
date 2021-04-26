@@ -31,3 +31,9 @@ target_link_libraries(utils
   xz_image_decoder
   Qt5::Core
   Qt5::Gui)
+
+add_library(poco_utils
+  poco_zip_utils.cpp)
+
+target_link_libraries(poco_utils
+  Poco::Zip)
