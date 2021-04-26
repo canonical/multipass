@@ -69,7 +69,9 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
         return ok ? got : default_ret;
     }
 
-    mpl::log(mpl::Level::debug, category, fmt::format("Could not read {}", type_file.fileName()));
+    auto snap_hint = mu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}.{}", type_file.fileName(), snap_hint));
+
     return default_ret;
 }
 
@@ -89,7 +91,7 @@ QString get_net_devtype(const QDir& net_dir)
         return devtype_regex.match(contents).captured(1);
     }
 
-    mpl::log(mpl::Level::debug, category, fmt::format("Could not read {}", uevent_file.fileName()));
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}", uevent_file.fileName()));
     return {};
 }
 
@@ -97,11 +99,10 @@ bool is_virtual_net(const QDir& net_dir)
 {
     static const auto virtual_dir = QStringLiteral("virtual");
 
-    auto fixme = net_dir.canonicalPath();
     return net_dir.canonicalPath().contains(virtual_dir, Qt::CaseInsensitive);
 }
 
-bool is_ether_net(const QDir& net_dir)
+bool is_ethernet(const QDir& net_dir)
 {
     static const auto wireless = QStringLiteral("wireless");
 
@@ -121,7 +122,7 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
         description = bridge_members.isEmpty() ? "Empty network bridge"
                                                : fmt::format("Network bridge with {}", bridge_members.join(", "));
     }
-    else if (is_ether_net(net_dir))
+    else if (is_ethernet(net_dir))
     {
         type = "ethernet";
         description = "Ethernet device";
