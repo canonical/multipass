@@ -34,14 +34,7 @@ namespace cmd
 class Launch final : public Command
 {
 public:
-    Launch(grpc::Channel& channel, Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr)
-        : Command(channel, stub, cout, cerr), spinner{cout}
-    {
-    }
-
-    Launch(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term) : Command(channel, stub, term), spinner{cout}
-    {
-    }
+    using Command::Command;
     ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
@@ -54,7 +47,7 @@ private:
 
     LaunchRequest request;
     QString petenv_name;
-    multipass::AnimatedSpinner spinner;
+    std::unique_ptr<multipass::AnimatedSpinner> spinner;
     std::unique_ptr<multipass::utils::Timer> timer;
 };
 } // namespace cmd

@@ -321,15 +321,19 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
 mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 {
+    if (!spinner)
+        spinner = std::make_unique<multipass::AnimatedSpinner>(
+            cout); // Creating just in time to work around canonical/multipass#2075
+
     if (parser->isSet("timeout") && !timer)
     {
-        timer =
-            cmd::make_timer(parser->value("timeout").toInt(), &spinner, cerr, "Timed out waiting for instance launch.");
+        timer = cmd::make_timer(parser->value("timeout").toInt(), spinner.get(), cerr,
+                                "Timed out waiting for instance launch.");
         timer->start();
     }
 
     auto on_success = [this, &parser](mp::LaunchReply& reply) {
-        spinner.stop();
+        spinner->stop();
 
         if (reply.metrics_pending())
         {
@@ -398,7 +402,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     };
 
     auto on_failure = [this](grpc::Status& status) {
-        spinner.stop();
+        spinner->stop();
 
         LaunchError launch_error;
         launch_error.ParseFromString(status.error_details());
@@ -443,25 +447,25 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             auto& progress_message = progress_messages[reply.launch_progress().type()];
             if (reply.launch_progress().percent_complete() != "-1")
             {
-                spinner.stop();
+                spinner->stop();
                 cout << "\r";
                 cout << progress_message << reply.launch_progress().percent_complete() << "%" << std::flush;
             }
             else
             {
-                spinner.stop();
-                spinner.start(progress_message);
+                spinner->stop();
+                spinner->start(progress_message);
             }
         }
         else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)
         {
-            spinner.stop();
-            spinner.start(reply.create_message());
+            spinner->stop();
+            spinner->start(reply.create_message());
         }
         else if (!reply.reply_message().empty())
         {
-            spinner.stop();
-            spinner.start(reply.reply_message());
+            spinner->stop();
+            spinner->start(reply.reply_message());
         }
     };
 
