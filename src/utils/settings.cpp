@@ -53,7 +53,8 @@ std::map<QString, QString> make_defaults()
     auto ret = std::map<QString, QString>{{mp::petenv_key, petenv_name},
                                           {mp::driver_key, mp::platform::default_driver()},
                                           {mp::autostart_key, autostart_default},
-                                          {mp::hotkey_key, default_hotkey()}};
+                                          {mp::hotkey_key, default_hotkey()},
+                                          {mp::bridged_interface_key, ""}};
 
     for(const auto& [k, v] : mp::platform::extra_settings_defaults())
         ret.insert_or_assign(k, v);
