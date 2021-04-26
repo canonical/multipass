@@ -722,7 +722,10 @@ INSTANTIATE_TEST_SUITE_P(Client, TestValidNetworkOptions,
                                 std::vector<std::string>{"--network", "name=eth6,mac=01:23:45:67:89:ab"},
                                 std::vector<std::string>{"--network", "name=eth7,mode=manual"},
                                 std::vector<std::string>{"--network", "name=eth8,mode=auto"},
-                                std::vector<std::string>{"--network", "name=eth9", "--network", "name=eth9"}));
+                                std::vector<std::string>{"--network", "name=eth9", "--network", "name=eth9"},
+                                std::vector<std::string>{"--network", "bridged"},
+                                std::vector<std::string>{"--network", "name=bridged"},
+                                std::vector<std::string>{"--bridged"}));
 
 // purge cli tests
 TEST_F(Client, purge_cmd_ok_no_args)
