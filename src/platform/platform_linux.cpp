@@ -69,7 +69,9 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
         return ok ? got : default_ret;
     }
 
-    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}", type_file.fileName()));
+    auto snap_hint = mu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}.{}", type_file.fileName(), snap_hint));
+
     return default_ret;
 }
 
