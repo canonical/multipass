@@ -321,20 +321,14 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
 mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 {
-    mp::AnimatedSpinner spinner{cout};
-
     if (parser->isSet("timeout") && !timer)
     {
-        timer = std::make_unique<multipass::utils::Timer>(
-            std::chrono::seconds(parser->value("timeout").toInt()), [&spinner, this]() {
-                spinner.stop();
-                cerr << "Timed out waiting for instance launch." << std::endl;
-                MP_UTILS.exit(mp::timeout_exit_code);
-            });
+        timer =
+            cmd::make_timer(parser->value("timeout").toInt(), &spinner, cerr, "Timed out waiting for instance launch.");
         timer->start();
     }
 
-    auto on_success = [this, &spinner, &parser](mp::LaunchReply& reply) {
+    auto on_success = [this, &parser](mp::LaunchReply& reply) {
         spinner.stop();
 
         if (reply.metrics_pending())
@@ -403,7 +397,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this](grpc::Status& status) {
         spinner.stop();
 
         LaunchError launch_error;
@@ -435,7 +429,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
-    auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {
+    auto streaming_callback = [this](mp::LaunchReply& reply) {
         std::unordered_map<int, std::string> progress_messages{
             {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
             {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},

@@ -17,6 +17,8 @@
 
 #include "common_cli.h"
 
+#include "animated_spinner.h"
+
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/constants.h>
@@ -27,6 +29,7 @@
 #include <QCommandLineOption>
 #include <QString>
 
+#include <chrono>
 #include <fmt/ostream.h>
 #include <sstream>
 
@@ -190,4 +193,18 @@ int multipass::cmd::parse_timeout(const multipass::ArgParser* parser)
         return timeout;
     }
     return -1;
+}
+
+std::unique_ptr<multipass::utils::Timer> multipass::cmd::make_timer(int timeout, AnimatedSpinner* spinner,
+                                                                    std::ostream& cerr, const std::string& msg)
+{
+    auto timer = std::make_unique<multipass::utils::Timer>(std::chrono::seconds(timeout), [spinner, &cerr, &msg]() {
+        if (spinner)
+            spinner->stop();
+        cerr << msg << std::endl;
+        MP_UTILS.exit(mp::timeout_exit_code);
+    });
+    timer->start();
+
+    return timer;
 }

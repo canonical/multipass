@@ -22,6 +22,7 @@
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
+#include <multipass/timer.h>
 
 #include <QString>
 
@@ -29,6 +30,7 @@ using RpcMethod = multipass::Rpc::Stub;
 
 namespace multipass
 {
+class AnimatedSpinner;
 class ArgParser;
 class Formatter;
 class SettingsException;
@@ -55,6 +57,8 @@ std::string update_notice(const multipass::UpdateInfo& update_info);
 // parser helpers
 void add_timeout(multipass::ArgParser*);
 int parse_timeout(const multipass::ArgParser* parser);
+std::unique_ptr<multipass::utils::Timer> make_timer(int timeout, AnimatedSpinner* spinner, std::ostream& cerr,
+                                                    const std::string& msg);
 
 } // namespace cmd
 } // namespace multipass

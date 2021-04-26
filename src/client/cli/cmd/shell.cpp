@@ -46,10 +46,8 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 
     if (parser->isSet("timeout"))
     {
-        timer = std::make_unique<mp::utils::Timer>(std::chrono::seconds(parser->value("timeout").toInt()), [this]() {
-            cerr << "Timed out waiting for instance to start." << std::endl;
-            MP_UTILS.exit(mp::timeout_exit_code);
-        });
+        timer = cmd::make_timer(parser->value("timeout").toInt(), nullptr, cerr,
+                                "Timed out waiting for instance to start.");
         timer->start();
     }
 

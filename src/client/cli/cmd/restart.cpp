@@ -54,12 +54,8 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
 
     if (parser->isSet("timeout"))
     {
-        timer = std::make_unique<multipass::utils::Timer>(
-            std::chrono::seconds(parser->value("timeout").toInt()), [&spinner, this]() {
-                spinner.stop();
-                cerr << "Timed out waiting for instance to restart." << std::endl;
-                MP_UTILS.exit(mp::timeout_exit_code);
-            });
+        timer = cmd::make_timer(parser->value("timeout").toInt(), &spinner, cerr,
+                                "Timed out waiting for instance to restart.");
         timer->start();
     }
 
