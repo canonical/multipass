@@ -69,7 +69,7 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
         return ok ? got : default_ret;
     }
 
-    mpl::log(mpl::Level::debug, category, fmt::format("Could not read {}", type_file.fileName()));
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}", type_file.fileName()));
     return default_ret;
 }
 
@@ -89,7 +89,7 @@ QString get_net_devtype(const QDir& net_dir)
         return devtype_regex.match(contents).captured(1);
     }
 
-    mpl::log(mpl::Level::debug, category, fmt::format("Could not read {}", uevent_file.fileName()));
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}", uevent_file.fileName()));
     return {};
 }
 
