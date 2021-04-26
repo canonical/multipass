@@ -33,6 +33,7 @@
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
+#include <multipass/settings.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -366,6 +367,18 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
     for (const auto& net : request->network_options())
     {
+        auto net_id = net.id();
+
+        if (net_id == mp::bridged_network_name)
+        {
+            const auto bridged_id = MP_SETTINGS.get(mp::bridged_interface_key);
+            if (bridged_id == "")
+                throw std::runtime_error(
+                    fmt::format("You have to `multipass set {}=<name>` to use the `--bridged` shortcut.",
+                                mp::bridged_interface_key));
+            net_id = bridged_id.toStdString();
+        }
+
         if (!factory_networks)
         {
             try
@@ -385,12 +398,18 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         }
 
         // Check that the id the user specified is valid.
-        auto pred = [net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id(); };
+        auto pred = [net_id](const mp::NetworkInterfaceInfo& info) { return info.id == net_id; };
         const auto& result = std::find_if(factory_networks->cbegin(), factory_networks->cend(), pred);
 
         if (result == factory_networks->cend())
         {
-            mpl::log(mpl::Level::warning, category, fmt::format("Invalid network name \"{}\"", net.id()));
+            if (net.id() == mp::bridged_network_name)
+                throw std::runtime_error(
+                    fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
+                                "correct. See `multipass networks` for valid names.",
+                                net_id, mp::bridged_interface_key));
+
+            mpl::log(mpl::Level::warning, category, fmt::format("Invalid network name \"{}\"", net_id));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
 
@@ -398,7 +417,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         if (const auto& mac = QString::fromStdString(net.mac_address()).toLower().toStdString();
             mac.empty() || mpu::valid_mac_address(mac))
             interfaces.push_back(
-                mp::NetworkInterface{net.id(), mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
+                mp::NetworkInterface{net_id, mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
         {
             mpl::log(mpl::Level::warning, category, fmt::format("Invalid MAC address \"{}\"", mac));

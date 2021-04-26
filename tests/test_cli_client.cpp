@@ -1650,7 +1650,8 @@ TEST_P(TestBasicGetSetOptions, set_cmd_allows_empty_val)
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions,
-                         Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key));
+                         Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
+                                mp::bridged_interface_key));
 
 TEST_F(Client, get_cmd_fails_with_no_arguments)
 {
