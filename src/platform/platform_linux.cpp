@@ -99,11 +99,10 @@ bool is_virtual_net(const QDir& net_dir)
 {
     static const auto virtual_dir = QStringLiteral("virtual");
 
-    auto fixme = net_dir.canonicalPath();
     return net_dir.canonicalPath().contains(virtual_dir, Qt::CaseInsensitive);
 }
 
-bool is_ether_net(const QDir& net_dir)
+bool is_ethernet(const QDir& net_dir)
 {
     static const auto wireless = QStringLiteral("wireless");
 
@@ -123,7 +122,7 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
         description = bridge_members.isEmpty() ? "Empty network bridge"
                                                : fmt::format("Network bridge with {}", bridge_members.join(", "));
     }
-    else if (is_ether_net(net_dir))
+    else if (is_ethernet(net_dir))
     {
         type = "ethernet";
         description = "Ethernet device";
