@@ -50,24 +50,31 @@ auto workflows_map_for(const std::string& archive_file_path)
 {
     std::map<std::string, std::string> workflows_map;
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
-    Poco::Zip::ZipArchive zip_archive{zip_stream};
-
-    for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
+    try
     {
-        if (it->second.isFile())
-        {
-            auto file_name = it->second.getFileName();
-            QFileInfo file_info{QString::fromStdString(file_name)};
+        Poco::Zip::ZipArchive zip_archive{zip_stream};
 
-            if (file_info.path().contains(workflow_dir_version) &&
-                (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
+        for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
+        {
+            if (it->second.isFile())
             {
-                Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
-                std::ostringstream out(std::ios::binary);
-                Poco::StreamCopier::copyStream(zip_input_stream, out);
-                workflows_map[file_info.baseName().toStdString()] = out.str();
+                auto file_name = it->second.getFileName();
+                QFileInfo file_info{QString::fromStdString(file_name)};
+
+                if (file_info.path().contains(workflow_dir_version) &&
+                    (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
+                {
+                    Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
+                    std::ostringstream out(std::ios::binary);
+                    Poco::StreamCopier::copyStream(zip_input_stream, out);
+                    workflows_map[file_info.baseName().toStdString()] = out.str();
+                }
             }
         }
+    }
+    catch (const Poco::Exception& e)
+    {
+        mpl::log(mpl::Level::error, category, fmt::format("Error extracting Workflows zip file: {}", e.displayText()));
     }
 
     return workflows_map;
