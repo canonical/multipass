@@ -24,11 +24,14 @@
 
 #include "extra_assertions.h"
 #include "mock_logger.h"
+#include "mock_poco_zip_utils.h"
 #include "mock_url_downloader.h"
 #include "path.h"
 #include "temp_dir.h"
 
 #include <QFileInfo>
+
+#include <Poco/Exception.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -306,4 +309,20 @@ TEST_F(VMWorkflowProvider, downloadFailureDuringUpdateLogsErrorAndDoesNotThrow)
                                                     std::chrono::milliseconds(0)};
 
     EXPECT_NO_THROW(workflow_provider.all_workflows());
+}
+
+TEST_F(VMWorkflowProvider, zipArchivePocoExceptionLogsErrorAndDoesNotThrow)
+{
+    auto [mock_poco_zip_utils, guard] = mpt::MockPocoZipUtils::inject();
+    const std::string error_msg{"Rubbish zip file"};
+
+    EXPECT_CALL(*mock_poco_zip_utils, zip_archive_for(_)).WillOnce(Throw(Poco::IllegalStateException(error_msg)));
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, fmt::format("Error extracting Workflows zip file: Illegal state: {}", error_msg));
+
+    EXPECT_NO_THROW(mp::DefaultVMWorkflowProvider(workflows_zip_url, &url_downloader, cache_dir.path(),
+                                                  std::chrono::milliseconds(0)));
 }
