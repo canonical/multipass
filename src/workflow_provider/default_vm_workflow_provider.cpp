@@ -21,6 +21,7 @@
 #include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/poco_zip_utils.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
@@ -31,7 +32,6 @@
 #include <QFileInfo>
 
 #include <Poco/StreamCopier.h>
-#include <Poco/Zip/ZipArchive.h>
 #include <Poco/Zip/ZipStream.h>
 
 #include <fstream>
@@ -52,7 +52,7 @@ auto workflows_map_for(const std::string& archive_file_path)
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
     try
     {
-        Poco::Zip::ZipArchive zip_archive{zip_stream};
+        auto zip_archive = MP_POCOZIPUTILS.zip_archive_for(zip_stream);
 
         for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
         {
