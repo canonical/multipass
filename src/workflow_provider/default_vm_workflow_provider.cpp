@@ -221,6 +221,7 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
 
     VMImageInfo image_info;
     image_info.aliases.append(QString::fromStdString(workflow_name));
+
     image_info.release_title = QString::fromStdString(workflow_config["description"].as<std::string>());
 
     return image_info;
@@ -234,13 +235,7 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
 
     for (const auto& [key, config] : workflow_map)
     {
-        auto workflow_config = YAML::Load(config);
-
-        VMImageInfo image_info;
-        image_info.aliases.append(QString::fromStdString(key));
-        image_info.release_title = QString::fromStdString(workflow_config["description"].as<std::string>());
-
-        workflow_info.push_back(image_info);
+        workflow_info.push_back(info_for(key));
     }
 
     return workflow_info;
