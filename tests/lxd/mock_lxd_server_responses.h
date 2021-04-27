@@ -1296,6 +1296,10 @@ const QByteArray networks_faulty_data{R"(
             "type": "bridge"
         },
         {
+            "name": "enxe4b97a832426",
+            "type": "physical"
+        },
+        {
             "name": "",
             "type": "bridge",
             "but": "empty name"

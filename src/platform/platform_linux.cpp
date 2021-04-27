@@ -38,6 +38,14 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
+#include <QDir>
+#include <QFile>
+#include <QRegularExpression>
+#include <QString>
+#include <QTextStream>
+
+#include <linux/if_arp.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
@@ -45,16 +53,79 @@ namespace mu = multipass::utils;
 namespace
 {
 constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
+constexpr auto category = "Linux platform";
+
+// Fetch the ARP protocol HARDWARE identifier.
+int get_net_type(const QDir& net_dir) // types defined in if_arp.h
+{
+    static constexpr auto default_ret = -1;
+    static const auto type_filename = QStringLiteral("type");
+
+    QFile type_file{net_dir.filePath(type_filename)};
+    if (type_file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        bool ok;
+        auto got = QTextStream{&type_file}.read(6).toInt(&ok); // 6 chars enough for up to 0xFFFF; 0 returned on failure
+        return ok ? got : default_ret;
+    }
+
+    auto snap_hint = mu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}.{}", type_file.fileName(), snap_hint));
+
+    return default_ret;
+}
+
+// device types found in Linux source (in drivers/net/): PHY, bareudp, bond, geneve, gtp, macsec, ppp, vxlan, wlan, wwan
+// should be empty for ethernet
+QString get_net_devtype(const QDir& net_dir)
+{
+    static constexpr auto max_read = 5000;
+    static const auto uevent_filename = QStringLiteral("uevent");
+    static const auto devtype_regex =
+        QRegularExpression{QStringLiteral("^DEVTYPE=(.*)$"), QRegularExpression::MultilineOption};
+
+    QFile uevent_file{net_dir.filePath(uevent_filename)};
+    if (uevent_file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        auto contents = QTextStream{&uevent_file}.read(max_read);
+        return devtype_regex.match(contents).captured(1);
+    }
+
+    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}", uevent_file.fileName()));
+    return {};
+}
+
+bool is_virtual_net(const QDir& net_dir)
+{
+    static const auto virtual_dir = QStringLiteral("virtual");
+
+    return net_dir.canonicalPath().contains(virtual_dir, Qt::CaseInsensitive);
+}
+
+bool is_ethernet(const QDir& net_dir)
+{
+    static const auto wireless = QStringLiteral("wireless");
+
+    return !is_virtual_net(net_dir) && !net_dir.exists(wireless) && get_net_type(net_dir) == ARPHRD_ETHER &&
+           get_net_devtype(net_dir).isEmpty();
+}
 
 mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 {
+    static const auto bridge_fname = QStringLiteral("brif");
+
     std::string type, description;
     if (auto bridge = "bridge"; net_dir.exists(bridge))
     {
         type = bridge;
-        QStringList bridge_members = QDir{net_dir.filePath("brif")}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
         description = bridge_members.isEmpty() ? "Empty network bridge"
                                                : fmt::format("Network bridge with {}", bridge_members.join(", "));
+    }
+    else if (is_ethernet(net_dir))
+    {
+        type = "ethernet";
+        description = "Ethernet device";
     }
 
     return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description)};
@@ -63,7 +134,8 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
-    return detail::get_network_interfaces_from(QDir{QStringLiteral("/sys/class/net")});
+    static const auto sysfs = QDir{QStringLiteral("/sys/class/net")};
+    return detail::get_network_interfaces_from(sysfs);
 }
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
