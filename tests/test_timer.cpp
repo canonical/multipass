@@ -120,7 +120,7 @@ TEST_F(Timer, restarts)
 
     mpu::Timer t{2s, [&count, &count_m]() {
                      std::lock_guard<std::mutex> lk{count_m};
-                     count += 1;
+                     ++count;
                  }};
 
     t.start();

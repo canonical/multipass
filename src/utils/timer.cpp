@@ -18,9 +18,7 @@
 #include <multipass/timer.h>
 #include <multipass/top_catch_all.h>
 
-namespace multipass
-{
-namespace utils
+namespace multipass::utils
 {
 
 Timer::Timer(std::chrono::seconds timeout, std::function<void()> callback)
@@ -96,5 +94,4 @@ void Timer::stop()
         t.join();
 }
 
-} // namespace utils
-} // namespace multipass
+} // namespace multipass::utils

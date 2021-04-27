@@ -198,13 +198,12 @@ int multipass::cmd::parse_timeout(const multipass::ArgParser* parser)
 std::unique_ptr<multipass::utils::Timer> multipass::cmd::make_timer(int timeout, AnimatedSpinner* spinner,
                                                                     std::ostream& cerr, const std::string& msg)
 {
-    auto timer = std::make_unique<multipass::utils::Timer>(std::chrono::seconds(timeout), [spinner, &cerr, &msg]() {
+    auto timer = std::make_unique<multipass::utils::Timer>(std::chrono::seconds(timeout), [spinner, &cerr, msg]() {
         if (spinner)
             spinner->stop();
         cerr << msg << std::endl;
         MP_UTILS.exit(mp::timeout_exit_code);
     });
-    timer->start();
 
     return timer;
 }

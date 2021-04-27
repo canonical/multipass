@@ -42,7 +42,6 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
-#include <csignal>
 #include <initializer_list>
 #include <sstream>
 #include <thread>

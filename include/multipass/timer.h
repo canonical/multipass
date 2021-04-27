@@ -18,15 +18,13 @@
 #ifndef MULTIPASS_TIMER_H
 #define MULTIPASS_TIMER_H
 
-#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
+#include <mutex>
 #include <thread>
 
-namespace multipass
-{
-namespace utils
+namespace multipass::utils
 {
 
 enum class TimerState : int
@@ -60,7 +58,6 @@ private:
     std::mutex cv_m;
 };
 
-} // namespace utils
-} // namespace multipass
+} // namespace multipass::utils
 
 #endif // MULTIPASS_TIMER_H
