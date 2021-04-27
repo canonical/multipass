@@ -1,4 +1,5 @@
 description: The first test workflow
+version: 0.1
 
 instances:
   test-workflow1:

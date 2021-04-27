@@ -1,12 +1,11 @@
-description: Bad Memory Size
-version: 0.1
+description: Missing version
 
 instances:
-  invalid-memory-size-workflow:
+  missing-version-workflow:
     image: "default"
     limits:
       min-cpu: 2
-      min-mem: Just a little
+      min-mem: 2G
       min-disk: 25G
     cloud-init:
       runcmd:
