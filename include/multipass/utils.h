@@ -153,9 +153,6 @@ void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chron
         if (try_action(std::forward<Args>(args)...) == TimeoutAction::done)
             return;
 
-        if ((std::chrono::steady_clock::now() + 1s) >= deadline)
-            break;
-
         std::this_thread::sleep_for(1s);
     }
     on_timeout();
