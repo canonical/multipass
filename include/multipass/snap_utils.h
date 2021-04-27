@@ -28,6 +28,7 @@ bool in_multipass_snap();
 QByteArray snap_dir();
 QByteArray snap_common_dir();
 QByteArray snap_real_home_dir();
+QByteArray snap_user_common_dir();
 } // namespace utils
 } // namespace multipass
 
