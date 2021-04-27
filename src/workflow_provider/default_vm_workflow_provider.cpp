@@ -216,14 +216,40 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
 {
     update_workflows();
 
+    static constexpr auto missing_key_template{"The \'{}\' key is required for the {} workflow"};
+    static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} workflow"};
     auto& config = workflow_map.at(workflow_name);
     auto workflow_config = YAML::Load(config);
 
     VMImageInfo image_info;
     image_info.aliases.append(QString::fromStdString(workflow_name));
 
-    image_info.release_title = QString::fromStdString(workflow_config["description"].as<std::string>());
-    image_info.version = QString::fromStdString(workflow_config["version"].as<std::string>());
+    const auto description_key{"description"};
+    const auto version_key{"version"};
+
+    if (!workflow_config[description_key])
+        throw InvalidWorkflowException(fmt::format(missing_key_template, description_key, workflow_name));
+
+    if (!workflow_config[version_key])
+        throw InvalidWorkflowException(fmt::format(missing_key_template, version_key, workflow_name));
+
+    try
+    {
+        image_info.release_title = QString::fromStdString(workflow_config[description_key].as<std::string>());
+    }
+    catch (const YAML::BadConversion&)
+    {
+        throw InvalidWorkflowException(fmt::format(bad_conversion_template, description_key, workflow_name));
+    }
+
+    try
+    {
+        image_info.version = QString::fromStdString(workflow_config["version"].as<std::string>());
+    }
+    catch (const YAML::BadConversion&)
+    {
+        throw InvalidWorkflowException(fmt::format(bad_conversion_template, version_key, workflow_name));
+    }
 
     return image_info;
 }
