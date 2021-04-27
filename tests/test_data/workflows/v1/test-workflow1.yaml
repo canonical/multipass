@@ -9,5 +9,7 @@ instances:
       min-mem: 2G
       min-disk: 25G
     cloud-init:
-      runcmd:
-      - echo "Have fun!"
+      vendor-data: |
+        #cloud-config
+        runcmd:
+          echo "Have fun!"
