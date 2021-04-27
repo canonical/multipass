@@ -162,6 +162,46 @@ TEST_F(VMWorkflowProvider, fetchTestWorkflow2ReturnsExpectedInfo)
     EXPECT_TRUE(vm_desc.vendor_data_config.IsNull());
 }
 
+TEST_F(VMWorkflowProvider, missingDescriptionThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    const std::string workflow{"missing-description-workflow"};
+    MP_EXPECT_THROW_THAT(
+        workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
+        mpt::match_what(StrEq(fmt::format("The \'description\' key is required for the {} workflow", workflow))));
+}
+
+TEST_F(VMWorkflowProvider, missingVersionThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    const std::string workflow{"missing-version-workflow"};
+    MP_EXPECT_THROW_THAT(
+        workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
+        mpt::match_what(StrEq(fmt::format("The \'version\' key is required for the {} workflow", workflow))));
+}
+
+TEST_F(VMWorkflowProvider, invlalidDescriptionThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    const std::string workflow{"invalid-description-workflow"};
+    MP_EXPECT_THROW_THAT(
+        workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} workflow", workflow))));
+}
+
+TEST_F(VMWorkflowProvider, invlalidVersionThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    const std::string workflow{"invalid-version-workflow"};
+    MP_EXPECT_THROW_THAT(
+        workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'version\' key for the {} workflow", workflow))));
+}
+
 TEST_F(VMWorkflowProvider, givenCoresLessThanMinimumThrows)
 {
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
@@ -215,11 +255,25 @@ TEST_F(VMWorkflowProvider, infoForReturnsExpectedInfo)
     ASSERT_EQ(workflow.aliases.size(), 1);
     EXPECT_EQ(workflow.aliases[0], "test-workflow2");
     EXPECT_EQ(workflow.release_title, "Another test workflow");
+    EXPECT_EQ(workflow.version, "0.1");
 }
 
 TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 {
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error,
+        "Invalid workflow: Cannot convert 'description' key for the invalid-description-workflow workflow");
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, "Invalid workflow: Cannot convert 'version' key for the invalid-version-workflow workflow");
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error,
+        "Invalid workflow: The 'description' key is required for the missing-description-workflow workflow");
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, "Invalid workflow: The 'version' key is required for the missing-version-workflow workflow");
 
     auto workflows = workflow_provider.all_workflows();
 
