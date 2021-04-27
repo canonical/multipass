@@ -198,14 +198,16 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         }
     }
 
-    if (workflow_instance["cloud-init"])
+    if (workflow_instance["cloud-init"]["vendor-data"])
     {
-        for (const auto& node : workflow_instance["cloud-init"])
+        try
         {
-            if (node.first.IsScalar())
-            {
-                vm_desc.vendor_data_config[node.first.Scalar()] = node.second;
-            }
+            vm_desc.vendor_data_config = YAML::Load(workflow_instance["cloud-init"]["vendor-data"].as<std::string>());
+        }
+        catch (const YAML::BadConversion&)
+        {
+            throw InvalidWorkflowException(
+                fmt::format("Cannot convert cloud-init data for the {} workflow", workflow_name));
         }
     }
 
