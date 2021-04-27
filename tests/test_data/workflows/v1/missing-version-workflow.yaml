@@ -7,6 +7,3 @@ instances:
       min-cpu: 2
       min-mem: 2G
       min-disk: 25G
-    cloud-init:
-      runcmd:
-      - echo "Have fun!"
