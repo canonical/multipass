@@ -182,7 +182,7 @@ TEST_F(VMWorkflowProvider, missingVersionThrows)
         mpt::match_what(StrEq(fmt::format("The \'version\' key is required for the {} workflow", workflow))));
 }
 
-TEST_F(VMWorkflowProvider, invlalidDescriptionThrows)
+TEST_F(VMWorkflowProvider, invalidDescriptionThrows)
 {
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
@@ -192,7 +192,7 @@ TEST_F(VMWorkflowProvider, invlalidDescriptionThrows)
         mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} workflow", workflow))));
 }
 
-TEST_F(VMWorkflowProvider, invlalidVersionThrows)
+TEST_F(VMWorkflowProvider, invalidVersionThrows)
 {
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
@@ -200,6 +200,19 @@ TEST_F(VMWorkflowProvider, invlalidVersionThrows)
     MP_EXPECT_THROW_THAT(
         workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
         mpt::match_what(StrEq(fmt::format("Cannot convert \'version\' key for the {} workflow", workflow))));
+}
+
+TEST_F(VMWorkflowProvider, invalidCloudInitThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    const std::string workflow{"invalid-cloud-init-workflow"};
+
+    MP_EXPECT_THROW_THAT(
+        workflow_provider.fetch_workflow_for(workflow, vm_desc), mp::InvalidWorkflowException,
+        mpt::match_what(StrEq(fmt::format("Cannot convert cloud-init data for the {} workflow", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, givenCoresLessThanMinimumThrows)
@@ -277,7 +290,7 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 
     auto workflows = workflow_provider.all_workflows();
 
-    EXPECT_EQ(workflows.size(), 6ul);
+    EXPECT_EQ(workflows.size(), 7ul);
 
     EXPECT_TRUE(std::find_if(workflows.cbegin(), workflows.cend(), [](const mp::VMImageInfo& workflow_info) {
                     return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "test-workflow1") &&
