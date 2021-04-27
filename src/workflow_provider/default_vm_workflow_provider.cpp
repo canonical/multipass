@@ -262,7 +262,14 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
 
     for (const auto& [key, config] : workflow_map)
     {
-        workflow_info.push_back(info_for(key));
+        try
+        {
+            workflow_info.push_back(info_for(key));
+        }
+        catch (const InvalidWorkflowException& e)
+        {
+            mpl::log(mpl::Level::error, category, fmt::format("Invalid workflow: {}", e.what()));
+        }
     }
 
     return workflow_info;
