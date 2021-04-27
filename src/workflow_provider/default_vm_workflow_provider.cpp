@@ -61,7 +61,7 @@ auto workflows_map_for(const std::string& archive_file_path)
                 auto file_name = it->second.getFileName();
                 QFileInfo file_info{QString::fromStdString(file_name)};
 
-                if (file_info.path().contains(workflow_dir_version) &&
+                if (file_info.dir().dirName() == workflow_dir_version &&
                     (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
                 {
                     Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
