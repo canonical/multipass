@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 
+#include <string>
+#include <vector>
+
 namespace multipass
 {
 struct NetworkInterfaceInfo
@@ -28,6 +31,7 @@ struct NetworkInterfaceInfo
     std::string id;
     std::string type;
     std::string description;
+    std::vector<std::string> links = {}; // TODO@ricab populate
 };
 } // namespace multipass
 #endif // MULTIPASS_NETWORK_INTERFACE_INFO_H

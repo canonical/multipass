@@ -197,9 +197,16 @@ void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterfa
     auto host_nets = networks();
     for (auto& net : extra_interfaces)
     {
-        const auto it = std::find_if(host_nets.cbegin(), host_nets.cend(),
-                                     [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
+        auto it = std::find_if(host_nets.cbegin(), host_nets.cend(),
+                               [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
         if (it != host_nets.end() && it->type == "ethernet")
-            net.id = setup_bridge(net.id);
+        {
+            it = std::find_if(host_nets.cbegin(), host_nets.cend(), [&net](const mp::NetworkInterfaceInfo& info) {
+                const auto& end = info.links.cend();
+                return info.type == "bridge" &&
+                       std::find(info.links.cbegin(), end, net.id) != end; // TODO@ricab move in
+            });
+            net.id = it != host_nets.cend() ? it->id : setup_bridge(net.id);
+        }
     }
 }
