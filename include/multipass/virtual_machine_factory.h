@@ -36,6 +36,7 @@ class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
+struct NetworkInterface;
 struct NetworkInterfaceInfo;
 
 class VirtualMachineFactory
@@ -53,6 +54,7 @@ public:
     virtual void remove_resources_for(const std::string& name) = 0;
 
     virtual FetchType fetch_type() = 0;
+    virtual void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) = 0; // note the arg may be updated
     virtual VMImage prepare_source_image(const VMImage& source_image) = 0;
     virtual void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) = 0;
     virtual void hypervisor_health_check() = 0;
