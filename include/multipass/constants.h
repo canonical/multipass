@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_CONSTANTS_H
 #define MULTIPASS_CONSTANTS_H
 
+#include <chrono>
+
 namespace multipass
 {
 constexpr auto client_name = "multipass";
@@ -30,6 +32,7 @@ constexpr auto min_cpu_cores = "1";
 constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
+constexpr auto default_timeout = std::chrono::minutes(5);
 
 constexpr auto home_automount_dir = "Home";
 
@@ -44,6 +47,8 @@ constexpr auto autostart_key = "client.gui.autostart"; // idem
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
 constexpr auto hotkey_key = "client.gui.hotkey";                      // idem
 constexpr auto hotkey_default = "Ctrl+Alt+U";                         // idem; translates to Cmd+Opt+U on macOS
+
+constexpr auto timeout_exit_code = 5;
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

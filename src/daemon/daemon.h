@@ -29,6 +29,7 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -158,11 +159,12 @@ private:
     };
 
     template <typename Reply>
-    std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, grpc::ServerWriter<Reply>* server);
+    std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
+                                                        grpc::ServerWriter<Reply>* server);
     template <typename Reply>
-    AsyncOperationStatus async_wait_for_ready_all(grpc::ServerWriter<Reply>* server,
-                                                  const std::vector<std::string>& vms,
-                                                  std::promise<grpc::Status>* status_promise);
+    AsyncOperationStatus
+    async_wait_for_ready_all(grpc::ServerWriter<Reply>* server, const std::vector<std::string>& vms,
+                             const std::chrono::seconds& timeout, std::promise<grpc::Status>* status_promise);
     void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
 

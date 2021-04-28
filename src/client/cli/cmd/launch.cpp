@@ -22,6 +22,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/settings.h>
@@ -34,6 +35,7 @@
 #include <QFileInfo>
 #include <QTimeZone>
 
+#include <cstdlib>
 #include <regex>
 #include <unordered_map>
 
@@ -50,11 +52,6 @@ const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
 const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
 
-struct NetworkDefinitionException : public std::runtime_error
-{
-    using std::runtime_error::runtime_error;
-};
-
 auto checked_mode(const std::string& mode)
 {
     if (mode == "auto")
@@ -62,13 +59,13 @@ auto checked_mode(const std::string& mode)
     if (mode == "manual")
         return mp::LaunchRequest_NetworkOptions_Mode::LaunchRequest_NetworkOptions_Mode_MANUAL;
     else
-        throw NetworkDefinitionException{fmt::format("Bad network mode '{}', need 'auto' or 'manual'", mode)};
+        throw mp::ValidationException{fmt::format("Bad network mode '{}', need 'auto' or 'manual'", mode)};
 }
 
 const std::string& checked_mac(const std::string& mac)
 {
     if (!mpu::valid_mac_address(mac))
-        throw NetworkDefinitionException(fmt::format("Invalid MAC address: {}", mac));
+        throw mp::ValidationException(fmt::format("Invalid MAC address: {}", mac));
 
     return mac;
 }
@@ -92,7 +89,7 @@ auto net_digest(const QString& options)
             else if (key == "mac")
                 net.set_mac_address(checked_mac(val.toStdString()));
             else
-                throw NetworkDefinitionException{fmt::format("Bad network field: {}", key)};
+                throw mp::ValidationException{fmt::format("Bad network field: {}", key)};
         }
 
         // Interpret as "name" the argument when there are no ',' and no '='.
@@ -100,11 +97,11 @@ auto net_digest(const QString& options)
             net.set_id(key_value_split[0].toStdString());
 
         else
-            throw NetworkDefinitionException{fmt::format("Bad network field definition: {}", key_value_pair)};
+            throw mp::ValidationException{fmt::format("Bad network field definition: {}", key_value_pair)};
     }
 
     if (net.id().empty())
-        throw NetworkDefinitionException{fmt::format("Bad network definition, need at least a 'name' field")};
+        throw mp::ValidationException{fmt::format("Bad network definition, need at least a 'name' field")};
 
     return net;
 }
@@ -120,7 +117,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
 
-    auto ret = request_launch();
+    auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
         QString mount_source{};
@@ -206,6 +203,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "spec");
 
     parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});
+
+    mp::cmd::add_timeout(parser);
 
     auto status = parser->commandParse(this);
 
@@ -306,8 +305,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         if (parser->isSet(networkOption))
             for (const auto& net : parser->values(networkOption))
                 request.mutable_network_options()->Add(net_digest(net));
+
+        request.set_timeout(mp::cmd::parse_timeout(parser));
     }
-    catch (NetworkDefinitionException& e)
+    catch (mp::ValidationException& e)
     {
         cerr << "error: " << e.what() << "\n";
         return ParseCode::CommandLineError;
@@ -318,17 +319,29 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     return status;
 }
 
-mp::ReturnCode cmd::Launch::request_launch()
+mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 {
-    mp::AnimatedSpinner spinner{cout};
+    if (!spinner)
+        spinner = std::make_unique<multipass::AnimatedSpinner>(
+            cout); // Creating just in time to work around canonical/multipass#2075
 
-    auto on_success = [this, &spinner](mp::LaunchReply& reply) {
-        spinner.stop();
+    if (parser->isSet("timeout") && !timer)
+    {
+        timer = cmd::make_timer(parser->value("timeout").toInt(), spinner.get(), cerr,
+                                "Timed out waiting for instance launch.");
+        timer->start();
+    }
+
+    auto on_success = [this, &parser](mp::LaunchReply& reply) {
+        spinner->stop();
 
         if (reply.metrics_pending())
         {
             if (term->is_live())
             {
+                if (timer)
+                    timer->pause();
+
                 cout << "One quick question before we launch … Would you like to help\n"
                      << "the Multipass developers, by sending anonymous usage data?\n"
                      << "This includes your operating system, which images you use,\n"
@@ -371,7 +384,9 @@ mp::ReturnCode cmd::Launch::request_launch()
                     }
                 }
             }
-            return request_launch();
+            if (timer)
+                timer->resume();
+            return request_launch(parser);
         }
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
@@ -386,8 +401,8 @@ mp::ReturnCode cmd::Launch::request_launch()
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
-        spinner.stop();
+    auto on_failure = [this](grpc::Status& status) {
+        spinner->stop();
 
         LaunchError launch_error;
         launch_error.ParseFromString(status.error_details());
@@ -418,7 +433,7 @@ mp::ReturnCode cmd::Launch::request_launch()
         return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
-    auto streaming_callback = [this, &spinner](mp::LaunchReply& reply) {
+    auto streaming_callback = [this](mp::LaunchReply& reply) {
         std::unordered_map<int, std::string> progress_messages{
             {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
             {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
@@ -432,25 +447,25 @@ mp::ReturnCode cmd::Launch::request_launch()
             auto& progress_message = progress_messages[reply.launch_progress().type()];
             if (reply.launch_progress().percent_complete() != "-1")
             {
-                spinner.stop();
+                spinner->stop();
                 cout << "\r";
                 cout << progress_message << reply.launch_progress().percent_complete() << "%" << std::flush;
             }
             else
             {
-                spinner.stop();
-                spinner.start(progress_message);
+                spinner->stop();
+                spinner->start(progress_message);
             }
         }
         else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)
         {
-            spinner.stop();
-            spinner.start(reply.create_message());
+            spinner->stop();
+            spinner->start(reply.create_message());
         }
         else if (!reply.reply_message().empty())
         {
-            spinner.stop();
-            spinner.start(reply.reply_message());
+            spinner->stop();
+            spinner->start(reply.reply_message());
         }
     };
 

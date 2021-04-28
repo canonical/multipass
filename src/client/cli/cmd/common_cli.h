@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
+#include <multipass/timer.h>
 
 #include <QString>
 
@@ -29,6 +30,7 @@ using RpcMethod = multipass::Rpc::Stub;
 
 namespace multipass
 {
+class AnimatedSpinner;
 class ArgParser;
 class Formatter;
 class SettingsException;
@@ -51,6 +53,13 @@ QString describe_settings_keys();
 // helpers for update handling
 bool update_available(const multipass::UpdateInfo& update_info);
 std::string update_notice(const multipass::UpdateInfo& update_info);
+
+// parser helpers
+void add_timeout(multipass::ArgParser*);
+int parse_timeout(const multipass::ArgParser* parser);
+std::unique_ptr<multipass::utils::Timer> make_timer(int timeout, AnimatedSpinner* spinner, std::ostream& cerr,
+                                                    const std::string& msg);
+
 } // namespace cmd
 } // namespace multipass
 

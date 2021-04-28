@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -46,4 +46,5 @@ target_link_libraries(commands
   rpc
   Qt5::Core
   Qt5::Network
+  utils
   yaml)
