@@ -47,7 +47,7 @@ jobs:
     runs-on: testflinger
 
     # Windows is pretty slow unfortunately.
-    timeout-minutes: 40
+    timeout-minutes: 60
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
