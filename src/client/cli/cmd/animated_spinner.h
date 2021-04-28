@@ -32,6 +32,7 @@ public:
     void start(const std::string& message);
     void start();
     void stop();
+    void print(std::ostream& stream, const std::string& message);
 
 private:
     void draw();

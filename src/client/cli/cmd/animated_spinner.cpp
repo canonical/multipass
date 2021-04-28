@@ -72,6 +72,15 @@ void mp::AnimatedSpinner::stop()
     clear_line(cout);
 }
 
+void mp::AnimatedSpinner::print(std::ostream& stream, const std::string& message)
+{
+    stop();
+
+    stream << message;
+
+    start();
+}
+
 void mp::AnimatedSpinner::draw()
 {
     std::unique_lock<decltype(mutex)> lock{mutex};
