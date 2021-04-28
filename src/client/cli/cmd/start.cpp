@@ -108,9 +108,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     auto streaming_callback = [this, &spinner](mp::StartReply& reply) {
         if (!reply.log_line().empty())
         {
-            spinner.stop();
-            cerr << reply.log_line() << "\n";
-            spinner.start();
+            spinner.print(cerr, reply.log_line());
         }
 
         spinner.stop();

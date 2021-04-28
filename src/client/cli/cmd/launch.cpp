@@ -444,9 +444,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
         if (!reply.log_line().empty())
         {
-            spinner.stop();
-            cerr << reply.log_line() << "\n";
-            spinner.start();
+            spinner->print(cerr, reply.log_line());
         }
 
         if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
