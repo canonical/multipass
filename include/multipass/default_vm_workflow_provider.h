@@ -21,6 +21,8 @@
 #include <multipass/path.h>
 #include <multipass/vm_workflow_provider.h>
 
+#include <yaml-cpp/yaml.h>
+
 #include <QDir>
 #include <QString>
 #include <QUrl>
@@ -56,7 +58,7 @@ private:
     const QString archive_file_path;
     const std::chrono::milliseconds workflows_ttl;
     std::chrono::steady_clock::time_point last_update;
-    std::map<std::string, std::string> workflow_map;
+    std::map<std::string, YAML::Node> workflow_map;
 };
 } // namespace multipass
 #endif // MULTIPASS_DEFAULT_VM_WORKFLOW_PROVIDER_H

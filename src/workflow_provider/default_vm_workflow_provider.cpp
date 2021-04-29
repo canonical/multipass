@@ -26,8 +26,6 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
-#include <yaml-cpp/yaml.h>
-
 #include <QFile>
 #include <QFileInfo>
 
@@ -48,7 +46,7 @@ constexpr auto category = "workflow provider";
 
 auto workflows_map_for(const std::string& archive_file_path)
 {
-    std::map<std::string, std::string> workflows_map;
+    std::map<std::string, YAML::Node> workflows_map;
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
     try
     {
@@ -67,7 +65,7 @@ auto workflows_map_for(const std::string& archive_file_path)
                     Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
                     std::ostringstream out(std::ios::binary);
                     Poco::StreamCopier::copyStream(zip_input_stream, out);
-                    workflows_map[file_info.baseName().toStdString()] = out.str();
+                    workflows_map[file_info.baseName().toStdString()] = YAML::Load(out.str());
                 }
             }
         }
@@ -104,8 +102,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
     update_workflows();
 
     Query query{"", "", false, "", Query::Type::Alias};
-    auto& config = workflow_map.at(workflow_name);
-    auto workflow_config = YAML::Load(config);
+    auto& workflow_config = workflow_map.at(workflow_name);
 
     auto workflow_instance = workflow_config["instances"][workflow_name];
 
@@ -220,8 +217,7 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
 
     static constexpr auto missing_key_template{"The \'{}\' key is required for the {} workflow"};
     static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} workflow"};
-    auto& config = workflow_map.at(workflow_name);
-    auto workflow_config = YAML::Load(config);
+    auto& workflow_config = workflow_map.at(workflow_name);
 
     VMImageInfo image_info;
     image_info.aliases.append(QString::fromStdString(workflow_name));
