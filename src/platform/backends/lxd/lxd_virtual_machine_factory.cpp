@@ -19,6 +19,8 @@
 #include "lxd_virtual_machine.h"
 #include "lxd_vm_image_vault.h"
 
+#include <shared/linux/backend_utils.h>
+
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -37,11 +39,6 @@ namespace
 {
 constexpr auto category = "lxd factory";
 const QString multipass_bridge_name = "mpbr0";
-
-std::string setup_bridge(const std::string& interface)
-{
-    return interface;
-}
 
 } // namespace
 
@@ -206,7 +203,7 @@ void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterfa
                 return info.type == "bridge" &&
                        std::find(info.links.cbegin(), end, net.id) != end; // TODO@ricab move in
             });
-            net.id = it != host_nets.cend() ? it->id : setup_bridge(net.id);
+            net.id = it != host_nets.cend() ? it->id : mp::backend::create_bridge_with(net.id);
         }
     }
 }
