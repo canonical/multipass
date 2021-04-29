@@ -35,6 +35,7 @@ public:
     virtual Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) = 0;
     virtual VMImageInfo info_for(const std::string& workflow_name) = 0;
     virtual std::vector<VMImageInfo> all_workflows() = 0;
+    virtual std::string name_from_workflow(const std::string& workflow_name) = 0;
 
 protected:
     VMWorkflowProvider() = default;

@@ -48,6 +48,7 @@ public:
     Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) override;
     VMImageInfo info_for(const std::string& workflow_name) override;
     std::vector<VMImageInfo> all_workflows() override;
+    std::string name_from_workflow(const std::string& workflow_name) override;
 
 private:
     void fetch_workflows();

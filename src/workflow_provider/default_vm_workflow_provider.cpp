@@ -304,6 +304,14 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
     return workflow_info;
 }
 
+std::string mp::DefaultVMWorkflowProvider::name_from_workflow(const std::string& workflow_name)
+{
+    if (workflow_map.count(workflow_name) == 1)
+        return workflow_name;
+
+    return {};
+}
+
 void mp::DefaultVMWorkflowProvider::fetch_workflows()
 {
     url_downloader->download_to(workflows_url, archive_file_path, -1, -1, [](auto...) { return true; });
