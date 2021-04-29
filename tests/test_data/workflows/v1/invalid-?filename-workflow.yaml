@@ -1,0 +1,10 @@
+description: Invalid file name workflow
+version: 0.1
+
+instances:
+  invalid-$filename-workflow:
+    image: "default"
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: 25G

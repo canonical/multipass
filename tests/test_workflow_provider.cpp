@@ -56,6 +56,7 @@ struct VMWorkflowProvider : public Test
     mp::URLDownloader url_downloader{std::chrono::seconds(10)};
     mpt::TempDir cache_dir;
     std::chrono::seconds default_ttl{1s};
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 } // namespace
 
@@ -273,9 +274,6 @@ TEST_F(VMWorkflowProvider, infoForReturnsExpectedInfo)
 
 TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 {
-    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
-
-    auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(
         mpl::Level::error,
@@ -287,6 +285,10 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
         "Invalid workflow: The 'description' key is required for the missing-description-workflow workflow");
     logger_scope.mock_logger->expect_log(
         mpl::Level::error, "Invalid workflow: The 'version' key is required for the missing-version-workflow workflow");
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, "Invalid workflow name \'invalid-\?filename-workflow\': must be a valid host name");
+
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     auto workflows = workflow_provider.all_workflows();
 
@@ -392,4 +394,36 @@ TEST_F(VMWorkflowProvider, zipArchivePocoExceptionLogsErrorAndDoesNotThrow)
 
     EXPECT_NO_THROW(mp::DefaultVMWorkflowProvider(workflows_zip_url, &url_downloader, cache_dir.path(),
                                                   std::chrono::milliseconds(0)));
+}
+
+TEST_F(VMWorkflowProvider, generalExceptionDuringStartupLogsErrorAndDoesNotThrow)
+{
+    const std::string error_msg{"Bad stuff just happened"};
+    mpt::MockURLDownloader mock_url_downloader;
+    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _)).WillRepeatedly(Throw(std::runtime_error(error_msg)));
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, fmt::format("Error on workflows start up: {}", error_msg));
+
+    EXPECT_NO_THROW(mp::DefaultVMWorkflowProvider workflow_provider(workflows_zip_url, &mock_url_downloader,
+                                                                    cache_dir.path(), std::chrono::milliseconds(0)));
+}
+
+TEST_F(VMWorkflowProvider, generalExceptionDuringCallThrows)
+{
+    const std::string error_msg{"This can't be possible"};
+    mpt::MockURLDownloader mock_url_downloader;
+    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _))
+        .Times(2)
+        .WillOnce([](auto, const QString& file_name, auto...) {
+            QFile file(file_name);
+            file.open(QFile::WriteOnly);
+        })
+        .WillRepeatedly(Throw(std::runtime_error(error_msg)));
+
+    mp::DefaultVMWorkflowProvider workflow_provider(workflows_zip_url, &mock_url_downloader, cache_dir.path(),
+                                                    std::chrono::milliseconds(0));
+
+    MP_EXPECT_THROW_THAT(workflow_provider.info_for("foo"), std::runtime_error, mpt::match_what(StrEq(error_msg)));
 }
