@@ -427,3 +427,25 @@ TEST_F(VMWorkflowProvider, generalExceptionDuringCallThrows)
 
     MP_EXPECT_THROW_THAT(workflow_provider.info_for("foo"), std::runtime_error, mpt::match_what(StrEq(error_msg)));
 }
+
+TEST_F(VMWorkflowProvider, validWorkflowReturnsExpectedName)
+{
+    const std::string workflow_name{"test-workflow1"};
+
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    auto name = workflow_provider.name_from_workflow(workflow_name);
+
+    EXPECT_EQ(name, workflow_name);
+}
+
+TEST_F(VMWorkflowProvider, nonexistentWorkflowReturnsEmptyName)
+{
+    const std::string workflow_name{"not-a-workflow"};
+
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    auto name = workflow_provider.name_from_workflow(workflow_name);
+
+    EXPECT_TRUE(name.empty());
+}
