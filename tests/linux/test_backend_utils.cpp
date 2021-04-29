@@ -367,7 +367,7 @@ struct CreateBridgeTest : public Test
 
 TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
 {
-    static constexpr auto network = "wlan1234567890a";
+    static constexpr auto network = "eth1234567890a";
     static constexpr auto child_obj_path = "/an/obj/path/for/child";
     static constexpr auto null_obj_path = "/";
 
