@@ -44,6 +44,7 @@ public:
 private:
     ParseCode parse_args(ArgParser* parser) override;
     ReturnCode request_launch(const ArgParser* parser);
+    OptInStatus::Status ask_metrics_permission(const LaunchReply& reply);
 
     LaunchRequest request;
     QString petenv_name;

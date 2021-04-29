@@ -341,50 +341,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
         if (reply.metrics_pending())
         {
-            if (term->is_live())
-            {
-                cout << "One quick question before we launch … Would you like to help\n"
-                     << "the Multipass developers, by sending anonymous usage data?\n"
-                     << "This includes your operating system, which images you use,\n"
-                     << "the number of instances, their properties and how long you use them.\n"
-                     << "We’d also like to measure Multipass’s speed.\n\n"
-                     << (reply.metrics_show_info().has_host_info() ? "Choose “show” to see an example usage report.\n\n"
-                                                                     "Send usage data (yes/no/Later/show)? "
-                                                                   : "Send usage data (yes/no/Later)? ");
-
-                while (true)
-                {
-                    std::string answer;
-                    std::getline(term->cin(), answer);
-                    if (std::regex_match(answer, yes))
-                    {
-                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::ACCEPTED);
-                        cout << "Thank you!\n";
-                        break;
-                    }
-                    else if (std::regex_match(answer, no))
-                    {
-                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::DENIED);
-                        break;
-                    }
-                    else if (answer.empty() || std::regex_match(answer, later))
-                    {
-                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::LATER);
-                        break;
-                    }
-                    else if (reply.metrics_show_info().has_host_info() && std::regex_match(answer, show))
-                    {
-                        // TODO: Display actual metrics data here provided by daemon
-                        cout << "Show metrics example here\n\n"
-                             << "Send usage data (yes/no/Later/show)? ";
-                    }
-                    else
-                    {
-                        cout << (reply.metrics_show_info().has_host_info() ? "Please answer yes/no/Later/show: "
-                                                                           : "Please answer yes/no/Later: ");
-                    }
-                }
-            }
+            request.mutable_opt_in_reply()->set_opt_in_status(ask_metrics_permission(reply));
             return request_launch(parser);
         }
 
@@ -474,4 +431,51 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     };
 
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
+}
+
+auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInStatus::Status
+{
+    if (term->is_live())
+    {
+        cout << "One quick question before we launch … Would you like to help\n"
+             << "the Multipass developers, by sending anonymous usage data?\n"
+             << "This includes your operating system, which images you use,\n"
+             << "the number of instances, their properties and how long you use them.\n"
+             << "We’d also like to measure Multipass’s speed.\n\n"
+             << (reply.metrics_show_info().has_host_info() ? "Choose “show” to see an example usage report.\n\n"
+                                                             "Send usage data (yes/no/Later/show)? "
+                                                           : "Send usage data (yes/no/Later)? ");
+
+        while (true)
+        {
+            std::string answer;
+            std::getline(term->cin(), answer);
+            if (std::regex_match(answer, yes))
+            {
+                cout << "Thank you!\n";
+                return OptInStatus::ACCEPTED;
+            }
+            else if (std::regex_match(answer, no))
+            {
+                return OptInStatus::DENIED;
+            }
+            else if (answer.empty() || std::regex_match(answer, later))
+            {
+                return OptInStatus::LATER;
+            }
+            else if (reply.metrics_show_info().has_host_info() && std::regex_match(answer, show))
+            {
+                // TODO: Display actual metrics data here provided by daemon
+                cout << "Show metrics example here\n\n"
+                     << "Send usage data (yes/no/Later/show)? ";
+            }
+            else
+            {
+                cout << (reply.metrics_show_info().has_host_info() ? "Please answer yes/no/Later/show: "
+                                                                   : "Please answer yes/no/Later: ");
+            }
+        }
+    }
+
+    return OptInStatus::UNKNOWN;
 }
