@@ -44,7 +44,7 @@ const QString github_workflows_archive_name{"multipass-workflows.zip"};
 const QString workflow_dir_version{"v1"};
 constexpr auto category = "workflow provider";
 
-auto workflows_map_for(const std::string& archive_file_path)
+auto workflows_map_for(const std::string& archive_file_path, bool& needs_update)
 {
     std::map<std::string, YAML::Node> workflows_map;
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
@@ -60,6 +60,16 @@ auto workflows_map_for(const std::string& archive_file_path)
             if (file_info.dir().dirName() == workflow_dir_version &&
                 (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
             {
+                if (!mp::utils::valid_hostname(file_info.baseName().toStdString()))
+                {
+                    mpl::log(
+                        mpl::Level::error, category,
+                        fmt::format("Invalid workflow name \'{}\': must be a valid host name", file_info.baseName()));
+                    needs_update = true;
+
+                    continue;
+                }
+
                 Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
                 std::ostringstream out(std::ios::binary);
                 Poco::StreamCopier::copyStream(zip_input_stream, out);
@@ -298,7 +308,7 @@ void mp::DefaultVMWorkflowProvider::fetch_workflows()
 {
     url_downloader->download_to(workflows_url, archive_file_path, -1, -1, [](auto...) { return true; });
 
-    workflow_map = workflows_map_for(archive_file_path.toStdString());
+    workflow_map = workflows_map_for(archive_file_path.toStdString(), needs_update);
 }
 
 void mp::DefaultVMWorkflowProvider::update_workflows()
