@@ -325,7 +325,9 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
             cout); // Creating just in time to work around canonical/multipass#2075
 
-    if (parser->isSet("timeout") && !timer)
+    if (timer)
+        timer->resume();
+    else if (parser->isSet("timeout"))
     {
         timer = cmd::make_timer(parser->value("timeout").toInt(), spinner.get(), cerr,
                                 "Timed out waiting for instance launch.");
@@ -334,14 +336,13 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
     auto on_success = [this, &parser](mp::LaunchReply& reply) {
         spinner->stop();
+        if (timer)
+            timer->pause();
 
         if (reply.metrics_pending())
         {
             if (term->is_live())
             {
-                if (timer)
-                    timer->pause();
-
                 cout << "One quick question before we launch … Would you like to help\n"
                      << "the Multipass developers, by sending anonymous usage data?\n"
                      << "This includes your operating system, which images you use,\n"
@@ -384,8 +385,6 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                     }
                 }
             }
-            if (timer)
-                timer->resume();
             return request_launch(parser);
         }
 
