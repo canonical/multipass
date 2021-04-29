@@ -59,6 +59,7 @@ private:
     const std::chrono::milliseconds workflows_ttl;
     std::chrono::steady_clock::time_point last_update;
     std::map<std::string, YAML::Node> workflow_map;
+    bool needs_update{true};
 };
 } // namespace multipass
 #endif // MULTIPASS_DEFAULT_VM_WORKFLOW_PROVIDER_H

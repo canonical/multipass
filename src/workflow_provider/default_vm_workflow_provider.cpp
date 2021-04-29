@@ -48,31 +48,24 @@ auto workflows_map_for(const std::string& archive_file_path)
 {
     std::map<std::string, YAML::Node> workflows_map;
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
-    try
+    auto zip_archive = MP_POCOZIPUTILS.zip_archive_for(zip_stream);
+
+    for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
     {
-        auto zip_archive = MP_POCOZIPUTILS.zip_archive_for(zip_stream);
-
-        for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
+        if (it->second.isFile())
         {
-            if (it->second.isFile())
-            {
-                auto file_name = it->second.getFileName();
-                QFileInfo file_info{QString::fromStdString(file_name)};
+            auto file_name = it->second.getFileName();
+            QFileInfo file_info{QString::fromStdString(file_name)};
 
-                if (file_info.dir().dirName() == workflow_dir_version &&
-                    (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
-                {
-                    Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
-                    std::ostringstream out(std::ios::binary);
-                    Poco::StreamCopier::copyStream(zip_input_stream, out);
-                    workflows_map[file_info.baseName().toStdString()] = YAML::Load(out.str());
-                }
+            if (file_info.dir().dirName() == workflow_dir_version &&
+                (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
+            {
+                Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
+                std::ostringstream out(std::ios::binary);
+                Poco::StreamCopier::copyStream(zip_input_stream, out);
+                workflows_map[file_info.baseName().toStdString()] = YAML::Load(out.str());
             }
         }
-    }
-    catch (const Poco::Exception& e)
-    {
-        mpl::log(mpl::Level::error, category, fmt::format("Error extracting Workflows zip file: {}", e.displayText()));
     }
 
     return workflows_map;
@@ -87,7 +80,14 @@ mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_u
       archive_file_path{archive_dir.filePath(github_workflows_archive_name)},
       workflows_ttl{workflows_ttl}
 {
-    update_workflows();
+    try
+    {
+        update_workflows();
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error, category, fmt::format("Error on workflows start up: {}", e.what()));
+    }
 }
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir,
@@ -124,6 +124,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         }
         else
         {
+            needs_update = true;
             throw InvalidWorkflowException("Unsupported image scheme in Workflow");
         }
     }
@@ -145,6 +146,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         }
         catch (const YAML::BadConversion&)
         {
+            needs_update = true;
             throw InvalidWorkflowException(fmt::format("Minimum CPU value in workflow is invalid"));
         }
     }
@@ -168,6 +170,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         }
         catch (const InvalidMemorySizeException&)
         {
+            needs_update = true;
             throw InvalidWorkflowException(fmt::format("Minimum memory size value in workflow is invalid"));
         }
     }
@@ -191,6 +194,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         }
         catch (const InvalidMemorySizeException&)
         {
+            needs_update = true;
             throw InvalidWorkflowException(fmt::format("Minimum disk space value in workflow is invalid"));
         }
     }
@@ -203,6 +207,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         }
         catch (const YAML::BadConversion&)
         {
+            needs_update = true;
             throw InvalidWorkflowException(
                 fmt::format("Cannot convert cloud-init data for the {} workflow", workflow_name));
         }
@@ -226,10 +231,16 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
     const auto version_key{"version"};
 
     if (!workflow_config[description_key])
+    {
+        needs_update = true;
         throw InvalidWorkflowException(fmt::format(missing_key_template, description_key, workflow_name));
+    }
 
     if (!workflow_config[version_key])
+    {
+        needs_update = true;
         throw InvalidWorkflowException(fmt::format(missing_key_template, version_key, workflow_name));
+    }
 
     try
     {
@@ -237,6 +248,7 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
     }
     catch (const YAML::BadConversion&)
     {
+        needs_update = true;
         throw InvalidWorkflowException(fmt::format(bad_conversion_template, description_key, workflow_name));
     }
 
@@ -246,6 +258,7 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
     }
     catch (const YAML::BadConversion&)
     {
+        needs_update = true;
         throw InvalidWorkflowException(fmt::format(bad_conversion_template, version_key, workflow_name));
     }
 
@@ -256,6 +269,7 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
 {
     update_workflows();
 
+    bool will_need_update{false};
     std::vector<VMImageInfo> workflow_info;
 
     for (const auto& [key, config] : workflow_map)
@@ -266,9 +280,16 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
         }
         catch (const InvalidWorkflowException& e)
         {
+            // Don't force updates in info_for() since we are looping and only force the update once we
+            // finish iterating.
+            needs_update = false;
+            will_need_update = true;
             mpl::log(mpl::Level::error, category, fmt::format("Invalid workflow: {}", e.what()));
         }
     }
+
+    if (will_need_update)
+        needs_update = true;
 
     return workflow_info;
 }
@@ -283,12 +304,18 @@ void mp::DefaultVMWorkflowProvider::fetch_workflows()
 void mp::DefaultVMWorkflowProvider::update_workflows()
 {
     const auto now = std::chrono::steady_clock::now();
-    if ((now - last_update) > workflows_ttl)
+    if ((now - last_update) > workflows_ttl || needs_update)
     {
         try
         {
             fetch_workflows();
             last_update = now;
+            needs_update = false;
+        }
+        catch (const Poco::Exception& e)
+        {
+            mpl::log(mpl::Level::error, category,
+                     fmt::format("Error extracting Workflows zip file: {}", e.displayText()));
         }
         catch (const DownloadException& e)
         {
