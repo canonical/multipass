@@ -39,6 +39,7 @@ struct NetworkInterfaceInfo
     std::string type;
     std::string description;
     std::vector<std::string> links = {}; // default initializer allows aggregate init of the other 3
+    bool needs_authorization = false;    // idem
 };
 } // namespace multipass
 #endif // MULTIPASS_NETWORK_INTERFACE_INFO_H

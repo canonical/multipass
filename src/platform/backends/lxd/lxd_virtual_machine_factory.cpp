@@ -176,9 +176,10 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
                         auto lxd_description = network["description"].toString();
                         auto description = lxd_description.isEmpty() ? std::move(platform_it->second.description)
                                                                      : lxd_description.toStdString();
+                        auto require_authorization = type != "bridge";
 
                         ret.push_back({std::move(id), std::move(type), std::move(description),
-                                       std::move(platform_it->second.links)});
+                                       std::move(platform_it->second.links), require_authorization});
 
                         platform_networks.erase(platform_it); // prevent matching with this network again
                     }
