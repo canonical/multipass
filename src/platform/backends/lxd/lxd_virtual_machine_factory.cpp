@@ -200,9 +200,7 @@ void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterfa
         if (it != host_nets.end() && it->type == "ethernet")
         {
             it = std::find_if(host_nets.cbegin(), host_nets.cend(), [&net](const mp::NetworkInterfaceInfo& info) {
-                const auto& end = info.links.cend();
-                return info.type == "bridge" &&
-                       std::find(info.links.cbegin(), end, net.id) != end; // TODO@ricab move in
+                return info.type == "bridge" && info.has_link(net.id);
             });
             net.id = it != host_nets.cend() ? it->id : mp::backend::create_bridge_with(net.id);
         }

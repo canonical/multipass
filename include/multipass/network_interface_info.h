@@ -21,6 +21,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -28,6 +29,12 @@ namespace multipass
 {
 struct NetworkInterfaceInfo
 {
+    bool has_link(const std::string& net) const
+    {
+        auto end = links.cend();
+        return std::find(links.cbegin(), end, net) != end;
+    }
+
     std::string id;
     std::string type;
     std::string description;
