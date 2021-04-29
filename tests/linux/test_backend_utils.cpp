@@ -312,7 +312,7 @@ struct CreateBridgeTest : public Test
             QMap<QString, QVariantMap> outer_map;
             QMap<QString, QVariantMap>::const_iterator outer_it;
             QVariantMap::const_iterator inner_it;
-            QString parent_name = get_bridge_name(child).left(15);
+            QString parent_name = get_bridge_name(child);
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 2 &&
                    (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 3 &&
@@ -330,7 +330,7 @@ struct CreateBridgeTest : public Test
             QMap<QString, QVariantMap> outer_map;
             QMap<QString, QVariantMap>::const_iterator outer_it;
             QVariantMap::const_iterator inner_it;
-            QString parent_name = get_bridge_name(child).left(15);
+            QString parent_name = get_bridge_name(child);
             QString child_name = parent_name + "-child";
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
@@ -350,6 +350,11 @@ struct CreateBridgeTest : public Test
                         Property(&QDBusObjectPath::path, Property(&QString::toStdString, Eq(path))));
     }
 
+    static QString get_bridge_name(const char* child)
+    {
+        return (QString{"br-"} + child).left(15);
+    }
+
     MockDBusProvider::GuardedMock mock_dbus_injection = MockDBusProvider::inject();
     MockDBusProvider* mock_dbus_provider = mock_dbus_injection.first;
     MockDBusConnection mock_bus{};
@@ -358,12 +363,6 @@ struct CreateBridgeTest : public Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
     const QVariant empty{};
-
-private:
-    static QString get_bridge_name(const char* child)
-    {
-        return QString{"br-"} + child;
-    }
 };
 
 TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
@@ -390,7 +389,7 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
     }
 
     inject_dbus_interfaces();
-    EXPECT_NO_THROW(mp::backend::create_bridge_with(network));
+    EXPECT_EQ(mp::backend::create_bridge_with(network), get_bridge_name(network).toStdString());
 }
 
 TEST_F(CreateBridgeTest, throws_if_bus_disconnected)
