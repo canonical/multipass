@@ -189,9 +189,18 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 template <typename T>
-auto name_from(const std::string& requested_name, mp::NameGenerator& name_gen, const T& currently_used_names)
+auto name_from(const std::string& requested_name, const std::string& workflow_name, mp::NameGenerator& name_gen,
+               const T& currently_used_names)
 {
-    if (requested_name.empty())
+    if (!requested_name.empty())
+    {
+        return requested_name;
+    }
+    else if (!workflow_name.empty())
+    {
+        return workflow_name;
+    }
+    else
     {
         auto name = name_gen.make_name();
         constexpr int num_retries = 100;
@@ -203,7 +212,6 @@ auto name_from(const std::string& requested_name, mp::NameGenerator& name_gen, c
         }
         throw std::runtime_error("unable to generate a unique name");
     }
-    return requested_name;
 }
 
 std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& record)
@@ -2045,7 +2053,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                                       checked_args.option_errors.SerializeAsString()));
     }
 
-    auto name = name_from(checked_args.instance_name, *config->name_generator, vm_instances);
+    auto name = name_from(checked_args.instance_name, config->workflow_provider->name_from_workflow(request->image()),
+                          *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
