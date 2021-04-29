@@ -115,10 +115,16 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
     static const auto bridge_fname = QStringLiteral("brif");
 
     std::string type, description;
+    std::vector<std::string> links;
     if (auto bridge = "bridge"; net_dir.exists(bridge))
     {
         type = bridge;
         QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+
+        links.reserve(bridge_members.size());
+        std::transform(bridge_members.cbegin(), bridge_members.cend(), std::back_inserter(links),
+                       [](const QString& interface) { return interface.toStdString(); });
+
         description = bridge_members.isEmpty() ? "Empty network bridge"
                                                : fmt::format("Network bridge with {}", bridge_members.join(", "));
     }
@@ -128,7 +134,8 @@ mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
         description = "Ethernet device";
     }
 
-    return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description)};
+    return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description),
+                                    std::move(links)};
 }
 } // namespace
 

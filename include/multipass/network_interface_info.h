@@ -31,7 +31,7 @@ struct NetworkInterfaceInfo
     std::string id;
     std::string type;
     std::string description;
-    std::vector<std::string> links = {}; // TODO@ricab populate
+    std::vector<std::string> links = {}; // default initializer allows aggregate init of the other 3
 };
 } // namespace multipass
 #endif // MULTIPASS_NETWORK_INTERFACE_INFO_H

@@ -177,7 +177,8 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
                         auto description = lxd_description.isEmpty() ? std::move(platform_it->second.description)
                                                                      : lxd_description.toStdString();
 
-                        ret.push_back({std::move(id), std::move(type), std::move(description)});
+                        ret.push_back({std::move(id), std::move(type), std::move(description),
+                                       std::move(platform_it->second.links)});
 
                         platform_networks.erase(platform_it); // prevent matching with this network again
                     }
