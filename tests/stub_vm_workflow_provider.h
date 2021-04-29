@@ -39,6 +39,11 @@ struct StubVMWorkflowProvider final : public VMWorkflowProvider
     {
         return {};
     }
+
+    std::string name_from_workflow(const std::string& workflow_name) override
+    {
+        return {};
+    }
 };
 } // namespace test
 } // namespace multipass
