@@ -2375,7 +2375,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 server->Write(reply);
             }
 
-            mp::utils::wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
+            MP_UTILS.wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
         }
 
         std::vector<std::string> invalid_mounts;
