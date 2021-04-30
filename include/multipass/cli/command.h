@@ -161,10 +161,10 @@ private:
         using SuccessCallableArg0Type = std::remove_reference_t<typename SuccessCallableTraits::template arg<0>::type>;
         using FailureCallableArg0Type = std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
 
-        static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value, "");
-        static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value, "");
+        static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value);
+        static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value);
 
-        static_assert(SuccessCallableTraits::num_args == 1, "");
+        static_assert(SuccessCallableTraits::num_args == 1);
         static_assert(std::is_base_of_v<google::protobuf::Message, SuccessCallableArg0Type>,
                       "`on_success` doesn't receive a Message");
 
@@ -176,7 +176,7 @@ private:
             static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
                           "`on_success` and `on_failure` handle different reply types");
         }
-        static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value, "");
+        static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value);
     }
 };
 } // namespace cmd
