@@ -331,6 +331,10 @@ struct ListIP : public Daemon,
 {
 };
 
+struct DaemonLaunchTimeoutValueTestSuite : public Daemon, public WithParamInterface<std::tuple<int, int, int>>
+{
+};
+
 TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -1260,4 +1264,45 @@ TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
         {"launch", "--network", fmt::format("name=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
 }
 
+TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock");
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
+        return std::move(instance_ptr);
+    });
+
+    // Timeouts are given in seconds
+    const auto [client_timeout, workflow_timeout, expected_timeout] = GetParam();
+
+    EXPECT_CALL(*mock_workflow_provider, workflow_timeout(_)).WillOnce(Return(workflow_timeout));
+
+    EXPECT_CALL(*instance_ptr, wait_until_ssh_up(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                   std::chrono::seconds(expected_timeout))))
+        .WillRepeatedly(Return());
+    EXPECT_CALL(
+        *mock_utils,
+        wait_for_cloud_init(
+            _, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout)), _))
+        .WillRepeatedly(Return());
+
+    config_builder.workflow_provider = std::move(mock_workflow_provider);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::vector<std::string> command{"launch"};
+    if (client_timeout > 0)
+    {
+        command.push_back("--timeout");
+        command.push_back(std::to_string(client_timeout));
+    }
+
+    send_command(command);
+}
+
+INSTANTIATE_TEST_SUITE_P(Daemon, DaemonLaunchTimeoutValueTestSuite,
+                         Values(std::make_tuple(0, 600, 600), // client_timeout, workflow_timeout, expected_timeout
+                                std::make_tuple(1000, 600, 1000), std::make_tuple(1000, 0, 1000),
+                                std::make_tuple(0, 0, 300)));
 } // namespace
