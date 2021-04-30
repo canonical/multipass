@@ -72,13 +72,7 @@ protected:
         using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = typename std::remove_reference<Arg0Type>::type;
         ReplyType reply;
-        auto handle_failure = [&reply, &on_failure](grpc::Status status) // TODO@ricab extract
-        {
-            if constexpr (multipass::callable_traits<FailureCallable>::num_args == 2)
-                return on_failure(status, reply);
-            else
-                return on_failure(status);
-        };
+        auto handle_failure = adapt_failure_handler(on_failure, reply);
 
         auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
 
@@ -177,6 +171,17 @@ private:
                           "`on_success` and `on_failure` handle different reply types");
         }
         static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value);
+    }
+
+    template <typename FailureCallable, typename Reply>
+    auto adapt_failure_handler(FailureCallable& on_failure, Reply& reply) // lvalue refs ensure args' lifetime continues
+    {
+        return [&on_failure, &reply](grpc::Status status) {
+            if constexpr (multipass::callable_traits<FailureCallable>::num_args == 2)
+                return on_failure(status, reply);
+            else
+                return on_failure(status);
+        };
     }
 };
 } // namespace cmd
