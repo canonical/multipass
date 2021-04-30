@@ -110,7 +110,7 @@ jobs:
 
     - name: Test
       if: ${{ matrix.build-type == 'Debug' }}
-      timeout-minutes: 1
+      timeout-minutes: 2
       run: |
         /snap/bin/lxc start snapcraft-multipass
         /snap/bin/lxc exec snapcraft-multipass -- \

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,39 +21,95 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
+#include <functional>
+#include <type_traits>
+
 namespace multipass
 {
+namespace detail
+{
+void error(const multipass::logging::CString& log_category,
+           const std::exception& e);                         // not noexcept because logging isn't
+void error(const multipass::logging::CString& log_category); // not noexcept because logging isn't
+} // namespace detail
+
 /**
- * Call f within a try-catch, catching and logging anything that it throws.
+ * Call a non-void function within a try-catch, catching and logging anything that it throws.
  *
- * @tparam F The type of the callable f. It must be callable and return int.
+ * @tparam T The type of the value that is used to initialize the return value when an exception is caught
+ * @tparam Fun The type of the callable f. It must be callable and return non-void.
  * @tparam Args The types of f's arguments
  * @param log_category The category to use when logging exceptions
- * @param f The int-returning function to protect with a catch-all
+ * @param fallback_return The value to return value when an exception is caught
+ * @param f The non-void function to protect with a catch-all
  * @param args The arguments to pass to the function f
- * @return The result of f when no exception is thrown, EXIT_FAILURE (from cstdlib) otherwise
+ * @return The result of f when no exception is thrown, fallback_return otherwise
  */
-template <typename F, typename... Args>                                      // F needs to return int
-int top_catch_all(const logging::CString log_category, F f, Args&&... args); // not noexcept because logging isn't
-}
+template <typename T, typename Fun, typename... Args> // Fun needs to return non-void
+auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f, Args&&... args) noexcept
+    -> std::invoke_result_t<Fun, Args...>; // logging can throw, but we want to std::terminate in that case
 
-template <typename F, typename... Args>
-inline int multipass::top_catch_all(const logging::CString log_category, F f, Args&&... args)
+/**
+ * Call a void function within a try-catch, catching and logging anything that it throws.
+ *
+ * @tparam Fun The type of the callable f. It must be callable and return void.
+ * @tparam Args The types of f's arguments
+ * @param log_category The category to use when logging exceptions
+ * @param f The non-void function to protect with a catch-all
+ * @param args The arguments to pass to the function f
+ */
+template <typename Fun, typename... Args> // Fun needs to return void
+void top_catch_all(const logging::CString& log_category, Fun&& f,
+                   Args&&... args) noexcept; // logging can throw, but we want to std::terminate in that case
+} // namespace multipass
+
+inline void multipass::detail::error(const multipass::logging::CString& log_category, const std::exception& e)
 {
     namespace mpl = multipass::logging;
+    mpl::log(mpl::Level::error, log_category, fmt::format("Caught an unhandled exception: {}", e.what()));
+}
+
+inline void multipass::detail::error(const multipass::logging::CString& log_category)
+{
+    namespace mpl = multipass::logging;
+    mpl::log(mpl::Level::error, log_category, "Caught an unknown exception");
+}
+
+template <typename T, typename Fun, typename... Args>
+inline auto multipass::top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f,
+                                     Args&&... args) noexcept -> std::invoke_result_t<Fun, Args...>
+{
     try
     {
-        return f(std::forward<Args>(args)...);
+        return std::invoke(std::forward<Fun>(f), std::forward<Args>(args)...);
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::error, log_category, fmt::format("Caught an unhandled exception: {}", e.what()));
-        return EXIT_FAILURE;
+        detail::error(log_category, e);
     }
     catch (...)
     {
-        mpl::log(mpl::Level::error, log_category, "Caught an unknown exception");
-        return EXIT_FAILURE;
+        detail::error(log_category);
+    }
+
+    return std::forward<decltype(fallback_return)>(fallback_return);
+}
+
+template <typename Fun, typename... Args>
+inline void multipass::top_catch_all(const logging::CString& log_category, Fun&& f,
+                                     Args&&... args) noexcept // not noexcept because logging isn't
+{
+    try
+    {
+        std::invoke(std::forward<Fun>(f), std::forward<Args>(args)...);
+    }
+    catch (const std::exception& e)
+    {
+        detail::error(log_category, e);
+    }
+    catch (...)
+    {
+        detail::error(log_category);
     }
 }
 

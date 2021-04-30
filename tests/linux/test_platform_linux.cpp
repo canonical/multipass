@@ -16,6 +16,7 @@
  */
 
 #include "tests/fake_handle.h"
+#include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_settings.h"
 #include "tests/temp_dir.h"
@@ -61,7 +62,10 @@ void setup_driver_settings(const QString& driver)
 // hold on to return until the change is to be discarded
 auto temporarily_change_env(const char* var_name, QByteArray var_value)
 {
-    auto guard = sg::make_scope_guard([var_name, var_save = qgetenv(var_name)]() { qputenv(var_name, var_save); });
+    auto guard = sg::make_scope_guard([var_name, var_save = qgetenv(var_name)]() noexcept { // terminate ok if it throws
+        qputenv(var_name, var_save);
+    });
+
     qputenv(var_name, var_value);
 
     return guard;
@@ -99,7 +103,7 @@ auto setup_autostart_desktop_file_test()
 
     // Now mock filesystem tree and environment, reverting when done
 
-    auto guard_fs = sg::make_scope_guard([test_dir]() mutable {
+    auto guard_fs = sg::make_scope_guard([test_dir]() mutable noexcept { // std::terminate ok if this throws
         test_dir.removeRecursively(); // succeeds if not there
     });
 
@@ -407,7 +411,9 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
     const auto fake_bridge = "somebridge";
 
     QDir fake_sys_class_net{tmp_dir.path()};
-    ASSERT_TRUE(fake_sys_class_net.mkpath(QString{fake_bridge} + "/bridge"));
+    QDir bridge_dir{fake_sys_class_net.filePath(fake_bridge)};
+    ASSERT_EQ(mpt::make_file_with_content(bridge_dir.filePath("type"), "1"), 1);
+    ASSERT_TRUE(bridge_dir.mkpath("bridge"));
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
@@ -417,6 +423,107 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
                                            Field(&value_type::second,
                                                  AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
                                                        Field(&Net::description, HasSubstr("Empty network bridge")))))));
+}
+
+TEST_F(PlatformLinux, retrieves_ethernet_devices)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_eth = "someth";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_eth) + "/type", "1"), 1);
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_eth);
+    EXPECT_EQ(it->second.id, fake_eth);
+    EXPECT_EQ(it->second.type, "ethernet");
+    EXPECT_EQ(it->second.description, "Ethernet device");
+}
+
+TEST_F(PlatformLinux, does_not_identify_other_virtual)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_virt = "somevirt";
+
+    QDir fake_sys_class_net{tmp_dir.path() + "/virtual"};
+    ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_virt) + "/type", "1"), 1);
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_virt);
+    EXPECT_EQ(it->second.id, fake_virt);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
+}
+
+TEST_F(PlatformLinux, does_not_identify_wireless)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_wifi = "somewifi";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    QDir wifi_dir{fake_sys_class_net.filePath(fake_wifi)};
+    ASSERT_EQ(mpt::make_file_with_content(wifi_dir.filePath("type"), "1"), 1);
+    ASSERT_TRUE(wifi_dir.mkpath("wireless"));
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_wifi);
+    EXPECT_EQ(it->second.id, fake_wifi);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
+}
+
+TEST_F(PlatformLinux, does_not_identify_protocols)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_net = "somenet";
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_net) + "/type", "32"), 2);
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_net);
+    EXPECT_EQ(it->second.id, fake_net);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
+}
+
+TEST_F(PlatformLinux, does_not_identify_other_specified_device_types)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_net = "somenet";
+    const auto uevent_contents = std::string{"asdf\nDEVTYPE=crazytype\nfdsa"};
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    QDir net_dir{fake_sys_class_net.filePath(fake_net)};
+    ASSERT_EQ(mpt::make_file_with_content(net_dir.filePath("type"), "1"), 1);
+    ASSERT_EQ(mpt::make_file_with_content(net_dir.filePath("uevent"), uevent_contents),
+              static_cast<int64_t>(uevent_contents.size()));
+
+    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
+
+    ASSERT_EQ(net_map.size(), 1u);
+
+    auto it = net_map.cbegin();
+    EXPECT_EQ(it->first, fake_net);
+    EXPECT_EQ(it->second.id, fake_net);
+    EXPECT_TRUE(it->second.type.empty());
+    EXPECT_TRUE(it->second.description.empty());
 }
 
 struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
@@ -432,6 +539,7 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     QDir interface_dir{fake_sys_class_net.filePath(fake_bridge)};
     QDir members_dir{interface_dir.filePath("brif")};
 
+    ASSERT_EQ(mpt::make_file_with_content(interface_dir.filePath("type"), "1"), 1);
     ASSERT_TRUE(interface_dir.mkpath("bridge"));
     ASSERT_TRUE(members_dir.mkpath("."));
 

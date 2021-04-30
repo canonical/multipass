@@ -81,8 +81,6 @@ constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto uuid_file_name = "multipass-unique-id";
 constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
-constexpr auto up_timeout = 2min; // This may be tweaked as appropriate and used in places that wait for ssh to be up
-constexpr auto cloud_init_timeout = 5min;
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
@@ -1567,6 +1565,8 @@ try // clang-format on
 {
     mpl::ClientLogger<StartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
+
     if (!instances_running(vm_instances))
         config->factory->hypervisor_health_check();
 
@@ -1611,7 +1611,7 @@ try // clang-format on
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
-        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, server, vms, status_promise));
+        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, server, vms, timeout, status_promise));
 }
 catch (const std::exception& e)
 {
@@ -1699,6 +1699,8 @@ try // clang-format on
 {
     mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
+
     auto [instances, status] =
         find_requested_instances(request->instance_names().instance_name(), vm_instances,
                                  std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
@@ -1717,8 +1719,8 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(
-        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server, instances, status_promise));
+    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server,
+                                                instances, timeout, status_promise));
 }
 catch (const std::exception& e)
 {
@@ -1867,7 +1869,7 @@ void mp::Daemon::on_restart(const std::string& name)
 {
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, nullptr,
-                                                std::vector<std::string>{name}, nullptr));
+                                                std::vector<std::string>{name}, mp::default_timeout, nullptr));
 }
 
 void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
@@ -2010,6 +2012,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 {
     auto checked_args = validate_create_arguments(request, *config->factory);
 
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
+
     if (!checked_args.option_errors.error_codes().empty())
     {
         return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
@@ -2047,7 +2051,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     QObject::connect(
         prepare_future_watcher, &QFutureWatcher<VirtualMachineDescription>::finished,
-        [this, server, status_promise, name, start, prepare_future_watcher] {
+        [this, server, status_promise, name, timeout, start, prepare_future_watcher] {
             try
             {
                 auto vm_desc = prepare_future_watcher->future().result();
@@ -2083,7 +2087,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                         server->Write(reply);
                     });
                     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
-                                                                server, std::vector<std::string>{name},
+                                                                server, std::vector<std::string>{name}, timeout,
                                                                 status_promise));
                 }
                 else
@@ -2287,6 +2291,7 @@ mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 
 template <typename Reply>
 error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
+                                                                 const std::chrono::seconds& timeout,
                                                                  grpc::ServerWriter<Reply>* server)
 {
     fmt::memory_buffer errors;
@@ -2294,7 +2299,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
     {
         auto it = vm_instances.find(name);
         auto vm = it->second;
-        vm->wait_until_ssh_up(up_timeout);
+        vm->wait_until_ssh_up(timeout);
 
         if (std::is_same<Reply, LaunchReply>::value)
         {
@@ -2305,7 +2310,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 server->Write(reply);
             }
 
-            mp::utils::wait_for_cloud_init(vm.get(), cloud_init_timeout, *config->ssh_key_provider);
+            mp::utils::wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
         }
 
         std::vector<std::string> invalid_mounts;
@@ -2361,9 +2366,9 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 }
 
 template <typename Reply>
-mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ready_all(grpc::ServerWriter<Reply>* server,
-                                                                      const std::vector<std::string>& vms,
-                                                                      std::promise<grpc::Status>* status_promise)
+mp::Daemon::AsyncOperationStatus
+mp::Daemon::async_wait_for_ready_all(grpc::ServerWriter<Reply>* server, const std::vector<std::string>& vms,
+                                     const std::chrono::seconds& timeout, std::promise<grpc::Status>* status_promise)
 {
     QFutureSynchronizer<std::string> start_synchronizer;
     {
@@ -2376,8 +2381,8 @@ mp::Daemon::AsyncOperationStatus mp::Daemon::async_wait_for_ready_all(grpc::Serv
             }
             else
             {
-                auto future =
-                    QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name, server);
+                auto future = QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name,
+                                                timeout, server);
                 async_running_futures[name] = future;
                 start_synchronizer.addFuture(future);
             }

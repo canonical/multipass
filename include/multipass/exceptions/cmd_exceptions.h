@@ -15,25 +15,19 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_UTILS_H
-#define MULTIPASS_MOCK_UTILS_H
+#ifndef MULTIPASS_CMD_EXCEPTIONS_H
+#define MULTIPASS_CMD_EXCEPTIONS_H
 
-#include "mock_singleton_helpers.h"
+#include <stdexcept>
 
-#include <multipass/utils.h>
-
-#include <gmock/gmock.h>
-
-namespace multipass::test
+namespace multipass
 {
-class MockUtils : public Utils
+class ValidationException : public std::runtime_error
 {
 public:
-    using Utils::Utils;
-    MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
-    MOCK_METHOD1(exit, void(int));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
+    using std::runtime_error::runtime_error;
 };
-} // namespace multipass::test
-#endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H
+
+} // namespace multipass
+
+#endif // MULTIPASS_CMD_EXCEPTIONS_H

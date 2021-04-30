@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,24 @@ namespace
 {
 const QByteArray snap_name{"multipass"};
 } // namespace
+
+TEST(Snap, recognizes_in_snap_when_snap_name_is_multipass)
+{
+    mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
+    EXPECT_TRUE(mu::in_multipass_snap());
+}
+
+TEST(Snap, recognizes_not_in_snap_when_snap_name_is_empty)
+{
+    mpt::UnsetEnvScope env{"SNAP_NAME"};
+    EXPECT_FALSE(mu::in_multipass_snap());
+}
+
+TEST(Snap, recognizes_not_in_snap_when_snap_name_is_otherwise)
+{
+    mpt::SetEnvScope env{"SNAP_NAME", "otherwise"};
+    EXPECT_FALSE(mu::in_multipass_snap());
+}
 
 struct SnapDirs : public TestWithParam<std::pair<const char*, std::function<QByteArray()>>>
 {

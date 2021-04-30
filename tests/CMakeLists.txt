@@ -75,6 +75,7 @@ add_executable(multipass_tests
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
   test_ssh_session.cpp
+  test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
   test_utils.cpp

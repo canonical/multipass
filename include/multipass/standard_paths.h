@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ public:
     static constexpr auto AppLocalDataLocation = StandardLocation::AppLocalDataLocation;
     static constexpr auto AppConfigLocation = StandardLocation::AppConfigLocation;
 
-    StandardPaths(const Singleton<StandardPaths>::PrivatePass&);
+    StandardPaths(const Singleton<StandardPaths>::PrivatePass&) noexcept;
 
     virtual QString locate(StandardLocation type, const QString& fileName,
                            LocateOptions options = LocateOption::LocateFile) const;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,15 +21,21 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/settings.h>
+#include <multipass/timer.h>
 
 #include <fmt/ostream.h>
 
 #include <cassert>
+#include <chrono>
+#include <cstdlib>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
+
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -86,8 +92,13 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
             {
                 assert(start_error.instance_errors_size() == 1 &&
                        std::cbegin(start_error.instance_errors())->first == petenv_name.toStdString());
-                return run_cmd_and_retry({"multipass", "launch", "--name", petenv_name}, parser, cout, cerr); /*
-                                    TODO replace with create, so that all instances are started in a single go */
+
+                QStringList launch_args{"multipass", "launch", "--name", petenv_name};
+                if (parser->isSet("timeout"))
+                    launch_args.append({"--timeout", parser->value("timeout")});
+
+                return run_cmd_and_retry(launch_args, parser, cout, cerr); /*
+                             TODO replace with create, so that all instances are started in a single go */
             }
         }
 
@@ -100,6 +111,15 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
+
+    std::unique_ptr<multipass::utils::Timer> timer;
+
+    if (parser->isSet("timeout"))
+    {
+        timer = cmd::make_timer(parser->value("timeout").toInt(), &spinner, cerr,
+                                "Timed out waiting for instance to start.");
+        timer->start();
+    }
 
     ReturnCode return_code;
     do
@@ -141,13 +161,26 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     QCommandLineOption all_option(all_option_name, "Start all instances");
     parser->addOption(all_option);
 
+    mp::cmd::add_timeout(parser);
+
     auto status = parser->commandParse(this);
+
     if (status != ParseCode::Ok)
         return status;
 
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
     if (parse_code != ParseCode::Ok)
         return parse_code;
+
+    try
+    {
+        request.set_timeout(mp::cmd::parse_timeout(parser));
+    }
+    catch (const mp::ValidationException& e)
+    {
+        cerr << "error: " << e.what() << std::endl;
+        return ParseCode::CommandLineError;
+    }
 
     request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,14 @@
 #ifndef MULTIPASS_LAUNCH_H
 #define MULTIPASS_LAUNCH_H
 
+#include "animated_spinner.h"
+
 #include <multipass/cli/command.h>
+#include <multipass/timer.h>
 
 #include <QString>
+
+#include <memory>
 
 namespace multipass
 {
@@ -38,10 +43,12 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser) override;
-    ReturnCode request_launch();
+    ReturnCode request_launch(const ArgParser* parser);
 
     LaunchRequest request;
     QString petenv_name;
+    std::unique_ptr<multipass::AnimatedSpinner> spinner;
+    std::unique_ptr<multipass::utils::Timer> timer;
 };
 } // namespace cmd
 } // namespace multipass

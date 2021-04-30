@@ -36,19 +36,6 @@ namespace
 {
 constexpr auto category = "lxd factory";
 const QString multipass_bridge_name = "mpbr0";
-
-std::string describe_bridge(const std::string& id, const QString& lxd_description,
-                            const std::map<std::string, mp::NetworkInterfaceInfo>& platform_networks)
-{
-    static constexpr auto default_description = "Network bridge";
-
-    if (!lxd_description.isEmpty())
-        return lxd_description.toStdString();
-    else if (auto it = platform_networks.find(id); it != platform_networks.end() && !it->second.description.empty())
-        return it->second.description;
-    else
-        return default_description;
-}
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
@@ -159,9 +146,10 @@ mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vec
 
 auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    static constexpr auto type = "bridge";
+    using namespace std::string_literals;
+    static const std::array supported_types{"bridge"s, "ethernet"s};
 
-    auto url = QUrl{QString{"%1/networks?recursion=1"}.arg(base_url.toString())};
+    auto url = QUrl{QString{"%1/networks?recursion=1"}.arg(base_url.toString())}; // no network filter ATTOW
     auto reply = lxd_request(manager.get(), "GET", url);
 
     auto ret = std::vector<NetworkInterfaceInfo>{};
@@ -170,15 +158,25 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
     if (!networks.isEmpty())
     {
         auto platform_networks = MP_PLATFORM.get_network_interfaces_info();
-        for (const auto& net_value : networks)
+        for (const QJsonValueRef net_value : networks)
         {
-            if (auto network = net_value.toObject(); network["type"].toString() == type) // no network filter ATTOW
+            auto network = net_value.toObject();
+            if (auto qid = network["name"].toString(); !qid.isEmpty())
             {
-                if (auto qid = network["name"].toString(); !qid.isEmpty())
+                auto id = qid.toStdString();
+                if (auto platform_it = platform_networks.find(id); platform_it != platform_networks.cend())
                 {
-                    auto id = qid.toStdString();
-                    auto description = describe_bridge(id, network["description"].toString(), platform_networks);
-                    ret.push_back({std::move(id), type, std::move(description)});
+                    if (auto& type = platform_it->second.type;
+                        std::find(supported_types.cbegin(), supported_types.cend(), type) != supported_types.cend())
+                    {
+                        auto lxd_description = network["description"].toString();
+                        auto description = lxd_description.isEmpty() ? std::move(platform_it->second.description)
+                                                                     : lxd_description.toStdString();
+
+                        ret.push_back({std::move(id), std::move(type), std::move(description)});
+
+                        platform_networks.erase(platform_it); // prevent matching with this network again
+                    }
                 }
             }
         }

@@ -34,8 +34,9 @@ public:                                                                         
 
 #define MP_MOCK_SINGLETON_HELPER_TYPES(mock_class, parent_class)                                                       \
 private:                                                                                                               \
-    static constexpr auto academy = [] { return sg::make_scope_guard([] { parent_class::reset(); }); }; /*             \
-                   Produces "guards" :) Use a lambda so that the type gets deduced before decltype below */            \
+    static constexpr auto academy = [] {                                                                               \
+        return sg::make_scope_guard([]() noexcept { parent_class::reset(); });                                         \
+    }; /* Produces "guards" :) Use a lambda so that the type gets deduced before decltype below */                     \
                                                                                                                        \
 public:                                                                                                                \
     using Guard = decltype(academy());                                                                                 \

@@ -31,7 +31,7 @@ namespace multipass
 class FileOps : public Singleton<FileOps>
 {
 public:
-    FileOps(const Singleton<FileOps>::PrivatePass&);
+    FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
     // QDir operations
     virtual bool isReadable(QDir& dir);

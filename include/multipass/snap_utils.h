@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ namespace multipass
 {
 namespace utils
 {
+bool in_multipass_snap();
 QByteArray snap_dir();
 QByteArray snap_common_dir();
 QByteArray snap_real_home_dir();

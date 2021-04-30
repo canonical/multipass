@@ -29,7 +29,7 @@ For macOS, you can download the installers [from GitHub](https://github.com/cano
 
 ```
 # Note, this may require you to enter your password for some sudo operations during install
-brew cask install multipass
+brew install --cask multipass
 ```
 
 On Windows, download the installer [from GitHub](https://github.com/canonical/multipass/releases).

@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 Canonical Ltd.
+# Copyright © 2018-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -15,6 +15,8 @@
 include(FindPkgConfig)
 pkg_search_module(APPARMOR libapparmor REQUIRED)
 
+find_package(Qt5 REQUIRED COMPONENTS DBus)
+
 function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     apparmor.cpp
@@ -24,9 +26,11 @@ function(add_target TARGET_NAME)
   target_link_libraries(${TARGET_NAME}
     apparmor
     fmt
+    scope_guard
     shared
     utils
-    Qt5::Core)
+    Qt5::Core
+    Qt5::DBus)
 endfunction()
 
 add_target(shared_linux)

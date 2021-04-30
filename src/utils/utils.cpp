@@ -76,13 +76,18 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 }
 } // namespace
 
-mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) : Singleton<Utils>::Singleton{pass}
+mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
 {
 }
 
 qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory)
 {
     return QStorageInfo(QDir(data_directory)).bytesAvailable();
+}
+
+void mp::Utils::exit(int code)
+{
+    std::exit(code);
 }
 
 QDir mp::utils::base_dir(const QString& path)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ const QString snap_name{"multipass"};
 
 void verify_snap_name()
 {
-    if (qgetenv("SNAP_NAME") != snap_name)
+    if (!mu::in_multipass_snap())
         throw mp::SnapEnvironmentException("SNAP_NAME", snap_name.toStdString());
 }
 
@@ -50,6 +50,11 @@ QByteArray checked_snap_dir(const char* dir)
     return QFileInfo(checked_snap_env_var(dir)).canonicalFilePath().toUtf8(); // To resolve any symlinks
 }
 } // namespace
+
+bool mu::in_multipass_snap()
+{
+    return qgetenv("SNAP_NAME") == snap_name;
+}
 
 QByteArray mu::snap_dir()
 {
