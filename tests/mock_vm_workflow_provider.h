@@ -32,6 +32,7 @@ struct MockVMWorkflowProvider : public VMWorkflowProvider
     MOCK_METHOD1(info_for, VMImageInfo(const std::string&));
     MOCK_METHOD0(all_workflows, std::vector<VMImageInfo>());
     MOCK_METHOD1(name_from_workflow, std::string(const std::string&));
+    MOCK_METHOD1(workflow_timeout, int(const std::string&));
 };
 } // namespace test
 } // namespace multipass
