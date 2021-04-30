@@ -357,7 +357,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this](grpc::Status& status, mp::LaunchReply& reply) {
         spinner->stop();
 
         LaunchError launch_error;
