@@ -28,7 +28,6 @@ jobs:
 
         if [ -n '${{ github.event.inputs.snap-channel }}' ]; then
           MATRIX+='{"os": "Linux", "driver": "qemu"}'
-          MATRIX+='{"os": "Linux", "driver": "lxd"}'
         fi
 
         if [ -n '${{ github.event.inputs.mac-package }}' ]; then
@@ -132,7 +131,7 @@ jobs:
 
               if [ '${{ matrix.os }}' == 'Linux' ]; then
                 # Give snapd time to settle
-                _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.snap-channel }}
+                _retry 5 30 _run sudo snap install multipass --channel stable
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 _run curl --location --output multipass.pkg ${{ github.event.inputs.mac-package }}
@@ -153,17 +152,49 @@ jobs:
               fi
 
               # Set the right driver
-              _run sudo multipass set local.driver=${{ matrix.driver }}
+              #_run sudo multipass set local.driver=${{ matrix.driver }}
 
               # Give multipassd time to settle (#1995)
               _retry_grep 12 5 "\w,lts\W" _run $MP find
               sleep 10
 
-              _run $MP start --timeout 1200
+              # check that default driver is `qemu`
+              [ $( _run $MP get local.driver ) == "qemu" ]
+
+              # check that it switches to `lxd` on refresh explicitly
+              _run sudo snap refresh multipass --channel ${{ github.event.inputs.snap-channel }}
+              [ $( _run $MP get local.driver ) == "lxd" ]
+              _run grep lxd /var/snap/multipass/current/config/multipassd/multipassd.conf
+
+              # and stays that way back on stable
+              _run sudo snap refresh multipass --channel stable
+              [ $( _run $MP get local.driver ) == "lxd" ]
+
+              # when set to qemu explicitly
+              _run sudo multipass set local.driver=qemu
+
+              # check that it stays on `qemu` on refresh
+              _run sudo snap refresh multipass --channel ${{ github.event.inputs.snap-channel }}
+              [ $( _run $MP get local.driver ) == "qemu" ]
+
+              # clean up
+              _run sudo snap refresh multipass --channel stable
+              [ $( _run $MP get local.driver ) == "qemu" ]
+              _run sudo rm /var/snap/multipass/current/config/multipassd/multipassd.conf
+              [ $( _run $MP get local.driver ) == "qemu" ]
+              ! _run grep qemu /var/snap/multipass/current/config/multipassd/multipassd.conf
+
+              # start an instance
+              _retry 12 5 _run $MP start
 
               _run $MP list
 
               _run $MP exec primary -- uname -a
+
+              # check that it sticks to `qemu` on refresh explicitly
+              _run sudo snap refresh multipass --channel ${{ github.event.inputs.snap-channel }}
+              [ $( _run $MP get local.driver ) == "qemu" ]
+              _run grep qemu /var/snap/multipass/current/config/multipassd/multipassd.conf
 
     - name: Submit the job
       id: submit
