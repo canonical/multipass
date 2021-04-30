@@ -72,6 +72,13 @@ protected:
         using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = typename std::remove_reference<Arg0Type>::type;
         ReplyType reply;
+        auto handle_failure = [&reply, &on_failure](grpc::Status status) // TODO@ricab extract
+        {
+            if constexpr (multipass::callable_traits<FailureCallable>::num_args == 2)
+                return on_failure(status, reply);
+            else
+                return on_failure(status);
+        };
 
         auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
 
@@ -91,7 +98,7 @@ protected:
         }
         else if (status.error_code() != grpc::StatusCode::UNAVAILABLE)
         {
-            return on_failure(status, reply);
+            return handle_failure(status);
         }
         else
         {
@@ -108,7 +115,7 @@ protected:
                     grpc::Status denied_status{
                         grpc::StatusCode::PERMISSION_DENIED, "multipass socket access denied",
                         fmt::format("Please check that you have read/write permissions to '{}'", socket_address)};
-                    return on_failure(denied_status, reply);
+                    return handle_failure(denied_status);
                 }
             }
 
@@ -116,7 +123,7 @@ protected:
                 grpc::StatusCode::NOT_FOUND, "cannot connect to the multipass socket",
                 fmt::format("Please ensure multipassd is running and '{}' is accessible", socket_address)};
 
-            return on_failure(access_error_status, reply);
+            return handle_failure(access_error_status);
         }
     }
 
@@ -153,17 +160,23 @@ private:
         using FailureCallableTraits = multipass::callable_traits<FailureCallable>;
         using SuccessCallableArg0Type = std::remove_reference_t<typename SuccessCallableTraits::template arg<0>::type>;
         using FailureCallableArg0Type = std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
-        using FailureCallableArg1Type = std::remove_reference_t<typename FailureCallableTraits::template arg<1>::type>;
 
-        static_assert(SuccessCallableTraits::num_args == 1, "");
-        static_assert(FailureCallableTraits::num_args == 2, "");
         static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value, "");
         static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value, "");
-        static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value, "");
+
+        static_assert(SuccessCallableTraits::num_args == 1, "");
         static_assert(std::is_base_of_v<google::protobuf::Message, SuccessCallableArg0Type>,
                       "`on_success` doesn't receive a Message");
-        static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
-                      "`on_success` and `on_failure` handle different reply types");
+
+        if constexpr (FailureCallableTraits::num_args != 1)
+        {
+            static_assert(FailureCallableTraits::num_args == 2, "`on_failure` needs to take either 1 or 2 parameters");
+            using FailureCallableArg1Type =
+                std::remove_reference_t<typename FailureCallableTraits::template arg<1>::type>;
+            static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
+                          "`on_success` and `on_failure` handle different reply types");
+        }
+        static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value, "");
     }
 };
 } // namespace cmd
