@@ -156,7 +156,8 @@ void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chron
         if (try_action(std::forward<Args>(args)...) == TimeoutAction::done)
             return;
 
-        std::this_thread::sleep_for(1s);
+        // The < 1s is used for testing so unit tests don't have to sleep to 1 second
+        std::this_thread::sleep_for(timeout < 1s ? timeout : 1s);
     }
     on_timeout();
 }
