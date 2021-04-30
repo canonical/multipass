@@ -820,6 +820,17 @@ void add_aliases(mp::FindReply& response, const std::string& remote_name, const 
     }
 }
 
+auto timeout_for(const int requested_timeout, const int workflow_timeout)
+{
+    if (requested_timeout > 0)
+        return std::chrono::seconds(requested_timeout);
+
+    if (workflow_timeout > 0)
+        return std::chrono::seconds(workflow_timeout);
+
+    return mp::default_timeout;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -2045,8 +2056,6 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 {
     auto checked_args = validate_create_arguments(request, *config->factory);
 
-    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
-
     if (!checked_args.option_errors.error_codes().empty())
     {
         return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
@@ -2078,6 +2087,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     if (!instances_running(vm_instances))
         config->factory->hypervisor_health_check();
+
+    auto timeout = timeout_for(request->timeout(), config->workflow_provider->workflow_timeout(name));
 
     preparing_instances.insert(name);
 
