@@ -21,6 +21,11 @@
 
 #include "extra_assertions.h"
 #include "file_operations.h"
+#include "mock_logger.h"
+#include "mock_ssh.h"
+#include "mock_ssh_process_exit_status.h"
+#include "mock_virtual_machine.h"
+#include "stub_ssh_key_provider.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
@@ -35,6 +40,7 @@
 #include <string>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -485,6 +491,67 @@ TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
     auto bytes_available = MP_UTILS.filesystem_bytes_available(temp_dir.path());
 
     EXPECT_GE(bytes_available, 0);
+}
+
+TEST(Utils, wait_for_cloud_init_no_errors_and_done_does_not_throw)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_is_connected, [](auto...) { return true; });
+    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
+
+    mpt::ExitStatusMock exit_status_mock;
+    exit_status_mock.return_exit_code(SSH_OK);
+
+    mp::test::StubSSHKeyProvider key_provider;
+    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
+
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+
+    std::chrono::seconds timeout(1);
+    EXPECT_NO_THROW(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider));
+}
+
+TEST(Utils, wait_for_cloud_init_error_times_out_throws)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_is_connected, [](auto...) { return true; });
+    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
+
+    mpt::ExitStatusMock exit_status_mock;
+    exit_status_mock.return_exit_code(SSH_ERROR);
+
+    mp::test::StubSSHKeyProvider key_provider;
+    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
+
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+
+    std::chrono::milliseconds timeout(1);
+    MP_EXPECT_THROW_THAT(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider), std::runtime_error,
+                         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
+}
+
+TEST(Utils, wait_for_cloud_init_cannot_connect_times_out)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_is_connected, [](auto...) { return false; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_OK; });
+
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "unable to create a channel for remote process:");
+
+    mp::test::StubSSHKeyProvider key_provider;
+    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
+
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+
+    std::chrono::milliseconds timeout(1);
+    MP_EXPECT_THROW_THAT(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider), std::runtime_error,
+                         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
 TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
