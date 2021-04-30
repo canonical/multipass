@@ -353,6 +353,7 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
                                                             const mp::VirtualMachineFactory& factory,
+                                                            std::vector<std::string>& nets_need_bridges,
                                                             mp::LaunchError& option_errors)
 {
     std::vector<mp::NetworkInterface> interfaces;
@@ -386,13 +387,15 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
         // Check that the id the user specified is valid.
         auto pred = [net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id(); };
-        const auto& result = std::find_if(factory_networks->cbegin(), factory_networks->cend(), pred);
+        auto host_net_it = std::find_if(factory_networks->cbegin(), factory_networks->cend(), pred);
 
-        if (result == factory_networks->cend())
+        if (host_net_it == factory_networks->cend())
         {
             mpl::log(mpl::Level::warning, category, fmt::format("Invalid network name \"{}\"", net.id()));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
+        else if (host_net_it->needs_authorization)
+            nets_need_bridges.push_back(host_net_it->id);
 
         // In case the user specified a MAC address, check it is valid.
         if (const auto& mac = QString::fromStdString(net.mac_address()).toLower().toStdString();
@@ -447,7 +450,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Virtu
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    auto extra_interfaces = validate_extra_interfaces(request, factory, option_errors);
+    std::vector<std::string> nets_need_bridging;
+    auto extra_interfaces = validate_extra_interfaces(request, factory, nets_need_bridging, option_errors);
 
     struct CheckedArguments
     {
@@ -455,8 +459,10 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Virtu
         mp::optional<mp::MemorySize> disk_space;
         std::string instance_name;
         std::vector<mp::NetworkInterface> extra_interfaces;
+        std::vector<std::string> nets_need_bridging;
         mp::LaunchError option_errors;
-    } ret{mem_size, disk_space, instance_name, extra_interfaces, option_errors};
+    } ret{mem_size,     disk_space, instance_name, extra_interfaces, std::move(nets_need_bridging),
+          option_errors}; // TODO@ricab move other things
     return ret;
 }
 
@@ -2060,6 +2066,20 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
     {
         return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
                                                       checked_args.option_errors.SerializeAsString()));
+    }
+    else if (auto& nets = checked_args.nets_need_bridging; !nets.empty() && !request->permission_to_bridge())
+    {
+        CreateError create_error;
+        create_error.add_error_codes(CreateError::INVALID_NETWORK);
+
+        CreateReply reply;
+        *reply.mutable_nets_need_bridging() = {std::make_move_iterator(nets.begin()),
+                                               std::make_move_iterator(nets.end())}; /* this constructs a temporary
+                                               RepeatedPtrField from the range, then move-assigns that temporary in */
+        server->Write(reply);
+
+        return status_promise->set_value(
+            grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Missing bridges", create_error.SerializeAsString()});
     }
 
     // TODO: We should only need to query the Workflow Provider once for all info, so this (and timeout below) will
