@@ -357,7 +357,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status, mp::LaunchReply& reply) {
+    auto on_failure = [this, &parser](grpc::Status& status, mp::LaunchReply& reply) {
         spinner->stop();
 
         LaunchError launch_error;
@@ -380,6 +380,12 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             }
             else if (error == LaunchError::INVALID_NETWORK)
             {
+                if (reply.nets_need_bridging_size() && ask_bridge_permission(reply))
+                {
+                    request.set_permission_to_bridge(true);
+                    return request_launch(parser);
+                }
+
                 // TODO: show the option which triggered the error only. This will need a refactor in the
                 // LaunchError proto.
                 error_details = "Invalid network options supplied";
@@ -478,4 +484,14 @@ auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInS
     }
 
     return OptInStatus::UNKNOWN;
+}
+
+bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
+{
+    cout << "TODO assuming bridge permission for ";
+    for (const auto& net : reply.nets_need_bridging())
+        cout << net << " ";
+    cout << std::endl;
+
+    return true; // TODO@ricab
 }
