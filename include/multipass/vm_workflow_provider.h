@@ -36,6 +36,7 @@ public:
     virtual VMImageInfo info_for(const std::string& workflow_name) = 0;
     virtual std::vector<VMImageInfo> all_workflows() = 0;
     virtual std::string name_from_workflow(const std::string& workflow_name) = 0;
+    virtual int workflow_timeout(const std::string& workflow_name) = 0;
 
 protected:
     VMWorkflowProvider() = default;

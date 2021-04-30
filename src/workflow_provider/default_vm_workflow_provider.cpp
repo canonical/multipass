@@ -312,6 +312,39 @@ std::string mp::DefaultVMWorkflowProvider::name_from_workflow(const std::string&
     return {};
 }
 
+int mp::DefaultVMWorkflowProvider::workflow_timeout(const std::string& workflow_name)
+{
+    auto timeout_seconds{0};
+
+    try
+    {
+        workflow_map.at(workflow_name);
+
+        auto& workflow_config = workflow_map.at(workflow_name);
+
+        auto workflow_instance = workflow_config["instances"][workflow_name];
+
+        if (workflow_instance["timeout"])
+        {
+            try
+            {
+                timeout_seconds = workflow_instance["timeout"].as<int>();
+            }
+            catch (const YAML::BadConversion&)
+            {
+                needs_update = true;
+                throw InvalidWorkflowException(fmt::format("Invalid timeout given in workflow"));
+            }
+        }
+    }
+    catch (const std::out_of_range&)
+    {
+        // Ignore
+    }
+
+    return timeout_seconds;
+}
+
 void mp::DefaultVMWorkflowProvider::fetch_workflows()
 {
     url_downloader->download_to(workflows_url, archive_file_path, -1, -1, [](auto...) { return true; });
