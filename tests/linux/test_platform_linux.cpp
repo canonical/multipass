@@ -52,13 +52,6 @@ namespace
 {
 const auto backend_path = QStringLiteral("/tmp");
 
-void setup_driver_settings(const QString& driver)
-{
-    auto& expectation = EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::driver_key)));
-    if (!driver.isEmpty())
-        expectation.WillRepeatedly(Return(driver));
-}
-
 // hold on to return until the change is to be discarded
 auto temporarily_change_env(const char* var_name, QByteArray var_value)
 {
@@ -149,7 +142,7 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     template <typename VMFactoryType>
     void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
     {
-        setup_driver_settings(driver);
+        mpt::MockSettings::setup_driver_settings(driver);
 
         decltype(mp::platform::vm_backend("")) factory_ptr;
         EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path););
@@ -289,9 +282,9 @@ TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
     EXPECT_THROW(mp::platform::setup_gui_autostart_prerequisites(), mp::AutostartSetupException);
 }
 
-TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
+TEST_F(PlatformLinux, test_default_driver_produces_correct_factory)
 {
-    aux_test_driver_factory<mp::QemuVirtualMachineFactory>();
+    aux_test_driver_factory<mp::LXDVirtualMachineFactory>();
 }
 
 TEST_F(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
@@ -334,7 +327,7 @@ TEST_F(PlatformLinux, test_is_remote_supported_returns_true)
 
 TEST_F(PlatformLinux, test_is_remote_supported_lxd)
 {
-    setup_driver_settings("lxd");
+    mpt::MockSettings::setup_driver_settings("lxd");
 
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported("release"));
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported("daily"));
@@ -371,13 +364,13 @@ TEST_F(PlatformLinux, test_is_alias_supported_returns_true)
 
 TEST_F(PlatformLinux, test_is_alias_supported_lxd)
 {
-    setup_driver_settings("lxd");
+    mpt::MockSettings::setup_driver_settings("lxd");
 
     EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
     EXPECT_TRUE(MP_PLATFORM.is_alias_supported("core18", "snapcraft"));
     EXPECT_TRUE(MP_PLATFORM.is_alias_supported("core20", "snapcraft"));
-    EXPECT_FALSE(MP_PLATFORM.is_alias_supported("core", "snapcraft"));
-    EXPECT_FALSE(MP_PLATFORM.is_alias_supported("16.04", "snapcraft"));
+    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("core", "snapcraft"));
+    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("16.04", "snapcraft"));
 }
 
 struct TestUnsupportedDrivers : public TestWithParam<QString>
@@ -388,7 +381,7 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 {
     ASSERT_FALSE(mp::platform::is_backend_supported(GetParam()));
 
-    setup_driver_settings(GetParam());
+    mpt::MockSettings::setup_driver_settings(GetParam());
     EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
 }
 
