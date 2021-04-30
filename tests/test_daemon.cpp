@@ -583,12 +583,14 @@ TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
     const mp::MemorySize disk_space{"25G"};
     const std::string release{"focal"};
     const std::string remote{"release"};
+    const std::string name{"ultimo-workflow"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce([&mem_size, &disk_space](const mp::VirtualMachineDescription& vm_desc, auto&) {
+        .WillOnce([&mem_size, &disk_space, &name](const mp::VirtualMachineDescription& vm_desc, auto&) {
             EXPECT_EQ(vm_desc.num_cores, num_cores);
             EXPECT_EQ(vm_desc.mem_size, mem_size);
             EXPECT_EQ(vm_desc.disk_space, disk_space);
+            EXPECT_EQ(vm_desc.vm_name, name);
 
             return std::make_unique<mpt::StubVirtualMachine>();
         });
@@ -612,6 +614,8 @@ TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
 
             return {"", release, false, remote, mp::Query::Type::Alias};
         });
+
+    EXPECT_CALL(*mock_workflow_provider, name_from_workflow(_)).WillOnce(Return(name));
 
     config_builder.workflow_provider = std::move(mock_workflow_provider);
     config_builder.vault = std::move(mock_image_vault);
