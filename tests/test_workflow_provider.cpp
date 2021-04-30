@@ -292,7 +292,7 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 
     auto workflows = workflow_provider.all_workflows();
 
-    EXPECT_EQ(workflows.size(), 7ul);
+    EXPECT_EQ(workflows.size(), 8ul);
 
     EXPECT_TRUE(std::find_if(workflows.cbegin(), workflows.cend(), [](const mp::VMImageInfo& workflow_info) {
                     return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "test-workflow1") &&
@@ -448,4 +448,33 @@ TEST_F(VMWorkflowProvider, nonexistentWorkflowReturnsEmptyName)
     auto name = workflow_provider.name_from_workflow(workflow_name);
 
     EXPECT_TRUE(name.empty());
+}
+
+TEST_F(VMWorkflowProvider, returnsExpectedTimeout)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    EXPECT_EQ(workflow_provider.workflow_timeout("test-workflow1"), 600);
+}
+
+TEST_F(VMWorkflowProvider, noTimeoutReturnsZero)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    EXPECT_EQ(workflow_provider.workflow_timeout("test-workflow2"), 0);
+}
+
+TEST_F(VMWorkflowProvider, nonexistentWorkflowTimeoutReturnsZero)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    EXPECT_EQ(workflow_provider.workflow_timeout("not-a-workflow"), 0);
+}
+
+TEST_F(VMWorkflowProvider, invalidTimeoutThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    MP_EXPECT_THROW_THAT(workflow_provider.workflow_timeout("invalid-timeout-workflow"), mp::InvalidWorkflowException,
+                         mpt::match_what(StrEq(fmt::format("Invalid timeout given in workflow"))));
 }

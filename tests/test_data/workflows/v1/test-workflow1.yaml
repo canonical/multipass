@@ -8,6 +8,7 @@ instances:
       min-cpu: 2
       min-mem: 2G
       min-disk: 25G
+    timeout: 600
     cloud-init:
       vendor-data: |
         #cloud-config
