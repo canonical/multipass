@@ -40,6 +40,14 @@ namespace
 constexpr auto category = "lxd factory";
 const QString multipass_bridge_name = "mpbr0";
 
+template <typename NetworkContainer>
+auto find_bridge_with(const NetworkContainer& networks, const std::string& member_network)
+{
+    return std::find_if(std::cbegin(networks), std::cend(networks),
+                        [&member_network](const mp::NetworkInterfaceInfo& info) {
+                            return info.type == "bridge" && info.has_link(member_network);
+                        });
+}
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
@@ -186,6 +194,10 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
                 }
             }
         }
+
+        for (auto& net : ret)
+            if (net.needs_authorization && find_bridge_with(ret, net.id) != ret.cend())
+                net.needs_authorization = false;
     }
 
     return ret;
@@ -200,9 +212,7 @@ void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterfa
                                [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
         if (it != host_nets.end() && it->type == "ethernet")
         {
-            it = std::find_if(host_nets.cbegin(), host_nets.cend(), [&net](const mp::NetworkInterfaceInfo& info) {
-                return info.type == "bridge" && info.has_link(net.id);
-            });
+            it = find_bridge_with(host_nets, net.id);
             net.id = it != host_nets.cend() ? it->id : mp::backend::create_bridge_with(net.id);
         }
     }
