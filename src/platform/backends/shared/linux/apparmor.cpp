@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,7 +95,7 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::trace, "daemon", fmt::format("Loading AppArmor policy: \n{}", aa_policy));
+    mpl::log(mpl::Level::trace, "daemon", fmt::format("Loading AppArmor policy:\n{}", aa_policy));
 
     if (process.exitCode() != 0)
     {
@@ -113,7 +113,7 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::trace, "daemon", fmt::format("Removing AppArmor policy: \n{}", aa_policy));
+    mpl::log(mpl::Level::trace, "daemon", fmt::format("Removing AppArmor policy:\n{}", aa_policy));
 
     if (process.exitCode() != 0)
     {
@@ -125,7 +125,6 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
 void mp::AppArmor::next_exec_under_policy(const QByteArray& aa_policy_name) const
 {
     int ret = aa_change_onexec(aa_policy_name.constData());
-    mpl::log(mpl::Level::debug, "daemon", fmt::format("Applying AppArmor policy: {}", aa_policy_name));
 
     if (ret < 0)
     {

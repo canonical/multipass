@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/process/process.h>
 #include <src/platform/backends/shared/linux/process_factory.h>
 
@@ -298,4 +299,25 @@ TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_immediately)
     EXPECT_EQ(exit_code, process_state.exit_code.value());
 
     EXPECT_FALSE(process_state.error);
+}
+
+TEST_F(ApparmoredProcessNoFactoryTest, logsAllExpectedMessagesOnStart)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Using AppArmor support");
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Loading AppArmor policy:\n{}", apparmor_profile_text));
+
+    const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
+    auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
+
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Applied AppArmor policy: multipass.test_prog");
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Removing AppArmor policy:\n{}", apparmor_profile_text));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::debug, fmt::format("started: {} {}", process->program(), process->arguments().join(' ')));
+
+    process->start();
+    process->kill();
+    process->wait_for_finished();
 }
