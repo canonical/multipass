@@ -177,6 +177,7 @@ private:
     auto adapt_failure_handler(FailureCallable& on_failure, Reply& reply) // lvalue refs ensure args' lifetime continues
     {
         return [&on_failure, &reply](grpc::Status status) {
+            (void)reply; // suppress unhelpful warning in clang: https://bugs.llvm.org/show_bug.cgi?id=35450
             if constexpr (multipass::callable_traits<FailureCallable>::num_args == 2)
                 return on_failure(status, reply);
             else
