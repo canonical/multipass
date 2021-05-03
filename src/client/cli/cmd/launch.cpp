@@ -488,11 +488,16 @@ auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInS
 
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
-    static constexpr auto question =
+    static constexpr auto plural =
         "Multipass needs to create bridges|switches to connect to {}. This will temporarily disrupt "
         "connectivity on those interfaces. Do you want to continue (yes/no)?";
+    static constexpr auto singular =
+        "Multipass needs to create a bridge|switch to connect to {}. This will temporarily disrupt "
+        "connectivity on that interface. Do you want to continue (yes/no)?";
 
-    fmt::print(cout, question, fmt::join(reply.nets_need_bridging(), ", "));
+    assert(reply.nets_need_bridging_size()); // precondition
+    fmt::print(cout, reply.nets_need_bridging_size() != 1 ? plural : singular,
+               fmt::join(reply.nets_need_bridging(), ", "));
 
     while (true)
     {
