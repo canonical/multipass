@@ -292,7 +292,7 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 
     auto workflows = workflow_provider.all_workflows();
 
-    EXPECT_EQ(workflows.size(), 8ul);
+    EXPECT_EQ(workflows.size(), 9ul);
 
     EXPECT_TRUE(std::find_if(workflows.cbegin(), workflows.cend(), [](const mp::VMImageInfo& workflow_info) {
                     return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "test-workflow1") &&
