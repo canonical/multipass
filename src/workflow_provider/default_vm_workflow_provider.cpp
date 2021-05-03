@@ -90,14 +90,7 @@ mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_u
       archive_file_path{archive_dir.filePath(github_workflows_archive_name)},
       workflows_ttl{workflows_ttl}
 {
-    try
-    {
-        update_workflows();
-    }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::error, category, fmt::format("Error on workflows start up: {}", e.what()));
-    }
+    update_workflows();
 }
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir,
@@ -116,6 +109,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
 
     auto workflow_instance = workflow_config["instances"][workflow_name];
 
+    // TODO: Abstract all of the following YAML schema boilerplate
     if (workflow_instance["image"])
     {
         // TODO: Support http later.

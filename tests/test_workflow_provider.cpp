@@ -396,18 +396,15 @@ TEST_F(VMWorkflowProvider, zipArchivePocoExceptionLogsErrorAndDoesNotThrow)
                                                   std::chrono::milliseconds(0)));
 }
 
-TEST_F(VMWorkflowProvider, generalExceptionDuringStartupLogsErrorAndDoesNotThrow)
+TEST_F(VMWorkflowProvider, generalExceptionDuringStartupThrows)
 {
     const std::string error_msg{"Bad stuff just happened"};
     mpt::MockURLDownloader mock_url_downloader;
     EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _)).WillRepeatedly(Throw(std::runtime_error(error_msg)));
 
-    auto logger_scope = mpt::MockLogger::inject();
-    logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    logger_scope.mock_logger->expect_log(mpl::Level::error, fmt::format("Error on workflows start up: {}", error_msg));
-
-    EXPECT_NO_THROW(mp::DefaultVMWorkflowProvider workflow_provider(workflows_zip_url, &mock_url_downloader,
-                                                                    cache_dir.path(), std::chrono::milliseconds(0)));
+    MP_EXPECT_THROW_THAT(mp::DefaultVMWorkflowProvider workflow_provider(
+                             workflows_zip_url, &mock_url_downloader, cache_dir.path(), std::chrono::milliseconds(0)),
+                         std::runtime_error, mpt::match_what(StrEq(error_msg)));
 }
 
 TEST_F(VMWorkflowProvider, generalExceptionDuringCallThrows)
