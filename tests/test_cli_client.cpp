@@ -2037,4 +2037,47 @@ TEST_P(TimeoutSuite, command_completes_without_timeout)
 
 INSTANTIATE_TEST_SUITE_P(Client, TimeoutSuite, ValuesIn(timeout_commands));
 
+struct ClientLogMessageSuite : Client, WithParamInterface<std::vector<std::string>>
+{
+    void SetUp() override
+    {
+        Client::SetUp();
+
+        ON_CALL(mock_daemon, launch).WillByDefault(reply_log_message<mp::LaunchReply>);
+        ON_CALL(mock_daemon, mount).WillByDefault(reply_log_message<mp::MountReply>);
+        ON_CALL(mock_daemon, start).WillByDefault(reply_log_message<mp::StartReply>);
+        ON_CALL(mock_daemon, version).WillByDefault(reply_log_message<mp::VersionReply>);
+    }
+
+    template <typename ReplyType>
+    static grpc::Status reply_log_message(Unused, Unused, grpc::ServerWriter<ReplyType>* response)
+    {
+        ReplyType reply;
+        reply.set_log_line(log_message);
+
+        response->Write(reply);
+        return grpc::Status{};
+    }
+
+    static constexpr auto log_message = "This is a fake log message";
+};
+
+TEST_P(ClientLogMessageSuite, clientPrintsOutExpectedLogMessage)
+{
+    EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, mount).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, version).Times(AtMost(1));
+
+    std::stringstream cerr_stream;
+
+    send_command(GetParam(), trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), log_message);
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
+                         Values(std::vector<std::string>{"launch"},
+                                std::vector<std::string>{"mount", "..", "test-vm:test"},
+                                std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
 } // namespace
