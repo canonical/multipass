@@ -150,8 +150,10 @@ jobs:
               if [ '${{ matrix.driver }}' == 'lxd' ]; then
                 _run sudo snap connect multipass:lxd lxd
                 _run sudo lxd init --auto
-                _run sudo multipass set local.driver=lxd
               fi
+
+              # Set the right driver
+              _run sudo multipass set local.driver=${{ matrix.driver }}
 
               # Give multipassd time to settle (#1995)
               _retry_grep 12 5 "\w,lts\W" _run $MP find

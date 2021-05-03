@@ -29,7 +29,15 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
-TEST(SimpleStreamsManifest, can_parse_image_info)
+struct SimpleStreamsManifest : public Test
+{
+    void SetUp()
+    {
+        mpt::MockSettings::setup_driver_settings("qemu");
+    }
+};
+
+TEST_F(SimpleStreamsManifest, can_parse_image_info)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -42,7 +50,7 @@ TEST(SimpleStreamsManifest, can_parse_image_info)
     EXPECT_FALSE(info->image_location.isEmpty());
 }
 
-TEST(SimpleStreamsManifest, can_find_info_by_alias)
+TEST_F(SimpleStreamsManifest, can_find_info_by_alias)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     const auto host_url{"http://stream/url"};
@@ -59,25 +67,25 @@ TEST(SimpleStreamsManifest, can_find_info_by_alias)
     EXPECT_THAT(info->stream_location, Eq(host_url));
 }
 
-TEST(SimpleStreamsManifest, throws_on_invalid_json)
+TEST_F(SimpleStreamsManifest, throws_on_invalid_json)
 {
     QByteArray json;
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
-TEST(SimpleStreamsManifest, throws_on_invalid_top_level_type)
+TEST_F(SimpleStreamsManifest, throws_on_invalid_top_level_type)
 {
     auto json = mpt::load_test_file("invalid_top_level.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
-TEST(SimpleStreamsManifest, throws_when_missing_products)
+TEST_F(SimpleStreamsManifest, throws_when_missing_products)
 {
     auto json = mpt::load_test_file("missing_products_manifest.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
-TEST(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
+TEST_F(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
 {
     auto json = mpt::load_test_file("missing_versions_manifest.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
@@ -86,7 +94,7 @@ TEST(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
 }
 
-TEST(SimpleStreamsManifest, chooses_newest_version)
+TEST_F(SimpleStreamsManifest, chooses_newest_version)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -100,7 +108,7 @@ TEST(SimpleStreamsManifest, chooses_newest_version)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST(SimpleStreamsManifest, can_query_all_versions)
+TEST_F(SimpleStreamsManifest, can_query_all_versions)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -118,7 +126,7 @@ TEST(SimpleStreamsManifest, can_query_all_versions)
     }
 }
 
-TEST(SimpleStreamsManifest, info_has_kernel_and_initrd_paths)
+TEST_F(SimpleStreamsManifest, info_has_kernel_and_initrd_paths)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -130,7 +138,7 @@ TEST(SimpleStreamsManifest, info_has_kernel_and_initrd_paths)
     EXPECT_FALSE(info->initrd_location.isEmpty());
 }
 
-TEST(SimpleStreamsManifest, lxd_driver_returns_expected_data)
+TEST_F(SimpleStreamsManifest, lxd_driver_returns_expected_data)
 {
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 

@@ -140,8 +140,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
 {
-    // snapcraft:core don't work on LXD yet
-    return !(utils::get_driver_str() == "lxd" && remote == "snapcraft" && (alias == "core" || alias == "16.04"));
+    return true;
 }
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote)
@@ -217,7 +216,7 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::default_driver()
 {
-    return QStringLiteral("qemu");
+    return QStringLiteral("lxd");
 }
 
 QString mp::platform::daemon_config_home() // temporary

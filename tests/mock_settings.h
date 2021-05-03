@@ -36,6 +36,7 @@ public:
 
     static void mockit();
     static MockSettings& mock_instance();
+    static void setup_driver_settings(const QString& driver);
 
     MOCK_CONST_METHOD1(get, QString(const QString&));
     MOCK_METHOD2(set, void(const QString&, const QString&));

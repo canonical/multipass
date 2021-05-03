@@ -21,6 +21,7 @@
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
 #include "mock_platform.h"
+#include "mock_settings.h"
 #include "path.h"
 #include "stub_url_downloader.h"
 
@@ -51,6 +52,8 @@ struct UbuntuImageHost : public testing::Test
     {
         EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
+
+        mpt::MockSettings::setup_driver_settings("qemu");
     }
 
     mp::Query make_query(std::string release, std::string remote)

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -xeuo pipefail
+
+export DAEMON_CONFIG_HOME=${SNAP_DATA}/config
+DAEMON_CONFIG=${DAEMON_CONFIG_HOME}/multipassd/multipassd.conf
+
+# if no driver is set
+if ! grep -q '^local.driver=\w' ${DAEMON_CONFIG}; then
+  # if no instances exist
+  if ! grep -q -v '[{}]' ${SNAP_COMMON}/data/multipassd/multipassd-vm-instances.json; then
+    # clear the cache and switch to lxd
+    rm -rf ${SNAP_COMMON}/cache || true
+    ${SNAP}/snap/command-chain/snapcraft-runner ${SNAP}/bin/multipass set local.driver=lxd
+  else
+    # make the qemu choice explicit
+    ${SNAP}/snap/command-chain/snapcraft-runner ${SNAP}/bin/multipass set local.driver=qemu
+  fi
+fi

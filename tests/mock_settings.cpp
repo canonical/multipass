@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
  */
 
 #include "mock_settings.h"
+
+#include <multipass/constants.h>
 
 namespace mpt = multipass::test;
 
@@ -35,4 +37,11 @@ void mpt::MockSettings::setup_mock_defaults()
 {
     ON_CALL(*this, get(_)).WillByDefault([this](const auto& a) { return get_default(a); });
     ON_CALL(*this, set(_, _)).WillByDefault([this](const auto& a, const auto& /*ignored*/) { get_default(a); });
+}
+
+void mpt::MockSettings::setup_driver_settings(const QString& driver)
+{
+    auto& expectation = EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(multipass::driver_key)));
+    if (!driver.isEmpty())
+        expectation.WillRepeatedly(Return(driver));
 }
