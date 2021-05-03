@@ -32,8 +32,7 @@
 
 namespace multipass
 {
-// TODO: Change to correct Workflows URL once the official repo is set up
-const QString default_workflow_url{"https://codeload.github.com/townsend2010/multipass-workflows/zip/refs/heads/main"};
+const QString default_workflow_url{"https://codeload.github.com/canonical/multipass-workflows/zip/refs/heads/main"};
 
 class URLDownloader;
 
