@@ -213,7 +213,15 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
     {
         try
         {
-            vm_desc.vendor_data_config = YAML::Load(workflow_instance["cloud-init"]["vendor-data"].as<std::string>());
+            auto cloud_init_config = YAML::Load(workflow_instance["cloud-init"]["vendor-data"].as<std::string>());
+
+            for (const auto& config : cloud_init_config)
+            {
+                if (config.first.IsScalar())
+                {
+                    vm_desc.vendor_data_config[config.first.Scalar()] = config.second;
+                }
+            }
         }
         catch (const YAML::BadConversion&)
         {
