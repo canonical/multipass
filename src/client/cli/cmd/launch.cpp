@@ -197,7 +197,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "\"key=value,key=value\" format, with the following keys available:\n"
                                      "  name: the network to connect to (required), use the networks command for a "
                                      "list of possible values, or use 'bridged' to use the interface configured via "
-                                     "`multipass set local.bridged-interface`.\n"
+                                     "`multipass set local.bridged-network`.\n"
                                      "  mode: auto|manual (default: auto)\n"
                                      "  mac: hardware address (default: random).\n"
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",

@@ -1337,9 +1337,8 @@ TEST_F(Daemon, refuses_launch_bridged_without_setting)
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "bridged"}, std::cout, err_stream);
-    EXPECT_THAT(
-        err_stream.str(),
-        HasSubstr("You have to `multipass set local.bridged-interface=<name>` to use the `--bridged` shortcut."));
+    EXPECT_THAT(err_stream.str(),
+                HasSubstr("You have to `multipass set local.bridged-network=<name>` to use the `--bridged` shortcut."));
 }
 
 TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
@@ -1355,7 +1354,7 @@ TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
     send_command({"launch", "--network", "bridged"}, std::cout, err_stream);
     EXPECT_THAT(err_stream.str(),
                 HasSubstr("Invalid network 'invalid' set as bridged interface, use `multipass set "
-                          "local.bridged-interface=<name>` to correct. See `multipass networks` for valid names."));
+                          "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
 }
 
 } // namespace
