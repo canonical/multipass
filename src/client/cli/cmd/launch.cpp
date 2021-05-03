@@ -488,10 +488,23 @@ auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInS
 
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
-    cout << "TODO assuming bridge permission for ";
-    for (const auto& net : reply.nets_need_bridging())
-        cout << net << " ";
-    cout << std::endl;
+    static constexpr auto question =
+        "Multipass needs to create bridges|switches to connect to {}. This will temporarily disrupt "
+        "connectivity on those interfaces. Do you want to continue (yes/no)?";
 
-    return true; // TODO@ricab
+    fmt::print(cout, question, fmt::join(reply.nets_need_bridging(), ", "));
+
+    while (true)
+    {
+        std::string answer;
+        std::getline(term->cin(), answer);
+        if (std::regex_match(answer, yes))
+            return true;
+        else if (std::regex_match(answer, no))
+            return false;
+        else
+            cout << "Please answer yes/no: ";
+    }
+
+    return false;
 }
