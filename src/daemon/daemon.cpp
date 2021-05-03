@@ -353,7 +353,7 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
                                                             const mp::VirtualMachineFactory& factory,
-                                                            std::vector<std::string>& nets_need_bridges,
+                                                            std::vector<std::string>& nets_need_bridging,
                                                             mp::LaunchError& option_errors)
 {
     std::vector<mp::NetworkInterface> interfaces;
@@ -395,7 +395,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
         else if (host_net_it->needs_authorization)
-            nets_need_bridges.push_back(host_net_it->id);
+            nets_need_bridging.push_back(host_net_it->id);
 
         // In case the user specified a MAC address, check it is valid.
         if (const auto& mac = QString::fromStdString(net.mac_address()).toLower().toStdString();
