@@ -301,8 +301,10 @@ void mp::LXDVMImageVault::remove(const std::string& name)
 {
     try
     {
-        lxd_request(manager, "DELETE",
-                    QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
+        auto task_reply = lxd_request(
+            manager, "DELETE", QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
+
+        lxd_wait(manager, base_url, task_reply, 300000);
     }
     catch (const LXDNotFoundException&)
     {
