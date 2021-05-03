@@ -2062,6 +2062,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                                                       checked_args.option_errors.SerializeAsString()));
     }
 
+    // TODO: We should only need to query the Workflow Provider once for all info, so this (and timeout below) will
+    //       need a refactoring to do so.
     auto name = name_from(checked_args.instance_name, config->workflow_provider->name_from_workflow(request->image()),
                           *config->name_generator, vm_instances);
 
@@ -2088,6 +2090,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
     if (!instances_running(vm_instances))
         config->factory->hypervisor_health_check();
 
+    // TODO: We should only need to query the Workflow Provider once for all info, so this (and name above) will
+    //       need a refactoring to do so.
     auto timeout = timeout_for(request->timeout(), config->workflow_provider->workflow_timeout(name));
 
     preparing_instances.insert(name);
