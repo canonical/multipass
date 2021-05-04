@@ -119,7 +119,7 @@ TEST_F(Timer, restarts)
     int count = 0;
     std::mutex count_m;
 
-    mpu::Timer t{duration_cast<seconds>(1000ms), [&count, &count_m]() {
+    mpu::Timer t{1s, [&count, &count_m]() {
                      std::lock_guard<std::mutex> lk{count_m};
                      ++count;
                  }};
