@@ -505,22 +505,25 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
     static constexpr auto nodes = on_windows() ? "switches" : "bridges";
     static constexpr auto node = on_windows() ? "switch" : "bridge";
 
-    assert(reply.nets_need_bridging_size()); // precondition
-    if (reply.nets_need_bridging_size() != 1)
-        fmt::print(cout, plural, nodes, fmt::join(reply.nets_need_bridging(), ", "));
-    else
-        fmt::print(cout, singular, node, reply.nets_need_bridging(0));
-
-    while (true)
+    if (term->is_live())
     {
-        std::string answer;
-        std::getline(term->cin(), answer);
-        if (std::regex_match(answer, yes))
-            return true;
-        else if (std::regex_match(answer, no))
-            return false;
+        assert(reply.nets_need_bridging_size()); // precondition
+        if (reply.nets_need_bridging_size() != 1)
+            fmt::print(cout, plural, nodes, fmt::join(reply.nets_need_bridging(), ", "));
         else
-            cout << "Please answer yes/no: ";
+            fmt::print(cout, singular, node, reply.nets_need_bridging(0));
+
+        while (true)
+        {
+            std::string answer;
+            std::getline(term->cin(), answer);
+            if (std::regex_match(answer, yes))
+                return true;
+            else if (std::regex_match(answer, no))
+                return false;
+            else
+                cout << "Please answer yes/no: ";
+        }
     }
 
     return false;
