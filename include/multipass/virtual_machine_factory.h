@@ -43,6 +43,7 @@ class VirtualMachineFactory
 public:
     using UPtr = std::unique_ptr<VirtualMachineFactory>;
     virtual ~VirtualMachineFactory() = default;
+    virtual std::string name() = 0;
     virtual VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                         VMStatusMonitor& monitor) = 0;
 

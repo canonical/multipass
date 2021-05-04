@@ -37,6 +37,7 @@ namespace
 {
 struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
+    MOCK_METHOD0(name, std::string());
     MOCK_METHOD2(create_virtual_machine,
                  mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&, mp::VMStatusMonitor&));
     MOCK_METHOD1(remove_resources_for, void(const std::string&));

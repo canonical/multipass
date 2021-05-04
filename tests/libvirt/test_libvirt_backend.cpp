@@ -75,6 +75,13 @@ TEST_F(LibVirtBackend, libvirt_wrapper_missing_symbol_throws)
     EXPECT_THROW(mp::LibvirtWrapper{"libbroken_libvirt.so"}, mp::LibvirtSymbolAddressException);
 }
 
+TEST_F(LibVirtBackend, returns_expected_name)
+{
+    mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
+
+    EXPECT_EQ(backend.name(), "libvirt");
+}
+
 TEST_F(LibVirtBackend, health_check_failed_connection_throws)
 {
     mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);

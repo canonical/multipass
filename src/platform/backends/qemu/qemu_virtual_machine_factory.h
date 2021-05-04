@@ -36,6 +36,10 @@ public:
     explicit QemuVirtualMachineFactory(const Path& data_dir);
     ~QemuVirtualMachineFactory();
 
+    std::string name() override
+    {
+        return "qemu";
+    };
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;

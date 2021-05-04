@@ -98,6 +98,12 @@ const std::vector<LXDInstanceStatusParamType> lxd_instance_status_suite_inputs{
     {mpt::vm_state_fully_running_data, mp::VirtualMachine::State::running}};
 } // namespace
 
+TEST_F(LXDBackend, returns_expected_name)
+{
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    EXPECT_EQ(backend.name(), "lxd");
+}
+
 TEST_F(LXDBackend, creates_project_and_network_on_healthcheck)
 {
     bool project_created{false};

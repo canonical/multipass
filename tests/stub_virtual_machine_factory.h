@@ -29,6 +29,11 @@ namespace test
 {
 struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 {
+    std::string name() override
+    {
+        return "stub";
+    }
+
     multipass::VirtualMachine::UPtr create_virtual_machine(const multipass::VirtualMachineDescription&,
                                                            multipass::VMStatusMonitor&) override
     {
