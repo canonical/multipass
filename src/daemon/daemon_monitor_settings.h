@@ -18,9 +18,11 @@
 #ifndef MULTIPASS_DAEMON_MONITOR_SETTINGS_H
 #define MULTIPASS_DAEMON_MONITOR_SETTINGS_H
 
+#include <QString>
+
 namespace multipass
 {
-void monitor_and_quit_on_settings_change(); // temporary
+void monitor_and_quit_on_settings_change(const QString& current_driver); // temporary
 }
 
 #endif // MULTIPASS_DAEMON_MONITOR_SETTINGS_H

@@ -31,11 +31,14 @@ namespace
 constexpr const int settings_changed_code = 42;
 } // namespace
 
-void multipass::monitor_and_quit_on_settings_change() // temporary
+void multipass::monitor_and_quit_on_settings_change(const QString& current_driver) // temporary
 {
     static const auto filename = mp::Settings::get_daemon_settings_file_path();
     mp::utils::check_and_create_config_file(filename); // create if not there
 
     static QFileSystemWatcher monitor{{filename}};
-    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
+    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [current_driver] {
+        if (mp::utils::get_driver_str() != current_driver)
+            QCoreApplication::exit(settings_changed_code);
+    });
 }

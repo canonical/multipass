@@ -117,7 +117,7 @@ int main_impl(int argc, char* argv[])
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    mp::monitor_and_quit_on_settings_change(); // temporary
+    mp::monitor_and_quit_on_settings_change(QString::fromStdString(config->factory->name())); // temporary
     mp::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
