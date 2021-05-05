@@ -134,18 +134,26 @@ mp::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
     return mp::nullopt;
 }
 
-void filter_bridge_links(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
+void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
 {
     for (auto& item : networks)
     {
-        auto& links = item.second.links;
-        links.erase(std::remove_if(links.begin(), links.end(),
-                                   [&networks](const std::string& id) {
-                                       auto same_as = [&id](const auto& other) { return other.first == id; };
-                                       return std::find_if(networks.cbegin(), networks.cend(), same_as) ==
-                                              networks.cend();
-                                   }),
-                    links.end()); // filter links to networks we don't recognize
+        if (auto& net = item.second; !net.links.empty())
+        {
+            auto& links = net.links;
+            links.erase(std::remove_if(links.begin(), links.end(),
+                                       [&networks](const std::string& id) {
+                                           auto same_as = [&id](const auto& other) { return other.first == id; };
+                                           return std::find_if(networks.cbegin(), networks.cend(), same_as) ==
+                                                  networks.cend();
+                                       }),
+                        links.end()); // filter links to networks we don't recognize
+
+            assert(net.type == "bridge");
+            net.description =
+                links.empty() ? "Empty network bridge"
+                              : fmt::format("Network bridge with {}", fmt::join(links.cbegin(), links.cend(), ", "));
+        }
     }
 }
 } // namespace
@@ -185,7 +193,7 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
         }
     }
 
-    filter_bridge_links(ifaces_info);
+    update_bridges(ifaces_info);
 
     return ifaces_info;
 }
