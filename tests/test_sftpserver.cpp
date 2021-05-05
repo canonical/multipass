@@ -21,6 +21,7 @@
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
+#include "mock_ssh_process_exit_status.h"
 #include "path.h"
 #include "temp_dir.h"
 #include "temp_file.h"

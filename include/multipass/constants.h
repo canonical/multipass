@@ -32,7 +32,7 @@ constexpr auto min_cpu_cores = "1";
 constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
-constexpr auto default_timeout = std::chrono::minutes(5);
+constexpr auto default_timeout = std::chrono::seconds(300);
 
 constexpr auto home_automount_dir = "Home";
 

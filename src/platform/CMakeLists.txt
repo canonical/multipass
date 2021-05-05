@@ -14,6 +14,7 @@
 
 if(MSVC)
   add_library(platform STATIC
+    platform_proprietary.cpp
     platform_shared.cpp
     platform_win.cpp)
   target_link_libraries(platform
@@ -26,6 +27,7 @@ if(MSVC)
 elseif(APPLE)
   add_library(platform STATIC
     platform_osx.cpp
+    platform_proprietary.cpp
     platform_shared.cpp
     platform_unix.cpp)
   target_link_libraries(platform
