@@ -487,7 +487,7 @@ TEST_F(PlatformLinux, does_not_retrieve_other_specified_device_types)
     EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
 }
 
-struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
+struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::pair<std::string, bool>>>
 {
 };
 
@@ -507,15 +507,21 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     using net_value_type = decltype(MP_PLATFORM.get_network_interfaces_info())::value_type;
     std::vector<Matcher<net_value_type>> network_matchers{};
     std::vector<Matcher<std::string>> substrs_matchers{};
-    for (const auto& member : GetParam())
+    for (const auto& [member, recognized] : GetParam())
     {
+        QDir member_dir = fake_sys_class_net.filePath(QString::fromStdString(member));
+        ASSERT_TRUE(member_dir.mkpath("."));
         ASSERT_TRUE(members_dir.mkpath(QString::fromStdString(member)));
 
-        auto member_type_path = fake_sys_class_net.filePath(QString::fromStdString(member) + "/type");
-        ASSERT_EQ(mpt::make_file_with_content(member_type_path, "1"), 1);
+        if (recognized)
+        {
+            ASSERT_EQ(mpt::make_file_with_content(member_dir.filePath("type"), "1"), 1);
 
-        substrs_matchers.push_back(HasSubstr(member));
-        network_matchers.push_back(Field(&net_value_type::first, member));
+            substrs_matchers.push_back(HasSubstr(member));
+            network_matchers.push_back(Field(&net_value_type::first, member));
+        }
+        else
+            substrs_matchers.push_back(Not(HasSubstr(member)));
     }
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
@@ -529,8 +535,10 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     EXPECT_THAT(net_map, UnorderedElementsAreArray(network_matchers));
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformLinux, BridgeMemberTest,
-                         Values(std::vector<std::string>{"en0"}, std::vector<std::string>{"en0", "en1"},
-                                std::vector<std::string>{"asdf", "ggi", "a1", "fu"}));
+using Param = std::vector<std::pair<std::string, bool>>;
+INSTANTIATE_TEST_SUITE_P(
+    PlatformLinux, BridgeMemberTest,
+    Values(Param{{"en0", true}}, Param{{"en0", false}}, Param{{"en0", false}, {"en1", true}},
+           Param{{"asdf", true}, {"ggi", true}, {"a1", true}, {"fu", false}, {"ho", true}, {"ra", false}}));
 
 } // namespace
