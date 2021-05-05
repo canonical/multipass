@@ -44,7 +44,7 @@ public:
         return {};
     };
 
-    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override
+    void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override
     {
     }
 
