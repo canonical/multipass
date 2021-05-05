@@ -160,7 +160,7 @@ private:
 
         static_assert(SuccessCallableTraits::num_args == 1);
         static_assert(std::is_base_of_v<google::protobuf::Message, SuccessCallableArg0Type>,
-                      "`on_success` doesn't receive a Message");
+                      "`on_success` should receive a Message");
 
         if constexpr (FailureCallableTraits::num_args != 1)
         {
@@ -168,7 +168,7 @@ private:
             using FailureCallableArg1Type =
                 std::remove_reference_t<typename FailureCallableTraits::template arg<1>::type>;
             static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
-                          "`on_success` and `on_failure` handle different reply types");
+                          "`on_success` and `on_failure` should handle the same reply types");
         }
         static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value);
     }
