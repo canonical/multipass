@@ -530,7 +530,7 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, BridgeMemberTest,
-                         Values(std::vector<std::string>{"en0"}, std::vector<std::string>{"en0, en1"},
+                         Values(std::vector<std::string>{"en0"}, std::vector<std::string>{"en0", "en1"},
                                 std::vector<std::string>{"asdf", "ggi", "a1", "fu"}));
 
 } // namespace
