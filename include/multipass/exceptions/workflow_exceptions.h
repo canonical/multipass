@@ -15,26 +15,29 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_UTILS_H
-#define MULTIPASS_MOCK_UTILS_H
+#ifndef MULTIPASS_WORKFLOW_EXCEPTIONS_H
+#define MULTIPASS_WORKFLOW_EXCEPTIONS_H
 
-#include "mock_singleton_helpers.h"
+#include <multipass/format.h>
 
-#include <multipass/utils.h>
+#include <stdexcept>
+#include <string>
 
-#include <gmock/gmock.h>
-
-namespace multipass::test
+namespace multipass
 {
-class MockUtils : public Utils
+class WorkflowMinimumException : public std::runtime_error
 {
 public:
-    using Utils::Utils;
-    MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
-    MOCK_METHOD1(exit, void(int));
-    MOCK_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
+    WorkflowMinimumException(const std::string& type, const std::string& min_val)
+        : runtime_error(fmt::format("Requested {} is less than workflow minimum of {}", type, min_val))
+    {
+    }
 };
-} // namespace multipass::test
-#endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H
+
+class InvalidWorkflowException : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+} // namespace multipass
+#endif // MULTIPASS_WORKFLOW_EXCEPTIONS_H

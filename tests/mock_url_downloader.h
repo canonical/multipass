@@ -15,26 +15,21 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_UTILS_H
-#define MULTIPASS_MOCK_UTILS_H
+#ifndef MULTIPASS_MOCK_URL_DOWNLOADER_H
+#define MULTIPASS_MOCK_URL_DOWNLOADER_H
 
-#include "mock_singleton_helpers.h"
+#include <multipass/url_downloader.h>
 
-#include <multipass/utils.h>
-
-#include <gmock/gmock.h>
-
-namespace multipass::test
+namespace multipass
 {
-class MockUtils : public Utils
+namespace test
 {
-public:
-    using Utils::Utils;
-    MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
-    MOCK_METHOD1(exit, void(int));
-    MOCK_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
+struct MockURLDownloader : public multipass::URLDownloader
+{
+    MockURLDownloader() : URLDownloader{std::chrono::seconds(10)} {};
 
-    MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
+    MOCK_METHOD5(download_to, void(const QUrl&, const QString&, int64_t, const int, const ProgressMonitor&));
 };
-} // namespace multipass::test
-#endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H
+} // namespace test
+} // namespace multipass
+#endif // MULTIPASS_MOCK_URL_DOWNLOADER_H

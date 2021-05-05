@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/default_vm_workflow_provider.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
@@ -29,10 +30,14 @@
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_logger.h"
+#include "mock_platform.h"
 #include "mock_process_factory.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "mock_vm_workflow_provider.h"
+#include "path.h"
+#include "tracking_url_downloader.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -98,10 +103,15 @@ struct Daemon : public mpt::DaemonTestFixture
         ON_CALL(*mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
             return mock_utils->Utils::filesystem_bytes_available(data_directory);
         });
+
+        EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
     }
 
     mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject()};
     NiceMock<mpt::MockUtils>* mock_utils = attr.first;
+
+    mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = platform_attr.first;
 };
 
 TEST_F(Daemon, receives_commands)
@@ -238,6 +248,43 @@ TEST_F(Daemon, data_path_with_storage_valid)
     EXPECT_EQ(config->cache_directory.toStdString(), storage_dir.filePath("cache").toStdString());
 }
 
+TEST_F(Daemon, workflowsDownloadsFromCorrectURL)
+{
+    mpt::TempDir cache_dir;
+    auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
+
+    config_builder.cache_directory = cache_dir.path();
+    config_builder.url_downloader = std::move(url_downloader);
+    config_builder.workflow_provider.reset();
+
+    auto config = config_builder.build();
+
+    mpt::TrackingURLDownloader* downloader = static_cast<mpt::TrackingURLDownloader*>(config->url_downloader.get());
+    EXPECT_EQ(downloader->downloaded_urls.size(), 1);
+    EXPECT_EQ(downloader->downloaded_urls.front(), mp::default_workflow_url);
+}
+
+TEST_F(Daemon, workflowsURLOverrideIsCorrect)
+{
+    mpt::TempDir cache_dir;
+    auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
+    const QString test_workflows_zip{mpt::test_data_path() + "test-workflows.zip"};
+
+    EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillOnce([&test_workflows_zip] {
+        return QUrl::fromLocalFile(test_workflows_zip).toEncoded();
+    });
+
+    config_builder.cache_directory = cache_dir.path();
+    config_builder.url_downloader = std::move(url_downloader);
+    config_builder.workflow_provider.reset();
+
+    auto config = config_builder.build();
+
+    mpt::TrackingURLDownloader* downloader = static_cast<mpt::TrackingURLDownloader*>(config->url_downloader.get());
+    EXPECT_EQ(downloader->downloaded_urls.size(), 1);
+    EXPECT_EQ(downloader->downloaded_urls.front(), QUrl::fromLocalFile(test_workflows_zip).toString());
+}
+
 namespace
 {
 struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<std::string>
@@ -281,6 +328,10 @@ struct RefuseBridging : public Daemon, public WithParamInterface<std::tuple<std:
 struct ListIP : public Daemon,
                 public WithParamInterface<
                     std::tuple<mp::VirtualMachine::State, std::vector<std::string>, std::vector<std::string>>>
+{
+};
+
+struct DaemonLaunchTimeoutValueTestSuite : public Daemon, public WithParamInterface<std::tuple<int, int, int>>
 {
 };
 
@@ -521,6 +572,87 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
                     EXPECT_THAT(write_stanza, YAMLSequenceContainsStringMap(expected_pollinate_map));
                 }
             }));
+
+    send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+
+    static constexpr int num_cores = 4;
+    const mp::MemorySize mem_size{"4G"};
+    const mp::MemorySize disk_space{"25G"};
+    const std::string release{"focal"};
+    const std::string remote{"release"};
+    const std::string name{"ultimo-workflow"};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce([&mem_size, &disk_space, &name](const mp::VirtualMachineDescription& vm_desc, auto&) {
+            EXPECT_EQ(vm_desc.num_cores, num_cores);
+            EXPECT_EQ(vm_desc.mem_size, mem_size);
+            EXPECT_EQ(vm_desc.disk_space, disk_space);
+            EXPECT_EQ(vm_desc.vm_name, name);
+
+            return std::make_unique<mpt::StubVirtualMachine>();
+        });
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _))
+        .WillOnce([&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
+                                      const mp::VMImageVault::PrepareAction& prepare,
+                                      const mp::ProgressMonitor& monitor) {
+            EXPECT_EQ(query.release, release);
+            EXPECT_EQ(query.remote_name, remote);
+
+            return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
+        });
+
+    EXPECT_CALL(*mock_workflow_provider, fetch_workflow_for(_, _))
+        .WillOnce([&mem_size, &disk_space, &release, &remote](const auto&,
+                                                              mp::VirtualMachineDescription& vm_desc) -> mp::Query {
+            vm_desc.num_cores = num_cores;
+            vm_desc.mem_size = mem_size;
+            vm_desc.disk_space = disk_space;
+
+            return {"", release, false, remote, mp::Query::Type::Alias};
+        });
+
+    EXPECT_CALL(*mock_workflow_provider, name_from_workflow(_)).WillOnce(Return(name));
+
+    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({GetParam()});
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, workflow_not_found_passes_expected_data)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce([](const mp::VirtualMachineDescription& vm_desc, auto&) {
+            EXPECT_EQ(vm_desc.num_cores, 1);
+            EXPECT_EQ(vm_desc.mem_size, mp::MemorySize("1G"));
+            EXPECT_EQ(vm_desc.disk_space, mp::MemorySize("5G"));
+
+            return std::make_unique<mpt::StubVirtualMachine>();
+        });
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _))
+        .WillOnce([](const mp::FetchType& fetch_type, const mp::Query& query,
+                     const mp::VMImageVault::PrepareAction& prepare, const mp::ProgressMonitor& monitor) {
+            EXPECT_EQ(query.release, "default");
+            EXPECT_TRUE(query.remote_name.empty());
+
+            return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
+        });
+
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
 
     send_command({GetParam()});
 }
@@ -1132,4 +1264,45 @@ TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
         {"launch", "--network", fmt::format("name=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
 }
 
+TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock");
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
+        return std::move(instance_ptr);
+    });
+
+    // Timeouts are given in seconds
+    const auto [client_timeout, workflow_timeout, expected_timeout] = GetParam();
+
+    EXPECT_CALL(*mock_workflow_provider, workflow_timeout(_)).WillOnce(Return(workflow_timeout));
+
+    EXPECT_CALL(*instance_ptr, wait_until_ssh_up(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                   std::chrono::seconds(expected_timeout))))
+        .WillRepeatedly(Return());
+    EXPECT_CALL(
+        *mock_utils,
+        wait_for_cloud_init(
+            _, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout)), _))
+        .WillRepeatedly(Return());
+
+    config_builder.workflow_provider = std::move(mock_workflow_provider);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::vector<std::string> command{"launch"};
+    if (client_timeout > 0)
+    {
+        command.push_back("--timeout");
+        command.push_back(std::to_string(client_timeout));
+    }
+
+    send_command(command);
+}
+
+INSTANTIATE_TEST_SUITE_P(Daemon, DaemonLaunchTimeoutValueTestSuite,
+                         Values(std::make_tuple(0, 600, 600), // client_timeout, workflow_timeout, expected_timeout
+                                std::make_tuple(1000, 600, 1000), std::make_tuple(1000, 0, 1000),
+                                std::make_tuple(0, 0, 300)));
 } // namespace

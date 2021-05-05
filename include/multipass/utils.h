@@ -105,8 +105,6 @@ std::string match_line_for(const std::string& output, const std::string& matcher
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& ensure_vm_is_running = []() {});
-void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                         const SSHKeyProvider& key_provider);
 void install_sshfs_for(const std::string& name, SSHSession& session,
                        const std::chrono::milliseconds timeout = std::chrono::minutes(5));
 std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
@@ -137,6 +135,10 @@ public:
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory);
     virtual void exit(int code);
+
+    // virtual machine helpers
+    virtual void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+                                     const SSHKeyProvider& key_provider);
 };
 } // namespace multipass
 
@@ -154,7 +156,8 @@ void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chron
         if (try_action(std::forward<Args>(args)...) == TimeoutAction::done)
             return;
 
-        std::this_thread::sleep_for(1s);
+        // The < 1s is used for testing so unit tests don't have to sleep to 1 second
+        std::this_thread::sleep_for(timeout < 1s ? timeout : 1s);
     }
     on_timeout();
 }
