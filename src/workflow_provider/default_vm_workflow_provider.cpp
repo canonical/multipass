@@ -104,7 +104,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
 {
     update_workflows();
 
-    Query query{"", "", false, "", Query::Type::Alias};
+    Query query{"", "default", false, "", Query::Type::Alias};
     auto& workflow_config = workflow_map.at(workflow_name);
 
     auto workflow_instance = workflow_config["instances"][workflow_name];
