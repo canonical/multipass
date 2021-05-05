@@ -133,6 +133,21 @@ mp::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
 
     return mp::nullopt;
 }
+
+void filter_bridge_links(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
+{
+    for (auto& item : networks)
+    {
+        auto& links = item.second.links;
+        links.erase(std::remove_if(links.begin(), links.end(),
+                                   [&networks](const std::string& id) {
+                                       auto same_as = [&id](const auto& other) { return other.first == id; };
+                                       return std::find_if(networks.cbegin(), networks.cend(), same_as) ==
+                                              networks.cend();
+                                   }),
+                    links.end()); // filter links to networks we don't recognize
+    }
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -169,6 +184,8 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
             ifaces_info.emplace(std::move(name), std::move(*iface));
         }
     }
+
+    filter_bridge_links(ifaces_info);
 
     return ifaces_info;
 }
