@@ -110,32 +110,28 @@ bool is_ethernet(const QDir& net_dir)
            get_net_devtype(net_dir).isEmpty();
 }
 
-mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
+mp::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
 {
     static const auto bridge_fname = QStringLiteral("brif");
+    auto id = net_dir.dirName().toStdString();
 
-    std::string type, description;
-    std::vector<std::string> links;
     if (auto bridge = "bridge"; net_dir.exists(bridge))
     {
-        type = bridge;
+        std::vector<std::string> links;
         QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
 
         links.reserve(bridge_members.size());
         std::transform(bridge_members.cbegin(), bridge_members.cend(), std::back_inserter(links),
                        [](const QString& interface) { return interface.toStdString(); });
 
-        description = bridge_members.isEmpty() ? "Empty network bridge"
-                                               : fmt::format("Network bridge with {}", bridge_members.join(", "));
+        auto description = bridge_members.isEmpty() ? "Empty network bridge"
+                                                    : fmt::format("Network bridge with {}", bridge_members.join(", "));
+        return {{std::move(id), bridge, std::move(description), std::move(links)}};
     }
     else if (is_ethernet(net_dir))
-    {
-        type = "ethernet";
-        description = "Ethernet device";
-    }
+        return {{std::move(id), "ethernet", "Ethernet device"}};
 
-    return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description),
-                                    std::move(links)};
+    return mp::nullopt;
 }
 } // namespace
 
@@ -167,9 +163,11 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
     for (const auto& entry : sys_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs))
     {
-        auto iface = get_network(QDir{sys_dir.filePath(entry)});
-        auto name = iface.id; // (can't rely on param evaluation order)
-        ifaces_info.emplace(std::move(name), std::move(iface));
+        if (auto iface = get_network(QDir{sys_dir.filePath(entry)}); iface)
+        {
+            auto name = iface->id; // (can't rely on param evaluation order)
+            ifaces_info.emplace(std::move(name), std::move(*iface));
+        }
     }
 
     return ifaces_info;
