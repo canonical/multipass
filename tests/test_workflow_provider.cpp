@@ -292,7 +292,7 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
 
     auto workflows = workflow_provider.all_workflows();
 
-    EXPECT_EQ(workflows.size(), 9ul);
+    EXPECT_EQ(workflows.size(), 11ul);
 
     EXPECT_TRUE(std::find_if(workflows.cbegin(), workflows.cend(), [](const mp::VMImageInfo& workflow_info) {
                     return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "test-workflow1") &&
@@ -474,4 +474,15 @@ TEST_F(VMWorkflowProvider, invalidTimeoutThrows)
 
     MP_EXPECT_THROW_THAT(workflow_provider.workflow_timeout("invalid-timeout-workflow"), mp::InvalidWorkflowException,
                          mpt::match_what(StrEq(fmt::format("Invalid timeout given in workflow"))));
+}
+
+TEST_F(VMWorkflowProvider, noImageDefinedReturnsDefault)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    auto query = workflow_provider.fetch_workflow_for("no-image-workflow", vm_desc);
+
+    EXPECT_EQ(query.release, "default");
 }
