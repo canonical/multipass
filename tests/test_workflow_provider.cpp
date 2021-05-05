@@ -286,13 +286,13 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
     logger_scope.mock_logger->expect_log(
         mpl::Level::error, "Invalid workflow: The 'version' key is required for the missing-version-workflow workflow");
     logger_scope.mock_logger->expect_log(
-        mpl::Level::error, "Invalid workflow name \'invalid-\?filename-workflow\': must be a valid host name");
+        mpl::Level::error, "Invalid workflow name \'42-invalid-hostname-workflow\': must be a valid host name");
 
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     auto workflows = workflow_provider.all_workflows();
 
-    EXPECT_EQ(workflows.size(), 11ul);
+    EXPECT_EQ(workflows.size(), 10ul);
 
     EXPECT_TRUE(std::find_if(workflows.cbegin(), workflows.cend(), [](const mp::VMImageInfo& workflow_info) {
                     return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "test-workflow1") &&
